@@ -1,4 +1,5 @@
 import {InjectedRouter} from 'react-router';
+import round from 'lodash/round';
 import moment from 'moment';
 import * as qs from 'query-string';
 
@@ -8,15 +9,19 @@ import {
   getInterval,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
+import {MetricsApiResponse} from 'sentry/types';
 import {
+  MetricMeta,
   MetricsApiRequestMetric,
   MetricsApiRequestQuery,
   MetricsGroup,
-  MetricsMeta,
+  MetricType,
+  MRI,
+  UseCase,
 } from 'sentry/types/metrics';
 import {defined, formatBytesBase2, formatBytesBase10} from 'sentry/utils';
-import {parseFunction} from 'sentry/utils/discover/fields';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
+import {formatMRI, getUseCaseFromMRI, parseField} from 'sentry/utils/metrics/mri';
 
 import {DateString, PageFilters} from '../../types/core';
 
@@ -29,7 +34,20 @@ export enum MetricDisplayType {
 
 export const defaultMetricDisplayType = MetricDisplayType.LINE;
 
-export type UseCase = 'sessions' | 'transactions' | 'custom';
+export const getMetricDisplayType = (displayType: unknown): MetricDisplayType => {
+  if (
+    [
+      MetricDisplayType.AREA,
+      MetricDisplayType.BAR,
+      MetricDisplayType.LINE,
+      MetricDisplayType.TABLE,
+    ].includes(displayType as MetricDisplayType)
+  ) {
+    return displayType as MetricDisplayType;
+  }
+
+  return MetricDisplayType.LINE;
+};
 
 export type MetricTag = {
   key: string;
@@ -63,13 +81,24 @@ export interface DdmQueryParams {
 export type MetricsQuery = {
   datetime: PageFilters['datetime'];
   environments: PageFilters['environments'];
-  mri: string;
+  mri: MRI;
   projects: PageFilters['projects'];
   groupBy?: string[];
   op?: string;
   query?: string;
 };
 
+export type MetricMetaCodeLocation = {
+  frames: {
+    absPath?: string;
+    filename?: string;
+    function?: string;
+    lineNo?: number;
+    module?: string;
+  }[];
+  mri: string;
+  timestamp: number;
+};
 export function getDdmUrl(
   orgSlug: string,
   {
@@ -105,7 +134,8 @@ export function getMetricsApiRequestQuery(
   {projects, environments, datetime}: PageFilters,
   overrides: Partial<MetricsApiRequestQuery>
 ): MetricsApiRequestQuery {
-  const useCase = getUseCaseFromMRI(fieldToMri(field).mri);
+  const {mri: mri} = parseField(field) ?? {};
+  const useCase = getUseCaseFromMRI(mri) ?? 'custom';
   const interval = getMetricsInterval(datetime, useCase);
 
   const queryToSend = {
@@ -148,7 +178,7 @@ export function getDateTimeParams({start, end, period}: PageFilters['datetime'])
     : {start: moment(start).toISOString(), end: moment(end).toISOString()};
 }
 
-const metricTypeToReadable = {
+const metricTypeToReadable: Record<MetricType, string> = {
   c: t('counter'),
   g: t('gauge'),
   d: t('distribution'),
@@ -157,49 +187,48 @@ const metricTypeToReadable = {
 };
 
 // Converts from "c" to "counter"
-export function getReadableMetricType(type) {
-  return metricTypeToReadable[type] ?? t('unknown');
+export function getReadableMetricType(type?: string) {
+  return metricTypeToReadable[type as MetricType] ?? t('unknown');
 }
 
-const noUnit = 'none';
+// The metric units that we have support for in the UI
+// others will still be displayed, but will not have any effect on formatting
+export const formattingSupportedMetricUnits = [
+  'none',
+  'nanosecond',
+  'microsecond',
+  'millisecond',
+  'second',
+  'minute',
+  'hour',
+  'day',
+  'week',
+  'ratio',
+  'percent',
+  'bit',
+  'byte',
+  'kibibyte',
+  'kilobyte',
+  'mebibyte',
+  'megabyte',
+  'gibibyte',
+  'gigabyte',
+  'tebibyte',
+  'terabyte',
+  'pebibyte',
+  'petabyte',
+  'exbibyte',
+  'exabyte',
+] as const;
 
-export function parseMRI(mri?: string) {
-  if (!mri) {
-    return null;
-  }
-
-  const cleanMRI = mri.match(/[cdegs]:[\w/.@]+/)?.[0] ?? mri;
-
-  const name = cleanMRI.match(/^[a-z]:\w+\/(.+)(?:@\w+)$/)?.[1] ?? mri;
-  const unit = cleanMRI.split('@').pop() ?? noUnit;
-
-  const useCase = getUseCaseFromMRI(cleanMRI);
-
-  return {
-    name,
-    unit,
-
-    mri: cleanMRI,
-    useCase,
-  };
-}
-
-export function getUseCaseFromMRI(mri?: string): UseCase {
-  if (mri?.includes('custom/')) {
-    return 'custom';
-  }
-  if (mri?.includes('transactions/')) {
-    return 'transactions';
-  }
-  return 'sessions';
-}
+type FormattingSupportedMetricUnit = (typeof formattingSupportedMetricUnits)[number];
 
 export function formatMetricUsingUnit(value: number | null, unit: string) {
   if (!defined(value)) {
     return '\u2014';
   }
 
-  switch (unit) {
+  switch (unit as FormattingSupportedMetricUnit) {
     case 'nanosecond':
       return getDuration(value / 1000000000, 2, true);
     case 'microsecond':
@@ -254,6 +283,42 @@ export function formatMetricUsingUnit(value: number | null, unit: string) {
   }
 }
 
+const METRIC_UNIT_TO_SHORT: Record<FormattingSupportedMetricUnit, string> = {
+  nanosecond: 'ns',
+  microsecond: 'μs',
+  millisecond: 'ms',
+  second: 's',
+  minute: 'min',
+  hour: 'hr',
+  day: 'day',
+  week: 'wk',
+  ratio: '%',
+  percent: '%',
+  bit: 'b',
+  byte: 'B',
+  kibibyte: 'KiB',
+  kilobyte: 'KB',
+  mebibyte: 'MiB',
+  megabyte: 'MB',
+  gibibyte: 'GiB',
+  gigabyte: 'GB',
+  tebibyte: 'TiB',
+  terabyte: 'TB',
+  pebibyte: 'PiB',
+  petabyte: 'PB',
+  exbibyte: 'EiB',
+  exabyte: 'EB',
+  none: '',
+};
+
+const getShortMetricUnit = (unit: string): string => METRIC_UNIT_TO_SHORT[unit] ?? '';
+
+export function formatMetricUsingFixedUnit(value: number | null, unit: string) {
+  return value !== null
+    ? `${round(value, 3).toLocaleString()} ${getShortMetricUnit(unit)}`.trim()
+    : '\u2015';
+}
+
 export function formatMetricsUsingUnitAndOp(
   value: number | null,
   unit: string,
@@ -291,18 +356,14 @@ export function clearQuery(router: InjectedRouter) {
 export function getSeriesName(
   group: MetricsGroup,
   isOnlyGroup = false,
-  groupBy: MetricsQuery['groupBy'],
-  alias?: string
+  groupBy: MetricsQuery['groupBy']
 ) {
-  if (alias) {
-    return alias;
-  }
-
   if (isOnlyGroup && !groupBy?.length) {
-    const mri = Object.keys(group.series)?.[0];
-    const parsed = parseMRI(mri);
+    const field = Object.keys(group.series)?.[0];
+    const {mri} = parseField(field) ?? {mri: field};
+    const name = formatMRI(mri as MRI);
 
-    return parsed?.name ?? '(none)';
+    return name ?? '(none)';
   }
 
   return Object.entries(group.by)
@@ -310,23 +371,7 @@ export function getSeriesName(
     .join(', ');
 }
 
-export function mriToField(mri: string, op: string): string {
-  return `${op}(${mri})`;
-}
-
-export function fieldToMri(field: string): {mri?: string; op?: string} {
-  const parsedFunction = parseFunction(field);
-  if (!parsedFunction) {
-    // We only allow aggregate functions for custom metric alerts
-    return {};
-  }
-  return {
-    mri: parsedFunction.arguments[0],
-    op: parsedFunction.name,
-  };
-}
-
-export function groupByOp(metrics: MetricsMeta[]): Record<string, MetricsMeta[]> {
+export function groupByOp(metrics: MetricMeta[]): Record<string, MetricMeta[]> {
   const uniqueOperations = [
     ...new Set(metrics.flatMap(field => field.operations).filter(isAllowedOp)),
   ].sort();
@@ -338,23 +383,29 @@ export function groupByOp(metrics: MetricsMeta[]): Record<string, MetricsMeta[]>
 
   return groupedByOp;
 }
-// This is a workaround as the alert builder requires a valid aggregate to be set
-export const DEFAULT_METRIC_ALERT_AGGREGATE = 'sum(c:custom/iolnqzyenoqugwm@none)';
 
-export const formatMriAggregate = (aggregate: string) => {
-  if (aggregate === DEFAULT_METRIC_ALERT_AGGREGATE) {
-    return t('Select a metric to get started');
+// TODO(ddm): remove this and all of its usages once backend sends mri fields
+export function mapToMRIFields(
+  data: MetricsApiResponse | undefined,
+  fields: string[]
+): void {
+  if (!data) {
+    return;
   }
 
-  const {mri, op} = fieldToMri(aggregate);
-  const parsed = parseMRI(mri);
+  data.groups.forEach(group => {
+    group.series = swapObjectKeys(group.series, fields);
+    group.totals = swapObjectKeys(group.totals, fields);
+  });
+}
 
-  // The field does not contain an MRI -> return the aggregate as is
-  if (!parsed) {
-    return aggregate;
+function swapObjectKeys(obj: Record<string, unknown> | undefined, newKeys: string[]) {
+  if (!obj) {
+    return {};
   }
 
-  const {name} = parsed;
-
-  return `${op}(${name})`;
-};
+  return Object.keys(obj).reduce((acc, key, index) => {
+    acc[newKeys[index]] = obj[key];
+    return acc;
+  }, {});
+}

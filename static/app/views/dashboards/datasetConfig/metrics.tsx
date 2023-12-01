@@ -7,14 +7,13 @@ import {Series} from 'sentry/types/echarts';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {getMetricsApiRequestQuery, getSeriesName, groupByOp} from 'sentry/utils/metrics';
 import {
-  fieldToMri,
-  getMetricsApiRequestQuery,
-  getSeriesName,
+  formatMRI,
+  formatMRIField,
+  getMRI,
   getUseCaseFromMRI,
-  groupByOp,
-  parseMRI,
-} from 'sentry/utils/metrics';
+} from 'sentry/utils/metrics/mri';
 import {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {MetricSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/metricSearchBar';
 import {FieldValueOption} from 'sentry/views/discover/table/queryField';
@@ -68,7 +67,20 @@ export const MetricsConfig: DatasetConfig<MetricsApiResponse, MetricsApiResponse
   filterAggregateParams: filterMetricMRIs,
   filterYAxisAggregateParams: () => option => filterMetricMRIs(option),
   getGroupByFieldOptions: getTagsForMetric,
+  getFieldHeaderMap: getFormattedMRIHeaders,
 };
+
+function getFormattedMRIHeaders(query?: WidgetQuery) {
+  if (!query) {
+    return {};
+  }
+
+  return (query.fields || []).reduce((acc, field, index) => {
+    const fieldAlias = query.fieldAliases?.[index];
+    acc[field] = fieldAlias || formatMRIField(field);
+    return acc;
+  }, {});
+}
 
 function getMetricTimeseriesSortOptions(_, widgetQuery) {
   if (!widgetQuery.columns) {
@@ -98,12 +110,12 @@ function getMetricTableSortOptions(_, widgetQuery) {
   }
 
   return widgetQuery.fields.map((field, i) => {
-    const parsed = parseMRI(fieldToMri(field).mri);
+    const mri = getMRI(field);
     const alias = widgetQuery.fieldAliases?.[i];
 
     return {
-      label: alias ?? parsed?.name ?? '',
-      value: parsed?.mri ?? '',
+      label: alias ?? formatMRI(mri),
+      value: mri,
     };
   });
 }
@@ -186,12 +198,8 @@ function getTagsForMetric(
     return fieldOptions;
   }
   const field = queries?.[0].aggregates[0] ?? '';
-  const {mri} = fieldToMri(field);
+  const mri = getMRI(field);
   const useCase = getUseCaseFromMRI(mri);
-
-  if (!mri) {
-    return fieldOptions;
-  }
 
   return api
     .requestPromise(`/organizations/${organization.slug}/metrics/tags/`, {
@@ -230,15 +238,10 @@ function handleMetricTableOrderByReset(widgetQuery: WidgetQuery, newFields: stri
   return handleOrderByReset(widgetQuery, newFields);
 }
 
-export function transformMetricsResponseToTable(
-  data: MetricsApiResponse,
-  {aggregates}: WidgetQuery
-): TableData {
-  // TODO(ddm): get rid of this mapping, it is only needed because the API returns
-  // `op(metric_name)` instead of `op(mri)`
-  const rows = mapResponse(data, aggregates).groups.map((group, index) => {
-    const groupColumn = mapDerivedMetricsToFields(group.by);
-    const value = mapDerivedMetricsToFields(group.totals);
+export function transformMetricsResponseToTable(data: MetricsApiResponse): TableData {
+  const rows = data.groups.map((group, index) => {
+    const groupColumn = mapMetricGroupsToFields(group.by);
+    const value = mapMetricGroupsToFields(group.totals);
     return {
       id: String(index),
       ...groupColumn,
@@ -253,9 +256,8 @@ export function transformMetricsResponseToTable(
   return {meta, data: rows};
 }
 
-function mapDerivedMetricsToFields(
-  results: Record<string, number | string | null> | undefined,
-  mapToKey?: string
+function mapMetricGroupsToFields(
+  results: Record<string, number | string | null> | undefined
 ) {
   if (!results) {
     return {};
@@ -263,7 +265,7 @@ function mapDerivedMetricsToFields(
 
   const mappedResults: typeof results = {};
   for (const [key, value] of Object.entries(results)) {
-    mappedResults[mapToKey ?? key] = value;
+    mappedResults[key] = value;
   }
   return mappedResults;
 }
@@ -271,8 +273,8 @@ function mapDerivedMetricsToFields(
 function changeObjectValuesToTypes(
   obj: Record<string, number | string | null> | undefined
 ) {
-  return Object.keys(obj ?? {}).reduce((acc, key) => {
-    acc[key] = key.includes('@') ? 'number' : 'string';
+  return Object.entries(obj ?? {}).reduce((acc, [key, value]) => {
+    acc[key] = typeof value;
     return acc;
   }, {});
 }
@@ -303,12 +305,9 @@ export function transformMetricsResponseToSeries(
   data.groups.forEach(group => {
     Object.keys(group.series).forEach(field => {
       results.push({
-        seriesName: getSeriesName(
-          group,
-          data.groups.length === 1,
-          widgetQuery.columns,
-          queryAlias
-        ),
+        seriesName:
+          queryAlias ||
+          getSeriesName(group, data.groups.length === 1, widgetQuery.columns),
         data: data.intervals.map((interval, index) => ({
           name: interval,
           value: group.series[field][index] ?? 0,
@@ -365,30 +364,3 @@ function getMetricRequest(
     query: requestData,
   });
 }
-
-const mapResponse = (data: MetricsApiResponse, field: string[]): MetricsApiResponse => {
-  const mappedGroups = data.groups.map(group => {
-    return {
-      ...group,
-      by: group.by,
-      series: swapKeys(group.series, field),
-      totals: swapKeys(group.totals, field),
-    };
-  });
-
-  return {...data, groups: mappedGroups};
-};
-
-const swapKeys = (obj: Record<string, unknown> | undefined, newKeys: string[]) => {
-  if (!obj) {
-    return {};
-  }
-
-  const keys = Object.keys(obj);
-  const values = Object.values(obj);
-  const newObj = {};
-  keys.forEach((_, index) => {
-    newObj[newKeys[index]] = values[index];
-  });
-  return newObj;
-};

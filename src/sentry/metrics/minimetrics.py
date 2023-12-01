@@ -24,12 +24,28 @@ def patch_sentry_sdk():
         )
 
     @wraps(real_add)
-    def tracked_add(self, ty, *args, **kwargs):
-        real_add(self, ty, *args, **kwargs)
+    def tracked_add(
+        self,
+        ty,
+        key,
+        value,
+        unit,
+        tags,
+        timestamp=None,
+        local_aggregator=None,
+        stacklevel=0,
+    ):
+        self._enable_code_locations = options.get("delightful_metrics.enable_code_locations")
+        real_add(self, ty, key, value, unit, tags, timestamp, local_aggregator, stacklevel + 1)
         report_tracked_add(ty)
 
     @wraps(real_emit)
-    def patched_emit(self, flushable_buckets: Iterable[Tuple[int, Dict[Any, Metric]]]):
+    def patched_emit(
+        self, flushable_buckets: Iterable[Tuple[int, Dict[Any, Metric]]], code_locations: Any
+    ):
+        if not flushable_buckets and not code_locations:
+            return
+
         flushable_metrics = []
         stats_by_type: Any = {}
         for buckets_timestamp, buckets in flushable_buckets:
@@ -43,7 +59,7 @@ def patch_sentry_sdk():
                 )
 
         for metric_type, (buckets_count, buckets_weight) in stats_by_type.items():
-            metrics.timing(
+            metrics.distribution(
                 key="minimetrics.flushed_buckets",
                 value=buckets_count,
                 tags={"metric_type": metric_type},
@@ -55,7 +71,7 @@ def patch_sentry_sdk():
                 tags={"metric_type": metric_type},
                 sample_rate=1.0,
             )
-            metrics.timing(
+            metrics.distribution(
                 key="minimetrics.flushed_buckets_weight",
                 value=buckets_weight,
                 tags={"metric_type": metric_type},
@@ -69,12 +85,14 @@ def patch_sentry_sdk():
             )
 
         if options.get("delightful_metrics.enable_capture_envelope"):
-            envelope = real_emit(self, flushable_buckets)
-            metrics.timing(
-                key="minimetrics.encoded_metrics_size",
-                value=len(envelope.items[0].payload.get_bytes()),
-                sample_rate=1.0,
-            )
+            envelope = real_emit(self, flushable_buckets, code_locations)
+            if envelope is not None:
+                metrics.distribution(
+                    key="minimetrics.encoded_metrics_size",
+                    value=len(envelope.items[0].payload.get_bytes()),
+                    sample_rate=1.0,
+                    unit="byte",
+                )
 
     MetricsAggregator.add = tracked_add  # type: ignore
     MetricsAggregator._emit = patched_emit  # type: ignore
@@ -86,6 +104,10 @@ def before_emit_metric(key: str, tags: Dict[str, Any]) -> bool:
         tags.pop("release", None)
         tags.pop("environment", None)
     return True
+
+
+def should_summarize_metric(key: str, tags: Dict[str, Any]) -> bool:
+    return random.random() < options.get("delightful_metrics.metrics_summary_sample_rate")
 
 
 class MiniMetricsMetricsBackend(MetricsBackend):
@@ -111,6 +133,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         amount: Union[float, int] = 1,
         sample_rate: float = 1,
         unit: Optional[str] = None,
+        stacklevel: int = 0,
     ) -> None:
         if self._keep_metric(sample_rate):
             sentry_sdk.metrics.incr(
@@ -118,6 +141,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
                 value=amount,
                 tags=tags,
                 unit=self._to_minimetrics_unit(unit=unit),
+                stacklevel=stacklevel + 1,
             )
 
     def timing(
@@ -127,6 +151,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         instance: Optional[str] = None,
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
+        stacklevel: int = 0,
     ) -> None:
         if self._keep_metric(sample_rate):
             sentry_sdk.metrics.distribution(
@@ -135,6 +160,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
                 tags=tags,
                 # Timing is defaulted to seconds.
                 unit="second",
+                stacklevel=stacklevel + 1,
             )
 
     def gauge(
@@ -145,6 +171,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
         unit: Optional[str] = None,
+        stacklevel: int = 0,
     ) -> None:
         if self._keep_metric(sample_rate):
             if options.get("delightful_metrics.emit_gauges"):
@@ -153,6 +180,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
                     value=value,
                     tags=tags,
                     unit=self._to_minimetrics_unit(unit=unit),
+                    stacklevel=stacklevel + 1,
                 )
             else:
                 sentry_sdk.metrics.incr(
@@ -160,6 +188,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
                     value=value,
                     tags=tags,
                     unit=self._to_minimetrics_unit(unit=unit),
+                    stacklevel=stacklevel + 1,
                 )
 
     def distribution(
@@ -170,6 +199,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
         unit: Optional[str] = None,
+        stacklevel: int = 0,
     ) -> None:
         if self._keep_metric(sample_rate):
             sentry_sdk.metrics.distribution(
@@ -177,4 +207,5 @@ class MiniMetricsMetricsBackend(MetricsBackend):
                 value=value,
                 tags=tags,
                 unit=self._to_minimetrics_unit(unit=unit),
+                stacklevel=stacklevel + 1,
             )

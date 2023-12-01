@@ -27,6 +27,7 @@ from urllib.parse import urlparse
 
 import sentry
 from sentry.conf.types.consumer_definition import ConsumerDefinition
+from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.topic_definition import TopicDefinition
@@ -465,6 +466,9 @@ CSP_FONT_SRC = [
 ]
 CSP_CONNECT_SRC = [
     "'self'",
+    "*.algolia.net",
+    "*.algolianet.com",
+    "*.algolia.io",
 ]
 CSP_FRAME_ANCESTORS = [
     "'none'",
@@ -476,14 +480,16 @@ CSP_BASE_URI = [
     "'none'",
 ]
 CSP_STYLE_SRC = [
-    "'self'",
     "'unsafe-inline'",
+    "*",  # required for replays
 ]
 CSP_IMG_SRC = [
-    "'self'",
     "blob:",
     "data:",
-    "https://secure.gravatar.com",
+    "*",  # required for replays
+]
+CSP_MEDIA_SRC = [
+    "*",  # required for replays
 ]
 
 if ENVIRONMENT == "development":
@@ -649,7 +655,14 @@ def SOCIAL_AUTH_DEFAULT_USERNAME() -> str:
 SOCIAL_AUTH_PROTECTED_USER_FIELDS = ["email"]
 SOCIAL_AUTH_FORCE_POST_DISCONNECT = True
 
-# Hybrid cloud multi-silo configuration
+# Hybrid cloud multi-silo configuration #
+
+# Unused - compatibility shim for getsentry
+USE_SILOS = os.environ.get("SENTRY_USE_SILOS", None)
+
+# Defined by `sentry devserver` to enable siloed local development
+SILO_DEVSERVER = os.environ.get("SENTRY_SILO_DEVSERVER", False)
+
 # Which silo this instance runs as (CONTROL|REGION|MONOLITH|None) are the expected values
 SILO_MODE = os.environ.get("SENTRY_SILO_MODE", None)
 
@@ -659,15 +672,15 @@ SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 # Returns the customer single tenant ID.
 CUSTOMER_ID = os.environ.get("CUSTOMER_ID", None)
 
-# Enable siloed development environment.
-USE_SILOS = os.environ.get("SENTRY_USE_SILOS", None)
-
 # List of the available regions, or a JSON string
 # that is parsed.
 SENTRY_REGION_CONFIG: Any = ()
 
 # Shared secret used to sign cross-region RPC requests.
-RPC_SHARED_SECRET = None
+RPC_SHARED_SECRET: list[str] | None = None
+
+# Timeout for RPC requests between regions
+RPC_TIMEOUT = 5.0
 
 # The protocol, host and port for control silo
 # Usecases include sending requests to the Integration Proxy Endpoint and RPC requests.
@@ -795,7 +808,7 @@ CELERY_IMPORTS = (
 default_exchange = Exchange("default", type="direct")
 control_exchange = default_exchange
 
-if USE_SILOS:
+if SILO_DEVSERVER:
     control_exchange = Exchange("control", type="direct")
 
 
@@ -803,7 +816,7 @@ CELERY_QUEUES_CONTROL = [
     Queue("app_platform.control", routing_key="app_platform.control", exchange=control_exchange),
     Queue("auth.control", routing_key="auth.control", exchange=control_exchange),
     Queue("cleanup.control", routing_key="cleanup.control", exchange=control_exchange),
-    Queue("email", routing_key="email", exchange=control_exchange),
+    Queue("email.control", routing_key="email.control", exchange=control_exchange),
     Queue("integrations.control", routing_key="integrations.control", exchange=control_exchange),
     Queue("files.delete.control", routing_key="files.delete.control", exchange=control_exchange),
     Queue(
@@ -836,6 +849,7 @@ CELERY_QUEUES_REGION = [
     Queue("digests.delivery", routing_key="digests.delivery"),
     Queue("digests.scheduling", routing_key="digests.scheduling"),
     Queue("email", routing_key="email"),
+    Queue("email.inbound", routing_key="email.inbound"),
     Queue("events.preprocess_event", routing_key="events.preprocess_event"),
     Queue("events.process_event", routing_key="events.process_event"),
     Queue("events.reprocess_events", routing_key="events.reprocess_events"),
@@ -882,6 +896,7 @@ CELERY_QUEUES_REGION = [
     Queue("incident_snapshots", routing_key="incident_snapshots"),
     Queue("incidents", routing_key="incidents"),
     Queue("merge", routing_key="merge"),
+    Queue("notifications", routing_key="notifications"),
     Queue("options", routing_key="options"),
     Queue("post_process_errors", routing_key="post_process_errors"),
     Queue("post_process_issue_platform", routing_key="post_process_issue_platform"),
@@ -1263,7 +1278,7 @@ BGTASKS = {
 # The loggers that it overrides are root and any in LOGGING.overridable.
 # Be very careful with this in a production system, because the celery
 # logger can be extremely verbose when given INFO or DEBUG.
-LOGGING = {
+LOGGING: LoggingConfig = {
     "default_level": "INFO",
     "version": 1,
     "disable_existing_loggers": True,
@@ -1529,6 +1544,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:gitlab-disable-on-broken": False,
     # Enable multi project selection
     "organizations:global-views": False,
+    # Enable grouping of ChunkLoadErrors
+    "organizations:group-chunk-load-errors": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
     "organizations:grouping-tree-ui": False,
     # Enable experimental new version of stacktrace component where additional
@@ -1718,12 +1735,16 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-issues-render-blocking-assets-detector": False,
     # Enable MN+1 DB performance issue type
     "organizations:performance-issues-m-n-plus-one-db-detector": False,
+    # Enable trace details page with embedded spans
+    "organizations:performance-trace-details": False,
     # Enable FE/BE for tracing without performance
-    "organizations:performance-tracing-without-performance": False,
+    "organizations:performance-tracing-without-performance": True,
     # Enable database view powered by span metrics
     "organizations:performance-database-view": False,
     # Enable database view percentile graphs
     "organizations:performance-database-view-percentiles": False,
+    # Enable database view query source UI
+    "organizations:performance-database-view-query-source": False,
     # Enable removing the fallback for metrics compatibility
     "organizations:performance-remove-metrics-compatibility-fallback": False,
     # Enable performance score calculation for transactions in relay
@@ -1767,6 +1788,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-new-event-counts": False,
     # Enable the accessibility issues endpoint
     "organizations:session-replay-accessibility-issues": False,
+    # Enable the new zero state UI
+    "organizations:session-replay-new-zero-state": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
@@ -1844,10 +1867,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:team-insights": True,
     # Enable u2f verification on superuser form
     "organizations:u2f-superuser-form": False,
-    # Enable project creation for all
-    "organizations:team-project-creation-all": False,
-    # Enable project creation for all and puts organization into test group
-    "organizations:team-project-creation-all-allowlist": False,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": True,
     # Enable team workflow notifications
@@ -1884,12 +1903,12 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:on-demand-metrics-prefill": False,
     # Enable source maps debugger
     "organizations:source-maps-debugger-blue-thunder-edition": False,
-    # Enable metric alert rate limiting
-    "organizations:metric-alert-rate-limiting": False,
     # Enable the new suspect commits calculation that uses all frames in the stack trace
     "organizations:suspect-commits-all-frames": False,
     # Enable logs for debugging weekly reports
     "organizations:weekly-report-logs": False,
+    # Enables region provisioning for individual users
+    "organizations:multi-region-selector": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
@@ -1898,6 +1917,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:first-event-severity-alerting": False,
     # Enable calculating a severity score for events which create a new group
     "projects:first-event-severity-calculation": False,
+    # Enable escalation detection for new issues
+    "projects:first-event-severity-new-escalation": False,
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,
@@ -1918,6 +1939,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:span-metrics-extraction-ga-modules": False,
     "projects:span-metrics-extraction-all-modules": False,
     "projects:span-metrics-extraction-resource": False,
+    # Enable standalone span ingestion
+    "organizations:standalone-span-ingestion": False,
     # Metrics: Enable ingestion, storage, and rendering of custom metrics
     "organizations:custom-metrics": False,
     # Metrics: Enable creation of investigation dynamic sampling rules (rules that
@@ -1951,7 +1974,7 @@ SENTRY_PUBLIC = False
 SENTRY_SINGLE_ORGANIZATION = False
 
 # Login url (defaults to LOGIN_URL)
-SENTRY_LOGIN_URL = None
+SENTRY_LOGIN_URL: str | None = None
 
 # Default project ID (for internal errors)
 SENTRY_PROJECT = 1
@@ -1967,13 +1990,13 @@ SENTRY_FRONTEND_PROJECT: int | None = None
 # over SENTRY_FRONTEND_PROJECT or SENTRY_PROJECT
 SENTRY_FRONTEND_DSN: str | None = None
 # DSN for tracking all client HTTP requests (which can be noisy) [experimental]
-SENTRY_FRONTEND_REQUESTS_DSN = None
+SENTRY_FRONTEND_REQUESTS_DSN: str | None = None
 
 # Configuration for the JavaScript SDK's allowUrls option - defaults to ALLOWED_HOSTS
-SENTRY_FRONTEND_WHITELIST_URLS = None
+SENTRY_FRONTEND_WHITELIST_URLS: list[str] | None = None
 
 # Configuration for the JavaScript SDK's tracePropagationTargets option - defaults to an empty array
-SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS = None
+SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS: list[str] | None = None
 
 # ----
 # APM config
@@ -2017,8 +2040,8 @@ SENTRY_REPROCESSING_APM_SAMPLING = 0
 # ----
 
 # DSN to use for Sentry monitors
-SENTRY_MONITOR_DSN = None
-SENTRY_MONITOR_API_ROOT = None
+SENTRY_MONITOR_DSN: str | None = None
+SENTRY_MONITOR_API_ROOT: str | None = None
 
 # Web Service
 SENTRY_WEB_HOST = "127.0.0.1"
@@ -2283,8 +2306,8 @@ SENTRY_CHART_RENDERER_OPTIONS: dict[str, Any] = {}
 
 # URI Prefixes for generating DSN URLs
 # (Defaults to URL_PREFIX by default)
-SENTRY_ENDPOINT = None
-SENTRY_PUBLIC_ENDPOINT = None
+SENTRY_ENDPOINT: str | None = None
+SENTRY_PUBLIC_ENDPOINT: str | None = None
 
 # Hostname prefix to add for organizations that are opted into the
 # `organizations:org-subdomains` feature.
@@ -2335,7 +2358,7 @@ SENTRY_CACHE_MAX_VALUE_SIZE: int | None = None
 SENTRY_MANAGED_USER_FIELDS = ()
 
 # Secret key for OpenAI
-OPENAI_API_KEY = None
+OPENAI_API_KEY: str | None = None
 
 SENTRY_SCOPES = {
     "org:read",
@@ -3006,6 +3029,8 @@ SENTRY_SDK_CONFIG: ServerSdkConfig = {
     "debug": True,
     "send_default_pii": True,
     "auto_enabling_integrations": False,
+    "enable_db_query_source": True,
+    "db_query_source_threshold_ms": 500,
 }
 
 SENTRY_DEV_DSN = os.environ.get("SENTRY_DEV_DSN")
@@ -3128,8 +3153,8 @@ DEPRECATED_SDKS = {
     "sentry-raven": "sentry-ruby",
 }
 
-TERMS_URL = None
-PRIVACY_URL = None
+TERMS_URL: str | None = None
+PRIVACY_URL: str | None = None
 
 # Internal sources for debug information files
 #
@@ -3282,7 +3307,7 @@ SENTRY_RELAY_OPEN_REGISTRATION = True
 # GeoIP
 # Used for looking up IP addresses.
 # For example /usr/local/share/GeoIP/GeoIPCity.mmdb
-GEOIP_PATH_MMDB = None
+GEOIP_PATH_MMDB: str | None = None
 
 # CDN
 # If this is an absolute url like e.g.: https://js.sentry-cdn.com/
@@ -3544,7 +3569,7 @@ SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 # Synthetic monitoring recurringly send events, prepared with specific
 # attributes, which can be identified through the whole processing pipeline and
 # observed mainly for producing stable metrics.
-SENTRY_SYNTHETIC_MONITORING_PROJECT_ID = None
+SENTRY_SYNTHETIC_MONITORING_PROJECT_ID: int | None = None
 
 # Similarity cluster to use
 # Similarity-v1: uses hardcoded set of event properties for diffing
@@ -3670,7 +3695,7 @@ ADDITIONAL_SAMPLED_TASKS: dict[str, float] = {}
 DEMO_MODE = False
 
 # all demo orgs are owned by the user with this email
-DEMO_ORG_OWNER_EMAIL = None
+DEMO_ORG_OWNER_EMAIL: str | None = None
 
 # adds an extra JS to HTML template
 INJECTED_SCRIPT_ASSETS: list[str] = []
@@ -3713,7 +3738,7 @@ SENTRY_SSO_EXPIRY_SECONDS = os.environ.get("SENTRY_SSO_EXPIRY_SECONDS", None)
 
 # Set to an iterable of strings matching services so only logs from those services show up
 # eg. DEVSERVER_LOGS_ALLOWLIST = {"server", "webpack", "worker"}
-DEVSERVER_LOGS_ALLOWLIST = None
+DEVSERVER_LOGS_ALLOWLIST: set[str] | None = None
 
 # Filter for logs of incoming requests, which matches on substrings. For example, to prevent the
 # server from logging
@@ -3763,7 +3788,7 @@ SENTRY_STRING_INDEXER_CACHE_OPTIONS = {
 }
 SENTRY_POSTGRES_INDEXER_RETRY_COUNT = 2
 
-SENTRY_FUNCTIONS_PROJECT_NAME = None
+SENTRY_FUNCTIONS_PROJECT_NAME: str | None = None
 
 SENTRY_FUNCTIONS_REGION = "us-central1"
 
@@ -3776,42 +3801,6 @@ SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS: dict[str, str] = {}
 SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000
 
 SENTRY_GROUP_ATTRIBUTES_FUTURES_MAX_LIMIT = 10000
-
-
-# USE_SPLIT_DBS is leveraged in tests as we validate db splits further.
-# Split databases are also required for the USE_SILOS devserver flow.
-if USE_SILOS:
-    # Add connections for the region & control silo databases.
-    DATABASES["control"] = DATABASES["default"].copy()
-    DATABASES["control"]["NAME"] = "control"
-
-    # Use the region database in the default connection as region
-    # silo database is the 'default' elsewhere in application logic.
-    DATABASES["default"]["NAME"] = "region"
-
-    DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
-
-if USE_SILOS:
-    # Addresses are hardcoded based on the defaults
-    # we use in commands/devserver.
-    region_port = os.environ.get("SENTRY_BACKEND_PORT", "8010")
-    SENTRY_REGION_CONFIG = [
-        {
-            "name": "us",
-            "snowflake_id": 1,
-            "category": "MULTI_TENANT",
-            "address": f"http://us.localhost:{region_port}",
-            "api_token": "dev-region-silo-token",
-        }
-    ]
-    SENTRY_MONOLITH_REGION = SENTRY_REGION_CONFIG[0]["name"]
-    # RPC authentication and address information
-    RPC_SHARED_SECRET = [
-        "a-long-value-that-is-shared-but-also-secret",
-    ]
-    control_port = os.environ.get("SENTRY_CONTROL_SILO_PORT", "8000")
-    SENTRY_CONTROL_ADDRESS = f"http://127.0.0.1:{control_port}"
-
 
 # How long we should wait for a gateway proxy request to return before giving up
 GATEWAY_PROXY_TIMEOUT = None
@@ -3859,7 +3848,7 @@ SINGLE_SERVER_SILO_MODE = False
 FORCE_SILOED_TESTS = os.environ.get("SENTRY_FORCE_SILOED_TESTS", False)
 
 # Set the URL for signup page that we redirect to for the setup wizard if signup=1 is in the query params
-SENTRY_SIGNUP_URL = None
+SENTRY_SIGNUP_URL: str | None = None
 
 SENTRY_ORGANIZATION_ONBOARDING_TASK = "sentry.onboarding_tasks.backends.organization_onboarding_task.OrganizationOnboardingTaskBackend"
 
@@ -3971,3 +3960,41 @@ REGION_PINNED_URL_NAMES = {
 
 # Shared resource ids for accounting
 EVENT_PROCESSING_STORE = "rc_processing_redis"
+
+if SILO_DEVSERVER:
+    # Add connections for the region & control silo databases.
+    DATABASES["control"] = DATABASES["default"].copy()
+    DATABASES["control"]["NAME"] = "control"
+
+    # Use the region database in the default connection as region
+    # silo database is the 'default' elsewhere in application logic.
+    DATABASES["default"]["NAME"] = "region"
+
+    DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
+
+    # Addresses are hardcoded based on the defaults
+    # we use in commands/devserver.
+    region_port = os.environ.get("SENTRY_REGION_SILO_PORT", "8010")
+    SENTRY_REGION_CONFIG = [
+        {
+            "name": "us",
+            "snowflake_id": 1,
+            "category": "MULTI_TENANT",
+            "address": f"http://127.0.0.1:{region_port}",
+            "api_token": "dev-region-silo-token",
+        }
+    ]
+    SENTRY_MONOLITH_REGION = SENTRY_REGION_CONFIG[0]["name"]
+
+    # RPC authentication and address information
+    RPC_SHARED_SECRET = [
+        "a-long-value-that-is-shared-but-also-secret",
+    ]
+    RPC_TIMEOUT = 15.0
+
+    bind = str(os.environ.get("SENTRY_DEVSERVER_BIND")).split(":")
+    SENTRY_WEB_HOST = bind[0]
+    SENTRY_WEB_PORT = int(bind[1])
+
+    control_port = os.environ.get("SENTRY_CONTROL_SILO_PORT", "8000")
+    SENTRY_CONTROL_ADDRESS = f"http://127.0.0.1:{control_port}"

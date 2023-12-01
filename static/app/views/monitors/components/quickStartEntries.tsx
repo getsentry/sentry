@@ -320,38 +320,12 @@ sentry.CaptureCheckIn(
 export function JavaCronQuickStart(props: QuickStartProps) {
   const {slug} = withDefaultProps(props);
 
-  const checkInSuccessCode = `import io.sentry.CheckIn;
-import io.sentry.CheckInStatus;
-import io.sentry.Sentry;
-import io.sentry.protocol.SentryId;
+  const checkInSuccessCode = `import io.sentry.util.CheckInUtils;
 
-// 🟡 Notify Sentry your job is running:
-SentryId checkInId = Sentry.captureCheckIn(
-    new CheckIn(
-        "${slug}",
-        CheckInStatus.IN_PROGRESS
-    )
-);
-
-// Execute your scheduled task here...
-
-// 🟢 Notify Sentry your job has completed successfully:
-Sentry.captureCheckIn(
-    new CheckIn(
-        checkInId,
-        "${slug}",
-        CheckInStatus.OK
-    )
-);`;
-
-  const checkInFailCode = `// 🔴 Notify Sentry your job has failed:
-Sentry.captureCheckIn(
-    new CheckIn(
-        checkInId,
-        "${slug}",
-        CheckInStatus.ERROR
-    )
-);`;
+String result = CheckInUtils.withCheckIn("${slug}", () -> {
+    // Execute your scheduled task here...
+    return "computed result";
+});`;
 
   return (
     <Fragment>
@@ -364,8 +338,6 @@ Sentry.captureCheckIn(
         )}
       </div>
       <CodeSnippet language="java">{checkInSuccessCode}</CodeSnippet>
-      <div>{t('To notify Sentry if your job execution fails')}</div>
-      <CodeSnippet language="java">{checkInFailCode}</CodeSnippet>
     </Fragment>
   );
 }
@@ -473,13 +445,13 @@ def init_sentry(**kwargs):
 
 export function PHPUpsertPlatformGuide() {
   const scheduleCode = `// Create a crontab schedule object (every 10 minutes)
-$monitorSchedule = \Sentry\MonitorSchedule::crontab('*/10 * * * *');
+$monitorSchedule = \\Sentry\\MonitorSchedule::crontab('*/10 * * * *');
 
 // Or create an interval schedule object (every 10 minutes)
-$monitorSchedule = \Sentry\MonitorSchedule::interval(10, MonitorScheduleUnit::minute());`;
+$monitorSchedule = \\Sentry\\MonitorSchedule::interval(10, \\Sentry\\MonitorScheduleUnit::minute());`;
 
   const upsertCode = `// Create a config object
-$monitorConfig = new \Sentry\MonitorConfig(
+$monitorConfig = new \\Sentry\\MonitorConfig(
     $monitorSchedule,
     checkinMargin: 5, // Optional check-in margin in minutes
     maxRuntime: 15, // Optional max runtime in minutes
@@ -487,18 +459,18 @@ $monitorConfig = new \Sentry\MonitorConfig(
 );
 
 // 🟡 Notify Sentry your job is running:
-$checkInId = \Sentry\captureCheckIn(
+$checkInId = \\Sentry\\captureCheckIn(
     slug: '<monitor-slug>',
-    status: CheckInStatus::inProgress(),
+    status: \\Sentry\\CheckInStatus::inProgress(),
     monitorConfig: $monitorConfig,
 );
 
 // Execute your scheduled task here...
 
 // 🟢 Notify Sentry your job has completed successfully:
-\Sentry\captureCheckIn(
+\\Sentry\\captureCheckIn(
     slug: '<monitor-slug>',
-    status: CheckInStatus::ok(),
+    status: \\Sentry\\CheckInStatus::inProgress(),
     checkInId: $checkInId,
 );`;
 
@@ -674,6 +646,7 @@ MonitorSchedule monitorSchedule = MonitorSchedule.crontab("*/10 * * * *");
 MonitorSchedule monitorSchedule = MonitorSchedule.interval(10, MonitorScheduleUnit.MINUTE);`;
 
   const upsertCode = `import io.sentry.MonitorConfig;
+import io.sentry.util.CheckInUtils;
 
 // Create a config object
 MonitorConfig monitorConfig = new MonitorConfig(monitorSchedule);
@@ -681,24 +654,10 @@ monitorConfig.setTimezone("Europe/Vienna"); // Optional timezone
 monitorConfig.setCheckinMargin(5L); // Optional check-in margin in minutes
 monitorConfig.setMaxRuntime(15L); // Optional max runtime in minutes
 
-// 🟡 Notify Sentry your job is running:
-CheckIn checkIn = new CheckIn(
-    "<monitor-slug>",
-    CheckInStatus.IN_PROGRESS
-);
-checkIn.setMonitorConfig(monitorConfig);
-SentryId checkInId = Sentry.captureCheckIn(checkIn);
-
-// Execute your scheduled task here...
-
-// 🟢 Notify Sentry your job has completed successfully:
-Sentry.captureCheckIn(
-    new CheckIn(
-        checkInId,
-        "<monitor-slug>",
-        CheckInStatus.OK
-    )
-);`;
+String result = CheckInUtils.withCheckIn("<monitor-slug>", monitorConfig, () -> {
+    // Execute your scheduled task here...
+    return "computed result";
+});`;
 
   return (
     <Fragment>
@@ -771,6 +730,101 @@ Sentry.capture_check_in(
   );
 }
 
+export function RubyRailsMixinPlatformGuide() {
+  const activeJobCode = `class ExampleActiveJob < ApplicationJob
+  include Sentry::Cron::MonitorCheckIns
+
+  # slug defaults to the job class name if not provided
+  sentry_monitor_check_ins slug: 'custom', monitor_config: Sentry::Cron::MonitorConfig.from_crontab('5 * * * *')
+
+  def perform(*args)
+    # do stuff
+  end
+end`;
+
+  const sidekiqJobCode = `class ExampleSidekiqJob
+  include Sidekiq::Job
+  include Sentry::Cron::MonitorCheckIns
+
+  # slug defaults to the job class name if not provided
+  sentry_monitor_check_ins slug: 'custom', monitor_config: Sentry::Cron::MonitorConfig.from_crontab('5 * * * *')
+
+  def perform(*args)
+    # do stuff
+  end
+end`;
+
+  const customCode = `# define the monitor config with an interval
+sentry_monitor_check_ins slug: 'custom', monitor_config: Sentry::Cron::MonitorConfig.from_interval(1, :minute)
+
+# define the monitor config with a crontab
+sentry_monitor_check_ins slug: 'custom', monitor_config: Sentry::Cron::MonitorConfig.from_crontab('5 * * * *')`;
+
+  return (
+    <Fragment>
+      <div>
+        {tct(
+          'You can use the mixin module from the [additionalDocs: Ruby SDK] to automatically capture check-ins from your jobs rather than creating them manually.',
+          {
+            additionalDocs: (
+              <ExternalLink href="https://docs.sentry.io/platforms/ruby/crons/#job-monitoring" />
+            ),
+          }
+        )}
+      </div>
+      <div>{t('ActiveJob Example:')}</div>
+      <CodeSnippet language="ruby">{activeJobCode}</CodeSnippet>
+      <div>{t('Sidekiq Example:')}</div>
+      <CodeSnippet language="ruby">{sidekiqJobCode}</CodeSnippet>
+      <div>
+        {t(
+          'You must pass in the monitor config explicity for upserts or you must create a new monitor explicitly in the UI.'
+        )}
+      </div>
+      <CodeSnippet language="ruby">{customCode}</CodeSnippet>
+    </Fragment>
+  );
+}
+
+export function RubySidekiqAutoPlatformGuide() {
+  const sidekiqCronCode = `Sentry.init do |config|
+  # for sidekiq-cron
+  config.enabled_patches += [:sidekiq_cron]
+
+  # for sidekiq-scheduler
+  config.enabled_patches += [:sidekiq_scheduler]
+end`;
+
+  return (
+    <Fragment>
+      <div>
+        {tct(
+          'If you use gems such as [sidekiqCronLink:sidekiq-cron] or [sidekiqSchedulerLink:sidekiq-scheduler] to manage your scheduled jobs, Sentry can automatically monitor all of them for you without any additional configuration.',
+          {
+            sidekiqCronLink: (
+              <ExternalLink href="https://github.com/sidekiq-cron/sidekiq-cron" />
+            ),
+            sidekiqSchedulerLink: (
+              <ExternalLink href="https://github.com/sidekiq-scheduler/sidekiq-scheduler" />
+            ),
+          }
+        )}
+      </div>
+      <div>
+        {tct(
+          '[installLink:Install and configure] the Sentry Ruby and Sidekiq SDKs (min v5.14.0) and turn on the relevant patches:',
+          {
+            installLink: (
+              <ExternalLink href="https://docs.sentry.io/platforms/ruby/guides/sidekiq/" />
+            ),
+          }
+        )}
+      </div>
+      <CodeSnippet language="ruby">{sidekiqCronCode}</CodeSnippet>
+    </Fragment>
+  );
+}
+
 export function RubyCronQuickStart(props: QuickStartProps) {
   const {slug} = withDefaultProps(props);
 
@@ -830,6 +884,46 @@ sentry_monitor_check_ins slug: '${slug}', monitor_config: Sentry::Cron::MonitorC
           {
             installLink: (
               <ExternalLink href="https://docs.sentry.io/platforms/ruby/guides/rails/" />
+            ),
+          }
+        )}
+      </div>
+      <CodeSnippet language="ruby">{mixinCode}</CodeSnippet>
+      <div>{t('You can pass in optional attributes as follows:')}</div>
+      <CodeSnippet language="ruby">{customCode}</CodeSnippet>
+    </Fragment>
+  );
+}
+
+export function RubySidekiqCronQuickStart(props: QuickStartProps) {
+  const {slug} = withDefaultProps(props);
+
+  const mixinCode = `class ExampleJob
+  incude Sidekiq::Job
+  include Sentry::Cron::MonitorCheckIns
+
+  # slug defaults to the job class name
+  sentry_monitor_check_ins slug: '${slug}'
+
+  def perform(*args)
+    # do stuff
+  end
+end`;
+
+  const customCode = `# define the monitor config with an interval
+sentry_monitor_check_ins slug: '${slug}', monitor_config: Sentry::Cron::MonitorConfig.from_interval(1, :minute)
+
+# define the monitor config with a crontab
+sentry_monitor_check_ins slug: '${slug}', monitor_config: Sentry::Cron::MonitorConfig.from_crontab('5 * * * *')`;
+
+  return (
+    <Fragment>
+      <div>
+        {tct(
+          '[installLink:Install and configure] the Sentry Ruby and Sidekiq SDKs (min v5.12.0), then instrument your job with our mixin module:',
+          {
+            installLink: (
+              <ExternalLink href="https://docs.sentry.io/platforms/ruby/guides/sidekiq/" />
             ),
           }
         )}

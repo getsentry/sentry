@@ -1,5 +1,6 @@
+import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
-import type {EChartsOption, LegendComponentOption, LineSeriesOption} from 'echarts';
+import type {LegendComponentOption, LineSeriesOption} from 'echarts';
 import type {Location} from 'history';
 import orderBy from 'lodash/orderBy';
 import moment from 'moment';
@@ -49,138 +50,12 @@ export function truncationFormatter(
 /**
  * Use a shorter interval if the time difference is <= 24 hours.
  */
-export function useShortInterval(datetimeObj: DateTimeObject): boolean {
+function computeShortInterval(datetimeObj: DateTimeObject): boolean {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
-
   return diffInMinutes <= TWENTY_FOUR_HOURS;
 }
-
-export type Fidelity = 'high' | 'medium' | 'low' | 'metrics';
-
-export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'medium') {
-  const diffInMinutes = getDiffInMinutes(datetimeObj);
-
-  if (diffInMinutes >= SIXTY_DAYS) {
-    // Greater than or equal to 60 days
-    if (fidelity === 'high') {
-      return '4h';
-    }
-    if (fidelity === 'medium') {
-      return '1d';
-    }
-    if (fidelity === 'metrics') {
-      return '1d';
-    }
-    return '2d';
-  }
-
-  if (diffInMinutes >= THIRTY_DAYS) {
-    // Greater than or equal to 30 days
-    if (fidelity === 'high') {
-      return '1h';
-    }
-    if (fidelity === 'medium') {
-      return '4h';
-    }
-    if (fidelity === 'metrics') {
-      return '12h';
-    }
-    return '1d';
-  }
-
-  if (diffInMinutes >= TWO_WEEKS) {
-    if (fidelity === 'high') {
-      return '30m';
-    }
-    if (fidelity === 'medium') {
-      return '1h';
-    }
-    if (fidelity === 'metrics') {
-      return '4h';
-    }
-    return '12h';
-  }
-
-  if (diffInMinutes > TWENTY_FOUR_HOURS) {
-    // Between 24 hours and 14 days
-    if (fidelity === 'high') {
-      return '30m';
-    }
-    if (fidelity === 'medium') {
-      return '1h';
-    }
-    if (fidelity === 'metrics') {
-      return '30m';
-    }
-    return '6h';
-  }
-
-  if (diffInMinutes > SIX_HOURS) {
-    // Between six hours and 24 hours
-    if (fidelity === 'high') {
-      return '5m';
-    }
-
-    if (fidelity === 'medium') {
-      return '15m';
-    }
-
-    if (fidelity === 'metrics') {
-      return '5m';
-    }
-    return '1h';
-  }
-
-  if (diffInMinutes > ONE_HOUR) {
-    // Between 1 hour and 6 hours
-    if (fidelity === 'high') {
-      return '5m';
-    }
-    if (fidelity === 'medium') {
-      return '15m';
-    }
-    if (fidelity === 'metrics') {
-      return '1m';
-    }
-    return '1h';
-  }
-
-  // Less than or equal to 1 hour
-  if (fidelity === 'high') {
-    return '1m';
-  }
-  if (fidelity === 'medium') {
-    return '5m';
-  }
-  if (fidelity === 'metrics') {
-    return '1m';
-  }
-  return '10m';
-}
-
-/**
- * Duplicate of getInterval, except that we do not support <1h granularity
- * Used by OrgStatsV2 API
- */
-export function getSeriesApiInterval(datetimeObj: DateTimeObject) {
-  const diffInMinutes = getDiffInMinutes(datetimeObj);
-
-  if (diffInMinutes >= SIXTY_DAYS) {
-    // Greater than or equal to 60 days
-    return '1d';
-  }
-
-  if (diffInMinutes >= THIRTY_DAYS) {
-    // Greater than or equal to 30 days
-    return '4h';
-  }
-
-  if (diffInMinutes < SIX_HOURS) {
-    // Less than 6 hours
-    return '5m';
-  }
-
-  return '1h';
+export function useShortInterval(datetimeObj: DateTimeObject): boolean {
+  return computeShortInterval(datetimeObj);
 }
 
 export type GranularityStep = [timeDiff: number, interval: string];
@@ -216,6 +91,68 @@ export class GranularityLadder {
 
     return step[1];
   }
+}
+
+export type Fidelity = 'high' | 'medium' | 'low' | 'metrics';
+
+export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'medium') {
+  const diffInMinutes = getDiffInMinutes(datetimeObj);
+
+  return {
+    high: highFidelityLadder,
+    medium: mediumFidelityLadder,
+    low: lowFidelityLadder,
+    metrics: metricsFidelityLadder,
+  }[fidelity].getInterval(diffInMinutes);
+}
+
+const highFidelityLadder = new GranularityLadder([
+  [SIXTY_DAYS, '4h'],
+  [THIRTY_DAYS, '1h'],
+  [TWENTY_FOUR_HOURS + 1, '30m'],
+  [ONE_HOUR + 1, '5m'],
+  [0, '1m'],
+]);
+
+const mediumFidelityLadder = new GranularityLadder([
+  [SIXTY_DAYS, '1d'],
+  [THIRTY_DAYS, '4h'],
+  [TWENTY_FOUR_HOURS + 1, '1h'],
+  [ONE_HOUR + 1, '15m'],
+  [0, '5m'],
+]);
+
+const lowFidelityLadder = new GranularityLadder([
+  [SIXTY_DAYS, '2d'],
+  [THIRTY_DAYS, '1d'],
+  [TWO_WEEKS, '12h'],
+  [TWENTY_FOUR_HOURS + 1, '6h'],
+  [ONE_HOUR + 1, '1h'],
+  [0, '10m'],
+]);
+
+const metricsFidelityLadder = new GranularityLadder([
+  [SIXTY_DAYS, '1d'],
+  [THIRTY_DAYS, '12h'],
+  [TWO_WEEKS, '4h'],
+  [TWENTY_FOUR_HOURS, '30m'],
+  [SIX_HOURS, '5m'],
+  [ONE_HOUR, '1m'],
+  [0, '1m'],
+]);
+
+/**
+ * Duplicate of getInterval, except that we do not support <1h granularity
+ * Used by OrgStatsV2 API
+ */
+const seriesAPILadder = new GranularityLadder([
+  [SIXTY_DAYS, '1d'],
+  [THIRTY_DAYS, '4h'],
+  [SIX_HOURS, '1h'],
+  [0, '5m'],
+]);
+export function getSeriesApiInterval(datetimeObj: DateTimeObject) {
+  return seriesAPILadder.getInterval(getDiffInMinutes(datetimeObj));
 }
 
 export function getDiffInMinutes(datetimeObj: DateTimeObject): number {
@@ -365,24 +302,20 @@ function formatList(items: Array<string | number | undefined>) {
   return oxfordizeArray(filteredItems.map(item => item.toString()));
 }
 
-export function useEchartsAriaLabels(
-  {series, useUTC}: Omit<EChartsOption, 'series'>,
+export function computeEchartsAriaLabels(
+  {series, useUTC}: {series: unknown; useUTC: boolean | undefined},
   isGroupedByDate: boolean
 ) {
   const filteredSeries = Array.isArray(series)
     ? series.filter(s => s && !!s.data && s.data.length > 0)
     : [series];
 
-  const dateFormat = useShortInterval({
+  const dateFormat = computeShortInterval({
     start: filteredSeries[0]?.data?.[0][0],
     end: filteredSeries[0]?.data?.slice(-1)[0][0],
   })
     ? `MMMM D, h:mm A`
     : 'MMMM Do';
-
-  if (!filteredSeries[0]) {
-    return {enabled: false};
-  }
 
   function formatDate(date) {
     return getFormattedDate(date, dateFormat, {
@@ -392,17 +325,20 @@ export function useEchartsAriaLabels(
 
   // Generate title (first sentence)
   const chartTypes = new Set(filteredSeries.map(s => s.type));
-  const title = [
-    `${formatList([...chartTypes])} chart`,
-    isGroupedByDate
-      ? `with ${formatDate(filteredSeries[0].data?.[0][0])} to ${formatDate(
-          filteredSeries[0].data?.slice(-1)[0][0]
-        )}`
-      : '',
-    `featuring ${filteredSeries.length} data series: ${formatList(
-      filteredSeries.filter(s => s.data && s.data.length > 0).map(s => s.name)
-    )}`,
-  ].join(' ');
+  const title =
+    filteredSeries.length > 0
+      ? [
+          `${formatList([...chartTypes])} chart`,
+          isGroupedByDate
+            ? `with ${formatDate(filteredSeries[0].data?.[0][0])} to ${formatDate(
+                filteredSeries[0].data?.slice(-1)[0][0]
+              )}`
+            : '',
+          `featuring ${filteredSeries.length} data series: ${formatList(
+            filteredSeries.filter(s => s.data && s.data.length > 0).map(s => s.name)
+          )}`,
+        ].join(' ')
+      : '';
 
   // Generate series descriptions
   const seriesDescriptions = filteredSeries
@@ -446,10 +382,23 @@ export function useEchartsAriaLabels(
     })
     .filter(s => !!s);
 
+  if (!filteredSeries[0]) {
+    return {enabled: false};
+  }
+
   return {
     enabled: true,
-    label: {description: [title, ...seriesDescriptions].join('. ')},
+    label: {description: [title].concat(seriesDescriptions).join('. ')},
   };
+}
+
+export function useEchartsAriaLabels(
+  {series, useUTC}: {series: unknown; useUTC: boolean | undefined},
+  isGroupedByDate: boolean
+) {
+  return useMemo(() => {
+    return computeEchartsAriaLabels({series, useUTC}, isGroupedByDate);
+  }, [series, useUTC, isGroupedByDate]);
 }
 
 export function isEmptySeries(series: Series) {

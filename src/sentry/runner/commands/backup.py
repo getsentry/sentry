@@ -172,7 +172,7 @@ def get_encryptor_from_flags(
 
 def write_findings(findings_file: TextIO | None, findings: Sequence[Finding], printer: Callable):
     for f in findings:
-        printer(f.pretty(), err=True)
+        printer(f"\n\n{f.pretty()}", err=True)
 
     if findings_file:
         findings_encoder = FindingJSONEncoder(
@@ -310,11 +310,11 @@ def compare(
 
     res = validate(left_data, right_data, get_default_comparators())
     if res:
+        click.echo(f"\n\nDone, found {len(res.findings)} differences:")
         write_findings(findings_file, res.findings, click.echo)
-        click.echo(f"Done, found {len(res.findings)} differences:\n\n{res.pretty()}")
     else:
+        click.echo("\n\nDone, found 0 differences!")
         write_findings(findings_file, [], click.echo)
-        click.echo("Done, found 0 differences!")
 
 
 @backup.command(name="decrypt")
@@ -609,13 +609,6 @@ def import_config(
     required=False,
     help=FINDINGS_FILE_HELP,
 )
-@click.option(
-    "--overwrite-configs",
-    "--overwrite_configs",  # For backwards compatibility with self-hosted@23.10.0
-    default=False,
-    is_flag=True,
-    help=OVERWRITE_CONFIGS_HELP,
-)
 @click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @configuration
 def import_global(
@@ -623,7 +616,6 @@ def import_global(
     decrypt_with,
     decrypt_with_gcp_kms,
     findings_file,
-    overwrite_configs,
     silent,
 ):
     """
@@ -637,7 +629,7 @@ def import_global(
         import_in_global_scope(
             src,
             decryptor=get_decryptor_from_flags(decrypt_with, decrypt_with_gcp_kms),
-            flags=ImportFlags(overwrite_configs=overwrite_configs),
+            flags=None,
             printer=printer,
         )
 

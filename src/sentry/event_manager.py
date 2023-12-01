@@ -732,7 +732,9 @@ class EventManager:
             job["received_timestamp"] - job["recorded_timestamp"],
             tags=metric_tags,
         )
-        metrics.timing("events.size.data.post_save", job["event"].size, tags=metric_tags)
+        metrics.distribution(
+            "events.size.data.post_save", job["event"].size, tags=metric_tags, unit="byte"
+        )
         metrics.incr(
             "events.post_save.normalize.errors",
             amount=len(job["data"].get("errors") or ()),
@@ -2597,7 +2599,7 @@ def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> 
                 groupings = event.get_span_groupings()
             groupings.write_to_event(event.data)
 
-            metrics.timing("save_event.transaction.span_count", len(groupings.results))
+            metrics.distribution("save_event.transaction.span_count", len(groupings.results))
             unique_default_hashes = set(groupings.results.values())
             metrics.incr(
                 "save_event.transaction.span_group_count.default",

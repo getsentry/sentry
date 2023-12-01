@@ -20,14 +20,15 @@ import {
   getSeriesName,
   MetricDisplayType,
   MetricWidgetQueryParams,
-  parseMRI,
   updateQuery,
 } from 'sentry/utils/metrics';
+import {getMRI, parseMRI} from 'sentry/utils/metrics/mri';
 import {useMetricsDataZoom} from 'sentry/utils/metrics/useMetricsData';
 import {decodeList} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
 import useRouter from 'sentry/utils/useRouter';
 import {MetricChart} from 'sentry/views/ddm/chart';
+import {CodeLocations} from 'sentry/views/ddm/codeLocations';
 import {MetricWidgetContextMenu} from 'sentry/views/ddm/contextMenu';
 import {QueryBuilder} from 'sentry/views/ddm/queryBuilder';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
@@ -247,16 +248,18 @@ function MetricWidgetBody({
           setHoveredLegend={focusedSeries ? undefined : setHoveredLegend}
         />
       )}
+      <CodeLocations mri={metricsQuery.mri} projects={projects} />
     </StyledMetricWidgetBody>
   );
 }
 
-function getChartSeries(
+export function getChartSeries(
   data: MetricsApiResponse,
   {focusedSeries, groupBy, hoveredLegend, displayType}
 ) {
   // this assumes that all series have the same unit
-  const parsed = parseMRI(Object.keys(data.groups[0]?.series ?? {})[0]);
+  const mri = getMRI(Object.keys(data.groups[0]?.series ?? {})[0]);
+  const parsed = parseMRI(mri);
   const unit = parsed?.unit ?? '';
 
   const series = data.groups.map(g => {

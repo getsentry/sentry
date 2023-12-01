@@ -133,7 +133,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
             ]
         ):
             data = deepcopy(self.valid_alert_rule)
-            data["query"] = "status:unresolved"
+            data["query"] = "is:unresolved"
             resp = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
@@ -143,7 +143,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
-        assert alert_rule.snuba_query.query == "status:unresolved"
+        assert alert_rule.snuba_query.query == "is:unresolved"
 
     def test_project_not_in_request(self):
         """Test that if you don't provide the project data in the request, we grab it from the URL"""

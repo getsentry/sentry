@@ -2,9 +2,9 @@ import type {ModalTypes} from 'sentry/components/globalModal';
 import type {CreateNewIntegrationModalOptions} from 'sentry/components/modals/createNewIntegrationModal';
 import type {CreateReleaseIntegrationModalOptions} from 'sentry/components/modals/createReleaseIntegrationModal';
 import type {DashboardWidgetQuerySelectorModalOptions} from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
-import {InviteRow} from 'sentry/components/modals/inviteMembersModal/types';
+import type {InviteRow} from 'sentry/components/modals/inviteMembersModal/types';
 import type {ReprocessEventModalOptions} from 'sentry/components/modals/reprocessEventModal';
-import {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
+import type {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import ModalStore from 'sentry/stores/modalStore';
 import type {
@@ -18,7 +18,7 @@ import type {
   SentryApp,
   Team,
 } from 'sentry/types';
-import {AppStoreConnectStatusData, CustomRepoType} from 'sentry/types/debugFiles';
+import type {AppStoreConnectStatusData, CustomRepoType} from 'sentry/types/debugFiles';
 
 export type ModalOptions = ModalTypes['options'];
 export type ModalRenderProps = ModalTypes['renderProps'];
@@ -40,14 +40,6 @@ export function closeModal() {
   ModalStore.closeModal();
 }
 
-type OpenSudoModalOptions = {
-  isSuperuser?: boolean;
-  needsReload?: boolean;
-  onClose?: () => void;
-  retryRequest?: () => Promise<any>;
-  sudo?: boolean;
-};
-
 type EmailVerificationModalOptions = {
   actionMessage?: string;
   emailVerified?: boolean;
@@ -59,13 +51,6 @@ type InviteMembersModalOptions = {
   onClose?: () => void;
   source?: string;
 };
-
-export async function openSudo({onClose, ...args}: OpenSudoModalOptions = {}) {
-  const mod = await import('sentry/components/modals/sudoModal');
-  const {default: Modal} = mod;
-
-  openModal(deps => <Modal {...deps} {...args} />, {onClose});
-}
 
 export async function openEmailVerification({
   onClose,
@@ -186,13 +171,6 @@ export async function openTeamAccessRequestModal(options: TeamAccessRequestModal
   const {default: Modal} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />);
-}
-
-export async function redirectToProject(newProjectSlug: string) {
-  const mod = await import('sentry/components/modals/redirectToProject');
-  const {default: Modal} = mod;
-
-  openModal(deps => <Modal {...deps} slug={newProjectSlug} />, {});
 }
 
 type HelpSearchModalOptions = {

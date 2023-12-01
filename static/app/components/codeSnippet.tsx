@@ -7,13 +7,14 @@ import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {prismStyles} from 'sentry/styles/prism';
 import {space} from 'sentry/styles/space';
-import {loadPrismLanguage} from 'sentry/utils/loadPrismLanguage';
+import {loadPrismLanguage} from 'sentry/utils/prism';
 
 interface CodeSnippetProps {
   children: string;
   language: string;
   className?: string;
   dark?: boolean;
+  ['data-render-inline']?: boolean;
   /**
    * Makes the text of the element and its sub-elements not selectable.
    * Userful when loading parts of a code snippet, and
@@ -22,6 +23,10 @@ interface CodeSnippetProps {
   disableUserSelection?: boolean;
   filename?: string;
   hideCopyButton?: boolean;
+  /**
+   * Controls whether the snippet wrapper has rounded corners.
+   */
+  isRounded?: boolean;
   /**
    * Fires after the code snippet is highlighted and all DOM nodes are available
    * @param element The root element of the code snippet
@@ -42,17 +47,19 @@ interface CodeSnippetProps {
 
 export function CodeSnippet({
   children,
-  language,
+  className,
   dark,
+  'data-render-inline': dataRenderInline,
+  disableUserSelection,
   filename,
   hideCopyButton,
-  onCopy,
-  className,
-  onSelectAndCopy,
-  disableUserSelection,
+  language,
+  isRounded = true,
   onAfterHighlight,
-  selectedTab,
+  onCopy,
+  onSelectAndCopy,
   onTabClick,
+  selectedTab,
   tabs,
 }: CodeSnippetProps) {
   const ref = useRef<HTMLModElement | null>(null);
@@ -99,7 +106,11 @@ export function CodeSnippet({
       : t('Unable to copy');
 
   return (
-    <Wrapper className={`${dark ? 'prism-dark ' : ''}${className ?? ''}`}>
+    <Wrapper
+      isRounded={isRounded}
+      className={`${dark ? 'prism-dark ' : ''}${className ?? ''}`}
+      data-render-inline={dataRenderInline}
+    >
       <Header isSolid={hasSolidHeader}>
         {hasTabs && (
           <Fragment>
@@ -151,14 +162,18 @@ export function CodeSnippet({
   );
 }
 
-const Wrapper = styled('div')`
+const Wrapper = styled('div')<{isRounded: boolean}>`
   position: relative;
   background: var(--prism-block-background);
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => (p.isRounded ? p.theme.borderRadius : '0px')};
 
   ${p => prismStyles(p.theme)}
   pre {
     margin: 0;
+  }
+
+  &[data-render-inline='true'] pre {
+    padding: 0;
   }
 `;
 

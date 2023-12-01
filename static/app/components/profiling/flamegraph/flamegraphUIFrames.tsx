@@ -1,7 +1,9 @@
 import {CSSProperties, Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {vec2} from 'gl-matrix';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {
   CanvasPoolManager,
@@ -13,8 +15,10 @@ import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {
   getConfigViewTranslationBetweenVectors,
   getPhysicalSpacePositionFromOffset,
+  initializeFlamegraphRenderer,
 } from 'sentry/utils/profiling/gl/utils';
-import {UIFramesRenderer} from 'sentry/utils/profiling/renderers/uiFramesRenderer';
+import {UIFramesRenderer2D} from 'sentry/utils/profiling/renderers/UIFramesRenderer2D';
+import {UIFramesRendererWebGL} from 'sentry/utils/profiling/renderers/uiFramesRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {UIFrameNode, UIFrames} from 'sentry/utils/profiling/uiFrames';
 import {useProfiles} from 'sentry/views/profiling/profilesProvider';
@@ -63,7 +67,25 @@ export function FlamegraphUIFrames({
       return null;
     }
 
-    return new UIFramesRenderer(uiFramesCanvasRef, uiFrames, flamegraphTheme);
+    const renderer = initializeFlamegraphRenderer(
+      [UIFramesRendererWebGL, UIFramesRenderer2D],
+      [
+        uiFramesCanvasRef,
+        uiFrames,
+        flamegraphTheme,
+        {
+          draw_border: true,
+        },
+      ]
+    );
+
+    if (renderer === null) {
+      Sentry.captureException('Failed to initialize a flamegraph renderer');
+      addErrorMessage('Failed to initialize renderer');
+      return null;
+    }
+
+    return renderer;
   }, [uiFramesCanvasRef, uiFrames, flamegraphTheme]);
 
   const hoveredNode: UIFrameNode[] | null = useMemo(() => {

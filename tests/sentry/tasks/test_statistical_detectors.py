@@ -5,6 +5,7 @@ from unittest import mock
 import pytest
 from django.db.models import F
 
+from sentry.api.endpoints.project_performance_issue_settings import InternalProjectOptions
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.seer.utils import BreakpointData
@@ -57,49 +58,28 @@ def project(organization):
     [
         "project_flags",
         "enable",
-        "performance_project_option_enabled",
-        "performance_project",
         "expected_performance_project",
-        "profiling_project",
         "expected_profiling_project",
     ],
     [
-        pytest.param(None, False, True, True, False, True, False, id="disabled"),
-        pytest.param(None, True, True, False, False, False, False, id="no projects"),
-        pytest.param(None, True, True, True, False, False, False, id="no transactions"),
-        pytest.param(None, True, True, False, False, True, False, id="no profiles"),
+        pytest.param(None, False, False, False, id="disabled"),
+        pytest.param(None, True, False, False, id="no projects"),
+        pytest.param(None, True, False, False, id="no transactions"),
+        pytest.param(None, True, False, False, id="no profiles"),
         pytest.param(
             Project.flags.has_transactions,
             True,
             True,
-            True,
-            True,
-            False,
             False,
             id="performance only",
         ),
-        pytest.param(
-            Project.flags.has_profiles, True, True, False, False, True, True, id="profiling only"
-        ),
+        pytest.param(Project.flags.has_profiles, True, False, True, id="profiling only"),
         pytest.param(
             Project.flags.has_transactions | Project.flags.has_profiles,
             True,
             True,
-            False,
-            False,
-            True,
             True,
             id="performance + profiling",
-        ),
-        pytest.param(
-            Project.flags.has_transactions,
-            True,
-            False,
-            False,
-            False,
-            False,
-            False,
-            id="performance project option disabled",
         ),
     ],
 )
@@ -111,9 +91,6 @@ def test_run_detection_options(
     detect_transaction_trends,
     project_flags,
     enable,
-    performance_project,
-    profiling_project,
-    performance_project_option_enabled,
     expected_performance_project,
     expected_profiling_project,
     project,
@@ -126,32 +103,12 @@ def test_run_detection_options(
         "statistical_detectors.enable": enable,
     }
 
-    features = {
-        "organizations:performance-statistical-detectors-ema": [project.organization.slug]
-        if performance_project
-        else [],
-        "organizations:profiling-statistical-detectors-ema": [project.organization.slug]
-        if profiling_project
-        else [],
-    }
-
-    if performance_project_option_enabled:
-        ProjectOption.objects.set_value(
-            project=project,
-            key="sentry:performance_issue_settings",
-            value={
-                "transaction_duration_regression_detection_enabled": performance_project_option_enabled
-            },
-        )
-
-    with freeze_time(timestamp), override_options(options), Feature(features):
+    with freeze_time(timestamp), override_options(options):
         run_detection()
 
     if expected_performance_project:
         assert detect_transaction_trends.delay.called
-        detect_transaction_trends.delay.assert_has_calls(
-            [mock.call([project.organization_id], [project.id], timestamp)]
-        )
+        detect_transaction_trends.delay.assert_has_calls([mock.call([], [project.id], timestamp)])
     else:
         assert not detect_transaction_trends.delay.called
 
@@ -198,12 +155,12 @@ def test_run_detection_options_multiple_batches(
     detect_transaction_trends.delay.assert_has_calls(
         [
             mock.call(
-                [organization.id],
+                [],
                 [project.id for project in projects[:5]],
                 timestamp,
             ),
             mock.call(
-                [organization.id],
+                [],
                 [project.id for project in projects[5:]],
                 timestamp,
             ),
@@ -219,23 +176,40 @@ def test_run_detection_options_multiple_batches(
 
 
 @pytest.mark.parametrize(
-    ["enabled"],
+    ["task_enabled", "option_enabled"],
     [
-        pytest.param(False, id="disabled"),
-        pytest.param(True, id="enabled"),
+        pytest.param(True, True, id="both enabled"),
+        pytest.param(False, False, id="both disabled"),
+        pytest.param(True, False, id="option disabled"),
+        pytest.param(False, True, id="task disabled"),
     ],
 )
 @mock.patch("sentry.tasks.statistical_detectors.query_transactions")
 @django_db_all
 def test_detect_transaction_trends_options(
     query_transactions,
-    enabled,
+    task_enabled,
+    option_enabled,
     timestamp,
     project,
 ):
-    with override_options({"statistical_detectors.enable": enabled}):
+    ProjectOption.objects.set_value(
+        project=project,
+        key="sentry:performance_issue_settings",
+        value={InternalProjectOptions.TRANSACTION_DURATION_REGRESSION.value: option_enabled},
+    )
+
+    options = {
+        "statistical_detectors.enable": task_enabled,
+    }
+
+    features = {
+        "organizations:performance-statistical-detectors-ema": [project.organization.slug],
+    }
+
+    with override_options(options), Feature(features):
         detect_transaction_trends([project.organization_id], [project.id], timestamp)
-    assert query_transactions.called == enabled
+    assert query_transactions.called == (task_enabled and option_enabled)
 
 
 @pytest.mark.parametrize(
@@ -253,7 +227,15 @@ def test_detect_function_trends_options(
     timestamp,
     project,
 ):
-    with override_options({"statistical_detectors.enable": enabled}):
+    options = {
+        "statistical_detectors.enable": enabled,
+    }
+
+    features = {
+        "organizations:profiling-statistical-detectors-ema": [project.organization.slug],
+    }
+
+    with override_options(options), Feature(features):
         detect_function_trends([project.id], timestamp)
     assert query_functions.called == enabled
 
@@ -261,7 +243,15 @@ def test_detect_function_trends_options(
 @mock.patch("sentry.snuba.functions.query")
 @django_db_all
 def test_detect_function_trends_query_timerange(functions_query, timestamp, project):
-    with override_options({"statistical_detectors.enable": True}):
+    options = {
+        "statistical_detectors.enable": True,
+    }
+
+    features = {
+        "organizations:profiling-statistical-detectors-ema": [project.organization.slug],
+    }
+
+    with override_options(options), Feature(features):
         detect_function_trends([project.id], timestamp)
 
     assert functions_query.called
@@ -296,7 +286,15 @@ def test_detect_transaction_trends(
         for i, ts in enumerate(timestamps)
     ]
 
-    with override_options({"statistical_detectors.enable": True}):
+    options = {
+        "statistical_detectors.enable": True,
+    }
+
+    features = {
+        "organizations:performance-statistical-detectors-ema": [project.organization.slug],
+    }
+
+    with override_options(options), Feature(features):
         for ts in timestamps:
             detect_transaction_trends([project.organization.id], [project.id], ts)
     assert detect_transaction_change_points.apply_async.called
@@ -351,12 +349,16 @@ def test_detect_transaction_trends_ratelimit(
         for i, ts in enumerate(timestamps)
     ]
 
-    with override_options(
-        {
-            "statistical_detectors.enable": True,
-            "statistical_detectors.ratelimit.ema": ratelimit,
-        }
-    ):
+    options = {
+        "statistical_detectors.enable": True,
+        "statistical_detectors.ratelimit.ema": ratelimit,
+    }
+
+    features = {
+        "organizations:performance-statistical-detectors-ema": [project.organization.slug],
+    }
+
+    with override_options(options), Feature(features):
         for ts in timestamps:
             detect_transaction_trends([project.organization.id], [project.id], ts)
 
@@ -404,12 +406,13 @@ def test_limit_regressions_by_project(ratelimit, timestamp, expected_idx):
     }
 
     def trends():
-        yield (None, 0, payloads[(1, 1)])
-        yield (TrendType.Improved, 0, payloads[(2, 1)])
-        yield (TrendType.Regressed, 0, payloads[(2, 2)])
-        yield (TrendType.Regressed, 0, payloads[(3, 1)])
-        yield (TrendType.Regressed, 1, payloads[(3, 2)])
-        yield (TrendType.Regressed, 2, payloads[(3, 3)])
+        # we do not need the detector state here so mock it with None
+        yield (None, 0, payloads[(1, 1)], None)
+        yield (TrendType.Improved, 0, payloads[(2, 1)], None)
+        yield (TrendType.Regressed, 0, payloads[(2, 2)], None)
+        yield (TrendType.Regressed, 0, payloads[(3, 1)], None)
+        yield (TrendType.Regressed, 1, payloads[(3, 2)], None)
+        yield (TrendType.Regressed, 2, payloads[(3, 3)], None)
 
     expected_regressions = [
         payloads[(2, 2)],
@@ -447,7 +450,15 @@ def test_detect_function_trends(
         for i, ts in enumerate(timestamps)
     ]
 
-    with override_options({"statistical_detectors.enable": True}):
+    options = {
+        "statistical_detectors.enable": True,
+    }
+
+    features = {
+        "organizations:profiling-statistical-detectors-ema": [project.organization.slug],
+    }
+
+    with override_options(options), Feature(features):
         for ts in timestamps:
             detect_function_trends([project.id], ts)
     assert detect_function_change_points.apply_async.called
@@ -501,12 +512,16 @@ def test_detect_function_trends_ratelimit(
         for i, ts in enumerate(timestamps)
     ]
 
-    with override_options(
-        {
-            "statistical_detectors.enable": True,
-            "statistical_detectors.ratelimit.ema": ratelimit,
-        }
-    ):
+    options = {
+        "statistical_detectors.enable": True,
+        "statistical_detectors.ratelimit.ema": ratelimit,
+    }
+
+    features = {
+        "organizations:profiling-statistical-detectors-ema": [project.organization.slug],
+    }
+
+    with override_options(options), Feature(features):
         for ts in timestamps:
             detect_function_trends([project.id], ts)
 

@@ -77,7 +77,8 @@ from sentry.models.environment import Environment
 from sentry.models.files.file import File
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
-from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
@@ -90,7 +91,6 @@ from sentry.models.rule import RuleSource
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import plugins
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.models import ReplayRecordingSegment
@@ -119,7 +119,6 @@ from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.pytest.selenium import Browser
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
-from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
 from sentry.utils.dates import to_timestamp
@@ -1803,6 +1802,17 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "measurements.cls": "metrics_distributions",
         "measurements.frames_frozen_rate": "metrics_distributions",
         "measurements.time_to_initial_display": "metrics_distributions",
+        "measurements.score.lcp": "metrics_distributions",
+        "measurements.score.fcp": "metrics_distributions",
+        "measurements.score.fid": "metrics_distributions",
+        "measurements.score.cls": "metrics_distributions",
+        "measurements.score.ttfb": "metrics_distributions",
+        "measurements.score.total": "metrics_distributions",
+        "measurements.score.weight.lcp": "metrics_distributions",
+        "measurements.score.weight.fcp": "metrics_distributions",
+        "measurements.score.weight.fid": "metrics_distributions",
+        "measurements.score.weight.cls": "metrics_distributions",
+        "measurements.score.weight.ttfb": "metrics_distributions",
         "spans.http": "metrics_distributions",
         "user": "metrics_sets",
     }
@@ -2564,24 +2574,17 @@ class SlackActivityNotificationTest(ActivityTestCase):
 
     def setUp(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.SLACK,
-                NotificationSettingTypes.WORKFLOW,
-                NotificationSettingOptionValues.ALWAYS,
-                user_id=self.user.id,
-            )
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.SLACK,
-                NotificationSettingTypes.DEPLOY,
-                NotificationSettingOptionValues.ALWAYS,
-                user_id=self.user.id,
-            )
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.SLACK,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                NotificationSettingOptionValues.ALWAYS,
-                user_id=self.user.id,
-            )
+            base_params = {
+                "user_id": self.user.id,
+                "scope_identifier": self.user.id,
+                "scope_type": "user",
+                "value": "always",
+            }
+            for type in ["workflow", "deploy", "alerts"]:
+                NotificationSettingOption.objects.create(
+                    type=type,
+                    **base_params,
+                )
             UserOption.objects.create(user=self.user, key="self_notifications", value="1")
             self.integration = install_slack(self.organization)
             self.idp = IdentityProvider.objects.create(
@@ -2638,24 +2641,24 @@ class SlackActivityNotificationTest(ActivityTestCase):
 class MSTeamsActivityNotificationTest(ActivityTestCase):
     def setUp(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.MSTEAMS,
-                NotificationSettingTypes.WORKFLOW,
-                NotificationSettingOptionValues.ALWAYS,
-                user_id=self.user.id,
-            )
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.MSTEAMS,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                NotificationSettingOptionValues.ALWAYS,
-                user_id=self.user.id,
-            )
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.MSTEAMS,
-                NotificationSettingTypes.DEPLOY,
-                NotificationSettingOptionValues.ALWAYS,
-                user_id=self.user.id,
-            )
+            base_params = {
+                "user_id": self.user.id,
+                "scope_identifier": self.user.id,
+                "scope_type": "user",
+                "value": "always",
+            }
+            for type in ["workflow", "deploy", "alerts"]:
+                NotificationSettingOption.objects.create(
+                    type=type,
+                    **base_params,
+                )
+                # need to enable the provider options since msteams is disabled by default
+                NotificationSettingProvider.objects.create(
+                    provider="msteams",
+                    type=type,
+                    **base_params,
+                )
+
             UserOption.objects.create(user=self.user, key="self_notifications", value="1")
 
         self.tenant_id = "50cccd00-7c9c-4b32-8cda-58a084f9334a"
