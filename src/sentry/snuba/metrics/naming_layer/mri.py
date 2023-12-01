@@ -26,6 +26,7 @@ __all__ = (
     "parse_mri",
     "get_available_operations",
     "is_mri_field",
+    "parse_mri_field",
     "format_mri_field",
     "format_mri_field_value",
 )
