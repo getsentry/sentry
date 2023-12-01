@@ -315,7 +315,7 @@ const getShortMetricUnit = (unit: string): string => METRIC_UNIT_TO_SHORT[unit] 
 
 export function formatMetricUsingFixedUnit(value: number | null, unit: string) {
   return value !== null
-    ? `${round(value, 3).toLocaleString()} ${getShortMetricUnit(unit)}`.trim()
+    ? `${round(value, 3).toLocaleString()}${getShortMetricUnit(unit)}`.trim()
     : '\u2015';
 }
 
