@@ -246,6 +246,10 @@ This resource does not accept any URI parameters and is not paginated. Responses
 
 ### Fetch Replay Accessibility Issues [GET]
 
+- Parameters
+
+  - timestamp (optional, number) - The timestamp which to render to for accessibility analysis.
+
 Retrieve a collection of accessibility issues.
 
 **Attributes**
