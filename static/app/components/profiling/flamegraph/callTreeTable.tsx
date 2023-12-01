@@ -90,6 +90,7 @@ export const CallTreeTable = styled('div')`
     display: flex;
     align-items: center;
     padding: 0 ${space(1)};
+    white-space: nowrap;
 
     &:focus {
       outline: none;
