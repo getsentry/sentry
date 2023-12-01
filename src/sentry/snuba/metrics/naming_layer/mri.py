@@ -185,7 +185,7 @@ class ParsedMRI:
     entity: str
     namespace: str
     name: str
-    unit: MetricUnit
+    unit: str
 
     @property
     def mri_string(self) -> str:
@@ -207,8 +207,11 @@ def parse_mri_field(field: Optional[str]) -> Optional[ParsedMRIField]:
 
     matches = MRI_EXPRESSION_REGEX.match(field)
 
+    if matches is None:
+        return None
+
     try:
-        op = matches[1]
+        op = cast(MetricOperationType, matches[1])
         mri = ParsedMRI(**matches.groupdict())
     except (IndexError, TypeError):
         return None
@@ -218,7 +221,7 @@ def parse_mri_field(field: Optional[str]) -> Optional[ParsedMRIField]:
 
 def is_mri_field(field: str) -> bool:
     """
-    Returns true if the passed value is a mri field.
+    Returns True if the passed value is an MRI field.
     """
     return parse_mri_field(field) is not None
 
@@ -248,6 +251,9 @@ def format_mri_field_value(field: str, value: str) -> str:
 
     try:
         parsed_mri_field = parse_mri_field(field)
+        if parsed_mri_field is None:
+            return value
+
         unit = cast(MetricUnit, parsed_mri_field.mri.unit)
 
         return format_value_using_unit_and_op(float(value), unit, parsed_mri_field.op)
