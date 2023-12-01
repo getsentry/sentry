@@ -1,22 +1,12 @@
 import pytest
 
-from sentry.snuba.metrics.naming_layer.mri import format_mri_field
 from sentry.snuba.metrics.units import format_value_using_unit
 from sentry.testutils.cases import TestCase
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-class TestMRIUtils(TestCase):
-    def test_format_mri_field(self):
-        assert format_mri_field("avg(c:custom/foo@none)") == "avg(foo)"
-        assert format_mri_field("max(s:spans/user@none)") == "max(span.user)"
-        assert (
-            format_mri_field("sum(d:spans/exclusive_time@millisecond)")
-            == "sum(span.exclusive_time)"
-        )
-        assert format_mri_field("invalid_mri_field") == "invalid_mri_field"
-
+class TestUnitsUtils(TestCase):
     def test_format_value_using_unit(self):
         assert format_value_using_unit(543200, "nanosecond") == "0.54 ms"
         assert format_value_using_unit(54320, "microsecond") == "54.32 ms"
