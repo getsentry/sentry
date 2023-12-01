@@ -232,22 +232,22 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
   ]);
 
   const unit = parseMRI(metricsQuery.mri)?.unit ?? 'none';
-  const chartOptions = useMemo(
-    () => ({
+  const operation = metricsQuery.op;
+  const chartOptions = useMemo(() => {
+    return {
       isGroupedByDate: true,
       height: 200,
       grid: {top: 20, bottom: 20, left: 15, right: 25},
       tooltip: {
-        valueFormatter: value => formatMetricUsingFixedUnit(value, unit),
+        valueFormatter: value => formatMetricUsingFixedUnit(value, unit, operation),
       },
       yAxis: {
         axisLabel: {
-          formatter: value => formatMetricUsingFixedUnit(value, unit),
+          formatter: value => formatMetricUsingFixedUnit(value, unit, operation),
         },
       },
-    }),
-    [unit]
-  );
+    };
+  }, [operation, unit]);
 
   return (
     <Fragment>
