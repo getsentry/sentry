@@ -110,13 +110,19 @@ class ValidateChannelTest(TestCase):
 
 
 class GetChannelIdFromUrl(TestCase):
+    channel_id = "12345678910"
+
     def test_happy_path(self):
-        channel_id = get_channel_id_from_url("https://discord.com/channels/guild-id/channel-id")
-        assert channel_id == "channel-id"
+        channel = get_channel_id_from_url(
+            f"https://discord.com/channels/guild-id/{self.channel_id}"
+        )
+        assert channel == self.channel_id
 
     def test_happy_path_with_extra_slash(self):
-        channel_id = get_channel_id_from_url("https://discord.com/channels/guild-id/channel-id/")
-        assert channel_id == "channel-id"
+        channel = get_channel_id_from_url(
+            f"https://discord.com/channels/guild-id/{self.channel_id}"
+        )
+        assert channel == self.channel_id
 
     def test_missing_channel_id_with_slash(self):
         with raises(ValidationError):
@@ -139,5 +145,13 @@ class GetChannelIdFromUrl(TestCase):
             get_channel_id_from_url("https://different.com")
 
     def test_just_channel_id(self):
-        channel_id = get_channel_id_from_url("123455")
-        assert channel_id == "123455"
+        channel = get_channel_id_from_url(self.channel_id)
+        assert channel == self.channel_id
+
+    def test_no_channel_at_all(self):
+        with raises(ValidationError):
+            get_channel_id_from_url("")
+
+    def test_non_integer_channel(self):
+        with raises(ValidationError):
+            get_channel_id_from_url("channel-id")

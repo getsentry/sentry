@@ -609,13 +609,6 @@ def import_config(
     required=False,
     help=FINDINGS_FILE_HELP,
 )
-@click.option(
-    "--overwrite-configs",
-    "--overwrite_configs",  # For backwards compatibility with self-hosted@23.10.0
-    default=False,
-    is_flag=True,
-    help=OVERWRITE_CONFIGS_HELP,
-)
 @click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @configuration
 def import_global(
@@ -623,7 +616,6 @@ def import_global(
     decrypt_with,
     decrypt_with_gcp_kms,
     findings_file,
-    overwrite_configs,
     silent,
 ):
     """
@@ -637,7 +629,7 @@ def import_global(
         import_in_global_scope(
             src,
             decryptor=get_decryptor_from_flags(decrypt_with, decrypt_with_gcp_kms),
-            flags=ImportFlags(overwrite_configs=overwrite_configs),
+            flags=None,
             printer=printer,
         )
 

@@ -266,11 +266,11 @@ describe('Incident Rules Form', () => {
       });
 
       await userEvent.click(screen.getAllByText('Number of Errors').at(1)!);
-      await userEvent.click(await screen.findByText('Custom Metric'));
+      await userEvent.click(await screen.findByText('Custom Measurement'));
 
       await userEvent.click(screen.getAllByText('event.type:transaction').at(1)!);
       await userEvent.click(await screen.findByText('event.type:error'));
-      expect(screen.getAllByText('Custom Metric')).toHaveLength(2);
+      expect(screen.getAllByText('Custom Measurement')).toHaveLength(2);
       await userEvent.click(screen.getByLabelText('Save Rule'));
 
       expect(createRule).toHaveBeenLastCalledWith(
