@@ -88,7 +88,7 @@ function EventOrGroupHeader({
 
   function getTitle() {
     const {id, status} = data as Group;
-    const {eventID, groupID} = data as Event;
+    const {eventID: latestEventId, groupID} = data as Event;
     const hasEscalatingIssues = organization.features.includes('escalating-issues');
 
     const commonEleProps = {
@@ -106,14 +106,14 @@ function EventOrGroupHeader({
     }
 
     // If we have passed in a custom event ID, use it; otherwise use default
-    const finalEventId = eventId ?? eventID;
+    const finalEventId = eventId ?? latestEventId;
 
     return (
       <TitleWithLink
         {...commonEleProps}
         to={{
           pathname: `/organizations/${organization.slug}/issues/${
-            eventID ? groupID : id
+            latestEventId ? groupID : id
           }/${finalEventId ? `events/${finalEventId}/` : ''}`,
           query: {
             referrer: source || 'event-or-group-header',
