@@ -6179,7 +6179,6 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         result = {r["user.display"] for r in data}
         assert result == {"hellboy@bar.com"}
 
-    @pytest.mark.skip("flaky: #60877")
     def test_all_events_fields(self):
         user_data = {
             "id": self.user.id,
@@ -6191,6 +6190,7 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         with self.options({"issues.group_attributes.send_kafka": True}):
             event = self.store_event(
                 data={
+                    "timestamp": self.ten_mins_ago_iso,
                     "fingerprint": ["group1"],
                     "contexts": {
                         "trace": {
@@ -6219,7 +6219,7 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
                 "replayId",
                 "timestamp",
             ],
-            "statsPeriod": "1h",
+            "statsPeriod": "2d",
             "query": "is:unresolved",
             "dataset": "errors",
             "sort": "-title",

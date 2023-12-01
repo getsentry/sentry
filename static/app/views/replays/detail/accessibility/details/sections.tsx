@@ -1,6 +1,7 @@
 import beautify from 'js-beautify';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
 import type {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
 import {
@@ -31,7 +32,10 @@ export function GeneralSection({item}: SectionProps) {
       type: item.impact === 'critical' ? 'warning' : undefined,
     },
     {key: t('Type'), value: item.id},
-    {key: t('Help'), value: <a href={item.help_url}>{item.description}</a>},
+    {
+      key: t('Help'),
+      value: <ExternalLink href={item.help_url}>{item.description}</ExternalLink>,
+    },
     {key: t('Path'), value: item.element.target.join(' ')},
   ];
 

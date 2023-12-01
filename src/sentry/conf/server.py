@@ -1864,10 +1864,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:team-insights": True,
     # Enable u2f verification on superuser form
     "organizations:u2f-superuser-form": False,
-    # Enable project creation for all
-    "organizations:team-project-creation-all": False,
-    # Enable project creation for all and puts organization into test group
-    "organizations:team-project-creation-all-allowlist": False,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": True,
     # Enable team workflow notifications
@@ -1908,6 +1904,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:suspect-commits-all-frames": False,
     # Enable logs for debugging weekly reports
     "organizations:weekly-report-logs": False,
+    # Enables region provisioning for individual users
+    "organizations:multi-region-selector": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
@@ -1916,6 +1914,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:first-event-severity-alerting": False,
     # Enable calculating a severity score for events which create a new group
     "projects:first-event-severity-calculation": False,
+    # Enable escalation detection for new issues
+    "projects:first-event-severity-new-escalation": False,
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,
@@ -1936,6 +1936,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:span-metrics-extraction-ga-modules": False,
     "projects:span-metrics-extraction-all-modules": False,
     "projects:span-metrics-extraction-resource": False,
+    # Enable standalone span ingestion
+    "organizations:standalone-span-ingestion": False,
     # Metrics: Enable ingestion, storage, and rendering of custom metrics
     "organizations:custom-metrics": False,
     # Metrics: Enable creation of investigation dynamic sampling rules (rules that
