@@ -40,6 +40,7 @@ WEEK_IN_HOURS = 7 * 24
 REDIS_TTL = 24 * 60 * 60  # 1 day
 THRESHOLD_KEY = "new-issue-escalation-threshold:{project_id}"
 STALE_DATE_KEY = "new-issue-escalation-threshold-stale-date:{project_id}"
+DATE_FORMAT = "%Y%m%d"
 
 
 def calculate_threshold(project: Project) -> Optional[float]:
@@ -156,7 +157,7 @@ def update_threshold(project: Project, threshold_key: str, stale_date_key: str) 
     client = get_redis_client()
     with client.pipeline() as p:
         p.set(threshold_key, threshold, ex=REDIS_TTL)
-        p.set(stale_date_key, datetime.utcnow().timestamp(), ex=REDIS_TTL),
+        p.set(stale_date_key, convert_date_to_int(datetime.utcnow()), ex=REDIS_TTL),
         p.execute()
 
     return threshold
@@ -176,8 +177,8 @@ def get_latest_threshold(project: Project):
         keys
     )  # returns nil in place of result if key doesn't return anything
     threshold, stale_date = cache_results[0], cache_results[1]
-    now_timestamp = datetime.utcnow().timestamp()
-    if (stale_date and stale_date < now_timestamp) or stale_date is None or threshold is None:
+    now = convert_date_to_int(datetime.utcnow())
+    if (stale_date and stale_date < now) or stale_date is None or threshold is None:
         lock = locks.get(
             f"calculate_project_thresholds:{project.id}",
             duration=10,
@@ -194,3 +195,7 @@ def get_latest_threshold(project: Project):
 def get_redis_client():
     cluster_key = settings.BLAH_BLAH_BLAH  # TODO: placeholder
     return redis_clusters.get(cluster_key)
+
+
+def convert_date_to_int(date: datetime) -> int:
+    return int(date.strftime(DATE_FORMAT))

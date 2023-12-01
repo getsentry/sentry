@@ -4,7 +4,12 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
-from sentry.issues.issue_velocity import calculate_threshold, get_latest_threshold, update_threshold
+from sentry.issues.issue_velocity import (
+    calculate_threshold,
+    convert_date_to_int,
+    get_latest_threshold,
+    update_threshold,
+)
 from sentry.locks import locks
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
@@ -15,6 +20,7 @@ WEEK_IN_HOURS = 7 * 24
 class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
     def setUp(self):
         self.now = timezone.now()
+        self.utcnow = datetime.utcnow()
         super().setUp()
 
     def test_calculation_simple(self):
@@ -115,10 +121,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
         """
         Tests that we get the last threshold stored when the stale date has not passed yet.
         """
-        mock_client.return_value.mget.return_value = [
-            0.1,
-            (datetime.utcnow() + timedelta(hours=1)).timestamp(),
-        ]
+        mock_client.return_value.mget.return_value = [0.1, convert_date_to_int(datetime.utcnow())]
         threshold = get_latest_threshold(self.project)
         mock_update.assert_not_called()
         assert threshold == 0.1
@@ -131,7 +134,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
         """
         mock_client.return_value.mget.return_value = [
             1.2,
-            (datetime.utcnow() - timedelta(days=1)).timestamp(),
+            convert_date_to_int(self.utcnow - timedelta(days=1)),
         ]
         mock_update.return_value = 1.5
         assert get_latest_threshold(self.project) == 1.5
@@ -152,7 +155,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
         """
         Tests that we return the stale threshold when another process has the lock.
         """
-        mock_client.return_value.mget.return_value = [None, datetime.utcnow().timestamp()]
+        mock_client.return_value.mget.return_value = [None, convert_date_to_int(self.utcnow)]
 
         lock = locks.get(
             f"calculate_project_thresholds:{self.project.id}",
