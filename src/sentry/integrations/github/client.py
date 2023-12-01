@@ -614,6 +614,14 @@ class GitHubClientMixin(GithubProxyClient):
         """
         return self.get(f"/repos/{repo}/labels", params={"per_page": 100})
 
+    def search_labels(self, query: str, repo_id: str) -> Sequence[JSONData]:
+        """
+        https://docs.github.com/en/rest/search/search?apiVersion=2022-11-28#search-labels
+        NOTE: All search APIs share a rate limit of 30 requests/minute
+        """
+        response = self.get("/search/labels", params={"q": query, "repository_id": repo_id})
+        return response
+
     def check_file(self, repo: Repository, path: str, version: str) -> BaseApiResponseX:
         return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})
 

@@ -17,6 +17,10 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.strings import truncatechars
 
 
+def natural_sort_pair(pair: tuple[str, str]) -> str | int:
+    return [int(text) if text.isdigit() else text for text in re.split("([0-9]+)", pair[0])]
+
+
 class GitHubIssueBasic(IssueBasicMixin):
     def make_external_key(self, data: Mapping[str, Any]) -> str:
         return "{}#{}".format(data["repo"], data["key"])
@@ -121,19 +125,20 @@ class GitHubIssueBasic(IssueBasicMixin):
             {
                 "name": "assignee",
                 "label": "Assignee",
-                "default": "",
                 "type": "select",
-                "required": False,
+                "default": "",
                 "choices": assignees,
+                "required": False,
             },
             {
                 "name": "labels",
                 "label": "Labels",
-                "default": [],
                 "type": "select",
                 "multiple": True,
-                "required": False,
+                "default": [],
                 "choices": labels,
+                "url": autocomplete_url,
+                "required": False,
             },
         ]
 
@@ -264,9 +269,6 @@ class GitHubIssueBasic(IssueBasicMixin):
             response = client.get_labels(repo)
         except Exception as e:
             self.raise_error(e)
-
-        def natural_sort_pair(pair: tuple[str, str]) -> str | int:
-            return [int(text) if text.isdigit() else text for text in re.split("([0-9]+)", pair[0])]
 
         # sort alphabetically
         labels = tuple(

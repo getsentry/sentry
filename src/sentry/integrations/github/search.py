@@ -75,4 +75,24 @@ class GithubSharedSearchEndpoint(IntegrationEndpoint):
                 [{"label": i["name"], "value": i["full_name"]} for i in response.get("items", [])]
             )
 
-        return Response(status=400)
+        if field == "labels":
+            repo = request.GET.get("repo")
+            if repo is None:
+                return Response({"detail": "repo is a required parameter"}, status=400)
+            client = installation.get_client()
+
+            try:
+                # We need to fetch the repo id for every search b/c search
+                # labels API requires repo id instead of name
+                repo_id = client.get_repo(repo)["id"]
+                response = installation.get_client().search_labels(
+                    query=query.encode(), repo_id=repo_id
+                )
+            except ApiError as err:
+                if err.code == 403:
+                    return Response({"detail": "Rate limit exceeded"}, status=429)
+                raise
+
+            return Response(
+                [{"label": i["name"], "value": i["name"]} for i in response.get("items", [])],
+            )
