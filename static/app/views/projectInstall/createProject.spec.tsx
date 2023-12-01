@@ -15,7 +15,6 @@ import {tct} from 'sentry/locale';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {Organization as TOrganization} from 'sentry/types';
-import * as useExperiment from 'sentry/utils/useExperiment';
 import {CreateProject} from 'sentry/views/projectInstall/createProject';
 
 jest.mock('sentry/actionCreators/indicator');
@@ -90,7 +89,7 @@ describe('CreateProject', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('should block if you have access to no teams', function () {
+  it('should block if you have access to no teams without team-roles', function () {
     render(<CreateProject />, {
       context: TestStubs.routerContext([
         {organization: {id: '1', slug: 'testOrg', access: ['project:read']}},
@@ -98,18 +97,14 @@ describe('CreateProject', function () {
     });
   });
 
-  it('can create a new project without team as org member', async function () {
+  it('can create a new project as member with team-roles', async function () {
     const {organization} = initializeOrg({
       organization: {
         access: ['project:read'],
-        features: ['team-project-creation-all'],
+        features: ['team-roles'],
       },
     });
 
-    jest.spyOn(useExperiment, 'useExperiment').mockReturnValue({
-      experimentAssignment: 1,
-      logExperiment: jest.fn(),
-    });
     renderFrameworkModalMockRequests({organization, teamSlug: 'team-two'});
     TeamStore.loadUserTeams([TestStubs.Team({id: 2, slug: 'team-two', access: []})]);
 
@@ -134,7 +129,11 @@ describe('CreateProject', function () {
   });
 
   it('should only allow teams which the user is a team-admin', async function () {
-    const organization = Organization();
+    const {organization} = initializeOrg({
+      organization: {
+        features: ['team-roles'],
+      },
+    });
     renderFrameworkModalMockRequests({organization, teamSlug: 'team-two'});
 
     OrganizationStore.onUpdate(organization);
@@ -192,6 +191,7 @@ describe('CreateProject', function () {
     const {organization} = initializeOrg({
       organization: {
         access: ['project:read'],
+        features: ['team-roles'],
       },
     });
 
@@ -223,6 +223,7 @@ describe('CreateProject', function () {
     const {organization} = initializeOrg({
       organization: {
         access: ['project:read'],
+        features: ['team-roles'],
       },
     });
 
@@ -258,11 +259,11 @@ describe('CreateProject', function () {
     );
   });
 
-  it('should display success message when using experimental endpoint', async function () {
+  it('should display success message when using member endpoint', async function () {
     const {organization} = initializeOrg({
       organization: {
         access: ['project:read'],
-        features: ['team-project-creation-all'],
+        features: ['team-roles'],
       },
     });
 
@@ -301,7 +302,7 @@ describe('CreateProject', function () {
   it('does not render framework selection modal if vanilla js is NOT selected', async function () {
     const {organization} = initializeOrg({
       organization: {
-        features: ['onboarding-sdk-selection'],
+        features: ['onboarding-sdk-selection', 'team-roles'],
         access: ['project:read', 'project:write'],
       },
     });
