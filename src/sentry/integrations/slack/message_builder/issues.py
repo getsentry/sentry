@@ -408,7 +408,7 @@ class SlackIssueAlertMessageBuilder(BlockSlackMessageBuilder):
         # if not self.issue_details:
         #     timestamp = get_timestamp(self.group, self.event)
         # ^ this isn't formatted properly e.g. 1701203136.494915 instead of Nov 28th
-        blocks.append(self.get_context_block(text=footer, timestamp=timestamp)) # add ts here
+        blocks.append(self.get_context_block(text=footer, timestamp=timestamp))  # add ts here
 
         actions = []
         for action in payload_actions:

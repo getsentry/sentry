@@ -109,7 +109,7 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         *args: SlackBlock, fallback_text: Optional[str] = None, color: Optional[str] = None
     ) -> SlackBody:
         blocks: dict[str, Any] = {"blocks": list(args)}
-        print("blocks:" , blocks)
+        print("blocks:", blocks)
         if fallback_text:
             blocks["text"] = fallback_text
 
