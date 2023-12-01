@@ -2144,13 +2144,21 @@ def _get_severity_score(event: Event) -> float | None:
     exception_type = metadata.get("type")
     exception_value = metadata.get("value")
 
-    if exception_type is not None and exception_value is not None:
+    if exception_type:
+        title = exception_type
+        if exception_value:
+            title += f": {exception_value}"
+
         # We truncate the title to 128 characters as any more than that is unlikely to be helpful
         # and would slow down the model.
-        title = trim(f"{exception_type}: {metadata.get('value')}", 128)
+        title = trim(title, 128)
     else:
         # Fall back to using just the title for events without an exception.
         title = event.title
+
+    # If the event hasn't yet been given a helpful title, attempt to calculate one
+    if title in NON_TITLE_EVENT_TITLES:
+        title = event_type.get_title(metadata)
 
     # If there's still nothing helpful to be had, bail
     if title in NON_TITLE_EVENT_TITLES:
