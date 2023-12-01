@@ -27,7 +27,6 @@ from unittest import TestCase
 
 import pytest
 from django.apps import apps
-from django.conf import settings
 from django.db.models import Model
 from django.db.models.fields.related import RelatedField
 from django.test import override_settings
@@ -316,8 +315,6 @@ def assume_test_silo_mode(desired_silo: SiloMode, can_be_monolith: bool = True) 
     overrides: MutableMapping[str, Any] = {}
     if desired_silo != SiloMode.get_current_mode():
         overrides["SILO_MODE"] = desired_silo
-    if desired_silo == SiloMode.REGION and not getattr(settings, "SENTRY_REGION"):
-        overrides["SENTRY_REGION"] = "na"
 
     if overrides:
         with override_settings(**overrides):
