@@ -14,7 +14,7 @@ from snuba_sdk import (
     Timeseries,
 )
 from snuba_sdk.conditions import BooleanCondition, BooleanOp, Condition, ConditionGroup, Op
-from snuba_sdk.dsl.dsl import parse_mql
+from snuba_sdk.mql.mql import parse_mql
 from snuba_sdk.query_visitors import InvalidQueryError
 
 from sentry.models.environment import Environment
@@ -158,7 +158,7 @@ class MutableTimeseries:
                 if f.op == BooleanOp.OR:
                     raise InvalidMetricsQueryError("The OR operator is not supported")
 
-                self._validate_filters(filters)
+                self._validate_filters(f.conditions)
 
     def _validate(self):
         self._validate_filters(self._timeseries.filters)
@@ -187,8 +187,10 @@ class MutableTimeseries:
 
 
 class QueryParser:
-    FILTERS_SANITIZATION_PATTERN = re.compile(r"[(){}]")
-    GROUP_BYS_SANITIZATION_PATTERN = re.compile(r"[(){}]")
+    # We avoid having the filters expression to be closed or opened.
+    FILTERS_SANITIZATION_PATTERN = re.compile(r"[{}]$")
+    # We avoid to have any way of opening and closing other expressions.
+    GROUP_BYS_SANITIZATION_PATTERN = re.compile(r"[(){}\[\]]")
 
     def __init__(
         self,
@@ -208,6 +210,15 @@ class QueryParser:
         """
         Sanitizes the query and group bys before using them to build the MQL query.
         """
+
+        # platform:"android" OR platform:ios
+        # (platform:"android" OR platform:ios)
+        # platform:"android" OR platform:"ios"
+        # platform:"android" OR platform:"ios}"
+        # platform:"android" OR platform:["ios}"]
+
+        # We don't allow at the end of filters: }
+        # We don't allow at the end of group bys: )
         if self._query:
             self._query = remove_if_match(self.FILTERS_SANITIZATION_PATTERN, self._query)
 

@@ -171,7 +171,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         field = f"sum({TransactionMRI.DURATION.value})"
         results = run_metrics_query(
             fields=[field],
-            query="platform:ios transaction:/hello",
+            query="platform:ios AND transaction:/hello",
             group_bys=["platform"],
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
@@ -283,6 +283,23 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             run_metrics_query(
                 fields=[field],
                 query='platform:"android" OR platform:ios',
+                group_bys=["platform"],
+                start=self.now() - timedelta(minutes=30),
+                end=self.now() + timedelta(hours=1, minutes=30),
+                interval=3600,
+                organization=self.project.organization,
+                projects=[self.project],
+                environments=[],
+                referrer="metrics.data.api",
+            )
+
+    def test_query_with_injection_attack(self) -> None:
+        field = f"sum({TransactionMRI.DURATION.value})"
+
+        with pytest.raises(InvalidMetricsQueryError):
+            run_metrics_query(
+                fields=[field],
+                query=f'platform:"android" OR platform:ios}} / {field} {{',
                 group_bys=["platform"],
                 start=self.now() - timedelta(minutes=30),
                 end=self.now() + timedelta(hours=1, minutes=30),
