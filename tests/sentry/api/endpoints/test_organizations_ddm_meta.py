@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Sequence
+from typing import List, Optional, Sequence
 from unittest.mock import patch
 
 import pytest
@@ -28,14 +28,25 @@ class OrganizationDDMMetaEndpointTest(MetricsAPIBaseTestCase):
         self.redis_client = get_redis_client_for_metrics_meta()
         self.current_time = timezone.now()
 
-    def _mock_code_location(self, filename) -> str:
+    def _mock_code_location(
+        self,
+        filename: str,
+        pre_context: Optional[List[str]] = None,
+        post_context: Optional[List[str]] = None,
+    ) -> str:
         code_location = {
             "function": "foo",
             "module": "bar",
             "filename": filename,
             "abs_path": f"/usr/src/foo/{filename}",
             "lineNo": 10,
+            "context_line": "context",
         }
+
+        if pre_context is not None:
+            code_location["pre_context"] = pre_context
+        if post_context is not None:
+            code_location["post_context"] = post_context
 
         return json.dumps(code_location)
 
@@ -212,10 +223,10 @@ class OrganizationDDMMetaEndpointTest(MetricsAPIBaseTestCase):
         frames = code_locations[0]["frames"]
         assert len(frames) == 1
         assert frames[0]["lineNo"] == 10
-        # We check that all the remaining elements are `None`.
+        # We check that all the remaining elements are `None` or empty.
         del frames[0]["lineNo"]
         for value in frames[0].values():
-            assert value is None
+            assert value is None or value == []
 
     def test_get_locations_with_corrupted_location(self):
         project = self.create_project(name="project_1")
@@ -236,6 +247,56 @@ class OrganizationDDMMetaEndpointTest(MetricsAPIBaseTestCase):
             statsPeriod="1d",
             status_code=500,
         )
+
+    def test_get_pre_post_context(self):
+        project = self.create_project(name="project_1")
+        mri = "d:custom/sentry.process_profile.track_outcome@second"
+
+        self._store_code_location(
+            self.organization.id,
+            project.id,
+            mri,
+            self._round_to_day(self.current_time),
+            self._mock_code_location("script.py", ["pre"], ["post"]),
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=[mri],
+            project=[project.id],
+            statsPeriod="1d",
+        )
+
+        code_locations = response.data["codeLocations"]
+
+        frame = code_locations[0]["frames"][0]
+        assert frame["preContext"] == ["pre"]
+        assert frame["postContext"] == ["post"]
+
+    def test_get_no_pre_post_context(self):
+        project = self.create_project(name="project_1")
+        mri = "d:custom/sentry.process_profile.track_outcome@second"
+
+        self._store_code_location(
+            self.organization.id,
+            project.id,
+            mri,
+            self._round_to_day(self.current_time),
+            self._mock_code_location("script.py"),
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=[mri],
+            project=[project.id],
+            statsPeriod="1d",
+        )
+
+        code_locations = response.data["codeLocations"]
+
+        frame = code_locations[0]["frames"][0]
+        assert frame["preContext"] == []
+        assert frame["postContext"] == []
 
     @patch("sentry.sentry_metrics.querying.metadata.CodeLocationsFetcher.MAXIMUM_KEYS", 50)
     def test_get_locations_with_too_many_combinations(self):

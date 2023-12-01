@@ -22,6 +22,9 @@ class CodeLocationsSerializer(Serializer):
             "filename": code_location_payload.get("filename"),
             "absPath": code_location_payload.get("abs_path"),
             "lineNo": code_location_payload.get("lineno"),
+            "preContext": code_location_payload.get("pre_context"),
+            "contextLine": code_location_payload.get("context_line"),
+            "postContext": code_location_payload.get("post_context"),
         }
 
     def serialize(self, obj, attrs, user):
