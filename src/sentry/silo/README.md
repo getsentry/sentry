@@ -42,13 +42,21 @@ sentry devserver --silo=control --workers
 sentry devserver --silo=region --workers --ingest
 ```
 
+This will expose the following ports:
+
+| Port | Purpose  | Silo    |
+| ---- | -------- | ------- |
+| 8000 | Webpack  | Control |
+| 8001 | HTTP API | Control |
+| 8010 | HTTP API | Region  |
+
 You can omit the `--workers` and `--ingest` options if you don't want those services running.
 If you're using `--ingest` and relay isn't being started make sure `settings.SENTRY_USE_RELAY` is enabled.
 
 ## Using Silos & ngrok
 
 To use a siloed dev environment with ngrok you'll need to make a few application
-configuration changes. Assuming you're ngrok domain is `acme` add the following
+configuration changes. Assuming your ngrok domain is `acme` add the following
 to either `~/.sentry/sentry.conf` or `devlocal.py` in getsentry:
 
 ```python
@@ -67,6 +75,8 @@ Then start ngrok with the desired hostname:
 ngrok http 8000 --domain=acme.ngrok.dev --host-header="localhost"
 ```
 
+_Note:_ Some UI functionality relies on directly accessing the region silo API, so you may also need to expose it as well.
+
 ## Using ngrok configuration file
 
 If using ngrok, it'll help to set up a config. Modify your `ngrok.yml` (`ngrok config edit`) to contain:
@@ -77,13 +87,14 @@ authtoken: <YOUR-NGROK-AUTHTOKEN>
 tunnels:
   control-silo:
     proto: http
-    hostname: yourusername.ngrok.io
-    addr: 8001
+    hostname: yourdomain.ngrok.io
+    host_header: 'rewrite'
+    addr: 8000
   region-silo:
     proto: http
-    hostname: us.yourusername.ngrok.io
+    hostname: us.yourdomain.ngrok.io
     addr: 8010
-    host_header: 'localhost'
+    host_header: 'rewrite'
 ```
 
 Now you can spin up all the tunnels in the file with:
