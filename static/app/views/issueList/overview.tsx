@@ -356,6 +356,7 @@ class IssueListOverview extends Component<Props, State> {
         queryCount: cache.queryCount,
         queryMaxCount: cache.queryMaxCount,
         pageLinks: cache.pageLinks,
+        statsForGroupIds: cache.groups.map(group => group.id),
       },
       () => {
         // Handle this in the next tick to avoid being overwritten by GroupStore.reset
