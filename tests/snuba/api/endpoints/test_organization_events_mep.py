@@ -2748,6 +2748,85 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["isMetricsData"]
         assert field_meta["performance_score(measurements.score.lcp)"] == "integer"
 
+    def test_opportunity_score(self):
+        self.store_transaction_metric(
+            0.03,
+            metric="measurements.score.lcp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.30,
+            metric="measurements.score.weight.lcp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.40,
+            metric="measurements.score.fcp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.70,
+            metric="measurements.score.weight.fcp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.43,
+            metric="measurements.score.total",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        self.store_transaction_metric(
+            1.0,
+            metric="measurements.score.lcp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            1.0,
+            metric="measurements.score.weight.lcp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            1.0,
+            metric="measurements.score.total",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.0,
+            metric="measurements.score.total",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "opportunity_score(measurements.score.lcp)",
+                    "opportunity_score(measurements.score.total)",
+                ],
+                "query": "event.type:transaction",
+                "dataset": "metrics",
+                "per_page": 50,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert data[0]["opportunity_score(measurements.score.lcp)"] == 0.27
+        assert data[0]["opportunity_score(measurements.score.total)"] == 1.57
+
+        assert meta["isMetricsData"]
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetrics(
     MetricsEnhancedPerformanceTestCase
@@ -2846,3 +2925,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not implemented")
     def test_performance_score_boundaries(self):
         super().test_performance_score()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_opportunity_score(self):
+        super().test_opportunity_score()
