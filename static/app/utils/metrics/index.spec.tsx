@@ -140,15 +140,15 @@ describe('getMetricsInterval', () => {
 
 describe('formatMetricUsingFixedUnit', () => {
   it('should return the formatted value with the short form of the given unit', () => {
-    expect(formatMetricUsingFixedUnit(123456, 'millisecond')).toBe('123,456 ms');
-    expect(formatMetricUsingFixedUnit(2.1231245, 'kibibyte')).toBe('2.123 KiB');
-    expect(formatMetricUsingFixedUnit(1222.1231245, 'megabyte')).toBe('1,222.123 MB');
+    expect(formatMetricUsingFixedUnit(123456, 'millisecond')).toBe('123,456ms');
+    expect(formatMetricUsingFixedUnit(2.1231245, 'kibibyte')).toBe('2.123KiB');
+    expect(formatMetricUsingFixedUnit(1222.1231245, 'megabyte')).toBe('1,222.123MB');
   });
 
   it.each(formattingSupportedMetricUnits.filter(unit => unit !== 'none'))(
     'appends a unit for every supported one (except none)',
     unit => {
-      expect(formatMetricUsingFixedUnit(1234.56, unit)).toMatch(/1,234\.56 .+/);
+      expect(formatMetricUsingFixedUnit(1234.56, unit)).toMatch(/1,234\.56.+/);
     }
   );
 

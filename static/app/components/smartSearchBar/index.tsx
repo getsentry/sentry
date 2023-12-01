@@ -229,6 +229,7 @@ type Props = WithRouterProps &
      * A function that provides the current search item and can return a custom invalid tag error message for the drop-down.
      */
     customInvalidTagMessage?: (item: SearchItem) => React.ReactNode;
+
     /**
      * Keys that have date values
      */

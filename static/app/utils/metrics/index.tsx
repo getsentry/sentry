@@ -9,6 +9,7 @@ import {
   getInterval,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
+import {MetricsApiResponse} from 'sentry/types';
 import {
   MetricMeta,
   MetricsApiRequestMetric,
@@ -314,7 +315,7 @@ const getShortMetricUnit = (unit: string): string => METRIC_UNIT_TO_SHORT[unit] 
 
 export function formatMetricUsingFixedUnit(value: number | null, unit: string) {
   return value !== null
-    ? `${round(value, 3).toLocaleString()} ${getShortMetricUnit(unit)}`.trim()
+    ? `${round(value, 3).toLocaleString()}${getShortMetricUnit(unit)}`.trim()
     : '\u2015';
 }
 
@@ -381,4 +382,30 @@ export function groupByOp(metrics: MetricMeta[]): Record<string, MetricMeta[]> {
   }, {});
 
   return groupedByOp;
+}
+
+// TODO(ddm): remove this and all of its usages once backend sends mri fields
+export function mapToMRIFields(
+  data: MetricsApiResponse | undefined,
+  fields: string[]
+): void {
+  if (!data) {
+    return;
+  }
+
+  data.groups.forEach(group => {
+    group.series = swapObjectKeys(group.series, fields);
+    group.totals = swapObjectKeys(group.totals, fields);
+  });
+}
+
+function swapObjectKeys(obj: Record<string, unknown> | undefined, newKeys: string[]) {
+  if (!obj) {
+    return {};
+  }
+
+  return Object.keys(obj).reduce((acc, key, index) => {
+    acc[newKeys[index]] = obj[key];
+    return acc;
+  }, {});
 }

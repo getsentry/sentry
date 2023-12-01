@@ -84,6 +84,14 @@ describe('normalizeUrl', function () {
       ],
       // Team settings links in breadcrumbs can be pre-normalized from breadcrumbs
       ['/settings/teams/peeps/', '/settings/teams/peeps/'],
+      [
+        '/settings/billing/checkout/?_q=all#hash',
+        '/settings/billing/checkout/?_q=all#hash',
+      ],
+      [
+        '/settings/billing/bundle-checkout/?_q=all#hash',
+        '/settings/billing/bundle-checkout/?_q=all#hash',
+      ],
     ];
     for (const [input, expected] of cases) {
       result = normalizeUrl(input);
