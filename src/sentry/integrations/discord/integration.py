@@ -5,7 +5,6 @@ from enum import Enum
 from typing import Any
 
 import requests
-import sentry_sdk
 from django.utils.translation import gettext_lazy as _
 
 from sentry import options
@@ -52,24 +51,6 @@ metadata = IntegrationMetadata(
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/discord",
     aspects={},
 )
-
-COMMANDS: list[object] = [
-    {
-        "name": "link",
-        "description": "Link your Discord account to your Sentry account to perform actions on Sentry notifications.",
-        "type": 1,
-    },
-    {
-        "name": "unlink",
-        "description": "Unlink your Discord account from your Sentry account.",
-        "type": 1,
-    },
-    {
-        "name": "help",
-        "description": "View a list of Sentry bot commands and what they do.",
-        "type": 1,
-    },
-]
 
 
 class DiscordIntegration(IntegrationInstallation):
@@ -186,9 +167,8 @@ class DiscordIntegrationProvider(IntegrationProvider):
         organization: RpcOrganizationSummary,
         extra: Any | None = None,
     ) -> None:
-        if self._credentials_exist():
-            if not self.client.has_application_commands():
-                self.register_commands()
+        if self._credentials_exist() and not self.client.has_application_commands():
+            self.client.set_application_commands()
 
     def _get_discord_user_id(self, auth_code: str) -> str:
         """
@@ -240,25 +220,20 @@ class DiscordIntegrationProvider(IntegrationProvider):
         return f"https://discord.com/api/oauth2/authorize?client_id={self.application_id}&permissions={self.bot_permissions}&redirect_uri={self.setup_url}&response_type=code&scope={' '.join(self.oauth_scopes)}"
 
     def _credentials_exist(self) -> bool:
-        return all((self.application_id, self.public_key, self.bot_token, self.client_secret))
-
-    def register_commands(self) -> None:
-        """
-        Sets the bot commands list
-        """
-        try:
-            self.client.set_application_commands(COMMANDS)
-            self.commands = True
-        except ApiError as e:
-            sentry_sdk.capture_exception(e)
+        has_credentials = all(
+            (self.application_id, self.public_key, self.bot_token, self.client_secret)
+        )
+        if not has_credentials:
             logger.error(
-                "discord.setup.update_bot_commands_failure",
+                "discord.install.fail.credentials_exist",
                 extra={
-                    "status": e.code,
-                    "error": str(e),
-                    "application_id": self.client.application_id,
+                    "application_id": self.application_id,
+                    "has_public_key": bool(self.public_key),
+                    "has_bot_token": bool(self.bot_token),
+                    "has_client_secret": bool(self.client_secret),
                 },
             )
+        return has_credentials
 
 
 class DiscordInstallPipeline(PipelineView):

@@ -6,6 +6,7 @@ import responses
 from responses.matchers import header_matcher
 
 from sentry import audit_log, options
+from sentry.api.client import ApiError
 from sentry.integrations.discord.client import APPLICATION_COMMANDS_URL, GUILD_URL, DiscordClient
 from sentry.integrations.discord.integration import DiscordIntegrationProvider
 from sentry.models.auditlogentry import AuditLogEntry
@@ -54,6 +55,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
         server_name="Cool server",
         auth_code="auth_code",
         command_response_empty=True,
+        command_set_call_count=1,
     ):
         responses.reset()
 
@@ -111,10 +113,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
         assert resp.status_code == 200
         self.assertDialogSuccess(resp)
 
-        if command_response_empty:
-            assert mock_set_application_commands.call_count == 1
-        else:
-            assert mock_set_application_commands.call_count == 0
+        assert mock_set_application_commands.call_count == command_set_call_count
 
     @responses.activate
     def test_bot_flow(self):
@@ -138,7 +137,10 @@ class DiscordIntegrationTest(IntegrationTestCase):
             self.assert_setup_flow()
         with self.tasks():
             self.assert_setup_flow(
-                guild_id="0987654321", server_name="Uncool server", command_response_empty=False
+                guild_id="0987654321",
+                server_name="Uncool server",
+                command_response_empty=False,
+                command_set_call_count=0,
             )
 
         integrations = Integration.objects.filter(provider=self.provider.key).order_by(
@@ -243,53 +245,41 @@ class DiscordIntegrationTest(IntegrationTestCase):
         with pytest.raises(IntegrationError):
             provider._get_discord_user_id("auth_code")
 
-    # def test_post_install_overwrite_commands(self):
-    #     provider = self.provider()
-    #     provider.client.set_application_commands = mock.MagicMock(  # type: ignore
-    #         spec=provider.client.set_application_commands
-    #     )
+    @mock.patch("sentry.integrations.discord.client.DiscordNonProxyClient.set_application_commands")
+    def test_post_install_missing_credentials(self, mock_set_application_commands):
+        provider = self.provider()
+        provider.application_id = None
+        provider.post_install(integration=self.integration, organization=self.organization)
+        assert mock_set_application_commands.call_count == 0
 
-    #     provider.post_install(self.integration, self.organization)
-    #     provider.client.set_application_commands.assert_called()
+    @responses.activate
+    def test_set_commands_failure(self):
+        provider = self.provider()
 
-    #             with self.tasks():
-    #         self.assert_setup_flow()
-    #     with self.tasks():
-    #         self.assert_setup_flow(guild_id="0987654321", server_name="Uncool server")
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}",
+            match=[header_matcher({"Authorization": f"Bot {self.bot_token}"})],
+            json=[],
+        )
+        responses.add(
+            responses.POST,
+            url=f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}",
+            body=ApiError("something wrong", 500),
+            status=500,
+        )
+        with pytest.raises(ApiError):
+            provider.post_install(integration=self.integration, organization=self.organization)
 
-    #     integrations = Integration.objects.filter(provider=self.provider.key).order_by(
-    #         "external_id"
-    #     )
+    @responses.activate
+    def test_get_commands_failure(self):
+        provider = self.provider()
 
-    #     assert integrations.count() == 2
-    #     assert integrations[0].external_id == "0987654321"
-    #     assert integrations[0].name == "Uncool server"
-    #     assert integrations[1].external_id == "1234567890"
-    #     assert integrations[1].name == "Cool server"
-
-    # def test_post_install_no_overwrite_commands(self):
-    #     provider = self.provider()
-    #     provider.client.set_application_commands = mock.MagicMock(  # type: ignore
-    #         spec=provider.client.set_application_commands
-    #     )
-
-    #     provider.application_id = None
-    #     provider.post_install(self.integration, self.organization)
-    #     provider.client.set_application_commands.assert_not_called()
-
-    # @responses.activate
-    # def test_multiple_integrations_commands(self):
-    #     with self.tasks():
-    #         self.assert_setup_flow()
-    #     with self.tasks():
-    #         self.assert_setup_flow(guild_id="0987654321", server_name="Uncool server")
-
-    #     integrations = Integration.objects.filter(provider=self.provider.key).order_by(
-    #         "external_id"
-    #     )
-
-    #     assert integrations.count() == 2
-    #     assert integrations[0].external_id == "0987654321"
-    #     assert integrations[0].name == "Uncool server"
-    #     assert integrations[1].external_id == "1234567890"
-    #     assert integrations[1].name == "Cool server"
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}",
+            body=ApiError("something wrong", 500),
+            status=500,
+        )
+        with pytest.raises(ApiError):
+            provider.post_install(integration=self.integration, organization=self.organization)
