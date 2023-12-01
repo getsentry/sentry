@@ -248,7 +248,7 @@ This resource does not accept any URI parameters and is not paginated. Responses
 
 - Parameters
 
-  - timestamp (optional, number) - The timestamp which to render to for accessibility analysis.
+  - timestamp (optional, number) - A UNIX timestamp (seconds since epoch) marking the last moment to render a replay for accessibility analysis.
 
 Retrieve a collection of accessibility issues.
 
