@@ -15,7 +15,7 @@ export type StatsPeriodType = 'h' | 'd' | 's' | 'm' | 'w';
 type SingleParamValue = string | undefined | null;
 type ParamValue = string[] | SingleParamValue;
 
-const STATS_PERIOD_PATTERN = '^(\\d+)([hdmsw])?$';
+const STATS_PERIOD_PATTERN = '^(\\d+)([hdmsw])?(-\\w+)?$';
 
 /**
  * Parses a stats period into `period` and `periodLength`
