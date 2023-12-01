@@ -18,7 +18,7 @@ function findCloseMutations(date: Date, rrwebFrames: RecordingFrame[]) {
   const framesBefore = incrementalFrames.filter(frame => frame.timestamp <= timeMS);
   const framesAfter = incrementalFrames.filter(frame => frame.timestamp > timeMS);
   return {
-    prev: framesBefore[0] ?? null,
+    prev: framesBefore.slice(-1)[0] ?? null,
     next: framesAfter[0] ?? null,
   };
 }
