@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from functools import cached_property
 
 import sentry_sdk
 from django.http.response import HttpResponseBase
@@ -11,6 +12,7 @@ from sentry.models.integrations.integration import Integration
 from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -21,11 +23,20 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
 
     region_view_classes = [MsTeamsWebhookEndpoint]
 
+    @cached_property
+    def request_data(self):
+        data = {}
+        try:
+            data = json.loads(self.request.body.decode(encoding="utf-8"))
+        except Exception as err:
+            sentry_sdk.capture_exception(err)
+        return data
+
     @control_silo_function
     def get_integration_from_request(self) -> Integration | None:
-        integration = self.get_integration_from_card_action(self.request)
+        integration = self.get_integration_from_card_action(data=self.request_data)
         if integration is None:
-            integration = self.get_integration_from_channel_data(self.request)
+            integration = self.get_integration_from_channel_data(data=self.request_data)
         if integration:
             return Integration.objects.filter(id=integration.id).first()
         return None
@@ -42,7 +53,7 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
         if self.view_class not in self.region_view_classes:
             return self.get_response_from_control_silo()
 
-        if not self.can_infer_integration(self.request):
+        if not self.can_infer_integration(data=self.request_data):
             sentry_sdk.capture_message(
                 f"{self.provider}.request_parser.get_response.unable_to_infer_integration",
             )
