@@ -21,4 +21,4 @@ class TestMRIUtils(TestCase):
         assert format_mri_field_value("count(s:spans/user@none)", "100") == "100"
         assert format_mri_field_value("sum(d:spans/exclusive_time@millisecond)", "1000") == "1 s"
         assert format_mri_field_value("invalid_mri_field", "100") == "100"
-        assert format_mri_field(cast(str, None), "100") == "100"
+        assert format_mri_field_value(cast(str, None), "100") == "100"
