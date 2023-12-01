@@ -493,32 +493,35 @@ class IssueListOverview extends Component<Props, State> {
         requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
       }
 
-      this._lastFetchCountsRequest = this.props.api.request(this.groupCountsEndpoint, {
-        method: 'GET',
-        data: qs.stringify(requestParams),
+      this._lastFetchCountsRequest = this.props.api.request(
+        `/organizations/${organization.slug}/issues-count/`,
+        {
+          method: 'GET',
+          data: qs.stringify(requestParams),
 
-        success: data => {
-          if (!data) {
-            return;
-          }
-          // Counts coming from the counts endpoint is limited to 100, for >= 100 we display 99+
-          queryCounts = {
-            ...queryCounts,
-            ...mapValues(data, (count: number) => ({
-              count,
-              hasMore: count > TAB_MAX_COUNT,
-            })),
-          };
-        },
-        error: () => {
-          this.setState({queryCounts: {}});
-        },
-        complete: () => {
-          this._lastFetchCountsRequest = null;
+          success: data => {
+            if (!data) {
+              return;
+            }
+            // Counts coming from the counts endpoint is limited to 100, for >= 100 we display 99+
+            queryCounts = {
+              ...queryCounts,
+              ...mapValues(data, (count: number) => ({
+                count,
+                hasMore: count > TAB_MAX_COUNT,
+              })),
+            };
+          },
+          error: () => {
+            this.setState({queryCounts: {}});
+          },
+          complete: () => {
+            this._lastFetchCountsRequest = null;
 
-          this.setState({queryCounts});
-        },
-      });
+            this.setState({queryCounts});
+          },
+        }
+      );
     }
   };
 
@@ -610,92 +613,95 @@ class IssueListOverview extends Component<Props, State> {
 
     this._poller.disable();
 
-    this._lastRequest = this.props.api.request(this.groupListEndpoint, {
-      method: 'GET',
-      data: qs.stringify(requestParams),
-      success: (data, _, resp) => {
-        if (!resp) {
-          return;
-        }
-
-        // If this is a direct hit, we redirect to the intended result directly.
-        if (resp.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
-          let redirect: string;
-          if (data[0] && data[0].matchingEventId) {
-            const {id, matchingEventId} = data[0];
-            redirect = `/organizations/${organization.slug}/issues/${id}/events/${matchingEventId}/`;
-          } else {
-            const {id} = data[0];
-            redirect = `/organizations/${organization.slug}/issues/${id}/`;
+    this._lastRequest = this.props.api.request(
+      `/organizations/${organization.slug}/issues/`,
+      {
+        method: 'GET',
+        data: qs.stringify(requestParams),
+        success: (data, _, resp) => {
+          if (!resp) {
+            return;
           }
 
-          browserHistory.replace(
-            normalizeUrl({
-              pathname: redirect,
-              query: {
-                referrer: 'issue-list',
-                ...extractSelectionParameters(this.props.location.query),
-              },
-            })
-          );
-          return;
-        }
+          // If this is a direct hit, we redirect to the intended result directly.
+          if (resp.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
+            let redirect: string;
+            if (data[0] && data[0].matchingEventId) {
+              const {id, matchingEventId} = data[0];
+              redirect = `/organizations/${organization.slug}/issues/${id}/events/${matchingEventId}/`;
+            } else {
+              const {id} = data[0];
+              redirect = `/organizations/${organization.slug}/issues/${id}/`;
+            }
 
-        if (this.state.undo) {
-          GroupStore.loadInitialData(data);
-        }
-        GroupStore.add(data);
+            browserHistory.replace(
+              normalizeUrl({
+                pathname: redirect,
+                query: {
+                  referrer: 'issue-list',
+                  ...extractSelectionParameters(this.props.location.query),
+                },
+              })
+            );
+            return;
+          }
 
-        const hits = resp.getResponseHeader('X-Hits');
-        const queryCount =
-          typeof hits !== 'undefined' && hits ? parseInt(hits, 10) || 0 : 0;
-        const maxHits = resp.getResponseHeader('X-Max-Hits');
-        const queryMaxCount =
-          typeof maxHits !== 'undefined' && maxHits ? parseInt(maxHits, 10) || 0 : 0;
-        const pageLinks = resp.getResponseHeader('Link');
+          if (this.state.undo) {
+            GroupStore.loadInitialData(data);
+          }
+          GroupStore.add(data);
 
-        this.fetchCounts(queryCount, fetchAllCounts);
+          const hits = resp.getResponseHeader('X-Hits');
+          const queryCount =
+            typeof hits !== 'undefined' && hits ? parseInt(hits, 10) || 0 : 0;
+          const maxHits = resp.getResponseHeader('X-Max-Hits');
+          const queryMaxCount =
+            typeof maxHits !== 'undefined' && maxHits ? parseInt(maxHits, 10) || 0 : 0;
+          const pageLinks = resp.getResponseHeader('Link');
 
-        this.setState({
-          error: null,
-          issuesLoading: false,
-          queryCount,
-          queryMaxCount,
-          pageLinks: pageLinks !== null ? pageLinks : '',
-        });
+          this.fetchCounts(queryCount, fetchAllCounts);
 
-        if (data.length === 0) {
-          trackAnalytics('issue_search.empty', {
+          this.setState({
+            error: null,
+            issuesLoading: false,
+            queryCount,
+            queryMaxCount,
+            pageLinks: pageLinks !== null ? pageLinks : '',
+          });
+
+          if (data.length === 0) {
+            trackAnalytics('issue_search.empty', {
+              organization: this.props.organization,
+              search_type: 'issues',
+              search_source: 'main_search',
+              query,
+            });
+          }
+        },
+        error: err => {
+          trackAnalytics('issue_search.failed', {
             organization: this.props.organization,
             search_type: 'issues',
             search_source: 'main_search',
-            query,
+            error: parseApiError(err),
           });
-        }
-      },
-      error: err => {
-        trackAnalytics('issue_search.failed', {
-          organization: this.props.organization,
-          search_type: 'issues',
-          search_source: 'main_search',
-          error: parseApiError(err),
-        });
 
-        this.setState({
-          error: parseApiError(err),
-          issuesLoading: false,
-        });
-      },
-      complete: () => {
-        this._lastRequest = null;
+          this.setState({
+            error: parseApiError(err),
+            issuesLoading: false,
+          });
+        },
+        complete: () => {
+          this._lastRequest = null;
 
-        this.resumePolling();
+          this.resumePolling();
 
-        if (!this.state.realtimeActive) {
-          this.setState({actionTaken: false, undo: false});
-        }
-      },
-    });
+          if (!this.state.realtimeActive) {
+            this.setState({actionTaken: false, undo: false});
+          }
+        },
+      }
+    );
   };
 
   resumePolling = () => {
@@ -710,21 +716,6 @@ class IssueListOverview extends Component<Props, State> {
       this._poller.enable();
     }
   };
-
-  get groupListEndpoint(): string {
-    const {organization} = this.props;
-    return `/organizations/${organization.slug}/issues/`;
-  }
-
-  get groupCountsEndpoint(): string {
-    const {organization} = this.props;
-    return `/organizations/${organization.slug}/issues-count/`;
-  }
-
-  get groupStatsEndpoint(): string {
-    const {organization} = this.props;
-    return `/organizations/${organization.slug}/issues-stats/`;
-  }
 
   onRealtimeChange = (realtime: boolean) => {
     Cookies.set('realtimeActive', realtime.toString());

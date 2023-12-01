@@ -1,4 +1,4 @@
-import {createContext, useContext, useEffect} from 'react';
+import {createContext, useContext, useEffect, useRef} from 'react';
 import {dropUndefinedKeys} from '@sentry/utils';
 import * as reactQuery from '@tanstack/react-query';
 
@@ -75,19 +75,46 @@ export interface GroupStatsProviderProps {
   query?: string;
 }
 
+class CacheNode<T> {
+  value: T;
+  constructor(value: T) {
+    this.value = value;
+  }
+}
+class Cache<T> {
+  private map: Map<string, CacheNode<T>> = new Map();
+
+  get(key: string): T | undefined {
+    return this.map.get(key)?.value;
+  }
+  set(key: string, value: T) {
+    this.map.set(key, new CacheNode(value));
+  }
+}
+
 export function GroupStatsProvider(props: GroupStatsProviderProps) {
   const api = useApi();
+  const cache = useRef(new Cache<Record<string, GroupStats>>());
 
   const queryFn = (): Promise<Record<string, GroupStats>> => {
+    const query = getEndpointParams({
+      selection: props.selection,
+      period: props.period,
+      query: props.query,
+      groupIds: props.groupIds,
+    });
+
+    const {groups: _groups, ...rest} = query;
+
+    const entry = cache.current.get(JSON.stringify(rest));
+    if (entry) {
+      query.groups = query.groups.filter(id => !entry[id]);
+    }
+
     const promise = api
       .requestPromise<true>(`/organizations/${props.organization.slug}/issues-stats/`, {
         method: 'GET',
-        query: getEndpointParams({
-          selection: props.selection,
-          period: props.period,
-          query: props.query,
-          groupIds: props.groupIds,
-        }),
+        query,
         includeAllArgs: true,
       })
       .then((resp: ApiResult<GroupStats[]>): Record<string, GroupStats> => {
@@ -96,9 +123,15 @@ export function GroupStatsProvider(props: GroupStatsProviderProps) {
           return map;
         }
         for (const stat of resp[0]) {
+          if (entry) {
+            entry[stat.id] = stat;
+          }
           map[stat.id] = stat;
         }
         return map;
+      })
+      .catch(() => {
+        return {};
       });
 
     return promise;
