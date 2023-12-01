@@ -33,6 +33,7 @@ import type {
   Project,
 } from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
+import {parsePeriodToHours} from 'sentry/utils/dates';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getForceMetricsLayerQueryExtras} from 'sentry/utils/metrics/features';
 import {formatMRIField} from 'sentry/utils/metrics/mri';
@@ -107,7 +108,7 @@ const MOST_TIME_PERIODS: readonly TimePeriod[] = [
  * TimeWindow determines data available in TimePeriod
  * If TimeWindow is small, lower TimePeriod to limit data points
  */
-const AVAILABLE_TIME_PERIODS: Record<TimeWindow, readonly TimePeriod[]> = {
+export const AVAILABLE_TIME_PERIODS: Record<TimeWindow, readonly TimePeriod[]> = {
   [TimeWindow.ONE_MINUTE]: [
     TimePeriod.SIX_HOURS,
     TimePeriod.ONE_DAY,
@@ -147,13 +148,37 @@ type State = {
   totalCount: number | null;
 };
 
+const getStatsPeriodFromQuery = (
+  queryParam: string | string[] | null | undefined
+): TimePeriod => {
+  if (typeof queryParam !== 'string') {
+    return TimePeriod.SEVEN_DAYS;
+  }
+  const inMinutes = parsePeriodToHours(queryParam || '') * 60;
+
+  switch (inMinutes) {
+    case 6 * 60:
+      return TimePeriod.SIX_HOURS;
+    case 24 * 60:
+      return TimePeriod.ONE_DAY;
+    case 3 * 24 * 60:
+      return TimePeriod.THREE_DAYS;
+    case 9999:
+      return TimePeriod.SEVEN_DAYS;
+    case 14 * 24 * 60:
+      return TimePeriod.FOURTEEN_DAYS;
+    default:
+      return TimePeriod.SEVEN_DAYS;
+  }
+};
+
 /**
  * This is a chart to be used in Metric Alert rules that fetches events based on
  * query, timewindow, and aggregations.
  */
 class TriggersChart extends PureComponent<Props, State> {
   state: State = {
-    statsPeriod: TimePeriod.SEVEN_DAYS,
+    statsPeriod: getStatsPeriodFromQuery(this.props.location.query.statsPeriod),
     totalCount: null,
     sampleRate: 1,
   };

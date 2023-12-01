@@ -872,7 +872,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   }
 
   renderTriggerChart() {
-    const {organization, ruleId, rule} = this.props;
+    const {organization, ruleId, rule, location} = this.props;
 
     const {
       query,
@@ -889,10 +889,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       dataset,
       alertType,
       isQueryValid,
-      location,
     } = this.state;
 
-    const isMigration = this.props.location?.query?.migration === '1';
+    const isMigration = location?.query?.migration === '1';
     // TODO(telemetry-experience): Remove this and all connected logic once the migration is complete
     const isTransactionMigration = isMigration && ruleNeedsMigration(rule);
     const isOnDemand = isOnDemandMetricAlert(dataset, aggregate, query);
