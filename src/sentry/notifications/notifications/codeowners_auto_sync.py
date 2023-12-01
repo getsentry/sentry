@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
 
 from sentry.notifications.notifications.base import ProjectNotification
-from sentry.notifications.types import NotificationSettingTypes
+from sentry.notifications.types import NotificationSettingEnum, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.types.integrations import ExternalProviders
 
@@ -14,6 +14,7 @@ if TYPE_CHECKING:
 class AutoSyncNotification(ProjectNotification):
     metrics_key = "auto_sync"
     notification_setting_type = NotificationSettingTypes.DEPLOY
+    notification_setting_type_enum = NotificationSettingEnum.DEPLOY
     template_path = "sentry/emails/codeowners-auto-sync-failure"
 
     def determine_recipients(self) -> list[RpcActor]:

@@ -35,8 +35,10 @@ class BaseNotification(abc.ABC):
         ExternalProviders.DISCORD: "[{text}]({url})",
     }
     message_builder = "SlackNotificationsMessageBuilder"
-    # some notifications have no settings for it
+    # some notifications have no settings for it which is why it is optional
+    # TODO(steve): Replace notification_setting_type with notification_setting_type_enum
     notification_setting_type: NotificationSettingTypes | None = None
+    notification_setting_type_enum: NotificationSettingEnum | None = None
     analytics_event: str = ""
 
     def __init__(self, organization: Organization, notification_uuid: str | None = None):
