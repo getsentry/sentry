@@ -210,15 +210,6 @@ class QueryParser:
         """
         Sanitizes the query and group bys before using them to build the MQL query.
         """
-
-        # platform:"android" OR platform:ios
-        # (platform:"android" OR platform:ios)
-        # platform:"android" OR platform:"ios"
-        # platform:"android" OR platform:"ios}"
-        # platform:"android" OR platform:["ios}"]
-
-        # We don't allow at the end of filters: }
-        # We don't allow at the end of group bys: )
         if self._query:
             self._query = remove_if_match(self.FILTERS_SANITIZATION_PATTERN, self._query)
 
