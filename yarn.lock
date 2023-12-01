@@ -2422,10 +2422,10 @@
   dependencies:
     "@react-types/shared" "^3.18.1"
 
-"@sentry-internal/feedback@0.0.1-alpha.16":
-  version "0.0.1-alpha.16"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/feedback/-/feedback-0.0.1-alpha.16.tgz#907c59926810a29c249b358c2f20d1f445794cec"
-  integrity sha512-gllstGFu7gKgMIRhvyZRvPnRlkjnlK4bLvFb1CJiv85zClT+WRzcncaBx47/Z3kLQbOScJFImLLV0Vp0PlQs1A==
+"@sentry-internal/feedback@0.0.1-alpha.17":
+  version "0.0.1-alpha.17"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/feedback/-/feedback-0.0.1-alpha.17.tgz#98e7477152111efe18febc07e7d6064d32340711"
+  integrity sha512-PCYiA0tQU8NWOVeZf8eRxptkI5JMro+9jQT1pLNyRG9vhzYYXurepalUgeY8qbMREdaFk5p0N9DmkJHDiOW1mg==
   dependencies:
     "@sentry/core" "7.84.0"
     "@sentry/types" "7.84.0"

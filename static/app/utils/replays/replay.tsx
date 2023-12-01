@@ -6,7 +6,8 @@ export type NetworkMetaWarning =
   | 'JSON_TRUNCATED'
   | 'TEXT_TRUNCATED'
   | 'INVALID_JSON'
-  | 'URL_SKIPPED';
+  | 'URL_SKIPPED'
+  | 'BODY_PARSE_ERROR';
 
 interface NetworkMeta {
   warnings?: NetworkMetaWarning[];
