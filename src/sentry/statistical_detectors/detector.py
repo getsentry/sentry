@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Generator, Generic, List, Mapping, Optional, Set, Tuple, TypeVar
+from typing import Any, Generator, Generic, Iterable, List, Mapping, Optional, Set, Tuple, TypeVar
 
 import sentry_sdk
 
@@ -118,7 +118,7 @@ class RegressionDetector(ABC):
         cls,
         projects: List[Project],
         start: datetime,
-    ) -> List[DetectorPayload]:
+    ) -> Iterable[DetectorPayload]:
         ...
 
     @classmethod
