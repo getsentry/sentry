@@ -52,6 +52,13 @@ class DiscordNonProxyClient(ApiClient):
             data=commands,
         )
 
+    def has_application_commands(self) -> bool:
+        response = self.get(
+            APPLICATION_COMMANDS_URL.format(application_id=self.application_id),
+            headers=self.prepare_auth_header(),
+        )
+        return len(response) > 0
+
     def get_guild_name(self, guild_id: str) -> str:
         url = GUILD_URL.format(guild_id=guild_id)
         try:

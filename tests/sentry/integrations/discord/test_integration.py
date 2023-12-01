@@ -6,12 +6,30 @@ import responses
 from responses.matchers import header_matcher
 
 from sentry import audit_log, options
-from sentry.integrations.discord.client import GUILD_URL, DiscordClient
+from sentry.integrations.discord.client import APPLICATION_COMMANDS_URL, GUILD_URL, DiscordClient
 from sentry.integrations.discord.integration import DiscordIntegrationProvider
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.integrations.integration import Integration
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import IntegrationTestCase
+
+COMMANDS = [
+    {
+        "name": "link",
+        "description": "Link your Discord account to your Sentry account to perform actions on Sentry notifications.",
+        "type": 1,
+    },
+    {
+        "name": "unlink",
+        "description": "Unlink your Discord account from your Sentry account.",
+        "type": 1,
+    },
+    {
+        "name": "help",
+        "description": "View a list of Sentry bot commands and what they do.",
+        "type": 1,
+    },
+]
 
 
 class DiscordIntegrationTest(IntegrationTestCase):
@@ -35,6 +53,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
         guild_id="1234567890",
         server_name="Cool server",
         auth_code="auth_code",
+        command_response_empty=True,
     ):
         responses.reset()
 
@@ -61,6 +80,14 @@ class DiscordIntegrationTest(IntegrationTestCase):
                 "name": server_name,
             },
         )
+
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}",
+            match=[header_matcher({"Authorization": f"Bot {self.bot_token}"})],
+            json=[] if command_response_empty else COMMANDS,
+        )
+
         responses.add(
             responses.POST,
             url="https://discord.com/api/v10/oauth2/token",
@@ -84,7 +111,10 @@ class DiscordIntegrationTest(IntegrationTestCase):
         assert resp.status_code == 200
         self.assertDialogSuccess(resp)
 
-        assert mock_set_application_commands.call_count == 1
+        if command_response_empty:
+            assert mock_set_application_commands.call_count == 1
+        else:
+            assert mock_set_application_commands.call_count == 0
 
     @responses.activate
     def test_bot_flow(self):
@@ -107,7 +137,9 @@ class DiscordIntegrationTest(IntegrationTestCase):
         with self.tasks():
             self.assert_setup_flow()
         with self.tasks():
-            self.assert_setup_flow(guild_id="0987654321", server_name="Uncool server")
+            self.assert_setup_flow(
+                guild_id="0987654321", server_name="Uncool server", command_response_empty=False
+            )
 
         integrations = Integration.objects.filter(provider=self.provider.key).order_by(
             "external_id"
@@ -244,3 +276,20 @@ class DiscordIntegrationTest(IntegrationTestCase):
     #     provider.application_id = None
     #     provider.post_install(self.integration, self.organization)
     #     provider.client.set_application_commands.assert_not_called()
+
+    # @responses.activate
+    # def test_multiple_integrations_commands(self):
+    #     with self.tasks():
+    #         self.assert_setup_flow()
+    #     with self.tasks():
+    #         self.assert_setup_flow(guild_id="0987654321", server_name="Uncool server")
+
+    #     integrations = Integration.objects.filter(provider=self.provider.key).order_by(
+    #         "external_id"
+    #     )
+
+    #     assert integrations.count() == 2
+    #     assert integrations[0].external_id == "0987654321"
+    #     assert integrations[0].name == "Uncool server"
+    #     assert integrations[1].external_id == "1234567890"
+    #     assert integrations[1].name == "Cool server"

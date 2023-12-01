@@ -187,7 +187,8 @@ class DiscordIntegrationProvider(IntegrationProvider):
         extra: Any | None = None,
     ) -> None:
         if self._credentials_exist():
-            self.register_commands()
+            if not self.client.has_application_commands():
+                self.register_commands()
 
     def _get_discord_user_id(self, auth_code: str) -> str:
         """
