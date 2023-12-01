@@ -15,6 +15,7 @@ import {
   parseMRI,
 } from 'sentry/utils/metrics/mri';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
+import {middleEllipsis} from 'sentry/utils/middleEllipsis';
 
 interface Props {
   aggregate: string;
@@ -101,7 +102,7 @@ function MriField({aggregate, project, onChange}: Props) {
         disabled?: boolean;
         trailingItems?: React.ReactNode;
       }>(metric => ({
-        label: metric.name,
+        label: middleEllipsis(metric.name, 50, /\.|-|_/),
         value: metric.mri,
         trailingItems: (
           <Fragment>
