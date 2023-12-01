@@ -23,10 +23,10 @@ class Dataset(Enum):
     "The raw, non materialized version of the above"
 
     Sessions = "sessions"
-    "The sessions dataset is deprecated I think?"
+    "The sessions dataset is deprecated."
 
     Metrics = "metrics"
-    "Not sure what this is, is it also release health?"
+    "this 'metrics' dataset is only used for release health."
 
     PerformanceMetrics = "generic_metrics"
     """
