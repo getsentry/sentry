@@ -2812,7 +2812,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         assert data[0]["weighted_performance_score(measurements.score.lcp)"] == 0.3433333333333333
         assert meta["isMetricsData"]
-        assert field_meta["performance_score(measurements.score.lcp)"] == "number"
+        assert field_meta["weighted_performance_score(measurements.score.lcp)"] == "number"
 
     def test_invalid_performance_score_column(self):
         self.store_transaction_metric(
