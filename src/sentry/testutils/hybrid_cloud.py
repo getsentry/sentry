@@ -7,6 +7,7 @@ import os
 import threading
 from contextlib import contextmanager
 from typing import Any, Callable, Iterator, List, Set, Type, TypedDict
+from unittest.mock import patch
 
 from django.db import connections, transaction
 from django.db.backends.base.base import BaseDatabaseWrapper
@@ -16,7 +17,6 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.scheduledeletion import BaseScheduledDeletion, get_regional_scheduled_deletion
 from sentry.silo import SiloMode
-from sentry.silo import client as silo_client
 from sentry.testutils.silo import assume_test_silo_mode
 
 
@@ -263,11 +263,7 @@ def use_split_dbs() -> bool:
 
 @contextmanager
 def override_allowed_region_silo_ip_addresses(*allowed_ip_addresses):
-    original_allowed_ips = frozenset(silo_client.ALLOWED_REGION_IP_ADDRESSES)
-    silo_client.ALLOWED_REGION_IP_ADDRESSES = frozenset(
-        ipaddress.ip_address(str(ip)) for ip in allowed_ip_addresses
-    )
-    try:
+    with patch("sentry.silo.client.get_region_ip_addresses") as mock_get_region_ip_addresses:
+        override_value = frozenset(ipaddress.ip_address(str(ip)) for ip in allowed_ip_addresses)
+        mock_get_region_ip_addresses.return_value = override_value
         yield
-    finally:
-        silo_client.ALLOWED_REGION_IP_ADDRESSES = original_allowed_ips

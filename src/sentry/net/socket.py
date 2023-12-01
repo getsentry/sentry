@@ -105,7 +105,7 @@ def safe_create_connection(
     timeout=socket._GLOBAL_DEFAULT_TIMEOUT,
     source_address=None,
     socket_options=None,
-    is_ipaddress_permitted: Callable[[str], bool] | None = is_ipaddress_allowed,
+    is_ipaddress_permitted: Callable[[str], bool] | None = None,
 ):
     if is_ipaddress_permitted is None:
         is_ipaddress_permitted = is_ipaddress_allowed

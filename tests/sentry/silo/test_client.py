@@ -1,4 +1,5 @@
-from unittest.mock import patch
+import ipaddress
+from unittest.mock import MagicMock, patch
 
 import responses
 from django.test import RequestFactory, override_settings
@@ -7,7 +8,12 @@ from pytest import raises
 from sentry.shared_integrations.exceptions import ApiHostError
 from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo import SiloMode
-from sentry.silo.client import RegionSiloClient, SiloClientError, validate_region_ip_address
+from sentry.silo.client import (
+    RegionSiloClient,
+    SiloClientError,
+    get_region_ip_addresses,
+    validate_region_ip_address,
+)
 from sentry.silo.util import PROXY_DIRECT_LOCATION_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
 from sentry.testutils.hybrid_cloud import override_allowed_region_silo_ip_addresses
@@ -188,3 +194,26 @@ def test_validate_region_ip_address():
     ):
         assert validate_region_ip_address("172.31.255.255") is True
         assert mock_capture_exception.call_count == 0
+
+
+def test_get_region_ip_addresses():
+    internal_region_address = "http://i.am.an.internal.hostname:9000"
+    region = Region("eu", 1, internal_region_address, RegionCategory.MULTI_TENANT)
+    region_config = (region,)
+
+    with override_regions(region_config), patch(
+        "socket.gethostbyname"
+    ) as mock_gethostbyname, patch("sentry_sdk.capture_exception") as mock_capture_exception:
+        mock_gethostbyname.return_value = "172.31.255.255"
+        assert get_region_ip_addresses() == frozenset([ipaddress.ip_address("172.31.255.255")])
+        assert mock_capture_exception.call_count == 0
+
+    with override_regions(region_config), patch(
+        "socket.gethostbyname"
+    ) as mock_gethostbyname, patch("urllib3.util.parse_url") as mock_parse_url, patch(
+        "sentry_sdk.capture_exception"
+    ) as mock_capture_exception:
+        mock_parse_url.return_value = MagicMock(host=None)
+        assert get_region_ip_addresses() == frozenset([])
+        assert mock_gethostbyname.call_count == 0
+        assert mock_capture_exception.call_count == 1
