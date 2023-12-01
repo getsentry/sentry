@@ -171,7 +171,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         field = f"sum({TransactionMRI.DURATION.value})"
         results = run_metrics_query(
             fields=[field],
-            query="platform:ios AND transaction:/hello",
+            # TODO: change test to (transaction:/hello) when Snuba fix is out.
+            query="(platform:ios AND transaction:/hello)",
             group_bys=["platform"],
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
@@ -299,7 +300,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         with pytest.raises(InvalidMetricsQueryError):
             run_metrics_query(
                 fields=[field],
-                query=f'platform:"android" OR platform:ios}} / {field} {{',
+                query=f'platform:"android"}} / {field} {{',
                 group_bys=["platform"],
                 start=self.now() - timedelta(minutes=30),
                 end=self.now() + timedelta(hours=1, minutes=30),
