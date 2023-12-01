@@ -1674,4 +1674,84 @@ describe('stats', () => {
     expect(await screen.findAllByTestId('group')).toHaveLength(25);
     expect(screen.queryAllByTestId('loading-placeholder')).toHaveLength(0);
   });
+
+  it('does not refetch stats if they are already fetched', async () => {
+    const customRouterProps = {
+      params: router.params,
+      location: router.location,
+    };
+
+    const groups: any[] = [];
+    const statsForGroups: any[] = [];
+
+    for (let i = 0; i < 10; i++) {
+      groups.push(Group({project, id: `${i}`}));
+      statsForGroups.push(GroupStats({id: `${i}`}));
+    }
+
+    const issuesRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      body: groups,
+      headers: {
+        Link: DEFAULT_LINKS_HEADER,
+      },
+    });
+
+    const statsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues-stats/',
+      body: statsForGroups,
+    });
+
+    const {rerender} = render(<IssueListWithStores {...customRouterProps} />, {
+      context: routerContext,
+    });
+
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+
+    expect(issuesRequest).toHaveBeenCalled();
+    expect(statsRequest.mock.calls[0][1].query).toEqual(
+      expect.objectContaining({
+        groups: groups.map(g => g.id),
+      })
+    );
+
+    const newRouteProps = {
+      ...customRouterProps,
+      location: {
+        ...customRouterProps.location,
+        query: {
+          query:
+            'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none] ',
+        },
+        hash: '',
+      },
+    };
+
+    // New groups are part of the old groups and one new group
+    const newGroups = groups.slice(0, 5).concat(Group({project, id: '99999'}));
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      body: newGroups,
+      headers: {
+        Link: DEFAULT_LINKS_HEADER,
+      },
+    });
+
+    const newStatsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues-stats/',
+      body: [GroupStats({id: '99999'})],
+    });
+
+    rerender(<IssueListWithStores {...newRouteProps} />);
+
+    await waitFor(() => {
+      expect(newStatsRequest.mock.calls[0][1].query).toEqual(
+        expect.objectContaining({
+          // The fetch request is only performed for the new group
+          groups: ['99999'],
+        })
+      );
+    });
+  });
 });
