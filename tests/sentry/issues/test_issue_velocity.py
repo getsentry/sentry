@@ -71,7 +71,6 @@ class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
         # first and second most frequent issues, which in this case have 6 and 5 events respectively
         expected_threshold = ((6 / WEEK_IN_HOURS) + (5 / WEEK_IN_HOURS)) / 2
         actual_threshold = calculate_threshold(self.project)
-        assert actual_threshold is not None
 
         # clickhouse's quantile function is approximate
         # https://clickhouse.com/docs/en/sql-reference/aggregate-functions/reference/quantile
@@ -112,7 +111,27 @@ class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
         )
 
         threshold = calculate_threshold(self.project)
-        assert threshold is not None
+        assert math.isnan(threshold)
+
+    def test_calculation_excludes_issues_newer_than_an_hour(self):
+        """
+        Tests that issues that were first seen within the past hour are excluded from the calculation.
+        """
+        self.store_search_issue(
+            project_id=self.project.id,
+            user_id=self.user.id,
+            fingerprints=["group-1"],
+            insert_time=(self.now - timedelta(minutes=2)),
+        )
+
+        self.store_search_issue(
+            project_id=self.project.id,
+            user_id=self.user.id,
+            fingerprints=["group-1"],
+            insert_time=(self.now - timedelta(minutes=1)),
+        )
+
+        threshold = calculate_threshold(self.project)
         assert math.isnan(threshold)
 
     @patch("sentry.issues.issue_velocity.update_threshold")
