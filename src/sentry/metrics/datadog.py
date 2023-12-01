@@ -17,7 +17,7 @@ class DatadogMetricsBackend(MetricsBackend):
         if "host" in kwargs:
             self.host = kwargs.pop("host")
         else:
-            self.host = get_hostname()
+            self.host = get_hostname(hostname_from_config=True)
         initialize(**kwargs)
         super().__init__(prefix=prefix)
 
