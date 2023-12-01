@@ -12,11 +12,12 @@ import {Group, Organization} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 interface Props {
+  crashReportId: string;
   groupID: string;
   organization: Organization;
 }
 
-export default function LinkedIssue({groupID, organization}: Props) {
+export default function LinkedIssue({groupID, organization, crashReportId}: Props) {
   const issueEndpoint = `/organizations/${organization.slug}/issues/${groupID}/`;
   const {data: groupData, isLoading} = useApiQuery<Group>([issueEndpoint], {
     staleTime: 0,
@@ -30,6 +31,7 @@ export default function LinkedIssue({groupID, organization}: Props) {
         <ErrorBoundary mini>
           <IssueDetailsContainer>
             <EventOrGroupHeader
+              eventId={crashReportId}
               organization={organization}
               data={groupData}
               size="normal"
