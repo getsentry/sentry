@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 from copy import deepcopy
 from datetime import datetime, timezone
 from time import time
@@ -10,7 +11,7 @@ import sentry_sdk
 from django.conf import settings
 from symbolic.proguard import ProguardMapper
 
-from sentry import quotas
+from sentry import options, quotas
 from sentry.constants import DataCategory
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.lang.native.processing import _merge_image
@@ -239,17 +240,12 @@ def _deobfuscate_profile(profile: Profile, project: Project) -> bool:
                 )
                 return True
 
-            _deobfuscate(profile=profile, project=project)
-
-            # V2 depends on a newer version of symbolic that is causing
-            # OOMs in the save transaction workers.
-            #
-            # if project.organization_id in options.get(
-            #     "profiling.android.deobfuscation_v2_org_ids"
-            # ) or random.random() < options.get("profiling.android.deobfuscation_v2_sample_rate"):
-            #     _deobfuscate_v2(profile=profile, project=project)
-            # else:
-            #     _deobfuscate(profile=profile, project=project)
+            if project.organization_id in options.get(
+                "profiling.android.deobfuscation_v2_org_ids"
+            ) or random.random() < options.get("profiling.android.deobfuscation_v2_sample_rate"):
+                _deobfuscate_v2(profile=profile, project=project)
+            else:
+                _deobfuscate(profile=profile, project=project)
 
             profile["deobfuscated"] = True
             return True
@@ -780,7 +776,6 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                     method["data"]["deobfuscation_status"] = "missing"
 
 
-""" disabled as this requires a newer version of symbolic that is causing OOMs
 @metrics.wraps("process_profile.deobfuscate")
 def _deobfuscate_v2(profile: Profile, project: Project) -> None:
     debug_file_id = profile.get("build_id")
@@ -801,7 +796,7 @@ def _deobfuscate_v2(profile: Profile, project: Project) -> None:
             return
 
     with sentry_sdk.start_span(op="proguard.open"):
-        mapper = ProguardMapper.open(debug_file_path)
+        mapper = ProguardMapper.open(debug_file_path, initialize_param_mapping=True)
         if not mapper.has_line_info:
             return
 
@@ -877,7 +872,6 @@ def _deobfuscate_v2(profile: Profile, project: Project) -> None:
                     method["data"]["deobfuscation_status"] = "partial"
                 else:
                     method["data"]["deobfuscation_status"] = "missing"
-"""
 
 
 @metrics.wraps("process_profile.track_outcome")
