@@ -36,7 +36,7 @@ class MetricsQueryExecutionError(Exception):
     pass
 
 
-# Type representing the aggregate value from snuba, which can be null, int, float or list.
+# Type representing the aggregate value from Snuba, which can be null, int, float or list.
 ResultValue = Optional[Union[int, float, List[Optional[Union[int, float]]]]]
 # Type representing a series of values with (`time`, `value`) pairs.
 Series = List[Tuple[str, ResultValue]]
@@ -248,7 +248,7 @@ class QueryParser:
         try:
             timeseries = parse_mql(mql).query
         except InvalidQueryError as e:
-            raise InvalidMetricsQueryError(f"The supplied query is not valid: {e}")
+            raise InvalidMetricsQueryError(f"The supplied query is not valid: {type(e).__name__}")
 
         return MutableTimeseries(timeseries=timeseries)
 
@@ -259,7 +259,7 @@ class QueryParser:
         Generates multiple timeseries queries given a base query.
         """
         if not self._fields:
-            raise InvalidMetricsQueryError("You must query at least one field.")
+            raise InvalidMetricsQueryError("You must query at least one field")
 
         # We first parse the filters and group bys, which are then going to be applied on each individual query
         # that is executed.
@@ -307,7 +307,9 @@ class QueryExecutor:
             return series_result
         except SnubaError as e:
             sentry_sdk.capture_exception(e)
-            raise MetricsQueryExecutionError(f"An error occurred while executing the query: {e}")
+            raise MetricsQueryExecutionError(
+                f"An error occurred while executing the query: {type(e).__name__}"
+            )
 
     def schedule(self, query: MetricsQuery, with_totals: bool = True):
         # By default we want to execute totals.
