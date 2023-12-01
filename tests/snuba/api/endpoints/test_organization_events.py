@@ -6190,6 +6190,7 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         with self.options({"issues.group_attributes.send_kafka": True}):
             event = self.store_event(
                 data={
+                    "timestamp": self.ten_mins_ago_iso,
                     "fingerprint": ["group1"],
                     "contexts": {
                         "trace": {
@@ -6218,7 +6219,7 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
                 "replayId",
                 "timestamp",
             ],
-            "statsPeriod": "1h",
+            "statsPeriod": "2d",
             "query": "is:unresolved",
             "dataset": "errors",
             "sort": "-title",
