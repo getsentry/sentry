@@ -228,6 +228,8 @@ def build_metric_alert_chart(
     else:
         if query_type == SnubaQuery.Type.PERFORMANCE and dataset == Dataset.PerformanceMetrics:
             query_params["dataset"] = "metrics"
+        elif query_type == SnubaQuery.Type.ERROR:
+            query_params["dataset"] = "errors"
         else:
             query_params["dataset"] = "discover"
         chart_data["timeseriesData"] = fetch_metric_alert_events_timeseries(
