@@ -103,11 +103,11 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         """
         List all derived statuses of releases that fall within the provided start/end datetimes
 
-        Constructs a response key'd off release_version, project_slug, environment, and lists thresholds with their status for *specified* projects
+        Constructs a response key'd off release_version, project_slug, and lists thresholds with their status for *specified* projects
         Each returned enriched threshold will contain the full serialized release_threshold instance as well as it's derived health status
 
         {
-            {proj}-{env}-{release}: [
+            {proj}-{release}: [
                 {
                     project_id,
                     project_slug,
@@ -122,7 +122,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                 {...},
                 {...}
             ],
-            {proj}-{env}-{release}: [...],
+            {proj}-{release}: [...],
         }
 
         ``````````````````
@@ -253,9 +253,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                     # NOTE: start/end for a threshold are different than start/end for querying data
                     enriched_threshold.update(
                         {
-                            "key": self.construct_threshold_key(
-                                release=release, project=project, threshold=threshold
-                            ),
+                            "key": self.construct_threshold_key(release=release, project=project),
                             "start": release.date,  # deploy.date_finished _would_ be more accurate, but is not keyed on project so cannot be used
                             "end": release.date
                             + timedelta(
@@ -354,19 +352,15 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
 
         return Response(release_threshold_health, status=200)
 
-    def construct_threshold_key(
-        self, project: Project, release: Release, threshold: ReleaseThreshold
-    ) -> str:
+    def construct_threshold_key(self, project: Project, release: Release) -> str:
         """
         Consistent key helps to determine which thresholds can be grouped together.
-        project_slug - environment - release_version
+        project_slug - release_version
 
         NOTE: release versions can contain special characters... `-` delimiter may not be appropriate
-        NOTE: environment names can contain special characters... `-` delimiter may not be appropriate
         TODO: move this into a separate helper?
         """
-        environment = threshold.environment.name if threshold.environment else "None"
-        return f"{project.slug}-{environment}-{release.version}"
+        return f"{project.slug}-{release.version}"
 
 
 def is_error_count_healthy(ethreshold: EnrichedThreshold, timeseries: List[Dict[str, Any]]) -> bool:
