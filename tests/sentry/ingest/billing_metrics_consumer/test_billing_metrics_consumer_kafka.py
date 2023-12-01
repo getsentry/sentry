@@ -197,7 +197,5 @@ def test_outcomes_consumed(track_outcome):
 
     assert next_step.submit.call_count == 9
 
-    # Joining should commit the offset of the last message:
     strategy.join()
-
-    assert next_step.submit.call_count == 10
+    assert next_step.join.call_count == 1
