@@ -268,7 +268,7 @@ class QueryParser:
 
         for field in self._fields:
             mql_query = self._build_mql_query(field, mql_filters, mql_group_bys)
-            yield (self._parse_mql(mql_query).inject_environments(environments).get_mutated())
+            yield self._parse_mql(mql_query).inject_environments(environments).get_mutated()
 
 
 class QueryExecutor:
