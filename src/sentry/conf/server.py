@@ -3995,3 +3995,5 @@ if SILO_DEVSERVER:
 
     control_port = os.environ.get("SENTRY_CONTROL_SILO_PORT", "8000")
     SENTRY_CONTROL_ADDRESS = f"http://127.0.0.1:{control_port}"
+
+    CELERYBEAT_SCHEDULE_FILENAME = f"celerybeat-schedule-{SILO_MODE}"
