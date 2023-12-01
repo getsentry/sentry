@@ -73,7 +73,7 @@ function FilterBar({
             <SegmentedControl.Item key={DatasetOption.ALL}>
               {t('All')}
             </SegmentedControl.Item>
-            <SegmentedControl.Item key={DatasetOption.ERRORS}>
+            <SegmentedControl.Item disabled key={DatasetOption.ERRORS}>
               {t('Errors')}
             </SegmentedControl.Item>
             <SegmentedControl.Item key={DatasetOption.SESSIONS}>
