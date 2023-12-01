@@ -12,12 +12,12 @@ from tests.sentry.issues.test_utils import SearchIssueTestMixin
 WEEK_IN_HOURS = 7 * 24
 
 
-class VelocityThresholdCalculationTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
+class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
     def setUp(self):
         self.now = timezone.now()
         super().setUp()
 
-    def test_simple(self):
+    def test_calculation_simple(self):
         """
         Tests threshold calculation for a single issue with the minimum number of events
         in the past week.
@@ -39,7 +39,7 @@ class VelocityThresholdCalculationTests(TestCase, SnubaTestCase, SearchIssueTest
         threshold = calculate_threshold(self.project)
         assert threshold == 2 / WEEK_IN_HOURS
 
-    def test_multiple_issues(self):
+    def test_calculation_multiple_issues(self):
         """
         Tests that we receive the approximate 90th percentile for multiple issues older than a week
         with multiple events in the past week.
@@ -71,7 +71,7 @@ class VelocityThresholdCalculationTests(TestCase, SnubaTestCase, SearchIssueTest
         # https://clickhouse.com/docs/en/sql-reference/aggregate-functions/reference/quantile
         assert math.isclose(expected_threshold, actual_threshold, abs_tol=10**-3)
 
-    def test_for_issues_first_seen_recently(self):
+    def test_calculation_for_issues_first_seen_recently(self):
         """
         Tests that issues first seen within the past week use the difference in hours between now
         and when they were first seen to calculate frequency instead of the full week in hours.
@@ -87,7 +87,7 @@ class VelocityThresholdCalculationTests(TestCase, SnubaTestCase, SearchIssueTest
         threshold = calculate_threshold(self.project)
         assert threshold == 2 / 24
 
-    def test_excludes_issues_with_only_one_event_in_past_week(self):
+    def test_calculation_excludes_issues_with_only_one_event_in_past_week(self):
         """
         Tests that issues with only one event in the past week are excluded from the calculation.
         """

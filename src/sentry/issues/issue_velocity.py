@@ -7,6 +7,7 @@ import math
 from datetime import datetime, timedelta
 from typing import Optional
 
+from django.conf import settings
 from snuba_sdk import (
     Column,
     Condition,
@@ -191,5 +192,5 @@ def get_latest_threshold(project: Project):
 
 
 def get_redis_client():
-    cluster_key = ""  # TODO: placeholder
+    cluster_key = settings.BLAH_BLAH_BLAH  # TODO: placeholder
     return redis_clusters.get(cluster_key)
