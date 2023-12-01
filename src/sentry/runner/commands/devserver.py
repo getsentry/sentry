@@ -274,7 +274,7 @@ def devserver(
             fg="yellow",
         )
 
-    if celery_beat:
+    if celery_beat and silo != "control":
         daemons.append(_get_daemon("celery-beat"))
 
     if workers and silo != "control":
@@ -397,12 +397,11 @@ Alternatively, run without --workers.
         os.environ["SENTRY_SILO_DEVSERVER"] = "1"
         os.environ["SENTRY_SILO_MODE"] = "REGION"
         os.environ["SENTRY_REGION"] = "us"
-        os.environ["SENTRY_REGION_API_URL_TEMPLATE"] = f"http://{{region}}.{host}:{server_port}"
         os.environ["SENTRY_REGION_SILO_PORT"] = str(server_port)
         os.environ["SENTRY_CONTROL_SILO_PORT"] = str(ports["server"] + 1)
         os.environ["SENTRY_DEVSERVER_BIND"] = f"127.0.0.1:{server_port}"
         os.environ["UWSGI_HTTP_SOCKET"] = f"127.0.0.1:{ports['region.server']}"
-        os.environ["UWSGI_WORKERS"] = "3"
+        os.environ["UWSGI_WORKERS"] = "5"
         os.environ["UWSGI_THREADS"] = "2"
 
     server = SentryHTTPServer(
@@ -462,7 +461,7 @@ Alternatively, run without --workers.
             "SENTRY_REGION_SILO_PORT": str(ports["region.server"]),
             "SENTRY_DEVSERVER_BIND": f"127.0.0.1:{server_port}",
             "UWSGI_HTTP_SOCKET": f"127.0.0.1:{ports['server']}",
-            "UWSGI_WORKERS": "3",
+            "UWSGI_WORKERS": "5",
             "UWSGI_THREADS": "2",
         }
         merged_env = os.environ.copy()
