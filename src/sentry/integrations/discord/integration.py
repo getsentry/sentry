@@ -23,7 +23,6 @@ from sentry.pipeline.views.base import PipelineView
 from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.shared_integrations.exceptions.base import ApiError
-from sentry.utils.cache import cache
 from sentry.utils.http import absolute_uri
 
 from .utils import logger
@@ -244,27 +243,21 @@ class DiscordIntegrationProvider(IntegrationProvider):
 
     def register_commands(self) -> None:
         """
-        Fetches the current bot commands list and if it's out of date,
-        overwrites the bot commands list in Discord with the above list.
+        Sets the bot commands list
         """
-        cache_key = "discord-bot-commands-updated"
-        result = cache.get(cache_key)
-
-        if result is None:
-            cache.set(cache_key, True, 3600)
-            try:
-                self.client.overwrite_application_commands(COMMANDS)
-            except ApiError as e:
-                sentry_sdk.capture_exception(e)
-                logger.error(
-                    "discord.setup.update_bot_commands_failure",
-                    extra={
-                        "status": e.code,
-                        "error": str(e),
-                        "application_id": self.client.application_id,
-                    },
-                )
-                cache.delete(cache_key)
+        try:
+            self.client.set_application_commands(COMMANDS)
+            self.commands = True
+        except ApiError as e:
+            sentry_sdk.capture_exception(e)
+            logger.error(
+                "discord.setup.update_bot_commands_failure",
+                extra={
+                    "status": e.code,
+                    "error": str(e),
+                    "application_id": self.client.application_id,
+                },
+            )
 
 
 class DiscordInstallPipeline(PipelineView):

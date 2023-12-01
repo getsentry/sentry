@@ -209,33 +209,19 @@ class DiscordIntegrationTest(IntegrationTestCase):
 
     def test_post_install_overwrite_commands(self):
         provider = self.provider()
-        provider.client.overwrite_application_commands = mock.MagicMock(  # type: ignore
-            spec=provider.client.overwrite_application_commands
+        provider.client.set_application_commands = mock.MagicMock(  # type: ignore
+            spec=provider.client.set_application_commands
         )
 
         provider.post_install(self.integration, self.organization)
-        provider.client.overwrite_application_commands.assert_called()
+        provider.client.set_application_commands.assert_called()
 
     def test_post_install_no_overwrite_commands(self):
         provider = self.provider()
-        provider.client.overwrite_application_commands = mock.MagicMock(  # type: ignore
-            spec=provider.client.overwrite_application_commands
+        provider.client.set_application_commands = mock.MagicMock(  # type: ignore
+            spec=provider.client.set_application_commands
         )
 
         provider.application_id = None
         provider.post_install(self.integration, self.organization)
-        provider.client.overwrite_application_commands.assert_not_called()
-
-    @mock.patch(
-        "sentry.integrations.discord.integration.cache.get",
-        return_value="discord-bot-commands-updated",
-    )
-    def test_commands_in_cache(self, mock_cache):
-        provider = self.provider()
-        provider.client.overwrite_application_commands = mock.MagicMock(  # type: ignore
-            spec=provider.client.overwrite_application_commands
-        )
-
-        provider.post_install(self.integration, self.organization)
-        provider.client.overwrite_application_commands.assert_not_called()
-        assert mock_cache.call_count == 1
+        provider.client.set_application_commands.assert_not_called()
