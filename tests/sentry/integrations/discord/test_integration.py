@@ -7,30 +7,17 @@ from responses.matchers import header_matcher
 
 from sentry import audit_log, options
 from sentry.api.client import ApiError
-from sentry.integrations.discord.client import APPLICATION_COMMANDS_URL, GUILD_URL, DiscordClient
+from sentry.integrations.discord.client import (
+    APPLICATION_COMMANDS_URL,
+    COMMANDS,
+    GUILD_URL,
+    DiscordClient,
+)
 from sentry.integrations.discord.integration import DiscordIntegrationProvider
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.integrations.integration import Integration
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import IntegrationTestCase
-
-COMMANDS = [
-    {
-        "name": "link",
-        "description": "Link your Discord account to your Sentry account to perform actions on Sentry notifications.",
-        "type": 1,
-    },
-    {
-        "name": "unlink",
-        "description": "Unlink your Discord account from your Sentry account.",
-        "type": 1,
-    },
-    {
-        "name": "help",
-        "description": "View a list of Sentry bot commands and what they do.",
-        "type": 1,
-    },
-]
 
 
 class DiscordIntegrationTest(IntegrationTestCase):
