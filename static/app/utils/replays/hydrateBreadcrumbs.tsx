@@ -2,13 +2,31 @@ import invariant from 'invariant';
 
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import isValidDate from 'sentry/utils/date/isValidDate';
-import type {BreadcrumbFrame, RawBreadcrumbFrame} from 'sentry/utils/replays/types';
-import {isBreadcrumbFrame} from 'sentry/utils/replays/types';
+import type {
+  BreadcrumbFrame,
+  RawBreadcrumbFrame,
+  RecordingFrame,
+} from 'sentry/utils/replays/types';
+import {EventType, isBreadcrumbFrame} from 'sentry/utils/replays/types';
 import type {ReplayRecord} from 'sentry/views/replays/types';
+
+function findCloseMutations(date: Date, rrwebFrames: RecordingFrame[]) {
+  const timeMS = date.getTime();
+  const incrementalFrames = rrwebFrames.filter(
+    frame => frame.type === EventType.IncrementalSnapshot
+  );
+  const framesBefore = incrementalFrames.filter(frame => frame.timestamp <= timeMS);
+  const framesAfter = incrementalFrames.filter(frame => frame.timestamp > timeMS);
+  return {
+    prev: framesBefore.slice(-1)[0] ?? null,
+    next: framesAfter[0] ?? null,
+  };
+}
 
 export default function hydrateBreadcrumbs(
   replayRecord: ReplayRecord,
-  breadcrumbFrames: RawBreadcrumbFrame[]
+  breadcrumbFrames: RawBreadcrumbFrame[],
+  rrwebFrames: RecordingFrame[]
 ): BreadcrumbFrame[] {
   const startTimestampMs = replayRecord.started_at.getTime();
 
@@ -18,6 +36,11 @@ export default function hydrateBreadcrumbs(
         const time = new Date(frame.timestamp * 1000);
         invariant(isValidDate(time), 'breadcrumbFrame.timestamp is invalid');
 
+        if (frame.category === 'replay.hydrate') {
+          frame.data = {
+            mutations: findCloseMutations(time, rrwebFrames),
+          };
+        }
         return {
           ...frame,
           offsetMs: Math.abs(time.getTime() - startTimestampMs),
