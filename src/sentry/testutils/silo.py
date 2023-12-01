@@ -311,8 +311,8 @@ def assume_test_silo_mode(desired_silo: SiloMode, can_be_monolith: bool = True) 
     overrides: MutableMapping[str, Any] = {}
     if desired_silo != SiloMode.get_current_mode():
         overrides["SILO_MODE"] = desired_silo
-    if desired_silo == SiloMode.REGION and not getattr(settings, "SENTRY_REGION"):
-        overrides["SENTRY_REGION"] = "na"
+    # if desired_silo == SiloMode.REGION and not getattr(settings, "SENTRY_REGION"):
+    #     overrides["SENTRY_REGION"] = "na"
 
     if overrides:
         with override_settings(**overrides):
