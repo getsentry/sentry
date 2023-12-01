@@ -406,12 +406,13 @@ def test_limit_regressions_by_project(ratelimit, timestamp, expected_idx):
     }
 
     def trends():
-        yield (None, 0, payloads[(1, 1)])
-        yield (TrendType.Improved, 0, payloads[(2, 1)])
-        yield (TrendType.Regressed, 0, payloads[(2, 2)])
-        yield (TrendType.Regressed, 0, payloads[(3, 1)])
-        yield (TrendType.Regressed, 1, payloads[(3, 2)])
-        yield (TrendType.Regressed, 2, payloads[(3, 3)])
+        # we do not need the detector state here so mock it with None
+        yield (None, 0, payloads[(1, 1)], None)
+        yield (TrendType.Improved, 0, payloads[(2, 1)], None)
+        yield (TrendType.Regressed, 0, payloads[(2, 2)], None)
+        yield (TrendType.Regressed, 0, payloads[(3, 1)], None)
+        yield (TrendType.Regressed, 1, payloads[(3, 2)], None)
+        yield (TrendType.Regressed, 2, payloads[(3, 3)], None)
 
     expected_regressions = [
         payloads[(2, 2)],

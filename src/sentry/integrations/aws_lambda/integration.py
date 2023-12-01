@@ -94,6 +94,9 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
             )
         return self._client
 
+    def get_client(self) -> AwsLambdaProxyClient:
+        return self.client
+
     def get_one_lambda_function(self, name):
         # https://boto3.amazonaws.com/v1/documentation/api/1.22.12/reference/services/lambda.html
         return self.client.get_function(FunctionName=name)["Configuration"]

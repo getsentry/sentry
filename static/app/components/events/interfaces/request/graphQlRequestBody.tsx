@@ -12,7 +12,7 @@ import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {EntryRequestDataGraphQl, Event} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {loadPrismLanguage} from 'sentry/utils/loadPrismLanguage';
+import {loadPrismLanguage} from 'sentry/utils/prism';
 
 type GraphQlBodyProps = {data: EntryRequestDataGraphQl['data']; event: Event};
 

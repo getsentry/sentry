@@ -51,7 +51,12 @@ from sentry.statistical_detectors.algorithm import (
     MovingAverageRelativeChangeDetector,
     MovingAverageRelativeChangeDetectorConfig,
 )
-from sentry.statistical_detectors.detector import DetectorPayload, RegressionDetector, TrendType
+from sentry.statistical_detectors.detector import (
+    DetectorPayload,
+    DetectorState,
+    RegressionDetector,
+    TrendType,
+)
 from sentry.statistical_detectors.issue_platform_adapter import (
     fingerprint_regression,
     send_regression_to_platform,
@@ -148,22 +153,24 @@ def run_detection() -> None:
         detect_function_trends.delay(profiling_projects, now)
 
     metrics.incr(
-        "statistical_detectors.performance.projects.total",
+        "statistical_detectors.projects.total",
         amount=performance_projects_count,
+        tags={"source": "transaction"},
         sample_rate=1.0,
     )
 
     metrics.incr(
-        "statistical_detectors.profiling.projects.total",
+        "statistical_detectors.projects.total",
         amount=profiling_projects_count,
+        tags={"source": "profile"},
         sample_rate=1.0,
     )
 
 
 class EndpointRegressionDetector(RegressionDetector):
+    source = "transaction"
     kind = "endpoint"
     config = MovingAverageRelativeChangeDetectorConfig(
-        change_metric="statistical_detectors.rel_change.transactions",
         min_data_points=6,
         short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
         long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
@@ -181,39 +188,11 @@ class EndpointRegressionDetector(RegressionDetector):
     ) -> List[DetectorPayload]:
         return query_transactions(projects, start)
 
-    @classmethod
-    def update_metrics(cls, projects, total, regressed, improved):
-        metrics.incr(
-            "statistical_detectors.performance.projects.active",
-            amount=projects,
-            sample_rate=1.0,
-        )
-
-        metrics.incr(
-            "statistical_detectors.total.transactions",
-            amount=total,
-            sample_rate=1.0,
-        )
-
-        # This is the number of regressed functions found in this iteration
-        metrics.incr(
-            "statistical_detectors.regressed.transactions",
-            amount=regressed,
-            sample_rate=1.0,
-        )
-
-        # This is the number of improved functions found in this iteration
-        metrics.incr(
-            "statistical_detectors.improved.transactions",
-            amount=improved,
-            sample_rate=1.0,
-        )
-
 
 class FunctionRegressionDetector(RegressionDetector):
+    source = "profile"
     kind = "function"
     config = MovingAverageRelativeChangeDetectorConfig(
-        change_metric="statistical_detectors.rel_change.functions",
         min_data_points=6,
         short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
         long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
@@ -231,34 +210,6 @@ class FunctionRegressionDetector(RegressionDetector):
     ) -> List[DetectorPayload]:
         return query_functions(projects, start)
 
-    @classmethod
-    def update_metrics(cls, projects, total, regressed, improved):
-        metrics.incr(
-            "statistical_detectors.profiling.projects.active",
-            amount=projects,
-            sample_rate=1.0,
-        )
-
-        metrics.incr(
-            "statistical_detectors.total.functions",
-            amount=total,
-            sample_rate=1.0,
-        )
-
-        # This is the number of regressed functions found in this iteration
-        metrics.incr(
-            "statistical_detectors.regressed.functions",
-            amount=regressed,
-            sample_rate=1.0,
-        )
-
-        # This is the number of improved functions found in this iteration
-        metrics.incr(
-            "statistical_detectors.improved.functions",
-            amount=improved,
-            sample_rate=1.0,
-        )
-
 
 @instrumented_task(
     name="sentry.tasks.statistical_detectors.detect_transaction_trends",
@@ -271,21 +222,11 @@ def detect_transaction_trends(
     if not options.get("statistical_detectors.enable"):
         return
 
-    # Time to filter down to just the projects that have not opted out.
-    #
-    # If we filter this in the earlier step, it makes the initial dispatch
-    # task take longer than necessary.
-    projects = [
-        project
-        for project in Project.objects.filter(id__in=project_ids).select_related("organization")
-        if features.has("organizations:performance-statistical-detectors-ema", project.organization)
-    ]
-    settings = get_performance_issue_settings(projects)
-    projects = [
-        project
-        for project in projects
-        if settings[project][InternalProjectOptions.TRANSACTION_DURATION_REGRESSION.value]
-    ]
+    projects = get_detector_enabled_projects(
+        project_ids,
+        feature_name="organizations:performance-statistical-detectors-ema",
+        project_option=InternalProjectOptions.TRANSACTION_DURATION_REGRESSION,
+    )
 
     ratelimit = options.get("statistical_detectors.ratelimit.ema")
     trends = EndpointRegressionDetector.detect_trends(projects, start)
@@ -320,13 +261,9 @@ def detect_transaction_change_points(
 
     projects_by_id = {
         project.id: project
-        for project in Project.objects.filter(
-            id__in=[project_id for project_id, _ in transactions]
-        ).select_related("organization")
-        if (
-            features.has(
-                "organizations:performance-statistical-detectors-breakpoint", project.organization
-            )
+        for project in get_detector_enabled_projects(
+            [project_id for project_id, _ in transactions],
+            feature_name="organizations:performance-statistical-detectors-breakpoint",
         )
     }
 
@@ -338,16 +275,12 @@ def detect_transaction_change_points(
 
     for regression in _detect_transaction_change_points(transaction_pairs, start):
         breakpoint_count += 1
-        project = projects_by_id.get(int(regression["project"]))
-        released = project is not None and features.has(
-            "organizations:performance-p95-endpoint-regression-ingest",
-            project.organization,
-        )
-        send_regression_to_platform(regression, released)
+        send_regression_to_platform(regression, True)
 
     metrics.incr(
-        "statistical_detectors.breakpoint.transactions",
+        "statistical_detectors.breakpoint.emitted",
         amount=breakpoint_count,
+        tags={"source": "transaction", "kind": "endpoint"},
         sample_rate=1.0,
     )
 
@@ -391,7 +324,10 @@ def _detect_transaction_change_points(
             yield from detect_breakpoints(request)["data"]
         except Exception as e:
             sentry_sdk.capture_exception(e)
-            metrics.incr("statistical_detectors.breakpoint.errors", tags={"type": "transactions"})
+            metrics.incr(
+                "statistical_detectors.breakpoint.errors",
+                tags={"source": "transaction", "kind": "endpoint"},
+            )
             continue
 
 
@@ -568,11 +504,11 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
     if not options.get("statistical_detectors.enable"):
         return
 
-    projects = [
-        project
-        for project in Project.objects.filter(id__in=project_ids).select_related("organization")
-        if features.has("organizations:profiling-statistical-detectors-ema", project.organization)
-    ]
+    projects = get_detector_enabled_projects(
+        project_ids,
+        feature_name="organizations:profiling-statistical-detectors-ema",
+    )
+
     ratelimit = options.get("statistical_detectors.ratelimit.ema")
     trends = FunctionRegressionDetector.detect_trends(projects, start)
     regressions = limit_regressions_by_project(trends, ratelimit)
@@ -604,20 +540,16 @@ def detect_function_change_points(
     if not options.get("statistical_detectors.enable"):
         return
 
-    breakpoint_count = 0
-    emitted_count = 0
-
     projects_by_id = {
         project.id: project
-        for project in Project.objects.filter(
-            id__in=[project_id for project_id, _ in functions_list]
-        ).select_related("organization")
-        if (
-            features.has(
-                "organizations:profiling-statistical-detectors-breakpoint", project.organization
-            )
+        for project in get_detector_enabled_projects(
+            [project_id for project_id, _ in functions_list],
+            feature_name="organizations:profiling-statistical-detectors-breakpoint",
         )
     }
+
+    breakpoint_count = 0
+    emitted_count = 0
 
     breakpoints = _detect_function_change_points(projects_by_id, functions_list, start)
 
@@ -628,14 +560,16 @@ def detect_function_change_points(
         emitted_count += emit_function_regression_issue(projects_by_id, breakpoint_chunk, start)
 
     metrics.incr(
-        "statistical_detectors.breakpoint.functions",
+        "statistical_detectors.breakpoint.detected",
         amount=breakpoint_count,
+        tags={"source": "profile", "kind": "function"},
         sample_rate=1.0,
     )
 
     metrics.incr(
-        "statistical_detectors.emitted.functions",
+        "statistical_detectors.breakpoint.emitted",
         amount=emitted_count,
+        tags={"source": "profile", "kind": "function"},
         sample_rate=1.0,
     )
 
@@ -683,7 +617,10 @@ def _detect_function_change_points(
         try:
             yield from detect_breakpoints(request)["data"]
         except Exception as e:
-            metrics.incr("statistical_detectors.breakpoint.errors", tags={"type": "functions"})
+            metrics.incr(
+                "statistical_detectors.breakpoint.errors",
+                tags={"source": "profile", "kind": "function"},
+            )
             sentry_sdk.capture_exception(e)
             continue
 
@@ -758,10 +695,7 @@ def emit_function_regression_issue(
                 "trend_percentage": entry["trend_percentage"],
                 "unweighted_p_value": entry["unweighted_p_value"],
                 "unweighted_t_value": entry["unweighted_t_value"],
-                "released": features.has(
-                    "organizations:profile-function-regression-ingest",
-                    project.organization,
-                ),
+                "released": True,
             }
         )
 
@@ -1037,15 +971,40 @@ def query_functions_timeseries(
         yield project.id, fingerprint, results[key]
 
 
+def get_detector_enabled_projects(
+    project_ids: List[int],
+    feature_name: str | None = None,
+    project_option: InternalProjectOptions | None = None,
+) -> List[Project]:
+    projects = Project.objects.filter(id__in=project_ids)
+
+    if feature_name is None:
+        projects = [project for project in projects]
+    else:
+        projects = [
+            project
+            for project in projects.select_related("organization")
+            if features.has(feature_name, project.organization)
+        ]
+
+    if project_option is not None:
+        settings = get_performance_issue_settings(projects)
+        projects = [project for project in projects if settings[project][project_option.value]]
+
+    return projects
+
+
 def limit_regressions_by_project(
-    trends: Generator[Tuple[Optional[TrendType], float, DetectorPayload], None, None],
+    trends: Generator[
+        Tuple[Optional[TrendType], float, DetectorPayload, DetectorState], None, None
+    ],
     ratelimit: int,
 ) -> Generator[DetectorPayload, None, None]:
     regressions_by_project: DefaultDict[int, List[Tuple[float, DetectorPayload]]] = defaultdict(
         list
     )
 
-    for trend_type, score, payload in trends:
+    for trend_type, score, payload, state in trends:
         if trend_type != TrendType.Regressed:
             continue
         heapq.heappush(regressions_by_project[payload.project_id], (score, payload))
