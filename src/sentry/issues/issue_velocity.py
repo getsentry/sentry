@@ -46,6 +46,7 @@ def calculate_threshold(project: Project) -> Optional[float]:
     Calculates the velocity threshold based on event frequency in the project for the past week.
     """
     now = datetime.now()
+    one_hour_ago = now - timedelta(hours=1)
     one_week_ago = now - timedelta(days=7)
     ninety_days_ago = now - timedelta(days=90)
 
@@ -92,8 +93,13 @@ def calculate_threshold(project: Project) -> Optional[float]:
             Condition(Column("project_id"), Op.EQ, project.id),
         ],
         having=[
-            Condition(Column("past_week_event_count"), Op.GT, 1)
-        ],  # exclude any issues that had only 1 event in the past week
+            Condition(
+                Column("past_week_event_count"), Op.GT, 1
+            ),  # exclude any issues that had only 1 event in the past week
+            Condition(
+                Column("first_seen"), Op.LT, one_hour_ago
+            ),  # if it's first seen within the last hour, discard to avoid ZeroDivision
+        ],
         orderby=[OrderBy(Column("first_seen"), Direction.ASC)],
         limit=Limit(10000),
     )
