@@ -172,6 +172,7 @@ const patterns: RegExp[] = [
   new RegExp('^extensions/msteams/configure/$'),
   new RegExp('^extensions/msteams/link-identity/[^/]+/$'),
   new RegExp('^extensions/msteams/unlink-identity/[^/]+/$'),
+  new RegExp('^extensions/discord/interactions/$'),
   new RegExp('^extensions/discord/link-identity/[^/]+/$'),
   new RegExp('^extensions/discord/unlink-identity/[^/]+/$'),
   new RegExp('^share/(?:group|issue)/[^/]+/$'),
