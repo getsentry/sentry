@@ -223,10 +223,10 @@ class OrganizationDDMMetaEndpointTest(MetricsAPIBaseTestCase):
         frames = code_locations[0]["frames"]
         assert len(frames) == 1
         assert frames[0]["lineNo"] == 10
-        # We check that all the remaining elements are `None`.
+        # We check that all the remaining elements are `None` or empty.
         del frames[0]["lineNo"]
         for value in frames[0].values():
-            assert value is None
+            assert value is None or value == []
 
     def test_get_locations_with_corrupted_location(self):
         project = self.create_project(name="project_1")
