@@ -1,14 +1,16 @@
 ---
+created: '2023-11-28T16:01:07.159219Z'
+creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: "750486b8d8c51500fa0dfbb6f1577af0"
+  hash: null
   component:
-    app*
-      chained-exception*
+    app (exception of system takes precedence)
+      chained-exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         exception*
           stacktrace
-            frame (non app frame)
+            frame (marked out of app by stack trace rule (module:io.sentry.* -app -group))
               module*
                 "io.sentry.example.Application"
               filename (module takes precedence)
@@ -175,7 +177,7 @@ app:
             "Address already in use"
         exception*
           stacktrace
-            frame (non app frame)
+            frame (marked out of app by stack trace rule (module:io.sentry.* -app -group))
               module*
                 "io.sentry.example.Application"
               filename (module takes precedence)
@@ -285,8 +287,8 @@ app:
           value*
             "service.getName(): \"Tomcat\";  Protocol handler start failed"
         exception*
-          stacktrace*
-            frame*
+          stacktrace
+            frame (marked out of app by stack trace rule (module:io.sentry.* -app -group))
               module*
                 "io.sentry.example.Application"
               filename (module takes precedence)
@@ -386,24 +388,24 @@ app:
                 "start"
           type*
             "LifecycleException"
-          value (ignored because stacktrace takes precedence)
+          value* (stripped event-specific values)
             "Failed to start component [Connector[HTTP/<float><int>]]"
 --------------------------------------------------------------------------
 default:
   hash: null
   component:
-    default (exception of app/system takes precedence)
-      message (exception of app/system takes precedence)
+    default (exception of system takes precedence)
+      message (exception of system takes precedence)
         "Failed to start connector [Connector[HTTP/<float><int>]]"
 --------------------------------------------------------------------------
 system:
-  hash: "8924849495809d42431719c2b9ab65c8"
+  hash: "1959b227a7cf6acf7f3fd401b5d9f09b"
   component:
     system*
       chained-exception*
         exception*
           stacktrace*
-            frame*
+            frame (ignored by stack trace rule (module:io.sentry.* -app -group))
               module*
                 "io.sentry.example.Application"
               filename (module takes precedence)
@@ -570,7 +572,7 @@ system:
             "Address already in use"
         exception*
           stacktrace*
-            frame*
+            frame (ignored by stack trace rule (module:io.sentry.* -app -group))
               module*
                 "io.sentry.example.Application"
               filename (module takes precedence)
@@ -681,7 +683,7 @@ system:
             "service.getName(): \"Tomcat\";  Protocol handler start failed"
         exception*
           stacktrace*
-            frame*
+            frame (ignored by stack trace rule (module:io.sentry.* -app -group))
               module*
                 "io.sentry.example.Application"
               filename (module takes precedence)

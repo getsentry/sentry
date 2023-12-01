@@ -1,4 +1,6 @@
 ---
+created: '2023-11-28T16:01:06.243244Z'
+creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
@@ -385,7 +387,7 @@ app:
               "nativemethodaccessorimpl.java"
             function*
               "invoke0"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:io.sentry.* -app -group))
             module*
               "io.sentry.example.Application"
             filename (module takes precedence)
@@ -405,7 +407,7 @@ default:
         "Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is java.lang.ArithmeticException: / by zero] with root cause"
 --------------------------------------------------------------------------
 system:
-  hash: "12f3d3df2e7804af98f4b56c602d17b0"
+  hash: "ef2555bf7958ada8eefafbfdaed1c409"
   component:
     system*
       exception*
@@ -788,7 +790,7 @@ system:
               "nativemethodaccessorimpl.java"
             function*
               "invoke0"
-          frame*
+          frame (ignored by stack trace rule (module:io.sentry.* -app -group))
             module*
               "io.sentry.example.Application"
             filename (module takes precedence)
