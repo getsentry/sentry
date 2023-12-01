@@ -55,7 +55,6 @@ class DiscordIntegrationTest(IntegrationTestCase):
         server_name="Cool server",
         auth_code="auth_code",
         command_response_empty=True,
-        command_set_call_count=1,
     ):
         responses.reset()
 
@@ -113,7 +112,10 @@ class DiscordIntegrationTest(IntegrationTestCase):
         assert resp.status_code == 200
         self.assertDialogSuccess(resp)
 
-        assert mock_set_application_commands.call_count == command_set_call_count
+        if command_response_empty:
+            assert mock_set_application_commands.call_count == 1
+        else:
+            assert mock_set_application_commands.call_count == 0
 
     @responses.activate
     def test_bot_flow(self):
@@ -140,7 +142,6 @@ class DiscordIntegrationTest(IntegrationTestCase):
                 guild_id="0987654321",
                 server_name="Uncool server",
                 command_response_empty=False,
-                command_set_call_count=0,
             )
 
         integrations = Integration.objects.filter(provider=self.provider.key).order_by(
