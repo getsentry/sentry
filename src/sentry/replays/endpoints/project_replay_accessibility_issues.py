@@ -72,7 +72,7 @@ class ProjectReplayAccessibilityIssuesEndpoint(ProjectEndpoint):
             return Response(status=404)
 
         try:
-            timestamp = int(request.GET.get("timestamp"))
+            timestamp = int(request.GET.get("timestamp", ""))
         except TypeError:
             timestamp = None
         except ValueError:
