@@ -18,7 +18,6 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.endpoints.team_projects import ProjectPostSerializer
 from sentry.api.exceptions import ConflictError, ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.experiments import manager as expt_manager
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -87,15 +86,8 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
             raise NotAuthenticated("User is not authenticated")
 
         result = serializer.validated_data
-        exposed = expt_manager.get(
-            "ProjectCreationForAllExperimentV2", org=organization, actor=request.user
-        )
 
-        if (
-            not features.has("organizations:team-roles", organization)
-            or not features.has("organizations:team-project-creation-all", organization)
-            or exposed != 1
-        ):
+        if not features.has("organizations:team-roles", organization):
             raise ResourceDoesNotExist(detail=MISSING_PERMISSION_ERROR_STRING)
 
         # parse the email to retrieve the username before the "@"
