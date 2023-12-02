@@ -579,6 +579,12 @@ def _process_message(
     partition: int,
     wrapper: CheckinMessage | ClockPulseMessage,
 ) -> None:
+    # XXX: Relay does not attach a message type, to properly discriminate the
+    # message_type we add it by default here. This can be removed once the
+    # message_type is guaranteed
+    if "message_type" not in wrapper:
+        wrapper["message_type"] = "check_in"
+
     try:
         try_monitor_tasks_trigger(ts, partition)
     except Exception:

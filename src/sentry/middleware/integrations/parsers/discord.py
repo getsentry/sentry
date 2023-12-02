@@ -48,7 +48,9 @@ class DiscordRequestParser(BaseRequestParser):
             integration_id = params.get("integration_id")
 
             logger.info(
-                f"{self.provider}.get_integration_from_request.{self.view_class.__name__}",
+                "%s.get_integration_from_request.%s",
+                self.provider,
+                self.view_class.__name__,
                 extra={"path": self.request.path, "integration_id": integration_id},
             )
             return Integration.objects.filter(id=integration_id).first()
@@ -68,7 +70,8 @@ class DiscordRequestParser(BaseRequestParser):
             ).first()
 
         logger.info(
-            f"{self.provider}.get_integration_from_request.no_view_class",
+            "%s.get_integration_from_request.no_view_class",
+            self.provider,
             extra={"path": self.request.path},
         )
 
@@ -100,7 +103,7 @@ class DiscordRequestParser(BaseRequestParser):
 
         regions = self.get_regions_from_organizations()
         if len(regions) == 0:
-            logger.info(f"{self.provider}.no_regions", extra={"path": self.request.path})
+            logger.info("%s.no_regions", self.provider, extra={"path": self.request.path})
             return self.get_response_from_control_silo()
 
         if is_discord_interactions_endpoint and self.discord_request:

@@ -328,7 +328,7 @@ class Monitor(Model):
             jsonschema.validate(self.config, MONITOR_CONFIG)
             return self.config
         except jsonschema.ValidationError:
-            logging.exception(f"Monitor: {self.id} invalid config: {self.config}", exc_info=True)
+            logging.exception("Monitor: %s invalid config: %s", self.id, self.config)
 
     def get_alert_rule(self):
         alert_rule_id = self.config.get("alert_rule_id")

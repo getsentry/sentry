@@ -42,7 +42,8 @@ def link_all_repos(
     integration = integration_service.get_integration(integration_id=integration_id)
     if not integration:
         logger.error(
-            f"{integration_key}.link_all_repos.integration_missing",
+            "%s.link_all_repos.integration_missing",
+            integration_key,
             extra={"organization_id": organization_id},
         )
         metrics.incr("github.link_all_repos.error", tags={"type": "missing_integration"})
@@ -51,11 +52,13 @@ def link_all_repos(
     rpc_org = organization_service.get(id=organization_id)
     if rpc_org is None:
         logger.error(
-            f"{integration_key}.link_all_repos.organization_missing",
+            "%s.link_all_repos.organization_missing",
+            integration_key,
             extra={"organization_id": organization_id},
         )
         metrics.incr(
-            f"{integration_key}.link_all_repos.error",
+            "%s.link_all_repos.error",
+            integration_key,
             tags={"type": "missing_organization"},
         )
         return

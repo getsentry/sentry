@@ -2159,7 +2159,8 @@ def _get_severity_score(event: Event) -> float | None:
             {"event_type": event_type.key, "event_title": event.title, "computed_title": title}
         )
         logger.warning(
-            f"Unable to get severity score because of unusable `message` value '{title}'",
+            "Unable to get severity score because of unusable `message` value '%s'",
+            title,
             extra=logger_data,
         )
         return None
@@ -2189,17 +2190,23 @@ def _get_severity_score(event: Event) -> float | None:
                 severity = json.loads(response.data).get("severity")
             except MaxRetryError as e:
                 logger.warning(
-                    f"Unable to get severity score from microservice after {SEVERITY_DETECTION_RETRIES} retr{'ies' if SEVERITY_DETECTION_RETRIES >1 else 'y'}. Got MaxRetryError caused by: {repr(e.reason)}.",
+                    "Unable to get severity score from microservice after %s retr%s. Got MaxRetryError caused by: %s.",
+                    SEVERITY_DETECTION_RETRIES,
+                    "ies" if SEVERITY_DETECTION_RETRIES > 1 else "y",
+                    repr(e.reason),
                     extra=logger_data,
                 )
             except Exception as e:
                 logger.warning(
-                    f"Unable to get severity score from microservice. Got: {repr(e)}.",
+                    "Unable to get severity score from microservice. Got: %s.",
+                    repr(e),
                     extra=logger_data,
                 )
             else:
                 logger.info(
-                    f"Got severity score of {severity} for event {event.data['event_id']}",
+                    "Got severity score of %s for event %s",
+                    severity,
+                    event.data["event_id"],
                     extra=logger_data,
                 )
 
@@ -2678,7 +2685,8 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
         if features.has("organizations:issue-platform-extra-logging", project.organization):
             if performance_problems and len(performance_problems) > 0:
                 logger.warning(
-                    f"Detected {len(performance_problems)} performance problems",
+                    "Detected %s performance problems",
+                    len(performance_problems),
                     extra={
                         "performance_problems": performance_problems,
                         "project_id": project.id,
