@@ -544,6 +544,14 @@ def _process_checkin(
             else:
                 mark_ok(check_in, ts=start_time)
 
+            # track how much time it took for the message to make it through
+            # relay into kafka. This should help us understand when missed
+            # check-ins may be slipping in, since we use the `item.ts` to click
+            # the clock forward, if that is delayed it's possible for the
+            # check-in to come in late
+            kafka_delay = start_time.replace(tzinfo=None) - message_ts
+            metrics.gauge("monitors.checkin.relay_kafka_delay", kafka_delay.total_seconds())
+
             # how long in wall-clock time did it take for us to process this
             # check-in. This records from when the message was first appended
             # into the Kafka topic until we just completed processing.
