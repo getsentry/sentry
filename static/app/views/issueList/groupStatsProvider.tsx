@@ -82,19 +82,29 @@ class CacheNode<T> {
   }
 }
 class Cache<T> {
-  private map: Map<string, CacheNode<T>> = new Map();
+  private map: Map<string, CacheNode<T>>;
+
+  constructor() {
+    this.map = new Map();
+  }
 
   get(key: string): T | undefined {
     return this.map.get(key)?.value;
   }
-  set(key: string, value: T) {
-    this.map.set(key, new CacheNode(value));
+  set(key: string, value: T): T {
+    const node = new CacheNode(value);
+    this.map.set(key, node);
+    return node.value;
   }
 }
 
 export function GroupStatsProvider(props: GroupStatsProviderProps) {
   const api = useApi();
-  const cache = useRef(new Cache<Record<string, GroupStats>>());
+  const cache = useRef<Cache<Record<string, GroupStats>> | null>(null);
+
+  if (!cache.current) {
+    cache.current = new Cache<Record<string, GroupStats>>();
+  }
 
   const queryFn = (): Promise<Record<string, GroupStats>> => {
     const query = getEndpointParams({
@@ -105,10 +115,22 @@ export function GroupStatsProvider(props: GroupStatsProviderProps) {
     });
 
     const {groups: _groups, ...rest} = query;
+    const cacheKey = JSON.stringify({...rest, organization: props.organization.slug});
 
-    const entry = cache.current.get(JSON.stringify(rest));
+    const entry = cache.current && cache.current.get(cacheKey);
     if (entry) {
       query.groups = query.groups.filter(id => !entry[id]);
+    }
+
+    // Dont make a request if there are no groups to fetch data from
+    // and we have a cached entry that we can resolve with
+    if (!query.groups.length && entry) {
+      return Promise.resolve(entry);
+    }
+
+    // Dont make a request if there are no groups
+    if (!query.groups.length) {
+      return Promise.resolve({});
     }
 
     const promise = api
@@ -118,17 +140,25 @@ export function GroupStatsProvider(props: GroupStatsProviderProps) {
         includeAllArgs: true,
       })
       .then((resp: ApiResult<GroupStats[]>): Record<string, GroupStats> => {
-        const map: Record<string, GroupStats> = {};
-        if (!resp || !Array.isArray(resp[0])) {
-          return map;
+        const map = cache.current?.get(cacheKey) ?? {};
+
+        if (!map) {
+          return {};
         }
+        if (!resp || !Array.isArray(resp[0])) {
+          return {...map};
+        }
+
         for (const stat of resp[0]) {
-          if (entry) {
-            entry[stat.id] = stat;
-          }
           map[stat.id] = stat;
         }
-        return map;
+
+        if (cache.current) {
+          cache.current.set(cacheKey, map);
+        }
+
+        // Return a copy so that callers cannot mutate the cache
+        return {...map};
       })
       .catch(() => {
         return {};
