@@ -10,7 +10,6 @@ from sentry.integrations.client import ApiClient
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
-from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.utils.json import JSONData
 
 logger = logging.getLogger("sentry.integrations.discord")
@@ -32,24 +31,6 @@ CHANNEL_URL = "/channels/{channel_id}"
 # https://discord.com/developers/docs/resources/channel#create-message
 MESSAGE_URL = "/channels/{channel_id}/messages"
 
-COMMANDS: list[object] = [
-    {
-        "name": "link",
-        "description": "Link your Discord account to your Sentry account to perform actions on Sentry notifications.",
-        "type": 1,
-    },
-    {
-        "name": "unlink",
-        "description": "Unlink your Discord account from your Sentry account.",
-        "type": 1,
-    },
-    {
-        "name": "help",
-        "description": "View a list of Sentry bot commands and what they do.",
-        "type": 1,
-    },
-]
-
 
 class DiscordNonProxyClient(ApiClient):
     integration_name: str = "discord"
@@ -63,50 +44,23 @@ class DiscordNonProxyClient(ApiClient):
     def prepare_auth_header(self) -> dict[str, str]:
         return {"Authorization": f"Bot {self.bot_token}"}
 
-    def set_application_commands(self) -> None:
-        try:
-            for command in COMMANDS:
-                self.post(
-                    APPLICATION_COMMANDS_URL.format(application_id=self.application_id),
-                    headers=self.prepare_auth_header(),
-                    data=command,
-                )
-        except ApiError as e:
-            logger.error(
-                "discord.fail.setup.set_application_commands",
-                extra={
-                    "status": e.code,
-                    "error": str(e),
-                    "application_id": self.application_id,
-                },
-            )
-            raise ApiError(str(e))
+    def set_application_commands(self, command: object) -> None:
+        self.post(
+            APPLICATION_COMMANDS_URL.format(application_id=self.application_id),
+            headers=self.prepare_auth_header(),
+            data=command,
+        )
 
     def has_application_commands(self) -> bool:
-        try:
-            response = self.get(
-                APPLICATION_COMMANDS_URL.format(application_id=self.application_id),
-                headers=self.prepare_auth_header(),
-            )
-            return bool(response)
-        except ApiError as e:
-            logger.error(
-                "discord.fail.get_application_commands",
-                extra={
-                    "status": e.code,
-                    "error": str(e),
-                    "application_id": self.application_id,
-                },
-            )
-            raise ApiError(str(e))
+        response = self.get(
+            APPLICATION_COMMANDS_URL.format(application_id=self.application_id),
+            headers=self.prepare_auth_header(),
+        )
+        return bool(response)
 
     def get_guild_name(self, guild_id: str) -> str:
-        url = GUILD_URL.format(guild_id=guild_id)
-        try:
-            response = self.get(url, headers=self.prepare_auth_header())
-            return response["name"]  # type: ignore
-        except (ApiError, AttributeError):
-            return guild_id
+        response = self.get(GUILD_URL.format(guild_id=guild_id), headers=self.prepare_auth_header())
+        return response["name"]  # type: ignore
 
 
 class DiscordClient(IntegrationProxyClient):
