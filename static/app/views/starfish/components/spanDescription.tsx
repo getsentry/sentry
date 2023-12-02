@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -29,13 +30,18 @@ export function SpanDescription({span, project}: Props) {
   return <WordBreak>{span[SpanMetricsField.SPAN_DESCRIPTION]}</WordBreak>;
 }
 
+const formatter = new SQLishFormatter();
+
 function DatabaseSpanDescription({span, project}: Props) {
-  const formatter = new SQLishFormatter();
+  const rawDescription = span[SpanMetricsField.SPAN_DESCRIPTION];
+  const formatterDescription = useMemo(() => {
+    return formatter.toString(rawDescription);
+  }, [rawDescription]);
 
   return (
     <Frame>
       <CodeSnippet language="sql" isRounded={false}>
-        {formatter.toString(span[SpanMetricsField.SPAN_DESCRIPTION])}
+        {formatterDescription}
       </CodeSnippet>
 
       <Feature features={['organizations:performance-database-view-query-source']}>

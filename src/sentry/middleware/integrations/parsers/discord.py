@@ -3,9 +3,11 @@ from __future__ import annotations
 import logging
 
 import sentry_sdk
+from django.http import HttpResponse
+from rest_framework import status
 from rest_framework.request import Request
 
-from sentry.integrations.discord.requests.base import DiscordRequest
+from sentry.integrations.discord.requests.base import DiscordRequest, DiscordRequestError
 from sentry.integrations.discord.views.link_identity import DiscordLinkIdentityView
 from sentry.integrations.discord.views.unlink_identity import DiscordUnlinkIdentityView
 from sentry.integrations.discord.webhooks.base import DiscordInteractionsEndpoint
@@ -80,6 +82,12 @@ class DiscordRequestParser(BaseRequestParser):
 
         # Handle any Requests that doesn't depend on Integration/Organization prior to fetching the Regions.
         if is_discord_interactions_endpoint and self.discord_request:
+            # Discord will do automated, routine security checks against the interactions endpoint, including
+            # purposefully sending invalid signatures.
+            try:
+                self.discord_request.validate()
+            except DiscordRequestError:
+                return HttpResponse(status=status.HTTP_401_UNAUTHORIZED)
             if self.discord_request.is_ping():
                 return DiscordInteractionsEndpoint.respond_ping()
 
