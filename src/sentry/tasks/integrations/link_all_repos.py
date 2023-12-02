@@ -57,8 +57,7 @@ def link_all_repos(
             extra={"organization_id": organization_id},
         )
         metrics.incr(
-            "%s.link_all_repos.error",
-            integration_key,
+            f"{integration_key}.link_all_repos.error",
             tags={"type": "missing_organization"},
         )
         return
