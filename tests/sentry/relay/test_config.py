@@ -143,7 +143,7 @@ def test_get_experimental_config_dyn_sampling(mock_logger, _, default_project):
         cfg = get_project_config(default_project, full_config=True, project_keys=keys)
     # Key is missing from config:
     assert "dynamicSampling" not in cfg.to_dict()["config"]
-    assert mock_logger.error.call_args == mock.call(ANY, exc_info=True)
+    assert mock_logger.exception.call_args == mock.call(ANY)
 
 
 @django_db_all
