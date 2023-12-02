@@ -215,7 +215,7 @@ class GroupTest(TestCase, SnubaTestCase):
         assert group.get_email_subject() == expect
 
     def test_get_absolute_url(self):
-        for (org_slug, group_id, params, expected) in [
+        for org_slug, group_id, params, expected in [
             ("org1", 23, None, "http://testserver/organizations/org1/issues/23/"),
             (
                 "org2",
@@ -353,7 +353,7 @@ class GroupTest(TestCase, SnubaTestCase):
         for status, substatus in status_substatus_pairs:
             self.create_group(status=status, substatus=substatus)
 
-        assert logger.exception.call_count == len(status_substatus_pairs)
+        assert logger.error.call_count == len(status_substatus_pairs)
 
 
 @region_silo_test
