@@ -434,7 +434,7 @@ def test_nodestore_missing(
     django_cache,
 ):
     logs: list[str] = []
-    monkeypatch.setattr("sentry.reprocessing2.logger.error", logs.append)
+    monkeypatch.setattr("sentry.reprocessing2.logger.exception", logs.append)
 
     event_id = process_and_save({"message": "hello world", "platform": "python"})
     event = eventstore.backend.get_event_by_id(default_project.id, event_id)
