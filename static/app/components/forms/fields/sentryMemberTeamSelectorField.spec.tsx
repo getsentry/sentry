@@ -1,4 +1,5 @@
 import selectEvent from 'react-select-event';
+import {Organization} from 'sentry-fixture/organization';
 import {Project} from 'sentry-fixture/project';
 import {Team} from 'sentry-fixture/team';
 import {User} from 'sentry-fixture/user';
@@ -12,7 +13,7 @@ import TeamStore from 'sentry/stores/teamStore';
 import SentryMemberTeamSelectorField from './sentryMemberTeamSelectorField';
 
 describe('SentryMemberTeamSelectorField', () => {
-  const org = TestStubs.Organization();
+  const org = Organization();
   const mockUsers = [User()];
   const mockTeams = [Team()];
   const mockProjects = [Project()];
