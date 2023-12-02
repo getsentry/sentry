@@ -315,12 +315,14 @@ class LoggingPrinter(Printer):
     ) -> None:
         if err:
             logger.error(
-                f"Import failed: {text}",
+                "Import failed: %s",
+                text,
                 extra={"uuid": self.uuid, "task": OrderedTask.IMPORTING.name},
             )
         else:
             logger.info(
-                f"Import info: {text}",
+                "Import info: %s",
+                text,
                 extra={"uuid": self.uuid, "task": OrderedTask.IMPORTING.name},
             )
 
