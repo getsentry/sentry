@@ -424,7 +424,9 @@ def test_attachments_and_userfeedback(
 @django_db_all
 @pytest.mark.snuba
 @pytest.mark.parametrize("remaining_events", ["keep", "delete"])
+@mock.patch("sentry.reprocessing2.logger")
 def test_nodestore_missing(
+    mock_logger,
     default_project,
     reset_snuba,
     process_and_save,
@@ -433,9 +435,6 @@ def test_nodestore_missing(
     remaining_events,
     django_cache,
 ):
-    logs: list[str] = []
-    monkeypatch.setattr("sentry.reprocessing2.logger.exception", logs.append)
-
     event_id = process_and_save({"message": "hello world", "platform": "python"})
     event = eventstore.backend.get_event_by_id(default_project.id, event_id)
     old_group = event.group
@@ -464,7 +463,7 @@ def test_nodestore_missing(
             GroupRedirect.objects.get(previous_group_id=old_group.id).group_id == new_event.group_id
         )
 
-    assert logs == ["reprocessing2.unprocessed_event.not_found"]
+    assert mock_logger.error.called_with("reprocessing2.unprocessed_event.not_found")
 
 
 @django_db_all
