@@ -34,6 +34,7 @@ class MessageAction:
 @dataclass
 class BlockKitMessageAction:
     name: str
+    label: str
     type: Literal["button", "select"] = "button"
     url: str | None = None
     value: str | None = None
