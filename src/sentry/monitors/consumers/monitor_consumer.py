@@ -563,7 +563,7 @@ def _process_checkin(
             tags={**metric_kwargs, "status": "error"},
         )
         txn.set_tag("result", "error")
-        logger.exception("Failed to process check-in", exc_info=True)
+        logger.exception("Failed to process check-in")
 
 
 def _process_message(
@@ -574,7 +574,7 @@ def _process_message(
     try:
         try_monitor_tasks_trigger(ts, partition)
     except Exception:
-        logger.exception("Failed to trigger monitor tasks", exc_info=True)
+        logger.exception("Failed to trigger monitor tasks")
 
     # Nothing else to do with clock pulses
     if wrapper["message_type"] == "clock_pulse":
