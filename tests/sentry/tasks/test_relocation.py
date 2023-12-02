@@ -17,6 +17,7 @@ from sentry.backup.helpers import (
     ImportFlags,
     LocalFileDecryptor,
     LocalFileEncryptor,
+    Printer,
     create_encrypted_export_tarball,
     decrypt_encrypted_tarball,
     unwrap_encrypted_export_tarball,
@@ -1496,6 +1497,7 @@ class PostprocessingTest(RelocationTaskTestCase):
                     merge_users=False, overwrite_configs=False, import_uuid=str(self.uuid)
                 ),
                 org_filter=set(self.relocation.want_org_slugs),
+                printer=Printer(),
             )
 
         imported_orgs = RegionImportChunk.objects.get(
@@ -1619,6 +1621,7 @@ class NotifyingUsersTest(RelocationTaskTestCase):
                     merge_users=False, overwrite_configs=False, import_uuid=str(self.uuid)
                 ),
                 org_filter=set(self.relocation.want_org_slugs),
+                printer=Printer(),
             )
 
         self.imported_users = ControlImportChunkReplica.objects.get(

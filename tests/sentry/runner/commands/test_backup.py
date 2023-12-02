@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from random import choice
 from string import ascii_letters
@@ -7,6 +8,7 @@ from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest.mock import patch
 
+import pytest
 from click.testing import CliRunner
 from google_crc32c import value as crc32c
 
@@ -388,7 +390,7 @@ def cli_import_then_export(
         )
         rv = CliRunner().invoke(
             import_,
-            [scope, GOOD_FILE_PATH, "--findings-file", str(tmp_in_findings)]
+            [scope, GOOD_FILE_PATH, "--no-prompt", "--findings-file", str(tmp_in_findings)]
             + ([] if import_args is None else import_args),
         )
         assert rv.exit_code == 0, rv.output
@@ -402,7 +404,7 @@ def cli_import_then_export(
         tmp_out_path = Path(tmp_dir).joinpath("good.json")
         rv = CliRunner().invoke(
             export,
-            [scope, str(tmp_out_path), "--findings-file", str(tmp_out_findings)]
+            [scope, str(tmp_out_path), "--no-prompt", "--findings-file", str(tmp_out_findings)]
             + ([] if export_args is None else export_args),
         )
         assert rv.exit_code == 0, rv.output
@@ -421,19 +423,20 @@ class GoodImportExportCommandTests(TransactionTestCase):
     """
 
     def test_global_scope(self):
-        cli_import_then_export("global")
-
         # Global imports assume a clean database.
         clear_database()
+        cli_import_then_export("global")
 
     def test_config_scope(self):
         cli_import_then_export("config")
+        cli_import_then_export("config", import_args=["--silent"])
         cli_import_then_export("config", import_args=["--overwrite-configs"])
         cli_import_then_export("config", import_args=["--merge-users"])
         cli_import_then_export("config", import_args=["--overwrite-configs", "--merge-users"])
 
     def test_organization_scope(self):
         cli_import_then_export("organizations")
+        cli_import_then_export("organizations", import_args=["--silent"])
         cli_import_then_export(
             "organizations",
             import_args=["--filter-org-slugs", "testing"],
@@ -442,6 +445,7 @@ class GoodImportExportCommandTests(TransactionTestCase):
 
     def test_user_scope(self):
         cli_import_then_export("users")
+        cli_import_then_export("users", import_args=["--silent"])
         cli_import_then_export("users", import_args=["--merge-users"])
         cli_import_then_export(
             "users",
@@ -463,13 +467,27 @@ class GoodImportExportCommandEncryptionTests(TransactionTestCase):
                 tmp_dir
             )
             rv = CliRunner().invoke(
-                import_, [scope, str(tmp_tar_path), "--decrypt-with", str(tmp_priv_key_path)]
+                import_,
+                [
+                    scope,
+                    str(tmp_tar_path),
+                    "--no-prompt",
+                    "--decrypt-with",
+                    str(tmp_priv_key_path),
+                ],
             )
             assert rv.exit_code == 0, rv.output
 
             tmp_output_path = Path(tmp_dir).joinpath("output.tar")
             rv = CliRunner().invoke(
-                export, [scope, str(tmp_output_path), "--encrypt-with", str(tmp_pub_key_path)]
+                export,
+                [
+                    scope,
+                    str(tmp_output_path),
+                    "--no-prompt",
+                    "--encrypt-with",
+                    str(tmp_pub_key_path),
+                ],
             )
             assert rv.exit_code == 0, rv.output
 
@@ -516,6 +534,7 @@ class GoodImportExportCommandEncryptionTests(TransactionTestCase):
                 [
                     scope,
                     str(tmp_tar_path),
+                    "--no-prompt",
                     "--decrypt-with-gcp-kms",
                     str(gcp_kms_config_path),
                 ],
@@ -526,7 +545,13 @@ class GoodImportExportCommandEncryptionTests(TransactionTestCase):
             tmp_output_path = Path(tmp_dir).joinpath("output.tar")
             rv = CliRunner().invoke(
                 export,
-                [scope, str(tmp_output_path), "--encrypt-with-gcp-kms", str(gcp_kms_config_path)],
+                [
+                    scope,
+                    str(tmp_output_path),
+                    "--no-prompt",
+                    "--encrypt-with-gcp-kms",
+                    str(gcp_kms_config_path),
+                ],
             )
             assert rv.exit_code == 0, rv.output
 
@@ -549,6 +574,53 @@ class GoodImportExportCommandEncryptionTests(TransactionTestCase):
         self.cli_encrypted_import_then_export_use_gcp_kms("users", fake_kms_client)
 
 
+class GoodGlobalImportConfirmDialogTests(TransactionTestCase):
+    """
+    Test that we react properly to the "Are you sure you want to delete all models?" confirm dialog.
+    """
+
+    @staticmethod
+    def cli_import_with_confirmation_input(
+        input: str, *, import_args: list[str] | None = None
+    ) -> str:
+        with TemporaryDirectory() as tmp_dir:
+            tmp_in_findings = Path(tmp_dir).joinpath(
+                f"{''.join(choice(ascii_letters)for _ in range(6))}.json"
+            )
+            rv = CliRunner().invoke(
+                import_,
+                ["global", GOOD_FILE_PATH, "--findings-file", str(tmp_in_findings)]
+                + ([] if import_args is None else import_args),
+                input=input,
+            )
+
+            assert rv.exit_code == 0, rv.output
+            return rv.output
+
+    @pytest.mark.skipif(
+        os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "0",
+        reason="only run when in `SENTRY_USE_MONOLITH_DBS=1` env variable is set",
+    )
+    def test_confirm_yes(self):
+        output = self.cli_import_with_confirmation_input("y\n")
+        assert "Import cancelled" not in output
+        assert Email.objects.count() > 0
+
+    @pytest.mark.skipif(
+        os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "0",
+        reason="only run when in `SENTRY_USE_MONOLITH_DBS=1` env variable is set",
+    )
+    def test_confirm_no(self):
+        output = self.cli_import_with_confirmation_input("n\n")
+        assert "Import cancelled" in output
+        assert Email.objects.count() == 0
+
+        # Should ignore the `--silent` flag, and only trigger on `--no-prompt`.
+        output = self.cli_import_with_confirmation_input("n\n", import_args=["--silent"])
+        assert "Import cancelled" not in output
+        assert Email.objects.count() == 0
+
+
 @patch("sentry.backup.imports.ImportExportService.get_importer_for_model")
 class BadImportExportDomainErrorTests(TransactionTestCase):
     def test_import_integrity_error_exit_code(self, get_importer_for_model):
@@ -561,7 +633,7 @@ class BadImportExportDomainErrorTests(TransactionTestCase):
         )
         get_importer_for_model.return_value = importer_mock_fn
         # Global imports assume an empty DB, so this should fail with an `IntegrityError`.
-        rv = CliRunner().invoke(import_, ["global", GOOD_FILE_PATH])
+        rv = CliRunner().invoke(import_, ["global", GOOD_FILE_PATH, "--no-prompt"])
         assert (
             ">> Are you restoring from a backup of the same version of Sentry?\n>> Are you restoring onto a clean database?\n>> If so then this IntegrityError might be our fault, you can open an issue here:\n>> https://github.com/getsentry/sentry/issues/new/choose\n"
             in rv.output
@@ -586,7 +658,14 @@ class BadImportExportCommandTests(TestCase):
                     f"{self._testMethodName}.{scope}.findings.json"
                 )
                 rv = CliRunner().invoke(
-                    import_, [scope, str(tmp_invalid_json), "--findings-file", str(tmp_findings)]
+                    import_,
+                    [
+                        scope,
+                        str(tmp_invalid_json),
+                        "--no-prompt",
+                        "--findings-file",
+                        str(tmp_findings),
+                    ],
                 )
                 assert rv.exit_code == 1, rv.output
 
@@ -597,13 +676,13 @@ class BadImportExportCommandTests(TestCase):
                     assert findings[0]["kind"] == "DeserializationFailed"
 
     def test_import_file_read_error_exit_code(self):
-        rv = CliRunner().invoke(import_, ["global", NONEXISTENT_FILE_PATH])
+        rv = CliRunner().invoke(import_, ["global", NONEXISTENT_FILE_PATH, "--no-prompt"])
         assert not isinstance(rv.exception, ImportingError)
         assert rv.exit_code == 2, rv.output
 
     @assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False)
     def test_export_in_control_silo(self):
-        rv = CliRunner().invoke(export, ["global", NONEXISTENT_FILE_PATH])
+        rv = CliRunner().invoke(export, ["global", NONEXISTENT_FILE_PATH, "--no-prompt"])
         assert isinstance(rv.exception, RuntimeError)
         assert "Exports must be run in REGION or MONOLITH instances only" in rv.output
 
@@ -615,7 +694,14 @@ class BadImportExportCommandTests(TestCase):
 
             tmp_out_path = Path(tmp_dir).joinpath("bad.json")
             rv = CliRunner().invoke(
-                export, ["global", str(tmp_out_path), "--encrypt-with", str(tmp_pub_key_path)]
+                export,
+                [
+                    "global",
+                    str(tmp_out_path),
+                    "--no-prompt",
+                    "--encrypt-with",
+                    str(tmp_pub_key_path),
+                ],
             )
             assert isinstance(rv.exception, ValueError)
             assert rv.exit_code == 1
@@ -640,14 +726,20 @@ class BadImportExportCommandTests(TestCase):
 
             rv = CliRunner().invoke(
                 export,
-                ["global", str(tmp_tar_path), "--encrypt-with-gcp-kms", str(gcp_kms_config_path)],
+                [
+                    "global",
+                    str(tmp_tar_path),
+                    "--no-prompt",
+                    "--encrypt-with-gcp-kms",
+                    str(gcp_kms_config_path),
+                ],
             )
             assert isinstance(rv.exception, EncryptionError)
             assert rv.exit_code == 1
 
     @assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False)
     def test_import_in_control_silo(self):
-        rv = CliRunner().invoke(import_, ["global", GOOD_FILE_PATH])
+        rv = CliRunner().invoke(import_, ["global", GOOD_FILE_PATH, "--no-prompt"])
         assert isinstance(rv.exception, RuntimeError)
         assert "Imports must be run in REGION or MONOLITH instances only" in rv.output
 
@@ -659,7 +751,14 @@ class BadImportExportCommandTests(TestCase):
                 f.write("this is an invalid private key")
 
             rv = CliRunner().invoke(
-                import_, ["global", str(tmp_tar_path), "--decrypt-with", str(tmp_priv_key_path)]
+                import_,
+                [
+                    "global",
+                    str(tmp_tar_path),
+                    "--no-prompt",
+                    "--decrypt-with",
+                    str(tmp_priv_key_path),
+                ],
             )
             assert isinstance(rv.exception, ValueError)
             assert rv.exit_code == 1
@@ -674,7 +773,13 @@ class BadImportExportCommandTests(TestCase):
 
             rv = CliRunner().invoke(
                 import_,
-                ["global", str(tmp_tar_path), "--decrypt-with-gcp-kms", str(gcp_kms_config_path)],
+                [
+                    "global",
+                    str(tmp_tar_path),
+                    "--no-prompt",
+                    "--decrypt-with-gcp-kms",
+                    str(gcp_kms_config_path),
+                ],
             )
             assert isinstance(rv.exception, json.JSONDecodeError)
             assert rv.exit_code == 1
@@ -698,7 +803,13 @@ class BadImportExportCommandTests(TestCase):
 
             rv = CliRunner().invoke(
                 import_,
-                ["global", str(tmp_tar_path), "--decrypt-with-gcp-kms", str(gcp_kms_config_path)],
+                [
+                    "global",
+                    str(tmp_tar_path),
+                    "--no-prompt",
+                    "--decrypt-with-gcp-kms",
+                    str(gcp_kms_config_path),
+                ],
             )
             assert isinstance(rv.exception, DecryptionError)
             assert rv.exit_code == 1

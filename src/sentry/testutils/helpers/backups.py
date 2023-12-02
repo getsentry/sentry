@@ -35,6 +35,7 @@ from sentry.backup.helpers import (
     KeyManagementServiceClient,
     LocalFileDecryptor,
     LocalFileEncryptor,
+    Printer,
     decrypt_encrypted_tarball,
 )
 from sentry.backup.imports import import_in_global_scope
@@ -103,7 +104,7 @@ __all__ = [
     "ValidationError",
 ]
 
-NOOP_PRINTER = lambda *args, **kwargs: None
+NOOP_PRINTER = Printer()
 
 
 class FakeKeyManagementServiceClient:
