@@ -32,6 +32,10 @@ const OnboardingCTAHook = HookOrDefault({
   hookName: 'component:replay-onboarding-cta',
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
+const OnboardingCTAButton = HookOrDefault({
+  hookName: 'component:replay-onboarding-cta-button',
+  defaultComponent: null,
+});
 
 const OnboardingAlertHook = HookOrDefault({
   hookName: 'component:replay-onboarding-alert',
@@ -192,6 +196,7 @@ export function SetupReplaysCTA({
       </p>
       <ButtonList gap={1}>
         {renderCTA()}
+        <OnboardingCTAButton />
         <Button
           href="https://docs.sentry.io/platforms/javascript/session-replay/"
           external
