@@ -151,7 +151,9 @@ def validate_region_ip_address(ip: str) -> bool:
     """
     allowed_region_ip_addresses = get_region_ip_addresses()
     if not allowed_region_ip_addresses:
-        sentry_sdk.capture_exception(RegionResolutionError("allowed_region_ip_addresses is empty."))
+        sentry_sdk.capture_exception(
+            RegionResolutionError(f"allowed_region_ip_addresses is empty for: {ip}")
+        )
         return False
 
     ip_address = ipaddress.ip_address(force_str(ip, strings_only=True))

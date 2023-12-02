@@ -176,7 +176,7 @@ def test_validate_region_ip_address():
         assert mock_capture_exception.call_count == 1
         err = mock_capture_exception.call_args.args[0]
         assert isinstance(err, RegionResolutionError)
-        assert err.args == ("Disallowed Region Silo IP address: 172.31.255.255",)
+        assert err.args == ("allowed_region_ip_addresses is empty for: 172.31.255.255",)
 
     with patch(
         "sentry_sdk.capture_exception"
