@@ -29,10 +29,10 @@ class DiscordIntegrationTest(IntegrationTestCase):
         options.set("discord.bot-token", self.bot_token)
         options.set("discord.client-secret", self.client_secret)
 
-    @mock.patch("sentry.integrations.discord.client.DiscordNonProxyClient.set_application_commands")
+    @mock.patch("sentry.integrations.discord.client.DiscordNonProxyClient.set_application_command")
     def assert_setup_flow(
         self,
-        mock_set_application_commands,
+        mock_set_application_command,
         guild_id="1234567890",
         server_name="Cool server",
         auth_code="auth_code",
@@ -106,9 +106,9 @@ class DiscordIntegrationTest(IntegrationTestCase):
         self.assertDialogSuccess(resp)
 
         if command_response_empty:
-            assert mock_set_application_commands.call_count == 3
+            assert mock_set_application_command.call_count == 3
         else:
-            assert mock_set_application_commands.call_count == 0
+            assert mock_set_application_command.call_count == 0
 
     @responses.activate
     def test_bot_flow(self):
@@ -250,12 +250,12 @@ class DiscordIntegrationTest(IntegrationTestCase):
         with pytest.raises(IntegrationError):
             provider._get_discord_user_id("auth_code")
 
-    @mock.patch("sentry.integrations.discord.client.DiscordNonProxyClient.set_application_commands")
-    def test_post_install_missing_credentials(self, mock_set_application_commands):
+    @mock.patch("sentry.integrations.discord.client.DiscordNonProxyClient.set_application_command")
+    def test_post_install_missing_credentials(self, mock_set_application_command):
         provider = self.provider()
         provider.application_id = None
         provider.post_install(integration=self.integration, organization=self.organization)
-        assert mock_set_application_commands.call_count == 0
+        assert mock_set_application_command.call_count == 0
 
     @responses.activate
     def test_set_commands_failure(self):

@@ -44,7 +44,7 @@ class DiscordNonProxyClient(ApiClient):
     def prepare_auth_header(self) -> dict[str, str]:
         return {"Authorization": f"Bot {self.bot_token}"}
 
-    def set_application_commands(self, command: object) -> None:
+    def set_application_command(self, command: object) -> None:
         self.post(
             APPLICATION_COMMANDS_URL.format(application_id=self.application_id),
             headers=self.prepare_auth_header(),

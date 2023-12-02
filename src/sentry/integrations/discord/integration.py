@@ -206,10 +206,10 @@ class DiscordIntegrationProvider(IntegrationProvider):
         if self._credentials_exist() and not self._has_application_commands():
             try:
                 for command in COMMANDS:
-                    self.client.set_application_commands(command)
+                    self.client.set_application_command(command)
             except ApiError as e:
                 logger.error(
-                    "discord.fail.setup.set_application_commands",
+                    "discord.fail.setup.set_application_command",
                     extra={
                         "status": e.code,
                         "error": str(e),
