@@ -81,7 +81,7 @@ from sentry.testutils.helpers.backups import FakeKeyManagementServiceClient, gen
 from sentry.testutils.helpers.task_runner import BurstTaskRunner, BustTaskRunnerRetryError
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
-from sentry.utils.relocation import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE
+from sentry.utils.relocation import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE, OrderedTask
 
 IMPORT_JSON_FILE_PATH = get_fixture_path("backup", "fresh-install.json")
 
@@ -239,7 +239,7 @@ class UploadingCompleteTest(RelocationTaskTestCase):
         preprocessing_scan_mock: Mock,
         fake_message_builder: Mock,
     ):
-        self.relocation.latest_task = "UPLOADING_COMPLETE"
+        self.relocation.latest_task = OrderedTask.UPLOADING_COMPLETE.name
         self.relocation.latest_task_attempts = MAX_FAST_TASK_RETRIES
         self.relocation.save()
         RelocationFile.objects.filter(relocation=self.relocation).delete()
@@ -272,7 +272,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
     def setUp(self):
         super().setUp()
         self.relocation.step = Relocation.Step.UPLOADING.value
-        self.relocation.latest_task = "UPLOADING_COMPLETE"
+        self.relocation.latest_task = OrderedTask.UPLOADING_COMPLETE.name
         self.relocation.save()
 
     def test_success_admin_assisted_relocation(
@@ -327,6 +327,30 @@ class PreprocessingScanTest(RelocationTaskTestCase):
             "member@example.com",
         ]
 
+    def test_pause(
+        self,
+        preprocessing_baseline_config_mock: Mock,
+        fake_message_builder: Mock,
+        fake_kms_client: FakeKeyManagementServiceClient,
+    ):
+        self.mock_message_builder(fake_message_builder)
+        self.mock_kms_client(fake_kms_client)
+        self.relocation.scheduled_pause_at_step = Relocation.Step.PREPROCESSING.value
+        self.relocation.save()
+
+        preprocessing_scan(self.uuid)
+
+        assert fake_kms_client.asymmetric_decrypt.call_count == 0
+        assert fake_kms_client.get_public_key.call_count == 0
+        assert fake_message_builder.call_count == 0
+        assert preprocessing_baseline_config_mock.call_count == 0
+
+        relocation: Relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.status == Relocation.Status.PAUSE.value
+        assert relocation.step == Relocation.Step.PREPROCESSING.value
+        assert relocation.scheduled_pause_at_step is None
+        assert relocation.latest_task == OrderedTask.PREPROCESSING_SCAN.name
+
     def test_retry_if_attempts_left(
         self,
         preprocessing_baseline_config_mock: Mock,
@@ -356,7 +380,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         fake_message_builder: Mock,
         fake_kms_client: FakeKeyManagementServiceClient,
     ):
-        self.relocation.latest_task = "PREPROCESSING_SCAN"
+        self.relocation.latest_task = OrderedTask.PREPROCESSING_SCAN.name
         self.relocation.latest_task_attempts = MAX_FAST_TASK_RETRIES
         self.relocation.save()
         RelocationFile.objects.filter(relocation=self.relocation).delete()
@@ -420,7 +444,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 
         # We retry on decryption failures, just to account for flakiness on the KMS server's side.
         # Try this as the last attempt to see the actual error.
-        self.relocation.latest_task = "PREPROCESSING_SCAN"
+        self.relocation.latest_task = OrderedTask.PREPROCESSING_SCAN.name
         self.relocation.latest_task_attempts = MAX_FAST_TASK_RETRIES
         self.relocation.save()
 
@@ -604,7 +628,7 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
     def setUp(self):
         super().setUp()
         self.relocation.step = Relocation.Step.PREPROCESSING.value
-        self.relocation.latest_task = "PREPROCESSING_SCAN"
+        self.relocation.latest_task = OrderedTask.PREPROCESSING_SCAN.name
         self.relocation.save()
 
     def test_success(
@@ -675,7 +699,7 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
         fake_message_builder: Mock,
         fake_kms_client: FakeKeyManagementServiceClient,
     ):
-        self.relocation.latest_task = "PREPROCESSING_BASELINE_CONFIG"
+        self.relocation.latest_task = OrderedTask.PREPROCESSING_BASELINE_CONFIG.name
         self.relocation.latest_task_attempts = MAX_FAST_TASK_RETRIES
         self.relocation.save()
         RelocationFile.objects.filter(relocation=self.relocation).delete()
@@ -714,7 +738,7 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
     def setUp(self):
         super().setUp()
         self.relocation.step = Relocation.Step.PREPROCESSING.value
-        self.relocation.latest_task = "PREPROCESSING_BASELINE_CONFIG"
+        self.relocation.latest_task = OrderedTask.PREPROCESSING_BASELINE_CONFIG.name
         self.relocation.want_usernames = ["a", "b", "c"]
         self.relocation.save()
 
@@ -790,7 +814,7 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
         fake_message_builder: Mock,
         fake_kms_client: FakeKeyManagementServiceClient,
     ):
-        self.relocation.latest_task = "PREPROCESSING_COLLIDING_USERS"
+        self.relocation.latest_task = OrderedTask.PREPROCESSING_COLLIDING_USERS.name
         self.relocation.latest_task_attempts = MAX_FAST_TASK_RETRIES
         self.relocation.save()
         RelocationFile.objects.filter(relocation=self.relocation).delete()
@@ -825,7 +849,7 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
     def setUp(self):
         super().setUp()
         self.relocation.step = Relocation.Step.PREPROCESSING.value
-        self.relocation.latest_task = "PREPROCESSING_COLLIDING_USERS"
+        self.relocation.latest_task = OrderedTask.PREPROCESSING_COLLIDING_USERS.name
         self.relocation.want_usernames = ["importing"]
         self.relocation.save()
         self.create_user("importing")
@@ -926,7 +950,7 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
         validating_start_mock: Mock,
         fake_message_builder: Mock,
     ):
-        self.relocation.latest_task = "PREPROCESSING_COMPLETE"
+        self.relocation.latest_task = OrderedTask.PREPROCESSING_COMPLETE.name
         self.relocation.latest_task_attempts = MAX_FAST_TASK_RETRIES
         self.relocation.save()
         RelocationFile.objects.filter(relocation=self.relocation).delete()
@@ -958,8 +982,8 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
 class ValidatingStartTest(RelocationTaskTestCase):
     def setUp(self):
         super().setUp()
-        self.relocation.step = Relocation.Step.VALIDATING.value
-        self.relocation.latest_task = "PREPROCESSING_COMPLETE"
+        self.relocation.step = Relocation.Step.PREPROCESSING.value
+        self.relocation.latest_task = OrderedTask.PREPROCESSING_COMPLETE.name
         self.relocation.want_usernames = ["testuser"]
         self.relocation.want_org_slugs = ["test-slug"]
         self.relocation.save()
@@ -992,6 +1016,30 @@ class ValidatingStartTest(RelocationTaskTestCase):
         )
         assert relocation_validation_attempt.status == ValidationStatus.IN_PROGRESS.value
 
+    def test_pause(
+        self,
+        validating_poll_mock: Mock,
+        fake_message_builder: Mock,
+        fake_cloudbuild_client: FakeCloudBuildClient,
+    ):
+        self.mock_cloudbuild_client(fake_cloudbuild_client, Build.Status(Build.Status.QUEUED))
+        self.mock_message_builder(fake_message_builder)
+        self.relocation.scheduled_pause_at_step = Relocation.Step.VALIDATING.value
+        self.relocation.save()
+
+        validating_start(self.uuid)
+
+        assert fake_cloudbuild_client.create_build.call_count == 0
+        assert fake_cloudbuild_client.get_build.call_count == 0
+        assert fake_message_builder.call_count == 0
+        assert validating_poll_mock.call_count == 0
+
+        relocation: Relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.status == Relocation.Status.PAUSE.value
+        assert relocation.step == Relocation.Step.VALIDATING.value
+        assert relocation.scheduled_pause_at_step is None
+        assert relocation.latest_task == OrderedTask.VALIDATING_START.name
+
     def test_retry_if_attempts_left(
         self,
         validating_poll_mock: Mock,
@@ -1021,7 +1069,7 @@ class ValidatingStartTest(RelocationTaskTestCase):
         fake_message_builder: Mock,
         fake_cloudbuild_client: FakeCloudBuildClient,
     ):
-        self.relocation.latest_task = "VALIDATING_START"
+        self.relocation.latest_task = OrderedTask.VALIDATING_START.name
         self.relocation.latest_task_attempts = MAX_FAST_TASK_RETRIES
         self.relocation.save()
 
@@ -1083,7 +1131,7 @@ class ValidatingPollTest(RelocationTaskTestCase):
     def setUp(self):
         super().setUp()
         self.relocation.step = Relocation.Step.VALIDATING.value
-        self.relocation.latest_task = "VALIDATING_START"
+        self.relocation.latest_task = OrderedTask.VALIDATING_START.name
         self.relocation.want_usernames = ["testuser"]
         self.relocation.want_org_slugs = ["test-slug"]
         self.relocation.save()
@@ -1242,7 +1290,7 @@ class ValidatingPollTest(RelocationTaskTestCase):
         fake_message_builder: Mock,
         fake_cloudbuild_client: FakeCloudBuildClient,
     ):
-        self.relocation.latest_task = "VALIDATING_POLL"
+        self.relocation.latest_task = OrderedTask.VALIDATING_POLL.name
         self.relocation.latest_task_attempts = MAX_VALIDATION_POLLS
         self.relocation.save()
 
@@ -1298,7 +1346,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
     def setUp(self):
         super().setUp()
         self.relocation.step = Relocation.Step.VALIDATING.value
-        self.relocation.latest_task = "VALIDATING_POLL"
+        self.relocation.latest_task = OrderedTask.VALIDATING_POLL.name
         self.relocation.want_usernames = ["testuser"]
         self.relocation.want_org_slugs = ["test-slug"]
         self.relocation.save()
@@ -1409,7 +1457,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
         fake_message_builder: Mock,
     ):
         self.mock_message_builder(fake_message_builder)
-        self.relocation.latest_task = "VALIDATING_COMPLETE"
+        self.relocation.latest_task = OrderedTask.VALIDATING_COMPLETE.name
         self.relocation.latest_task_attempts = MAX_FAST_TASK_RETRIES
         self.relocation.save()
         self.storage.save(
@@ -1443,7 +1491,7 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
         RelocationTaskTestCase.setUp(self)
         TransactionTestCase.setUp(self)
         self.relocation.step = Relocation.Step.VALIDATING.value
-        self.relocation.latest_task = "VALIDATING_COMPLETE"
+        self.relocation.latest_task = OrderedTask.VALIDATING_COMPLETE.name
         self.relocation.save()
 
     def test_success(
@@ -1477,6 +1525,27 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
                 "sentry.useremail",
             ]
 
+    def test_pause(
+        self,
+        postprocessing_mock: Mock,
+        fake_kms_client: FakeKeyManagementServiceClient,
+    ):
+        self.mock_kms_client(fake_kms_client)
+        self.relocation.scheduled_pause_at_step = Relocation.Step.IMPORTING.value
+        self.relocation.save()
+
+        importing(self.uuid)
+
+        assert fake_kms_client.asymmetric_decrypt.call_count == 0
+        assert fake_kms_client.get_public_key.call_count == 0
+        assert postprocessing_mock.call_count == 0
+
+        relocation: Relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.status == Relocation.Status.PAUSE.value
+        assert relocation.step == Relocation.Step.IMPORTING.value
+        assert relocation.scheduled_pause_at_step is None
+        assert relocation.latest_task == OrderedTask.IMPORTING.name
+
 
 @region_silo_test
 @patch("sentry.utils.relocation.MessageBuilder")
@@ -1487,7 +1556,7 @@ class PostprocessingTest(RelocationTaskTestCase):
         RelocationTaskTestCase.setUp(self)
         TransactionTestCase.setUp(self)
         self.relocation.step = Relocation.Step.IMPORTING.value
-        self.relocation.latest_task = "IMPORTING"
+        self.relocation.latest_task = OrderedTask.IMPORTING.name
         self.relocation.save()
 
         with open(IMPORT_JSON_FILE_PATH, "rb") as fp:
@@ -1545,6 +1614,27 @@ class PostprocessingTest(RelocationTaskTestCase):
             organization_id=self.imported_org_id, user_id=self.owner.id
         ).exists()
 
+    def test_pause(
+        self,
+        notifying_users_mock: Mock,
+        relocated_signal_mock: Mock,
+        fake_message_builder: Mock,
+    ):
+        self.relocation.scheduled_pause_at_step = Relocation.Step.POSTPROCESSING.value
+        self.relocation.save()
+
+        postprocessing(self.uuid)
+
+        assert fake_message_builder.call_count == 0
+        assert relocated_signal_mock.call_count == 0
+        assert notifying_users_mock.call_count == 0
+
+        relocation: Relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.status == Relocation.Status.PAUSE.value
+        assert relocation.step == Relocation.Step.POSTPROCESSING.value
+        assert relocation.scheduled_pause_at_step is None
+        assert relocation.latest_task == OrderedTask.POSTPROCESSING.name
+
     def test_retry_if_attempts_left(
         self,
         notifying_users_mock: Mock,
@@ -1577,7 +1667,7 @@ class PostprocessingTest(RelocationTaskTestCase):
         fake_message_builder: Mock,
     ):
         self.mock_message_builder(fake_message_builder)
-        self.relocation.latest_task = "POSTPROCESSING"
+        self.relocation.latest_task = OrderedTask.POSTPROCESSING.name
         self.relocation.latest_task_attempts = MAX_FAST_TASK_RETRIES
         relocated_signal_mock.side_effect = [
             (self.noop_relocated_signal_receiver, None),
@@ -1610,7 +1700,7 @@ class NotifyingUsersTest(RelocationTaskTestCase):
         RelocationTaskTestCase.setUp(self)
         TransactionTestCase.setUp(self)
         self.relocation.step = Relocation.Step.POSTPROCESSING.value
-        self.relocation.latest_task = "POSTPROCESSING"
+        self.relocation.latest_task = OrderedTask.POSTPROCESSING.name
         self.relocation.want_usernames = ["admin@example.com", "member@example.com"]
         self.relocation.save()
 
@@ -1654,6 +1744,25 @@ class NotifyingUsersTest(RelocationTaskTestCase):
             assert fake_message_builder.call_count == 0
             assert notifying_owner_mock.call_count == 1
 
+    def test_pause(
+        self,
+        notifying_owner_mock: Mock,
+        fake_message_builder: Mock,
+    ):
+        self.relocation.scheduled_pause_at_step = Relocation.Step.NOTIFYING.value
+        self.relocation.save()
+
+        notifying_users(self.uuid)
+
+        assert fake_message_builder.call_count == 0
+        assert notifying_owner_mock.call_count == 0
+
+        relocation: Relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.status == Relocation.Status.PAUSE.value
+        assert relocation.step == Relocation.Step.NOTIFYING.value
+        assert relocation.scheduled_pause_at_step is None
+        assert relocation.latest_task == OrderedTask.NOTIFYING_USERS.name
+
     def test_retry_if_attempts_left(
         self,
         notifying_owner_mock: Mock,
@@ -1680,7 +1789,7 @@ class NotifyingUsersTest(RelocationTaskTestCase):
         fake_message_builder: Mock,
     ):
         self.mock_message_builder(fake_message_builder)
-        self.relocation.latest_task = "NOTIFYING_USERS"
+        self.relocation.latest_task = OrderedTask.NOTIFYING_USERS.name
         self.relocation.latest_task_attempts = MAX_FAST_TASK_RETRIES
         self.relocation.want_usernames = ["doesnotexist"]
         self.relocation.save()
@@ -1708,7 +1817,7 @@ class NotifyingOwnerTest(RelocationTaskTestCase):
         RelocationTaskTestCase.setUp(self)
         TransactionTestCase.setUp(self)
         self.relocation.step = Relocation.Step.NOTIFYING.value
-        self.relocation.latest_task = "NOTIFYING_USERS"
+        self.relocation.latest_task = OrderedTask.NOTIFYING_USERS.name
         self.relocation.save()
 
     def test_success_admin_assisted_relocation(
@@ -1769,7 +1878,7 @@ class NotifyingOwnerTest(RelocationTaskTestCase):
         completed_mock: Mock,
         fake_message_builder: Mock,
     ):
-        self.relocation.latest_task = "NOTIFYING_OWNER"
+        self.relocation.latest_task = OrderedTask.NOTIFYING_OWNER.name
         self.relocation.latest_task_attempts = MAX_FAST_TASK_RETRIES
         self.relocation.save()
 
@@ -1799,7 +1908,7 @@ class CompletedTest(RelocationTaskTestCase):
         RelocationTaskTestCase.setUp(self)
         TransactionTestCase.setUp(self)
         self.relocation.step = Relocation.Step.NOTIFYING.value
-        self.relocation.latest_task = "NOTIFYING_OWNER"
+        self.relocation.latest_task = OrderedTask.NOTIFYING_OWNER.name
         self.relocation.save()
 
     def test_success(self):
