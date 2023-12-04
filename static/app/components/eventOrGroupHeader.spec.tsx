@@ -1,3 +1,5 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -17,7 +19,7 @@ const group = TestStubs.Group({
   culprit: 'culprit',
 });
 
-const event = TestStubs.Event({
+const event = EventFixture({
   id: 'id',
   eventID: 'eventID',
   groupID: 'groupID',
@@ -111,10 +113,10 @@ describe('EventOrGroupHeader', function () {
       render(
         <EventOrGroupHeader
           organization={organization}
-          data={{
+          data={EventFixture({
             ...event,
             type: EventOrGroupType.ERROR,
-          }}
+          })}
           {...router}
         />
       );

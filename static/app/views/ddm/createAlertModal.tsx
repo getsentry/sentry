@@ -5,8 +5,8 @@ import * as qs from 'query-string';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {AreaChart} from 'sentry/components/charts/areaChart';
+import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
-import {getInterval} from 'sentry/components/charts/utils';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -21,10 +21,16 @@ import {PageFilters, Project} from 'sentry/types';
 import {parsePeriodToHours, statsPeriodToDays} from 'sentry/utils/dates';
 import {
   formatMetricUsingFixedUnit,
+  getDDMInterval,
   MetricDisplayType,
   MetricsQuery,
 } from 'sentry/utils/metrics';
-import {formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
+import {
+  formatMRIField,
+  getUseCaseFromMRI,
+  MRIToField,
+  parseMRI,
+} from 'sentry/utils/metrics/mri';
 import {useMetricsData} from 'sentry/utils/metrics/useMetricsData';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -95,7 +101,8 @@ const TIME_WINDOWS_TO_CHECK = [
 ];
 
 function getAlertInterval(metricsQuery, period: TimePeriod) {
-  const interval = getInterval(metricsQuery.datetime, 'metrics');
+  const useCase = getUseCaseFromMRI(metricsQuery.mri) ?? 'custom';
+  const interval = getDDMInterval(metricsQuery.datetime, useCase);
   const inMinutes = parsePeriodToHours(interval) * 60;
 
   function toInterval(timeWindow: TimeWindow) {
@@ -234,12 +241,22 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
   const unit = parseMRI(metricsQuery.mri)?.unit ?? 'none';
   const operation = metricsQuery.op;
   const chartOptions = useMemo(() => {
+    const bucketSize =
+      (chartSeries?.[0]?.data[1]?.name ?? 0) - (chartSeries?.[0]?.data[0]?.name ?? 0);
+
+    const formatters = {
+      valueFormatter: value => formatMetricUsingFixedUnit(value, unit, operation),
+      isGroupedByDate: true,
+      bucketSize,
+      showTimeInTooltip: true,
+    };
+
     return {
       isGroupedByDate: true,
       height: 200,
       grid: {top: 20, bottom: 20, left: 15, right: 25},
       tooltip: {
-        valueFormatter: value => formatMetricUsingFixedUnit(value, unit, operation),
+        formatter: getFormatter(formatters),
       },
       yAxis: {
         axisLabel: {
@@ -247,7 +264,7 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
         },
       },
     };
-  }, [operation, unit]);
+  }, [chartSeries, operation, unit]);
 
   return (
     <Fragment>
