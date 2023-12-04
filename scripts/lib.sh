@@ -95,7 +95,7 @@ pip-install() {
 }
 
 upgrade-pip() {
-    pip-install pip setuptools wheel
+    pip-install pip
 }
 
 install-py-dev() {
