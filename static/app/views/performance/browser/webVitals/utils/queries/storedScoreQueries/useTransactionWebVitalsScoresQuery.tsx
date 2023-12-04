@@ -6,23 +6,18 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
-import {
-  RowWithScore,
-  WebVitals,
-} from 'sentry/views/performance/browser/webVitals/utils/types';
+import {RowWithScore} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 
 type Props = {
   defaultSort?: Sort;
   enabled?: boolean;
   limit?: number;
-  orderBy?: WebVitals | null;
   sortName?: string;
   transaction?: string | null;
 };
 
 export const useTransactionWebVitalsScoresQuery = ({
-  orderBy,
   limit,
   transaction,
   defaultSort,
@@ -54,8 +49,8 @@ export const useTransactionWebVitalsScoresQuery = ({
       ],
       name: 'Web Vitals',
       query:
-        'transaction.op:pageload' + (transaction ? ` transaction:"${transaction}"` : ''),
-      orderby: orderBy ?? '-count',
+        'transaction.op:pageload avg(measurements.score.total):>=0' +
+        (transaction ? ` transaction:"${transaction}"` : ''),
       version: 2,
       dataset: DiscoverDatasets.METRICS,
     },

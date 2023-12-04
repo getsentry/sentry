@@ -36,7 +36,7 @@ export const useProjectWebVitalsScoresQuery = ({
       ],
       name: 'Web Vitals',
       query:
-        'transaction.op:pageload' +
+        'transaction.op:pageload has:measurements.score.total' +
         (transaction ? ` transaction:"${transaction}"` : '') +
         (tag ? ` ${tag.key}:"${tag.name}"` : ''),
       version: 2,

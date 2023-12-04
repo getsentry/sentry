@@ -37,22 +37,23 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
   const projectTimeSeriesEventView = EventView.fromNewQueryWithPageFilters(
     {
       yAxis: [
-        'performance_score(measurements.score.lcp)',
-        'performance_score(measurements.score.fcp)',
-        'performance_score(measurements.score.cls)',
-        'performance_score(measurements.score.fid)',
-        'performance_score(measurements.score.ttfb)',
+        'weighted_performance_score(measurements.score.lcp)',
+        'weighted_performance_score(measurements.score.fcp)',
+        'weighted_performance_score(measurements.score.cls)',
+        'weighted_performance_score(measurements.score.fid)',
+        'weighted_performance_score(measurements.score.ttfb)',
         'count()',
       ],
       name: 'Web Vitals',
       query:
-        'transaction.op:pageload' +
+        'transaction.op:pageload has:measurements.score.total' +
         (transaction ? ` transaction:"${transaction}"` : '') +
         (tag ? ` ${tag.key}:"${tag.name}"` : ''),
       version: 2,
       fields: [],
       interval: getInterval(pageFilters.selection.datetime, 'low'),
-      dataset: DiscoverDatasets.METRICS,
+      // Using discover dataset for now because metrics numbers don't seem to add up
+      dataset: DiscoverDatasets.DISCOVER,
     },
     pageFilters.selection
   );
@@ -93,23 +94,28 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
     total: [],
   };
 
-  result?.data?.['performance_score(measurements.score.lcp)']?.data.forEach(
+  result?.data?.['weighted_performance_score(measurements.score.lcp)']?.data.forEach(
     (interval, index) => {
       const lcp: number =
-        result?.data?.['performance_score(measurements.score.lcp)']?.data[index][1][0]
-          .count * 100;
+        result?.data?.['weighted_performance_score(measurements.score.lcp)']?.data[
+          index
+        ][1][0].count * 100;
       const fcp: number =
-        result?.data?.['performance_score(measurements.score.fcp)']?.data[index][1][0]
-          .count * 100;
+        result?.data?.['weighted_performance_score(measurements.score.fcp)']?.data[
+          index
+        ][1][0].count * 100;
       const cls: number =
-        result?.data?.['performance_score(measurements.score.cls)']?.data[index][1][0]
-          .count * 100;
+        result?.data?.['weighted_performance_score(measurements.score.cls)']?.data[
+          index
+        ][1][0].count * 100;
       const ttfb: number =
-        result?.data?.['performance_score(measurements.score.ttfb)']?.data[index][1][0]
-          .count * 100;
+        result?.data?.['weighted_performance_score(measurements.score.ttfb)']?.data[
+          index
+        ][1][0].count * 100;
       const fid: number =
-        result?.data?.['performance_score(measurements.score.fid)']?.data[index][1][0]
-          .count * 100;
+        result?.data?.['weighted_performance_score(measurements.score.fid)']?.data[
+          index
+        ][1][0].count * 100;
 
       data.cls.push({
         value: cls ?? 0,
