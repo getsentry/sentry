@@ -5,7 +5,9 @@ import * as qs from 'query-string';
 
 import {
   DateTimeObject,
-  getDDMInterval,
+  ddmHighFidelityLadder,
+  ddmLowFidelityLadder,
+  Fidelity,
   getDiffInMinutes,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
@@ -137,7 +139,7 @@ export function getMetricsApiRequestQuery(
 ): MetricsApiRequestQuery {
   const {mri: mri} = parseField(field) ?? {};
   const useCase = getUseCaseFromMRI(mri) ?? 'custom';
-  const interval = getMetricsInterval(datetime, useCase, overrides.fidelity ?? 'high');
+  const interval = getDDMInterval(datetime, useCase, overrides.fidelity);
 
   const queryToSend = {
     ...getDateTimeParams(datetime),
@@ -157,24 +159,22 @@ export function getMetricsApiRequestQuery(
 }
 
 // Wraps getInterval since other users of this function, and other metric use cases do not have support for 10s granularity
-export function getMetricsInterval(
-  dateTimeObj: DateTimeObject,
+export function getDDMInterval(
+  datetimeObj: DateTimeObject,
   useCase: UseCase,
-  fidelity: 'high' | 'low'
+  fidelity: Fidelity = 'high'
 ) {
-  const interval = getDDMInterval(dateTimeObj, fidelity);
-
-  if (interval !== '1m') {
-    return interval;
-  }
-
-  const diffInMinutes = getDiffInMinutes(dateTimeObj);
+  const diffInMinutes = getDiffInMinutes(datetimeObj);
 
   if (diffInMinutes <= 60 && useCase === 'custom') {
     return '10s';
   }
 
-  return interval;
+  if (fidelity === 'low') {
+    return ddmLowFidelityLadder.getInterval(diffInMinutes);
+  }
+
+  return ddmHighFidelityLadder.getInterval(diffInMinutes);
 }
 
 export function getDateTimeParams({start, end, period}: PageFilters['datetime']) {

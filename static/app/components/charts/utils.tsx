@@ -141,7 +141,7 @@ const metricsFidelityLadder = new GranularityLadder([
   [0, '1m'],
 ]);
 
-export const ddmFidelityLadder = new GranularityLadder([
+export const ddmHighFidelityLadder = new GranularityLadder([
   [SIXTY_DAYS, '1d'],
   [THIRTY_DAYS, '2h'],
   [TWO_WEEKS, '1h'],
@@ -161,16 +161,6 @@ export const ddmLowFidelityLadder = new GranularityLadder([
   [ONE_HOUR, '5m'],
   [0, '1m'],
 ]);
-
-export function getDDMInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'high') {
-  const diffInMinutes = getDiffInMinutes(datetimeObj);
-
-  if (fidelity === 'low') {
-    return ddmLowFidelityLadder.getInterval(diffInMinutes);
-  }
-
-  return ddmFidelityLadder.getInterval(diffInMinutes);
-}
 
 /**
  * Duplicate of getInterval, except that we do not support <1h granularity
