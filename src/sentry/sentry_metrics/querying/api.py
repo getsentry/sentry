@@ -262,8 +262,9 @@ class QueryParser:
             yield (
                 self._parse_mql(mql_query)
                 .add_mutation(ValidationVisitor())
-                .add_mutation(EnvironmentsInjectionVisitor(environments))
                 .add_mutation(ExpansionVisitor(default_expression_registry()))
+                # We purposefully want to inject environments after the final query expression tree is expanded.
+                .add_mutation(EnvironmentsInjectionVisitor(environments))
                 .get_mutated()
             )
 

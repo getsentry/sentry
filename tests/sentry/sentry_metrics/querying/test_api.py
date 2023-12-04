@@ -1,13 +1,16 @@
 from datetime import datetime, timedelta
+from unittest.mock import patch
 
 import pytest
 from django.utils import timezone as django_timezone
+from snuba_sdk import ArithmeticOperator, Formula, Metric, Timeseries
 
 from sentry.sentry_metrics.querying.api import (
     InvalidMetricsQueryError,
     MetricsQueryExecutionError,
     run_metrics_query,
 )
+from sentry.sentry_metrics.querying.registry import ExpressionRegistry
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
@@ -351,6 +354,59 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 environments=[],
                 referrer="metrics.data.api",
             )
+
+    @patch("sentry.sentry_metrics.querying.api.default_expression_registry")
+    def test_query_with_expansion(self, default_expression_registry):
+        stored_mri = "g:custom/page_load@millisecond"
+        derived_mri = "g:custom/average_gauge@none"
+
+        registry = ExpressionRegistry()
+        registry.register(
+            derived_mri,
+            Formula(
+                operator=ArithmeticOperator.DIVIDE,
+                parameters=[
+                    Timeseries(aggregate="sum", metric=Metric(mri=stored_mri)),
+                    Timeseries(aggregate="count", metric=Metric(mri=stored_mri)),
+                ],
+            ),
+        )
+
+        default_expression_registry.return_value = registry
+
+        self.store_metric(
+            self.project.organization.id,
+            self.project.id,
+            "gauge",
+            stored_mri,
+            {},
+            self.ts(self.now()),
+            {
+                "min": 1.0,
+                "max": 20.0,
+                "sum": 25.0,
+                "count": 10,
+                "last": 20.0,
+            },
+            UseCaseID.CUSTOM,
+        )
+
+        results = run_metrics_query(
+            fields=[derived_mri],
+            query=None,
+            group_bys=None,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        groups = results["groups"]
+        assert len(groups) == 1
+        assert groups[0]["by"] == {}
+        assert groups[0]["series"] == {"d": [0.0, 2.5, 0.0]}
 
     @pytest.mark.skip(reason="sessions are not supported in the new metrics layer")
     def test_with_sessions(self) -> None:
