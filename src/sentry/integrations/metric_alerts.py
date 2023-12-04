@@ -16,6 +16,7 @@ from sentry.incidents.models import (
     IncidentStatus,
     IncidentTrigger,
 )
+from sentry.snuba.metrics import format_mri_field, format_mri_field_value, is_mri_field
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 
@@ -66,7 +67,11 @@ def get_incident_status_text(alert_rule: AlertRule, metric_value: str) -> str:
     if CRASH_RATE_ALERT_AGGREGATE_ALIAS in alert_rule.snuba_query.aggregate:
         agg_display_key = agg_display_key.split(f"AS {CRASH_RATE_ALERT_AGGREGATE_ALIAS}")[0].strip()
 
-    agg_text = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, alert_rule.snuba_query.aggregate)
+    if is_mri_field(agg_display_key):
+        metric_value = format_mri_field_value(agg_display_key, metric_value)
+        agg_text = format_mri_field(agg_display_key)
+    else:
+        agg_text = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, alert_rule.snuba_query.aggregate)
 
     if agg_text.startswith("%"):
         if metric_value is not None:
