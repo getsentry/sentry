@@ -37,6 +37,7 @@ ALLOWED_GRANULARITIES = sorted(ALLOWED_GRANULARITIES)  # Ensure it's ordered
 AGGREGATE_ALIASES = {
     "p50": ("quantiles", [0.5]),
     "p75": ("quantiles", [0.75]),
+    "p90": ("quantiles", [0.9]),
     "p95": ("quantiles", [0.95]),
     "p99": ("quantiles", [0.99]),
 }

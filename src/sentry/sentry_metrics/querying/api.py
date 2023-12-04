@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, Generator, List, Mapping, Optional, Sequence, Tuple, Union
 
+import sentry_sdk
 from snuba_sdk import (
     AliasedExpression,
     Column,
@@ -24,17 +25,18 @@ from sentry.search.utils import parse_datetime_string
 from sentry.sentry_metrics.querying.utils import remove_if_match
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics_layer.query import run_query
+from sentry.utils.snuba import SnubaError
 
 
 class InvalidMetricsQueryError(Exception):
     pass
 
 
-class QueryExecutionError(Exception):
+class MetricsQueryExecutionError(Exception):
     pass
 
 
-# Type representing the aggregate value from snuba, which can be null, int, float or list.
+# Type representing the aggregate value from Snuba, which can be null, int, float or list.
 ResultValue = Optional[Union[int, float, List[Optional[Union[int, float]]]]]
 # Type representing a series of values with (`time`, `value`) pairs.
 Series = List[Tuple[str, ResultValue]]
@@ -67,7 +69,7 @@ class GroupValue:
             if aggregate_value:
                 return aggregate_value[0]
 
-            raise QueryExecutionError("Received an empty array as aggregate value")
+            raise MetricsQueryExecutionError("Received an empty array as aggregate value")
 
         return aggregate_value
 
@@ -89,7 +91,8 @@ class QueryMeta:
 
 @dataclass(frozen=True)
 class ExecutionResult:
-    # This refers to the timeseries query, not the totals.
+    # This is the timeseries query that is being passed to the metrics layer, thus it doesn't contain any
+    # mutations that the layer might do.
     query: MetricsQuery
     result: Mapping[str, Any]
     with_totals: bool
@@ -99,11 +102,6 @@ class ExecutionResult:
         timeseries = self.query.query
 
         aggregate = timeseries.aggregate
-        # In case we have a quantile, we transform it back to the original query percentile. This has to be done, unless
-        # we want to change the API of the frontend that will send.
-        if aggregate == "quantiles":
-            aggregate = f"p{int(timeseries.aggregate_params[0] * 100)}"
-
         metric = timeseries.metric.mri or timeseries.metric.public_name
 
         return f"{aggregate}({metric})"
@@ -145,8 +143,6 @@ class ExecutionResult:
 
 
 class MutableTimeseries:
-    PERCENTILE_REGEX = re.compile(r"^p(\d{1,3})$")
-
     def __init__(self, timeseries: Timeseries):
         self._timeseries = timeseries
 
@@ -170,15 +166,6 @@ class MutableTimeseries:
             self._timeseries = self._timeseries.set_filters(
                 existing_filters + [Condition(Column("environment"), Op.IN, environment_names)]
             )
-
-        return self
-
-    def alias_operators(self) -> "MutableTimeseries":
-        # In case we have a percentile in the form `px` where `x` is in the range [0-100], we want to convert it to
-        # the quantiles operation which generalizes any percentile.
-        if (match := self.PERCENTILE_REGEX.match(self._timeseries.aggregate)) is not None:
-            percentile_value = float(match.group(1))
-            self._timeseries = self._timeseries.set_aggregate("quantiles", [percentile_value / 100])
 
         return self
 
@@ -261,7 +248,7 @@ class QueryParser:
         try:
             timeseries = parse_mql(mql).query
         except InvalidQueryError as e:
-            raise InvalidMetricsQueryError(f"The supplied query is not valid: {e}")
+            raise InvalidMetricsQueryError(f"The supplied query is not valid: {type(e).__name__}")
 
         return MutableTimeseries(timeseries=timeseries)
 
@@ -272,7 +259,7 @@ class QueryParser:
         Generates multiple timeseries queries given a base query.
         """
         if not self._fields:
-            raise InvalidMetricsQueryError("You must query at least one field.")
+            raise InvalidMetricsQueryError("You must query at least one field")
 
         # We first parse the filters and group bys, which are then going to be applied on each individual query
         # that is executed.
@@ -281,12 +268,7 @@ class QueryParser:
 
         for field in self._fields:
             mql_query = self._build_mql_query(field, mql_filters, mql_group_bys)
-            yield (
-                self._parse_mql(mql_query)
-                .inject_environments(environments)
-                .alias_operators()
-                .get_mutated()
-            )
+            yield self._parse_mql(mql_query).inject_environments(environments).get_mutated()
 
 
 class QueryExecutor:
@@ -305,23 +287,29 @@ class QueryExecutor:
         )
 
     def _execute(self, query: MetricsQuery, with_totals: bool) -> Mapping[str, Any]:
-        series_result = run_query(request=self._build_request(query))
+        try:
+            series_result = run_query(request=self._build_request(query))
 
-        if with_totals:
-            # TODO(layer): maybe totals will have to be handled by the layer, so that the time intervals will be
-            #  inferred automatically, instead of doing the manual work here.
-            modified_start = series_result["modified_start"]
-            modified_end = series_result["modified_end"]
-            query = (
-                query.set_start(modified_start)
-                .set_end(modified_end)
-                .set_rollup(Rollup(totals=True))
+            if with_totals:
+                # TODO(layer): maybe totals will have to be handled by the layer, so that the time intervals will be
+                #  inferred automatically, instead of doing the manual work here.
+                modified_start = series_result["modified_start"]
+                modified_end = series_result["modified_end"]
+                query = (
+                    query.set_start(modified_start)
+                    .set_end(modified_end)
+                    .set_rollup(Rollup(totals=True))
+                )
+                totals_result = run_query(request=self._build_request(query))
+
+                return {**series_result, "totals": totals_result["data"]}
+
+            return series_result
+        except SnubaError as e:
+            sentry_sdk.capture_exception(e)
+            raise MetricsQueryExecutionError(
+                f"An error occurred while executing the query: {type(e).__name__}"
             )
-            totals_result = run_query(request=self._build_request(query))
-
-            return {**series_result, "totals": totals_result["data"]}
-
-        return series_result
 
     def schedule(self, query: MetricsQuery, with_totals: bool = True):
         # By default we want to execute totals.
