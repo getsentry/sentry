@@ -26,10 +26,9 @@ function makeFrameMap(frames: ReadonlyArray<FlamegraphFrame>): Map<string, numbe
 export class DifferentialFlamegraph extends Flamegraph {
   colors: Map<string, ColorChannels> = new Map();
 
-  newFrames: FlamegraphFrame[] = [];
-  removedFrames: FlamegraphFrame[] = [];
-  increasedFrames: FlamegraphFrame[] = [];
-  decreasedFrames: FlamegraphFrame[] = [];
+  newFrames: [number, FlamegraphFrame][] = [];
+  increasedFrames: [number, FlamegraphFrame][] = [];
+  decreasedFrames: [number, FlamegraphFrame][] = [];
 
   static Empty(): DifferentialFlamegraph {
     return new DifferentialFlamegraph(Profile.Empty, 0, {
@@ -114,6 +113,10 @@ export class DifferentialFlamegraph extends Flamegraph {
     }
 
     differentialFlamegraph.colors = colorMap;
+    differentialFlamegraph.newFrames = newFrames;
+    differentialFlamegraph.increasedFrames = increasedFrames;
+    differentialFlamegraph.decreasedFrames = decreasedFrames;
+
     return differentialFlamegraph;
   }
 }
