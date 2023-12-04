@@ -1280,7 +1280,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             [{"count": 0.5}],
         ]
 
-    def test_bar_chart_group_bys_on_demand(self):
+    def test_glob_http_referer_on_demand(self):
         agg = "count()"
         network_id_tag = "networkId"
         url = "https://sentry.io"
@@ -1327,7 +1327,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             self.store_on_demand_metric(
                 1,
                 spec=spec,
-                # Becase we're using topEvents=1 this will fall under Other
                 additional_tags={network_id_tag: "5678"},
                 timestamp=self.day_ago + timedelta(hours=hour),
             )
@@ -1337,7 +1336,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
                 "dataset": "metricsEnhanced",
                 "field": [network_id_tag, agg],
                 "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "end": iso_format(self.day_ago + timedelta(hours=5)),
                 "onDemandType": "dynamic_query",
                 "orderby": f"-{agg}",
                 "interval": "1d",
@@ -1345,7 +1344,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
                 "query": query,
                 "referrer": "api.dashboards.widget.bar-chart",
                 "project": self.project.id,
-                "statsPeriod": "24h",
                 "topEvents": 1,
                 "useOnDemandMetrics": "true",
                 "yAxis": agg,
@@ -1355,8 +1353,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         assert response.status_code == 200, response.content
         assert response.data == {
             "1234": {
-                "data": [(1701561600, [{"count": 5.0}]), (1701648000, [{"count": 0}])],
-                "end": 1701648001,
+                "data": [(1701561600, [{"count": 5.0}])],
+                "end": 1701561600,
                 "isMetricsData": False,
                 "meta": {
                     "dataset": "metricsEnhanced",
@@ -1371,8 +1369,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
                 "start": 1701561600,
             },
             "Other": {
-                "data": [(1701561600, [{"count": 5.0}]), (1701648000, [{"count": 0}])],
-                "end": 1701648001,
+                "data": [(1701561600, [{"count": 5.0}])],
+                "end": 1701561600,
                 "isMetricsData": False,
                 "meta": {
                     "dataset": "metricsEnhanced",
