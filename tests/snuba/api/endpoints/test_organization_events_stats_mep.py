@@ -1344,7 +1344,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
                 "query": query,
                 "referrer": "api.dashboards.widget.bar-chart",
                 "project": self.project.id,
-                "topEvents": 1,
+                "topEvents": 2,
                 "useOnDemandMetrics": "true",
                 "yAxis": agg,
             },
@@ -1368,7 +1368,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
                 "order": 0,
                 "start": 1701561600,
             },
-            "Other": {
+            "5678": {
                 "data": [(1701561600, [{"count": 5.0}])],
                 "end": 1701561600,
                 "isMetricsData": False,
@@ -1382,6 +1382,22 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
                     "units": {},
                 },
                 "order": 1,
+                "start": 1701561600,
+            },
+            "Other": {
+                "data": [(1701561600, [{"count": 5.0}, {"count": 5.0}])],
+                "end": 1701561600,
+                "isMetricsData": False,
+                "meta": {
+                    "dataset": "metricsEnhanced",
+                    "datasetReason": "unchanged",
+                    "fields": {},
+                    "isMetricsData": False,
+                    "isMetricsExtractedData": True,
+                    "tips": {},
+                    "units": {},
+                },
+                "order": 2,
                 "start": 1701561600,
             },
         }
