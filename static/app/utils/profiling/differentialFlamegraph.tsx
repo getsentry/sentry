@@ -17,7 +17,8 @@ function makeFrameMap(frames: ReadonlyArray<FlamegraphFrame>): Map<string, numbe
   const counts = new Map<string, number>();
 
   for (const frame of frames) {
-    counts.set(frameDiffKey(frame), frame.node.selfWeight);
+    const key = frameDiffKey(frame);
+    counts.set(key, frame.node.selfWeight + (counts.get(key) ?? 0));
   }
 
   return counts;
@@ -26,7 +27,10 @@ function makeFrameMap(frames: ReadonlyArray<FlamegraphFrame>): Map<string, numbe
 export class DifferentialFlamegraph extends Flamegraph {
   colors: Map<string, ColorChannels> = new Map();
 
-  newFrames: [number, FlamegraphFrame][] = [];
+  beforeCounts: Map<string, number> = new Map();
+  currentCounts: Map<string, number> = new Map();
+
+  newFrames: FlamegraphFrame[] = [];
   increasedFrames: [number, FlamegraphFrame][] = [];
   decreasedFrames: [number, FlamegraphFrame][] = [];
 
@@ -52,7 +56,7 @@ export class DifferentialFlamegraph extends Flamegraph {
     const beforeCounts = makeFrameMap(before.frames);
     const currentCounts = makeFrameMap(current.frames);
 
-    const newFrames: [number, FlamegraphFrame][] = [];
+    const newFrames: FlamegraphFrame[] = [];
     const increasedFrames: [number, FlamegraphFrame][] = [];
     const decreasedFrames: [number, FlamegraphFrame][] = [];
 
@@ -77,7 +81,7 @@ export class DifferentialFlamegraph extends Flamegraph {
       }
 
       if (beforeCount === undefined) {
-        newFrames.push([1, frame]);
+        newFrames.push(frame);
       } else if (currentCount > beforeCount) {
         if (currentCount - beforeCount > maxIncrease) {
           maxIncrease = currentCount - beforeCount;
@@ -92,7 +96,7 @@ export class DifferentialFlamegraph extends Flamegraph {
     }
 
     for (const frame of newFrames) {
-      colorMap.set(frameDiffKey(frame[1]), [
+      colorMap.set(frameDiffKey(frame), [
         ...theme.COLORS.DIFFERENTIAL_INCREASE,
         1,
       ] as ColorChannels);
@@ -116,6 +120,8 @@ export class DifferentialFlamegraph extends Flamegraph {
     differentialFlamegraph.newFrames = newFrames;
     differentialFlamegraph.increasedFrames = increasedFrames;
     differentialFlamegraph.decreasedFrames = decreasedFrames;
+    differentialFlamegraph.beforeCounts = beforeCounts;
+    differentialFlamegraph.currentCounts = currentCounts;
 
     return differentialFlamegraph;
   }

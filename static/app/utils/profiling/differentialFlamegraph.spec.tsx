@@ -85,6 +85,45 @@ describe('differentialFlamegraph', () => {
       1,
     ]);
   });
+
+  it('sums weight across all stacks', () => {
+    const before = makeFlamegraph({
+      shared: {
+        frames: [{name: 'function'}, {name: 'other function'}],
+      },
+      profiles: [
+        {
+          ...baseProfile,
+          samples: [[0], [0, 1]],
+          weights: [1, 2],
+        },
+      ],
+    });
+    const current = makeFlamegraph({
+      shared: {
+        frames: [{name: 'function'}, {name: 'other function'}],
+      },
+      profiles: [
+        {
+          ...baseProfile,
+          samples: [[0], [1]],
+          weights: [11, 4],
+        },
+      ],
+    });
+
+    const flamegraph = DifferentialFlamegraph.FromDiff({before, current}, THEME);
+
+    expect(flamegraph.colors?.get('function')).toEqual([
+      ...THEME.COLORS.DIFFERENTIAL_INCREASE,
+      1,
+    ]);
+    expect(flamegraph.colors?.get('other function')).toEqual([
+      ...THEME.COLORS.DIFFERENTIAL_INCREASE,
+      0.2, // 2 / 10
+    ]);
+  });
+
   it('increase: color encodes increased frames red and relative to max change', () => {
     const before = makeFlamegraph({
       shared: {
