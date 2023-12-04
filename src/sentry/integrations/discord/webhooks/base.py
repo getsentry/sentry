@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import logging
 
+from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import analytics
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.integrations.discord.requests.base import DiscordRequest, DiscordRequestError
 from sentry.integrations.discord.webhooks.command import DiscordCommandHandler
 from sentry.integrations.discord.webhooks.message_component import DiscordMessageComponentHandler
@@ -19,7 +19,7 @@ from .types import DiscordResponseTypes
 logger = logging.getLogger(__name__)
 
 
-@region_silo_endpoint
+@all_silo_endpoint
 class DiscordInteractionsEndpoint(Endpoint):
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,
@@ -39,13 +39,13 @@ class DiscordInteractionsEndpoint(Endpoint):
         super().__init__()
 
     @classmethod
-    def respond_ping(cls) -> Response:
+    def respond_ping(cls) -> JsonResponse:
         # https://discord.com/developers/docs/tutorials/upgrading-to-application-commands#adding-an-interactions-endpoint-url
-        return Response({"type": DiscordResponseTypes.PONG}, status=200)
+        return JsonResponse({"type": DiscordResponseTypes.PONG})
 
     @csrf_exempt
     @transaction_start("DiscordInteractionsEndpoint")
-    def post(self, request: Request) -> Response:
+    def post(self, request: Request) -> HttpResponse:
         try:
             discord_request = self.discord_request_class(request)
             discord_request.validate()

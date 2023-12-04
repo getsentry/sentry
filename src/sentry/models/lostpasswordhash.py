@@ -48,8 +48,8 @@ class LostPasswordHash(Model):
         cls._send_email("recover_password", user, hash, extra)
 
     @classmethod
-    def send_relocate_account_email(cls, user, hash) -> None:
-        cls._send_email("relocate_account", user, hash, {})
+    def send_relocate_account_email(cls, user, hash, orgs) -> None:
+        cls._send_email("relocate_account", user, hash, {"orgs": orgs})
 
     @classmethod
     def _send_email(cls, mode, user, hash, extra) -> None:

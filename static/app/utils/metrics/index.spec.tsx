@@ -1,9 +1,11 @@
 import {PageFilters} from 'sentry/types';
 import {
   formatMetricsUsingUnitAndOp,
+  formatMetricUsingFixedUnit,
+  formattingSupportedMetricUnits,
   getDateTimeParams,
+  getDDMInterval,
   getMetricsApiRequestQuery,
-  getMetricsInterval,
 } from 'sentry/utils/metrics';
 
 describe('formatMetricsUsingUnitAndOp', () => {
@@ -48,7 +50,7 @@ describe('getMetricsApiRequestQuery', () => {
       environment: ['production'],
       field: 'sessions',
       useCase: 'custom',
-      interval: '12h',
+      interval: '2h',
       groupBy: ['project'],
       allowPrivate: true,
       per_page: 10,
@@ -107,21 +109,24 @@ describe('getMetricsApiRequestQuery', () => {
   });
 });
 
-describe('getMetricsInterval', () => {
+describe('getDDMInterval', () => {
   it('should return the correct interval for non-"1m" intervals', () => {
     const dateTimeObj = {start: '2023-01-01', end: '2023-01-31'};
     const useCase = 'sessions';
 
-    const result = getMetricsInterval(dateTimeObj, useCase);
+    const result = getDDMInterval(dateTimeObj, useCase);
 
-    expect(result).toBe('12h');
+    expect(result).toBe('2h');
   });
 
   it('should return "10s" interval for "1m" interval within 60 minutes and custom use case', () => {
-    const dateTimeObj = {start: '2023-01-01', end: '2023-01-01T00:59:00.000Z'};
+    const dateTimeObj = {
+      start: '2023-01-01T00:00:00.000Z',
+      end: '2023-01-01T00:59:00.000Z',
+    };
     const useCase = 'custom';
 
-    const result = getMetricsInterval(dateTimeObj, useCase);
+    const result = getDDMInterval(dateTimeObj, useCase, 'high');
 
     expect(result).toBe('10s');
   });
@@ -130,9 +135,40 @@ describe('getMetricsInterval', () => {
     const dateTimeObj = {start: '2023-01-01', end: '2023-01-01T01:05:00.000Z'};
     const useCase = 'sessions';
 
-    const result = getMetricsInterval(dateTimeObj, useCase);
+    const result = getDDMInterval(dateTimeObj, useCase);
 
     expect(result).toBe('1m');
+  });
+});
+
+describe('formatMetricUsingFixedUnit', () => {
+  it('should return the formatted value with the short form of the given unit', () => {
+    expect(formatMetricUsingFixedUnit(123456, 'millisecond')).toBe('123,456ms');
+    expect(formatMetricUsingFixedUnit(2.1231245, 'kibibyte')).toBe('2.123KiB');
+    expect(formatMetricUsingFixedUnit(1222.1231245, 'megabyte')).toBe('1,222.123MB');
+  });
+
+  it.each(formattingSupportedMetricUnits.filter(unit => unit !== 'none'))(
+    'appends a unit for every supported one (except none)',
+    unit => {
+      expect(formatMetricUsingFixedUnit(1234.56, unit)).toMatch(/1,234\.56.+/);
+    }
+  );
+
+  it('does not append a unit for unsupported units and "none"', () => {
+    expect(formatMetricUsingFixedUnit(1234.56, 'randomunitname')).toBe('1,234.56');
+    expect(formatMetricUsingFixedUnit(1234.56, 'none')).toBe('1,234.56');
+  });
+
+  it.each(['sum', 'count_unique', 'avg', 'max', 'p50', 'p75', 'p95', 'p99'])(
+    'does append a unit for every operation (except count)',
+    op => {
+      expect(formatMetricUsingFixedUnit(1234.56, 'second', op)).toMatch(/1,234\.56s/);
+    }
+  );
+
+  it('does not append a unit for count operation', () => {
+    expect(formatMetricUsingFixedUnit(1234.56, 'second', 'count')).toBe('1,234.56');
   });
 });
 

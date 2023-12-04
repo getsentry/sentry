@@ -21,6 +21,7 @@ jest.mock('react-router');
 jest.mock('sentry/utils/useLocation');
 
 const mockUseLocation = jest.mocked(useLocation);
+const mockRRWebFrames = []; // This is only needed for replay.hydrate breadcrumbs.
 
 const replayRecord = ReplayRecordFixture();
 
@@ -56,11 +57,15 @@ const CRUMB_2_CLICK: ReplayTraceRow = {
   lcpFrames: [],
   offsetMs: 100,
   paintFrames: [],
-  replayFrame: hydrateBreadcrumbs(replayRecord, [
-    ReplayClickFrameFixture({
-      timestamp: new Date(1663691559961),
-    }),
-  ])[0],
+  replayFrame: hydrateBreadcrumbs(
+    replayRecord,
+    [
+      ReplayClickFrameFixture({
+        timestamp: new Date(1663691559961),
+      }),
+    ],
+    mockRRWebFrames
+  )[0],
   timestampMs: 1663691560061,
   traces: [],
 };
