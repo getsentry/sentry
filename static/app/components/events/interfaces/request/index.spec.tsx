@@ -7,6 +7,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {Request} from 'sentry/components/events/interfaces/request';
 import {EntryRequest, EntryType} from 'sentry/types/event';
 
+jest.unmock('prismjs');
+
 describe('Request entry', function () {
   it('display redacted data', async function () {
     const event = EventFixture({
