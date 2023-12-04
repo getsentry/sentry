@@ -14,8 +14,6 @@ from sentry.conf.types.consumer_definition import ConsumerDefinition
 from sentry.consumers.validate_schema import ValidateSchema
 from sentry.utils.imports import import_string
 
-DEFAULT_BLOCK_SIZE = int(32 * 1e6)
-
 
 def convert_max_batch_time(ctx, param, value):
     if value <= 0:
@@ -30,8 +28,8 @@ def multiprocessing_options(
 ):
     return [
         click.Option(["--processes", "num_processes"], default=1, type=int),
-        click.Option(["--input-block-size"], type=int, default=DEFAULT_BLOCK_SIZE),
-        click.Option(["--output-block-size"], type=int, default=DEFAULT_BLOCK_SIZE),
+        click.Option(["--input-block-size"], type=int, default=None),
+        click.Option(["--output-block-size"], type=int, default=None),
         click.Option(
             ["--max-batch-size"],
             default=default_max_batch_size,
@@ -56,8 +54,8 @@ def ingest_replay_recordings_options() -> List[click.Option]:
 
 
 _METRICS_INDEXER_OPTIONS = [
-    click.Option(["--input-block-size"], type=int, default=DEFAULT_BLOCK_SIZE),
-    click.Option(["--output-block-size"], type=int, default=DEFAULT_BLOCK_SIZE),
+    click.Option(["--input-block-size"], type=int, default=None),
+    click.Option(["--output-block-size"], type=int, default=None),
     click.Option(["--indexer-db"], default="postgres"),
     click.Option(["max_msg_batch_size", "--max-msg-batch-size"], type=int, default=50),
     click.Option(["max_msg_batch_time", "--max-msg-batch-time-ms"], type=int, default=10000),
