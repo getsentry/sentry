@@ -332,7 +332,7 @@ function Flamegraph(): ReactElement {
     transaction.setTag('sorting', sorting.split(' ').join('_'));
     transaction.setTag('view', view.split(' ').join('_'));
 
-    const newFlamegraph = new FlamegraphModel(profile, threadId, {
+    const newFlamegraph = new FlamegraphModel(profile, {
       inverted: view === 'bottom up',
       sort: sorting,
       configSpace: getMaxConfigSpace(
@@ -1275,7 +1275,7 @@ function Flamegraph(): ReactElement {
             return prevCandidate;
           }
 
-          const graph = new FlamegraphModel(currentProfile, currentProfile.threadId, {
+          const graph = new FlamegraphModel(currentProfile, {
             inverted: false,
             sort: sorting,
             configSpace: undefined,

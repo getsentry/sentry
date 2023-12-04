@@ -95,7 +95,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
 
     // @TODO pass frame filter
     const profile = importProfile(props.before.data, '', 'flamegraph');
-    return new Flamegraph(profile.profiles[0], 0);
+    return new Flamegraph(profile.profiles[0]);
   }, [props.before]);
 
   const afterFlamegraph = useMemo(() => {
@@ -105,7 +105,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
 
     // @TODO pass frame filter
     const profile = importProfile(props.after.data, '', 'flamegraph');
-    return new Flamegraph(profile.profiles[0], 0);
+    return new Flamegraph(profile.profiles[0]);
   }, [props.after]);
 
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);

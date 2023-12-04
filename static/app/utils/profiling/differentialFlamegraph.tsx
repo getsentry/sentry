@@ -35,7 +35,7 @@ export class DifferentialFlamegraph extends Flamegraph {
   decreasedFrames: [number, FlamegraphFrame][] = [];
 
   static Empty(): DifferentialFlamegraph {
-    return new DifferentialFlamegraph(Profile.Empty, 0, {
+    return new DifferentialFlamegraph(Profile.Empty, {
       inverted: false,
       sort: 'call order',
     });
@@ -45,11 +45,10 @@ export class DifferentialFlamegraph extends Flamegraph {
     {before, after}: {after: Flamegraph; before: Flamegraph},
     theme: FlamegraphTheme
   ): DifferentialFlamegraph {
-    const differentialFlamegraph = new DifferentialFlamegraph(
-      after.profile,
-      after.profileIndex,
-      {inverted: after.inverted, sort: after.sort}
-    );
+    const differentialFlamegraph = new DifferentialFlamegraph(after.profile, {
+      inverted: after.inverted,
+      sort: after.sort,
+    });
 
     const colorMap = new Map<string, ColorChannels>();
 
