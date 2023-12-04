@@ -80,6 +80,13 @@ class DiscordRequestParser(BaseRequestParser):
 
         is_discord_interactions_endpoint = self.view_class == DiscordInteractionsEndpoint
 
+        with sentry_sdk.push_scope() as scope:
+            scope.set_extra(
+                "discord_request._data",
+                self.discord_request._data if self.discord_request else None,
+            )
+            sentry_sdk.capture_message("discord.request_parser.get_response.request")
+
         # Handle any Requests that doesn't depend on Integration/Organization prior to fetching the Regions.
         if is_discord_interactions_endpoint and self.discord_request:
             # Discord will do automated, routine security checks against the interactions endpoint, including
