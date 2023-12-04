@@ -220,7 +220,8 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase):
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
         self.assertDoesNotPass(rule, event, is_new=False)
 
-    def test_is_new_issue_skips_snuba(self):
+    @patch("sentry.rules.conditions.event_frequency.BaseEventFrequencyCondition.get_rate")
+    def test_is_new_issue_skips_snuba(self, mock_get_rate):
         # Looking for more than 1 event
         data = {"interval": "1m", "value": 6}
         minutes = 1
@@ -238,6 +239,7 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase):
         # Issue is new and is the first event
         self.assertDoesNotPass(rule, event, is_new=True)
         self.assertDoesNotPass(environment_rule, event, is_new=True)
+        assert mock_get_rate.call_count == 0
 
 
 class EventFrequencyConditionTestCase(StandardIntervalTestBase):
