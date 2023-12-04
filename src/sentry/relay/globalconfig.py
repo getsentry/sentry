@@ -1,20 +1,33 @@
+from typing import Any, Dict, List, TypedDict
+
 import sentry.options
-from sentry.relay.config.measurements import get_measurements_config
+from sentry.relay.config.measurements import MeasurementsConfig, get_measurements_config
 from sentry.utils import metrics
 
 # List of options to include in the global config.
-RELAY_OPTIONS = []
+RELAY_OPTIONS: List[str] = []
+
+
+class GlobalConfig(TypedDict, total=False):
+    measurements: MeasurementsConfig
+    options: Dict[str, Any]
 
 
 @metrics.wraps("relay.globalconfig.get")
 def get_global_config():
     """Return the global configuration for Relay."""
 
+    global_config: GlobalConfig = {
+        "measurements": get_measurements_config(),
+    }
+
     options = dict()
     for option in RELAY_OPTIONS:
-        options[option] = sentry.options.get(option)
+        value = sentry.options.get(option)
+        if value:
+            options[option] = value
 
-    return {
-        "measurements": get_measurements_config(),
-        "options": options,
-    }
+    if options:
+        global_config["options"] = options
+
+    return global_config
