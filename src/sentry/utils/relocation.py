@@ -365,7 +365,7 @@ def start_relocation_task(
 
     logger_data = {"uuid": uuid}
     try:
-        relocation = Relocation.objects.get(uuid=uuid)
+        relocation: Relocation = Relocation.objects.get(uuid=uuid)
     except Relocation.DoesNotExist as exc:
         logger.error(f"Could not locate Relocation model by UUID: {uuid}", exc_info=exc)
         return (None, 0)
@@ -374,7 +374,7 @@ def start_relocation_task(
         Relocation.Status.IN_PROGRESS.value,
         Relocation.Status.PAUSE.value,
     }:
-        logger.error(
+        logger.warning(
             f"Relocation has already completed as `{Relocation.Status(relocation.status)}`",
             extra=logger_data,
         )
@@ -401,14 +401,24 @@ def start_relocation_task(
         relocation.latest_task = task.name
         relocation.latest_task_attempts = 1
 
+    step = TASK_TO_STEP[task]
+    is_new_step = relocation.step + 1 == step.value
+    at_scheduled_cancel = is_new_step and relocation.scheduled_cancel_at_step == step.value
+    if at_scheduled_cancel:
+        logger.info("Task aborted due to relocation cancellation request", extra=logger_data)
+        relocation.step = step.value
+        relocation.status = Relocation.Status.FAILURE.value
+        relocation.scheduled_pause_at_step = None
+        relocation.scheduled_cancel_at_step = None
+        relocation.failure_reason = "This relocation was cancelled by an administrator."
+        relocation.save()
+        return (None, 0)
+
     # TODO(getsentry/team-ospo#216): Add an option like 'relocation:autopause-at-steps', which will
     # be an array of steps that we want relocations to automatically pause at. Will be useful once
     # we have self-serve relocations, and want a means by which to check their validity (bugfixes,
     # etc).
-    step = TASK_TO_STEP[task]
-    at_scheduled_pause = (
-        relocation.step + 1 == step.value and relocation.scheduled_pause_at_step == step.value
-    )
+    at_scheduled_pause = is_new_step and relocation.scheduled_pause_at_step == step.value
     if relocation.status == Relocation.Status.PAUSE.value or at_scheduled_pause:
         logger.info("Task aborted due to relocation pause", extra=logger_data)
 

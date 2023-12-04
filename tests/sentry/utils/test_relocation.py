@@ -157,6 +157,88 @@ class RelocationStartTestCase(RelocationUtilsTestCase):
         assert relocation.status == Relocation.Status.PAUSE.value
         assert relocation.scheduled_pause_at_step is None
 
+    def test_good_cancel_at_scheduled_cancel(self, fake_message_builder: Mock):
+        self.mock_message_builder(fake_message_builder)
+
+        self.relocation.latest_task = OrderedTask.UPLOADING_COMPLETE.name
+        self.relocation.scheduled_cancel_at_step = Relocation.Step.PREPROCESSING.value
+        self.relocation.save()
+
+        (_, attempts_left) = start_relocation_task(self.uuid, OrderedTask.PREPROCESSING_SCAN, 3)
+
+        assert fake_message_builder.call_count == 0
+        assert attempts_left == 0
+
+        relocation: Relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.step == Relocation.Step.PREPROCESSING.value
+        assert relocation.latest_task == OrderedTask.PREPROCESSING_SCAN.name
+        assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.scheduled_cancel_at_step is None
+        assert relocation.failure_reason == "This relocation was cancelled by an administrator."
+
+    def test_good_already_cancelled(self, fake_message_builder: Mock):
+        self.mock_message_builder(fake_message_builder)
+
+        self.relocation.step = Relocation.Step.POSTPROCESSING.value
+        self.relocation.latest_task = OrderedTask.POSTPROCESSING.name
+        self.relocation.status = Relocation.Status.FAILURE.value
+        self.relocation.failure_reason = "Cancelled"
+        self.relocation.save()
+
+        (_, attempts_left) = start_relocation_task(self.uuid, OrderedTask.POSTPROCESSING, 3)
+
+        assert fake_message_builder.call_count == 0
+        assert attempts_left == 0
+
+        relocation: Relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.step == Relocation.Step.POSTPROCESSING.value
+        assert relocation.latest_task == OrderedTask.POSTPROCESSING.name
+        assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.scheduled_cancel_at_step is None
+        assert self.relocation.failure_reason == "Cancelled"
+
+    def test_good_cancel_before_pause(self, fake_message_builder: Mock):
+        self.mock_message_builder(fake_message_builder)
+
+        self.relocation.latest_task = OrderedTask.UPLOADING_COMPLETE.name
+        self.relocation.scheduled_cancel_at_step = Relocation.Step.PREPROCESSING.value
+        self.relocation.scheduled_pause_at_step = Relocation.Step.PREPROCESSING.value
+        self.relocation.save()
+
+        (_, attempts_left) = start_relocation_task(self.uuid, OrderedTask.PREPROCESSING_SCAN, 3)
+
+        assert fake_message_builder.call_count == 0
+        assert attempts_left == 0
+
+        relocation: Relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.step == Relocation.Step.PREPROCESSING.value
+        assert relocation.latest_task == OrderedTask.PREPROCESSING_SCAN.name
+        assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.scheduled_pause_at_step is None
+        assert relocation.scheduled_cancel_at_step is None
+        assert relocation.failure_reason == "This relocation was cancelled by an administrator."
+
+    def test_good_pause_before_cancel(self, fake_message_builder: Mock):
+        self.mock_message_builder(fake_message_builder)
+
+        self.relocation.latest_task = OrderedTask.UPLOADING_COMPLETE.name
+        self.relocation.scheduled_cancel_at_step = Relocation.Step.POSTPROCESSING.value
+        self.relocation.scheduled_pause_at_step = Relocation.Step.PREPROCESSING.value
+        self.relocation.save()
+
+        (_, attempts_left) = start_relocation_task(self.uuid, OrderedTask.PREPROCESSING_SCAN, 3)
+
+        assert fake_message_builder.call_count == 0
+        assert attempts_left == 0
+
+        relocation: Relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.step == Relocation.Step.PREPROCESSING.value
+        assert relocation.latest_task == OrderedTask.PREPROCESSING_SCAN.name
+        assert relocation.status == Relocation.Status.PAUSE.value
+        assert relocation.scheduled_pause_at_step is None
+        assert relocation.scheduled_cancel_at_step == Relocation.Step.POSTPROCESSING.value
+        assert relocation.failure_reason is None
+
 
 @patch("sentry.utils.relocation.MessageBuilder")
 class RelocationFailTestCase(RelocationUtilsTestCase):
