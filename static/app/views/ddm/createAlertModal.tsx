@@ -5,6 +5,7 @@ import * as qs from 'query-string';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {AreaChart} from 'sentry/components/charts/areaChart';
+import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {getInterval} from 'sentry/components/charts/utils';
 import CircleIndicator from 'sentry/components/circleIndicator';
@@ -234,12 +235,22 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
   const unit = parseMRI(metricsQuery.mri)?.unit ?? 'none';
   const operation = metricsQuery.op;
   const chartOptions = useMemo(() => {
+    const bucketSize =
+      (chartSeries?.[0]?.data[1]?.name ?? 0) - (chartSeries?.[0]?.data[0]?.name ?? 0);
+
+    const formatters = {
+      valueFormatter: value => formatMetricUsingFixedUnit(value, unit, operation),
+      isGroupedByDate: true,
+      bucketSize,
+      showTimeInTooltip: true,
+    };
+
     return {
       isGroupedByDate: true,
       height: 200,
       grid: {top: 20, bottom: 20, left: 15, right: 25},
       tooltip: {
-        valueFormatter: value => formatMetricUsingFixedUnit(value, unit, operation),
+        formatter: getFormatter(formatters),
       },
       yAxis: {
         axisLabel: {
@@ -247,7 +258,7 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
         },
       },
     };
-  }, [operation, unit]);
+  }, [chartSeries, operation, unit]);
 
   return (
     <Fragment>
