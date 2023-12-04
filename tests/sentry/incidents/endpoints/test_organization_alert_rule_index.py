@@ -781,6 +781,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         ):
             for mri in (
                 "sum(c:transactions/count_per_root_project@none)",
+                "p90(d:transactions/duration@millisecond)",
                 "p95(d:transactions/duration@millisecond)",
                 "count_unique(s:transactions/user@none)",
                 "avg(d:custom/sentry.process_profile.symbolicate.process@second)",

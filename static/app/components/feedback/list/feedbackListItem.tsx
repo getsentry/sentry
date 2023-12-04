@@ -7,6 +7,7 @@ import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Checkbox from 'sentry/components/checkbox';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
+import IssueTrackingSignals from 'sentry/components/feedback/list/issueTrackingSignals';
 import useFeedbackHasReplayId from 'sentry/components/feedback/useFeedbackHasReplayId';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
@@ -19,6 +20,7 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
+import {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -35,8 +37,20 @@ interface Props {
   style?: CSSProperties;
 }
 
-function FeedbackIcon({tooltipText, icon}: {icon: ReactNode; tooltipText: string}) {
-  return <StyledTooltip title={tooltipText}>{icon}</StyledTooltip>;
+export function FeedbackIcon({
+  tooltipText,
+  icon,
+}: {
+  icon: ReactNode;
+  tooltipText: string;
+}) {
+  return (
+    <StyledTooltip
+      title={<span style={{textTransform: 'capitalize'}}>{tooltipText}</span>}
+    >
+      {icon}
+    </StyledTooltip>
+  );
 }
 
 function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackIssue}) {
@@ -116,6 +130,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
               gridArea: 'icons',
             }}
           >
+            <IssueTrackingSignals group={feedbackItem as unknown as Group} />
             {isCrashReport && (
               <FeedbackIcon
                 tooltipText={t('Linked Issue')}
@@ -129,7 +144,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
               />
             )}
             {feedbackItem.assignedTo && (
-              <ActorAvatar actor={feedbackItem.assignedTo} size={16} />
+              <StyledAvatar actor={feedbackItem.assignedTo} size={16} />
             )}
           </RightAlignedIcons>
           <Flex style={{gridArea: 'proj'}} gap={space(1)} align="center">
@@ -153,6 +168,11 @@ const StyledTooltip = styled(Tooltip)`
   align-items: center;
 `;
 
+const StyledAvatar = styled(ActorAvatar)`
+  display: flex;
+  align-items: center;
+`;
+
 const StyledTimeSince = styled(TimeSince)`
   display: flex;
   justify-content: end;
@@ -162,6 +182,7 @@ const RightAlignedIcons = styled('div')`
   display: flex;
   justify-content: end;
   gap: ${space(0.75)};
+  align-items: center;
 `;
 
 const CardSpacing = styled('div')`
