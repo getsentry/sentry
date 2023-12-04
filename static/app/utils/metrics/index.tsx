@@ -5,10 +5,16 @@ import * as qs from 'query-string';
 
 import {
   DateTimeObject,
-  ddmHighFidelityLadder,
-  ddmLowFidelityLadder,
   Fidelity,
   getDiffInMinutes,
+  GranularityLadder,
+  ONE_HOUR,
+  ONE_WEEK,
+  SIX_HOURS,
+  SIXTY_DAYS,
+  THIRTY_DAYS,
+  TWENTY_FOUR_HOURS,
+  TWO_WEEKS,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {MetricsApiResponse} from 'sentry/types';
@@ -157,6 +163,27 @@ export function getMetricsApiRequestQuery(
 
   return {...queryToSend, ...overrides};
 }
+
+const ddmHighFidelityLadder = new GranularityLadder([
+  [SIXTY_DAYS, '1d'],
+  [THIRTY_DAYS, '2h'],
+  [TWO_WEEKS, '1h'],
+  [ONE_WEEK, '30m'],
+  [TWENTY_FOUR_HOURS, '5m'],
+  [ONE_HOUR, '1m'],
+  [0, '5m'],
+]);
+
+const ddmLowFidelityLadder = new GranularityLadder([
+  [SIXTY_DAYS, '1d'],
+  [THIRTY_DAYS, '12h'],
+  [TWO_WEEKS, '4h'],
+  [ONE_WEEK, '2h'],
+  [TWENTY_FOUR_HOURS, '1h'],
+  [SIX_HOURS, '30m'],
+  [ONE_HOUR, '5m'],
+  [0, '1m'],
+]);
 
 // Wraps getInterval since other users of this function, and other metric use cases do not have support for 10s granularity
 export function getDDMInterval(

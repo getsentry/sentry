@@ -141,27 +141,6 @@ const metricsFidelityLadder = new GranularityLadder([
   [0, '1m'],
 ]);
 
-export const ddmHighFidelityLadder = new GranularityLadder([
-  [SIXTY_DAYS, '1d'],
-  [THIRTY_DAYS, '2h'],
-  [TWO_WEEKS, '1h'],
-  [ONE_WEEK, '30m'],
-  [TWENTY_FOUR_HOURS, '5m'],
-  [ONE_HOUR, '1m'],
-  [0, '5m'],
-]);
-
-export const ddmLowFidelityLadder = new GranularityLadder([
-  [SIXTY_DAYS, '1d'],
-  [THIRTY_DAYS, '12h'],
-  [TWO_WEEKS, '4h'],
-  [ONE_WEEK, '2h'],
-  [TWENTY_FOUR_HOURS, '1h'],
-  [SIX_HOURS, '30m'],
-  [ONE_HOUR, '5m'],
-  [0, '1m'],
-]);
-
 /**
  * Duplicate of getInterval, except that we do not support <1h granularity
  * Used by OrgStatsV2 API
