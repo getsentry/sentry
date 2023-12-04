@@ -193,7 +193,12 @@ class MutableQuery:
             if (entry := DEFAULT_REGISTRY.get(query.aggregate)) is not None:
                 # TODO: infer entity from timeseries metric.
                 if entry.is_supported(EntityKey.GenericMetricsGauges):
-                    return entry.get(query)
+                    aliased_query = entry.get(query)
+                    # We recursively alias the aliased query, since it might contain other aliases. It's important
+                    # to note that if a recursive definition is defined, the system will go into an endless recursion.
+                    # It can be technically avoided by keeping track of which expressions we expanded already, to avoid
+                    # doing it again.
+                    return self._alias_ops(aliased_query)
 
         return query
 
@@ -321,7 +326,9 @@ class QueryParser:
 
         for field in self._fields:
             mql_query = self._build_mql_query(field, mql_filters, mql_group_bys)
-            yield self._parse_mql(mql_query).inject_environments(environments).get_mutated()
+            yield self._parse_mql(mql_query).inject_environments(
+                environments
+            ).alias_ops().get_mutated()
 
 
 class QueryExecutor:
@@ -486,10 +493,10 @@ def _translate_query_results(execution_results: List[ExecutionResult]) -> Mappin
                 # We order the group values in order to be consistent across executions.
                 group_key = tuple(sorted(grouped_values))
                 group_metrics = intermediate_groups.setdefault(group_key, {})
-                # The item at position 0 is the "series".
                 group_value = group_metrics.setdefault(
                     execution_result.query_name, GroupValue.empty()
                 )
+                # We call the lambda to perform a mutation of the group.
                 block(value, group_value)
 
         # We group the timeseries data.
