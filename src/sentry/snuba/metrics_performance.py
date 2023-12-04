@@ -344,7 +344,7 @@ def top_events_timeseries(
     functions_acl=None,
     on_demand_metrics_enabled=False,
     on_demand_metrics_type: Optional[MetricSpecType] = None,
-) -> SnubaTSResult:
+) -> SnubaTSResult | dict[str, Any]:
     if top_events is None:
         top_events = query(
             selected_columns,
