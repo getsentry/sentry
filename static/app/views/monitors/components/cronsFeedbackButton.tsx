@@ -1,5 +1,5 @@
 import {useEffect, useRef} from 'react';
-import {BrowserClient, getCurrentHub} from '@sentry/react';
+import {getCurrentHub} from '@sentry/react';
 import {Feedback} from '@sentry-internal/feedback';
 
 import {Button} from 'sentry/components/button';
@@ -13,8 +13,7 @@ function CronsFeedbackButton() {
   const title = 'Give Feedback';
   const widgetTheme = config.theme === 'dark' ? 'dark' : 'light';
   const hub = getCurrentHub();
-  const client = hub && hub.getClient<BrowserClient>();
-  const feedback = client?.getIntegration(Feedback);
+  const feedback = hub.getIntegration(Feedback);
 
   useEffect(() => {
     const widget =
