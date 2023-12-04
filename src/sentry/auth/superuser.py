@@ -413,7 +413,7 @@ class Superuser:
             extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
         )
 
-    def on_response(self, response, current_datetime=None):
+    def on_response(self, response):
         request = self.request
 
         # always re-bind the cookie to update the idle expiration window
