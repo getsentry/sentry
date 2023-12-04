@@ -176,14 +176,6 @@ class MetricsQueryBuilder(QueryBuilder):
             # Replace with proper table code later
             if fields.is_function(col) and self._get_on_demand_metric_spec(col)
         }
-        # {'count()': OnDemandMetricSpec(
-        #   field='count()',
-        #   query='http.url:https://sentry.io/*/foo/bar/* http.referer:"https://sentry.io/*/bar/*" event.type:transaction',
-        #   groupbys=['networkId'],
-        #   spec_type=<MetricSpecType.DYNAMIC_QUERY: 'dynamic_query'>,
-        #   op='sum',
-        #   _metric_type='c',
-        #   _arguments=[])}
         return map
 
     def _get_metrics_query_from_on_demand_spec(
