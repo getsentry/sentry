@@ -19,10 +19,12 @@ type GetConfigForIssueTypeParams = {eventOccurrenceType: number} | IssueCategory
 
 const BASE_CONFIG: IssueTypeConfig = {
   actions: {
+    archiveUntilOccurrence: {enabled: true},
     delete: {enabled: false},
     deleteAndDiscard: {enabled: false},
     merge: {enabled: false},
     ignore: {enabled: false},
+    resolveInRelease: {enabled: true},
     share: {enabled: false},
   },
   attachments: {enabled: false},

@@ -144,6 +144,9 @@ describe('Chart Utils', function () {
       it('can parse a period string in weeks', function () {
         expect(getDiffInMinutes({period: '1w'})).toBe(10080);
       });
+      it('can parse a period string with an upsell suffix', function () {
+        expect(getDiffInMinutes({period: '90d-trial'})).toBe(129600);
+      });
     });
 
     // This uses moment so we probably don't need to test it too extensively

@@ -8,7 +8,7 @@ from rest_framework.request import Request
 
 from sentry import analytics
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.integrations.discord.requests.base import DiscordRequest, DiscordRequestError
 from sentry.integrations.discord.webhooks.command import DiscordCommandHandler
 from sentry.integrations.discord.webhooks.message_component import DiscordMessageComponentHandler
@@ -19,7 +19,7 @@ from .types import DiscordResponseTypes
 logger = logging.getLogger(__name__)
 
 
-@region_silo_endpoint
+@all_silo_endpoint
 class DiscordInteractionsEndpoint(Endpoint):
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,

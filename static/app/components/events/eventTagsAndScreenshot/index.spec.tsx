@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {Event as EventFixture} from 'sentry-fixture/event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -115,7 +116,7 @@ describe('EventTagsAndScreenshot', function () {
     },
   ];
 
-  const event = TestStubs.Event({user});
+  const event = EventFixture({user});
 
   const {organization, project, router} = initializeOrg({
     organization: {
@@ -187,7 +188,7 @@ describe('EventTagsAndScreenshot', function () {
     it('not shared event - without attachments', function () {
       render(
         <EventTagsAndScreenshot
-          event={{...event, tags, contexts}}
+          event={EventFixture({...event, tags, contexts})}
           organization={organization}
           projectSlug={project.slug}
           location={router.location}
@@ -234,7 +235,7 @@ describe('EventTagsAndScreenshot', function () {
     it('shared event - without attachments', function () {
       render(
         <EventTagsAndScreenshot
-          event={{...event, tags, contexts}}
+          event={EventFixture({...event, tags, contexts})}
           organization={organization}
           projectSlug={project.slug}
           location={router.location}
@@ -253,7 +254,7 @@ describe('EventTagsAndScreenshot', function () {
     it('shared event - with attachments', function () {
       render(
         <EventTagsAndScreenshot
-          event={{...event, tags, contexts}}
+          event={EventFixture({...event, tags, contexts})}
           organization={organization}
           projectSlug={project.slug}
           location={router.location}
@@ -282,7 +283,7 @@ describe('EventTagsAndScreenshot', function () {
         <Fragment>
           <GlobalModal />
           <EventTagsAndScreenshot
-            event={TestStubs.Event({user: {}, contexts: {}})}
+            event={EventFixture({user: {}, contexts: {}})}
             organization={organization}
             projectSlug={project.slug}
             location={router.location}
@@ -337,7 +338,7 @@ describe('EventTagsAndScreenshot', function () {
     it('has context, async tags and attachments', async function () {
       render(
         <EventTagsAndScreenshot
-          event={{...event, tags, contexts}}
+          event={EventFixture({...event, tags, contexts})}
           organization={organization}
           projectSlug={project.slug}
           location={router.location}
@@ -394,7 +395,7 @@ describe('EventTagsAndScreenshot', function () {
       });
       render(
         <EventTagsAndScreenshot
-          event={{...event, tags, contexts}}
+          event={EventFixture({...event, tags, contexts})}
           organization={organization}
           projectSlug={project.slug}
           location={router.location}
@@ -437,7 +438,7 @@ describe('EventTagsAndScreenshot', function () {
       });
       render(
         <EventTagsAndScreenshot
-          event={{...event, tags, contexts}}
+          event={EventFixture({...event, tags, contexts})}
           organization={organization}
           projectSlug={project.slug}
           location={router.location}
@@ -471,7 +472,7 @@ describe('EventTagsAndScreenshot', function () {
     it('has context and attachments only', async function () {
       render(
         <EventTagsAndScreenshot
-          event={{...event, contexts}}
+          event={EventFixture({...event, contexts})}
           organization={organization}
           projectSlug={project.slug}
           location={router.location}

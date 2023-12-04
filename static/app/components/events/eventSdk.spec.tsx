@@ -1,4 +1,5 @@
 import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+import {Event as EventFixture} from 'sentry-fixture/event';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -7,8 +8,7 @@ import {EventSdk} from 'sentry/components/events/eventSdk';
 
 describe('event sdk', function () {
   it('display redacted tags', async function () {
-    const event = {
-      ...TestStubs.Event(),
+    const event = EventFixture({
       sdk: {
         name: 'sentry.cocoa',
         version: '',
@@ -18,9 +18,9 @@ describe('event sdk', function () {
           version: {'': {rem: [['organization:0', 'x']]}},
         },
       },
-    };
+    });
 
-    render(<EventSdk sdk={event.sdk} meta={event._meta.sdk} />, {
+    render(<EventSdk sdk={event.sdk} meta={event._meta?.sdk} />, {
       organization: {
         relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
       },
