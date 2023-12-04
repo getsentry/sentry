@@ -1092,6 +1092,9 @@ def notifying_users(uuid: str) -> None:
             hash = lost_password_hash_service.get_or_create(user_id=user.id).hash
             LostPasswordHash.send_relocate_account_email(user, hash, relocation.want_org_slugs)
 
+        relocation.latest_unclaimed_emails_sent_at = datetime.now()
+        relocation.save()
+
         notifying_owner.delay(uuid)
 
 
