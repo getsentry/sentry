@@ -1,5 +1,5 @@
 import {useEffect, useRef} from 'react';
-import {BrowserClient, getCurrentHub} from '@sentry/react';
+import {getCurrentHub} from '@sentry/react';
 import {Feedback} from '@sentry-internal/feedback';
 
 import {Button} from 'sentry/components/button';
@@ -12,8 +12,7 @@ function ProfilingFeedbackButton() {
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const config = useLegacyStore(ConfigStore);
   const hub = getCurrentHub();
-  const client = hub.getClient<BrowserClient>();
-  const feedback = client?.getIntegration(Feedback);
+  const feedback = hub.getIntegration(Feedback);
 
   useEffect(() => {
     if (!buttonRef.current || !feedback) {

@@ -1,6 +1,6 @@
 import {useEffect} from 'react';
 import {css, Global} from '@emotion/react';
-import {BrowserClient, getCurrentHub} from '@sentry/react';
+import {getCurrentHub} from '@sentry/react';
 import {Feedback} from '@sentry-internal/feedback';
 
 import ConfigStore from 'sentry/stores/configStore';
@@ -16,8 +16,7 @@ export default function FeedbackWidget() {
 
   useEffect(() => {
     const hub = getCurrentHub();
-    const client = hub && hub.getClient<BrowserClient>();
-    const feedback = client?.getIntegration(Feedback);
+    const feedback = hub.getIntegration(Feedback);
     const widget = feedback?.createWidget({
       colorScheme: widgetTheme,
       buttonLabel: 'Give Feedback',

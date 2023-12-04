@@ -1254,6 +1254,7 @@ PROCESSING_QUEUES = [
 
 # We prefer using crontab, as the time for timedelta will reset on each deployment. More information:  https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html#periodic-tasks
 TIMEDELTA_ALLOW_LIST = {
+    "deliver-from-outbox-control",
     "flush-buffers",
     "sync-options",
     "sync-options-control",
@@ -1939,7 +1940,9 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:span-metrics-extraction-resource": False,
     # Enable standalone span ingestion
     "organizations:standalone-span-ingestion": False,
-    # Metrics: Enable ingestion, storage, and rendering of custom metrics
+    # Metrics cardinality limiter in Relay
+    "organizations:relay-cardinality-limiter": False,
+    # Metrics: Enable ingestion and storage of custom metrics. See ddm-ui for UI.
     "organizations:custom-metrics": False,
     # Metrics: Enable creation of investigation dynamic sampling rules (rules that
     # temporary boost the sample rate of particular transactions)
