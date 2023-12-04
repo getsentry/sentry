@@ -87,7 +87,6 @@ class Cache<T> {
   constructor() {
     this.map = new Map();
   }
-
   get(key: string): T | undefined {
     return this.map.get(key)?.value;
   }
