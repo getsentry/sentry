@@ -544,7 +544,7 @@ def test_detect_function_trends_ratelimit(
 
 @mock.patch("sentry.tasks.statistical_detectors.emit_function_regression_issue")
 @mock.patch("sentry.statistical_detectors.detector.detect_breakpoints")
-@mock.patch("sentry.tasks.statistical_detectors.raw_snql_query")
+@mock.patch("sentry.search.events.builder.discover.raw_snql_query")
 @django_db_all
 def test_detect_function_change_points(
     mock_raw_snql_query,
