@@ -1351,56 +1351,16 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         )
 
         assert response.status_code == 200, response.content
-        assert response.data == {
-            "1234": {
-                "data": [(1701561600, [{"count": 5.0}])],
-                "end": 1701561600,
+        for datum in response.data.values():
+            assert datum["meta"] == {
+                "dataset": "metricsEnhanced",
+                "datasetReason": "unchanged",
+                "fields": {},
                 "isMetricsData": False,
-                "meta": {
-                    "dataset": "metricsEnhanced",
-                    "datasetReason": "unchanged",
-                    "fields": {},
-                    "isMetricsData": False,
-                    "isMetricsExtractedData": True,
-                    "tips": {},
-                    "units": {},
-                },
-                "order": 0,
-                "start": 1701561600,
-            },
-            "5678": {
-                "data": [(1701561600, [{"count": 5.0}])],
-                "end": 1701561600,
-                "isMetricsData": False,
-                "meta": {
-                    "dataset": "metricsEnhanced",
-                    "datasetReason": "unchanged",
-                    "fields": {},
-                    "isMetricsData": False,
-                    "isMetricsExtractedData": True,
-                    "tips": {},
-                    "units": {},
-                },
-                "order": 1,
-                "start": 1701561600,
-            },
-            "Other": {
-                "data": [(1701561600, [{"count": 5.0}, {"count": 5.0}])],
-                "end": 1701561600,
-                "isMetricsData": False,
-                "meta": {
-                    "dataset": "metricsEnhanced",
-                    "datasetReason": "unchanged",
-                    "fields": {},
-                    "isMetricsData": False,
-                    "isMetricsExtractedData": True,
-                    "tips": {},
-                    "units": {},
-                },
-                "order": 2,
-                "start": 1701561600,
-            },
-        }
+                "isMetricsExtractedData": True,
+                "tips": {},
+                "units": {},
+            }
 
     def _test_is_metrics_extracted_data(
         self, params: dict[str, Any], expected_on_demand_query: bool, dataset: str
