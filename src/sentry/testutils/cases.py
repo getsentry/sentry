@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.metadata
 import inspect
 import os.path
 import re
@@ -34,7 +35,6 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import resolve, reverse
 from django.utils import timezone as django_timezone
 from django.utils.functional import cached_property
-from pkg_resources import iter_entry_points
 from requests.utils import CaseInsensitiveDict, get_encoding_from_headers
 from rest_framework import status
 from rest_framework.test import APITestCase as BaseAPITestCase
@@ -1007,29 +1007,21 @@ class PluginTestCase(TestCase):
             self.addCleanup(plugins.unregister, self.plugin)
 
     def assertAppInstalled(self, name, path):
-        for ep in iter_entry_points("sentry.apps"):
-            if ep.name == name:
-                ep_path = ep.module_name
-                if ep_path == path:
-                    return
-                self.fail(
-                    "Found app in entry_points, but wrong class. Got %r, expected %r"
-                    % (ep_path, path)
-                )
-        self.fail(f"Missing app from entry_points: {name!r}")
+        for ep in importlib.metadata.distribution("sentry").entry_points:
+            if ep.group == "sentry.apps" and ep.name == name:
+                assert ep.value == path
+                return
+        else:
+            self.fail(f"Missing app from entry_points: {name!r}")
 
     def assertPluginInstalled(self, name, plugin):
         path = type(plugin).__module__ + ":" + type(plugin).__name__
-        for ep in iter_entry_points("sentry.plugins"):
-            if ep.name == name:
-                ep_path = ep.module_name + ":" + ".".join(ep.attrs)
-                if ep_path == path:
-                    return
-                self.fail(
-                    "Found plugin in entry_points, but wrong class. Got %r, expected %r"
-                    % (ep_path, path)
-                )
-        self.fail(f"Missing plugin from entry_points: {name!r}")
+        for ep in importlib.metadata.distribution("sentry").entry_points:
+            if ep.group == "sentry.plugins" and ep.name == name:
+                assert ep.value == path
+                return
+        else:
+            self.fail(f"Missing plugin from entry_points: {name!r}")
 
 
 class CliTestCase(TestCase):
