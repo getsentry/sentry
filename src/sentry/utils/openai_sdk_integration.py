@@ -62,7 +62,7 @@ def patch_openai():
                 span.set_data("language_model", return_value.model)
             return return_value
 
-    resources.chat.completions.Completions.create = monkeypatched_openai_completions_create
+    resources.chat.completions.Completions.create = monkeypatched_openai_completions_create  # type: ignore[method-assign]
 
 
 def _get_description(messages, capture_prompts):
