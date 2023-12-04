@@ -1939,6 +1939,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:span-metrics-extraction-resource": False,
     # Enable standalone span ingestion
     "organizations:standalone-span-ingestion": False,
+    # Metrics cardinality limiter in Relay
+    "organizations:relay-cardinality-limiter": False,
     # Metrics: Enable ingestion, storage, and rendering of custom metrics
     "organizations:custom-metrics": False,
     # Metrics: Enable creation of investigation dynamic sampling rules (rules that
