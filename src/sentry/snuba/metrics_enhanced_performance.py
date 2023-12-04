@@ -201,7 +201,7 @@ def top_events_timeseries(
     functions_acl: Optional[List[str]] = None,
     on_demand_metrics_enabled: Optional[bool] = False,
     on_demand_metrics_type: Optional[MetricSpecType] = None,
-) -> Optional[SnubaTSResult]:
+) -> SnubaTSResult | dict[str, Any]:
     metrics_compatible = False
     equations, _ = categorize_columns(selected_columns)
     if not equations:
