@@ -21,9 +21,7 @@ from sentry.notifications.types import (
     VALID_VALUES_FOR_KEY,
     GroupSubscriptionReason,
     NotificationSettingEnum,
-    NotificationSettingOptionValues,
     NotificationSettingsOptionEnum,
-    NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.user.model import RpcUser
@@ -94,7 +92,7 @@ def get_type_defaults() -> Mapping[NotificationSettingEnum, NotificationSettings
     return type_defaults
 
 
-def validate(type: NotificationSettingTypes, value: NotificationSettingOptionValues) -> bool:
+def validate(type: NotificationSettingEnum, value: NotificationSettingsOptionEnum) -> bool:
     """:returns boolean. True if the "value" is valid for the "type"."""
     return value in VALID_VALUES_FOR_KEY.get(type, {})
 
