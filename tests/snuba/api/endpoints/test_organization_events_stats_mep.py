@@ -1291,6 +1291,31 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             query=query,
             spec_type=MetricSpecType.DYNAMIC_QUERY,
         )
+        assert spec.to_metric_spec(self.project) == {
+            "category": "transaction",
+            "mri": "c:transactions/on_demand@none",
+            "field": None,
+            "tags": [
+                {"key": "query_hash", "value": "fc0c932e"},
+                {"key": "networkId", "field": "event.tags.networkId"},
+                {"key": "environment", "field": "event.environment"},
+            ],
+            "condition": {
+                "op": "and",
+                "inner": [
+                    {
+                        "op": "glob",
+                        "name": "event.request.url",
+                        "value": ["https://sentry.io/*/foo/bar/*"],
+                    },
+                    {
+                        "op": "glob",
+                        "name": "event.request.referer",
+                        "value": ["https://sentry.io/*/bar/*"],
+                    },
+                ],
+            },
+        }
 
         for hour in range(0, 5):
             self.store_on_demand_metric(

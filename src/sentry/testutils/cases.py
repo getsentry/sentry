@@ -1904,8 +1904,9 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         additional_tags: Optional[Dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
     ) -> None:
+        """Convert on-demand metric and store it"""
         relay_metric_spec = spec.to_metric_spec(self.project)
-        metric_spec_tags = relay_metric_spec["tags"] if relay_metric_spec else []
+        metric_spec_tags = relay_metric_spec["tags"] or [] if relay_metric_spec else []
         tags = {i["key"]: i.get("value") or i.get("field") for i in metric_spec_tags}
 
         metric_type = spec.metric_type
