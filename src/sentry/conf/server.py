@@ -1942,7 +1942,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:standalone-span-ingestion": False,
     # Metrics cardinality limiter in Relay
     "organizations:relay-cardinality-limiter": False,
-    # Metrics: Enable ingestion, storage, and rendering of custom metrics
+    # Metrics: Enable ingestion and storage of custom metrics. See ddm-ui for UI.
     "organizations:custom-metrics": False,
     # Metrics: Enable creation of investigation dynamic sampling rules (rules that
     # temporary boost the sample rate of particular transactions)
