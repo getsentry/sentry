@@ -59,7 +59,7 @@ from sentry.snuba.metrics.naming_layer.mapping import (
     get_operation_with_public_name,
     parse_expression,
 )
-from sentry.snuba.metrics.naming_layer.mri import MRI_EXPRESSION_REGEX, MRI_SCHEMA_REGEX
+from sentry.snuba.metrics.naming_layer.mri import parse_mri_field
 from sentry.snuba.metrics.naming_layer.public import PUBLIC_EXPRESSION_REGEX
 from sentry.snuba.metrics.query import (
     MetricActionByField,
@@ -112,26 +112,13 @@ def _strip_project_id(condition: Condition) -> Optional[Condition]:
 
 def parse_field(field: str, allow_mri: bool = False) -> MetricField:
     if allow_mri:
-        mri_matches = MRI_SCHEMA_REGEX.match(field) or MRI_EXPRESSION_REGEX.match(field)
-        if mri_matches:
-            return parse_mri_field(field)
+        if parsed_mri_field := parse_mri_field(field):
+            return MetricField(parsed_mri_field.op, parsed_mri_field.mri.mri_string)
 
     return parse_public_field(field)
 
 
-def parse_mri_field(field: str) -> MetricField:
-    matches = MRI_EXPRESSION_REGEX.match(field)
-
-    try:
-        operation = matches[1]
-        mri = matches[2]
-    except (IndexError, TypeError):
-        operation = None
-        mri = field
-
-    return MetricField(op=operation, metric_mri=mri)
-
-
+# TODO(ddm): implement this similar to parse_mri_field
 def parse_public_field(field: str) -> MetricField:
     matches = PUBLIC_EXPRESSION_REGEX.match(field)
 

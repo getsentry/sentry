@@ -28,6 +28,7 @@ from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import RpcUserOption, user_option_service
+from sentry.snuba.metrics import format_mri_field, is_mri_field
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.email import MessageBuilder, get_email_addresses
@@ -392,7 +393,9 @@ def generate_incident_trigger_email_context(
     environment_string = snuba_query.environment.name if snuba_query.environment else "All"
 
     aggregate = alert_rule.snuba_query.aggregate
-    if CRASH_RATE_ALERT_AGGREGATE_ALIAS in aggregate:
+    if is_mri_field(aggregate):
+        aggregate = format_mri_field(aggregate)
+    elif CRASH_RATE_ALERT_AGGREGATE_ALIAS in aggregate:
         aggregate = aggregate.split(f"AS {CRASH_RATE_ALERT_AGGREGATE_ALIAS}")[0].strip()
 
     threshold = trigger.alert_threshold if is_active else alert_rule.resolve_threshold
