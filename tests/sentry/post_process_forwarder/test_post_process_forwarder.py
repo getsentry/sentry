@@ -79,7 +79,6 @@ class PostProcessForwarderTest(TestCase):
     def tearDown(self) -> None:
         super().tearDown()
         self.override_settings_cm.__exit__(None, None, None)
-        return
         self.admin_client.delete_topics([self.events_topic, self.commit_log_topic])
         metrics._metrics_backend = None
 
@@ -107,7 +106,7 @@ class PostProcessForwarderTest(TestCase):
             synchronize_commit_group=synchronize_commit_group,
             cluster=None,
             group_id=consumer_group,
-            auto_offset_reset="latest",
+            auto_offset_reset="earliest",
             strict_offset_reset=False,
             join_timeout=None,
             max_poll_interval_ms=None,
@@ -150,3 +149,4 @@ class PostProcessForwarderTest(TestCase):
         )
 
         processor.signal_shutdown()
+        processor.run()
