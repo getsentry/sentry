@@ -1899,7 +1899,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def store_on_demand_metric(
         self,
-        value: int,
+        value: int | float,
         spec: OnDemandMetricSpec,
         additional_tags: Optional[Dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
