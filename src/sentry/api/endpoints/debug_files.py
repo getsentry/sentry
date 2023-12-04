@@ -15,6 +15,7 @@ from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
 
 from sentry import ratelimits, roles
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
@@ -177,6 +178,7 @@ class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class DebugFilesEndpoint(ProjectEndpoint):
+    owner = ApiOwner.OWNERS_NATIVE
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "GET": ApiPublishStatus.UNKNOWN,
@@ -356,6 +358,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class UnknownDebugFilesEndpoint(ProjectEndpoint):
+    owner = ApiOwner.OWNERS_NATIVE
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
@@ -369,6 +372,7 @@ class UnknownDebugFilesEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class AssociateDSymFilesEndpoint(ProjectEndpoint):
+    owner = ApiOwner.OWNERS_NATIVE
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,
     }
@@ -381,6 +385,7 @@ class AssociateDSymFilesEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class DifAssembleEndpoint(ProjectEndpoint):
+    owner = ApiOwner.OWNERS_NATIVE
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,
     }

@@ -8,6 +8,7 @@ from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.utils import timezone
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationPermission
@@ -28,6 +29,7 @@ from rest_framework.response import Response
 
 @control_silo_endpoint
 class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
+    owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
         "PUT": ApiPublishStatus.UNKNOWN,

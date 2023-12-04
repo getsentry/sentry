@@ -4,6 +4,7 @@ from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
@@ -14,6 +15,7 @@ from sentry.models.group import Group, GroupStatus
 
 @region_silo_endpoint
 class TeamGroupsOldEndpoint(TeamEndpoint, EnvironmentMixin):
+    owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }

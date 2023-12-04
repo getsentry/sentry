@@ -19,6 +19,7 @@ class ApiOwner(Enum):
     PROFILING = "profiling"
     OWNERS_INGEST = "owners-ingest"
     OWNERS_NATIVE = "owners-native"
+    OWNERS_PROCESSING = "owners-processing"
     RELOCATION = "open-source"
     REPLAY = "replay-backend"
     WEB_FRONTEND_SDKS = "team-web-sdk-frontend"

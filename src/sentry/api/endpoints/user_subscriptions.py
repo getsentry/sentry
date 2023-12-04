@@ -3,6 +3,7 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from sentry import newsletter
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
@@ -25,6 +26,7 @@ from rest_framework.response import Response
 
 @control_silo_endpoint
 class UserSubscriptionsEndpoint(UserEndpoint):
+    owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
         "PUT": ApiPublishStatus.UNKNOWN,
