@@ -84,7 +84,6 @@ petname==2.6
 phabricator==0.7.0
 phonenumberslite==8.12.55
 pillow==9.3.0
-planout==0.6.0
 progressbar2==3.41.0
 prompt-toolkit==3.0.41
 proto-plus==1.22.2
@@ -149,4 +148,4 @@ xmlsec==1.3.13
 zstandard==0.18.0
 
 # The following packages are considered to be unsafe in a requirements file:
-setuptools==56.0.0
+setuptools==68.2.2

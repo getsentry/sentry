@@ -120,7 +120,6 @@ phabricator==0.7.0
 phonenumberslite==8.12.55
 pillow==9.3.0
 pip-tools==6.7.0
-planout==0.6.0
 platformdirs==2.5.2
 pluggy==0.13.1
 pre-commit==3.3.2
@@ -237,4 +236,4 @@ zstandard==0.18.0
 
 # The following packages are considered to be unsafe in a requirements file:
 pip==22.1.2
-setuptools==56.0.0
+setuptools==68.2.2

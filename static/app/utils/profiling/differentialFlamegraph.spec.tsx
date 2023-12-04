@@ -1,40 +1,45 @@
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
+import {SampledProfile} from 'sentry/utils/profiling/profile/sampledProfile';
 import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
 
-const makeEvent = (times: number, frame: number): Profiling.Event[] => {
-  return new Array(times * 2).fill(0).map((_, i) => {
-    return {type: i % 2 === 0 ? 'O' : 'C', at: i, frame};
-  });
+const schema: Profiling.Schema = {
+  metadata: {} as Profiling.Schema['metadata'],
+  profileID: '',
+  profiles: [],
+  projectID: 0,
+  shared: {
+    frames: [],
+  },
 };
 
-const baseProfile: Profiling.EventedProfile = {
-  name: 'profile',
+const baseProfile: Profiling.SampledProfile = {
+  endValue: 10,
   startValue: 0,
-  endValue: 1000,
-  unit: 'milliseconds',
+  name: '',
   threadID: 0,
-  type: 'evented',
-  events: [],
+  unit: 'nanoseconds',
+  type: 'sampled',
+  samples: [],
+  weights: [],
 };
-const makeFlamegraph = (profile: Profiling.EventedProfile) => {
+
+const makeFlamegraph = (profile: Partial<Profiling.Schema>) => {
+  const s: Profiling.Schema = {
+    ...schema,
+    ...profile,
+  };
+
+  const frameIndex = createFrameIndex('mobile', s.shared.frames);
   return new Flamegraph(
-    EventedProfile.FromProfile(
-      profile,
-      createFrameIndex('mobile', [
-        {name: 'f0'},
-        {name: 'f1'},
-        {name: 'f2'},
-        {name: 'f3'},
-      ]),
-      {type: 'flamechart'}
-    ),
+    SampledProfile.FromProfile(s.profiles[0] as Profiling.SampledProfile, frameIndex, {
+      type: 'flamegraph',
+    }),
     0,
     {
       inverted: false,
-      sort: 'call order',
+      sort: 'alphabetical',
     }
   );
 };
@@ -47,56 +52,151 @@ const THEME = {
 } as FlamegraphTheme;
 
 describe('differentialFlamegraph', () => {
-  it('INCREASE: color encodes new frames red', () => {
-    const from = makeFlamegraph({
-      ...baseProfile,
-      events: [],
+  it('increase: color encodes new frames red', () => {
+    const before = makeFlamegraph({
+      shared: {
+        frames: [{name: 'old function'}],
+      },
+      profiles: [
+        {
+          ...baseProfile,
+          samples: [[0], [0]],
+          weights: [1, 1],
+        },
+      ],
     });
-    const to = makeFlamegraph({
-      ...baseProfile,
-      events: [...makeEvent(1, 0)],
+    const current = makeFlamegraph({
+      shared: {
+        frames: [{name: 'new function'}],
+      },
+      profiles: [
+        {
+          ...baseProfile,
+          samples: [[0], [0]],
+          weights: [1, 1],
+        },
+      ],
     });
 
-    const flamegraph = DifferentialFlamegraph.FromDiff(from, to, THEME);
-    expect(flamegraph.colors?.get('f0')).toEqual([1, 0, 0, 1]);
+    const flamegraph = DifferentialFlamegraph.FromDiff({before, current}, THEME);
+
+    expect(flamegraph.colors?.get('new function')).toEqual([
+      ...THEME.COLORS.DIFFERENTIAL_INCREASE,
+      1,
+    ]);
   });
-  it('INCREASE: color encodes relative increase in red', () => {
-    const from = makeFlamegraph({
-      ...baseProfile,
-      events: [...makeEvent(2, 0)],
+
+  it('sums weight across all stacks', () => {
+    const before = makeFlamegraph({
+      shared: {
+        frames: [{name: 'function'}, {name: 'other function'}],
+      },
+      profiles: [
+        {
+          ...baseProfile,
+          samples: [[0], [0, 1]],
+          weights: [1, 2],
+        },
+      ],
     });
-    const to = makeFlamegraph({
-      ...baseProfile,
-      events: [...makeEvent(3, 0)],
+    const current = makeFlamegraph({
+      shared: {
+        frames: [{name: 'function'}, {name: 'other function'}],
+      },
+      profiles: [
+        {
+          ...baseProfile,
+          samples: [[0], [1]],
+          weights: [11, 4],
+        },
+      ],
     });
 
-    const flamegraph = DifferentialFlamegraph.FromDiff(from, to, THEME);
-    expect(flamegraph.colors?.get('f0')).toEqual([1, 0, 0, 0.5]);
+    const flamegraph = DifferentialFlamegraph.FromDiff({before, current}, THEME);
+
+    expect(flamegraph.colors?.get('function')).toEqual([
+      ...THEME.COLORS.DIFFERENTIAL_INCREASE,
+      1,
+    ]);
+    expect(flamegraph.colors?.get('other function')).toEqual([
+      ...THEME.COLORS.DIFFERENTIAL_INCREASE,
+      0.2, // 2 / 10
+    ]);
   });
-  it('DECREASE: color encodes relative decrease in blue', () => {
-    const from = makeFlamegraph({
-      ...baseProfile,
-      events: [...makeEvent(4, 0)],
+
+  it('increase: color encodes increased frames red and relative to max change', () => {
+    const before = makeFlamegraph({
+      shared: {
+        frames: [{name: 'function'}, {name: 'other function'}],
+      },
+      profiles: [
+        {
+          ...baseProfile,
+          samples: [[0], [1]],
+          weights: [1, 1],
+        },
+      ],
     });
-    const to = makeFlamegraph({
-      ...baseProfile,
-      events: [...makeEvent(2, 0)],
+    const current = makeFlamegraph({
+      shared: {
+        frames: [{name: 'function'}, {name: 'other function'}],
+      },
+      profiles: [
+        {
+          ...baseProfile,
+          samples: [[0], [1]],
+          weights: [11, 4],
+        },
+      ],
     });
 
-    const flamegraph = DifferentialFlamegraph.FromDiff(from, to, THEME);
-    expect(flamegraph.colors?.get('f0')).toEqual([0, 0, 1, 0.5]);
+    const flamegraph = DifferentialFlamegraph.FromDiff({before, current}, THEME);
+
+    expect(flamegraph.colors?.get('function')).toEqual([
+      ...THEME.COLORS.DIFFERENTIAL_INCREASE,
+      1, // (11 - 1) / 10
+    ]);
+    expect(flamegraph.colors?.get('other function')).toEqual([
+      ...THEME.COLORS.DIFFERENTIAL_INCREASE,
+      0.3, // (4 - 1) / 10
+    ]);
   });
-  it('No change: no color is set', () => {
-    const from = makeFlamegraph({
-      ...baseProfile,
-      events: [...makeEvent(2, 0)],
+
+  it('decrease: color encodes increased frames are blue and relative to max change', () => {
+    const before = makeFlamegraph({
+      shared: {
+        frames: [{name: 'function'}, {name: 'other function'}],
+      },
+      profiles: [
+        {
+          ...baseProfile,
+          samples: [[0], [1]],
+          weights: [11, 4],
+        },
+      ],
     });
-    const to = makeFlamegraph({
-      ...baseProfile,
-      events: [...makeEvent(2, 0)],
+    const current = makeFlamegraph({
+      shared: {
+        frames: [{name: 'function'}, {name: 'other function'}],
+      },
+      profiles: [
+        {
+          ...baseProfile,
+          samples: [[0], [1]],
+          weights: [1, 2],
+        },
+      ],
     });
 
-    const flamegraph = DifferentialFlamegraph.FromDiff(from, to, THEME);
-    expect(flamegraph.colors?.get('f0')).toBe(undefined);
+    const flamegraph = DifferentialFlamegraph.FromDiff({before, current}, THEME);
+
+    expect(flamegraph.colors?.get('function')).toEqual([
+      ...THEME.COLORS.DIFFERENTIAL_DECREASE,
+      1,
+    ]);
+    expect(flamegraph.colors?.get('other function')).toEqual([
+      ...THEME.COLORS.DIFFERENTIAL_DECREASE,
+      0.2,
+    ]);
   });
 });
