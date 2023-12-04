@@ -1546,15 +1546,14 @@ def get_column_from_aggregate_with_mri(aggregate):
 
 
 def check_aggregate_column_support(aggregate, allow_mri=False):
+    # TODO(ddm): remove `allow_mri` once the experimental feature flag is removed.
     column = get_column_from_aggregate(aggregate, allow_mri)
-    if is_mri(column) and allow_mri:
-        return True
-
     return (
         column is None
         or is_measurement(column)
         or column in SUPPORTED_COLUMNS
         or column in TRANSLATABLE_COLUMNS
+        or (is_mri(column) and allow_mri)
     )
 
 
