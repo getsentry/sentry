@@ -6,6 +6,7 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
+import {getInterval} from 'sentry/components/charts/utils';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -16,7 +17,8 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import {PageFilters, Project} from 'sentry/types';
+import {parsePeriodToHours, statsPeriodToDays} from 'sentry/utils/dates';
 import {
   formatMetricUsingFixedUnit,
   MetricDisplayType,
@@ -27,7 +29,13 @@ import {useMetricsData} from 'sentry/utils/metrics/useMetricsData';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
-import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {AVAILABLE_TIME_PERIODS} from 'sentry/views/alerts/rules/metric/triggers/chart';
+import {
+  Dataset,
+  EventTypes,
+  TimePeriod,
+  TimeWindow,
+} from 'sentry/views/alerts/rules/metric/types';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getChartSeries} from 'sentry/views/ddm/widget';
 
@@ -54,6 +62,56 @@ function getInitialFormState(metricsQuery: MetricsQuery): FormState {
   };
 }
 
+function getAlertPeriod(metricsQuery: MetricsQuery) {
+  const {period, start, end} = metricsQuery.datetime;
+  const inHours = statsPeriodToDays(period, start, end) * 24;
+
+  switch (true) {
+    case inHours <= 6:
+      return TimePeriod.SIX_HOURS;
+    case inHours <= 24:
+      return TimePeriod.ONE_DAY;
+    case inHours <= 3 * 24:
+      return TimePeriod.THREE_DAYS;
+    case inHours <= 7 * 24:
+      return TimePeriod.SEVEN_DAYS;
+    case inHours <= 14 * 24:
+      return TimePeriod.FOURTEEN_DAYS;
+    default:
+      return TimePeriod.SEVEN_DAYS;
+  }
+}
+
+const TIME_WINDOWS_TO_CHECK = [
+  TimeWindow.ONE_MINUTE,
+  TimeWindow.FIVE_MINUTES,
+  TimeWindow.TEN_MINUTES,
+  TimeWindow.FIFTEEN_MINUTES,
+  TimeWindow.THIRTY_MINUTES,
+  TimeWindow.ONE_HOUR,
+  TimeWindow.TWO_HOURS,
+  TimeWindow.FOUR_HOURS,
+  TimeWindow.ONE_DAY,
+];
+
+function getAlertInterval(metricsQuery, period: TimePeriod) {
+  const interval = getInterval(metricsQuery.datetime, 'metrics');
+  const inMinutes = parsePeriodToHours(interval) * 60;
+
+  function toInterval(timeWindow: TimeWindow) {
+    return `${timeWindow}m`;
+  }
+
+  for (let index = 0; index < TIME_WINDOWS_TO_CHECK.length; index++) {
+    const timeWindow = TIME_WINDOWS_TO_CHECK[index];
+    if (inMinutes <= timeWindow && AVAILABLE_TIME_PERIODS[timeWindow].includes(period)) {
+      return toInterval(timeWindow);
+    }
+  }
+
+  return toInterval(TimeWindow.ONE_HOUR);
+}
+
 export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
   const router = useRouter();
   const organization = useOrganization();
@@ -65,14 +123,25 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
   const selectedProject = projects.find(p => p.id === formState.project);
   const isFormValid = formState.project !== null;
 
-  const {data, isLoading, refetch, isError} = useMetricsData({
-    mri: metricsQuery.mri,
-    op: metricsQuery.op,
-    projects: formState.project ? [parseInt(formState.project, 10)] : [],
-    environments: formState.environment ? [formState.environment] : [],
-    datetime: metricsQuery.datetime,
-    query: metricsQuery.query,
-  });
+  const alertPeriod = useMemo(() => getAlertPeriod(metricsQuery), [metricsQuery]);
+  const alertInterval = useMemo(
+    () => getAlertInterval(metricsQuery, alertPeriod),
+    [metricsQuery, alertPeriod]
+  );
+
+  const {data, isLoading, refetch, isError} = useMetricsData(
+    {
+      mri: metricsQuery.mri,
+      op: metricsQuery.op,
+      projects: formState.project ? [parseInt(formState.project, 10)] : [],
+      environments: formState.environment ? [formState.environment] : [],
+      datetime: {period: alertPeriod} as PageFilters['datetime'],
+      query: metricsQuery.query,
+    },
+    {
+      interval: alertInterval,
+    }
+  );
 
   const chartSeries = useMemo(
     () =>
@@ -141,6 +210,8 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
         dataset: Dataset.GENERIC_METRICS,
         eventTypes: EventTypes.TRANSACTION,
         aggregate: MRIToField(metricsQuery.mri, metricsQuery.op!),
+        interval: alertInterval,
+        statsPeriod: alertPeriod,
         referrer: 'ddm',
         // Event type also needs to be added to the query
         query: `${metricsQuery.query}  event.type:transaction`.trim(),
@@ -149,6 +220,8 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
       })}`
     );
   }, [
+    alertInterval,
+    alertPeriod,
     formState.environment,
     metricsQuery.mri,
     metricsQuery.op,
@@ -159,22 +232,22 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
   ]);
 
   const unit = parseMRI(metricsQuery.mri)?.unit ?? 'none';
-  const chartOptions = useMemo(
-    () => ({
+  const operation = metricsQuery.op;
+  const chartOptions = useMemo(() => {
+    return {
       isGroupedByDate: true,
       height: 200,
       grid: {top: 20, bottom: 20, left: 15, right: 25},
       tooltip: {
-        valueFormatter: value => formatMetricUsingFixedUnit(value, unit),
+        valueFormatter: value => formatMetricUsingFixedUnit(value, unit, operation),
       },
       yAxis: {
         axisLabel: {
-          formatter: value => formatMetricUsingFixedUnit(value, unit),
+          formatter: value => formatMetricUsingFixedUnit(value, unit, operation),
         },
       },
-    }),
-    [unit]
-  );
+    };
+  }, [operation, unit]);
 
   return (
     <Fragment>
