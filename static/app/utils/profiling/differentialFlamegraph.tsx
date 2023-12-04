@@ -28,7 +28,7 @@ export class DifferentialFlamegraph extends Flamegraph {
   colors: Map<string, ColorChannels> = new Map();
 
   beforeCounts: Map<string, number> = new Map();
-  currentCounts: Map<string, number> = new Map();
+  afterCounts: Map<string, number> = new Map();
 
   newFrames: FlamegraphFrame[] = [];
   increasedFrames: [number, FlamegraphFrame][] = [];
@@ -42,19 +42,19 @@ export class DifferentialFlamegraph extends Flamegraph {
   }
 
   static FromDiff(
-    {before, current}: {before: Flamegraph; current: Flamegraph},
+    {before, after}: {after: Flamegraph; before: Flamegraph},
     theme: FlamegraphTheme
   ): DifferentialFlamegraph {
     const differentialFlamegraph = new DifferentialFlamegraph(
-      current.profile,
-      current.profileIndex,
-      {inverted: current.inverted, sort: current.sort}
+      after.profile,
+      after.profileIndex,
+      {inverted: after.inverted, sort: after.sort}
     );
 
     const colorMap = new Map<string, ColorChannels>();
 
     const beforeCounts = makeFrameMap(before.frames);
-    const currentCounts = makeFrameMap(current.frames);
+    const afterCounts = makeFrameMap(after.frames);
 
     const newFrames: FlamegraphFrame[] = [];
     const increasedFrames: [number, FlamegraphFrame][] = [];
@@ -63,35 +63,35 @@ export class DifferentialFlamegraph extends Flamegraph {
     // @TODO do we want to show removed frames?
     // This would require iterating over the entire
     // before frame list and checking if the frame is
-    // still present in the current frame list
+    // still present in the after frame list
 
     // Keep track of max increase and decrease so that we can
     // scale the colors accordingly to the max value
     let maxIncrease = 0;
     let maxDecrease = 0;
 
-    for (const frame of current.frames) {
+    for (const frame of after.frames) {
       const key = frameDiffKey(frame);
 
       const beforeCount = beforeCounts.get(key);
-      const currentCount = currentCounts.get(key);
+      const afterCount = afterCounts.get(key);
 
-      if (currentCount === undefined) {
+      if (afterCount === undefined) {
         throw new Error(`Missing count for frame ${key}, this should never happen`);
       }
 
       if (beforeCount === undefined) {
         newFrames.push(frame);
-      } else if (currentCount > beforeCount) {
-        if (currentCount - beforeCount > maxIncrease) {
-          maxIncrease = currentCount - beforeCount;
+      } else if (afterCount > beforeCount) {
+        if (afterCount - beforeCount > maxIncrease) {
+          maxIncrease = afterCount - beforeCount;
         }
-        increasedFrames.push([currentCount - beforeCount, frame]);
-      } else if (beforeCount > currentCount) {
-        if (beforeCount - currentCount > maxDecrease) {
-          maxDecrease = beforeCount - currentCount;
+        increasedFrames.push([afterCount - beforeCount, frame]);
+      } else if (beforeCount > afterCount) {
+        if (beforeCount - afterCount > maxDecrease) {
+          maxDecrease = beforeCount - afterCount;
         }
-        decreasedFrames.push([beforeCount - currentCount, frame]);
+        decreasedFrames.push([beforeCount - afterCount, frame]);
       }
     }
 
@@ -121,7 +121,7 @@ export class DifferentialFlamegraph extends Flamegraph {
     differentialFlamegraph.increasedFrames = increasedFrames;
     differentialFlamegraph.decreasedFrames = decreasedFrames;
     differentialFlamegraph.beforeCounts = beforeCounts;
-    differentialFlamegraph.currentCounts = currentCounts;
+    differentialFlamegraph.afterCounts = afterCounts;
 
     return differentialFlamegraph;
   }
