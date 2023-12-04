@@ -154,7 +154,7 @@ NOTIFICATION_SETTING_OPTION_VALUES = {
 }
 
 # default is not a choice anymore, we just delete the row if we want to the default
-NOTIFICATION_SETTING_V2_CHOICES = [
+NOTIFICATION_SETTING_CHOICES = [
     NotificationSettingsOptionEnum.ALWAYS.value,
     NotificationSettingsOptionEnum.NEVER.value,
     NotificationSettingsOptionEnum.SUBSCRIBE_ONLY.value,
@@ -252,10 +252,6 @@ VALID_VALUES_FOR_KEY = {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.NEVER,
     },
-}
-
-VALID_VALUES_FOR_KEY_V2 = {
-    **VALID_VALUES_FOR_KEY,
     NotificationSettingTypes.REPORTS: {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.NEVER,

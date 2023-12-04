@@ -19,7 +19,6 @@ from sentry.notifications.types import (
     NOTIFICATION_SETTING_TYPES,
     SUBSCRIPTION_REASON_MAP,
     VALID_VALUES_FOR_KEY,
-    VALID_VALUES_FOR_KEY_V2,
     GroupSubscriptionReason,
     NotificationSettingEnum,
     NotificationSettingOptionValues,
@@ -98,11 +97,6 @@ def get_type_defaults() -> Mapping[NotificationSettingEnum, NotificationSettings
 def validate(type: NotificationSettingTypes, value: NotificationSettingOptionValues) -> bool:
     """:returns boolean. True if the "value" is valid for the "type"."""
     return value in VALID_VALUES_FOR_KEY.get(type, {})
-
-
-def validate_v2(type: NotificationSettingTypes, value: NotificationSettingOptionValues) -> bool:
-    """:returns boolean. True if the "value" is valid for the "type"."""
-    return value in VALID_VALUES_FOR_KEY_V2.get(type, {})
 
 
 def get_subscription_from_attributes(

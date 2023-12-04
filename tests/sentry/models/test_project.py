@@ -18,7 +18,7 @@ from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.user import User
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.notifications.types import NotificationSettingEnum
-from sentry.notifications.utils.participants import get_notification_recipients_v2
+from sentry.notifications.utils.participants import get_notification_recipients
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.silo.base import SiloMode
 from sentry.snuba.models import SnubaQuery
@@ -424,7 +424,7 @@ class CopyProjectSettingsTest(TestCase):
 
 class FilterToSubscribedUsersTest(TestCase):
     def run_test(self, users: Iterable[User], expected_users: Iterable[User]):
-        recipients = get_notification_recipients_v2(
+        recipients = get_notification_recipients(
             recipients=RpcActor.many_from_object(users),
             type=NotificationSettingEnum.ISSUE_ALERTS,
             project_ids=[self.project.id],
