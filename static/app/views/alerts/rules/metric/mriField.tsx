@@ -49,7 +49,7 @@ function MriField({aggregate, project, onChange}: Props) {
 
   useEffect(() => {
     // Auto-select the first mri if none of the available ones is selected
-    if (!selectedMriMeta) {
+    if (!selectedMriMeta && !isLoading) {
       const newSelection = metaArr[0];
       if (newSelection) {
         onChange(
