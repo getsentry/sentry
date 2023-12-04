@@ -14,7 +14,6 @@ from snuba_sdk import (
     Rollup,
     Timeseries,
 )
-from snuba_sdk.conditions import BooleanCondition, BooleanOp, Condition, ConditionGroup, Op
 from snuba_sdk.mql.mql import parse_mql
 from snuba_sdk.query_visitors import InvalidQueryError
 
@@ -22,19 +21,22 @@ from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.utils import parse_datetime_string
+from sentry.sentry_metrics.querying.errors import (
+    InvalidMetricsQueryError,
+    MetricsQueryExecutionError,
+)
+from sentry.sentry_metrics.querying.registry import default_expression_registry
+from sentry.sentry_metrics.querying.types import QueryExpression
 from sentry.sentry_metrics.querying.utils import remove_if_match
+from sentry.sentry_metrics.querying.visitors import (
+    EnvironmentsInjectionVisitor,
+    ExpansionVisitor,
+    QueryExpressionVisitor,
+    ValidationVisitor,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics_layer.query import run_query
 from sentry.utils.snuba import SnubaError
-
-
-class InvalidMetricsQueryError(Exception):
-    pass
-
-
-class MetricsQueryExecutionError(Exception):
-    pass
-
 
 # Type representing the aggregate value from Snuba, which can be null, int, float or list.
 ResultValue = Optional[Union[int, float, List[Optional[Union[int, float]]]]]
@@ -142,35 +144,24 @@ class ExecutionResult:
         return self.result["meta"]
 
 
-class MutableTimeseries:
-    def __init__(self, timeseries: Timeseries):
-        self._timeseries = timeseries
+class MutableQueryExpression:
+    def __init__(self, query: QueryExpression):
+        self._query = query
+        self._visitors: List[QueryExpressionVisitor[QueryExpression]] = []
 
-        self._validate()
-
-    def _validate_filters(self, filters: Optional[ConditionGroup]):
-        for f in filters or ():
-            if isinstance(f, BooleanCondition):
-                if f.op == BooleanOp.OR:
-                    raise InvalidMetricsQueryError("The OR operator is not supported")
-
-                self._validate_filters(f.conditions)
-
-    def _validate(self):
-        self._validate_filters(self._timeseries.filters)
-
-    def inject_environments(self, environments: Sequence[Environment]) -> "MutableTimeseries":
-        if environments:
-            environment_names = [environment.name for environment in environments]
-            existing_filters = self._timeseries.filters[:] if self._timeseries.filters else []
-            self._timeseries = self._timeseries.set_filters(
-                existing_filters + [Condition(Column("environment"), Op.IN, environment_names)]
-            )
+    def add_mutation(
+        self, visitor: QueryExpressionVisitor[QueryExpression]
+    ) -> "MutableQueryExpression":
+        self._visitors.append(visitor)
 
         return self
 
-    def get_mutated(self) -> Timeseries:
-        return self._timeseries
+    def get_mutated(self) -> QueryExpression:
+        query = self._query
+        for visitor in self._visitors:
+            query = visitor.visit(query)
+
+        return query
 
 
 class QueryParser:
@@ -241,16 +232,16 @@ class QueryParser:
 
         return mql
 
-    def _parse_mql(self, mql: str) -> MutableTimeseries:
+    def _parse_mql(self, mql: str) -> MutableQueryExpression:
         """
         Parses the field with the MQL grammar.
         """
         try:
-            timeseries = parse_mql(mql).query
+            query = parse_mql(mql).query
         except InvalidQueryError as e:
             raise InvalidMetricsQueryError(f"The supplied query is not valid: {type(e).__name__}")
 
-        return MutableTimeseries(timeseries=timeseries)
+        return MutableQueryExpression(query=query)
 
     def generate_queries(
         self, environments: Sequence[Environment]
@@ -268,7 +259,13 @@ class QueryParser:
 
         for field in self._fields:
             mql_query = self._build_mql_query(field, mql_filters, mql_group_bys)
-            yield self._parse_mql(mql_query).inject_environments(environments).get_mutated()
+            yield (
+                self._parse_mql(mql_query)
+                .add_mutation(ValidationVisitor())
+                .add_mutation(EnvironmentsInjectionVisitor(environments))
+                .add_mutation(ExpansionVisitor(default_expression_registry()))
+                .get_mutated()
+            )
 
 
 class QueryExecutor:
