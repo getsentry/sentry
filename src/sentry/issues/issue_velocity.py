@@ -143,7 +143,7 @@ def calculate_threshold(project: Project) -> Optional[float]:
         return None
 
 
-def update_threshold(project: Project, threshold_key: str, stale_date_key: str) -> Optional[float]:
+def update_threshold(project: Project, threshold_key: str, stale_date_key: str) -> float:
     """
     Runs the calculation for the threshold and saves it and the date it is last updated to Redis.
     If the threshold is NaN, we save it as 0 at the normal TTL. If the threshold is None (due to errors
@@ -201,7 +201,7 @@ def get_latest_threshold(project: Project) -> float:
 
 
 def get_redis_client() -> RedisCluster | StrictRedis:
-    return redis_clusters.get(settings.SENTRY_ESCALATION_THRESHOLD_REDIS_CLUSTER)
+    return redis_clusters.get(settings.SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER)
 
 
 def convert_date_to_int(date: datetime) -> int:
