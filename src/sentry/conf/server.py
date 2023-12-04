@@ -1769,6 +1769,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-sdk-errors-only": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
+    # Enable View Sample Replay button on the Replay-List empty-state page
+    "organizations:session-replay-onboarding-cta-button": False,
     # Enable the Replay Details > Accessibility tab
     "organizations:session-replay-a11y-tab": False,
     # Enable linking from 'new issue' slack notifs to the issue replay list
