@@ -152,7 +152,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         except InvalidSearchQuery as e:
             raise serializers.ValidationError(f"Invalid Metric: {e}")
 
-        return translate_aggregate_field(aggregate, allow_mri=True)
+        return translate_aggregate_field(aggregate, allow_mri=allow_mri)
 
     def validate_query_type(self, query_type):
         try:
