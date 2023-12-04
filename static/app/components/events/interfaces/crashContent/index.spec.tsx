@@ -1,3 +1,5 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
+
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import {CrashContent} from 'sentry/components/events/interfaces/crashContent';
@@ -47,7 +49,7 @@ describe('CrashContent', function () {
       <CrashContent
         stackView={StackView.FULL}
         stackType={StackType.ORIGINAL}
-        event={TestStubs.Event()}
+        event={EventFixture()}
         newestFirst
         exception={(proxiedExc as any).exception}
         projectSlug={TestStubs.Project().slug}

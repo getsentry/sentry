@@ -1,3 +1,4 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
 import {Organization} from 'sentry-fixture/organization';
 
 import {traceKnownDataValues} from 'sentry/components/events/contexts/trace';
@@ -14,7 +15,7 @@ describe('getTraceKnownDataDetails', function () {
         type: traceKnownDataValues[type],
         data: traceMockData,
         organization: Organization(),
-        event: TestStubs.Event(),
+        event: EventFixture(),
       });
 
       if (!traceKnownData) {

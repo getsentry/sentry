@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {Event as EventFixture} from 'sentry-fixture/event';
 import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -8,7 +9,7 @@ import * as useMedia from 'sentry/utils/useMedia';
 import {GroupEventCarousel} from 'sentry/views/issueDetails/groupEventCarousel';
 
 describe('GroupEventCarousel', () => {
-  const testEvent = TestStubs.Event({
+  const testEvent = EventFixture({
     id: 'event-id',
     size: 7,
     dateCreated: '2019-03-20T00:00:00.000Z',

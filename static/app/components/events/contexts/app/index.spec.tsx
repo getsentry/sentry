@@ -1,4 +1,5 @@
 import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+import {Event as EventFixture} from 'sentry-fixture/event';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -35,14 +36,13 @@ export const appMetaMockData = {
   },
 };
 
-const event = {
-  ...TestStubs.Event(),
+const event = EventFixture({
   _meta: {
     contexts: {
       app: appMetaMockData,
     },
   },
-};
+});
 
 describe('app event context', function () {
   it('display redacted data', async function () {

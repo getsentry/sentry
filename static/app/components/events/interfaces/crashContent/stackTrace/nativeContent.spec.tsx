@@ -1,3 +1,4 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
 import {EventEntryStacktrace} from 'sentry-fixture/eventEntryStacktrace';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -7,7 +8,7 @@ import {EventOrGroupType} from 'sentry/types';
 import {StacktraceType} from 'sentry/types/stacktrace';
 
 const eventEntryStacktrace = EventEntryStacktrace();
-const event = TestStubs.Event({
+const event = EventFixture({
   entries: [eventEntryStacktrace],
   type: EventOrGroupType.ERROR,
 });

@@ -1,3 +1,4 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
 import {EventAttachment} from 'sentry-fixture/eventAttachment';
 import {Organization} from 'sentry-fixture/organization';
 
@@ -48,7 +49,7 @@ const MOCK_DATA = JSON.stringify({
 const organization = Organization({
   features: ['event-attachments'],
 });
-const event = TestStubs.Event();
+const event = EventFixture();
 
 describe('Event View Hierarchy', function () {
   let mockAttachment;

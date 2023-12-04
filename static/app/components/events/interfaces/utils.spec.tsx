@@ -1,3 +1,5 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
+
 import {
   getCurlCommand,
   getCurrentThread,
@@ -300,7 +302,7 @@ describe('components/interfaces/utils', function () {
   describe('getCurrentThread()', function () {
     it('should return current thread if available', function () {
       const thread = getCurrentThread(
-        TestStubs.Event({
+        EventFixture({
           entries: [
             {
               data: {
@@ -328,7 +330,7 @@ describe('components/interfaces/utils', function () {
   describe('getThreadById()', function () {
     it('should return thread by given id if available', function () {
       const thread = getThreadById(
-        TestStubs.Event({
+        EventFixture({
           entries: [
             {
               data: {

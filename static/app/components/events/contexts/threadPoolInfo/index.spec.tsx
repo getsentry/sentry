@@ -1,3 +1,5 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ThreadPoolInfoEventContext} from 'sentry/components/events/contexts/threadPoolInfo';
@@ -19,14 +21,13 @@ export const threadPoolInfoMetaMockData = {
   },
 };
 
-const event = {
-  ...TestStubs.Event(),
+const event = EventFixture({
   _meta: {
     contexts: {
       threadpool_info: threadPoolInfoMetaMockData,
     },
   },
-};
+});
 
 describe('thread pool info event context', function () {
   it('display redacted data', function () {

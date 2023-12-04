@@ -1,3 +1,4 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
 import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -8,7 +9,7 @@ describe('EventEntries', function () {
   const defaultProps = {
     organization: Organization(),
     project: TestStubs.Project(),
-    event: TestStubs.Event(),
+    event: EventFixture(),
     location: TestStubs.location(),
   };
 
@@ -32,7 +33,7 @@ describe('EventEntries', function () {
     render(
       <EventEntries
         {...defaultProps}
-        event={TestStubs.Event({
+        event={EventFixture({
           entries: [TestStubs.EventEntry(), TestStubs.EventEntryDebugMeta()],
           contexts: {
             replay_id: 1,

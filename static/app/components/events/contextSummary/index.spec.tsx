@@ -1,3 +1,5 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -49,56 +51,51 @@ const CONTEXT_BROWSER = {
 describe('ContextSummary', function () {
   describe('render()', function () {
     it('renders nothing without contexts', function () {
-      const event = {
-        ...TestStubs.Event(),
+      const event = EventFixture({
         id: '',
         contexts: {},
-      };
+      });
 
       render(<ContextSummary event={event} />);
     });
 
     it('renders nothing with a single user context', function () {
-      const event = {
-        ...TestStubs.Event(),
+      const event = EventFixture({
         id: '',
         user: CONTEXT_USER,
         contexts: {},
-      };
+      });
 
       render(<ContextSummary event={event} />);
     });
 
     it('should bail out with empty contexts', function () {
-      const event = {
-        ...TestStubs.Event(),
+      const event = EventFixture({
         id: '',
         user: CONTEXT_USER,
         contexts: {
           device: {},
           os: {},
         },
-      };
+      });
 
       render(<ContextSummary event={event} />);
     });
 
     it('renders at least three contexts', function () {
-      const event = {
-        ...TestStubs.Event(),
+      const event = EventFixture({
         id: '',
         user: CONTEXT_USER,
         contexts: {
           device: CONTEXT_DEVICE,
         },
-      };
+      });
 
       render(<ContextSummary event={event} />);
     });
 
     it('renders up to four contexts', function () {
-      const event = {
-        ...TestStubs.Event(),
+      const event = EventFixture({
         id: '',
         user: CONTEXT_USER,
         contexts: {
@@ -107,14 +104,13 @@ describe('ContextSummary', function () {
           runtime: CONTEXT_RUNTIME,
           device: CONTEXT_DEVICE, // must be omitted
         },
-      };
+      });
 
       render(<ContextSummary event={event} />);
     });
 
     it('should prefer client_os over os', function () {
-      const event = {
-        ...TestStubs.Event(),
+      const event = EventFixture({
         id: '',
         user: CONTEXT_USER,
         contexts: {
@@ -123,14 +119,13 @@ describe('ContextSummary', function () {
           browser: CONTEXT_BROWSER,
           runtime: CONTEXT_RUNTIME,
         },
-      };
+      });
 
       render(<ContextSummary event={event} />);
     });
 
     it('renders client_os too', function () {
-      const event = {
-        ...TestStubs.Event(),
+      const event = EventFixture({
         id: '',
         user: CONTEXT_USER,
         contexts: {
@@ -138,14 +133,13 @@ describe('ContextSummary', function () {
           browser: CONTEXT_BROWSER,
           runtime: CONTEXT_RUNTIME,
         },
-      };
+      });
 
       render(<ContextSummary event={event} />);
     });
 
     it('should skip non-default named contexts', function () {
-      const event = {
-        ...TestStubs.Event(),
+      const event = EventFixture({
         id: '',
         user: CONTEXT_USER,
         contexts: {
@@ -154,14 +148,13 @@ describe('ContextSummary', function () {
           runtime: CONTEXT_RUNTIME,
           device: CONTEXT_DEVICE,
         },
-      };
+      });
 
       render(<ContextSummary event={event} />);
     });
 
     it('should skip a missing user context', function () {
-      const event = {
-        ...TestStubs.Event(),
+      const event = EventFixture({
         id: '',
         contexts: {
           os: CONTEXT_OS,
@@ -169,7 +162,7 @@ describe('ContextSummary', function () {
           runtime: CONTEXT_RUNTIME,
           device: CONTEXT_DEVICE,
         },
-      };
+      });
 
       render(<ContextSummary event={event} />);
     });
