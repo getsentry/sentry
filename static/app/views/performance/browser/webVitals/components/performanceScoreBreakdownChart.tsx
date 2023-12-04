@@ -115,6 +115,7 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
         }}
         dataMax={100}
         chartColors={segmentColors}
+        fullSeries
       />
     </ChartContainer>
   );

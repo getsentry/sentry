@@ -5,6 +5,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {USE_STORED_SCORES} from 'sentry/views/performance/browser/webVitals/settings';
 import {mapWebVitalToOrderBy} from 'sentry/views/performance/browser/webVitals/utils/mapWebVitalToOrderBy';
 import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {
@@ -59,9 +60,12 @@ export const useTransactionSamplesWebVitalsQuery = ({
         'profile.id',
         'browser',
         'project',
+        'measurements.score.total',
       ],
       name: 'Web Vitals',
-      query: `transaction.op:pageload transaction:"${transaction}" ${query ? query : ''}`,
+      query: `transaction.op:pageload transaction:"${transaction}" ${
+        USE_STORED_SCORES ? 'has:measurements.score.total' : ''
+      } ${query ? query : ''}`,
       orderby: mapWebVitalToOrderBy(orderBy) ?? withProfiles ? '-profile.id' : undefined,
       version: 2,
     },

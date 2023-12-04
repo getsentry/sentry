@@ -86,6 +86,7 @@ type Props = {
   durationUnit?: number;
   errored?: boolean;
   forwardedRef?: RefObject<ReactEchartsRef>;
+  fullSeries?: boolean;
   grid?: AreaChartProps['grid'];
   height?: number;
   hideYAxis?: boolean;
@@ -187,6 +188,7 @@ function Chart({
   onLegendSelectChanged,
   onDataZoom,
   legendFormatter,
+  fullSeries,
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
@@ -352,7 +354,7 @@ function Chart({
 
   // Trims off the last data point because it's incomplete
   const trimmedSeries =
-    period && !start && !end
+    !fullSeries && period && !start && !end
       ? series.map(serie => {
           return {
             ...serie,
