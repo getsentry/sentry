@@ -201,8 +201,9 @@ describe('Onboarding Setup Docs', function () {
         await screen.findByRole('heading', {name: 'Configure React SDK'})
       ).toBeInTheDocument();
 
-      expect(await screen.findByText('// Performance Monitoring')).toBeInTheDocument();
-      expect(screen.getByText('// Session Replay')).toBeInTheDocument();
+      const codeBlock = await screen.findByText(/import \* as Sentry/);
+      expect(codeBlock).toHaveTextContent(/Performance Monitoring/);
+      expect(codeBlock).toHaveTextContent(/Session Replay/);
     });
 
     it('only performance checked', async function () {
@@ -250,8 +251,9 @@ describe('Onboarding Setup Docs', function () {
         }
       );
 
-      expect(await screen.findByText('// Performance Monitoring')).toBeInTheDocument();
-      expect(screen.queryByText('// Session Replay')).not.toBeInTheDocument();
+      const codeBlock = await screen.findByText(/import \* as Sentry/);
+      expect(codeBlock).toHaveTextContent(/Performance Monitoring/);
+      expect(codeBlock).not.toHaveTextContent(/Session Replay/);
     });
 
     it('only session replay checked', async function () {
@@ -299,8 +301,9 @@ describe('Onboarding Setup Docs', function () {
         }
       );
 
-      expect(await screen.findByText('// Session Replay')).toBeInTheDocument();
-      expect(screen.queryByText('// Performance Monitoring')).not.toBeInTheDocument();
+      const codeBlock = await screen.findByText(/import \* as Sentry/);
+      expect(codeBlock).toHaveTextContent(/Session Replay/);
+      expect(codeBlock).not.toHaveTextContent(/Performance Monitoring/);
     });
 
     it('only error monitoring checked', async function () {
@@ -350,8 +353,9 @@ describe('Onboarding Setup Docs', function () {
 
       await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-      expect(screen.queryByText('// Session Replay')).not.toBeInTheDocument();
-      expect(screen.queryByText('// Performance Monitoring')).not.toBeInTheDocument();
+      const codeBlock = await screen.findByText(/import \* as Sentry/);
+      expect(codeBlock).not.toHaveTextContent(/Performance Monitoring/);
+      expect(codeBlock).not.toHaveTextContent(/Session Replay/);
     });
   });
 

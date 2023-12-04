@@ -35,8 +35,10 @@ class BaseNotification(abc.ABC):
         ExternalProviders.DISCORD: "[{text}]({url})",
     }
     message_builder = "SlackNotificationsMessageBuilder"
-    # some notifications have no settings for it
+    # some notifications have no settings for it which is why it is optional
+    # TODO(steve): Replace notification_setting_type with notification_setting_type_enum
     notification_setting_type: NotificationSettingTypes | None = None
+    notification_setting_type_enum: NotificationSettingEnum | None = None
     analytics_event: str = ""
 
     def __init__(self, organization: Organization, notification_uuid: str | None = None):
@@ -231,14 +233,14 @@ class BaseNotification(abc.ABC):
     def filter_to_accepting_recipients(
         self, recipients: Iterable[RpcActor]
     ) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
-        from sentry.notifications.utils.participants import get_notification_recipients_v2
+        from sentry.notifications.utils.participants import get_notification_recipients
 
         setting_type = (
             NotificationSettingEnum(NOTIFICATION_SETTING_TYPES[self.notification_setting_type])
             if self.notification_setting_type
             else NotificationSettingEnum.ISSUE_ALERTS
         )
-        return get_notification_recipients_v2(
+        return get_notification_recipients(
             recipients=recipients,
             type=setting_type,
             organization_id=self.organization.id,

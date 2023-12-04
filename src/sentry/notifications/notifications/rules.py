@@ -16,6 +16,7 @@ from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import (
     ActionTargetType,
     FallthroughChoiceType,
+    NotificationSettingEnum,
     NotificationSettingTypes,
 )
 from sentry.notifications.utils import (
@@ -62,6 +63,7 @@ class AlertRuleNotification(ProjectNotification):
     message_builder = "IssueNotificationMessageBuilder"
     metrics_key = "issue_alert"
     notification_setting_type = NotificationSettingTypes.ISSUE_ALERTS
+    notification_setting_type_enum = NotificationSettingEnum.ISSUE_ALERTS
     template_path = "sentry/emails/error"
 
     def __init__(

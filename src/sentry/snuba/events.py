@@ -41,7 +41,7 @@ class Columns(Enum):
         group_name="status",
         event_name="status",
         transaction_name=None,
-        discover_name="status",
+        discover_name=None,
         issue_platform_name="status",
         alias="status",
     )

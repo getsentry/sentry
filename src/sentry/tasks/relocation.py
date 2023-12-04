@@ -52,6 +52,7 @@ from sentry.utils.relocation import (
     RELOCATION_BLOB_SIZE,
     RELOCATION_FILE_TYPE,
     EmailKind,
+    LoggingPrinter,
     OrderedTask,
     create_cloudbuild_yaml,
     fail_relocation,
@@ -371,6 +372,7 @@ def preprocessing_baseline_config(uuid: str) -> None:
         export_in_config_scope(
             fp,
             encryptor=GCPKMSEncryptor.from_crypto_key_version(get_default_crypto_key_version()),
+            printer=LoggingPrinter(uuid),
         )
         fp.seek(0)
         kind = RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA
@@ -425,6 +427,7 @@ def preprocessing_colliding_users(uuid: str) -> None:
             fp,
             encryptor=GCPKMSEncryptor.from_crypto_key_version(get_default_crypto_key_version()),
             user_filter=set(relocation.want_usernames),
+            printer=LoggingPrinter(uuid),
         )
         fp.seek(0)
         kind = RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA
@@ -944,21 +947,6 @@ def importing(uuid: str) -> None:
         attempts_left,
         ERR_IMPORTING_INTERNAL,
     ):
-        # A custom logger that roughly matches the parts of the `click.echo` interface that the
-        # `import_*` methods rely on.
-        def printer(text: str, *, err: bool = False, **kwargs) -> None:
-            nonlocal uuid
-            if err:
-                logger.error(
-                    "Import failed",
-                    extra={"uuid": uuid, "task": OrderedTask.IMPORTING.name},
-                )
-            else:
-                logger.info(
-                    "Import info",
-                    extra={"uuid": uuid, "task": OrderedTask.IMPORTING.name},
-                )
-
         # The `uploading_complete` task above should have verified that this is ready for use.
         raw_relocation_file = (
             RelocationFile.objects.filter(
@@ -980,7 +968,7 @@ def importing(uuid: str) -> None:
                     merge_users=False, overwrite_configs=False, import_uuid=str(uuid)
                 ),
                 org_filter=set(relocation.want_org_slugs),
-                printer=printer,
+                printer=LoggingPrinter(uuid),
             )
 
         postprocessing.delay(uuid)

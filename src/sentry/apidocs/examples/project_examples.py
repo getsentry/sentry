@@ -265,7 +265,6 @@ detailed_project = {
             "performance-new-trends",
             "performance-n-plus-one-api-calls-post-process-group",
             "performance-db-main-thread-post-process-group",
-            "team-project-creation-all",
             "performance-metrics-backed-transaction-summary",
             "performance-db-main-thread-detector",
             "issue-platform",
