@@ -234,9 +234,9 @@ class RegressionDetector(ABC):
 
         for chunk in chunked(cls.all_timeseries(objects, start, function), timeseries_per_batch):
             data = {}
-            for project_id, transaction_name, result in chunk:
+            for project_id, object_name, result in chunk:
                 serialized = serializer.serialize(result, get_function_alias(function))
-                data[f"{project_id},{transaction_name}"] = {
+                data[f"{project_id},{object_name}"] = {
                     "data": serialized["data"],
                     "data_start": serialized["start"],
                     "data_end": serialized["end"],
