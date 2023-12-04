@@ -1,15 +1,13 @@
 import {ComponentProps, CSSProperties, forwardRef} from 'react';
 import classNames from 'classnames';
 
-import {Button} from 'sentry/components/button';
 import {
   Cell,
   CodeHighlightCell,
   Text,
 } from 'sentry/components/replays/virtualizedGrid/bodyCell';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconFire, IconInfo, IconPlay, IconWarning} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {IconFire, IconInfo, IconWarning} from 'sentry/icons';
 import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
 import {Color} from 'sentry/utils/theme';
@@ -44,7 +42,6 @@ const AccessibilityTableCell = forwardRef<HTMLDivElement, Props>(
       currentHoverTime,
       currentTime,
       onClickCell,
-      onClickTimestamp,
       onMouseEnter,
       onMouseLeave,
       rowIndex,
@@ -123,20 +120,6 @@ const AccessibilityTableCell = forwardRef<HTMLDivElement, Props>(
           <CodeHighlightCell language="html" hideCopyButton data-render-inline>
             {a11yIssue.element.element ?? EMPTY_CELL}
           </CodeHighlightCell>
-        </Cell>
-      ),
-      () => (
-        <Cell {...columnProps}>
-          <Button
-            size="xs"
-            borderless
-            aria-label={t('See in replay')}
-            icon={<IconPlay size="xs" color={isSelected ? 'white' : 'black'} />}
-            onClick={e => {
-              e.stopPropagation();
-              onClickTimestamp(a11yIssue);
-            }}
-          />
         </Cell>
       ),
     ];
