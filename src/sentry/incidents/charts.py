@@ -4,6 +4,7 @@ from typing import Any, List, Mapping, Optional
 
 from django.utils import timezone
 
+from sentry import features
 from sentry.api import client
 from sentry.api.base import logger
 from sentry.api.serializers import serialize
@@ -191,7 +192,12 @@ def build_metric_alert_chart(
         ),
     }
 
-    aggregate = translate_aggregate_field(snuba_query.aggregate, reverse=True)
+    allow_mri = features.has(
+        "organizations:ddm-experimental",
+        organization,
+        actor=user,
+    )
+    aggregate = translate_aggregate_field(snuba_query.aggregate, reverse=True, allow_mri=allow_mri)
     # If we allow alerts to be across multiple orgs this will break
     first_subscription_or_none = snuba_query.subscriptions.first()
     if first_subscription_or_none is None:
@@ -228,6 +234,8 @@ def build_metric_alert_chart(
     else:
         if query_type == SnubaQuery.Type.PERFORMANCE and dataset == Dataset.PerformanceMetrics:
             query_params["dataset"] = "metrics"
+        elif query_type == SnubaQuery.Type.ERROR:
+            query_params["dataset"] = "errors"
         else:
             query_params["dataset"] = "discover"
         chart_data["timeseriesData"] = fetch_metric_alert_events_timeseries(

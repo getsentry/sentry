@@ -277,20 +277,10 @@ def project_event_counts_for_organization(ctx):
         groupby=[Column("outcome"), Column("category"), Column("project_id"), Column("time")],
         granularity=Granularity(ONE_DAY),
         orderby=[OrderBy(Column("time"), Direction.ASC)],
+        limit=Limit(10000),
     )
     request = Request(dataset=Dataset.Outcomes.value, app_id="reports", query=query)
     data = raw_snql_query(request, referrer="weekly_reports.outcomes")["data"]
-
-    if features.has("organizations:weekly-report-logs", ctx.organization):  # TODO(isabella): remove
-        logger.info(
-            "project_event_counts_for_organization_query_result",
-            extra={
-                "org_slug": ctx.organization.slug,
-                "report_start": ctx.start.isoformat(),
-                "report_end": (ctx.end + timedelta(days=1)).isoformat(),
-                "num_query_rows": len(data),
-            },
-        )
 
     for dat in data:
         project_id = dat["project_id"]
@@ -898,20 +888,6 @@ def render_template_context(ctx, user_id):
                     }
                 )
             series.append((to_datetime(t), project_series))
-        if features.has(
-            "organizations:weekly-report-logs", ctx.organization
-        ):  # TODO(isabella): remove
-            logger.info(
-                "render_template_context.trends.totals",
-                extra={
-                    "org_slug": ctx.organization.slug,
-                    "project_count": len(projects_associated_with_user),
-                    "accepted_error_count": total_error,
-                    "dropped_error_count": total_dropped_error,
-                    "accepted_transaction_count": total_transaction,
-                    "dropped_transaction_count": total_dropped_transaction,
-                },
-            )
         return {
             "legend": legend,
             "series": series,
@@ -1077,21 +1053,6 @@ def send_email(ctx, user_id, dry_run=False, email_override=None):
             f"Skipping report for {ctx.organization.id} to <User: {user_id}>, no qualifying reports to deliver."
         )
         return
-    if features.has("organizations:weekly-report-logs", ctx.organization):  # TODO(isabella): remove
-        trends = template_ctx.get("trends")
-        errors_per_day = None
-        transactions_per_day = None
-        if trends:
-            errors_per_day = trends.get("error_maximum")
-            transactions_per_day = trends.get("transaction_maximum")
-        logger.info(
-            "send_email.counts_per_day",
-            extra={
-                "org_slug": ctx.organization.slug,
-                "errors_per_day": json.dumps(errors_per_day),
-                "transactions_per_day": json.dumps(transactions_per_day),
-            },
-        )
 
     message = MessageBuilder(
         subject=f"Weekly Report for {ctx.organization.name}: {date_format(ctx.start)} - {date_format(ctx.end)}",
@@ -1103,6 +1064,8 @@ def send_email(ctx, user_id, dry_run=False, email_override=None):
     )
     if dry_run:
         return
+    if email_override:
+        message.send(to=(email_override,))
     else:
         analytics.record(
             "weekly_report.sent",
@@ -1111,8 +1074,5 @@ def send_email(ctx, user_id, dry_run=False, email_override=None):
             notification_uuid=template_ctx["notification_uuid"],
             user_project_count=template_ctx["user_project_count"],
         )
-    if email_override:
-        message.send(to=(email_override,))
-    else:
         message.add_users((user_id,))
         message.send_async()

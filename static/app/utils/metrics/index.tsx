@@ -1,17 +1,28 @@
 import {InjectedRouter} from 'react-router';
+import round from 'lodash/round';
 import moment from 'moment';
 import * as qs from 'query-string';
 
 import {
   DateTimeObject,
+  Fidelity,
   getDiffInMinutes,
-  getInterval,
+  GranularityLadder,
+  ONE_HOUR,
+  ONE_WEEK,
+  SIX_HOURS,
+  SIXTY_DAYS,
+  THIRTY_DAYS,
+  TWENTY_FOUR_HOURS,
+  TWO_WEEKS,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
+import {MetricsApiResponse} from 'sentry/types';
 import {
   MetricMeta,
   MetricsApiRequestMetric,
   MetricsApiRequestQuery,
+  MetricsApiRequestQueryOptions,
   MetricsGroup,
   MetricType,
   MRI,
@@ -130,11 +141,11 @@ export function getDdmUrl(
 export function getMetricsApiRequestQuery(
   {field, query, groupBy}: MetricsApiRequestMetric,
   {projects, environments, datetime}: PageFilters,
-  overrides: Partial<MetricsApiRequestQuery>
+  overrides: Partial<MetricsApiRequestQueryOptions>
 ): MetricsApiRequestQuery {
   const {mri: mri} = parseField(field) ?? {};
   const useCase = getUseCaseFromMRI(mri) ?? 'custom';
-  const interval = getMetricsInterval(datetime, useCase);
+  const interval = getDDMInterval(datetime, useCase, overrides.fidelity);
 
   const queryToSend = {
     ...getDateTimeParams(datetime),
@@ -153,21 +164,44 @@ export function getMetricsApiRequestQuery(
   return {...queryToSend, ...overrides};
 }
 
+const ddmHighFidelityLadder = new GranularityLadder([
+  [SIXTY_DAYS, '1d'],
+  [THIRTY_DAYS, '2h'],
+  [TWO_WEEKS, '1h'],
+  [ONE_WEEK, '30m'],
+  [TWENTY_FOUR_HOURS, '5m'],
+  [ONE_HOUR, '1m'],
+  [0, '5m'],
+]);
+
+const ddmLowFidelityLadder = new GranularityLadder([
+  [SIXTY_DAYS, '1d'],
+  [THIRTY_DAYS, '12h'],
+  [TWO_WEEKS, '4h'],
+  [ONE_WEEK, '2h'],
+  [TWENTY_FOUR_HOURS, '1h'],
+  [SIX_HOURS, '30m'],
+  [ONE_HOUR, '5m'],
+  [0, '1m'],
+]);
+
 // Wraps getInterval since other users of this function, and other metric use cases do not have support for 10s granularity
-export function getMetricsInterval(dateTimeObj: DateTimeObject, useCase: UseCase) {
-  const interval = getInterval(dateTimeObj, 'metrics');
-
-  if (interval !== '1m') {
-    return interval;
-  }
-
-  const diffInMinutes = getDiffInMinutes(dateTimeObj);
+export function getDDMInterval(
+  datetimeObj: DateTimeObject,
+  useCase: UseCase,
+  fidelity: Fidelity = 'high'
+) {
+  const diffInMinutes = getDiffInMinutes(datetimeObj);
 
   if (diffInMinutes <= 60 && useCase === 'custom') {
     return '10s';
   }
 
-  return interval;
+  if (fidelity === 'low') {
+    return ddmLowFidelityLadder.getInterval(diffInMinutes);
+  }
+
+  return ddmHighFidelityLadder.getInterval(diffInMinutes);
 }
 
 export function getDateTimeParams({start, end, period}: PageFilters['datetime']) {
@@ -189,12 +223,44 @@ export function getReadableMetricType(type?: string) {
   return metricTypeToReadable[type as MetricType] ?? t('unknown');
 }
 
+// The metric units that we have support for in the UI
+// others will still be displayed, but will not have any effect on formatting
+export const formattingSupportedMetricUnits = [
+  'none',
+  'nanosecond',
+  'microsecond',
+  'millisecond',
+  'second',
+  'minute',
+  'hour',
+  'day',
+  'week',
+  'ratio',
+  'percent',
+  'bit',
+  'byte',
+  'kibibyte',
+  'kilobyte',
+  'mebibyte',
+  'megabyte',
+  'gibibyte',
+  'gigabyte',
+  'tebibyte',
+  'terabyte',
+  'pebibyte',
+  'petabyte',
+  'exbibyte',
+  'exabyte',
+] as const;
+
+type FormattingSupportedMetricUnit = (typeof formattingSupportedMetricUnits)[number];
+
 export function formatMetricUsingUnit(value: number | null, unit: string) {
   if (!defined(value)) {
     return '\u2014';
   }
 
-  switch (unit) {
+  switch (unit as FormattingSupportedMetricUnit) {
     case 'nanosecond':
       return getDuration(value / 1000000000, 2, true);
     case 'microsecond':
@@ -247,6 +313,50 @@ export function formatMetricUsingUnit(value: number | null, unit: string) {
     default:
       return value.toLocaleString();
   }
+}
+
+const METRIC_UNIT_TO_SHORT: Record<FormattingSupportedMetricUnit, string> = {
+  nanosecond: 'ns',
+  microsecond: 'μs',
+  millisecond: 'ms',
+  second: 's',
+  minute: 'min',
+  hour: 'hr',
+  day: 'day',
+  week: 'wk',
+  ratio: '%',
+  percent: '%',
+  bit: 'b',
+  byte: 'B',
+  kibibyte: 'KiB',
+  kilobyte: 'KB',
+  mebibyte: 'MiB',
+  megabyte: 'MB',
+  gibibyte: 'GiB',
+  gigabyte: 'GB',
+  tebibyte: 'TiB',
+  terabyte: 'TB',
+  pebibyte: 'PiB',
+  petabyte: 'PB',
+  exbibyte: 'EiB',
+  exabyte: 'EB',
+  none: '',
+};
+
+const getShortMetricUnit = (unit: string): string => METRIC_UNIT_TO_SHORT[unit] ?? '';
+
+export function formatMetricUsingFixedUnit(
+  value: number | null,
+  unit: string,
+  op?: string
+) {
+  if (value === null) {
+    return '\u2014';
+  }
+
+  return op === 'count'
+    ? round(value, 3).toLocaleString()
+    : `${round(value, 3).toLocaleString()}${getShortMetricUnit(unit)}`.trim();
 }
 
 export function formatMetricsUsingUnitAndOp(
@@ -312,4 +422,30 @@ export function groupByOp(metrics: MetricMeta[]): Record<string, MetricMeta[]> {
   }, {});
 
   return groupedByOp;
+}
+
+// TODO(ddm): remove this and all of its usages once backend sends mri fields
+export function mapToMRIFields(
+  data: MetricsApiResponse | undefined,
+  fields: string[]
+): void {
+  if (!data) {
+    return;
+  }
+
+  data.groups.forEach(group => {
+    group.series = swapObjectKeys(group.series, fields);
+    group.totals = swapObjectKeys(group.totals, fields);
+  });
+}
+
+function swapObjectKeys(obj: Record<string, unknown> | undefined, newKeys: string[]) {
+  if (!obj) {
+    return {};
+  }
+
+  return Object.keys(obj).reduce((acc, key, index) => {
+    acc[newKeys[index]] = obj[key];
+    return acc;
+  }, {});
 }

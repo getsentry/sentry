@@ -39,8 +39,12 @@ export type MetricsApiRequestQuery = MetricsApiRequestMetric & {
   orderBy?: string;
   per_page?: number;
   project?: number[];
-  star?: DateString;
+  start?: DateString;
   statsPeriod?: string;
+};
+
+export type MetricsApiRequestQueryOptions = MetricsApiRequestQuery & {
+  fidelity?: 'high' | 'low';
   useNewMetricsLayer?: boolean;
 };
 

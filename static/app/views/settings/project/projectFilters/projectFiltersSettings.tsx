@@ -239,7 +239,7 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
 function CustomFilters({project, disabled}: {disabled: boolean; project: Project}) {
   return (
     <Feature
-      features={['projects:custom-inbound-filters']}
+      features="projects:custom-inbound-filters"
       hookName="feature-disabled:custom-inbound-filters"
       project={project}
       renderDisabled={({children, ...props}) => {
