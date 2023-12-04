@@ -1,6 +1,5 @@
 import {useEffect, useRef} from 'react';
-import {getCurrentHub} from '@sentry/react';
-import {Feedback} from '@sentry-internal/feedback';
+import {Feedback, getCurrentHub} from '@sentry/react';
 
 import {Button} from 'sentry/components/button';
 import {IconMegaphone} from 'sentry/icons/iconMegaphone';

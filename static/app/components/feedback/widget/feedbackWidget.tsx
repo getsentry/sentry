@@ -1,7 +1,6 @@
 import {useEffect} from 'react';
 import {css, Global} from '@emotion/react';
-import {getCurrentHub} from '@sentry/react';
-import {Feedback} from '@sentry-internal/feedback';
+import {Feedback, getCurrentHub} from '@sentry/react';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
