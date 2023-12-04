@@ -1,4 +1,4 @@
-import {createContext, useContext, useEffect, useRef} from 'react';
+import {createContext, useContext, useEffect, useMemo, useRef} from 'react';
 import {dropUndefinedKeys} from '@sentry/utils';
 import * as reactQuery from '@tanstack/react-query';
 
@@ -35,9 +35,7 @@ function getEndpointParams(
   return dropUndefinedKeys(params);
 }
 
-const GroupStatsContext = createContext<UseQueryResult<
-  Record<string, GroupStats>
-> | null>(null);
+const GroupStatsContext = createContext<Record<string, GroupStats> | null>(null);
 
 export function useGroupStats(group: Group): GroupStats {
   const ctx = useContext(GroupStatsContext);
@@ -46,7 +44,7 @@ export function useGroupStats(group: Group): GroupStats {
     return group;
   }
 
-  return ctx.data?.[group.id] ?? group;
+  return ctx?.[group.id] ?? group;
 }
 
 interface StatEndpointParams extends Partial<PageFilters['datetime']> {
@@ -71,7 +69,9 @@ export interface GroupStatsProviderProps {
   period: string;
 
   selection: PageFilters;
-  onStatsQuery?: (query: GroupStatsQuery) => void;
+  onStatsQuery?: (
+    query: UseQueryResult<Record<string, GroupStats>, RequestError>
+  ) => void;
   query?: string;
 }
 
@@ -106,7 +106,7 @@ export function GroupStatsProvider(props: GroupStatsProviderProps) {
     cache.current = new Cache<Record<string, GroupStats>>();
   }
 
-  const queryFn = (): Promise<Record<string, GroupStats>> => {
+  const cacheKey = useMemo(() => {
     const query = getEndpointParams({
       selection: props.selection,
       period: props.period,
@@ -115,7 +115,22 @@ export function GroupStatsProvider(props: GroupStatsProviderProps) {
     });
 
     const {groups: _groups, ...rest} = query;
-    const cacheKey = JSON.stringify({...rest, organization: props.organization.slug});
+    return JSON.stringify({...rest, organization: props.organization.slug});
+  }, [
+    props.selection,
+    props.period,
+    props.query,
+    props.groupIds,
+    props.organization.slug,
+  ]);
+
+  const queryFn = (): Promise<Record<string, GroupStats>> => {
+    const query = getEndpointParams({
+      selection: props.selection,
+      period: props.period,
+      query: props.query,
+      groupIds: props.groupIds,
+    });
 
     const entry = cache.current && cache.current.get(cacheKey);
     if (entry) {
@@ -142,13 +157,9 @@ export function GroupStatsProvider(props: GroupStatsProviderProps) {
       .then((resp: ApiResult<GroupStats[]>): Record<string, GroupStats> => {
         const map = cache.current?.get(cacheKey) ?? {};
 
-        if (!map) {
-          return {};
-        }
         if (!resp || !Array.isArray(resp[0])) {
           return {...map};
         }
-
         for (const stat of resp[0]) {
           map[stat.id] = stat;
         }
@@ -190,7 +201,7 @@ export function GroupStatsProvider(props: GroupStatsProviderProps) {
   }, [statsQuery.status, onStatsQuery]);
 
   return (
-    <GroupStatsContext.Provider value={statsQuery}>
+    <GroupStatsContext.Provider value={cache.current.get(cacheKey) ?? {}}>
       {props.children}
     </GroupStatsContext.Provider>
   );
