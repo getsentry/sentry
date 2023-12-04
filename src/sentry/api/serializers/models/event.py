@@ -374,6 +374,23 @@ class SqlFormatEventSerializer(EventSerializer):
             sentry_sdk.capture_exception(exc)
             return event_data
 
+    def _get_release_info(self, user, event, include_full_release_data: bool):
+        version = event.get_tag("sentry:release")
+        if not version:
+            return None
+        try:
+            release = Release.objects.get(
+                projects=event.project,
+                organization_id=event.project.organization_id,
+                version=version,
+            )
+        except Release.DoesNotExist:
+            return {"version": version}
+        if include_full_release_data:
+            return serialize(release, user)
+        else:
+            return serialize(release, user, GroupEventReleaseSerializer())
+
     def _format_db_spans(self, event_data: dict[str, Any], event: Event | GroupEvent, user: User):
         try:
             spans = next(
@@ -413,23 +430,6 @@ class IssueEventSerializer(SqlFormatEventSerializer):
         self, item_list: Sequence[Event | GroupEvent], user: User, is_public: bool = False, **kwargs
     ):
         return super().get_attrs(item_list, user, is_public)
-
-    def _get_release_info(self, user, event, include_full_release_data: bool):
-        version = event.get_tag("sentry:release")
-        if not version:
-            return None
-        try:
-            release = Release.objects.get(
-                projects=event.project,
-                organization_id=event.project.organization_id,
-                version=version,
-            )
-        except Release.DoesNotExist:
-            return {"version": version}
-        if include_full_release_data:
-            return serialize(release, user)
-        else:
-            return serialize(release, user, GroupEventReleaseSerializer())
 
     def _get_sdk_updates(self, obj):
         return list(get_suggested_updates(SdkSetupState.from_event_json(obj.data)))
