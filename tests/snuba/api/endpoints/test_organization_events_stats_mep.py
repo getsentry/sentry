@@ -1285,7 +1285,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         network_id_tag = "networkId"
         url = "https://sentry.io"
         query = f'http.url:{url}/*/foo/bar/* http.referer:"{url}/*/bar/*" event.type:transaction'
-        # query = "transaction.duration:>=100"
         spec = OnDemandMetricSpec(
             field=agg,
             groupbys=[network_id_tag],
@@ -1303,6 +1302,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             self.store_on_demand_metric(
                 1,
                 spec=spec,
+                # Becase we're using topEvents=1 this will fall under Other
                 additional_tags={network_id_tag: "5678"},
                 timestamp=self.day_ago + timedelta(hours=hour),
             )
@@ -1328,14 +1328,40 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         )
 
         assert response.status_code == 200, response.content
-        # XXX: Fix this
-        assert response.data == {}
-        # breakpoint()
-        # assert response.data[network_id_tag]["meta"]["isMetricsExtractedData"] is True
-        # assert [attrs for _, attrs in response.data[network_id_tag]["data"]] == [
-        #     [{"count": 0.5}],
-        #     [{"count": 0.5}],
-        # ]
+        assert response.data == {
+            "1234": {
+                "data": [(1701561600, [{"count": 5.0}]), (1701648000, [{"count": 0}])],
+                "end": 1701648001,
+                "isMetricsData": False,
+                "meta": {
+                    "dataset": "metricsEnhanced",
+                    "datasetReason": "unchanged",
+                    "fields": {},
+                    "isMetricsData": False,
+                    "isMetricsExtractedData": True,
+                    "tips": {},
+                    "units": {},
+                },
+                "order": 0,
+                "start": 1701561600,
+            },
+            "Other": {
+                "data": [(1701561600, [{"count": 5.0}]), (1701648000, [{"count": 0}])],
+                "end": 1701648001,
+                "isMetricsData": False,
+                "meta": {
+                    "dataset": "metricsEnhanced",
+                    "datasetReason": "unchanged",
+                    "fields": {},
+                    "isMetricsData": False,
+                    "isMetricsExtractedData": True,
+                    "tips": {},
+                    "units": {},
+                },
+                "order": 1,
+                "start": 1701561600,
+            },
+        }
 
     def _test_is_metrics_extracted_data(
         self, params: dict[str, Any], expected_on_demand_query: bool, dataset: str

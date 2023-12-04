@@ -999,6 +999,11 @@ class OnDemandMetricSpec:
 
         return self._arguments[0]
 
+    @property
+    def metric_type(self) -> str:
+        """Returns c, d or s representing if it's a counter, distribution or set."""
+        return self._metric_type
+
     @cached_property
     def mri(self) -> str:
         """The unique identifier of the on-demand metric."""
