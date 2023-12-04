@@ -9,6 +9,7 @@ from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.snuba import discover
+from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.metrics_performance import histogram_query as metrics_histogram_query
 from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.snuba.metrics_performance import timeseries_query as metrics_timeseries_query
@@ -199,8 +200,8 @@ def top_events_timeseries(
     include_other: Optional[bool] = False,
     functions_acl: Optional[List[str]] = None,
     on_demand_metrics_enabled: Optional[bool] = False,
-    on_demand_metrics_type: Optional[str] = None,
-):
+    on_demand_metrics_type: Optional[MetricSpecType] = None,
+) -> Optional[SnubaTSResult]:
     metrics_compatible = False
     equations, _ = categorize_columns(selected_columns)
     if not equations:
