@@ -1254,6 +1254,7 @@ PROCESSING_QUEUES = [
 
 # We prefer using crontab, as the time for timedelta will reset on each deployment. More information:  https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html#periodic-tasks
 TIMEDELTA_ALLOW_LIST = {
+    "deliver-from-outbox-control",
     "flush-buffers",
     "sync-options",
     "sync-options-control",

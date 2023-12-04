@@ -928,15 +928,13 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             integration_id=external_issue.integration_id,
             external_id=jira_project["id"],
         )
+        log_context = {
+            "integration_id": external_issue.integration_id,
+            "is_resolved": is_resolved,
+            "issue_key": external_issue.key,
+        }
         if not external_project:
-            logger.info(
-                "jira.external-project-not-found",
-                extra={
-                    "integration_id": external_issue.integration_id,
-                    "is_resolved": is_resolved,
-                    "issue_key": external_issue.key,
-                },
-            )
+            logger.info("jira.external-project-not-found", extra=log_context)
             return
 
         jira_status = (
@@ -945,7 +943,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
         # don't bother updating if it's already the status we'd change it to
         if jira_issue["fields"]["status"]["id"] == jira_status:
-            logger.info("jira.sync_status_outbound.unchanged")
+            logger.info("jira.sync_status_outbound.unchanged", extra=log_context)
             return
         try:
             transitions = client.get_transitions(external_issue.key)
@@ -956,14 +954,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             transition = [t for t in transitions if t.get("to", {}).get("id") == jira_status][0]
         except IndexError:
             # TODO(jess): Email for failure
-            logger.warning(
-                "jira.status-sync-fail",
-                extra={
-                    "organization_id": external_issue.organization_id,
-                    "integration_id": external_issue.integration_id,
-                    "issue_key": external_issue.key,
-                },
-            )
+            logger.warning("jira.status-sync-fail", extra=log_context)
             return
 
         client.transition_issue(external_issue.key, transition["id"])

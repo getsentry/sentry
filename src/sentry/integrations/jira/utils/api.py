@@ -48,17 +48,19 @@ def handle_assignee_change(
     data: Mapping[str, Any],
     use_email_scope: bool = False,
 ) -> None:
+    issue_key = data["issue"]["key"]
+
+    log_context = {"issue_key": issue_key, "integration_id": integration.id}
     assignee_changed = any(
         item for item in data["changelog"]["items"] if item["field"] == "assignee"
     )
     if not assignee_changed:
+        logger.info("jira.assignee-not-in-changelog", extra=log_context)
         return
 
-    fields = data["issue"]["fields"]
-
     # If there is no assignee, assume it was unassigned.
+    fields = data["issue"]["fields"]
     assignee = fields.get("assignee")
-    issue_key = data["issue"]["key"]
 
     if assignee is None:
         sync_group_assignee_inbound(integration, None, issue_key, assign=False)
@@ -66,30 +68,25 @@ def handle_assignee_change(
 
     email = get_assignee_email(integration, assignee, use_email_scope)
     if not email:
-        logger.info(
-            "missing-assignee-email",
-            extra={"issue_key": issue_key, "integration_id": integration.id},
-        )
+        logger.info("jira.missing-assignee-email", extra=log_context)
         return
 
     sync_group_assignee_inbound(integration, email, issue_key, assign=True)
 
 
 def handle_status_change(integration, data):
-    status_changed = any(item for item in data["changelog"]["items"] if item["field"] == "status")
-    if not status_changed:
-        logger.info("jira.handle_status_change.unchanged")
-        return
-
     issue_key = data["issue"]["key"]
+    status_changed = any(item for item in data["changelog"]["items"] if item["field"] == "status")
+    log_context = {"issue_key": issue_key, "integration_id": integration.id}
+
+    if not status_changed:
+        logger.info("jira.handle_status_change.unchanged", extra=log_context)
+        return
 
     try:
         changelog = next(item for item in data["changelog"]["items"] if item["field"] == "status")
     except StopIteration:
-        logger.info(
-            "missing-changelog-status",
-            extra={"issue_key": issue_key, "integration_id": integration.id},
-        )
+        logger.info("jira.missing-changelog-status", extra=log_context)
         return
 
     _, org_integrations = integration_service.get_organization_contexts(
