@@ -3,7 +3,11 @@ from datetime import datetime, timezone
 from typing import Any, Mapping, Optional, TypedDict, Union, cast
 
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory
+from arroyo.processing.strategies import (
+    CommitOffsets,
+    ProcessingStrategy,
+    ProcessingStrategyFactory,
+)
 from arroyo.types import Commit, Message, Partition
 from typing_extensions import NotRequired
 
@@ -23,7 +27,7 @@ class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        return BillingTxCountMetricConsumerStrategy(commit)
+        return BillingTxCountMetricConsumerStrategy(CommitOffsets(commit))
 
 
 class MetricsBucket(TypedDict):
@@ -52,28 +56,26 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
     metric_id = TRANSACTION_METRICS_NAMES["c:transactions/usage@none"]
     profile_tag_key = str(SHARED_TAG_STRINGS["has_profile"])
 
-    def __init__(
-        self,
-        commit: Commit,
-    ) -> None:
-        self.__commit = commit
+    def __init__(self, next_step: ProcessingStrategy[Any]) -> None:
+        self.__next_step = next_step
         self.__closed = False
 
     def poll(self) -> None:
-        pass
+        self.__next_step.poll()
 
     def terminate(self) -> None:
         self.close()
 
     def close(self) -> None:
         self.__closed = True
+        self.__next_step.close()
 
     def submit(self, message: Message[KafkaPayload]) -> None:
         assert not self.__closed
 
         payload = self._get_payload(message)
         self._produce_billing_outcomes(payload)
-        self.__commit(message.committable)
+        self.__next_step.submit(message)
 
     def _get_payload(self, message: Message[KafkaPayload]) -> MetricsBucket:
         payload = json.loads(message.payload.value.decode("utf-8"), use_rapid_json=True)
@@ -140,4 +142,4 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         )
 
     def join(self, timeout: Optional[float] = None) -> None:
-        self.__commit({}, force=True)
+        self.__next_step.join(timeout)

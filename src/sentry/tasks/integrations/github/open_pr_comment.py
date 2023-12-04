@@ -120,7 +120,7 @@ def get_issue_table_contents(issue_list: List[Dict[str, int]]) -> List[PullReque
             title=issue.title,
             subtitle=issue.culprit,
             url=issue.get_absolute_url(),
-            affected_users=group_id_to_info[issue.id]["affected_users"],
+            affected_users=issue.count_users_seen(),
             event_count=group_id_to_info[issue.id]["event_count"],
             is_handled=bool(group_id_to_info[issue.id]["is_handled"]),
         )
@@ -209,7 +209,7 @@ def get_projects_and_filenames_from_source_file(
         for code_mapping in code_mappings:
             project_list.add(code_mapping.project)
             sentry_filenames.add(
-                pr_filename.replace(code_mapping.source_root, code_mapping.stack_root)
+                pr_filename.replace(code_mapping.source_root, code_mapping.stack_root, 1)
             )
     return project_list, sentry_filenames
 
@@ -237,7 +237,6 @@ def get_top_5_issues_by_count_for_file(
                 [
                     Column("group_id"),
                     Function("count", [], "event_count"),
-                    Function("uniq", [Column("user_hash")], "affected_users"),
                     Function("isHandled", [], "is_handled"),
                 ]
             )

@@ -246,6 +246,7 @@ def _deobfuscate_profile(profile: Profile, project: Project) -> bool:
                 _deobfuscate_v2(profile=profile, project=project)
             else:
                 _deobfuscate(profile=profile, project=project)
+
             profile["deobfuscated"] = True
             return True
         except Exception as e:
@@ -795,7 +796,7 @@ def _deobfuscate_v2(profile: Profile, project: Project) -> None:
             return
 
     with sentry_sdk.start_span(op="proguard.open"):
-        mapper = ProguardMapper.open(debug_file_path)
+        mapper = ProguardMapper.open(debug_file_path, initialize_param_mapping=True)
         if not mapper.has_line_info:
             return
 

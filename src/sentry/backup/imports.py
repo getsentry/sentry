@@ -4,9 +4,8 @@ from dataclasses import dataclass
 from typing import BinaryIO, Iterator, Optional, Tuple, Type
 from uuid import uuid4
 
-import click
 from django.core import serializers
-from django.db import transaction
+from django.db import DatabaseError, connections, router, transaction
 from django.db.models.base import Model
 
 from sentry.backup.dependencies import (
@@ -16,11 +15,14 @@ from sentry.backup.dependencies import (
     PrimaryKeyMap,
     dependencies,
     get_model_name,
+    reversed_dependencies,
 )
-from sentry.backup.helpers import Decryptor, Filter, ImportFlags, decrypt_encrypted_tarball
+from sentry.backup.helpers import Decryptor, Filter, ImportFlags, Printer, decrypt_encrypted_tarball
 from sentry.backup.scopes import ImportScope
+from sentry.db.models.paranoia import ParanoidModel
 from sentry.models.importchunk import ControlImportChunkReplica
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.nodestore.django.models import Node
 from sentry.services.hybrid_cloud.import_export.model import (
     RpcFilter,
     RpcImportError,
@@ -49,6 +51,23 @@ class ImportingError(Exception):
         self.context = context
 
 
+def _clear_model_tables_before_import():
+    reversed = reversed_dependencies()
+
+    for model in reversed:
+        using = router.db_for_write(model)
+        manager = model.with_deleted if issubclass(model, ParanoidModel) else model.objects
+        manager.all().delete()  # type: ignore
+
+        # TODO(getsentry/team-ospo#190): Remove the "Node" kludge below in favor of a more permanent
+        # solution.
+        if model is not Node:
+            table = model._meta.db_table
+            seq = f"{table}_id_seq"
+            with connections[using].cursor() as cursor:
+                cursor.execute("SELECT setval(%s, 1, false)", [seq])
+
+
 def _import(
     src: BinaryIO,
     scope: ImportScope,
@@ -56,7 +75,7 @@ def _import(
     decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
     filter_by: Filter | None = None,
-    printer=click.echo,
+    printer: Printer,
 ):
     """
     Imports core data for a Sentry installation.
@@ -74,7 +93,7 @@ def _import(
 
     if SiloMode.get_current_mode() == SiloMode.CONTROL:
         errText = "Imports must be run in REGION or MONOLITH instances only"
-        printer(errText, err=True)
+        printer.echo(errText, err=True)
         raise RuntimeError(errText)
 
     flags = flags if flags is not None else ImportFlags()
@@ -238,10 +257,10 @@ def _import(
         )
 
         if isinstance(result, RpcImportError):
-            printer(result.pretty(), err=True)
+            printer.echo(result.pretty(), err=True)
             if result.get_kind() == RpcImportErrorKind.IntegrityError:
                 warningText = ">> Are you restoring from a backup of the same version of Sentry?\n>> Are you restoring onto a clean database?\n>> If so then this IntegrityError might be our fault, you can open an issue here:\n>> https://github.com/getsentry/sentry/issues/new/choose"
-                printer(warningText, err=True)
+                printer.echo(warningText, err=True)
             raise ImportingError(result)
 
         out_pk_map: PrimaryKeyMap = result.mapped_pks.from_rpc()
@@ -326,6 +345,20 @@ def _import(
     pk_map = PrimaryKeyMap()
     if SiloMode.get_current_mode() == SiloMode.MONOLITH and not is_split_db():
         with unguarded_write(using="default"), transaction.atomic(using="default"):
+            if scope == ImportScope.Global:
+                confirmed = printer.confirm(
+                    """Proceeding with this operation will irrecoverably delete all existing
+                    low-volume data - are you sure want to continue?"""
+                )
+                if not confirmed:
+                    printer.echo("Import cancelled.")
+                    return
+
+                try:
+                    _clear_model_tables_before_import()
+                except DatabaseError as e:
+                    printer.echo("Database could not be reset before importing")
+                    raise e
             do_writes(pk_map)
     else:
         do_writes(pk_map)
@@ -342,7 +375,7 @@ def import_in_user_scope(
     decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
     user_filter: set[str] | None = None,
-    printer=click.echo,
+    printer: Printer,
 ):
     """
     Perform an import in the `User` scope, meaning that only models with `RelocationScope.User` will
@@ -371,7 +404,7 @@ def import_in_organization_scope(
     decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
     org_filter: set[str] | None = None,
-    printer=click.echo,
+    printer: Printer,
 ):
     """
     Perform an import in the `Organization` scope, meaning that only models with
@@ -402,7 +435,7 @@ def import_in_config_scope(
     decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
     user_filter: set[str] | None = None,
-    printer=click.echo,
+    printer: Printer,
 ):
     """
     Perform an import in the `Config` scope, meaning that we will import all models required to
@@ -433,7 +466,7 @@ def import_in_global_scope(
     *,
     decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
-    printer=click.echo,
+    printer: Printer,
 ):
     """
     Perform an import in the `Global` scope, meaning that all models will be imported from the
