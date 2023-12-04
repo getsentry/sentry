@@ -16,6 +16,7 @@ import {
   initializeFlamegraphRenderer,
   useResizeCanvasObserver,
 } from 'sentry/utils/profiling/gl/utils';
+import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphRenderer2D';
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
@@ -23,6 +24,7 @@ import {Rect} from 'sentry/utils/profiling/speedscope';
 interface DifferentialFlamegraphProps {
   canvasPoolManager: CanvasPoolManager;
   differentialFlamegraph: DifferentialFlamegraphModel;
+  profileGroup: ProfileGroup;
   scheduler: CanvasScheduler;
 }
 
@@ -187,6 +189,7 @@ export function DifferentialFlamegraph(props: DifferentialFlamegraphProps): Reac
 
   return (
     <FlamegraphZoomView
+      profileGroup={props.profileGroup}
       disableGrid
       disableCallOrderSort
       disableColorCoding

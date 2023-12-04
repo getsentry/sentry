@@ -1,7 +1,6 @@
 import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
-import {ProfileGroup} from './profile/importProfile';
 import {Profile} from './profile/profile';
 import {SampledProfile} from './profile/sampledProfile';
 import {makeFormatter, makeTimelineFormatter} from './units/units';
@@ -38,7 +37,6 @@ const leftHeavyTreeSort = makeTreeSort(sortByTotalWeight);
 
 export class Flamegraph {
   profile: Profile;
-  metadata: ProfileGroup['metadata'] = {};
   frames: ReadonlyArray<FlamegraphFrame> = [];
 
   inverted: boolean = false;

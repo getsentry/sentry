@@ -43,7 +43,7 @@ export function useDifferentialFlamegraphQuery(
       ...sharedAggregateQueryParams,
       datetime: {
         start: regressionDateRange.start,
-        end: new Date(params.breakpoint),
+        end: new Date(params.breakpoint * 1000),
       },
     };
   }, [sharedAggregateQueryParams, regressionDateRange.start, params.breakpoint]);
@@ -52,7 +52,7 @@ export function useDifferentialFlamegraphQuery(
     return {
       ...sharedAggregateQueryParams,
       datetime: {
-        start: new Date(params.breakpoint),
+        start: new Date(params.breakpoint * 1000),
         end: regressionDateRange.end,
       },
     };

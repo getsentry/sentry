@@ -17,6 +17,7 @@ import {
   useDifferentialFlamegraphQuery,
 } from 'sentry/utils/profiling/hooks/useDifferentialFlamegraphQuery';
 import {importProfile} from 'sentry/utils/profiling/profile/importProfile';
+import {LOADING_PROFILE_GROUP} from 'sentry/views/profiling/profileGroupProvider';
 
 import {useTransactionsDelta} from './transactionsDeltaProvider';
 
@@ -95,18 +96,25 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
 
     // @TODO pass frame filter
     const profile = importProfile(props.before.data, '', 'flamegraph');
-    return new Flamegraph(profile.profiles[0]);
+    return new Flamegraph(profile.profiles[0], {sort: 'alphabetical'});
   }, [props.before]);
 
-  const afterFlamegraph = useMemo(() => {
+  const afterProfileGroup = useMemo(() => {
     if (!props.after.data) {
       return null;
     }
 
-    // @TODO pass frame filter
-    const profile = importProfile(props.after.data, '', 'flamegraph');
-    return new Flamegraph(profile.profiles[0]);
+    return importProfile(props.after.data, '', 'flamegraph');
   }, [props.after]);
+
+  const afterFlamegraph = useMemo(() => {
+    if (!afterProfileGroup) {
+      return null;
+    }
+
+    // @TODO pass frame filter
+    return new Flamegraph(afterProfileGroup.profiles[0], {sort: 'alphabetical'});
+  }, [afterProfileGroup]);
 
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useCanvasScheduler(canvasPoolManager);
@@ -125,10 +133,13 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
     );
   }, [beforeFlamegraph, afterFlamegraph, theme]);
   return (
-    <DifferentialFlamegraph
-      differentialFlamegraph={differentialFlamegraph}
-      canvasPoolManager={canvasPoolManager}
-      scheduler={scheduler}
-    />
+    <div style={{height: '500px'}}>
+      <DifferentialFlamegraph
+        profileGroup={afterProfileGroup ?? LOADING_PROFILE_GROUP}
+        differentialFlamegraph={differentialFlamegraph}
+        canvasPoolManager={canvasPoolManager}
+        scheduler={scheduler}
+      />
+    </div>
   );
 }
