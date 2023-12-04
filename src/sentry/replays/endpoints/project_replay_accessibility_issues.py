@@ -71,12 +71,16 @@ class ProjectReplayAccessibilityIssuesEndpoint(ProjectEndpoint):
         except ValueError:
             return Response(status=404)
 
-        try:
-            timestamp = int(request.GET.get("timestamp"))
-        except TypeError:
+        timestamp_param = request.GET.get("timestamp", None)
+        if timestamp_param is None:
             timestamp = None
-        except ValueError:
-            raise ParseError("Invalid timestamp value specified.")
+        else:
+            try:
+                timestamp = int(timestamp_param)
+            except TypeError:
+                timestamp = None
+            except ValueError:
+                raise ParseError("Invalid timestamp value specified.")
 
         def data_fn(offset, limit):
             # Increment a counter for every call to the accessibility service.
