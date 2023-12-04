@@ -8,6 +8,7 @@ import {MetricsApiResponse, Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {TOP_N} from 'sentry/utils/discover/types';
+import {mapToMRIFields} from 'sentry/utils/metrics';
 
 import {MetricsConfig} from '../datasetConfig/metrics';
 import {DashboardFilters, DEFAULT_TABLE_LIMIT, DisplayType, Widget} from '../types';
@@ -112,10 +113,7 @@ class MetricWidgetQueries extends Component<Props, State> {
 
   afterFetchData = (data: MetricsApiResponse) => {
     const fields = this.props.widget.queries[0].aggregates;
-    data.groups.forEach(group => {
-      group.series = swapKeys(group.series, fields);
-      group.totals = swapKeys(group.totals, fields);
-    });
+    mapToMRIFields(data, fields);
   };
 
   render() {
@@ -159,14 +157,3 @@ class MetricWidgetQueries extends Component<Props, State> {
 }
 
 export default MetricWidgetQueries;
-
-const swapKeys = (obj: Record<string, unknown> | undefined, newKeys: string[]) => {
-  if (!obj) {
-    return {};
-  }
-
-  return Object.keys(obj).reduce((acc, key, index) => {
-    acc[newKeys[index]] = obj[key];
-    return acc;
-  }, {});
-};

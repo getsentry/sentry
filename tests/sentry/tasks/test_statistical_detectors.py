@@ -406,12 +406,13 @@ def test_limit_regressions_by_project(ratelimit, timestamp, expected_idx):
     }
 
     def trends():
-        yield (None, 0, payloads[(1, 1)])
-        yield (TrendType.Improved, 0, payloads[(2, 1)])
-        yield (TrendType.Regressed, 0, payloads[(2, 2)])
-        yield (TrendType.Regressed, 0, payloads[(3, 1)])
-        yield (TrendType.Regressed, 1, payloads[(3, 2)])
-        yield (TrendType.Regressed, 2, payloads[(3, 3)])
+        # we do not need the detector state here so mock it with None
+        yield (None, 0, payloads[(1, 1)], None)
+        yield (TrendType.Improved, 0, payloads[(2, 1)], None)
+        yield (TrendType.Regressed, 0, payloads[(2, 2)], None)
+        yield (TrendType.Regressed, 0, payloads[(3, 1)], None)
+        yield (TrendType.Regressed, 1, payloads[(3, 2)], None)
+        yield (TrendType.Regressed, 2, payloads[(3, 3)], None)
 
     expected_regressions = [
         payloads[(2, 2)],
@@ -542,7 +543,7 @@ def test_detect_function_trends_ratelimit(
 
 
 @mock.patch("sentry.tasks.statistical_detectors.emit_function_regression_issue")
-@mock.patch("sentry.tasks.statistical_detectors.detect_breakpoints")
+@mock.patch("sentry.statistical_detectors.detector.detect_breakpoints")
 @mock.patch("sentry.tasks.statistical_detectors.raw_snql_query")
 @django_db_all
 def test_detect_function_change_points(
@@ -953,7 +954,7 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
         assert len(results) == 1
 
     @mock.patch("sentry.tasks.statistical_detectors.send_regression_to_platform")
-    @mock.patch("sentry.tasks.statistical_detectors.detect_breakpoints")
+    @mock.patch("sentry.statistical_detectors.detector.detect_breakpoints")
     def test_transaction_change_point_detection(
         self, mock_detect_breakpoints, mock_send_regression_to_platform
     ) -> None:

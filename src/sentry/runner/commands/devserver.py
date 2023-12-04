@@ -121,6 +121,12 @@ def _get_daemon(name: str) -> tuple[str, list[str]]:
     default="localhost",
     help="The hostname that clients will use. Useful for ngrok workflows eg `--client-hostname=alice.ngrok.io`",
 )
+@click.option(
+    "--silo",
+    default=None,
+    type=click.Choice(["control", "region"]),
+    help="The silo mode to run this devserver instance in. Choices are control, region, none",
+)
 @click.argument(
     "bind",
     default=None,
@@ -145,6 +151,7 @@ def devserver(
     dev_consumer: bool,
     bind: str | None,
     client_hostname: str,
+    silo: str | None,
 ) -> NoReturn:
     "Starts a lightweight web server for development."
     if bind is None:
@@ -155,6 +162,19 @@ def devserver(
         port = int(port_s)
     else:
         raise SystemExit(f"expected <host>:<port>, got {bind}")
+
+    # In a siloed environment we can't use localhost because cookies
+    # cannot be shared across subdomains of localhost
+    if silo and client_hostname == "localhost":
+        click.echo(
+            "WARNING: You had a client_hostname of `localhost` but are using silo modes. "
+            "Switching to dev.getsentry.net as the client hostname"
+        )
+        client_hostname = "dev.getsentry.net"
+    # We run webpack on the control server, not the regions.
+    if silo == "region" and watchers:
+        click.echo("WARNING: You have silo=region and webpack enabled. Disabling webpack.")
+        watchers = False
 
     import os
 
@@ -175,6 +195,8 @@ def devserver(
     from sentry.services.http import SentryHTTPServer
 
     uwsgi_overrides: dict[str, int | bool | str | None] = {
+        "protocol": "http",
+        "uwsgi-socket": None,
         "http-keepalive": True,
         # Make sure we reload really quickly for local dev in case it
         # doesn't want to shut down nicely on it's own, NO MERCY
@@ -211,54 +233,34 @@ def devserver(
     # When we're running multiple servers control + region servers are offset
     # from webpack and each other.
     ports = {
-        "server": port,
+        "webpack": port,
+        "server": port + 1,
+        "region.server": port + 10,
     }
-    if settings.USE_SILOS:
-        if watchers:
-            ports["webpack"] = port
-            ports["control.server"] = port + 1
-            ports["region.server"] = port + 10
-        else:
-            ports["control.server"] = port
-            ports["region.server"] = port + 10
-    elif watchers:
-        ports["webpack"] = port
-        ports["server"] = port + 1
+    if not watchers:
+        ports["server"] = ports["webpack"]
+        ports.pop("webpack")
 
     # Set ports to environment variables so that child processes can read them
-    os.environ["SENTRY_BACKEND_PORT"] = str(ports.get("region.server") or ports.get("server"))
-    if settings.USE_SILOS:
-        os.environ["SENTRY_CONTROL_SILO_PORT"] = str(ports["control.server"])
+    os.environ["SENTRY_BACKEND_PORT"] = str(ports.get("server"))
+    if silo == "region":
+        os.environ["SENTRY_BACKEND_PORT"] = str(ports.get("region.server"))
+
+    server_port = os.environ["SENTRY_BACKEND_PORT"]
 
     # We proxy all requests through webpacks devserver on the configured port.
     # The backend is served on port+1 and is proxied via the webpack
     # configuration.
     if watchers:
         daemons += settings.SENTRY_WATCHERS
-        uwsgi_overrides["protocol"] = "http"
-
         os.environ["FORCE_WEBPACK_DEV_SERVER"] = "1"
-        os.environ["SENTRY_WEBPACK_PROXY_HOST"] = "%s" % host
+        os.environ["SENTRY_WEBPACK_PROXY_HOST"] = str(host)
         os.environ["SENTRY_WEBPACK_PROXY_PORT"] = str(ports["webpack"])
 
         # webpack and/or typescript is causing memory issues
         os.environ["NODE_OPTIONS"] = (
             os.environ.get("NODE_OPTIONS", "") + " --max-old-space-size=4096"
         ).lstrip()
-    else:
-        server_port = os.environ["SENTRY_BACKEND_PORT"]
-        # If we are the bare http server, use the http option with uwsgi protocol
-        # See https://uwsgi-docs.readthedocs.io/en/latest/HTTP.html
-        uwsgi_overrides.update(
-            {
-                # Make sure uWSGI spawns an HTTP server for us as we don't
-                # have a proxy/load-balancer in front in dev mode.
-                "http": f"{host}:{server_port}",
-                "protocol": "uwsgi",
-                # This is needed to prevent https://github.com/getsentry/sentry/blob/c6f9660e37fcd9c1bbda8ff4af1dcfd0442f5155/src/sentry/services/http.py#L70
-                "uwsgi-socket": None,
-            }
-        )
 
     os.environ["SENTRY_USE_RELAY"] = "1" if settings.SENTRY_USE_RELAY else ""
 
@@ -272,10 +274,10 @@ def devserver(
             fg="yellow",
         )
 
-    if celery_beat:
+    if celery_beat and silo != "control":
         daemons.append(_get_daemon("celery-beat"))
 
-    if workers:
+    if workers and silo != "control":
         kafka_consumers.update(settings.DEVSERVER_START_KAFKA_CONSUMERS)
 
         if settings.CELERY_ALWAYS_EAGER:
@@ -390,13 +392,17 @@ Alternatively, run without --workers.
         uwsgi_overrides["log-drain"] = filter_pattern
 
     server_port = os.environ["SENTRY_BACKEND_PORT"]
-    if settings.USE_SILOS:
+
+    if silo == "region":
+        os.environ["SENTRY_SILO_DEVSERVER"] = "1"
         os.environ["SENTRY_SILO_MODE"] = "REGION"
         os.environ["SENTRY_REGION"] = "us"
-        os.environ["SENTRY_REGION_API_URL_TEMPLATE"] = f"http://{{region}}.localhost:{server_port}"
-
-        # Override variable set by SentryHTTPServer.prepare_environment()
-        os.environ["SENTRY_DEVSERVER_BIND"] = f"localhost:{server_port}"
+        os.environ["SENTRY_REGION_SILO_PORT"] = str(server_port)
+        os.environ["SENTRY_CONTROL_SILO_PORT"] = str(ports["server"] + 1)
+        os.environ["SENTRY_DEVSERVER_BIND"] = f"127.0.0.1:{server_port}"
+        os.environ["UWSGI_HTTP_SOCKET"] = f"127.0.0.1:{ports['region.server']}"
+        os.environ["UWSGI_WORKERS"] = "8"
+        os.environ["UWSGI_THREADS"] = "2"
 
     server = SentryHTTPServer(
         host=host,
@@ -408,7 +414,7 @@ Alternatively, run without --workers.
 
     # If we don't need any other daemons, just launch a normal uwsgi webserver
     # and avoid dealing with subprocesses
-    if not daemons and not settings.USE_SILOS:
+    if not daemons and not silo:
         server.run()
 
     import sys
@@ -425,9 +431,9 @@ Alternatively, run without --workers.
         # Make sure that the environment is prepared before honcho takes over
         # This sets all the appropriate uwsgi env vars, etc
         server.prepare_environment()
-        if settings.USE_SILOS:
-            os.environ["UWSGI_HTTP_SOCKET"] = f"127.0.0.1:{server_port}"
-        daemons += [_get_daemon("server")]
+
+        if silo != "control":
+            daemons += [_get_daemon("server")]
 
     cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
 
@@ -446,14 +452,17 @@ Alternatively, run without --workers.
         )
         manager.add_process(name, list2cmdline(cmd), quiet=quiet, cwd=cwd)
 
-    if settings.USE_SILOS:
-        control_port = ports["control.server"]
+    if silo == "control":
         control_environ = {
+            "SENTRY_SILO_DEVSERVER": "1",
             "SENTRY_SILO_MODE": "CONTROL",
             "SENTRY_REGION": "",
-            "SENTRY_DEVSERVER_BIND": f"localhost:{control_port}",
-            # Override variable set by SentryHTTPServer.prepare_environment()
-            "UWSGI_HTTP_SOCKET": f"127.0.0.1:{control_port}",
+            "SENTRY_CONTROL_SILO_PORT": server_port,
+            "SENTRY_REGION_SILO_PORT": str(ports["region.server"]),
+            "SENTRY_DEVSERVER_BIND": f"127.0.0.1:{server_port}",
+            "UWSGI_HTTP_SOCKET": f"127.0.0.1:{ports['server']}",
+            "UWSGI_WORKERS": "8",
+            "UWSGI_THREADS": "2",
         }
         merged_env = os.environ.copy()
         merged_env.update(control_environ)

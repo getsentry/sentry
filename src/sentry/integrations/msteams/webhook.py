@@ -4,6 +4,7 @@ import logging
 import time
 from typing import Callable, Mapping
 
+import sentry_sdk
 from django.http import HttpRequest, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
@@ -147,8 +148,8 @@ class MsTeamsWebhookMixin:
             channel_data = data["channelData"]
             team_id = channel_data["team"]["id"]
             return team_id
-        except Exception:
-            pass
+        except Exception as err:
+            sentry_sdk.capture_exception(err)
         return None
 
     def get_integration_from_channel_data(self, request: HttpRequest) -> RpcIntegration | None:
@@ -169,8 +170,8 @@ class MsTeamsWebhookMixin:
             payload = data["value"]["payload"]
             integration_id = payload["integrationId"]
             return integration_id
-        except Exception:
-            pass
+        except Exception as err:
+            sentry_sdk.capture_exception(err)
         return None
 
     def get_integration_from_card_action(self, request: HttpRequest) -> RpcIntegration | None:

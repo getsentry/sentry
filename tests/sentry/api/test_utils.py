@@ -192,6 +192,11 @@ def test_customer_domain_path():
             "/settings/projects/getting-started/abc123/",
         ],
         ["/settings/teams/peeps/", "/settings/teams/peeps/"],
+        ["/settings/billing/checkout/?_q=all#hash", "/settings/billing/checkout/?_q=all#hash"],
+        [
+            "/settings/billing/bundle-checkout/?_q=all#hash",
+            "/settings/billing/bundle-checkout/?_q=all#hash",
+        ],
     ]
     for input_path, expected in scenarios:
         assert expected == customer_domain_path(input_path)
