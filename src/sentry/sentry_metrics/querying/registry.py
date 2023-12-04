@@ -2,7 +2,6 @@ from typing import Dict, Optional, Union
 
 from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
 from sentry.sentry_metrics.querying.types import QueryExpression
-from sentry.sentry_metrics.querying.visitors import ExpansionVisitor
 from sentry.snuba.metrics import parse_mri
 
 
@@ -63,14 +62,3 @@ def register_derived_metric(mri: str, expression: Union[QueryExpression, str]):
     done automatically by ``get_series``.
     """
     _REGISTRY.register(mri, expression)
-
-
-def expand_derived_metrics(
-    query: QueryExpression, registry: Optional[ExpressionRegistry] = None
-) -> QueryExpression:
-    """
-    Recursively replace references to derived metrics in queries with their
-    backing expressions.
-    """
-    visitor = ExpansionVisitor(registry=_REGISTRY if registry is None else registry)
-    return visitor.visit(query)

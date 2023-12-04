@@ -77,7 +77,10 @@ class EnvironmentsInjectionVisitor(QueryExpressionVisitor[QueryExpression]):
 
     def _visit_timeseries(self, timeseries: Timeseries) -> QueryExpression:
         current_filters = timeseries.filters if timeseries.filters else []
-        current_filters.extend([Condition(Column("environment"), Op.IN, self._environment_names)])
+        if self._environment_names:
+            current_filters.extend(
+                [Condition(Column("environment"), Op.IN, self._environment_names)]
+            )
 
         return timeseries.set_filters(current_filters)
 
