@@ -70,9 +70,9 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url)
 
-            assert request_accessibility_issues.called
             assert response.status_code == 200
             assert response.has_header("X-Hits")
+            assert request_accessibility_issues.called
 
             response_data = response.json()
             assert len(response_data["data"]) == 1
