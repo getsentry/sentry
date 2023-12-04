@@ -172,15 +172,18 @@ function MetricWidgetBody({
 }: MetricWidgetProps & PageFilters) {
   const {mri, op, query, groupBy, projects, environments, datetime} = metricsQuery;
 
-  const {data, isLoading, isError, error, onZoom} = useMetricsDataZoom({
-    mri,
-    op,
-    query,
-    groupBy,
-    projects,
-    environments,
-    datetime,
-  });
+  const {data, isLoading, isError, error, onZoom} = useMetricsDataZoom(
+    {
+      mri,
+      op,
+      query,
+      groupBy,
+      projects,
+      environments,
+      datetime,
+    },
+    {fidelity: displayType === MetricDisplayType.BAR ? 'low' : 'high'}
+  );
 
   const [dataToBeRendered, setDataToBeRendered] = useState<
     MetricsApiResponse | undefined

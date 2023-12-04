@@ -5,8 +5,16 @@ import * as qs from 'query-string';
 
 import {
   DateTimeObject,
+  Fidelity,
   getDiffInMinutes,
-  getInterval,
+  GranularityLadder,
+  ONE_HOUR,
+  ONE_WEEK,
+  SIX_HOURS,
+  SIXTY_DAYS,
+  THIRTY_DAYS,
+  TWENTY_FOUR_HOURS,
+  TWO_WEEKS,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {MetricsApiResponse} from 'sentry/types';
@@ -14,6 +22,7 @@ import {
   MetricMeta,
   MetricsApiRequestMetric,
   MetricsApiRequestQuery,
+  MetricsApiRequestQueryOptions,
   MetricsGroup,
   MetricType,
   MRI,
@@ -132,11 +141,11 @@ export function getDdmUrl(
 export function getMetricsApiRequestQuery(
   {field, query, groupBy}: MetricsApiRequestMetric,
   {projects, environments, datetime}: PageFilters,
-  overrides: Partial<MetricsApiRequestQuery>
+  overrides: Partial<MetricsApiRequestQueryOptions>
 ): MetricsApiRequestQuery {
   const {mri: mri} = parseField(field) ?? {};
   const useCase = getUseCaseFromMRI(mri) ?? 'custom';
-  const interval = getMetricsInterval(datetime, useCase);
+  const interval = getDDMInterval(datetime, useCase, overrides.fidelity);
 
   const queryToSend = {
     ...getDateTimeParams(datetime),
@@ -155,21 +164,44 @@ export function getMetricsApiRequestQuery(
   return {...queryToSend, ...overrides};
 }
 
+const ddmHighFidelityLadder = new GranularityLadder([
+  [SIXTY_DAYS, '1d'],
+  [THIRTY_DAYS, '2h'],
+  [TWO_WEEKS, '1h'],
+  [ONE_WEEK, '30m'],
+  [TWENTY_FOUR_HOURS, '5m'],
+  [ONE_HOUR, '1m'],
+  [0, '5m'],
+]);
+
+const ddmLowFidelityLadder = new GranularityLadder([
+  [SIXTY_DAYS, '1d'],
+  [THIRTY_DAYS, '12h'],
+  [TWO_WEEKS, '4h'],
+  [ONE_WEEK, '2h'],
+  [TWENTY_FOUR_HOURS, '1h'],
+  [SIX_HOURS, '30m'],
+  [ONE_HOUR, '5m'],
+  [0, '1m'],
+]);
+
 // Wraps getInterval since other users of this function, and other metric use cases do not have support for 10s granularity
-export function getMetricsInterval(dateTimeObj: DateTimeObject, useCase: UseCase) {
-  const interval = getInterval(dateTimeObj, 'metrics');
-
-  if (interval !== '1m') {
-    return interval;
-  }
-
-  const diffInMinutes = getDiffInMinutes(dateTimeObj);
+export function getDDMInterval(
+  datetimeObj: DateTimeObject,
+  useCase: UseCase,
+  fidelity: Fidelity = 'high'
+) {
+  const diffInMinutes = getDiffInMinutes(datetimeObj);
 
   if (diffInMinutes <= 60 && useCase === 'custom') {
     return '10s';
   }
 
-  return interval;
+  if (fidelity === 'low') {
+    return ddmLowFidelityLadder.getInterval(diffInMinutes);
+  }
+
+  return ddmHighFidelityLadder.getInterval(diffInMinutes);
 }
 
 export function getDateTimeParams({start, end, period}: PageFilters['datetime']) {
