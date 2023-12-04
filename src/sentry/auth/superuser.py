@@ -9,6 +9,7 @@ In Sentry a user must achieve the following to be treated as a superuser:
   standard auth. This session has a shorter lifespan.
 """
 
+from __future__ import annotations
 
 import ipaddress
 import logging
@@ -93,7 +94,7 @@ class EmptySuperuserAccessForm(SentryAPIException):
 
 
 class Superuser:
-    allowed_ips = [ipaddress.ip_network(str(v), strict=False) for v in ALLOWED_IPS]
+    allowed_ips = frozenset(ipaddress.ip_network(str(v), strict=False) for v in ALLOWED_IPS)
 
     org_id = ORG_ID
 
@@ -304,7 +305,7 @@ class Superuser:
         if current_datetime is None:
             current_datetime = timezone.now()
         self.token = token
-        self.uid = str(user.id)
+        self.uid: str | None = str(user.id)
         # the absolute maximum age of this session
         self.expires = expires
         # do we have a valid superuser session?
