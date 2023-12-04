@@ -30,14 +30,15 @@ import {
   getReleaseUnhandledIssuesUrl,
   isMobileRelease,
 } from '../../utils';
+import {ThresholdStatus} from '../../utils/types';
 import {ReleasesDisplayOption} from '../releasesDisplayOptions';
 import {ReleasesRequestRenderProps} from '../releasesRequest';
 
 import {
   AdoptionColumn,
   AdoptionStageColumn,
-  CrashesColumn,
   CrashFreeRateColumn,
+  DisplaySmallCol,
   NewIssuesColumn,
   ReleaseProjectColumn,
   ReleaseProjectsLayout,
@@ -61,6 +62,7 @@ function getCrashFreeIcon(crashFreePercent: number, iconSize: IconSize = 'sm') {
 type Props = {
   activeDisplay: ReleasesDisplayOption;
   getHealthData: ReleasesRequestRenderProps['getHealthData'];
+  hasThresholds: boolean;
   index: number;
   isTopRelease: boolean;
   location: Location;
@@ -69,21 +71,24 @@ type Props = {
   releaseVersion: string;
   showPlaceholders: boolean;
   showReleaseAdoptionStages: boolean;
+  thresholdStatuses: ThresholdStatus[];
   adoptionStages?: Release['adoptionStages'];
 };
 
 function ReleaseCardProjectRow({
-  index,
-  project,
-  organization,
-  location,
-  getHealthData,
-  releaseVersion,
   activeDisplay,
+  adoptionStages,
+  getHealthData,
+  hasThresholds,
+  index,
+  isTopRelease,
+  location,
+  organization,
+  project,
+  releaseVersion,
   showPlaceholders,
   showReleaseAdoptionStages,
-  isTopRelease,
-  adoptionStages,
+  thresholdStatuses,
 }: Props) {
   const theme = useTheme();
   const {id, newGroups} = project;
@@ -110,7 +115,10 @@ function ReleaseCardProjectRow({
 
   return (
     <ProjectRow data-test-id="release-card-project-row">
-      <ReleaseProjectsLayout showReleaseAdoptionStages={showReleaseAdoptionStages}>
+      <ReleaseProjectsLayout
+        showReleaseAdoptionStages={showReleaseAdoptionStages}
+        hasThresholds={hasThresholds}
+      >
         <ReleaseProjectColumn>
           <ProjectBadge project={project} avatarSize={16} />
         </ReleaseProjectColumn>
@@ -178,7 +186,7 @@ function ReleaseCardProjectRow({
           )}
         </CrashFreeRateColumn>
 
-        <CrashesColumn>
+        <DisplaySmallCol>
           {showPlaceholders ? (
             <StyledPlaceholder width="30px" />
           ) : defined(crashCount) ? (
@@ -196,7 +204,7 @@ function ReleaseCardProjectRow({
           ) : (
             <NotAvailable />
           )}
-        </CrashesColumn>
+        </DisplaySmallCol>
 
         <NewIssuesColumn>
           <Tooltip title={t('Open in Issues')}>
@@ -207,6 +215,12 @@ function ReleaseCardProjectRow({
             </GlobalSelectionLink>
           </Tooltip>
         </NewIssuesColumn>
+
+        {hasThresholds && (
+          <DisplaySmallCol>
+            {thresholdStatuses && thresholdStatuses.length}
+          </DisplaySmallCol>
+        )}
 
         <ViewColumn>
           <GuideAnchor disabled={!isTopRelease || index !== 0} target="view_release">

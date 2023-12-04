@@ -77,7 +77,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 
 type State = {
   releases: Release[];
-  thresholdStatuses?: ThresholdStatus[];
+  thresholdStatuses?: {[key: string]: ThresholdStatus[]};
 } & DeprecatedAsyncView['state'];
 
 class ReleasesList extends DeprecatedAsyncView<Props, State> {
@@ -176,13 +176,6 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
       this.setState({thresholdStatuses});
     });
   }
-
-  getThresholdsByProject = () => {
-    const thresholdStatuses = this.state.thresholdStatuses;
-    // Key by project + release version
-    // Then filter by environment
-    // threshold statuses already key'd by proj-env-release
-  };
 
   getQuery() {
     const {query} = this.props.location.query;
@@ -549,28 +542,22 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
                 />
               )}
 
-              {releases.map((release, index) => {
-                console.log('release: ', release);
-                // const thresholds = Object.values(thresholdStatuses).filter(threshold => threshold.)
-                // threshold statuses - if multiple thresholds, they'll be bucketed under proj-env-release
-                //
-                return (
-                  <ReleaseCard
-                    key={`${release.version}-${release.projects[0].slug}`}
-                    activeDisplay={activeDisplay}
-                    release={release}
-                    organization={organization}
-                    location={location}
-                    selection={selection}
-                    reloading={reloading}
-                    showHealthPlaceholders={isHealthLoading}
-                    isTopRelease={index === 0}
-                    getHealthData={getHealthData}
-                    showReleaseAdoptionStages={showReleaseAdoptionStages}
-                    thresholdStatuses={thresholdStatuses}
-                  />
-                );
-              })}
+              {releases.map((release, index) => (
+                <ReleaseCard
+                  key={`${release.projects[0].slug}-${release.version}`}
+                  activeDisplay={activeDisplay}
+                  release={release}
+                  organization={organization}
+                  location={location}
+                  selection={selection}
+                  reloading={reloading}
+                  showHealthPlaceholders={isHealthLoading}
+                  isTopRelease={index === 0}
+                  getHealthData={getHealthData}
+                  showReleaseAdoptionStages={showReleaseAdoptionStages}
+                  thresholdStatuses={thresholdStatuses || {}}
+                />
+              ))}
               <Pagination pageLinks={releasesPageLinks} />
             </Fragment>
           );
@@ -609,7 +596,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
               {organization.features.includes('releases-v2-banner') && (
                 <ReleaseFeedbackBanner />
               )}
-              {/* TODO remove */}
+              {/* TODO: REMOVE THIS */}
               {JSON.stringify(this.state.thresholdStatuses)}
 
               {this.renderHealthCta()}

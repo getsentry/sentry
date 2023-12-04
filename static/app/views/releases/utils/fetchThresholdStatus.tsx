@@ -7,7 +7,7 @@ export function fetchThresholdStatuses(
   organization: Organization,
   api: Client,
   query: ThresholdStatusesQuery
-): Promise<ThresholdStatus[]> {
+): Promise<{[key: string]: ThresholdStatus[]}> {
   return api.requestPromise(
     `/organizations/${organization.slug}/release-threshold-statuses/`,
     {

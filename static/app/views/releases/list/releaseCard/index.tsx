@@ -55,7 +55,7 @@ type Props = {
   selection: PageFilters;
   showHealthPlaceholders: boolean;
   showReleaseAdoptionStages: boolean;
-  thresholdStatuses: ThresholdStatus[];
+  thresholdStatuses: {[key: string]: ThresholdStatus[]};
 };
 
 function ReleaseCard({
@@ -86,6 +86,17 @@ function ReleaseCard({
     );
   }, [release, selection.projects]);
 
+  const hasThresholds = useMemo(() => {
+    const project_slugs = release.projects.map(proj => proj.slug);
+    let has = false;
+    project_slugs.forEach(slug => {
+      if (`${slug}-${release.version}` in thresholdStatuses) {
+        has = thresholdStatuses[`${slug}-${release.version}`].length > 0;
+      }
+    });
+    return has;
+  }, [thresholdStatuses, release]);
+
   const getHiddenProjectsTooltip = () => {
     const limitedProjects = projectsToHide.map(p => p.slug).slice(0, 5);
     const remainderLength = projectsToHide.length - limitedProjects.length;
@@ -100,6 +111,7 @@ function ReleaseCard({
   return (
     <StyledPanel reloading={reloading ? 1 : 0} data-test-id="release-panel">
       <ReleaseInfo>
+        {/* Header/info is the table sidecard */}
         <ReleaseInfoHeader>
           <GlobalSelectionLink
             to={{
@@ -134,8 +146,12 @@ function ReleaseCard({
       </ReleaseInfo>
 
       <ReleaseProjects>
+        {/* projects is the table */}
         <ReleaseProjectsHeader lightText>
-          <ReleaseProjectsLayout showReleaseAdoptionStages={showReleaseAdoptionStages}>
+          <ReleaseProjectsLayout
+            showReleaseAdoptionStages={showReleaseAdoptionStages}
+            hasThresholds={hasThresholds}
+          >
             <ReleaseProjectColumn>{t('Project Name')}</ReleaseProjectColumn>
             {showReleaseAdoptionStages && (
               <AdoptionStageColumn>{t('Adoption Stage')}</AdoptionStageColumn>
@@ -145,8 +161,9 @@ function ReleaseCard({
               <ReleaseCardStatsPeriod location={location} />
             </AdoptionColumn>
             <CrashFreeRateColumn>{t('Crash Free Rate')}</CrashFreeRateColumn>
-            <CrashesColumn>{t('Crashes')}</CrashesColumn>
+            <DisplaySmallCol>{t('Crashes')}</DisplaySmallCol>
             <NewIssuesColumn>{t('New Issues')}</NewIssuesColumn>
+            {hasThresholds && <DisplaySmallCol>{t('Thresholds')}</DisplaySmallCol>}
           </ReleaseProjectsLayout>
         </ReleaseProjectsHeader>
 
@@ -167,22 +184,27 @@ function ReleaseCard({
               </CollapseButtonWrapper>
             )}
           >
-            {projectsToShow.map((project, index) => (
-              <ReleaseCardProjectRow
-                key={`${release.version}-${project.slug}-row`}
-                index={index}
-                organization={organization}
-                project={project}
-                location={location}
-                getHealthData={getHealthData}
-                releaseVersion={release.version}
-                activeDisplay={activeDisplay}
-                showPlaceholders={showHealthPlaceholders}
-                showReleaseAdoptionStages={showReleaseAdoptionStages}
-                isTopRelease={isTopRelease}
-                adoptionStages={release.adoptionStages}
-              />
-            ))}
+            {projectsToShow.map((project, index) => {
+              const key = `${project.slug}-${release.version}`;
+              return (
+                <ReleaseCardProjectRow
+                  key={`${key}-row`}
+                  activeDisplay={activeDisplay}
+                  adoptionStages={release.adoptionStages}
+                  getHealthData={getHealthData}
+                  hasThresholds={hasThresholds}
+                  index={index}
+                  isTopRelease={isTopRelease}
+                  location={location}
+                  organization={organization}
+                  project={project}
+                  releaseVersion={release.version}
+                  showPlaceholders={showHealthPlaceholders}
+                  showReleaseAdoptionStages={showReleaseAdoptionStages}
+                  thresholdStatuses={hasThresholds ? thresholdStatuses[`${key}`] : []}
+                />
+              );
+            })}
           </Collapsible>
         </ProjectRows>
 
@@ -303,7 +325,10 @@ const CollapseButtonWrapper = styled('div')`
   height: 41px;
 `;
 
-export const ReleaseProjectsLayout = styled('div')<{showReleaseAdoptionStages?: boolean}>`
+export const ReleaseProjectsLayout = styled('div')<{
+  hasThresholds?: boolean;
+  showReleaseAdoptionStages?: boolean;
+}>`
   display: grid;
   grid-template-columns: 1fr 1.4fr 0.6fr 0.7fr;
 
@@ -312,22 +337,25 @@ export const ReleaseProjectsLayout = styled('div')<{showReleaseAdoptionStages?: 
   width: 100%;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
+    ${p => {
+      const thresholdSize = p.hasThresholds ? '0.5fr' : '';
+      return `grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr ${thresholdSize} 0.5fr`;
+    }}
   }
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
+    ${p => {
+      const thresholdSize = p.hasThresholds ? '0.5fr' : '';
+      return `grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr ${thresholdSize} 0.5fr`;
+    }}
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    ${p =>
-      p.showReleaseAdoptionStages
-        ? `
-      grid-template-columns: 1fr 0.7fr 1fr 1fr 0.7fr 0.7fr 0.5fr;
-    `
-        : `
-      grid-template-columns: 1fr 1fr 1fr 0.7fr 0.7fr 0.5fr;
-    `}
+    ${p => {
+      const adoptionStagesSize = p.showReleaseAdoptionStages ? '0.7fr' : '';
+      const thresholdSize = p.hasThresholds ? '0.7fr' : '';
+      return `grid-template-columns: 1fr ${adoptionStagesSize} 1fr 1fr 0.7fr 0.7fr ${thresholdSize} 0.5fr`;
+    }}
   }
 `;
 
@@ -383,7 +411,7 @@ export const CrashFreeRateColumn = styled(ReleaseProjectColumn)`
   }
 `;
 
-export const CrashesColumn = styled(ReleaseProjectColumn)`
+export const DisplaySmallCol = styled(ReleaseProjectColumn)`
   display: none;
   font-variant-numeric: tabular-nums;
 
