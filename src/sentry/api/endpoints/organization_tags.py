@@ -2,7 +2,7 @@ import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, tagstore
+from sentry import tagstore
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -37,12 +37,6 @@ class OrganizationTagsEndpoint(OrganizationEventsEndpointBase):
                     include_transactions=request.GET.get("include_transactions", "1") == "1",
                     tenant_ids={"organization_id": organization.id},
                 )
-                if not features.has(
-                    "organizations:javascript-console-error-tag",
-                    organization,
-                    actor=None,
-                ):
-                    results = [tag for tag in results if tag != "empty_stacktrace.js_console"]
 
                 # Filter out device.class from tags since it's already specified as a field in the frontend.
                 # This prevents the tag from being displayed twice.
