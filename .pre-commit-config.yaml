@@ -138,3 +138,10 @@ repos:
             |static/app/utils/profiling/profile/formats/node/trace\.json
             |static/app/utils/profiling/profile/formats/typescript/trace\.json
           )$
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.9.0.6
+    hooks:
+      - id: shellcheck
+        types: [file]
+        files: ^\.envrc$
+        args: [-x]
