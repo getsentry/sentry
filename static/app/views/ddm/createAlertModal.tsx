@@ -6,7 +6,6 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
-import {getInterval} from 'sentry/components/charts/utils';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -21,10 +20,16 @@ import {PageFilters, Project} from 'sentry/types';
 import {parsePeriodToHours, statsPeriodToDays} from 'sentry/utils/dates';
 import {
   formatMetricUsingFixedUnit,
+  getDDMInterval,
   MetricDisplayType,
   MetricsQuery,
 } from 'sentry/utils/metrics';
-import {formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
+import {
+  formatMRIField,
+  getUseCaseFromMRI,
+  MRIToField,
+  parseMRI,
+} from 'sentry/utils/metrics/mri';
 import {useMetricsData} from 'sentry/utils/metrics/useMetricsData';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -95,7 +100,8 @@ const TIME_WINDOWS_TO_CHECK = [
 ];
 
 function getAlertInterval(metricsQuery, period: TimePeriod) {
-  const interval = getInterval(metricsQuery.datetime, 'metrics');
+  const useCase = getUseCaseFromMRI(metricsQuery.mri) ?? 'custom';
+  const interval = getDDMInterval(metricsQuery.datetime, useCase);
   const inMinutes = parsePeriodToHours(interval) * 60;
 
   function toInterval(timeWindow: TimeWindow) {
