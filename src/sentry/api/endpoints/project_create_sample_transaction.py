@@ -68,7 +68,7 @@ def fix_event_data(data):
 
 @region_silo_endpoint
 class ProjectCreateSampleTransactionEndpoint(ProjectEndpoint):
-    owner = ApiOwner.OWNERS_INGEST
+    owner = ApiOwner.PERFORMANCE
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,
     }

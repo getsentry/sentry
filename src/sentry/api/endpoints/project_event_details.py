@@ -52,6 +52,7 @@ def wrap_event_response(
 
 @region_silo_endpoint
 class ProjectEventDetailsEndpoint(ProjectEndpoint):
+    owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
@@ -99,7 +100,7 @@ from rest_framework.response import Response
 
 @region_silo_endpoint
 class EventJsonEndpoint(ProjectEndpoint):
-    owner = ApiOwner.OWNERS_INGEST
+    owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }

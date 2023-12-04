@@ -10,7 +10,7 @@ from sentry.reprocessing import trigger_reprocessing
 
 @region_silo_endpoint
 class ProjectReprocessingEndpoint(ProjectEndpoint):
-    owner = ApiOwner.OWNERS_INGEST
+    owner = ApiOwner.OWNERS_PROCESSING
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,
     }

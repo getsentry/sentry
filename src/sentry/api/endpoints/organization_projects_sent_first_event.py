@@ -10,7 +10,7 @@ from sentry.api.serializers import serialize
 
 @region_silo_endpoint
 class OrganizationProjectsSentFirstEventEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.OWNERS_INGEST
+    owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }

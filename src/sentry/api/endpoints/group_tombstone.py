@@ -12,7 +12,7 @@ from sentry.models.grouptombstone import GroupTombstone
 
 @region_silo_endpoint
 class GroupTombstoneEndpoint(ProjectEndpoint):
-    owner = ApiOwner.HYBRID_CLOUD
+    owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }

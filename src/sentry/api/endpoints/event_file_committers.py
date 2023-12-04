@@ -15,7 +15,7 @@ from sentry.utils.committers import get_serialized_event_file_committers
 
 @region_silo_endpoint
 class EventFileCommittersEndpoint(ProjectEndpoint):
-    owner = ApiOwner.OWNERS_INGEST
+    owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }

@@ -43,7 +43,7 @@ class ProjectTransactionThresholdSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
-    owner = ApiOwner.OWNERS_INGEST
+    owner = ApiOwner.PERFORMANCE
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "GET": ApiPublishStatus.UNKNOWN,

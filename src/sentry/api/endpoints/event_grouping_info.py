@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 @region_silo_endpoint
 class EventGroupingInfoEndpoint(ProjectEndpoint):
-    owner = ApiOwner.OWNERS_INGEST
+    owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }

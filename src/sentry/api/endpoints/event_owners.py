@@ -15,7 +15,7 @@ from sentry.models.team import Team
 
 @region_silo_endpoint
 class EventOwnersEndpoint(ProjectEndpoint):
-    owner = ApiOwner.OWNERS_INGEST
+    owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }

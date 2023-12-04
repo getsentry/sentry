@@ -15,7 +15,7 @@ from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
 
 @region_silo_endpoint
 class EventIdLookupEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.OWNERS_INGEST
+    owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
