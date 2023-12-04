@@ -26,10 +26,10 @@ import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 interface DifferentialFlamegraphProps {
+  beforeFlamegraph: FlamegraphModel;
   canvasPoolManager: CanvasPoolManager;
-  fromFlamegraph: FlamegraphModel;
+  currentFlamegraph: FlamegraphModel;
   scheduler: CanvasScheduler;
-  toFlamegraph: FlamegraphModel;
 }
 
 export function DifferentialFlamegraph(props: DifferentialFlamegraphProps): ReactElement {
@@ -54,16 +54,15 @@ export function DifferentialFlamegraph(props: DifferentialFlamegraphProps): Reac
   }, [flamegraphCanvasRef]);
 
   const differentialFlamegraph = useMemo<DifferentialFlamegraphModel>(() => {
-    if (!props.fromFlamegraph || !props.toFlamegraph) {
+    if (!props.beforeFlamegraph || !props.currentFlamegraph) {
       return DifferentialFlamegraphModel.Empty();
     }
 
     return DifferentialFlamegraphModel.FromDiff(
-      props.fromFlamegraph,
-      props.toFlamegraph,
+      {before: props.beforeFlamegraph, current: props.currentFlamegraph},
       flamegraphTheme
     );
-  }, [props.fromFlamegraph, props.toFlamegraph, flamegraphTheme]);
+  }, [props.beforeFlamegraph, props.currentFlamegraph, flamegraphTheme]);
 
   const flamegraphView = useMemo<CanvasView<DifferentialFlamegraphModel> | null>(
     () => {
