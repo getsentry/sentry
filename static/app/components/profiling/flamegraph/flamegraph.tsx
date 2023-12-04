@@ -1468,6 +1468,7 @@ function Flamegraph(): ReactElement {
           <ProfileDragDropImport onImport={onImport}>
             <FlamegraphWarnings flamegraph={flamegraph} />
             <FlamegraphZoomView
+              profileGroup={profileGroup}
               canvasBounds={flamegraphCanvasBounds}
               canvasPoolManager={canvasPoolManager}
               flamegraph={flamegraph}

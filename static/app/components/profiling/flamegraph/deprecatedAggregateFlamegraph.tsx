@@ -297,6 +297,7 @@ export function DeprecatedAggregateFlamegraph(
     <Fragment>
       {props.children ? props.children({canvasPoolManager, scheduler, flamegraph}) : null}
       <FlamegraphZoomView
+        profileGroup={profileGroup}
         canvasBounds={flamegraphCanvasBounds}
         canvasPoolManager={canvasPoolManager}
         flamegraph={flamegraph}
