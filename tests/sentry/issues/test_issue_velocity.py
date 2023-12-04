@@ -5,12 +5,18 @@ from unittest.mock import patch
 from django.utils import timezone
 
 from sentry.issues.issue_velocity import (
+    DATE_FORMAT,
+    DEFAULT_TTL,
+    NONE_TTL,
+    STALE_DATE_KEY,
+    THRESHOLD_KEY,
     calculate_threshold,
     convert_date_to_int,
     get_latest_threshold,
+    get_redis_client,
     update_threshold,
 )
-from sentry.locks import locks
+from sentry.tasks.post_process import locks
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -138,46 +144,52 @@ class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
         assert math.isnan(threshold)
 
     @patch("sentry.issues.issue_velocity.update_threshold")
-    @patch("sentry.issues.issue_velocity.get_redis_client")
-    def test_get_latest_threshold_simple(self, mock_client, mock_update):
+    def test_get_latest_threshold_simple(self, mock_update):
         """
         Tests that we get the last threshold stored when the stale date has not passed yet.
         """
-        mock_client.return_value.mget.return_value = [0.1, convert_date_to_int(datetime.utcnow())]
+        redis_client = get_redis_client()
+        redis_client.set(THRESHOLD_KEY.format(project_id=self.project.id), 0.1)
+        redis_client.set(
+            STALE_DATE_KEY.format(project_id=self.project.id), convert_date_to_int(self.utcnow)
+        )
         threshold = get_latest_threshold(self.project)
         mock_update.assert_not_called()
         assert threshold == 0.1
 
     @patch("sentry.issues.issue_velocity.update_threshold")
-    @patch("sentry.issues.issue_velocity.get_redis_client")
-    def test_get_latest_threshold_outdated(self, mock_client, mock_update):
+    def test_get_latest_threshold_outdated(self, mock_update):
         """
         Tests that we update the threshold when the stale date has passed.
         """
-        mock_client.return_value.mget.return_value = [
-            1.2,
+        redis_client = get_redis_client()
+        redis_client.set(THRESHOLD_KEY.format(project_id=self.project.id), 1.2)
+        redis_client.set(
+            STALE_DATE_KEY.format(project_id=self.project.id),
             convert_date_to_int(self.utcnow - timedelta(days=1)),
-        ]
+        )
         mock_update.return_value = 1.5
         assert get_latest_threshold(self.project) == 1.5
 
     @patch("sentry.issues.issue_velocity.update_threshold")
-    @patch("sentry.issues.issue_velocity.get_redis_client")
-    def test_get_latest_threshold_when_none_saved(self, mock_client, mock_update):
+    def test_get_latest_threshold_when_none_saved(self, mock_update):
         """
         Tests that we update the threshold when it is non-existent.
         """
-        mock_client.return_value.mget.return_value = [None, None]
         mock_update.return_value = 10.7
         assert get_latest_threshold(self.project) == 10.7
 
     @patch("sentry.issues.issue_velocity.update_threshold")
-    @patch("sentry.issues.issue_velocity.get_redis_client")
-    def test_get_latest_threshold_locked(self, mock_client, mock_update):
+    def test_get_latest_threshold_locked(self, mock_update):
         """
         Tests that we return the stale threshold when another process has the lock.
         """
-        mock_client.return_value.mget.return_value = [None, convert_date_to_int(self.utcnow)]
+        redis_client = get_redis_client()
+        redis_client.set(THRESHOLD_KEY.format(project_id=self.project.id), 0.7)
+        redis_client.set(
+            STALE_DATE_KEY.format(project_id=self.project.id),
+            convert_date_to_int(self.utcnow - timedelta(days=1)),
+        )
 
         lock = locks.get(
             f"calculate_project_thresholds:{self.project.id}",
@@ -187,25 +199,63 @@ class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
         with lock.acquire():
             threshold = get_latest_threshold(self.project)
             mock_update.assert_not_called()
-            assert threshold is None
+            assert threshold == 0.7
+
+    @patch("sentry.issues.issue_velocity.update_threshold")
+    def test_get_latest_threshold_locked_no_stale(self, mock_update):
+        """
+        Tests that we return 0 when another process has the lock and there is no stale value.
+        """
+        lock = locks.get(
+            f"calculate_project_thresholds:{self.project.id}",
+            duration=10,
+            name="calculate_project_thresholds",
+        )
+        with lock.acquire():
+            threshold = get_latest_threshold(self.project)
+            mock_update.assert_not_called()
+            assert threshold == 0
 
     @patch("sentry.issues.issue_velocity.calculate_threshold")
-    @patch("sentry.issues.issue_velocity.get_redis_client")
-    def test_update_threshold_simple(self, mock_client, mock_calculation):
+    def test_update_threshold_simple(self, mock_calculation):
         """
-        Tests that the update method gets, saves, and returns the newly calculated threshold.
+        Tests that we save the newly calculated threshold at the default TTL and return it.
         """
         mock_calculation.return_value = 5
-        mock_pipeline = mock_client.return_value.pipeline
         threshold = update_threshold(self.project.id, "threshold-key", "date-key")
-        mock_pipeline.return_value.__enter__.assert_called()
-        mock_pipeline.return_value.__exit__.assert_called()
         assert threshold == 5
+        redis_client = get_redis_client()
+        assert redis_client.mget(["threshold-key", "date-key"]) == [
+            "5",
+            self.utcnow.strftime(DATE_FORMAT),
+        ]
+        assert redis_client.ttl("threshold-key") == DEFAULT_TTL
+
+    @patch("sentry.issues.issue_velocity.calculate_threshold")
+    def test_update_threshold_none(self, mock_calculation):
+        """
+        Tests that we return 0 and save a threshold for a shorter amount of time than the default
+        if the calculation returned None.
+        """
+        mock_calculation.return_value = None
+        assert update_threshold(self.project, "threshold-key", "date-key") == 0
+        redis_client = get_redis_client()
+        assert redis_client.mget(["threshold-key", "date-key"]) == [
+            "0",
+            self.utcnow.strftime(DATE_FORMAT),
+        ]
+        assert redis_client.ttl("threshold-key") == NONE_TTL
 
     @patch("sentry.issues.issue_velocity.calculate_threshold")
     def test_update_threshold_nan(self, mock_calculation):
         """
-        Tests that we return None if the calculation returns NaN.
+        Tests that we return 0 and save a threshold for the default TTL if the calculation returned NaN.
         """
         mock_calculation.return_value = float("nan")
-        assert update_threshold(self.project, "dummy-key-1", "dummy-key-2") is None
+        assert update_threshold(self.project, "threshold-key", "date-key") == 0
+        redis_client = get_redis_client()
+        assert redis_client.mget(["threshold-key", "date-key"]) == [
+            "0",
+            self.utcnow.strftime(DATE_FORMAT),
+        ]
+        assert redis_client.ttl("threshold-key") == DEFAULT_TTL
