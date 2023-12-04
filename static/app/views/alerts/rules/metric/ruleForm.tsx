@@ -1024,6 +1024,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       !!ruleId && hasMigrationFeatureFlag(organization) && ruleNeedsMigration(rule);
     const showErrorMigrationWarning =
       !!ruleId &&
+      location?.query?.migration === '1' &&
       hasIgnoreArchivedFeatureFlag(organization) &&
       ruleNeedsErrorMigration(rule);
 
