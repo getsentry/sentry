@@ -7,6 +7,7 @@ import FeedbackFilters from 'sentry/components/feedback/feedbackFilters';
 import FeedbackItemLoader from 'sentry/components/feedback/feedbackItem/feedbackItemLoader';
 import FeedbackSearch from 'sentry/components/feedback/feedbackSearch';
 import FeedbackSetupPanel from 'sentry/components/feedback/feedbackSetupPanel';
+import FeedbackWhatsNewBanner from 'sentry/components/feedback/feedbackWhatsNewBanner';
 import FeedbackList from 'sentry/components/feedback/list/feedbackList';
 import OldFeedbackButton from 'sentry/components/feedback/oldFeedbackButton';
 import useCurrentFeedbackId from 'sentry/components/feedback/useCurrentFeedbackId';
@@ -32,6 +33,8 @@ export default function FeedbackListPage({}: Props) {
   const feedbackSlug = useCurrentFeedbackId();
   const hasSlug = Boolean(feedbackSlug);
 
+  const showWhatsNewBanner = false;
+
   return (
     <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>
       <FullViewport>
@@ -56,7 +59,10 @@ export default function FeedbackListPage({}: Props) {
           </Layout.Header>
           <PageFiltersContainer>
             <ErrorBoundary>
-              <LayoutGrid>
+              <LayoutGrid data-banner={showWhatsNewBanner}>
+                {showWhatsNewBanner ? (
+                  <FeedbackWhatsNewBanner style={{gridArea: 'banner'}} />
+                ) : null}
                 <FeedbackFilters style={{gridArea: 'filters'}} />
                 {hasSetupOneFeedback || hasSlug ? (
                   <Fragment>
@@ -98,6 +104,15 @@ const LayoutGrid = styled('div')`
   grid-template-areas:
     'filters search'
     'list details';
+
+  &[data-banner='true'] {
+    grid-template-columns: minmax(390px, 1fr) 2fr;
+    grid-template-rows: max-content max-content 1fr;
+    grid-template-areas:
+      'banner banner'
+      'filters search'
+      'list details';
+  }
 `;
 
 const Container = styled(FluidHeight)`
