@@ -3964,6 +3964,8 @@ REGION_PINNED_URL_NAMES = {
 
 # Shared resource ids for accounting
 EVENT_PROCESSING_STORE = "rc_processing_redis"
+COGS_EVENT_STORE_LABEL = "bigtable_nodestore"
+
 
 if SILO_DEVSERVER:
     # Add connections for the region & control silo databases.
