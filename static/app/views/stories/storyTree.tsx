@@ -105,13 +105,13 @@ const ListItem = styled('li')`
 
 const Folder = styled('details')`
   cursor: pointer;
-  padding-left: ${space(1.5)};
+  padding-left: ${space(2)};
   position: relative;
 
   &:before {
     content: '⏵';
     position: absolute;
-    left: ${space(0.25)};
+    left: ${space(0.5)};
     top: ${space(0.25)};
   }
   &[open]:before {
@@ -144,7 +144,6 @@ const FolderLink = styled(Link)`
   align-items: baseline;
   gap: ${space(0.5)};
   padding: ${space(0.25)};
-  padding-left: 14px;
   white-space: nowrap;
 
   color: inherit;
