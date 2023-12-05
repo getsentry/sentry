@@ -266,7 +266,6 @@ module = [
     "sentry.api.endpoints.user_roles",
     "sentry.api.endpoints.user_subscriptions",
     "sentry.api.event_search",
-    "sentry.api.fields.actor",
     "sentry.api.helpers.deprecation",
     "sentry.api.helpers.events",
     "sentry.api.helpers.group_index.delete",
