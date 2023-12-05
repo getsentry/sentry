@@ -32,17 +32,9 @@ export const steps = ({
 }: Partial<StepProps> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
-    description: (
-      <p>
-        {tct(
-          'Add the Sentry SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn]. You need a minimum version 7.27.0 of [code:@sentry/react] in order to use Session Replay. You do not need to install any additional packages.',
-          {
-            code: <code />,
-            codeYarn: <code />,
-            codeNpm: <code />,
-          }
-        )}
-      </p>
+    description: tct(
+      'For the Session Replay to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/react]) installed, minimum version 7.27.0.',
+      {code: <code />}
     ),
     configurations: [
       {
@@ -52,13 +44,13 @@ export const steps = ({
             label: 'npm',
             value: 'npm',
             language: 'bash',
-            code: 'npm install --save @sentry/react',
+            code: 'npm install --save @sentry/svelte',
           },
           {
             label: 'yarn',
             value: 'yarn',
             language: 'bash',
-            code: 'yarn add @sentry/react',
+            code: 'yarn add @sentry/svelte',
           },
         ],
       },
@@ -79,15 +71,11 @@ export const steps = ({
       {
         language: 'javascript',
         code: `
-import * as Sentry from "@sentry/react";
+        import * as Sentry from "@sentry/svelte";
 
-Sentry.init({
-  ${sentryInitContent}
-});
-
-const container = document.getElementById(“app”);
-const root = createRoot(container);
-root.render(<App />);
+        Sentry.init({
+          ${sentryInitContent}
+        });
         `,
       },
     ],
@@ -96,7 +84,7 @@ root.render(<App />);
 
 // Configuration End
 
-export function GettingStartedWithReactReplay({
+export function GettingStartedWithSvelteReplay({
   dsn,
   organization,
   newOrg,
@@ -119,12 +107,12 @@ export function GettingStartedWithReactReplay({
         platformKey,
         projectId,
       })}
-      newOrg={newOrg}
       platformKey={platformKey}
+      newOrg={newOrg}
       hideHeader
       {...props}
     />
   );
 }
 
-export default GettingStartedWithReactReplay;
+export default GettingStartedWithSvelteReplay;
