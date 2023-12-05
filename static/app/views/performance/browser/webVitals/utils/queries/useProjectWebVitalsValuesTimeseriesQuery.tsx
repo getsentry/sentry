@@ -71,7 +71,6 @@ export const useProjectWebVitalsValuesTimeseriesQuery = ({
       interval: projectTimeSeriesEventView.interval,
     }),
     options: {
-      enabled: pageFilters.isReady,
       refetchOnWindowFocus: false,
     },
     referrer: 'api.performance.browser.web-vitals.timeseries',

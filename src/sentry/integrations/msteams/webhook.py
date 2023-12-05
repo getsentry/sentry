@@ -11,6 +11,7 @@ from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
 
 from sentry import analytics, audit_log, eventstore, features, options
 from sentry.api import client
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.models.activity import ActivityIntegration
@@ -187,6 +188,7 @@ class MsTeamsWebhookMixin:
 
 @all_silo_endpoint
 class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
+    owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,
     }

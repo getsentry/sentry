@@ -42,6 +42,28 @@ class OrderedTask(Enum):
     COMPLETED = 13
 
 
+# Match each `OrderedTask` to the `Relocation.Step` it is part of.
+TASK_TO_STEP: dict[OrderedTask, Relocation.Step] = {
+    OrderedTask.NONE: Relocation.Step.UNKNOWN,
+    OrderedTask.UPLOADING_COMPLETE: Relocation.Step.UPLOADING,
+    OrderedTask.PREPROCESSING_SCAN: Relocation.Step.PREPROCESSING,
+    OrderedTask.PREPROCESSING_BASELINE_CONFIG: Relocation.Step.PREPROCESSING,
+    OrderedTask.PREPROCESSING_COLLIDING_USERS: Relocation.Step.PREPROCESSING,
+    OrderedTask.PREPROCESSING_COMPLETE: Relocation.Step.PREPROCESSING,
+    OrderedTask.VALIDATING_START: Relocation.Step.VALIDATING,
+    OrderedTask.VALIDATING_POLL: Relocation.Step.VALIDATING,
+    OrderedTask.VALIDATING_COMPLETE: Relocation.Step.VALIDATING,
+    OrderedTask.IMPORTING: Relocation.Step.IMPORTING,
+    OrderedTask.POSTPROCESSING: Relocation.Step.POSTPROCESSING,
+    OrderedTask.NOTIFYING_USERS: Relocation.Step.NOTIFYING,
+    OrderedTask.NOTIFYING_OWNER: Relocation.Step.NOTIFYING,
+    OrderedTask.COMPLETED: Relocation.Step.COMPLETED,
+}
+
+
+assert list(OrderedTask._member_map_.keys()) == [k.name for k in TASK_TO_STEP.keys()]
+
+
 # The file type for a relocation export tarball of any kind.
 RELOCATION_FILE_TYPE = "relocation.file"
 
@@ -54,7 +76,7 @@ RELOCATION_FILE_TYPE = "relocation.file"
 # per blob.
 #
 # Note that the actual production file size limit, set by uwsgi, is currently 209715200 bytes, or
-# ~200MB, so we should never see more than ~4 blobs in
+# ~200MB, so we should never see more than ~4 blobs in practice.
 RELOCATION_BLOB_SIZE = int((2**31) / 32)
 
 
@@ -303,15 +325,9 @@ class LoggingPrinter(Printer):
             )
 
 
-class EmailKind(Enum):
-    STARTED = 0
-    FAILED = 1
-    SUCCEEDED = 2
-
-
 def send_relocation_update_email(
-    relocation: Relocation, email_kind: EmailKind, args: dict[str, Any]
-):
+    relocation: Relocation, email_kind: Relocation.EmailKind, args: dict[str, Any]
+) -> None:
     name = str(email_kind.name)
     name_lower = name.lower()
     msg = MessageBuilder(
@@ -333,9 +349,12 @@ def send_relocation_update_email(
 
     msg.send_async(to=email_to)
 
+    relocation.latest_notified = email_kind.value
+    relocation.save()
+
 
 def start_relocation_task(
-    uuid: str, step: Relocation.Step, task: OrderedTask, allowed_task_attempts: int
+    uuid: str, task: OrderedTask, allowed_task_attempts: int
 ) -> Tuple[Optional[Relocation], int]:
     """
     All tasks for relocation are done sequentially, and take the UUID of the `Relocation` model as
@@ -350,7 +369,11 @@ def start_relocation_task(
     except Relocation.DoesNotExist as exc:
         logger.error(f"Could not locate Relocation model by UUID: {uuid}", exc_info=exc)
         return (None, 0)
-    if relocation.status != Relocation.Status.IN_PROGRESS.value:
+
+    if relocation.status not in {
+        Relocation.Status.IN_PROGRESS.value,
+        Relocation.Status.PAUSE.value,
+    }:
         logger.error(
             f"Relocation has already completed as `{Relocation.Status(relocation.status)}`",
             extra=logger_data,
@@ -377,6 +400,24 @@ def start_relocation_task(
     else:
         relocation.latest_task = task.name
         relocation.latest_task_attempts = 1
+
+    # TODO(getsentry/team-ospo#216): Add an option like 'relocation:autopause-at-steps', which will
+    # be an array of steps that we want relocations to automatically pause at. Will be useful once
+    # we have self-serve relocations, and want a means by which to check their validity (bugfixes,
+    # etc).
+    step = TASK_TO_STEP[task]
+    at_scheduled_pause = (
+        relocation.step + 1 == step.value and relocation.scheduled_pause_at_step == step.value
+    )
+    if relocation.status == Relocation.Status.PAUSE.value or at_scheduled_pause:
+        logger.info("Task aborted due to relocation pause", extra=logger_data)
+
+        # Pause the relocation. We will not be able to pause at this step again once we restart.
+        relocation.step = step.value
+        relocation.status = Relocation.Status.PAUSE.value
+        relocation.scheduled_pause_at_step = None
+        relocation.save()
+        return (None, 0)
 
     relocation.step = step.value
     relocation.save()
@@ -415,7 +456,7 @@ def fail_relocation(relocation: Relocation, task: OrderedTask, reason: str = "")
     logger.info("Task failed", extra={"uuid": relocation.uuid, "task": task.name, "reason": reason})
     send_relocation_update_email(
         relocation,
-        EmailKind.FAILED,
+        Relocation.EmailKind.FAILED,
         {
             "uuid": str(relocation.uuid),
             "reason": reason,

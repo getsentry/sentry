@@ -173,8 +173,18 @@ export default function MonitorCreateForm() {
   const filteredProjects = projects.filter(project => isSuperuser || project.isMember);
 
   function onCreateMonitor(data: Monitor) {
-    const url = normalizeUrl(`/organizations/${organization.slug}/crons/${data.slug}/`);
-    browserHistory.push(url);
+    const endpointOptions = {
+      query: {
+        project: selection.projects,
+        environment: selection.environments,
+      },
+    };
+    browserHistory.push(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/crons/${data.slug}/`,
+        query: endpointOptions.query,
+      })
+    );
   }
 
   function changeScheduleType(type: ScheduleType) {

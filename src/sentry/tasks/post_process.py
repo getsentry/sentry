@@ -1326,7 +1326,7 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
         and event.occurrence.evidence_data.get("source")
         in [
             FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE.value,
-            FeedbackCreationSource.USER_REPORT_DJANGO_ENDPOINT.value,
+            FeedbackCreationSource.NEW_FEEDBACK_DJANGO_ENDPOINT.value,
         ]
     ):
         return True
