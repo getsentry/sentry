@@ -407,21 +407,22 @@ def get_bundles_indexing_state(
     total_bundles = 0
     indexed_bundles = 0
 
-    query = ArtifactBundle.objects.filter(
-        releaseartifactbundle__release_name=release_name,
-        releaseartifactbundle__dist_name=dist_name,
-    )
+    filter = {
+        "releaseartifactbundle__release_name": release_name,
+        "releaseartifactbundle__dist_name": dist_name,
+    }
     if isinstance(org_or_project, Project):
-        query = query.filter(
-            releaseartifactbundle__organization_id=org_or_project.organization.id,
-            projectartifactbundle__project_id=org_or_project.id,
-        )
+        filter["releaseartifactbundle__organization_id"] = org_or_project.organization.id
+        filter["projectartifactbundle__project_id"] = org_or_project.id
     else:
-        query = query.filter(
-            releaseartifactbundle__organization_id=org_or_project.id,
-        )
+        filter["releaseartifactbundle__organization_id"] = org_or_project.id
 
-    for state, count in query.values_list("indexing_state").annotate(count=Count("*")):
+    query = (
+        ArtifactBundle.objects.filter(**filter)
+        .values_list("indexing_state")
+        .annotate(count=Count("*"))
+    )
+    for state, count in query:
         if state == ArtifactBundleIndexingState.WAS_INDEXED.value:
             indexed_bundles = count
         total_bundles += count
