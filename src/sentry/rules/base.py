@@ -116,8 +116,10 @@ class EventState:
         is_regression: bool,
         is_new_group_environment: bool,
         has_reappeared: bool,
+        has_escalated: bool,
     ) -> None:
         self.is_new = is_new
         self.is_regression = is_regression
         self.is_new_group_environment = is_new_group_environment
         self.has_reappeared = has_reappeared
+        self.has_escalated = has_escalated

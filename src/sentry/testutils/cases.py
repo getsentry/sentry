@@ -870,6 +870,7 @@ class RuleTestCase(TestCase):
         kwargs.setdefault("is_regression", True)
         kwargs.setdefault("is_new_group_environment", True)
         kwargs.setdefault("has_reappeared", True)
+        kwargs.setdefault("has_escalated", False)
         return EventState(**kwargs)
 
     def get_condition_activity(self, **kwargs) -> ConditionActivity:
