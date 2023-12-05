@@ -1019,12 +1019,18 @@ def process_rules(job: PostProcessJob) -> None:
     is_regression = job["group_state"]["is_regression"]
     is_new_group_environment = job["group_state"]["is_new_group_environment"]
     has_reappeared = job["has_reappeared"]
+    has_escalated = job["has_escalated"]
 
     has_alert = False
 
     with metrics.timer("post_process.process_rules.duration"):
         rp = RuleProcessor(
-            group_event, is_new, is_regression, is_new_group_environment, has_reappeared
+            group_event,
+            is_new,
+            is_regression,
+            is_new_group_environment,
+            has_reappeared,
+            has_escalated,
         )
         with sentry_sdk.start_span(op="tasks.post_process_group.rule_processor_callbacks"):
             # TODO(dcramer): ideally this would fanout, but serializing giant
