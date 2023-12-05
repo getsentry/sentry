@@ -40,13 +40,11 @@ class RelocationStartTestCase(RelocationUtilsTestCase):
         self.mock_message_builder(fake_message_builder)
 
         uuid = uuid4().hex
-        (relocation, attempts_left) = start_relocation_task(
-            uuid, Relocation.Step.UPLOADING, OrderedTask.UPLOADING_COMPLETE, 3
-        )
+        (rel, attempts_left) = start_relocation_task(uuid, OrderedTask.UPLOADING_COMPLETE, 3)
 
         assert fake_message_builder.call_count == 0
 
-        assert relocation is None
+        assert rel is None
         assert not attempts_left
 
     def test_bad_relocation_completed(self, fake_message_builder: Mock):
@@ -55,22 +53,18 @@ class RelocationStartTestCase(RelocationUtilsTestCase):
         self.relocation.status = Relocation.Status.FAILURE.value
         self.relocation.save()
 
-        (relocation, attempts_left) = start_relocation_task(
-            self.uuid, Relocation.Step.UPLOADING, OrderedTask.UPLOADING_COMPLETE, 3
-        )
+        (rel, attempts_left) = start_relocation_task(self.uuid, OrderedTask.UPLOADING_COMPLETE, 3)
 
         assert fake_message_builder.call_count == 0
 
-        assert relocation is None
+        assert rel is None
         assert not attempts_left
         assert Relocation.objects.get(uuid=self.uuid).status == Relocation.Status.FAILURE.value
 
     def test_bad_unknown_task(self, fake_message_builder: Mock):
         self.mock_message_builder(fake_message_builder)
 
-        (relocation, attempts_left) = start_relocation_task(
-            self.uuid, Relocation.Step.UPLOADING, OrderedTask.NONE, 3
-        )
+        (rel, attempts_left) = start_relocation_task(self.uuid, OrderedTask.NONE, 3)
 
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
@@ -78,7 +72,7 @@ class RelocationStartTestCase(RelocationUtilsTestCase):
             to=[self.owner.email, self.superuser.email]
         )
 
-        assert relocation is None
+        assert rel is None
         assert not attempts_left
         assert Relocation.objects.get(uuid=self.uuid).status == Relocation.Status.FAILURE.value
 
@@ -88,9 +82,7 @@ class RelocationStartTestCase(RelocationUtilsTestCase):
         self.relocation.latest_task = OrderedTask.PREPROCESSING_SCAN.name
         self.relocation.save()
 
-        (relocation, attempts_left) = start_relocation_task(
-            self.uuid, Relocation.Step.UPLOADING, OrderedTask.UPLOADING_COMPLETE, 3
-        )
+        (rel, attempts_left) = start_relocation_task(self.uuid, OrderedTask.UPLOADING_COMPLETE, 3)
 
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
@@ -98,24 +90,19 @@ class RelocationStartTestCase(RelocationUtilsTestCase):
             to=[self.owner.email, self.superuser.email]
         )
 
-        assert relocation is None
+        assert rel is None
         assert not attempts_left
         assert Relocation.objects.get(uuid=self.uuid).status == Relocation.Status.FAILURE.value
 
     def test_good_first_task(self, fake_message_builder: Mock):
         self.mock_message_builder(fake_message_builder)
 
-        (relocation, attempts_left) = start_relocation_task(
-            self.uuid, Relocation.Step.UPLOADING, OrderedTask.UPLOADING_COMPLETE, 3
-        )
+        (rel, attempts_left) = start_relocation_task(self.uuid, OrderedTask.UPLOADING_COMPLETE, 3)
 
         assert fake_message_builder.call_count == 0
-
-        assert relocation is not None
         assert attempts_left == 2
 
-        relocation = Relocation.objects.get(uuid=self.uuid)
-        assert relocation is not None
+        relocation: Relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.step == Relocation.Step.UPLOADING.value
         assert relocation.status != Relocation.Status.FAILURE.value
 
@@ -125,21 +112,50 @@ class RelocationStartTestCase(RelocationUtilsTestCase):
         self.relocation.latest_task = OrderedTask.UPLOADING_COMPLETE.name
         self.relocation.save()
 
-        assert self.relocation.step == Relocation.Step.UPLOADING.value
-
-        (relocation, attempts_left) = start_relocation_task(
-            self.uuid, Relocation.Step.PREPROCESSING, OrderedTask.PREPROCESSING_SCAN, 3
-        )
+        (rel, attempts_left) = start_relocation_task(self.uuid, OrderedTask.PREPROCESSING_SCAN, 3)
 
         assert fake_message_builder.call_count == 0
-
-        assert relocation is not None
         assert attempts_left == 2
 
-        relocation = Relocation.objects.get(uuid=self.uuid)
-        assert relocation is not None
+        relocation: Relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.step == Relocation.Step.PREPROCESSING.value
         assert relocation.status != Relocation.Status.FAILURE.value
+
+    def test_good_pause_at_scheduled_pause(self, fake_message_builder: Mock):
+        self.mock_message_builder(fake_message_builder)
+
+        self.relocation.latest_task = OrderedTask.UPLOADING_COMPLETE.name
+        self.relocation.scheduled_pause_at_step = Relocation.Step.PREPROCESSING.value
+        self.relocation.save()
+
+        (rel, attempts_left) = start_relocation_task(self.uuid, OrderedTask.PREPROCESSING_SCAN, 3)
+
+        assert fake_message_builder.call_count == 0
+        assert attempts_left == 0
+
+        relocation: Relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.step == Relocation.Step.PREPROCESSING.value
+        assert relocation.latest_task == OrderedTask.PREPROCESSING_SCAN.name
+        assert relocation.status == Relocation.Status.PAUSE.value
+        assert relocation.scheduled_pause_at_step is None
+
+    def test_good_already_paused(self, fake_message_builder: Mock):
+        self.mock_message_builder(fake_message_builder)
+
+        self.relocation.latest_task = OrderedTask.UPLOADING_COMPLETE.name
+        self.relocation.status = Relocation.Status.PAUSE.value
+        self.relocation.save()
+
+        (rel, attempts_left) = start_relocation_task(self.uuid, OrderedTask.UPLOADING_COMPLETE, 3)
+
+        assert fake_message_builder.call_count == 0
+        assert attempts_left == 0
+
+        relocation: Relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.step == Relocation.Step.UPLOADING.value
+        assert relocation.latest_task == OrderedTask.UPLOADING_COMPLETE.name
+        assert relocation.status == Relocation.Status.PAUSE.value
+        assert relocation.scheduled_pause_at_step is None
 
 
 @patch("sentry.utils.relocation.MessageBuilder")

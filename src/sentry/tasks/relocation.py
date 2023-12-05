@@ -142,7 +142,6 @@ def uploading_complete(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.UPLOADING,
         task=OrderedTask.UPLOADING_COMPLETE,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
@@ -205,7 +204,6 @@ def preprocessing_scan(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.PREPROCESSING,
         task=OrderedTask.PREPROCESSING_SCAN,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
@@ -350,7 +348,6 @@ def preprocessing_baseline_config(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.PREPROCESSING,
         task=OrderedTask.PREPROCESSING_BASELINE_CONFIG,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
@@ -407,7 +404,6 @@ def preprocessing_colliding_users(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.PREPROCESSING,
         task=OrderedTask.PREPROCESSING_COLLIDING_USERS,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
@@ -463,7 +459,6 @@ def preprocessing_complete(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.PREPROCESSING,
         task=OrderedTask.PREPROCESSING_COMPLETE,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
@@ -694,7 +689,6 @@ def validating_start(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.VALIDATING,
         task=OrderedTask.VALIDATING_START,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
@@ -771,7 +765,6 @@ def validating_poll(uuid: str, build_id: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.VALIDATING,
         task=OrderedTask.VALIDATING_POLL,
         allowed_task_attempts=MAX_VALIDATION_POLL_ATTEMPTS,
     )
@@ -867,7 +860,6 @@ def validating_complete(uuid: str, build_id: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.VALIDATING,
         task=OrderedTask.VALIDATING_COMPLETE,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
@@ -933,7 +925,6 @@ def importing(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.IMPORTING,
         task=OrderedTask.IMPORTING,
         allowed_task_attempts=1,
     )
@@ -991,7 +982,6 @@ def postprocessing(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.POSTPROCESSING,
         task=OrderedTask.POSTPROCESSING,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
@@ -1063,7 +1053,6 @@ def notifying_users(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.NOTIFYING,
         task=OrderedTask.NOTIFYING_USERS,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
@@ -1124,7 +1113,6 @@ def notifying_owner(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.NOTIFYING,
         task=OrderedTask.NOTIFYING_OWNER,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
@@ -1166,7 +1154,6 @@ def completed(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.COMPLETED,
         task=OrderedTask.COMPLETED,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
