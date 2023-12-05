@@ -51,7 +51,6 @@ export const useProjectRawWebVitalsQuery = ({transaction, tag, dataset}: Props =
     orgSlug: organization.slug,
     cursor: '',
     options: {
-      enabled: pageFilters.isReady,
       refetchOnWindowFocus: false,
     },
     skipAbort: true,

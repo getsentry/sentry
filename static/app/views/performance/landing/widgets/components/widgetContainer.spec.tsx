@@ -948,7 +948,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Best Page Opportunities'
     );
-    expect(eventsMock).toHaveBeenCalledTimes(1);
+    expect(eventsMock).toHaveBeenCalledTimes(2);
     expect(eventsMock).toHaveBeenNthCalledWith(
       1,
       expect.anything(),
@@ -972,6 +972,16 @@ describe('Performance > Widgets > WidgetContainer', function () {
           query: 'transaction.op:pageload',
           sort: '-count()',
           statsPeriod: '7d',
+          referrer: 'api.performance.generic-widget-chart.highest-opportunity-pages',
+        }),
+      })
+    );
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          referrer: 'api.performance.browser.web-vitals.project',
         }),
       })
     );
