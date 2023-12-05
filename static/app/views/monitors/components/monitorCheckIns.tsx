@@ -129,12 +129,11 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                           date={checkIn.dateCreated}
                           forcedTimezone={monitor.config.timezone ?? 'UTC'}
                           timeZone
-                          timeOnly
                           seconds
                         />
                       }
                     >
-                      {<DateTime date={checkIn.dateCreated} timeZone timeOnly seconds />}
+                      {<DateTime date={checkIn.dateCreated} timeZone seconds />}
                     </Tooltip>
                   </div>
                 ) : (
