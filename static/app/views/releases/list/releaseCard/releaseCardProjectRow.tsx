@@ -238,6 +238,7 @@ function ReleaseCardProjectRow({
 
         {hasThresholds && (
           <DisplaySmallCol>
+            {/* TODO: link to release details page */}
             {thresholds && thresholds.length > 0 && (
               <Tooltip
                 title={
@@ -252,6 +253,7 @@ function ReleaseCardProjectRow({
                           t('still pending')}
                       </div>
                     )}
+                    {t('Open in Release Details')}
                   </div>
                 }
               >
