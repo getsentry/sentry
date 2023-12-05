@@ -31,7 +31,6 @@ import {defined, formatBytesBase2, formatBytesBase10} from 'sentry/utils';
 import {
   DAY,
   formatNumberWithDynamicDecimalPoints,
-  formatPercentage,
   HOUR,
   MINUTE,
   MONTH,
@@ -358,8 +357,8 @@ export function formatMetricUsingUnit(value: number | null, unit: string) {
       return formatDuration(value * 60 * 60 * 24);
     case 'week':
       return formatDuration(value * 60 * 60 * 24 * 7);
-    case `${formatNumberWithDynamicDecimalPoints(value)}%`:
-      return formatPercentage(value, 2);
+    case 'ratio':
+      return `${formatNumberWithDynamicDecimalPoints(value * 100)}%`;
     case 'percent':
       return `${formatNumberWithDynamicDecimalPoints(value)}%`;
     case 'bit':

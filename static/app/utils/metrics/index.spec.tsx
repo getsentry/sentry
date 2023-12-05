@@ -16,6 +16,8 @@ describe('formatMetricsUsingUnitAndOp', () => {
     expect(formatMetricsUsingUnitAndOp(600, 'byte')).toEqual('600 B');
     expect(formatMetricsUsingUnitAndOp(4096, 'kibibyte')).toEqual('4.0 MiB');
     expect(formatMetricsUsingUnitAndOp(3145728, 'megabyte')).toEqual('3.15 TB');
+    expect(formatMetricsUsingUnitAndOp(0.99, 'ratio')).toEqual('99%');
+    expect(formatMetricsUsingUnitAndOp(99, 'percent')).toEqual('99%');
   });
 
   it('should handle value as null', () => {
@@ -144,8 +146,8 @@ describe('getDDMInterval', () => {
 describe('formatMetricUsingFixedUnit', () => {
   it('should return the formatted value with the short form of the given unit', () => {
     expect(formatMetricUsingFixedUnit(123456, 'millisecond')).toBe('123,456ms');
-    expect(formatMetricUsingFixedUnit(2.1231245, 'kibibyte')).toBe('2.123KiB');
-    expect(formatMetricUsingFixedUnit(1222.1231245, 'megabyte')).toBe('1,222.123MB');
+    expect(formatMetricUsingFixedUnit(2.1231245, 'kibibyte')).toBe('2.12KiB');
+    expect(formatMetricUsingFixedUnit(1222.1231245, 'megabyte')).toBe('1,222.12MB');
   });
 
   it.each(formattingSupportedMetricUnits.filter(unit => unit !== 'none'))(
