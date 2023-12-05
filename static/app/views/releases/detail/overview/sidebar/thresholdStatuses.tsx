@@ -32,7 +32,7 @@ function ThresholdStatuses({thresholdStatuses}: Props) {
       <SidebarSection.Content>
         <Table>
           {sortedThreshold?.map(status => (
-            <TableRow key={status.id}>
+            <TableRow key={status.id} type={status.is_healthy ? undefined : 'error'}>
               <RowGrid>
                 <div>{status.environment?.name}</div>
                 <div>{getExactDuration(status.window_in_seconds, true, 'seconds')}</div>
