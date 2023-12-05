@@ -51,7 +51,6 @@ from sentry.utils.env import gcp_project_id, log_gcp_credentials_details
 from sentry.utils.relocation import (
     RELOCATION_BLOB_SIZE,
     RELOCATION_FILE_TYPE,
-    EmailKind,
     LoggingPrinter,
     OrderedTask,
     create_cloudbuild_yaml,
@@ -323,7 +322,7 @@ def preprocessing_scan(uuid: str) -> None:
             # hours" email.
             send_relocation_update_email(
                 relocation,
-                EmailKind.STARTED,
+                Relocation.EmailKind.STARTED,
                 {
                     "uuid": str(relocation.uuid),
                     "orgs": relocation.want_org_slugs,
@@ -1140,7 +1139,7 @@ def notifying_owner(uuid: str) -> None:
     ):
         send_relocation_update_email(
             relocation,
-            EmailKind.SUCCEEDED,
+            Relocation.EmailKind.SUCCEEDED,
             {
                 "uuid": str(relocation.uuid),
                 "orgs": relocation.want_org_slugs,
