@@ -53,15 +53,15 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
     def get_static_action(action):
         options = []
         for option in action.option_groups:
-            for group in option["options"]:
-                opt = {
-                    "text": {
-                        "type": "plain_text",
-                        "text": group["text"],
-                        "emoji": True,
-                    }
-                }
-                options.append(opt)
+            opt = {
+                "text": {
+                    "type": "plain_text",
+                    "text": option["label"],
+                    "emoji": True,
+                },
+                "value": option["value"],
+            }
+            options.append(opt)
 
         return {
             "type": "static_select",
@@ -69,6 +69,20 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
             "options": options,
             "action_id": action.name,
         }
+
+    @staticmethod
+    def get_button_action(action):
+        # for text, label, url, value in actions:  # this will probably break other usages
+        button = {
+            "type": "button",
+            "action_id": action.label,  # hard coded for now, needs to be dynamic
+            "text": {"type": "plain_text", "text": action.label},
+            "value": action.value,
+        }
+        if action.url:
+            button["url"] = action.url
+
+        return button
 
     @staticmethod
     def get_action_block(actions: Sequence[Tuple[str, Optional[str], str]]) -> SlackBlock:

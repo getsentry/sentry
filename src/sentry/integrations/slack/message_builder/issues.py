@@ -175,6 +175,19 @@ def build_actions(
         )
 
     def _resolve_button() -> MessageAction:
+        # TODO feature flag this
+        resolve_options = [
+            {"label": "Immediately", "value": "resolved"},
+            {"label": "In the next release", "value": "resolved:inNextRelease"},
+            {"label": "In the current release", "value": "resolved:inCurrentRelease"},
+        ]
+        return MessageAction(
+            name="status",
+            label="Resolve...",
+            type="select",
+            option_groups=resolve_options,
+        )
+
         if status == GroupStatus.RESOLVED:
             return MessageAction(
                 name="status",
@@ -417,14 +430,16 @@ class SlackIssueAlertMessageBuilder(BlockSlackMessageBuilder):
 
         actions = []
         for action in payload_actions:
-            # TODO: need to deal with assignee differently
-            # TODO: need to populate the dropdown options for resolve and use a modal (or not? design tbd. could just do a dropdown)
+            # TODO: assignee will be similar to the resolve dropdown
             # MessageAction(name='status', label='Ignore', type='button', url=None, value='ignored:forever', action_id=None, style=None, selected_options=None, option_groups=None, block_id=None, elements=None)
-            # lets just get ignore working first
-            if action.name == "status":
-                actions.append((action.label, action.name, action.url, action.value))
+            if action.label in ("Archive", "Ignore", "Mark as Ongoing", "Stop Ignoring"):
+                actions.append(self.get_button_action(action))
+            elif action.label in ("Resolve", "Unresolve", "Resolve..."):
+                actions.append(self.get_static_action(action))
+
         if actions:
-            blocks.append(self.get_action_block(actions))
+            action_block = {"type": "actions", "elements": [action for action in actions]}
+            blocks.append(action_block)
 
         return self._build_blocks(
             *blocks,

@@ -443,14 +443,24 @@ class SlackActionEndpoint(Endpoint):
         if use_block_kit:
             action_list = []
             for action_data in slack_request.data.get("actions"):
-                action = BlockKitMessageAction(
-                    name=action_data["action_id"],
-                    label=action_data["text"]["text"],
-                    type=action_data["type"],
-                    value=action_data["value"],
-                    action_id=action_data["action_id"],
-                    block_id=action_data["block_id"],
-                )
+                if action_data.get("type") == "static_select":
+                    action = BlockKitMessageAction(
+                        name=action_data["action_id"],
+                        label=action_data["selected_option"]["text"]["text"],
+                        type=action_data["type"],
+                        value=action_data["selected_option"]["value"],
+                        action_id=action_data["action_id"],
+                        block_id=action_data["block_id"],
+                    )
+                else:
+                    action = BlockKitMessageAction(
+                        name=action_data["action_id"],
+                        label=action_data["text"]["text"],
+                        type=action_data["type"],
+                        value=action_data["value"],
+                        action_id=action_data["action_id"],
+                        block_id=action_data["block_id"],
+                    )
                 action_list.append(action)
 
             return action_list
