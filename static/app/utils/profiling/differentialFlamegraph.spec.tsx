@@ -81,7 +81,7 @@ describe('differentialFlamegraph', () => {
 
     expect(flamegraph.colors?.get('new function')).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_INCREASE,
-      1,
+      1 * DifferentialFlamegraph.ALPHA_SCALING,
     ]);
   });
 
@@ -115,11 +115,11 @@ describe('differentialFlamegraph', () => {
 
     expect(flamegraph.colors?.get('function')).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_INCREASE,
-      1,
+      1 * DifferentialFlamegraph.ALPHA_SCALING,
     ]);
     expect(flamegraph.colors?.get('other function')).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_INCREASE,
-      0.2, // 2 / 10
+      0.2 * DifferentialFlamegraph.ALPHA_SCALING, // 2 / 10
     ]);
   });
 
@@ -153,11 +153,11 @@ describe('differentialFlamegraph', () => {
 
     expect(flamegraph.colors?.get('function')).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_INCREASE,
-      1, // (11 - 1) / 10
+      1 * DifferentialFlamegraph.ALPHA_SCALING, // (11 - 1) / 10
     ]);
     expect(flamegraph.colors?.get('other function')).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_INCREASE,
-      0.3, // (4 - 1) / 10
+      0.3 * DifferentialFlamegraph.ALPHA_SCALING, // (4 - 1) / 10
     ]);
   });
 
@@ -191,11 +191,11 @@ describe('differentialFlamegraph', () => {
 
     expect(flamegraph.colors?.get('function')).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_DECREASE,
-      1,
+      1 * DifferentialFlamegraph.ALPHA_SCALING,
     ]);
     expect(flamegraph.colors?.get('other function')).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_DECREASE,
-      0.2,
+      0.2 * DifferentialFlamegraph.ALPHA_SCALING,
     ]);
   });
 });

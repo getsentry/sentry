@@ -27,6 +27,8 @@ export class DifferentialFlamegraph extends Flamegraph {
   increasedFrames: [number, FlamegraphFrame][] = [];
   decreasedFrames: [number, FlamegraphFrame][] = [];
 
+  static ALPHA_SCALING = 0.8;
+
   static FrameKey(frame: FlamegraphFrame): string {
     return (
       frame.frame.name +
@@ -100,21 +102,21 @@ export class DifferentialFlamegraph extends Flamegraph {
     for (const frame of newFrames) {
       colorMap.set(DifferentialFlamegraph.FrameKey(frame), [
         ...theme.COLORS.DIFFERENTIAL_INCREASE,
-        0.8,
+        1 * DifferentialFlamegraph.ALPHA_SCALING,
       ] as ColorChannels);
     }
 
     for (const frame of increasedFrames) {
       colorMap.set(DifferentialFlamegraph.FrameKey(frame[1]), [
         ...theme.COLORS.DIFFERENTIAL_INCREASE,
-        (frame[0] / maxIncrease) * 0.8,
+        (frame[0] / maxIncrease) * DifferentialFlamegraph.ALPHA_SCALING,
       ] as ColorChannels);
     }
 
     for (const frame of decreasedFrames) {
       colorMap.set(DifferentialFlamegraph.FrameKey(frame[1]), [
         ...theme.COLORS.DIFFERENTIAL_DECREASE,
-        (frame[0] / maxDecrease) * 0.8,
+        (frame[0] / maxDecrease) * DifferentialFlamegraph.ALPHA_SCALING,
       ] as ColorChannels);
     }
 
