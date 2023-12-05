@@ -115,7 +115,7 @@ function ReleaseCardProjectRow({
   });
 
   const pendingThresholds = thresholds.filter(status => {
-    return new Date(status.end) > new Date();
+    return new Date(status.end || '') > new Date();
   });
 
   const crashFreeRate = getHealthData.getCrashFreeRate(releaseVersion, id, activeDisplay);

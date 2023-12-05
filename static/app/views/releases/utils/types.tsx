@@ -18,16 +18,16 @@ export type ThresholdStatus = Threshold & {
   is_healthy: boolean;
 };
 export type Threshold = {
-  end: string;
   environment: Environment;
   id: string;
   project: Project;
-  start: string;
   threshold_type: string;
   trigger_type: 'over' | 'under';
   value: number;
   window_in_seconds: number;
   date_added?: string;
+  end?: string;
+  start?: string;
 };
 
 export type EditingThreshold = Omit<Threshold, 'environment' | 'window_in_seconds'> & {
