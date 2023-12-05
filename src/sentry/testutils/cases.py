@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.metadata
 import inspect
 import os.path
 import re
@@ -34,7 +35,6 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import resolve, reverse
 from django.utils import timezone as django_timezone
 from django.utils.functional import cached_property
-from pkg_resources import iter_entry_points
 from requests.utils import CaseInsensitiveDict, get_encoding_from_headers
 from rest_framework import status
 from rest_framework.test import APITestCase as BaseAPITestCase
@@ -77,7 +77,8 @@ from sentry.models.environment import Environment
 from sentry.models.files.file import File
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
-from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
@@ -90,7 +91,6 @@ from sentry.models.rule import RuleSource
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import plugins
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.models import ReplayRecordingSegment
@@ -117,10 +117,8 @@ from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import install_slack
-from sentry.testutils.pytest.fixtures import default_project
 from sentry.testutils.pytest.selenium import Browser
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
-from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
 from sentry.utils.dates import to_timestamp
@@ -781,7 +779,9 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
             response.raw = BytesIO(resp.content)
             return response
 
-        with mock.patch("sentry.api_gateway.proxy.external_request", new=proxy_raw_request):
+        with mock.patch(
+            "sentry.hybridcloud.apigateway.proxy.external_request", new=proxy_raw_request
+        ):
             yield
 
 
@@ -1007,29 +1007,21 @@ class PluginTestCase(TestCase):
             self.addCleanup(plugins.unregister, self.plugin)
 
     def assertAppInstalled(self, name, path):
-        for ep in iter_entry_points("sentry.apps"):
-            if ep.name == name:
-                ep_path = ep.module_name
-                if ep_path == path:
-                    return
-                self.fail(
-                    "Found app in entry_points, but wrong class. Got %r, expected %r"
-                    % (ep_path, path)
-                )
-        self.fail(f"Missing app from entry_points: {name!r}")
+        for ep in importlib.metadata.distribution("sentry").entry_points:
+            if ep.group == "sentry.apps" and ep.name == name:
+                assert ep.value == path
+                return
+        else:
+            self.fail(f"Missing app from entry_points: {name!r}")
 
     def assertPluginInstalled(self, name, plugin):
         path = type(plugin).__module__ + ":" + type(plugin).__name__
-        for ep in iter_entry_points("sentry.plugins"):
-            if ep.name == name:
-                ep_path = ep.module_name + ":" + ".".join(ep.attrs)
-                if ep_path == path:
-                    return
-                self.fail(
-                    "Found plugin in entry_points, but wrong class. Got %r, expected %r"
-                    % (ep_path, path)
-                )
-        self.fail(f"Missing plugin from entry_points: {name!r}")
+        for ep in importlib.metadata.distribution("sentry").entry_points:
+            if ep.group == "sentry.plugins" and ep.name == name:
+                assert ep.value == path
+                return
+        else:
+            self.fail(f"Missing plugin from entry_points: {name!r}")
 
 
 class CliTestCase(TestCase):
@@ -1802,6 +1794,17 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "measurements.cls": "metrics_distributions",
         "measurements.frames_frozen_rate": "metrics_distributions",
         "measurements.time_to_initial_display": "metrics_distributions",
+        "measurements.score.lcp": "metrics_distributions",
+        "measurements.score.fcp": "metrics_distributions",
+        "measurements.score.fid": "metrics_distributions",
+        "measurements.score.cls": "metrics_distributions",
+        "measurements.score.ttfb": "metrics_distributions",
+        "measurements.score.total": "metrics_distributions",
+        "measurements.score.weight.lcp": "metrics_distributions",
+        "measurements.score.weight.fcp": "metrics_distributions",
+        "measurements.score.weight.fid": "metrics_distributions",
+        "measurements.score.weight.cls": "metrics_distributions",
+        "measurements.score.weight.ttfb": "metrics_distributions",
         "spans.http": "metrics_distributions",
         "user": "metrics_sets",
     }
@@ -1893,23 +1896,21 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         additional_tags: Optional[Dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
     ):
-
-        project: Project = default_project
-        metric_spec = spec.to_metric_spec(project)
+        metric_spec = spec.to_metric_spec(self.project)
         metric_spec_tags = metric_spec["tags"] or [] if metric_spec else []
-        spec_tags = {i["key"]: i.get("value") or i.get("field") for i in metric_spec_tags}
+        tags = {i["key"]: i.get("value") or i.get("field") for i in metric_spec_tags}
 
         metric_type = spec._metric_type
+        if additional_tags:
+            # Additional tags might be needed to override field values from the spec.
+            tags.update(additional_tags)
 
         self.store_transaction_metric(
             value,
             metric=self.ON_DEMAND_KEY_MAP[metric_type],
             internal_metric=self.ON_DEMAND_MRI_MAP[metric_type],
             entity=self.ON_DEMAND_ENTITY_MAP[metric_type],
-            tags={
-                **spec_tags,
-                **additional_tags,  # Additional tags might be needed to override field values from the spec.
-            },
+            tags=tags,
             timestamp=timestamp,
         )
 
@@ -2565,24 +2566,17 @@ class SlackActivityNotificationTest(ActivityTestCase):
 
     def setUp(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.SLACK,
-                NotificationSettingTypes.WORKFLOW,
-                NotificationSettingOptionValues.ALWAYS,
-                user_id=self.user.id,
-            )
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.SLACK,
-                NotificationSettingTypes.DEPLOY,
-                NotificationSettingOptionValues.ALWAYS,
-                user_id=self.user.id,
-            )
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.SLACK,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                NotificationSettingOptionValues.ALWAYS,
-                user_id=self.user.id,
-            )
+            base_params = {
+                "user_id": self.user.id,
+                "scope_identifier": self.user.id,
+                "scope_type": "user",
+                "value": "always",
+            }
+            for type in ["workflow", "deploy", "alerts"]:
+                NotificationSettingOption.objects.create(
+                    type=type,
+                    **base_params,
+                )
             UserOption.objects.create(user=self.user, key="self_notifications", value="1")
             self.integration = install_slack(self.organization)
             self.idp = IdentityProvider.objects.create(
@@ -2639,24 +2633,24 @@ class SlackActivityNotificationTest(ActivityTestCase):
 class MSTeamsActivityNotificationTest(ActivityTestCase):
     def setUp(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.MSTEAMS,
-                NotificationSettingTypes.WORKFLOW,
-                NotificationSettingOptionValues.ALWAYS,
-                user_id=self.user.id,
-            )
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.MSTEAMS,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                NotificationSettingOptionValues.ALWAYS,
-                user_id=self.user.id,
-            )
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.MSTEAMS,
-                NotificationSettingTypes.DEPLOY,
-                NotificationSettingOptionValues.ALWAYS,
-                user_id=self.user.id,
-            )
+            base_params = {
+                "user_id": self.user.id,
+                "scope_identifier": self.user.id,
+                "scope_type": "user",
+                "value": "always",
+            }
+            for type in ["workflow", "deploy", "alerts"]:
+                NotificationSettingOption.objects.create(
+                    type=type,
+                    **base_params,
+                )
+                # need to enable the provider options since msteams is disabled by default
+                NotificationSettingProvider.objects.create(
+                    provider="msteams",
+                    type=type,
+                    **base_params,
+                )
+
             UserOption.objects.create(user=self.user, key="self_notifications", value="1")
 
         self.tenant_id = "50cccd00-7c9c-4b32-8cda-58a084f9334a"

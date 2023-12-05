@@ -21,11 +21,10 @@ from sentry.integrations import (
 from sentry.integrations.mixins.issues import MAX_CHAR, IssueSyncMixin, ResolveSyncAction
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration_external_project import IntegrationExternalProject
-from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.user import User
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization.service import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -389,7 +388,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         return self.get_client().create_comment(issue_id, quoted_comment)
 
     def create_comment_attribution(self, user_id, comment_text):
-        user = User.objects.get(id=user_id)
+        user = user_service.get_user(user_id=user_id)
         attribution = f"{user.name} wrote:\n\n"
         return f"{attribution}{{quote}}{comment_text}{{quote}}"
 
@@ -924,15 +923,18 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         jira_issue = client.get_issue(external_issue.key)
         jira_project = jira_issue["fields"]["project"]
 
-        try:
-            external_project = IntegrationExternalProject.objects.get(
-                external_id=jira_project["id"],
-                organization_integration_id__in=OrganizationIntegration.objects.filter(
-                    organization_id=external_issue.organization_id,
-                    integration_id=external_issue.integration_id,
-                ),
-            )
-        except IntegrationExternalProject.DoesNotExist:
+        external_project = integration_service.get_integration_external_project(
+            organization_id=external_issue.organization_id,
+            integration_id=external_issue.integration_id,
+            external_id=jira_project["id"],
+        )
+        log_context = {
+            "integration_id": external_issue.integration_id,
+            "is_resolved": is_resolved,
+            "issue_key": external_issue.key,
+        }
+        if not external_project:
+            logger.info("jira.external-project-not-found", extra=log_context)
             return
 
         jira_status = (
@@ -941,6 +943,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
         # don't bother updating if it's already the status we'd change it to
         if jira_issue["fields"]["status"]["id"] == jira_status:
+            logger.info("jira.sync_status_outbound.unchanged", extra=log_context)
             return
         try:
             transitions = client.get_transitions(external_issue.key)
@@ -951,14 +954,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             transition = [t for t in transitions if t.get("to", {}).get("id") == jira_status][0]
         except IndexError:
             # TODO(jess): Email for failure
-            logger.warning(
-                "jira.status-sync-fail",
-                extra={
-                    "organization_id": external_issue.organization_id,
-                    "integration_id": external_issue.integration_id,
-                    "issue_key": external_issue.key,
-                },
-            )
+            logger.warning("jira.status-sync-fail", extra=log_context)
             return
 
         client.transition_issue(external_issue.key, transition["id"])

@@ -64,6 +64,7 @@ import {getSortField} from './fieldRenderers';
 // Metadata mapping for discover results.
 export type MetaType = Record<string, any> & {
   isMetricsData?: boolean;
+  isMetricsExtractedData?: boolean;
   tips?: {columns: string; query: string};
   units?: Record<string, string>;
 };
@@ -71,6 +72,7 @@ export type EventsMetaType = {fields: Record<string, ColumnType>} & {
   units: Record<string, string>;
 } & {
   isMetricsData?: boolean;
+  isMetricsExtractedData?: boolean;
 };
 
 // Data in discover results.

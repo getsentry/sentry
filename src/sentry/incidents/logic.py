@@ -43,7 +43,7 @@ from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.project import Project
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.events.builder import QueryBuilder
-from sentry.search.events.fields import resolve_field
+from sentry.search.events.fields import is_function, resolve_field
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
@@ -61,6 +61,7 @@ from sentry.snuba.entity_subscription import (
     get_entity_subscription_from_snuba_query,
 )
 from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
+from sentry.snuba.metrics.naming_layer.mri import get_available_operations, is_mri, parse_mri
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
@@ -1511,25 +1512,53 @@ TRANSLATABLE_COLUMNS = {
 }
 
 
-def get_column_from_aggregate(aggregate):
+def get_column_from_aggregate(aggregate, allow_mri):
+    if allow_mri:
+        mri_column = get_column_from_aggregate_with_mri(aggregate)
+        # Only if the column was allowed, we return it, otherwise we fallback to the old logic.
+        if mri_column:
+            return mri_column
+
     function = resolve_field(aggregate)
     if function.aggregate is not None:
         return function.aggregate[1]
+
     return None
 
 
-def check_aggregate_column_support(aggregate):
-    column = get_column_from_aggregate(aggregate)
+def get_column_from_aggregate_with_mri(aggregate):
+    match = is_function(aggregate)
+    if match is None:
+        return None
+
+    function = match.group("function")
+    columns = match.group("columns")
+
+    parsed_mri = parse_mri(columns)
+    if parsed_mri is None:
+        return None
+
+    available_ops = set(get_available_operations(parsed_mri))
+    if function not in available_ops:
+        return None
+
+    return columns
+
+
+def check_aggregate_column_support(aggregate, allow_mri=False):
+    # TODO(ddm): remove `allow_mri` once the experimental feature flag is removed.
+    column = get_column_from_aggregate(aggregate, allow_mri)
     return (
         column is None
         or is_measurement(column)
         or column in SUPPORTED_COLUMNS
         or column in TRANSLATABLE_COLUMNS
+        or (is_mri(column) and allow_mri)
     )
 
 
-def translate_aggregate_field(aggregate, reverse=False):
-    column = get_column_from_aggregate(aggregate)
+def translate_aggregate_field(aggregate, reverse=False, allow_mri=False):
+    column = get_column_from_aggregate(aggregate, allow_mri)
     if not reverse:
         if column in TRANSLATABLE_COLUMNS:
             return aggregate.replace(column, TRANSLATABLE_COLUMNS[column])

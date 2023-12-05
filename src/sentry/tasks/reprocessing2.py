@@ -173,7 +173,7 @@ def handle_remaining_events(
     if event_ids_redis_key is not None:
         event_ids, from_timestamp, to_timestamp = pop_batched_events_from_redis(event_ids_redis_key)
 
-    metrics.timing(
+    metrics.distribution(
         "events.reprocessing.handle_remaining_events.batch_size",
         len(event_ids),
         sample_rate=1.0,

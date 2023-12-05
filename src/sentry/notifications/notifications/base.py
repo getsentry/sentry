@@ -10,8 +10,6 @@ import sentry_sdk
 from sentry import analytics
 from sentry.db.models import Model
 from sentry.models.environment import Environment
-from sentry.models.notificationsetting import NotificationSetting
-from sentry.notifications.helpers import should_use_notifications_v2
 from sentry.notifications.types import (
     NOTIFICATION_SETTING_TYPES,
     NotificationSettingEnum,
@@ -37,13 +35,23 @@ class BaseNotification(abc.ABC):
         ExternalProviders.DISCORD: "[{text}]({url})",
     }
     message_builder = "SlackNotificationsMessageBuilder"
-    # some notifications have no settings for it
-    notification_setting_type: NotificationSettingTypes | None = None
+    # some notifications have no settings for it which is why it is optional
+    notification_setting_type_enum: NotificationSettingEnum | None = None
     analytics_event: str = ""
 
     def __init__(self, organization: Organization, notification_uuid: str | None = None):
         self.organization = organization
         self.notification_uuid = notification_uuid if notification_uuid else str(uuid.uuid4())
+
+    # TODO(Steve): Remove notification_setting_type
+    @property
+    def notification_setting_type(self) -> NotificationSettingTypes | None:
+        if self.notification_setting_type_enum is not None:
+            # find the matching NotificationSettingTypes
+            for key, value in NOTIFICATION_SETTING_TYPES.items():
+                if value == self.notification_setting_type_enum.value:
+                    return key
+        return None
 
     @property
     def from_email(self) -> str | None:
@@ -233,28 +241,18 @@ class BaseNotification(abc.ABC):
     def filter_to_accepting_recipients(
         self, recipients: Iterable[RpcActor]
     ) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
-        from sentry.notifications.utils.participants import get_notification_recipients_v2
+        from sentry.notifications.utils.participants import get_notification_recipients
 
         setting_type = (
-            NotificationSettingEnum(NOTIFICATION_SETTING_TYPES[self.notification_setting_type])
-            if self.notification_setting_type
+            self.notification_setting_type_enum
+            if self.notification_setting_type_enum
             else NotificationSettingEnum.ISSUE_ALERTS
         )
-        if should_use_notifications_v2(self.organization):
-            return get_notification_recipients_v2(
-                recipients=recipients,
-                type=setting_type,
-                organization_id=self.organization.id,
-            )
-
-        accepting_recipients: Mapping[
-            ExternalProviders, Iterable[RpcActor]
-        ] = NotificationSetting.objects.filter_to_accepting_recipients(
-            self.organization,
-            recipients,
-            self.notification_setting_type or NotificationSettingTypes.ISSUE_ALERTS,
+        return get_notification_recipients(
+            recipients=recipients,
+            type=setting_type,
+            organization_id=self.organization.id,
         )
-        return accepting_recipients
 
     def get_participants(self) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
         # need a notification_setting_type to call this function

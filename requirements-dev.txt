@@ -14,8 +14,7 @@ pytest-rerunfailures>=11
 pytest-sentry>=0.1.11
 pytest-xdist>=3
 responses>=0.23.1
-selenium>=4.11.2
-
+selenium>=4.3.0
 sentry-cli>=2.16.0
 
 # pre-commit dependencies
@@ -36,7 +35,7 @@ sentry-forked-django-stubs>=4.2.6.post3
 sentry-forked-djangorestframework-stubs>=3.14.4.post2
 lxml-stubs
 msgpack-types>=0.2.0
-mypy>=1.6.1
+mypy>=1.7.1
 types-beautifulsoup4
 types-cachetools
 types-croniter

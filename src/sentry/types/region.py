@@ -6,6 +6,7 @@ from urllib.parse import urljoin
 
 import sentry_sdk
 from django.conf import settings
+from django.http import HttpRequest
 from pydantic.dataclasses import dataclass
 from pydantic.tools import parse_obj_as
 
@@ -218,6 +219,13 @@ def is_region_name(name: str) -> bool:
     return name in load_global_regions().by_name
 
 
+def subdomain_is_region(request: HttpRequest) -> bool:
+    subdomain = getattr(request, "subdomain", None)
+    if subdomain is None:
+        return False
+    return is_region_name(subdomain)
+
+
 @control_silo_function
 def get_region_for_organization(organization_slug: str) -> Region:
     """Resolve an organization to the region where its data is stored."""
@@ -298,3 +306,12 @@ def find_all_multitenant_region_names() -> List[str]:
         for region in load_global_regions().regions
         if region.category == RegionCategory.MULTI_TENANT
     ]
+
+
+def get_region_display_name(region_name: str) -> str:
+    if region_name == "us":
+        return "🇺🇸 United States of America (US)"
+    if region_name == "de":
+        return "🇪🇺 European Union (EU)"
+
+    return region_name

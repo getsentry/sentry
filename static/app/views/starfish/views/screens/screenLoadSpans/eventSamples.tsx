@@ -28,8 +28,9 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {TableColumn} from 'sentry/views/discover/table/types';
-import {centerTruncate} from 'sentry/views/starfish/utils/centerTruncate';
+import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {DeviceClassSelector} from 'sentry/views/starfish/views/screens/screenLoadSpans/deviceClassSelector';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 
@@ -64,7 +65,11 @@ export function ScreenLoadEventSamples({
   const deviceClass = decodeScalar(location.query['device.class']);
 
   if (deviceClass) {
-    searchQuery.addFilterValue('device.class', deviceClass);
+    if (deviceClass === 'Unknown') {
+      searchQuery.addFilterValue('!has', 'device.class');
+    } else {
+      searchQuery.addFilterValue('device.class', deviceClass);
+    }
   }
 
   const sort = fromSorts(decodeScalar(location.query[sortKey]))[0] ?? {
@@ -73,7 +78,7 @@ export function ScreenLoadEventSamples({
   };
 
   const columnNameMap = {
-    id: t('Event ID (%s)', centerTruncate(release)),
+    id: t('Event ID (%s)', formatVersionAndCenterTruncate(release)),
     'profile.id': t('Profile'),
     'measurements.time_to_initial_display': t('TTID'),
     'measurements.time_to_full_display': t('TTFD'),
@@ -102,6 +107,7 @@ export function ScreenLoadEventSamples({
     enabled: true,
     limit: 4,
     cursor,
+    referrer: 'api.starfish.mobile-event-samples',
   });
 
   const eventViewColumns = eventView.getColumns();
@@ -113,7 +119,11 @@ export function ScreenLoadEventSamples({
 
     if (column.key === 'id') {
       return (
-        <Link to={`/performance/${row['project.name']}:${row.id}`}>
+        <Link
+          to={normalizeUrl(
+            `/organizations/${organization.slug}/performance/${row['project.name']}:${row.id}`
+          )}
+        >
           {row.id.slice(0, 8)}
         </Link>
       );

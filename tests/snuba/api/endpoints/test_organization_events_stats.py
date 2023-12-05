@@ -38,36 +38,37 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         self.project2 = self.create_project()
         self.user = self.create_user()
         self.user2 = self.create_user()
-        self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "very bad",
-                "timestamp": iso_format(self.day_ago + timedelta(minutes=1)),
-                "fingerprint": ["group1"],
-                "tags": {"sentry:user": self.user.email},
-            },
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={
-                "event_id": "b" * 32,
-                "message": "oh my",
-                "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=1)),
-                "fingerprint": ["group2"],
-                "tags": {"sentry:user": self.user2.email},
-            },
-            project_id=self.project2.id,
-        )
-        self.store_event(
-            data={
-                "event_id": "c" * 32,
-                "message": "very bad",
-                "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=2)),
-                "fingerprint": ["group2"],
-                "tags": {"sentry:user": self.user2.email},
-            },
-            project_id=self.project2.id,
-        )
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "message": "very bad",
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=1)),
+                    "fingerprint": ["group1"],
+                    "tags": {"sentry:user": self.user.email},
+                },
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={
+                    "event_id": "b" * 32,
+                    "message": "oh my",
+                    "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=1)),
+                    "fingerprint": ["group2"],
+                    "tags": {"sentry:user": self.user2.email},
+                },
+                project_id=self.project2.id,
+            )
+            self.store_event(
+                data={
+                    "event_id": "c" * 32,
+                    "message": "very bad",
+                    "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=2)),
+                    "fingerprint": ["group2"],
+                    "tags": {"sentry:user": self.user2.email},
+                },
+                project_id=self.project2.id,
+            )
         self.url = reverse(
             "sentry-api-0-organization-events-stats",
             kwargs={"organization_slug": self.project.organization.slug},
@@ -174,6 +175,31 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             )
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 3}], [{"count": 0}]]
+
+    def test_errors_dataset(self):
+        response = self.do_request(
+            {
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "dataset": "errors",
+                "query": "is:unresolved",
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
+
+    def test_errors_dataset_no_query(self):
+        response = self.do_request(
+            {
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "dataset": "errors",
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
 
     def test_misaligned_last_bucket(self):
         response = self.do_request(

@@ -25,17 +25,20 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
+import {USE_STORED_SCORES} from 'sentry/views/performance/browser/webVitals/settings';
 import {calculateOpportunity} from 'sentry/views/performance/browser/webVitals/utils/calculateOpportunity';
-import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
+import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
+import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
+import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
+import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionWebVitalsQuery';
 import {
   Row,
   SORTABLE_FIELDS,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
-import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useTransactionWebVitalsQuery';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 
-type RowWithScoreAndOpportunity = Row & {opportunity: number; score: number};
+type RowWithScoreAndOpportunity = Row & {score: number; opportunity?: number};
 
 type Column = GridColumnHeader<keyof RowWithScoreAndOpportunity>;
 
@@ -68,25 +71,36 @@ export function PagePerformanceTable() {
   const sort = useWebVitalsSort();
 
   const {data: projectData, isLoading: isProjectWebVitalsQueryLoading} =
-    useProjectWebVitalsQuery({transaction: query});
+    useProjectRawWebVitalsQuery({transaction: query});
+  const {data: projectScoresData, isLoading: isProjectScoresLoading} =
+    useProjectWebVitalsScoresQuery({
+      transaction: query,
+      enabled: USE_STORED_SCORES,
+    });
 
-  const projectScore = calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
+  const projectScore = USE_STORED_SCORES
+    ? calculatePerformanceScoreFromStoredTableDataRow(projectScoresData?.data?.[0])
+    : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
+
   const {
     data,
     pageLinks,
     isLoading: isTransactionWebVitalsQueryLoading,
   } = useTransactionWebVitalsQuery({limit: MAX_ROWS, transaction: query});
 
-  const count = projectData?.data[0]['count()'] as number;
+  const count = projectData?.data?.[0]?.['count()'] as number;
 
   const tableData: RowWithScoreAndOpportunity[] = data.map(row => ({
     ...row,
-    opportunity: calculateOpportunity(
-      projectScore.totalScore ?? 0,
-      count,
-      row.score,
-      row['count()']
-    ),
+    opportunity:
+      count !== undefined
+        ? calculateOpportunity(
+            projectScore.totalScore ?? 0,
+            count,
+            row.score,
+            row['count()']
+          )
+        : undefined,
   }));
   const getFormattedDuration = (value: number) => {
     return getDuration(value, value < 1 ? 0 : 2, true);
@@ -199,7 +213,12 @@ export function PagePerformanceTable() {
               )
                 ? {pathname: `${location.pathname}overview/`}
                 : {}),
-              query: {...location.query, transaction: row.transaction, query: undefined},
+              query: {
+                ...location.query,
+                transaction: row.transaction,
+                query: undefined,
+                cursor: undefined,
+              },
             }}
           >
             {row.transaction}
@@ -217,8 +236,16 @@ export function PagePerformanceTable() {
     ) {
       return <AlignRight>{getFormattedDuration((row[key] as number) / 1000)}</AlignRight>;
     }
-    if (['p75(measurements.cls)', 'opportunity'].includes(key)) {
+    if (key === 'p75(measurements.cls)') {
       return <AlignRight>{Math.round((row[key] as number) * 100) / 100}</AlignRight>;
+    }
+    if (key === 'opportunity') {
+      if (row.opportunity !== undefined) {
+        return (
+          <AlignRight>{Math.round((row.opportunity as number) * 100) / 100}</AlignRight>
+        );
+      }
+      return null;
     }
     return <NoOverflow>{row[key]}</NoOverflow>;
   }
@@ -243,7 +270,11 @@ export function PagePerformanceTable() {
         />
         <StyledPagination
           pageLinks={pageLinks}
-          disabled={isProjectWebVitalsQueryLoading || isTransactionWebVitalsQueryLoading}
+          disabled={
+            (USE_STORED_SCORES && isProjectScoresLoading) ||
+            isProjectWebVitalsQueryLoading ||
+            isTransactionWebVitalsQueryLoading
+          }
           size="md"
         />
         {/* The Pagination component disappears if pageLinks is not defined,
@@ -270,7 +301,11 @@ export function PagePerformanceTable() {
       </SearchBarContainer>
       <GridContainer>
         <GridEditable
-          isLoading={isProjectWebVitalsQueryLoading || isTransactionWebVitalsQueryLoading}
+          isLoading={
+            (USE_STORED_SCORES && isProjectScoresLoading) ||
+            isProjectWebVitalsQueryLoading ||
+            isTransactionWebVitalsQueryLoading
+          }
           columnOrder={columnOrder}
           columnSortBy={[]}
           data={tableData}

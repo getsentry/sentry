@@ -1,4 +1,4 @@
-import {Fragment, MouseEvent} from 'react';
+import {Fragment, MouseEvent, useMemo} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Query} from 'history';
@@ -94,18 +94,24 @@ export function Actions(props: Props) {
   const hasEscalatingIssues = organization.features.includes('escalating-issues');
   const hasDeleteAccess = organization.access.includes('event:admin');
 
+  const config = useMemo(() => getConfigForIssueType(group), [group]);
+
   const {
-    actions: {delete: deleteCap, deleteAndDiscard: deleteDiscardCap, share: shareCap},
+    actions: {
+      archiveUntilOccurrence: archiveUntilOccurrenceCap,
+      delete: deleteCap,
+      deleteAndDiscard: deleteDiscardCap,
+      share: shareCap,
+      resolveInRelease: resolveInReleaseCap,
+    },
     discover: discoverCap,
-  } = getConfigForIssueType(group);
+  } = config;
 
   const getDiscoverUrl = () => {
     const {title, type, shortId} = group;
 
     const groupIsOccurrenceBacked =
       group.issueCategory === IssueCategory.PERFORMANCE && !!event?.occurrence;
-
-    const config = getConfigForIssueType(group);
 
     const discoverQuery = {
       id: undefined,
@@ -276,7 +282,7 @@ export function Actions(props: Props) {
 
     return (
       <Feature
-        features={['projects:discard-groups']}
+        features="projects:discard-groups"
         hookName="feature-disabled:discard-groups"
         organization={organization}
         project={project}
@@ -473,7 +479,7 @@ export function Actions(props: Props) {
       {discoverCap.enabled && (
         <Feature
           hookName="feature-disabled:open-in-discover"
-          features={['discover-basic']}
+          features="discover-basic"
           organization={organization}
         >
           <ActionButton
@@ -526,6 +532,7 @@ export function Actions(props: Props) {
                 isArchived={isIgnored}
                 onUpdate={onUpdate}
                 disabled={disabled}
+                disableArchiveUntilOccurrence={!archiveUntilOccurrenceCap.enabled}
               />
             </GuideAnchor>
           ) : (
@@ -539,6 +546,7 @@ export function Actions(props: Props) {
           )}
           <GuideAnchor target="resolve" position="bottom" offset={20}>
             <ResolveActions
+              disableResolveInRelease={!resolveInReleaseCap.enabled}
               disabled={disabled}
               disableDropdown={disabled}
               hasRelease={hasRelease}

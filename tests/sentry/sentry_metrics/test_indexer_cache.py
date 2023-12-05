@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 import pytest
 from django.conf import settings
 
@@ -89,6 +91,26 @@ def test_cache(use_case_id: str) -> None:
 
         indexer_cache.delete(namespace_2, f"{use_case_id}:1:blah:123")
         assert indexer_cache.get(namespace_2, f"{use_case_id}:1:blah:123") is None
+
+
+def test_cache_validate_stale_timestamp():
+    with override_options(
+        {
+            "sentry-metrics.indexer.read-new-cache-namespace": True,
+            "sentry-metrics.indexer.write-new-cache-namespace": True,
+        }
+    ):
+        namespace = "test"
+        key = "spans:1:key"
+        cache.clear()
+        cache.set(
+            indexer_cache._make_namespaced_cache_key(namespace, key),
+            indexer_cache._make_cache_val(1, 0),
+        )
+        assert indexer_cache.get_many(namespace, [key]) == {key: None}
+
+        indexer_cache.set_many(namespace, {key: 1})
+        assert indexer_cache.get_many(namespace, [key]) == {key: 1}
 
 
 def test_cache_many(use_case_id: str) -> None:
@@ -209,3 +231,11 @@ def test_separate_namespacing() -> None:
         indexer_cache.set(namespace, "transactions:3:what", 2)
         assert indexer_cache.get(namespace, "sessions:3:what") == 1
         assert indexer_cache.get(namespace, "transactions:3:what") == 2
+
+
+def test_is_valid_timestamp() -> None:
+    stale_ts = int((datetime.utcnow() - timedelta(hours=5)).timestamp())
+    new_ts = int((datetime.utcnow() - timedelta(hours=1)).timestamp())
+
+    assert not indexer_cache._is_valid_timestamp(str(stale_ts))
+    assert indexer_cache._is_valid_timestamp(str(new_ts))

@@ -1,6 +1,9 @@
 import logging
+from datetime import timedelta
+from functools import reduce
 
 from django.db import router
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -14,14 +17,47 @@ from sentry.api.permissions import SuperuserPermission
 from sentry.models.files.file import File
 from sentry.models.relocation import Relocation, RelocationFile
 from sentry.models.user import MAX_USERNAME_LENGTH
+from sentry.options import get
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.tasks.relocation import uploading_complete
 from sentry.utils.db import atomic_transaction
 from sentry.utils.relocation import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE
 
 ERR_DUPLICATE_RELOCATION = "An in-progress relocation already exists for this owner"
+ERR_THROTTLED_RELOCATION = (
+    "We've reached our daily limit of relocations - please try again tomorrow or contact support."
+)
 
 logger = logging.getLogger(__name__)
+
+RELOCATION_FILE_SIZE_SMALL = 10 * 1024**2
+RELOCATION_FILE_SIZE_MEDIUM = 100 * 1024**2
+
+
+def get_relocation_size_category(size) -> str:
+    if size < RELOCATION_FILE_SIZE_SMALL:
+        return "small"
+    elif size < RELOCATION_FILE_SIZE_MEDIUM:
+        return "medium"
+    return "large"
+
+
+def should_throttle_relocation(relocation_bucket_size) -> bool:
+    recent_relocation_files = RelocationFile.objects.filter(
+        date_added__gte=(timezone.now() - timedelta(days=1))
+    )
+    num_recent_same_size_relocation_files = reduce(
+        lambda acc, relocation_file: acc + 1
+        if get_relocation_size_category(relocation_file.file.size) == relocation_bucket_size
+        else acc,
+        recent_relocation_files,
+        0,
+    )
+    if num_recent_same_size_relocation_files < get(
+        f"relocation.daily-limit-{relocation_bucket_size}"
+    ):
+        return False
+    return True
 
 
 class RelocationPostSerializer(serializers.Serializer):
@@ -83,8 +119,12 @@ class RelocationIndexEndpoint(Endpoint):
         ).exists():
             return Response({"detail": ERR_DUPLICATE_RELOCATION}, status=409)
 
-        # TODO(getsentry/team-ospo#203): check import size, and maybe throttle based on that
-        # information.
+        relocation_size_category = get_relocation_size_category(fileobj.size)
+        if should_throttle_relocation(relocation_size_category):
+            return Response(
+                {"detail": ERR_THROTTLED_RELOCATION},
+                status=429,
+            )
 
         file = File.objects.create(name="raw-relocation-data.tar", type=RELOCATION_FILE_TYPE)
         file.putfile(fileobj, blob_size=RELOCATION_BLOB_SIZE, logger=logger)

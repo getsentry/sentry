@@ -57,7 +57,7 @@ def try_repeated(func):
         try:
             result = func()
             metrics_tags.update({"success": "1"})
-            metrics.timing(metrics_key, idx, tags=metrics_tags)
+            metrics.distribution(metrics_key, idx, tags=metrics_tags)
             return result
         except (
             DataCorruption,
@@ -69,7 +69,7 @@ def try_repeated(func):
         ) as e:
             if idx >= GCS_RETRIES:
                 metrics_tags.update({"success": "0", "exception_class": e.__class__.__name__})
-                metrics.timing(metrics_key, idx, tags=metrics_tags)
+                metrics.distribution(metrics_key, idx, tags=metrics_tags)
                 raise
         idx += 1
 

@@ -34,7 +34,7 @@ from sentry.types.activity import ActivityType
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupDetailsTest(APITestCase, SnubaTestCase):
     def test_with_numerical_id(self):
         self.login_as(user=self.user)
@@ -280,7 +280,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             )
             group = event.group
             event.group.update(times_seen=1)
-            buffer.backend.incr(Group, {"times_seen": 15}, filters={"pk": event.group.id})
+            buffer.backend.incr(Group, {"times_seen": 15}, filters={"id": event.group.id})
 
             url = f"/api/0/issues/{group.id}/"
             response = self.client.get(url, format="json")
@@ -296,7 +296,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             assert response.data["count"] == "16"
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupUpdateTest(APITestCase):
     def test_resolve(self):
         self.login_as(user=self.user)
@@ -658,7 +658,7 @@ class GroupUpdateTest(APITestCase):
             assert response.status_code == 429
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupDeleteTest(APITestCase):
     def test_delete(self):
         self.login_as(user=self.user)

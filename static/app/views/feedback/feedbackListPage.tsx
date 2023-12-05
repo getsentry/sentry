@@ -9,7 +9,10 @@ import FeedbackItemLoader from 'sentry/components/feedback/feedbackItem/feedback
 import FeedbackSearch from 'sentry/components/feedback/feedbackSearch';
 import FeedbackSetupPanel from 'sentry/components/feedback/feedbackSetupPanel';
 import FeedbackList from 'sentry/components/feedback/list/feedbackList';
-import {useHaveSelectedProjectsSetupFeedback} from 'sentry/components/feedback/useFeedbackOnboarding';
+import {
+  useFeedbackHasSlug,
+  useHaveSelectedProjectsSetupFeedback,
+} from 'sentry/components/feedback/useFeedbackOnboarding';
 import {FeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -19,6 +22,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -29,6 +33,7 @@ interface Props extends RouteComponentProps<{}, {}, {}> {}
 export default function FeedbackListPage({}: Props) {
   const organization = useOrganization();
   const {hasSetupOneFeedback} = useHaveSelectedProjectsSetupFeedback();
+  const {hasSlug} = useFeedbackHasSlug();
   const location = useLocation();
 
   return (
@@ -62,6 +67,11 @@ export default function FeedbackListPage({}: Props) {
                       cursor: undefined,
                     },
                   }}
+                  onClick={() => {
+                    trackAnalytics('feedback.index-old-ui-clicked', {
+                      organization,
+                    });
+                  }}
                 >
                   {t('Go to Old User Feedback')}
                 </Button>
@@ -72,7 +82,7 @@ export default function FeedbackListPage({}: Props) {
             <ErrorBoundary>
               <LayoutGrid>
                 <FeedbackFilters style={{gridArea: 'filters'}} />
-                {hasSetupOneFeedback ? (
+                {hasSetupOneFeedback || hasSlug ? (
                   <Fragment>
                     <Container style={{gridArea: 'list'}}>
                       <FeedbackList />

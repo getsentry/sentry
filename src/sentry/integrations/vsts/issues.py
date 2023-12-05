@@ -7,9 +7,9 @@ from rest_framework.response import Response
 
 from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
 from sentry.models.activity import Activity
-from sentry.models.user import User
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 
 if TYPE_CHECKING:
@@ -108,7 +108,7 @@ class VstsIssueSync(IssueSyncMixin):
         return self.get_create_issue_config(None, None, project=project)
 
     def get_create_issue_config(
-        self, group: Optional["Group"], user: Optional[User], **kwargs: Any
+        self, group: Optional["Group"], user: Optional[RpcUser], **kwargs: Any
     ) -> Sequence[Mapping[str, Any]]:
         kwargs["link_referrer"] = "vsts_integration"
         fields = []
@@ -345,7 +345,7 @@ class VstsIssueSync(IssueSyncMixin):
     def create_comment_attribution(self, user_id: int, comment_text: str) -> str:
         # VSTS uses markdown or xml
         # https://docs.microsoft.com/en-us/microsoftteams/platform/concepts/bots/bots-text-formats
-        user = User.objects.get(id=user_id)
+        user = user_service.get_user(user_id=user_id)
         attribution = f"{user.name} wrote:\n\n"
         quoted_comment = f"{attribution}<blockquote>{comment_text}</blockquote>"
         return quoted_comment

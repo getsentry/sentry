@@ -30,6 +30,7 @@ type Props = {
   showTags: boolean;
   tableData: TableData | null | undefined;
   title: string;
+  supportsInvestigationRule?: boolean;
 };
 
 function handleDownloadAsCsv(title: string, {organization, eventView, tableData}: Props) {
@@ -43,7 +44,7 @@ function renderDownloadButton(canEdit: boolean, props: Props) {
   const {tableData} = props;
   return (
     <Feature
-      features={['organizations:discover-query']}
+      features="organizations:discover-query"
       renderDisabled={() => renderBrowserExportButton(canEdit, props)}
     >
       {tableData?.data && tableData.data.length < 50
@@ -161,12 +162,14 @@ function TableActions(props: Props) {
   const totalNumSamples = numSamples === null ? null : numSamples + cursorOffset;
   return (
     <Fragment>
-      <InvestigationRuleCreation
-        {...props}
-        buttonProps={{size: 'sm'}}
-        numSamples={totalNumSamples}
-        key="investigationRuleCreation"
-      />
+      {props.supportsInvestigationRule && (
+        <InvestigationRuleCreation
+          {...props}
+          buttonProps={{size: 'sm'}}
+          numSamples={totalNumSamples}
+          key="investigationRuleCreation"
+        />
+      )}
       <FeatureWrapper {...props} key="edit">
         {renderEditButton}
       </FeatureWrapper>

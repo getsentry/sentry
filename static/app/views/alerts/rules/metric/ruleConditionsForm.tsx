@@ -25,6 +25,8 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Environment, Organization, Project, SelectValue} from 'sentry/types';
 import {getDisplayName} from 'sentry/utils/environment';
+import {hasDDMFeature} from 'sentry/utils/metrics/features';
+import {getMRI} from 'sentry/utils/metrics/mri';
 import {getOnDemandKeys, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import withApi from 'sentry/utils/withApi';
@@ -36,6 +38,7 @@ import {
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'sentry/views/alerts/utils';
 import {AlertType, getSupportedAndOmittedTags} from 'sentry/views/alerts/wizard/options';
+import {MetricSearchBar} from 'sentry/views/ddm/queryBuilder';
 
 import {getProjectOptions} from '../utils';
 
@@ -56,6 +59,7 @@ const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
 };
 
 type Props = {
+  aggregate: string;
   alertType: AlertType;
   api: Client;
   comparisonType: AlertRuleComparisonType;
@@ -179,7 +183,10 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       },
     ];
 
-    if (organization.features.includes('performance-view') && alertType === 'custom') {
+    if (
+      organization.features.includes('performance-view') &&
+      (alertType === 'custom_transactions' || alertType === 'custom_metrics')
+    ) {
       dataSourceOptions.push({
         label: t('Transactions'),
         options: [
@@ -224,13 +231,14 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   value === Datasource.TRANSACTION
                     ? DEFAULT_TRANSACTION_AGGREGATE
                     : DEFAULT_AGGREGATE;
-                if (alertType === 'custom' && aggregate !== newAggregate) {
+                if (alertType === 'custom_transactions' && aggregate !== newAggregate) {
                   model.setValue('aggregate', newAggregate);
                 }
 
                 // set the value of the dataset and event type from data source
                 const {dataset: datasetFromDataSource, eventTypes} =
                   DATA_SOURCE_TO_SET_AND_EVENT_TYPES[value] ?? {};
+
                 model.setValue('dataset', datasetFromDataSource);
                 model.setValue('eventTypes', eventTypes);
               }}
@@ -316,7 +324,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 
   renderInterval() {
-    const {organization, disabled, alertType, timeWindow, onTimeWindowChange} =
+    const {organization, disabled, alertType, timeWindow, onTimeWindowChange, project} =
       this.props;
 
     return (
@@ -332,6 +340,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             help={null}
             organization={organization}
             disabled={disabled}
+            project={project}
             style={{
               ...this.formElemBaseStyle,
               flex: 1,
@@ -370,6 +379,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
   render() {
     const {
+      alertType,
       organization,
       disabled,
       onFilterSearch,
@@ -377,7 +387,10 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       dataset,
       isExtrapolatedChartData,
       isMigration,
+      aggregate,
+      project,
     } = this.props;
+
     const {environments} = this.state;
 
     const environmentOptions: SelectValue<string | null>[] = [
@@ -448,7 +461,21 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 flexibleControlStateSize
               >
                 {({onChange, onBlur, onKeyDown, initialData, value}) => {
-                  return (
+                  return hasDDMFeature(organization) && alertType === 'custom_metrics' ? (
+                    <MetricSearchBar
+                      mri={getMRI(aggregate)}
+                      projectIds={[project.id]}
+                      placeholder={this.searchPlaceholder}
+                      query={initialData.query}
+                      defaultQuery={initialData?.query ?? ''}
+                      useFormWrapper={false}
+                      searchSource="alert_builder"
+                      onChange={query => {
+                        onFilterSearch(query, true);
+                        onChange(query, {});
+                      }}
+                    />
+                  ) : (
                     <SearchContainer>
                       <StyledSearchBar
                         disallowWildcard={dataset === Dataset.SESSIONS}

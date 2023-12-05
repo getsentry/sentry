@@ -3,10 +3,12 @@ from urllib.parse import parse_qs, urlencode, urlparse
 
 import pytest
 import responses
+from responses.matchers import header_matcher, json_params_matcher
 
 from sentry import audit_log, options
+from sentry.api.client import ApiError
 from sentry.integrations.discord.client import APPLICATION_COMMANDS_URL, GUILD_URL, DiscordClient
-from sentry.integrations.discord.integration import DiscordIntegrationProvider
+from sentry.integrations.discord.integration import COMMANDS, DiscordIntegrationProvider
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.integrations.integration import Integration
 from sentry.shared_integrations.exceptions import IntegrationError
@@ -27,11 +29,14 @@ class DiscordIntegrationTest(IntegrationTestCase):
         options.set("discord.bot-token", self.bot_token)
         options.set("discord.client-secret", self.client_secret)
 
+    @mock.patch("sentry.integrations.discord.client.DiscordNonProxyClient.set_application_command")
     def assert_setup_flow(
         self,
+        mock_set_application_command,
         guild_id="1234567890",
         server_name="Cool server",
         auth_code="auth_code",
+        command_response_empty=True,
     ):
         responses.reset()
 
@@ -52,11 +57,31 @@ class DiscordIntegrationTest(IntegrationTestCase):
         responses.add(
             responses.GET,
             url=f"{DiscordClient.base_url}{GUILD_URL.format(guild_id=guild_id)}",
+            match=[header_matcher({"Authorization": f"Bot {self.bot_token}"})],
             json={
                 "id": guild_id,
                 "name": server_name,
             },
         )
+
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}",
+            match=[header_matcher({"Authorization": f"Bot {self.bot_token}"})],
+            json=[] if command_response_empty else COMMANDS,
+        )
+
+        if command_response_empty:
+            for command in COMMANDS:
+                responses.add(
+                    responses.POST,
+                    url=f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}",
+                    match=[
+                        header_matcher({"Authorization": f"Bot {self.bot_token}"}),
+                        json_params_matcher({"data": command}),
+                    ],
+                )
+
         responses.add(
             responses.POST,
             url="https://discord.com/api/v10/oauth2/token",
@@ -80,6 +105,11 @@ class DiscordIntegrationTest(IntegrationTestCase):
         assert resp.status_code == 200
         self.assertDialogSuccess(resp)
 
+        if command_response_empty:
+            assert mock_set_application_command.call_count == 3
+        else:
+            assert mock_set_application_command.call_count == 0
+
     @responses.activate
     def test_bot_flow(self):
         with self.tasks():
@@ -101,7 +131,11 @@ class DiscordIntegrationTest(IntegrationTestCase):
         with self.tasks():
             self.assert_setup_flow()
         with self.tasks():
-            self.assert_setup_flow(guild_id="0987654321", server_name="Uncool server")
+            self.assert_setup_flow(
+                guild_id="0987654321",
+                server_name="Uncool server",
+                command_response_empty=False,
+            )
 
         integrations = Integration.objects.filter(provider=self.provider.key).order_by(
             "external_id"
@@ -116,89 +150,49 @@ class DiscordIntegrationTest(IntegrationTestCase):
     @responses.activate
     def test_get_guild_name(self):
         provider = self.provider()
-        guild_id = "1234"
-        guild_name = "asdf"
-
+        user_id = "user1234"
+        guild_id = "guild_id"
+        guild_name = "guild_name"
         responses.add(
             responses.GET,
             url=f"{DiscordClient.base_url}{GUILD_URL.format(guild_id=guild_id)}",
+            match=[header_matcher({"Authorization": f"Bot {self.bot_token}"})],
             json={
                 "id": guild_id,
                 "name": guild_name,
             },
         )
-
-        resp = provider.client.get_guild_name(guild_id)
-        assert resp == "asdf"
-        mock_request = responses.calls[0].request
-        assert mock_request.headers["Authorization"] == f"Bot {self.bot_token}"
+        responses.add(
+            responses.POST,
+            url="https://discord.com/api/v10/oauth2/token",
+            json={
+                "access_token": "access_token",
+            },
+        )
+        responses.add(
+            responses.GET, url=f"{DiscordClient.base_url}/users/@me", json={"id": "user_1234"}
+        )
+        result = provider.build_integration({"guild_id": "guild_id", "code": user_id})
+        assert result["name"] == guild_name
 
     @responses.activate
     def test_get_guild_name_failure(self):
         provider = self.provider()
-        guild_id = "1234"
-
+        user_id = "user1234"
+        guild_id = "guild_id"
+        responses.add(responses.GET, "https://discord.com/api/v10/guilds/guild_name", status=500)
         responses.add(
-            responses.GET,
-            url=f"{DiscordClient.base_url}{GUILD_URL.format(guild_id=guild_id)}",
-            status=500,
+            responses.POST,
+            url="https://discord.com/api/v10/oauth2/token",
+            json={
+                "access_token": "access_token",
+            },
         )
-
-        resp = provider.client.get_guild_name(guild_id)
-        assert resp == "1234"
-        mock_request = responses.calls[0].request
-        assert mock_request.headers["Authorization"] == f"Bot {self.bot_token}"
-
-    @responses.activate
-    def test_setup(self):
-        provider = self.provider()
-
-        url = f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}"
         responses.add(
-            responses.PUT,
-            url=url,
-            status=200,
+            responses.GET, url=f"{DiscordClient.base_url}/users/@me", json={"id": user_id}
         )
-
-        provider.setup()
-
-        assert responses.assert_call_count(count=1, url=url)
-
-    @responses.activate
-    @mock.patch("sentry.integrations.discord.commands.logger.error")
-    def test_setup_failure(self, mock_log_error):
-        mock_log_error.return_value = None
-        provider = self.provider()
-
-        url = f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}"
-        responses.add(
-            responses.PUT,
-            url=url,
-            status=500,
-        )
-
-        provider.setup()
-
-        assert responses.assert_call_count(count=1, url=url)
-        assert mock_log_error.call_count == 1
-
-    @responses.activate
-    def test_setup_cache(self):
-        provider = self.provider()
-
-        url = f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}"
-        responses.add(
-            responses.PUT,
-            url=url,
-            json={},
-            status=200,
-        )
-
-        provider.setup()
-        provider.setup()
-
-        # Second provider.setup() should not update commands -> 1 call to API
-        assert responses.assert_call_count(count=1, url=url)
+        result = provider.build_integration({"guild_id": guild_id, "code": user_id})
+        assert result["name"] == guild_id
 
     @responses.activate
     def test_get_discord_user_id(self):
@@ -255,3 +249,42 @@ class DiscordIntegrationTest(IntegrationTestCase):
         )
         with pytest.raises(IntegrationError):
             provider._get_discord_user_id("auth_code")
+
+    @mock.patch("sentry.integrations.discord.client.DiscordNonProxyClient.set_application_command")
+    def test_post_install_missing_credentials(self, mock_set_application_command):
+        provider = self.provider()
+        provider.application_id = None
+        provider.post_install(integration=self.integration, organization=self.organization)
+        assert mock_set_application_command.call_count == 0
+
+    @responses.activate
+    def test_set_commands_failure(self):
+        provider = self.provider()
+
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}",
+            match=[header_matcher({"Authorization": f"Bot {self.bot_token}"})],
+            json=[],
+        )
+        responses.add(
+            responses.POST,
+            url=f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}",
+            body=ApiError("something wrong", 500),
+            status=500,
+        )
+        with pytest.raises(ApiError):
+            provider.post_install(integration=self.integration, organization=self.organization)
+
+    @responses.activate
+    def test_get_commands_failure(self):
+        provider = self.provider()
+
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}",
+            body=ApiError("something wrong", 500),
+            status=500,
+        )
+        with pytest.raises(ApiError):
+            provider.post_install(integration=self.integration, organization=self.organization)

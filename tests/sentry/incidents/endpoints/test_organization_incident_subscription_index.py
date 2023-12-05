@@ -8,7 +8,7 @@ from sentry.testutils.silo import region_silo_test
 
 
 class BaseOrganizationSubscriptionEndpointTest(APITestCase):
-    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+    __test__ = Abstract(__module__, __qualname__)
 
     endpoint = "sentry-api-0-organization-incident-subscription-index"
 
@@ -38,7 +38,7 @@ class BaseOrganizationSubscriptionEndpointTest(APITestCase):
             assert resp.status_code == 403
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationIncidentSubscribeEndpointTest(BaseOrganizationSubscriptionEndpointTest):
     method = "post"
 
@@ -55,7 +55,7 @@ class OrganizationIncidentSubscribeEndpointTest(BaseOrganizationSubscriptionEndp
         assert sub.user_id == self.user.id
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationIncidentUnsubscribeEndpointTest(BaseOrganizationSubscriptionEndpointTest):
     method = "delete"
 

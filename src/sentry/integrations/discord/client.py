@@ -10,7 +10,6 @@ from sentry.integrations.client import ApiClient
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
-from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.utils.json import JSONData
 
 logger = logging.getLogger("sentry.integrations.discord")
@@ -42,25 +41,31 @@ class DiscordNonProxyClient(ApiClient):
         self.application_id = options.get("discord.application-id")
         self.bot_token = options.get("discord.bot-token")
 
-    def overwrite_application_commands(self, commands: list[object]) -> None:
-        self.put(
+    def prepare_auth_header(self) -> dict[str, str]:
+        return {"Authorization": f"Bot {self.bot_token}"}
+
+    def set_application_command(self, command: object) -> None:
+        self.post(
             APPLICATION_COMMANDS_URL.format(application_id=self.application_id),
-            data=commands,
+            headers=self.prepare_auth_header(),
+            data=command,
         )
 
+    def has_application_commands(self) -> bool:
+        response = self.get(
+            APPLICATION_COMMANDS_URL.format(application_id=self.application_id),
+            headers=self.prepare_auth_header(),
+        )
+        return bool(response)
+
     def get_guild_name(self, guild_id: str) -> str:
-        url = GUILD_URL.format(guild_id=guild_id)
-        headers = {"Authorization": f"Bot {self.bot_token}"}
-        try:
-            response = self.get(url, headers=headers)
-            return response["name"]  # type: ignore
-        except (ApiError, AttributeError):
-            return guild_id
+        response = self.get(GUILD_URL.format(guild_id=guild_id), headers=self.prepare_auth_header())
+        return response["name"]  # type: ignore
 
 
 class DiscordClient(IntegrationProxyClient):
     integration_name: str = "discord"
-    base_url: str = "https://discord.com/api/v10"
+    base_url: str = DISCORD_BASE_URL
 
     def __init__(
         self,

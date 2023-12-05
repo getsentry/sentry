@@ -12,6 +12,7 @@ export enum StarfishType {
 export enum ModuleName {
   HTTP = 'http',
   DB = 'db',
+  RESOURCE = 'resource',
   ALL = '',
   OTHER = 'other',
 }
@@ -31,6 +32,7 @@ export enum SpanMetricsField {
   HTTP_RESPONSE_CONTENT_LENGTH = 'http.response_content_length',
   HTTP_DECODED_RESPONSE_CONTENT_LENGTH = 'http.decoded_response_content_length',
   HTTP_RESPONSE_TRANSFER_SIZE = 'http.response_transfer_size',
+  FILE_EXTENSION = 'file_extension',
 }
 
 export type SpanNumberFields =
@@ -49,7 +51,8 @@ export type SpanStringFields =
   | 'span.group'
   | 'project.id'
   | 'transaction'
-  | 'transaction.method';
+  | 'transaction.method'
+  | 'release';
 
 export type SpanMetricsQueryFilters = {
   [Field in SpanStringFields]?: string;
@@ -57,12 +60,22 @@ export type SpanMetricsQueryFilters = {
 
 export type SpanStringArrayFields = 'span.domain';
 
-export type SpanFunctions =
-  | 'sps'
-  | 'spm'
-  | 'count'
-  | 'time_spent_percentage'
-  | 'http_error_count';
+export const COUNTER_AGGREGATES = ['avg', 'min', 'max', 'p100'] as const;
+export const DISTRIBUTION_AGGREGATES = ['p50', 'p75', 'p95', 'p99'] as const;
+
+export const AGGREGATES = [...COUNTER_AGGREGATES, ...DISTRIBUTION_AGGREGATES] as const;
+
+export type Aggregate = (typeof AGGREGATES)[number];
+
+export const SPAN_FUNCTIONS = [
+  'sps',
+  'spm',
+  'count',
+  'time_spent_percentage',
+  'http_error_count',
+] as const;
+
+export type SpanFunctions = (typeof SPAN_FUNCTIONS)[number];
 
 export type MetricsResponse = {
   [Property in SpanNumberFields as `avg(${Property})`]: number;
@@ -99,7 +112,9 @@ export enum SpanIndexedField {
   SPAN_DOMAIN = 'span.domain',
   TIMESTAMP = 'timestamp',
   PROJECT = 'project',
+  PROJECT_ID = 'project_id',
   PROFILE_ID = 'profile_id',
+  TRANSACTION = 'transaction',
 }
 
 export type SpanIndexedFieldTypes = {
@@ -117,7 +132,10 @@ export type SpanIndexedFieldTypes = {
   [SpanIndexedField.SPAN_DOMAIN]: string[];
   [SpanIndexedField.TIMESTAMP]: string;
   [SpanIndexedField.PROJECT]: string;
+  [SpanIndexedField.PROJECT_ID]: number;
   [SpanIndexedField.PROFILE_ID]: string;
+  [SpanIndexedField.RESOURCE_RENDER_BLOCKING_STATUS]: '' | 'non-blocking' | 'blocking';
+  [SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH]: string;
 };
 
 export type Op = SpanIndexedFieldTypes[SpanIndexedField.SPAN_OP];

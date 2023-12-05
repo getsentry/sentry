@@ -16,6 +16,7 @@ from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
@@ -24,6 +25,7 @@ from sentry.models.team import Team, TeamStatus
 from sentry.services.hybrid_cloud import OptionValue, logger
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.organization import (
+    OrganizationCheckService,
     OrganizationService,
     OrganizationSignalService,
     RpcOrganization,
@@ -116,6 +118,12 @@ class DatabaseBackedOrganizationService(OrganizationService):
             return serialize_organization_summary(query.get())
         except Organization.DoesNotExist:
             return None
+
+    def get_organizations_by_user_and_scope(
+        self, *, region_name: str, user: RpcUser, scope: str
+    ) -> List[RpcOrganization]:
+        organizations = Organization.objects.get_for_user(user=user, scope=scope)
+        return list(map(serialize_rpc_organization, organizations))
 
     def get_default_organization(self) -> RpcOrganization:
         return serialize_rpc_organization(Organization.get_default())
@@ -251,17 +259,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 except OrganizationMember.DoesNotExist:
                     return None
         return serialize_member(org_member)
-
-    def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
-        try:
-            org = Organization.objects.get_from_cache(slug=slug)
-            if only_visible and org.status != OrganizationStatus.ACTIVE:
-                raise Organization.DoesNotExist
-            return org.id
-        except Organization.DoesNotExist:
-            logger.info("Organization by slug [%s] not found", slug)
-
-        return None
 
     def _query_organizations(
         self, user_id: int, scope: Optional[str], only_visible: bool
@@ -617,11 +614,41 @@ class DatabaseBackedOrganizationService(OrganizationService):
     ) -> None:
         signal.signal.send_robust(None, organization_id=organization_id, **args)
 
-    def get_organization_owner_members(self, organization_id: int) -> List[RpcOrganizationMember]:
+    def get_organization_owner_members(
+        self, *, organization_id: int
+    ) -> List[RpcOrganizationMember]:
         org: Organization = Organization.objects.get(id=organization_id)
         owner_members = org.get_members_with_org_roles(roles=[roles.get_top_dog().id])
 
         return list(map(serialize_member, owner_members))
+
+
+class ControlOrganizationCheckService(OrganizationCheckService):
+    def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
+        # See RegionOrganizationCheckService below
+        try:
+            org = OrganizationMapping.objects.get(slug=slug)
+            if only_visible and org.status != OrganizationStatus.ACTIVE:
+                raise OrganizationMapping.DoesNotExist
+            return org.organization_id
+        except OrganizationMapping.DoesNotExist:
+            logger.info("OrganizationMapping by slug [%s] not found", slug)
+
+        return None
+
+
+class RegionOrganizationCheckService(OrganizationCheckService):
+    def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
+        # See ControlOrganizationCheckService above
+        try:
+            org = Organization.objects.get_from_cache(slug=slug)
+            if only_visible and org.status != OrganizationStatus.ACTIVE:
+                raise Organization.DoesNotExist
+            return org.id
+        except Organization.DoesNotExist:
+            logger.info("Organization by slug [%s] not found", slug)
+
+        return None
 
 
 class OutboxBackedOrganizationSignalService(OrganizationSignalService):

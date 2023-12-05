@@ -154,7 +154,7 @@
       "user_id": {
         "kind": "ImplicitForeignKey",
         "model": "sentry.user",
-        "nullable": false
+        "nullable": true
       }
     },
     "model": "hybridcloud.organizationslugreservationreplica",
@@ -1170,7 +1170,13 @@
       "Control"
     ],
     "table_name": "sentry_controlimportchunk",
-    "uniques": []
+    "uniques": [
+      [
+        "import_uuid",
+        "min_ordinal",
+        "model"
+      ]
+    ]
   },
   "sentry.controlimportchunkreplica": {
     "dangling": false,
@@ -1182,7 +1188,13 @@
       "Region"
     ],
     "table_name": "sentry_controlimportchunkreplica",
-    "uniques": []
+    "uniques": [
+      [
+        "import_uuid",
+        "min_ordinal",
+        "model"
+      ]
+    ]
   },
   "sentry.controloption": {
     "dangling": false,
@@ -1729,7 +1741,7 @@
       "file_id": {
         "kind": "ImplicitForeignKey",
         "model": "sentry.file",
-        "nullable": false
+        "nullable": true
       },
       "group_id": {
         "kind": "ImplicitForeignKey",
@@ -1749,13 +1761,7 @@
       "Region"
     ],
     "table_name": "sentry_eventattachment",
-    "uniques": [
-      [
-        "event_id",
-        "file_id",
-        "project_id"
-      ]
-    ]
+    "uniques": []
   },
   "sentry.eventprocessingissue": {
     "dangling": false,
@@ -3376,42 +3382,6 @@
     "table_name": "sentry_notificationactionproject",
     "uniques": []
   },
-  "sentry.notificationsetting": {
-    "dangling": false,
-    "foreign_keys": {
-      "target_id": {
-        "kind": "HybridCloudForeignKey",
-        "model": "sentry.actor",
-        "nullable": true
-      },
-      "team_id": {
-        "kind": "HybridCloudForeignKey",
-        "model": "sentry.team",
-        "nullable": true
-      },
-      "user": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.user",
-        "nullable": true
-      }
-    },
-    "model": "sentry.notificationsetting",
-    "relocation_dependencies": [],
-    "relocation_scope": "Excluded",
-    "silos": [
-      "Control"
-    ],
-    "table_name": "sentry_notificationsetting",
-    "uniques": [
-      [
-        "provider",
-        "scope_identifier",
-        "scope_type",
-        "target_id",
-        "type"
-      ]
-    ]
-  },
   "sentry.notificationsettingoption": {
     "dangling": false,
     "foreign_keys": {
@@ -3838,7 +3808,7 @@
       "user_id": {
         "kind": "ImplicitForeignKey",
         "model": "sentry.user",
-        "nullable": false
+        "nullable": true
       }
     },
     "model": "sentry.organizationslugreservation",
@@ -4629,7 +4599,13 @@
       "Region"
     ],
     "table_name": "sentry_regionimportchunk",
-    "uniques": []
+    "uniques": [
+      [
+        "import_uuid",
+        "min_ordinal",
+        "model"
+      ]
+    ]
   },
   "sentry.regionoutbox": {
     "dangling": false,
@@ -4675,6 +4651,31 @@
     ],
     "table_name": "sentry_regiontombstone",
     "uniques": []
+  },
+  "sentry.regressiongroup": {
+    "dangling": false,
+    "foreign_keys": {
+      "project_id": {
+        "kind": "ImplicitForeignKey",
+        "model": "sentry.project",
+        "nullable": false
+      }
+    },
+    "model": "sentry.regressiongroup",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_regressiongroup",
+    "uniques": [
+      [
+        "fingerprint",
+        "project_id",
+        "type",
+        "version"
+      ]
+    ]
   },
   "sentry.relay": {
     "dangling": false,

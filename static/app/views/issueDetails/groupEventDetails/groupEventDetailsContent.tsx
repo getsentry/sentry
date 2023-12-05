@@ -17,9 +17,11 @@ import AggregateSpanDiff from 'sentry/components/events/eventStatisticalDetector
 import EventBreakpointChart from 'sentry/components/events/eventStatisticalDetector/breakpointChart';
 import {EventAffectedTransactions} from 'sentry/components/events/eventStatisticalDetector/eventAffectedTransactions';
 import EventComparison from 'sentry/components/events/eventStatisticalDetector/eventComparison';
+import {EventDifferenialFlamegraph} from 'sentry/components/events/eventStatisticalDetector/eventDifferentialFlamegraph';
 import {EventFunctionComparisonList} from 'sentry/components/events/eventStatisticalDetector/eventFunctionComparisonList';
 import {EventRegressionSummary} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
+import {TransactionsDeltaProvider} from 'sentry/components/events/eventStatisticalDetector/transactionsDeltaProvider';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
@@ -185,29 +187,21 @@ function PerformanceDurationRegressionIssueDetailsContent({
   event,
   project,
 }: Required<GroupEventDetailsContentProps>) {
-  const organization = useOrganization();
-
   return (
-    <Feature
-      features={['performance-duration-regression-visible']}
-      organization={organization}
-      renderDisabled
-    >
-      <Fragment>
-        <ErrorBoundary mini>
-          <EventRegressionSummary event={event} group={group} />
-        </ErrorBoundary>
-        <ErrorBoundary mini>
-          <EventBreakpointChart event={event} />
-        </ErrorBoundary>
-        <ErrorBoundary mini>
-          <AggregateSpanDiff event={event} project={project} />
-        </ErrorBoundary>
-        <ErrorBoundary mini>
-          <EventComparison event={event} project={project} />
-        </ErrorBoundary>
-      </Fragment>
-    </Feature>
+    <Fragment>
+      <ErrorBoundary mini>
+        <EventRegressionSummary event={event} group={group} />
+      </ErrorBoundary>
+      <ErrorBoundary mini>
+        <EventBreakpointChart event={event} />
+      </ErrorBoundary>
+      <ErrorBoundary mini>
+        <AggregateSpanDiff event={event} project={project} />
+      </ErrorBoundary>
+      <ErrorBoundary mini>
+        <EventComparison event={event} project={project} />
+      </ErrorBoundary>
+    </Fragment>
   );
 }
 
@@ -219,11 +213,7 @@ function ProfilingDurationRegressionIssueDetailsContent({
   const organization = useOrganization();
 
   return (
-    <Feature
-      features={['profile-function-regression-exp-visible']}
-      organization={organization}
-      renderDisabled
-    >
+    <TransactionsDeltaProvider event={event} project={project}>
       <Fragment>
         <ErrorBoundary mini>
           <EventRegressionSummary event={event} group={group} />
@@ -231,6 +221,11 @@ function ProfilingDurationRegressionIssueDetailsContent({
         <ErrorBoundary mini>
           <EventFunctionBreakpointChart event={event} />
         </ErrorBoundary>
+        <Feature features="profiling-differential-flamegraph" organization={organization}>
+          <ErrorBoundary mini>
+            <EventDifferenialFlamegraph event={event} />
+          </ErrorBoundary>
+        </Feature>
         <ErrorBoundary mini>
           <EventAffectedTransactions event={event} group={group} project={project} />
         </ErrorBoundary>
@@ -238,7 +233,7 @@ function ProfilingDurationRegressionIssueDetailsContent({
           <EventFunctionComparisonList event={event} group={group} project={project} />
         </ErrorBoundary>
       </Fragment>
-    </Feature>
+    </TransactionsDeltaProvider>
   );
 }
 

@@ -1,4 +1,5 @@
 import selectEvent from 'react-select-event';
+import {Event as EventFixture} from 'sentry-fixture/event';
 import {SentryApp} from 'sentry-fixture/sentryApp';
 import {SentryAppInstallation} from 'sentry-fixture/sentryAppInstallation';
 
@@ -35,7 +36,7 @@ describe('SentryAppExternalIssueForm', () => {
     it('can create a new issue', async () => {
       render(
         <SentryAppExternalIssueForm
-          event={TestStubs.Event()}
+          event={EventFixture()}
           onSubmitSuccess={jest.fn()}
           group={group}
           sentryAppInstallation={sentryAppInstallation}
@@ -87,7 +88,7 @@ describe('SentryAppExternalIssueForm', () => {
     it('renders prepopulated defaults', () => {
       render(
         <SentryAppExternalIssueForm
-          event={TestStubs.Event()}
+          event={EventFixture()}
           onSubmitSuccess={jest.fn()}
           group={group}
           sentryAppInstallation={sentryAppInstallation}
@@ -111,7 +112,7 @@ describe('SentryAppExternalIssueForm', () => {
     it('can link an issue', async () => {
       render(
         <SentryAppExternalIssueForm
-          event={TestStubs.Event()}
+          event={EventFixture()}
           onSubmitSuccess={jest.fn()}
           group={group}
           sentryAppInstallation={sentryAppInstallation}
@@ -174,7 +175,7 @@ describe('SentryAppExternalIssueForm Async Field', () => {
 
     render(
       <SentryAppExternalIssueForm
-        event={TestStubs.Event()}
+        event={EventFixture()}
         onSubmitSuccess={jest.fn()}
         group={group}
         sentryAppInstallation={sentryAppInstallation}
@@ -240,7 +241,7 @@ describe('SentryAppExternalIssueForm Dependent fields', () => {
 
     render(
       <SentryAppExternalIssueForm
-        event={TestStubs.Event()}
+        event={EventFixture()}
         onSubmitSuccess={jest.fn()}
         group={group}
         sentryAppInstallation={sentryAppInstallation}

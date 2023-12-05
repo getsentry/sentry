@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from datetime import timedelta
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -38,6 +41,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             "organizations:performance-use-metrics": True,
         }
 
+        self.additional_params = dict()
+
     def do_request(self, data, url=None, features=None):
         if features is None:
             features = {"organizations:discover-basic": True}
@@ -64,6 +69,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                     "yAxis": axis,
                     "project": self.project.id,
                     "dataset": "metricsEnhanced",
+                    **self.additional_params,
                 },
             )
             assert response.status_code == 200, response.content
@@ -93,6 +99,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                     "yAxis": axis,
                     "project": self.project.id,
                     "dataset": "metricsEnhanced",
+                    **self.additional_params,
                 },
             )
             assert response.status_code == 200, response.content
@@ -120,6 +127,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                     "yAxis": axis,
                     "project": self.project.id,
                     "dataset": "metricsEnhanced",
+                    **self.additional_params,
                 },
             )
             assert response.status_code == 200, response.content
@@ -149,6 +157,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                     "yAxis": axis,
                     "project": self.project.id,
                     "dataset": "metricsEnhanced",
+                    **self.additional_params,
                 },
             )
             assert response.status_code == 200, response.content
@@ -177,6 +186,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "yAxis": ["failure_rate()"],
                 "project": self.project.id,
                 "dataset": "metricsEnhanced",
+                **self.additional_params,
             },
         )
         assert response.status_code == 200, response.content
@@ -206,6 +216,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "yAxis": ["p75(measurements.lcp)", "p75(transaction.duration)"],
                 "project": self.project.id,
                 "dataset": "metricsEnhanced",
+                **self.additional_params,
             },
         )
         assert response.status_code == 200, response.content
@@ -230,6 +241,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "interval": "1h",
                 "yAxis": ["epm()", "eps()", "tpm()", "p50(transaction.duration)"],
                 "dataset": "metricsEnhanced",
+                **self.additional_params,
             },
         )
 
@@ -249,6 +261,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "interval": "1h",
                 "yAxis": "count_unique(user)",
                 "dataset": "metricsEnhanced",
+                **self.additional_params,
             },
         )
         assert response.status_code == 200, response.content
@@ -268,6 +281,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                     "query": query,
                     "yAxis": ["epm()"],
                     "dataset": "metricsEnhanced",
+                    **self.additional_params,
                 },
             )
             assert response.status_code == 200, response.content
@@ -296,6 +310,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "yAxis": ["epm()"],
                 "dataset": "metricsEnhanced",
                 "preventMetricAggregates": "1",
+                **self.additional_params,
             },
         )
         assert response.status_code == 200, response.content
@@ -314,6 +329,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "query": "",
                 "yAxis": ["epm()"],
                 "metricsEnhanced": "0",
+                **self.additional_params,
             },
         )
         assert response.status_code == 200, response.content
@@ -332,6 +348,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "interval": "1h",
                 "yAxis": "sum(transaction.duration)",
                 "dataset": "metricsEnhanced",
+                **self.additional_params,
             },
         )
         assert response.status_code == 200, response.content
@@ -364,6 +381,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "yAxis": "sum(transaction.duration)",
                 "comparisonDelta": 86400,
                 "dataset": "metricsEnhanced",
+                **self.additional_params,
             },
         )
         assert response.status_code == 200, response.content
@@ -411,6 +429,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "interval": "1h",
                 "yAxis": "sum(measurements.datacenter_memory)",
                 "dataset": "metricsEnhanced",
+                **self.additional_params,
             },
         )
         assert response.status_code == 200, response.content
@@ -438,6 +457,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "interval": "1h",
                 "yAxis": "p99(measurements.custom)",
                 "dataset": "metricsEnhanced",
+                **self.additional_params,
             },
         )
         meta = response.data["meta"]
@@ -482,6 +502,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                     "p50(measurements.datacenter_memory)",
                 ],
                 "dataset": "metricsEnhanced",
+                **self.additional_params,
             },
         )
         assert response.status_code == 200, response.content
@@ -536,6 +557,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "query": "transaction.duration:<5s",
                 "yAxis": "sum(transaction.duration)",
                 "dataset": "metrics",
+                **self.additional_params,
             },
         )
         assert response.status_code == 400, response.content
@@ -556,6 +578,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                     "sum(transaction.duration)",
                 ],
                 "dataset": "metricsEnhanced",
+                **self.additional_params,
             },
         )
         assert response.status_code == 200, response.content
@@ -581,6 +604,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                     "sum(transaction.duration)",
                 ],
                 "dataset": "metricsEnhanced",
+                **self.additional_params,
             },
         )
         assert response.status_code == 200, response.content
@@ -604,6 +628,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "interval": "1h",
                 "yAxis": "p99(measurements.custom)",
                 "query": "",
+                **self.additional_params,
             },
         )
 
@@ -636,6 +661,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                     "p99(measurements.another.custom)",
                 ],
                 "query": "",
+                **self.additional_params,
             },
         )
 
@@ -670,6 +696,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "field": ["count()", "project"],
                 "topEvents": 5,
                 "dataset": "metrics",
+                **self.additional_params,
             },
         )
 
@@ -701,6 +728,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 "field": ["p75(transaction.duration)", "transaction"],
                 "topEvents": 5,
                 "dataset": "metrics",
+                **self.additional_params,
             },
         )
 
@@ -718,6 +746,36 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
     def setUp(self):
         super().setUp()
         self.features["organizations:use-metrics-layer"] = True
+        self.additional_params = {"forceMetricsLayer": "true"}
+
+    def test_counter_standard_metric(self):
+        mri = "c:transactions/usage@none"
+        for index, value in enumerate((10, 20, 30, 40, 50, 60)):
+            self.store_transaction_metric(
+                value,
+                metric=mri,
+                internal_metric=mri,
+                entity="metrics_counters",
+                timestamp=self.day_ago + timedelta(minutes=index),
+                use_case_id=UseCaseID.CUSTOM,
+            )
+
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=6)),
+                "interval": "1m",
+                "yAxis": [f"sum({mri})"],
+                "project": self.project.id,
+                "dataset": "metricsEnhanced",
+                **self.additional_params,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        for (_, value), expected_value in zip(data, [10, 20, 30, 40, 50, 60]):
+            assert value[0]["count"] == expected_value  # type:ignore
 
     def test_counter_custom_metric(self):
         mri = "c:custom/sentry.process_profile.track_outcome@second"
@@ -739,6 +797,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
                 "yAxis": [f"sum({mri})"],
                 "project": self.project.id,
                 "dataset": "metricsEnhanced",
+                **self.additional_params,
             },
         )
 
@@ -768,6 +827,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
                 "yAxis": [f"min({mri})", f"max({mri})", f"p90({mri})"],
                 "project": self.project.id,
                 "dataset": "metricsEnhanced",
+                **self.additional_params,
             },
         )
 
@@ -807,6 +867,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
                 "yAxis": [f"count_unique({mri})"],
                 "project": self.project.id,
                 "dataset": "metricsEnhanced",
+                **self.additional_params,
             },
         )
 
@@ -844,6 +905,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
                 ],
                 "project": self.project.id,
                 "dataset": "metricsEnhanced",
+                **self.additional_params,
             },
         )
 
@@ -871,7 +933,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
 
 
 @region_silo_test
-class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
+class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandWidgets(
     MetricsEnhancedPerformanceTestCase
 ):
     endpoint = "sentry-api-0-organization-events-stats"
@@ -887,9 +949,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
             "sentry-api-0-organization-events-stats",
             kwargs={"organization_slug": self.project.organization.slug},
         )
-        self.features = {
-            "organizations:performance-use-metrics": True,
-        }
+        self.features = {"organizations:on-demand-metrics-extraction-widgets": True}
 
     def do_request(self, data, url=None, features=None):
         if features is None:
@@ -1000,7 +1060,82 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
                     "customtag2",
                 ],
                 "topEvents": 5,
-                "dataset": "metrics",
+                "dataset": "metricsEnhanced",
+                "useOnDemandMetrics": "true",
+                "onDemandType": "dynamic_query",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+
+        groups = [
+            ("foo,red", "count()", 0.0, 1488.0),
+            ("foo,red", "count_web_vitals(measurements.lcp, good)", 0.0, 0.0),
+            ("bar,blue", "count()", 0.0, 0.0),
+            ("bar,blue", "count_web_vitals(measurements.lcp, good)", 0.0, 1440.0),
+        ]
+        assert len(response.data.keys()) == 2
+        for group_count in groups:
+            group, agg, row1, row2 = group_count
+            row_data = response.data[group][agg]["data"][:2]
+            assert [attrs for _, attrs in row_data] == [[{"count": row1}], [{"count": row2}]]
+
+            assert response.data[group][agg]["meta"]["isMetricsExtractedData"]
+            assert response.data[group]["isMetricsExtractedData"]
+
+    def test_top_events_with_transaction_on_demand_and_no_environment(self):
+        field = "count()"
+        field_two = "count_web_vitals(measurements.lcp, good)"
+        groupbys = ["customtag1", "customtag2"]
+        query = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(
+            field=field, groupbys=groupbys, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
+        )
+        spec_two = OnDemandMetricSpec(
+            field=field_two, groupbys=groupbys, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
+        )
+
+        for hour in range(0, 5):
+            self.store_on_demand_metric(
+                hour * 62 * 24,
+                spec=spec,
+                additional_tags={
+                    "customtag1": "foo",
+                    "customtag2": "red",
+                    "environment": "production",
+                },
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+            self.store_on_demand_metric(
+                hour * 60 * 24,
+                spec=spec_two,
+                additional_tags={
+                    "customtag1": "bar",
+                    "customtag2": "blue",
+                    "environment": "production",
+                },
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+
+        yAxis = ["count()", "count_web_vitals(measurements.lcp, good)"]
+
+        response = self.do_request(
+            data={
+                "project": self.project.id,
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "orderby": ["-count()"],
+                "query": query,
+                "yAxis": yAxis,
+                "field": [
+                    "count()",
+                    "count_web_vitals(measurements.lcp, good)",
+                    "customtag1",
+                    "customtag2",
+                ],
+                "topEvents": 5,
+                "dataset": "metricsEnhanced",
                 "useOnDemandMetrics": "true",
                 "onDemandType": "dynamic_query",
             },
@@ -1019,3 +1154,210 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemand(
             group, agg, row1, row2 = group_count
             row_data = response.data[group][agg]["data"][:2]
             assert [attrs for time, attrs in row_data] == [[{"count": row1}], [{"count": row2}]]
+
+            assert response.data[group][agg]["meta"]["isMetricsExtractedData"]
+            assert response.data[group]["isMetricsExtractedData"]
+
+    def test_timeseries_on_demand_with_multiple_percentiles(self):
+        field = "p75(measurements.fcp)"
+        field_two = "p75(measurements.lcp)"
+        query = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(field=field, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY)
+        spec_two = OnDemandMetricSpec(
+            field=field_two, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY
+        )
+
+        assert (
+            spec._query_str_for_hash
+            == "event.measurements.fcp.value;{'name': 'event.duration', 'op': 'gte', 'value': 100.0}"
+        )
+        assert (
+            spec_two._query_str_for_hash
+            == "event.measurements.lcp.value;{'name': 'event.duration', 'op': 'gte', 'value': 100.0}"
+        )
+
+        for count in range(0, 4):
+            self.store_on_demand_metric(
+                count * 100,
+                spec=spec,
+                timestamp=self.day_ago + timedelta(hours=1),
+            )
+            self.store_on_demand_metric(
+                count * 200.0,
+                spec=spec_two,
+                timestamp=self.day_ago + timedelta(hours=1),
+            )
+
+        yAxis = [field, field_two]
+
+        response = self.do_request(
+            data={
+                "project": self.project.id,
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "orderby": [field],
+                "query": query,
+                "yAxis": yAxis,
+                "dataset": "metricsEnhanced",
+                "useOnDemandMetrics": "true",
+                "onDemandType": "dynamic_query",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+
+        assert response.data["p75(measurements.fcp)"]["meta"]["isMetricsExtractedData"]
+        assert response.data["p75(measurements.lcp)"]["meta"]["isMetricsData"]
+        assert [attrs for time, attrs in response.data["p75(measurements.fcp)"]["data"]] == [
+            [{"count": 0}],
+            [{"count": 225.0}],
+        ]
+        assert response.data["p75(measurements.lcp)"]["meta"]["isMetricsExtractedData"]
+        assert response.data["p75(measurements.lcp)"]["meta"]["isMetricsData"]
+        assert [attrs for time, attrs in response.data["p75(measurements.lcp)"]["data"]] == [
+            [{"count": 0}],
+            [{"count": 450.0}],
+        ]
+
+    def test_apdex_issue(self):
+        field = "apdex(300)"
+        groupbys = ["group_tag"]
+        query = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(
+            field=field,
+            groupbys=groupbys,
+            query=query,
+            spec_type=MetricSpecType.DYNAMIC_QUERY,
+        )
+
+        for hour in range(0, 5):
+            self.store_on_demand_metric(
+                1,
+                spec=spec,
+                additional_tags={
+                    "group_tag": "group_one",
+                    "environment": "production",
+                    "satisfaction": "tolerable",
+                },
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+            self.store_on_demand_metric(
+                1,
+                spec=spec,
+                additional_tags={
+                    "group_tag": "group_two",
+                    "environment": "production",
+                    "satisfaction": "satisfactory",
+                },
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+
+        response = self.do_request(
+            data={
+                "dataset": "metricsEnhanced",
+                "environment": "production",
+                "excludeOther": 1,
+                "field": [field, "group_tag"],
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "orderby": f"-{field}",
+                "partial": 1,
+                "project": self.project.id,
+                "query": query,
+                "topEvents": 5,
+                "yAxis": field,
+                "onDemandType": "dynamic_query",
+                "useOnDemandMetrics": "true",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["group_one"]["meta"]["isMetricsExtractedData"] is True
+        assert [attrs for time, attrs in response.data["group_one"]["data"]] == [
+            [{"count": 0.5}],
+            [{"count": 0.5}],
+        ]
+
+    def _test_is_metrics_extracted_data(
+        self, params: dict[str, Any], expected_on_demand_query: bool, dataset: str
+    ) -> None:
+        features = {"organizations:on-demand-metrics-extraction": True}
+        spec = OnDemandMetricSpec(
+            field="count()",
+            query="transaction.duration:>1s",
+            spec_type=MetricSpecType.DYNAMIC_QUERY,
+        )
+
+        self.store_on_demand_metric(1, spec=spec)
+        response = self.do_request(params, features=features)
+
+        assert response.status_code == 200, response.content
+        meta = response.data["meta"]
+        # This is the main thing we want to test for
+        assert meta.get("isMetricsExtractedData", False) is expected_on_demand_query
+        assert meta["dataset"] == dataset
+
+        return meta
+
+    def test_is_metrics_extracted_data_is_included(self):
+        self._test_is_metrics_extracted_data(
+            {
+                "dataset": "metricsEnhanced",
+                "query": "transaction.duration:>=91",
+                "useOnDemandMetrics": "true",
+                "yAxis": "count()",
+            },
+            expected_on_demand_query=True,
+            dataset="metricsEnhanced",
+        )
+
+    def test_group_by_transaction(self):
+        field = "count()"
+        groupbys = ["transaction"]
+        query = "transaction.duration:>=100"
+        spec = OnDemandMetricSpec(
+            field=field,
+            groupbys=groupbys,
+            query=query,
+            spec_type=MetricSpecType.DYNAMIC_QUERY,
+        )
+
+        for hour in range(0, 2):
+            self.store_on_demand_metric(
+                (hour + 1) * 5,
+                spec=spec,
+                additional_tags={
+                    "transaction": "/performance",
+                    "environment": "production",
+                },
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+
+        response = self.do_request(
+            data={
+                "dataset": "metricsEnhanced",
+                "environment": "production",
+                "excludeOther": 1,
+                "field": [field, "transaction"],
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "orderby": f"-{field}",
+                "partial": 1,
+                "project": self.project.id,
+                "query": query,
+                "topEvents": 5,
+                "yAxis": field,
+                "onDemandType": "dynamic_query",
+                "useOnDemandMetrics": "true",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["/performance"]["meta"]["isMetricsExtractedData"] is True
+        assert [attrs for time, attrs in response.data["/performance"]["data"]] == [
+            [{"count": 5.0}],
+            [{"count": 10.0}],
+        ]

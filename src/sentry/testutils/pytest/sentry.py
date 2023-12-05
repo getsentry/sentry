@@ -104,7 +104,7 @@ def pytest_configure(config: pytest.Config) -> None:
     settings.SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
     # silence (noisy) loggers by default when testing
-    settings.LOGGING["loggers"]["sentry"]["level"] = "ERROR"  # type: ignore[index]
+    settings.LOGGING["loggers"]["sentry"]["level"] = "ERROR"
 
     # Disable static compiling in tests
     settings.STATIC_BUNDLES = {}
@@ -367,7 +367,7 @@ def _shuffle(items: list[pytest.Item]) -> None:
             raise AssertionError(f"unexpected nodeid: {item.nodeid}")
 
     def _shuffle_d(dct: dict[K, V]) -> dict[K, V]:
-        return dict(random.sample(dct.items(), len(dct)))
+        return dict(random.sample(tuple(dct.items()), len(dct)))
 
     new_items = []
     for first_v in _shuffle_d(nodes).values():

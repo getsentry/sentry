@@ -150,7 +150,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
 
 
 class ProjectManager(BaseManager["Project"]):
-    def get_by_users(self, users: Iterable[User]) -> Mapping[int, Iterable[int]]:
+    def get_by_users(self, users: Iterable[User | RpcUser]) -> Mapping[int, Iterable[int]]:
         """Given a list of users, return a mapping of each user to the projects they are a member of."""
         project_rows = self.filter(
             projectteam__team__organizationmemberteam__is_active=True,
@@ -274,6 +274,9 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
 
         # This Project has sent check-ins
         has_cron_checkins: bool
+
+        # This Project has event with sourcemaps
+        has_sourcemaps: bool
 
         bitfield_default = 10
         bitfield_null = True
@@ -615,7 +618,6 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         )
 
     def delete(self, **kwargs):
-
         # There is no foreign key relationship so we have to manually cascade.
         notifications_service.remove_notification_settings_for_project(project_id=self.id)
 

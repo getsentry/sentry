@@ -1,8 +1,8 @@
 import copy
-import functools
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 
+import pytest
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 from django.db import router
@@ -12,7 +12,7 @@ from django.utils import timezone as django_timezone
 from sentry.constants import DataCategory
 from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
-from sentry.models.options.user_option import UserOption
+from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud.user_option import user_option_service
@@ -40,7 +40,7 @@ from sentry.utils.outcomes import Outcome
 DISABLED_ORGANIZATIONS_USER_OPTION_KEY = "reports:disabled-organizations"
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_integration(self):
@@ -127,19 +127,23 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         organization = self.organization
         ctx = OrganizationReportContext(0, 0, organization)
 
-        set_option_value = assume_test_silo_mode(SiloMode.CONTROL)(
-            functools.partial(
-                UserOption.objects.set_value, user, DISABLED_ORGANIZATIONS_USER_OPTION_KEY
-            )
-        )
+        def set_option_value(value):
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                NotificationSettingOption.objects.update_or_create(
+                    scope_type="organization",
+                    scope_identifier=organization.id,
+                    user_id=user.id,
+                    type="reports",
+                    defaults={"value": value},
+                )
 
         # disabled
-        set_option_value([organization.id])
+        set_option_value("never")
         deliver_reports(ctx)
         assert mock_send_email.call_count == 0
 
         # enabled
-        set_option_value([])
+        set_option_value("always")
         deliver_reports(ctx)
         mock_send_email.assert_called_once_with(ctx, user.id, dry_run=False)
 
@@ -176,7 +180,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             organization=self.organization, email="different.email@example.com", token="abc"
         )
 
-        deliver_reports(ctx, use_notifications_v2=True)
+        deliver_reports(ctx)
         assert mock_send_email.call_count == 1
 
     def test_organization_project_issue_summaries(self):
@@ -398,7 +402,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
 
             assert isinstance(context["notification_uuid"], str)
 
-        record.assert_called_with(
+        record.assert_any_call(
             "weekly_report.sent",
             user_id=user.id,
             organization_id=self.organization.id,
@@ -468,7 +472,6 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
 
     @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
     def test_message_builder_advanced(self, message_builder):
-
         now = django_timezone.now()
         two_days_ago = now - timedelta(days=2)
         three_days_ago = now - timedelta(days=3)
@@ -562,7 +565,6 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
     @with_feature("organizations:session-replay-weekly_report")
     @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
     def test_message_builder_replays(self, message_builder):
-
         now = django_timezone.now()
         two_days_ago = now - timedelta(days=2)
         timestamp = to_timestamp(floor_to_utc_day(now))
@@ -619,3 +621,190 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
 
         unique_enum_count = len(enum_values)
         assert len(group_status_to_color) == unique_enum_count
+
+    @mock.patch("sentry.analytics.record")
+    @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
+    def test_email_override_simple(self, message_builder, record):
+        now = django_timezone.now()
+        two_days_ago = now - timedelta(days=2)
+        timestamp = to_timestamp(floor_to_utc_day(now))
+
+        user = self.create_user(email="itwasme@dio.xyz")
+        self.create_member(teams=[self.team], user=user, organization=self.organization)
+        extra_team = self.create_team(organization=self.organization)
+        self.create_project(
+            teams=[extra_team]
+        )  # create an extra project to ensure our email only gets the user's project
+
+        # fill with data so report not skipped
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": self.project.id,
+                "outcome": Outcome.ACCEPTED,
+                "category": DataCategory.ERROR,
+                "timestamp": two_days_ago,
+                "key_id": 1,
+            },
+            num_times=2,
+        )
+
+        prepare_organization_report(
+            timestamp,
+            ONE_DAY * 7,
+            self.organization.id,
+            dry_run=False,
+            target_user=user,
+            email_override="joseph@speedwagon.org",
+        )
+
+        for call_args in message_builder.call_args_list:
+            message_params = call_args.kwargs
+            context = message_params["context"]
+
+            assert context["organization"] == self.organization
+            assert context["user_project_count"] == 1
+            assert f"Weekly Report for {self.organization.name}" in message_params["subject"]
+
+        with pytest.raises(AssertionError):
+            record.assert_any_call(
+                "weekly_report.sent",
+                user_id=user.id,
+                organization_id=self.organization.id,
+                notification_uuid=mock.ANY,
+                user_project_count=1,
+            )
+
+        message_builder.return_value.send.assert_called_with(to=("joseph@speedwagon.org",))
+
+    @mock.patch("sentry.analytics.record")
+    @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
+    def test_email_override_no_target_user(self, message_builder, record):
+        now = django_timezone.now()
+        two_days_ago = now - timedelta(days=2)
+        timestamp = to_timestamp(floor_to_utc_day(now))
+
+        # create some extra projects; we expect to receive a report with all projects included
+        self.create_project(organization=self.organization)
+        self.create_project(organization=self.organization)
+
+        # fill with data so report not skipped
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": self.project.id,
+                "outcome": Outcome.ACCEPTED,
+                "category": DataCategory.ERROR,
+                "timestamp": two_days_ago,
+                "key_id": 1,
+            },
+            num_times=2,
+        )
+
+        prepare_organization_report(
+            timestamp,
+            ONE_DAY * 7,
+            self.organization.id,
+            dry_run=False,
+            target_user=None,
+            email_override="jonathan@speedwagon.org",
+        )
+
+        for call_args in message_builder.call_args_list:
+            message_params = call_args.kwargs
+            context = message_params["context"]
+
+            assert context["organization"] == self.organization
+            assert context["user_project_count"] == 3
+
+        with pytest.raises(AssertionError):
+            record.assert_any_call(
+                "weekly_report.sent",
+                user_id=None,
+                organization_id=self.organization.id,
+                notification_uuid=mock.ANY,
+                user_project_count=1,
+            )
+
+        message_builder.return_value.send.assert_called_with(to=("jonathan@speedwagon.org",))
+
+    @mock.patch("sentry.tasks.weekly_reports.logger")
+    def test_email_override_invalid_target_user(self, logger):
+        now = django_timezone.now()
+        two_days_ago = now - timedelta(days=2)
+        timestamp = to_timestamp(floor_to_utc_day(now))
+        org = self.create_organization()
+        proj = self.create_project(organization=org)
+
+        # fill with data so report not skipped
+        self.store_outcomes(
+            {
+                "org_id": org.id,
+                "project_id": proj.id,
+                "outcome": Outcome.ACCEPTED,
+                "category": DataCategory.ERROR,
+                "timestamp": two_days_ago,
+                "key_id": 1,
+            },
+            num_times=2,
+        )
+
+        prepare_organization_report(
+            timestamp,
+            ONE_DAY * 7,
+            org.id,
+            dry_run=False,
+            target_user="dummy",
+            email_override="doesntmatter@smad.com",
+        )
+
+        logger.exception.assert_called_with(
+            "Target user must have an ID",
+            extra={
+                "organization": org.id,
+                "target_user": "dummy",
+                "email_override": "doesntmatter@smad.com",
+            },
+        )
+
+    @mock.patch("sentry.analytics.record")
+    @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
+    def test_dry_run_simple(self, message_builder, record):
+        now = django_timezone.now()
+        two_days_ago = now - timedelta(days=2)
+        timestamp = to_timestamp(floor_to_utc_day(now))
+        org = self.create_organization()
+        proj = self.create_project(organization=org)
+
+        # fill with data so report not skipped
+        self.store_outcomes(
+            {
+                "org_id": org.id,
+                "project_id": proj.id,
+                "outcome": Outcome.ACCEPTED,
+                "category": DataCategory.ERROR,
+                "timestamp": two_days_ago,
+                "key_id": 1,
+            },
+            num_times=2,
+        )
+
+        prepare_organization_report(
+            timestamp,
+            ONE_DAY * 7,
+            org.id,
+            dry_run=True,
+            target_user=None,
+            email_override="doesntmatter@smad.com",
+        )
+
+        with pytest.raises(AssertionError):
+            record.assert_any_call(
+                "weekly_report.sent",
+                user_id=None,
+                organization_id=self.organization.id,
+                notification_uuid=mock.ANY,
+                user_project_count=1,
+            )
+
+        message_builder.return_value.send.assert_not_called()

@@ -38,4 +38,19 @@ describe('isOnDemandMetricAlert', () => {
     ).toBeTruthy();
     expect(isOnDemandMetricAlert(dataset, 'apdex(300)', 'device.name:foo')).toBeTruthy();
   });
+
+  it('should return false for an alert that uses custom metrics', () => {
+    const dataset = Dataset.GENERIC_METRICS;
+
+    expect(
+      isOnDemandMetricAlert(dataset, 'avg(c:custom/some.custom_counter)', 'release:1.0')
+    ).toBeFalsy();
+    expect(
+      isOnDemandMetricAlert(
+        dataset,
+        'count(d:custom/more.custom_stuff)',
+        'browser.name:chrome'
+      )
+    ).toBeFalsy();
+  });
 });

@@ -103,11 +103,11 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         """
         List all derived statuses of releases that fall within the provided start/end datetimes
 
-        Constructs a response key'd off release_version, project_slug, environment, and lists thresholds with their status for *specified* projects
+        Constructs a response key'd off release_version, project_slug, and lists thresholds with their status for *specified* projects
         Each returned enriched threshold will contain the full serialized release_threshold instance as well as it's derived health status
 
         {
-            {proj}-{env}-{release}: [
+            {proj}-{release}: [
                 {
                     project_id,
                     project_slug,
@@ -122,7 +122,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                 {...},
                 {...}
             ],
-            {proj}-{env}-{release}: [...],
+            {proj}-{release}: [...],
         }
 
         ``````````````````
@@ -150,6 +150,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                 "end": end,
             },
         )
+        metrics.incr("release.threshold_health_status.attempt")
 
         serializer = ReleaseThresholdStatusIndexSerializer(
             data=request.query_params,
@@ -252,9 +253,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                     # NOTE: start/end for a threshold are different than start/end for querying data
                     enriched_threshold.update(
                         {
-                            "key": self.construct_threshold_key(
-                                release=release, project=project, threshold=threshold
-                            ),
+                            "key": self.construct_threshold_key(release=release, project=project),
                             "start": release.date,  # deploy.date_finished _would_ be more accurate, but is not keyed on project so cannot be used
                             "end": release.date
                             + timedelta(
@@ -279,7 +278,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
             release_value_list = [release_version for release_version in filter_list["releases"]]
             category_thresholds: List[EnrichedThreshold] = filter_list["thresholds"]
             if threshold_type == ReleaseThresholdType.TOTAL_ERROR_COUNT:
-                metrics.incr("check.error_count")
+                metrics.incr("release.threshold_health_status.check.error_count")
                 """
                 Fetch errors timeseries for all projects with an error_count threshold in desired releases
                 Iterate through timeseries given threshold window and determine health status
@@ -315,37 +314,37 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                         ethreshold
                     )  # so we can fill all thresholds under the same key
             elif threshold_type == ReleaseThresholdType.NEW_ISSUE_COUNT:
-                metrics.incr("check.new_issue_count")
+                metrics.incr("release.threshold_health_status.check.new_issue_count")
                 for ethreshold in category_thresholds:
                     release_threshold_health[ethreshold["key"]].append(
                         ethreshold
                     )  # so we can fill all thresholds under the same key
             elif threshold_type == ReleaseThresholdType.UNHANDLED_ISSUE_COUNT:
-                metrics.incr("check.unhandled_issue_count")
+                metrics.incr("release.threshold_health_status.check.unhandled_issue_count")
                 for ethreshold in category_thresholds:
                     release_threshold_health[ethreshold["key"]].append(
                         ethreshold
                     )  # so we can fill all thresholds under the same key
             elif threshold_type == ReleaseThresholdType.REGRESSED_ISSUE_COUNT:
-                metrics.incr("check.regressed_issue_count")
+                metrics.incr("release.threshold_health_status.check.regressed_issue_count")
                 for ethreshold in category_thresholds:
                     release_threshold_health[ethreshold["key"]].append(
                         ethreshold
                     )  # so we can fill all thresholds under the same key
             elif threshold_type == ReleaseThresholdType.FAILURE_RATE:
-                metrics.incr("check.failure_rate")
+                metrics.incr("release.threshold_health_status.check.failure_rate")
                 for ethreshold in category_thresholds:
                     release_threshold_health[ethreshold["key"]].append(
                         ethreshold
                     )  # so we can fill all thresholds under the same key
             elif threshold_type == ReleaseThresholdType.CRASH_FREE_SESSION_RATE:
-                metrics.incr("check.crash_free_session_rate")
+                metrics.incr("release.threshold_health_status.check.crash_free_session_rate")
                 for ethreshold in category_thresholds:
                     release_threshold_health[ethreshold["key"]].append(
                         ethreshold
                     )  # so we can fill all thresholds under the same key
             elif threshold_type == ReleaseThresholdType.CRASH_FREE_USER_RATE:
-                metrics.incr("check.crash_free_user_rate")
+                metrics.incr("release.threshold_health_status.check.crash_free_user_rate")
                 for ethreshold in category_thresholds:
                     release_threshold_health[ethreshold["key"]].append(
                         ethreshold
@@ -353,19 +352,15 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
 
         return Response(release_threshold_health, status=200)
 
-    def construct_threshold_key(
-        self, project: Project, release: Release, threshold: ReleaseThreshold
-    ) -> str:
+    def construct_threshold_key(self, project: Project, release: Release) -> str:
         """
         Consistent key helps to determine which thresholds can be grouped together.
-        project_slug - environment - release_version
+        project_slug - release_version
 
         NOTE: release versions can contain special characters... `-` delimiter may not be appropriate
-        NOTE: environment names can contain special characters... `-` delimiter may not be appropriate
         TODO: move this into a separate helper?
         """
-        environment = threshold.environment.name if threshold.environment else "None"
-        return f"{project.slug}-{environment}-{release.version}"
+        return f"{project.slug}-{release.version}"
 
 
 def is_error_count_healthy(ethreshold: EnrichedThreshold, timeseries: List[Dict[str, Any]]) -> bool:
@@ -374,37 +369,37 @@ def is_error_count_healthy(ethreshold: EnrichedThreshold, timeseries: List[Dict[
     enriched threshold (ethreshold) includes `start`, `end`, and a constructed `key` identifier
     """
     total_count = 0
-    threshold_environment: str | None = None
-    for i in timeseries:
+    threshold_environment: str | None = (
+        ethreshold["environment"]["name"] if ethreshold["environment"] else None
+    )
+    sorted_series = sorted(timeseries, key=lambda x: x["time"])
+    for i in sorted_series:
         if parser.parse(i["time"]) > ethreshold["end"]:
             # timeseries are ordered chronologically
             # So if we're past our threshold.end, we can skip the rest
+            logger.info("Reached end of threshold window. Breaking")
+            metrics.incr("release.threshold_health_status.is_error_count_healthy.break_loop")
             break
-        if ethreshold["environment"]:
-            threshold_environment = ethreshold["environment"]["name"]
         if (
             parser.parse(i["time"]) <= ethreshold["start"]  # ts is before our threshold start
-            or parser.parse(i["time"]) > ethreshold["end"]  # ts is after our threshold ned
+            or parser.parse(i["time"]) > ethreshold["end"]  # ts is after our threshold end
             or i["release"] != ethreshold["release"]  # ts is not our the right release
             or i["project_id"] != ethreshold["project_id"]  # ts is not the right project
             or i["environment"] != threshold_environment  # ts is not the right environment
         ):
+            metrics.incr("release.threshold_health_status.is_error_count_healthy.skip")
             continue
         # else ethreshold.start < i.time <= ethreshold.end
+        metrics.incr("release.threshold_health_status.is_error_count_healthy.aggregate_total")
         total_count += i["count()"]
 
     logger.info(
         "is_error_count_healthy",
         extra={
-            "key": ethreshold["key"],
-            "environment": threshold_environment,
-            "release": ethreshold["release"],
-            "project": ethreshold["project_id"],
+            "threshold": ethreshold,
             "total_count": total_count,
-            "value": ethreshold["value"],
-            "trigger_type": ethreshold["trigger_type"],
-            "start": ethreshold["start"],
-            "end": ethreshold["end"],
+            "error_count_data": timeseries,
+            "threshold_environment": threshold_environment,
         },
     )
 

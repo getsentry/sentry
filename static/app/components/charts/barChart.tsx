@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import {BarSeriesOption} from 'echarts';
 
 import type {Series} from 'sentry/types/echarts';
@@ -15,25 +16,29 @@ export interface BarChartProps extends BaseChartProps {
   stacked?: boolean;
 }
 
+const EMPTY_AXIS = {};
 export function BarChart({series, stacked, xAxis, animation, ...props}: BarChartProps) {
-  return (
-    <BaseChart
-      {...props}
-      xAxis={xAxis !== null ? {...(xAxis || {})} : null}
-      series={series.map(({seriesName, data, ...options}) =>
-        BarSeries({
-          name: seriesName,
-          stack: stacked ? 'stack1' : undefined,
-          data: data?.map(({value, name, itemStyle}) => {
-            if (itemStyle === undefined) {
-              return [name, value];
-            }
-            return {value: [name, value], itemStyle};
-          }),
-          animation,
-          ...options,
-        })
-      )}
-    />
-  );
+  const transformedSeries = useMemo(() => {
+    return series.map(({seriesName, data, ...options}) =>
+      BarSeries({
+        name: seriesName,
+        stack: stacked ? 'stack1' : undefined,
+        data: data?.map(({value, name, itemStyle}) => {
+          if (itemStyle === undefined) {
+            return [name, value];
+          }
+          return {value: [name, value], itemStyle};
+        }),
+        animation,
+        ...options,
+      })
+    );
+  }, [animation, series, stacked]);
+
+  const xAxisOptions = useMemo(() => {
+    const option = xAxis === null ? null : {...(xAxis || EMPTY_AXIS)};
+    return option;
+  }, [xAxis]);
+
+  return <BaseChart {...props} xAxis={xAxisOptions} series={transformedSeries} />;
 }

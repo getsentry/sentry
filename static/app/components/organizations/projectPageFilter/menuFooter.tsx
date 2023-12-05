@@ -31,7 +31,7 @@ function ProjectPageFilterMenuFooter({
     <Fragment>
       <Feature
         organization={organization}
-        features={['organizations:global-views']}
+        features="organizations:global-views"
         hookName="feature-disabled:project-selector-all-projects"
         renderDisabled={false}
       >

@@ -1,3 +1,107 @@
+23.11.2
+-------
+
+### Various fixes & improvements
+
+- feat(notifications): replace logic for bulk settings update (#60502) by @scefali
+- ref(notifications): remove some unused hybrid cloud service methods (#60488) by @scefali
+- fix(backup): Fix various small import and comparison bugs (#60593) by @azaslavsky
+- fix(alerts): Chart query overflowing container in alert details (#60597) by @ArthurKnaus
+- fix(perf): Allow `null` size fields in span waterfall (#60601) by @gggritso
+- ref(notifications): remove unused notification manager methods (#60493) by @scefali
+- ref(notifications): stop using update settings tests p2 (#60500) by @scefali
+- ref(notifications): modify legacy option code (#60437) by @scefali
+- ref(notifications): stop using update settings in unsubscribe context (#60445) by @scefali
+- fix(ddm): invalid mri message (#60599) by @obostjancic
+- feat(resources): Add link to resource summary from waterfall (#60557) by @AbhiPrasad
+- chore(perf-web-vitals-widget): Updated description. (#60598) by @Abdkhan14
+- ref(webvitals): Support for using stored performance scores (#60397) by @edwardgou-sentry
+- chore(codeowners): add ddm owners (#60588) by @obostjancic
+- ref(charts): Use `GranularityLadder` class to get chart intervals (#60374) by @gggritso
+- feat(starfish): Fetch better releases in the selector (#60563) by @shruthilayaj
+- feat(profiling): add copy function source button (#60468) by @JonasBa
+- fix(hybrid-cloud): Fix cross-silo access on issue creation (#60595) by @leeandher
+- chore(hybridcloud) Move email reply tasks to a dedicated queue (#60560) by @markstory
+- fix(hybridcloud) Remove externalactor.actor_id (#60548) by @markstory
+- perf(charts): refactor baseChart (#60411) by @JonasBa
+- fix(metrics): Refine text contents for investigation rule notification (#60590) by @RaduW
+- ref(profiling): remove old call tree table (#60052) by @JonasBa
+- feat(ddm): spans use case (#60587) by @obostjancic
+
+_Plus 111 more_
+
+23.11.1
+-------
+
+### Various fixes & improvements
+
+- chore(stats-detectors): Remove feature flag from root cause analysis … (#60408) by @Zylphrex
+- ref(hybrid-cloud): Removes unused onboarding task handling (#60337) by @GabeVillalobos
+- ref(notifications): remove UserNotificationSettingsDetailsEndpoint (#60302) by @scefali
+- fix(browser-starfish): fix query main graphs on resource module (#60409) by @DominikB2014
+- chore(stats-detector): Remove feature flag checks in regression issues (#60406) by @Zylphrex
+- fix(backup): Handle multiple emails per user (#60404) by @azaslavsky
+- test(hc): Stabilize ProjectUserFeedbackDocs (#60405) by @RyanSkonnord
+- feat(open-source): Set feature flags for Open Source users (#59956) by @NisanthanNanthakumar
+- fix(ci): Reduce the amount of test data that's stored (#60197) by @evanh
+- feat(integrations): make sure stacktrace-link feature is set (#60326) by @scefali
+- ref(stacktrace): Remove references to frame.errors (#60393) by @malwilley
+- ref(feedback): update empty state illustration (#60399) by @michellewzhang
+- ref(crons): Add project_id to monitor_validation_failed log (#60402) by @evanpurkhiser
+- fix(browser-starfish): domain-filter not working (#60398) by @DominikB2014
+- ref(notifications): stop providing organization_id_for_team argument (#60296) by @scefali
+- test(hc): Fix bug in snapshot comparison with altered test class name (#60325) by @RyanSkonnord
+- fix(browser-starifish): remove alpha badge resource module (#60392) by @DominikB2014
+- ref: fix typing for avatar endpoints (#60319) by @asottile-sentry
+- test(hc): Change inheritance from AlertRuleDetailsPutEndpointTest (#60331) by @RyanSkonnord
+- ref(hc): Handle LazyObjects in serialize_generic_user (#60120) by @RyanSkonnord
+- feat(open-pr-comments): comment template (#60317) by @cathteng
+- fix(browser-starfish): cursor persisting when navigating between pages/filters (#60378) by @DominikB2014
+- ref(codeowners): Adding wildcard to groupEventDetails (#60361) by @k-fish
+- fix(recommended-event): Use event ID as tie breaker to match latest event (#60323) by @malwilley
+
+_Plus 227 more_
+
+23.11.0
+-------
+
+### Notification Settings 2.0 (ongoing)
+
+By: @scttcper (#58638, #58615)
+
+### Resource Module Internal (ongoing)
+
+By: @DominikB2014 (#58939, #58937, #58891, #58785, #58768, #58792, #58770)
+
+### Various fixes & improvements
+
+- fix(wizard) Fix possibly unbound variable in setup wizard (#59934) by @markstory
+- fix(starfish): Primary release can be undefined, check for it (#59993) by @shruthilayaj
+- feat(webvitals): Check if ttfb exists to determine proper no data state (#59912) by @edwardgou-sentry
+- feat(starfish): Highlight TTFD and link to docs when 0 (#59997) by @narsaynorath
+- fix(stafish): Fix typo in variable name (#59988) by @gggritso
+- feat(spans): Record resource spans for clustering (#58689) by @jjbayer
+- feat(metric-extraction): validate specs (#59981) by @obostjancic
+- ref(browser-starfish): use the shared domain selector in resource module (#59950) by @DominikB2014
+- feat(database): "View Query Summary" links in span waterfall (#59785) by @gggritso
+- chore(starfish): Rename breadcrumb, remove duplicate sidebar item (#59980) by @shruthilayaj
+- feat(profiling): add differential flamegraph boilerplate to statistical issue (#59905) by @JonasBa
+- feat(starfish): Use short release version and truncate (#59936) by @shruthilayaj
+- Unrevert "fix(metrics-extraction): Explicitly set metric type for metrics querying (#59931)" (#59960) by @k-fish
+- fix(email): alerts migration email text (#59975) by @obostjancic
+- feat(metrics) Check max orgs per project limit when creating investigation rules (#59852) by @RaduW
+- feat(ddm-alerts): Add force metrics layer params (#59974) by @ArthurKnaus
+- fix(project-create): Use large icon variant in framework suggestion (#59969) by @ArthurKnaus
+- ref: upgrade mypy to 1.7.0 (#59937) by @asottile-sentry
+- Move metadata from `File` to `EventAttachment` (#59845) by @Swatinem
+- Revert "feat(metric-extraction): validate specs (#59894)" (dc20e27c) by @getsentry-bot
+- feat(metric-extraction): validate specs (#59894) by @obostjancic
+- feat(ddm): Add option to forcefully use the new metrics layer (#59898) by @iambriccardo
+- feat(open-pr-comments): get PR files (#59933) by @cathteng
+- fix(feedback): Remove feedback item update on feedback list change (#59947) by @c298lee
+
+_Plus 1016 more_
+
 23.10.1
 -------
 

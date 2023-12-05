@@ -5,13 +5,19 @@ from contextlib import contextmanager
 from enum import Enum, unique
 from functools import lru_cache
 from string import Template
-from typing import Generator, Optional, Tuple
+from typing import Any, Generator, Optional, Tuple
 
+from django.utils import timezone
+
+from sentry import options
 from sentry.backup.dependencies import dependencies, get_model_name, sorted_dependencies
+from sentry.backup.helpers import Printer
 from sentry.backup.scopes import RelocationScope
+from sentry.http import get_server_hostname
 from sentry.models.files.utils import get_storage
 from sentry.models.relocation import Relocation, RelocationFile
-from sentry.models.user import User
+from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.utils.email.message_builder import MessageBuilder as MessageBuilder
 
 logger = logging.getLogger("sentry.relocation.tasks")
 
@@ -30,7 +36,10 @@ class OrderedTask(Enum):
     VALIDATING_POLL = 7
     VALIDATING_COMPLETE = 8
     IMPORTING = 9
-    COMPLETED = 10
+    POSTPROCESSING = 10
+    NOTIFYING_USERS = 11
+    NOTIFYING_OWNER = 12
+    COMPLETED = 13
 
 
 # The file type for a relocation export tarball of any kind.
@@ -53,10 +62,10 @@ RELOCATION_BLOB_SIZE = int((2**31) / 32)
 # be imported, a `/workspace/out` directory for exports that will be generated, and
 # `/workspace/findings` for findings.
 #
-# TODO(getsentry/team-ospo#203): Make `get-self-hosted-repo` pull a pinned version, not
+# TODO(getsentry/team-ospo#190): Make `get-self-hosted-repo` pull a pinned version, not
 # mainline.
 #
-# TODO(getsentry/team-ospo#203): Use script in self-hosted to completely flush db instead of
+# TODO(getsentry/team-ospo#216): Use script in self-hosted to completely flush db instead of
 # using truncation tables.
 CLOUDBUILD_YAML_TEMPLATE = Template(
     """
@@ -151,7 +160,7 @@ artifacts:
   objects:
     location: "$bucket_root/relocations/runs/$uuid/findings/"
     paths: ["/workspace/findings/**"]
-timeout: 2400s
+timeout: 3600s
 options:
   machineType: "N1_HIGHCPU_32"
   env:
@@ -185,7 +194,7 @@ IMPORT_VALIDATION_STEP_TEMPLATE = Template(
       - "--findings-file"
       - "/findings/import-$jsonfile"
       $args
-    timeout: 30s
+    timeout: 300s
     """
 )
 
@@ -199,6 +208,8 @@ EXPORT_VALIDATION_STEP_TEMPLATE = Template(
     args:
       $docker_compose_cmd
       $docker_compose_run
+      - "-v"
+      - "/workspace/in:/in"
       - "-v"
       - "/workspace/out:/out"
       - "-v"
@@ -214,7 +225,7 @@ EXPORT_VALIDATION_STEP_TEMPLATE = Template(
       - "--findings-file"
       - "/findings/export-$jsonfile"
       $args
-    timeout: 30s
+    timeout: 300s
     """
 )
 
@@ -261,9 +272,66 @@ COMPARE_VALIDATION_STEP_TEMPLATE = Template(
       - "--findings-file"
       - "/findings/compare-$jsonfile"
       $args
-    timeout: 30s
+    timeout: 300s
     """
 )
+
+
+# A custom logger that roughly matches the parts of the `click.echo` interface that the
+# `import_*` methods rely on.
+class LoggingPrinter(Printer):
+    def __init__(self, uuid: str):
+        self.uuid = uuid
+        super().__init__()
+
+    def echo(
+        self,
+        text: str,
+        *,
+        err: bool = False,
+        color: bool | None = None,
+    ) -> None:
+        if err:
+            logger.error(
+                f"Import failed: {text}",
+                extra={"uuid": self.uuid, "task": OrderedTask.IMPORTING.name},
+            )
+        else:
+            logger.info(
+                f"Import info: {text}",
+                extra={"uuid": self.uuid, "task": OrderedTask.IMPORTING.name},
+            )
+
+
+class EmailKind(Enum):
+    STARTED = 0
+    FAILED = 1
+    SUCCEEDED = 2
+
+
+def send_relocation_update_email(
+    relocation: Relocation, email_kind: EmailKind, args: dict[str, Any]
+):
+    name = str(email_kind.name)
+    name_lower = name.lower()
+    msg = MessageBuilder(
+        subject=f"{options.get('mail.subject-prefix')} Your Relocation has {name.capitalize()}",
+        template=f"sentry/emails/relocation_{name_lower}.txt",
+        html_template=f"sentry/emails/relocation_{name_lower}.html",
+        type=f"relocation.{name_lower}",
+        context={"domain": get_server_hostname(), "datetime": timezone.now(), **args},
+    )
+    email_to = []
+    owner = user_service.get_user(user_id=relocation.owner_id)
+    if owner is not None:
+        email_to.append(owner.email)
+
+    if relocation.owner_id != relocation.creator_id:
+        creator = user_service.get_user(user_id=relocation.creator_id)
+        if creator is not None:
+            email_to.append(creator.email)
+
+    msg.send_async(to=email_to)
 
 
 def start_relocation_task(
@@ -333,6 +401,11 @@ def fail_relocation(relocation: Relocation, task: OrderedTask, reason: str = "")
     instead.
     """
 
+    # Another nested exception handler could have already failed this relocation - in this case, do
+    # nothing.
+    if relocation.status == Relocation.Status.FAILURE.value:
+        return
+
     if reason:
         relocation.failure_reason = reason
 
@@ -340,7 +413,14 @@ def fail_relocation(relocation: Relocation, task: OrderedTask, reason: str = "")
     relocation.save()
 
     logger.info("Task failed", extra={"uuid": relocation.uuid, "task": task.name, "reason": reason})
-    return
+    send_relocation_update_email(
+        relocation,
+        EmailKind.FAILED,
+        {
+            "uuid": str(relocation.uuid),
+            "reason": reason,
+        },
+    )
 
 
 @contextmanager
@@ -422,9 +502,7 @@ def get_bucket_name():
 
 def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
     # Only test existing users for collision and mutation.
-    existing_usernames = User.objects.filter(username__in=relocation.want_usernames).values_list(
-        "username", flat=True
-    )
+    existing_usernames = user_service.get_existing_usernames(usernames=relocation.want_usernames)
     filter_usernames_args = [
         "--filter-usernames",
         ",".join(existing_usernames) if existing_usernames else ",",
@@ -502,7 +580,7 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             kind=RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA,
             args=[],
         ),
-        # TODO(getsentry/team-ospo#203): Add compare-raw-relocation-data as well.
+        # TODO(getsentry/team-ospo#216): Add compare-raw-relocation-data as well.
     ]
 
     deps = dependencies()
