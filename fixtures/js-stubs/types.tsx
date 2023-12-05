@@ -18,6 +18,7 @@ type TestStubFixtures = {
   ApiToken: OverridableStub;
   AvailableNotificationActions: OverridableStub;
   CodeOwner: OverridableStub;
+  Config: OverridableStub;
   Dashboard: OverridableVariadicStub;
   DocIntegration: OverridableStub;
   Environments: SimpleStub;
