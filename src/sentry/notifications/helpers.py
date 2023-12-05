@@ -12,7 +12,6 @@ from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamRe
 from sentry.notifications.defaults import (
     NOTIFICATION_SETTING_DEFAULTS,
     NOTIFICATION_SETTINGS_ALL_SOMETIMES,
-    NOTIFICATION_SETTINGS_ALL_SOMETIMES_V2,
 )
 from sentry.notifications.types import (
     NOTIFICATION_SETTING_OPTION_VALUES,
@@ -63,12 +62,12 @@ def get_default_for_provider(
 
     # Defaults are defined for the old int enum
     _type = [key for key, val in NOTIFICATION_SETTING_TYPES.items() if val == type.value]
-    if len(_type) != 1 or _type[0] not in NOTIFICATION_SETTINGS_ALL_SOMETIMES_V2:
+    if len(_type) != 1 or _type[0] not in NOTIFICATION_SETTINGS_ALL_SOMETIMES:
         # some keys are missing that we should default to never
         return NotificationSettingsOptionEnum.NEVER
 
     try:
-        default_value = NOTIFICATION_SETTINGS_ALL_SOMETIMES_V2[_type[0]]
+        default_value = NOTIFICATION_SETTINGS_ALL_SOMETIMES[_type[0]]
         default_enum = NotificationSettingsOptionEnum(
             NOTIFICATION_SETTING_OPTION_VALUES[default_value]
         )
@@ -86,7 +85,7 @@ def get_default_for_provider(
 def get_type_defaults() -> Mapping[NotificationSettingEnum, NotificationSettingsOptionEnum]:
     # this tells us what the default value is for each notification type
     type_defaults = {}
-    for key, value in NOTIFICATION_SETTINGS_ALL_SOMETIMES_V2.items():
+    for key, value in NOTIFICATION_SETTINGS_ALL_SOMETIMES.items():
         # for the given notification type, figure out what the default value is
         notification_type = NotificationSettingEnum(NOTIFICATION_SETTING_TYPES[key])
         default = NotificationSettingsOptionEnum(NOTIFICATION_SETTING_OPTION_VALUES[value])

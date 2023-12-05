@@ -79,7 +79,6 @@ export const makeFlamegraph = (
       createFrameIndex('mobile', frames ?? [{name: 'f0'}]),
       {type: 'flamechart'}
     ),
-    0,
     {inverted: false, sort: 'call order'}
   );
 };

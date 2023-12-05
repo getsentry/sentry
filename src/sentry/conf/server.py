@@ -136,6 +136,7 @@ SENTRY_DEBUG_FILES_REDIS_CLUSTER = "default"
 SENTRY_MONITORS_REDIS_CLUSTER = "default"
 SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER = "default"
 SENTRY_METRIC_META_REDIS_CLUSTER = "default"
+SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -953,9 +954,9 @@ CELERYBEAT_SCHEDULE_CONTROL = {
     },
     "deliver-from-outbox-control": {
         "task": "sentry.tasks.enqueue_outbox_jobs_control",
-        # Run every 1 minute
-        "schedule": crontab(minute="*/1"),
-        "options": {"expires": 30, "queue": "outbox.control"},
+        # Run every 10 seconds as integration webhooks are delivered by this task
+        "schedule": timedelta(seconds=10),
+        "options": {"expires": 60, "queue": "outbox.control"},
     },
     "schedule-deletions-control": {
         "task": "sentry.tasks.deletion.run_scheduled_deletions_control",
@@ -1435,8 +1436,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:alert-migration-ui": False,
     # Enables the migration of alerts (checked in a migration script).
     "organizations:alerts-migration-enabled": False,
-    # Enables tagging javascript errors from the browser console.
-    "organizations:javascript-console-error-tag": False,
     # Enables the cron job to auto-enable codecov integrations.
     "organizations:auto-enable-codecov": False,
     # The overall flag for codecov integration, gated by plans.
@@ -1908,8 +1907,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:source-maps-debugger-blue-thunder-edition": False,
     # Enable the new suspect commits calculation that uses all frames in the stack trace
     "organizations:suspect-commits-all-frames": False,
-    # Enable logs for debugging weekly reports
-    "organizations:weekly-report-logs": False,
     # Enables region provisioning for individual users
     "organizations:multi-region-selector": False,
     # Enable data forwarding functionality for projects.
