@@ -1,7 +1,8 @@
-import {Fragment, ReactElement, ReactNode} from 'react';
+import {Fragment, ReactElement, ReactNode, useEffect, useState} from 'react';
 
 import type {Frame} from 'sentry/types';
 import {getFileExtension} from 'sentry/utils/fileExtension';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 const fileNameBlocklist = ['@webkit-masked-url'];
 export function isFrameFilenamePathlike(frame: Frame): boolean {
@@ -24,6 +25,12 @@ export function isFrameFilenamePathlike(frame: Frame): boolean {
 
 // Detects URLs in text and renders them with anchor tags
 export function Linkify({exceptionText}: {exceptionText?: string}): ReactElement {
+  const [isOpen, setIsOpen] = useState(false);
+
+  function handleExternalLink() {
+    setIsOpen(true);
+  }
+
   if (!exceptionText) {
     return <Fragment>{''}</Fragment>;
   }
@@ -50,14 +57,12 @@ export function Linkify({exceptionText}: {exceptionText?: string}): ReactElement
   const elements: ReactNode[] = parts.flatMap((part, index) => {
     const link =
       urls && urls[index] ? (
-        <a
-          key={`link-${index}`}
-          href={urls[index]}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {urls[index]}
-        </a>
+        <Fragment>
+          <a href="#" onClick={handleExternalLink}>
+            {urls[index]}
+          </a>
+          {isOpen && <RedirectExternalLink externalUrl={urls[index]} />}
+        </Fragment>
       ) : null;
 
     // Combine the text part and its following URL into a React Fragment
@@ -67,6 +72,44 @@ export function Linkify({exceptionText}: {exceptionText?: string}): ReactElement
 
   return <Fragment>{elements}</Fragment>;
 }
+
+interface Props {
+  externalUrl: string;
+}
+
+function RedirectExternalLink({externalUrl}: Props) {
+  // State to control redirect
+  const [count, setCount] = useState(5);
+  const navigate = useNavigate();
+
+  // Redirect after timer
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCount(count - 1);
+    }, 1000);
+
+    if (count === 0) {
+      window.open(externalUrl, '_blank');
+    }
+
+    return () => clearInterval(timer);
+  }, [count, externalUrl]);
+
+  return (
+    <Fragment>
+      <title>See You Later</title>
+
+      <p>
+        You are leaving Sentry and will be automatically redirected to {externalUrl} in{' '}
+        {count} seconds. Changed your mind?{' '}
+        <a onClick={() => navigate(-1)}>Go back to Sentry</a>
+      </p>
+    </Fragment>
+  );
+}
+
+// // Usage
+// <RedirectTab redirectUrl="https://external-url.com" domain="https://mydomain.com" />;
 
 // Maps the SDK name to the url token for docs
 export const sourceMapSdkDocsMap: Record<string, string> = {
