@@ -10,6 +10,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.integrations.github.webhook import (
     InstallationEventWebhook,
@@ -178,6 +179,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
 
 @region_silo_endpoint
 class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
+    owner = ApiOwner.ECOSYSTEM
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,
     }

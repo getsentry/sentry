@@ -1,8 +1,27 @@
-import {useEffect} from 'react';
+import {useEffect, useMemo} from 'react';
+import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {DifferentialFlamegraph} from 'sentry/components/profiling/flamegraph/differentialFlamegraph';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {Event} from 'sentry/types';
-import {useDifferentialFlamegraphQuery} from 'sentry/utils/profiling/hooks/useDifferentialFlamegraphQuery';
+import {
+  CanvasPoolManager,
+  useCanvasScheduler,
+} from 'sentry/utils/profiling/canvasScheduler';
+import {DifferentialFlamegraph as DifferentialFlamegraphModel} from 'sentry/utils/profiling/differentialFlamegraph';
+import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
+import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
+import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
+import {
+  DifferentialFlamegraphQueryResult,
+  useDifferentialFlamegraphQuery,
+} from 'sentry/utils/profiling/hooks/useDifferentialFlamegraphQuery';
+import {importProfile} from 'sentry/utils/profiling/profile/importProfile';
+import {LOADING_PROFILE_GROUP} from 'sentry/views/profiling/profileGroupProvider';
 
 import {useTransactionsDelta} from './transactionsDeltaProvider';
 
@@ -37,11 +56,11 @@ export function EventDifferenialFlamegraph(props: EventDifferenialFlamegraphProp
   const projectID = parseInt(props.event.projectID, 10);
   const transactions = useTransactionsDelta();
 
-  useDifferentialFlamegraphQuery({
+  const {before, after} = useDifferentialFlamegraphQuery({
     projectID,
     breakpoint,
     environments: [],
-    transaction: transactions.data?.data?.[0]?.transaction as string,
+    transaction: transactions?.data?.data?.[0]?.transaction as string,
   });
 
   if (!isValid) {
@@ -50,8 +69,126 @@ export function EventDifferenialFlamegraph(props: EventDifferenialFlamegraphProp
 
   return (
     <div>
-      <h3>EventDifferenialFlamegraph</h3>
-      <p>TODO: Implement</p>
+      <h3>Differential Flamegraph</h3>
+      <FlamegraphThemeProvider>
+        <FlamegraphStateProvider
+          initialState={{
+            preferences: {
+              sorting: 'alphabetical',
+              view: 'bottom up',
+            },
+          }}
+        >
+          <EventDifferentialFlamegraphView before={before} after={after} />
+        </FlamegraphStateProvider>
+      </FlamegraphThemeProvider>
     </div>
   );
 }
+
+interface EventDifferentialFlamegraphViewProps {
+  after: DifferentialFlamegraphQueryResult['before'];
+  before: DifferentialFlamegraphQueryResult['after'];
+}
+function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewProps) {
+  const theme = useFlamegraphTheme();
+  const beforeFlamegraph = useMemo(() => {
+    if (!props.before.data) {
+      return null;
+    }
+
+    // @TODO pass frame filter
+    const profile = importProfile(props.before.data, '', 'flamegraph');
+    return new Flamegraph(profile.profiles[0], {sort: 'alphabetical'});
+  }, [props.before]);
+
+  const afterProfileGroup = useMemo(() => {
+    if (!props.after.data) {
+      return null;
+    }
+
+    return importProfile(props.after.data, '', 'flamegraph');
+  }, [props.after]);
+
+  const afterFlamegraph = useMemo(() => {
+    if (!afterProfileGroup) {
+      return null;
+    }
+
+    // @TODO pass frame filter
+    return new Flamegraph(afterProfileGroup.profiles[0], {sort: 'alphabetical'});
+  }, [afterProfileGroup]);
+
+  const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
+  const scheduler = useCanvasScheduler(canvasPoolManager);
+
+  const differentialFlamegraph = useMemo(() => {
+    if (!beforeFlamegraph || !afterFlamegraph) {
+      return DifferentialFlamegraphModel.Empty();
+    }
+
+    return DifferentialFlamegraphModel.FromDiff(
+      {
+        before: beforeFlamegraph,
+        after: afterFlamegraph,
+      },
+      theme
+    );
+  }, [beforeFlamegraph, afterFlamegraph, theme]);
+
+  return (
+    <DifferentialFlamegraphContainer>
+      {props.after.isLoading || props.before.isLoading ? (
+        <LoadingIndicatorContainer>
+          <LoadingIndicator />
+        </LoadingIndicatorContainer>
+      ) : props.before.isError && props.after.isError ? (
+        <ErrorMessageContainer>
+          {t('Failed to load flamegraph for before and after regression time range.')}
+        </ErrorMessageContainer>
+      ) : props.before.isError ? (
+        <ErrorMessageContainer>
+          {t('Failed to load flamegraph for before regression time range.')}
+        </ErrorMessageContainer>
+      ) : props.after.isError ? (
+        <ErrorMessageContainer>
+          {t('Failed to load flamegraph for after regression time range.')}
+        </ErrorMessageContainer>
+      ) : null}
+      <DifferentialFlamegraph
+        profileGroup={afterProfileGroup ?? LOADING_PROFILE_GROUP}
+        differentialFlamegraph={differentialFlamegraph}
+        canvasPoolManager={canvasPoolManager}
+        scheduler={scheduler}
+      />
+    </DifferentialFlamegraphContainer>
+  );
+}
+
+const ErrorMessageContainer = styled('div')`
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background-color: ${p => p.theme.background};
+  color: ${p => p.theme.subText};
+  text-align: center;
+  padding: ${space(2)} ${space(4)};
+`;
+
+const LoadingIndicatorContainer = styled('div')`
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+`;
+
+const DifferentialFlamegraphContainer = styled('div')`
+  position: relative;
+  width: 100%;
+  height: 500px;
+`;

@@ -303,14 +303,8 @@ class LoggingPrinter(Printer):
             )
 
 
-class EmailKind(Enum):
-    STARTED = 0
-    FAILED = 1
-    SUCCEEDED = 2
-
-
 def send_relocation_update_email(
-    relocation: Relocation, email_kind: EmailKind, args: dict[str, Any]
+    relocation: Relocation, email_kind: Relocation.EmailKind, args: dict[str, Any]
 ):
     name = str(email_kind.name)
     name_lower = name.lower()
@@ -415,7 +409,7 @@ def fail_relocation(relocation: Relocation, task: OrderedTask, reason: str = "")
     logger.info("Task failed", extra={"uuid": relocation.uuid, "task": task.name, "reason": reason})
     send_relocation_update_email(
         relocation,
-        EmailKind.FAILED,
+        Relocation.EmailKind.FAILED,
         {
             "uuid": str(relocation.uuid),
             "reason": reason,
