@@ -144,7 +144,7 @@ jest.mock('@sentry/react', function sentryReact() {
 const routerFixtures = {
   router: RouterFixture,
   location: LocationFixture,
-  routeProps: RouterPropsFixture,
+  routerProps: RouterPropsFixture,
   routeComponentProps: RouteComponentPropsFixture,
   routerContext: RouterContextFixture,
 };
