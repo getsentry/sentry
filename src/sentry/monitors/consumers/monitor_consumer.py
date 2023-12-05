@@ -549,7 +549,7 @@ def _process_checkin(
             # check-ins may be slipping in, since we use the `item.ts` to click
             # the clock forward, if that is delayed it's possible for the
             # check-in to come in late
-            kafka_delay = start_time.replace(tzinfo=None) - message_ts
+            kafka_delay = message_ts - start_time.replace(tzinfo=None)
             metrics.gauge("monitors.checkin.relay_kafka_delay", kafka_delay.total_seconds())
 
             # how long in wall-clock time did it take for us to process this
