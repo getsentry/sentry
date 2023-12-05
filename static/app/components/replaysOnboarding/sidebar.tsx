@@ -197,7 +197,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     );
   }
 
-  if (!currentPlatform || !hasOnboardingContents) {
+  if (!currentPlatform || (!hasOnboardingContents && !newOnboarding)) {
     return (
       <Fragment>
         <div>
