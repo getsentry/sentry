@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import atexit
 import pickle
-from functools import partial
+from functools import lru_cache, partial
 from typing import Any, Callable, Mapping, Optional, Union
+import logging
 
 from arroyo.processing.strategies.run_task_with_multiprocessing import (
     RunTaskWithMultiprocessing as ArroyoRunTaskWithMultiprocessing,
+    MultiprocessingPool as ArroyoMultiprocessingPool,
 )
 from arroyo.processing.strategies.run_task_with_multiprocessing import TResult
 from arroyo.types import TStrategyPayload
@@ -14,6 +17,8 @@ from arroyo.utils.metrics import Metrics
 from sentry.metrics.base import MetricsBackend
 
 Tags = Mapping[str, str]
+
+logger = logging.getLogger(__name__)
 
 
 class MetricsWrapper(Metrics):
@@ -126,17 +131,55 @@ def initialize_arroyo_main() -> None:
     configure_metrics(metrics_wrapper)
 
 
+class ReusableMultiprocessingPool(ArroyoMultiprocessingPool):
+    """
+    A variant of arroyo's MultiprocessingPool that initializes Sentry for you, and
+    ensures global metric tags in the subprocess are inherited from the main process.
+
+    Also auto-closes the pool when it receives the exit signal.
+
+    Since the pool is only closed in the exit handler, a single instance of this class
+    should be used across all consumer rebalances - that is, it must not be recreated
+    by the strategy factory on every rebalance.
+    """
+
+    def __init__(
+        self,
+        num_processes: int,
+        initializer: Optional[Callable[[], None]] = None,
+    ) -> None:
+        # TODO: Does this even work?
+        atexit.register(self._shutdown)
+
+        super().__init__(
+            num_processes=num_processes, initializer=_get_arroyo_subprocess_initializer(initializer)
+        )
+
+    def _shutdown(self) -> None:
+        logger.info("Shutting down multiprocessing pool")
+        super().close()
+
+
+@lru_cache(maxsize=None)
+def get_reusable_multiprocessing_pool(
+    num_processes: int,
+    initializer: Optional[Callable[[], None]] = None,
+) -> ReusableMultiprocessingPool:
+    return ReusableMultiprocessingPool(num_processes, initializer=initializer)
+
+
 class RunTaskWithMultiprocessing(ArroyoRunTaskWithMultiprocessing[TStrategyPayload, TResult]):
     """
-    A variant of arroyo's RunTaskWithMultiprocessing that initializes Sentry
-    for you, and ensures global metric tags in the subprocess are inherited
-    from the main process.
+    A variant of arroyo's RunTaskWithMultiprocessing that can switch between
+    multiprocessing and non-multiprocessing mode based on the
+    `KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING` setting.
     """
 
     def __new__(
         cls,
         *,
-        initializer: Optional[Callable[[], None]] = None,
+        # Either ArroyoMultiprocessingPool or ReusableMultiprocessingPool can be passed here
+        pool: ArroyoMultiprocessingPool,
         **kwargs: Any,
     ) -> RunTaskWithMultiprocessing:
         from django.conf import settings
@@ -150,11 +193,12 @@ class RunTaskWithMultiprocessing(ArroyoRunTaskWithMultiprocessing[TStrategyPaylo
             kwargs.pop("max_batch_size", None)
             kwargs.pop("max_batch_time", None)
 
-            if initializer is not None:
-                initializer()
+            # XXX: Initializer would need to be public in Arroyo for this to work
+            if pool.initializer is not None:
+                pool.initializer()
 
             # Assert that initializer can be pickled and loaded again from subprocesses.
-            pickle.loads(pickle.dumps(initializer))
+            pickle.loads(pickle.dumps(pool.initializer))
             pickle.loads(pickle.dumps(kwargs["function"]))
 
             return RunTask(**kwargs)  # type: ignore[return-value]
@@ -164,5 +208,5 @@ class RunTaskWithMultiprocessing(ArroyoRunTaskWithMultiprocessing[TStrategyPaylo
             )
 
             return ArroyoRunTaskWithMultiprocessing(  # type: ignore[return-value]
-                initializer=_get_arroyo_subprocess_initializer(initializer), **kwargs
+                pool=pool, **kwargs
             )
