@@ -1,4 +1,5 @@
 import {useEffect, useMemo} from 'react';
+import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
