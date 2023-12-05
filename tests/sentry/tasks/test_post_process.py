@@ -370,7 +370,7 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
             event=event,
         )
 
-        mock_processor.assert_called_once_with(EventMatcher(event), True, False, True, False)
+        mock_processor.assert_called_once_with(EventMatcher(event), True, False, True, False, False)
         mock_processor.return_value.apply.assert_called_once_with()
 
         mock_callback.assert_called_once_with(EventMatcher(event), mock_futures)
@@ -391,7 +391,6 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
             event=event,
         )
 
-        mock_processor.assert_called_once_with(EventMatcher(event), True, False, True, False)
         mock_processor.return_value.apply.assert_called_once_with()
 
         mock_callback.assert_called_once_with(EventMatcher(event), mock_futures)
@@ -477,7 +476,7 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
         )
         # Ensure that rule processing sees the merged group.
         mock_processor.assert_called_with(
-            EventMatcher(event, group=group2), True, False, True, False
+            EventMatcher(event, group=group2), True, False, True, False, False
         )
 
     @patch("sentry.rules.processor.RuleProcessor")
@@ -510,7 +509,7 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
             event=event2,
         )
         mock_processor.assert_called_with(
-            EventMatcher(event2, group=group1), False, True, False, False
+            EventMatcher(event2, group=group1), False, True, False, False, False
         )
         sent_group_date = mock_processor.call_args[0][0].group.last_seen
         # Check that last_seen was updated to be at least the new event's date
@@ -756,7 +755,7 @@ class InboxTestMixin(BasePostProgressGroupMixin):
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.NEW
 
-        mock_processor.assert_called_with(EventMatcher(new_event), True, True, False, False)
+        mock_processor.assert_called_with(EventMatcher(new_event), True, True, False, False, False)
 
         # resolve the new issue so regression actually happens
         group.status = GroupStatus.RESOLVED
@@ -780,7 +779,9 @@ class InboxTestMixin(BasePostProgressGroupMixin):
             event=regressed_event,
         )
 
-        mock_processor.assert_called_with(EventMatcher(regressed_event), False, True, False, False)
+        mock_processor.assert_called_with(
+            EventMatcher(regressed_event), False, True, False, False, False
+        )
         group.refresh_from_db()
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.REGRESSED
@@ -1542,7 +1543,7 @@ class SnoozeTestSkipSnoozeMixin(BasePostProgressGroupMixin):
         assert GroupInbox.objects.filter(group=group, reason=GroupInboxReason.NEW.value).exists()
         GroupInbox.objects.filter(group=group).delete()  # Delete so it creates the UNIGNORED entry.
         Activity.objects.filter(group=group).delete()
-        mock_processor.assert_called_with(EventMatcher(event), True, False, True, False)
+        mock_processor.assert_called_with(EventMatcher(event), True, False, True, False, False)
 
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
         group.status = GroupStatus.IGNORED
@@ -1559,7 +1560,7 @@ class SnoozeTestSkipSnoozeMixin(BasePostProgressGroupMixin):
             is_new_group_environment=True,
             event=event,
         )
-        mock_processor.assert_called_with(EventMatcher(event), False, False, True, True)
+        mock_processor.assert_called_with(EventMatcher(event), False, False, True, True, False)
 
         if should_detect_escalation:
             mock_send_escalating_robust.assert_called_once_with(
@@ -1620,7 +1621,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         GroupInbox.objects.filter(group=group).delete()  # Delete so it creates the UNIGNORED entry.
         Activity.objects.filter(group=group).delete()
 
-        mock_processor.assert_called_with(EventMatcher(event), True, False, True, False)
+        mock_processor.assert_called_with(EventMatcher(event), True, False, True, False, False)
 
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
         group.status = GroupStatus.IGNORED
@@ -1638,7 +1639,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
             event=event,
         )
 
-        mock_processor.assert_called_with(EventMatcher(event), False, False, True, True)
+        mock_processor.assert_called_with(EventMatcher(event), False, False, True, True, False)
         mock_send_escalating_robust.assert_called_once_with(
             project=group.project,
             group=group,
@@ -1714,7 +1715,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
             event=event,
         )
 
-        mock_processor.assert_called_with(EventMatcher(event), True, False, True, False)
+        mock_processor.assert_called_with(EventMatcher(event), True, False, True, False, False)
 
         assert GroupSnooze.objects.filter(id=snooze.id).exists()
         group.refresh_from_db()
@@ -2456,7 +2457,7 @@ class PostProcessGroupGenericTest(
             event=event,
         )
         assert mock_processor.call_count == 1
-        mock_processor.assert_called_with(EventMatcher(event), True, True, False, False)
+        mock_processor.assert_called_with(EventMatcher(event), True, True, False, False, False)
 
         # Calling this again should do nothing, since we've already processed this occurrence.
         self.call_post_process_group(
