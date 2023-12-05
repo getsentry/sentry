@@ -9,6 +9,7 @@ In Sentry a user must achieve the following to be treated as a superuser:
   standard auth. This session has a shorter lifespan.
 """
 
+from __future__ import annotations
 
 import ipaddress
 import logging
@@ -110,6 +111,7 @@ class Superuser(ElevatedMode):
         return self._is_active
 
     def __init__(self, request, allowed_ips=UNSET, org_id=UNSET, current_datetime=None):
+        self.uid: str | None = None
         self.request = request
         if allowed_ips is not UNSET:
             self.allowed_ips = frozenset(

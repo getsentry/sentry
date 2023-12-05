@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from sentry_sdk import configure_scope
 
 from sentry import VERSION, audit_log, http, options
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.models.integrations.integration import Integration
@@ -128,6 +129,7 @@ def get_payload_and_token(
 
 @control_silo_endpoint
 class VercelWebhookEndpoint(Endpoint):
+    owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,
