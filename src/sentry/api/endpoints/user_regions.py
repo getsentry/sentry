@@ -5,9 +5,32 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
+from sentry.api.permissions import SentryPermission
+from sentry.auth.superuser import is_active_superuser
+from sentry.auth.system import is_system_auth
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.types.region import get_region_by_name
+
+
+# Grants access to the list of regions where a user has organizations.
+# This should only be accessible for the current user or
+# system/superuser requests.
+#
+# This will also grant access via user auth tokens assuming the
+# user ID matches the user that is being queried.
+class UserRegionEndpointPermissions(SentryPermission):
+    scope_map = {"GET": ["org:read"]}
+
+    def has_object_permission(self, request, view, user):
+        if user.id == request.user.id and request.user.is_authenticated:
+            return True
+        if is_system_auth(request.auth):
+            return True
+        if is_active_superuser(request):
+            return True
+
+        return False
 
 
 @control_silo_endpoint
@@ -16,6 +39,8 @@ class UserRegionsEndpoint(UserEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
+
+    permission_classes = (UserRegionEndpointPermissions,)
 
     def get(self, request: Request, **kwargs) -> Response:
         """
