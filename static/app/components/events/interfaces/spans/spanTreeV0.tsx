@@ -76,10 +76,6 @@ class SpanTreeV0 extends Component<PropType> {
   componentDidMount() {
     setGroupedEntityTag('spans.total', 1000, this.props.spans.length);
 
-    // TODO Abdullah Khan: A little bit hacky, but ensures that the embedded span tree
-    // aligns with the rest of the trace tree when first loaded.
-    this.props.updateHorizontalScrollState(1);
-
     if (location.hash) {
       const {spans} = this.props;
 
@@ -166,6 +162,10 @@ class SpanTreeV0 extends Component<PropType> {
   }
 
   componentDidUpdate(prevProps: PropType) {
+    // TODO Abdullah Khan: A little bit hacky, but ensures that the embedded span tree
+    // aligns with the rest of the trace tree when first loaded.
+    this.props.updateHorizontalScrollState(0.5);
+
     // If the filters or minimap drag props have changed, we can't pinpoint the exact
     // spans that we need to recalculate the heights for, so recompute them all
     if (
