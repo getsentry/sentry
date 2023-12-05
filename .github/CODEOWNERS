@@ -324,21 +324,21 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 
 
 ## Integrations
-/src/sentry/api/endpoints/integrations/                              @getsentry/owners-settings-integrations
+/src/sentry/api/endpoints/integrations/                              @getsentry/product-owners-settings-integrations
 /src/sentry/api/endpoints/project_stacktrace_link.py                 @getsentry/issues
 /src/sentry/api/endpoints/organization_integration_repos.py          @getsentry/issues
 /src/sentry/api/endpoints/organization_release_previous_commits.py   @getsentry/issues
-/src/sentry/api/endpoints/sentry_app/                                @getsentry/owners-settings-integrations
+/src/sentry/api/endpoints/sentry_app/                                @getsentry/product-owners-settings-integrations
 /src/sentry/api/endpoints/project_rule*.py                           @getsentry/issues
 /src/sentry/api/serializers/models/rule.py 							 @getsentry/issues
 /src/sentry/api/serializers/models/alert_rule.py 				     @getsentry/issues
 
-/static/app/views/organizationIntegrations                           @getsentry/owners-settings-integrations
+/static/app/views/organizationIntegrations                           @getsentry/product-owners-settings-integrations
 /static/app/views/settings/project/projectOwnership/                 @getsentry/issues
 
 /src/sentry/digests/                                                 @getsentry/issues
 /src/sentry/identity/                                                @getsentry/issues
-/src/sentry/integrations/                                            @getsentry/owners-settings-integrations
+/src/sentry/integrations/                                            @getsentry/product-owners-settings-integrations
 /src/sentry/mail/                                                    @getsentry/issues
 /src/sentry/mediators/                                               @getsentry/issues
 /src/sentry/notifications/                                           @getsentry/issues
@@ -351,7 +351,7 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/models/externalissue.py                                  @getsentry/issues
 /src/sentry/models/identity.py                                       @getsentry/issues
 /src/sentry/models/integrationfeature.py                             @getsentry/issues
-/src/sentry/models/integrations/                                     @getsentry/owners-settings-integrations
+/src/sentry/models/integrations/                                     @getsentry/product-owners-settings-integrations
 
 /src/sentry/tasks/code_owners.py                                     @getsentry/issues
 /src/sentry/tasks/commits.py                                         @getsentry/issues
@@ -363,12 +363,12 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/tasks/user_report.py                                     @getsentry/issues
 /src/sentry/tasks/weekly_reports.py                                  @getsentry/issues
 
-/src/sentry_plugins/                                                 @getsentry/owners-settings-integrations
+/src/sentry_plugins/                                                 @getsentry/product-owners-settings-integrations
 *code_mappings*.py                                                   @getsentry/issues
 
 # To find matching files -> find . -name "*sentry_app*.py"
-*sentry_app*.py                                                      @getsentry/owners-settings-integrations
-*sentryapp*.py                                                       @getsentry/owners-settings-integrations
+*sentry_app*.py                                                      @getsentry/product-owners-settings-integrations
+*sentryapp*.py                                                       @getsentry/product-owners-settings-integrations
 *doc_integration*.py                                                 @getsentry/issues
 *docintegration*.py                                                  @getsentry/issues
 

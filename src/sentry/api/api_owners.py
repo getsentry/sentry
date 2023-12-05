@@ -15,7 +15,7 @@ class ApiOwner(Enum):
     ENTERPRISE = "enterprise"
     FEEDBACK = "feedback-backend"
     HYBRID_CLOUD = "hybrid-cloud"
-    INTEGRATIONS = "owners-settings-integrations"
+    INTEGRATIONS = "product-owners-settings-integrations"
     ISSUES = "issues"
     PERFORMANCE = "performance"
     TEAM_STARFISH = "team-starfish"
