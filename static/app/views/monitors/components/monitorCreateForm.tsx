@@ -1,4 +1,4 @@
-import {createContext, Fragment, useContext, useEffect, useRef} from 'react';
+import {Fragment, useContext, useEffect, useRef} from 'react';
 import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -9,6 +9,7 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
+import FormContext from 'sentry/components/forms/formContext';
 import FormModel, {FieldValue} from 'sentry/components/forms/model';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -71,7 +72,7 @@ interface Props {
 function MockTimelineVisualization({schedule}: Props) {
   const {scheduleType, cronSchedule, intervalFrequency, intervalUnit} = schedule;
   const organization = useOrganization();
-  const {setScheduleError} = useContext(ScheduleErrorContext);
+  const {form} = useContext(FormContext);
 
   const query = {
     num_ticks: NUM_SAMPLE_TICKS,
@@ -99,8 +100,17 @@ function MockTimelineVisualization({schedule}: Props) {
       : null;
 
   useEffect(() => {
-    setScheduleError(errorMessage);
-  }, [errorMessage, setScheduleError]);
+    if (!form) {
+      return;
+    }
+
+    const currScheduleType = form.getValue('config.schedule_type');
+    if (currScheduleType === ScheduleType.INTERVAL) {
+      form.setError('config.schedule.frequency', errorMessage);
+    } else if (currScheduleType === ScheduleType.CRONTAB) {
+      form.setError('config.schedule', errorMessage);
+    }
+  }, [errorMessage, form]);
 
   const mockTimestamps = data?.map(ts => new Date(ts * 1000));
   const start = mockTimestamps?.[0];
@@ -166,14 +176,6 @@ const TimelineWidthTracker = styled('div')`
   grid-column: 0;
 `;
 
-interface ScheduleErrorContextProps {
-  setScheduleError: (error: string) => void;
-}
-
-export const ScheduleErrorContext = createContext<ScheduleErrorContextProps>({
-  setScheduleError: () => {},
-});
-
 export default function MonitorCreateForm() {
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -201,17 +203,6 @@ export default function MonitorCreateForm() {
 
   function changeScheduleType(type: ScheduleType) {
     form.current.setValue('config.schedule_type', type);
-  }
-
-  function setScheduleError(error: string) {
-    const model = form.current;
-    const currScheduleType = model.getValue('config.schedule_type');
-
-    if (currScheduleType === ScheduleType.INTERVAL) {
-      model.setError('config.schedule.frequency', error);
-    } else if (currScheduleType === ScheduleType.CRONTAB) {
-      model.setError('config.schedule', error);
-    }
   }
 
   return (
@@ -329,27 +320,23 @@ export default function MonitorCreateForm() {
             }}
           </Observer>
         </ScheduleOptions>
-        <ScheduleErrorContext.Provider value={{setScheduleError}}>
-          <Observer>
-            {() => {
-              const scheduleType = form.current.getValue('config.schedule_type');
-              const cronSchedule = form.current.getValue('config.schedule');
-              const intervalFrequency = form.current.getValue(
-                'config.schedule.frequency'
-              );
-              const intervalUnit = form.current.getValue('config.schedule.interval');
+        <Observer>
+          {() => {
+            const scheduleType = form.current.getValue('config.schedule_type');
+            const cronSchedule = form.current.getValue('config.schedule');
+            const intervalFrequency = form.current.getValue('config.schedule.frequency');
+            const intervalUnit = form.current.getValue('config.schedule.interval');
 
-              const schedule = {
-                scheduleType,
-                cronSchedule,
-                intervalFrequency,
-                intervalUnit,
-              };
+            const schedule = {
+              scheduleType,
+              cronSchedule,
+              intervalFrequency,
+              intervalUnit,
+            };
 
-              return <MockTimelineVisualization schedule={schedule} />;
-            }}
-          </Observer>
-        </ScheduleErrorContext.Provider>
+            return <MockTimelineVisualization schedule={schedule} />;
+          }}
+        </Observer>
       </FieldContainer>
     </Form>
   );
