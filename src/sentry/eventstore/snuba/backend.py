@@ -325,11 +325,21 @@ class SnubaEventStorage(EventStorage):
             return None
 
         if group_id is not None and (
-            occurrence_id is not None
-            or event.get_event_type() == "error"
+            event.get_event_type() == "error"
             or (event.get_event_type() == "transaction" and skip_transaction_groupevent)
         ):
             event.group_id = group_id
+        elif occurrence_id is not None and group_id is not None:
+            event.group_id = group_id
+
+            event._snuba_data = {
+                "event_id": event_id,
+                "group_id": group_id,
+                "project_id": project_id,
+                "timestamp": event.timestamp,
+                "occurrence_id": occurrence_id,
+            }
+
         elif event.get_event_type() != "transaction" or group_id:
             # Load group_id from Snuba if not a transaction
             raw_query_kwargs = {}
