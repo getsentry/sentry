@@ -23,6 +23,7 @@ from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.region import override_regions
+from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
 from sentry.utils.auth import login
 from sentry.web.client_config import get_client_config
@@ -117,48 +118,6 @@ def clear_env_request():
     env.clear()
 
 
-@pytest.mark.parametrize(
-    "request_factory",
-    [
-        none_request,
-        make_request,
-        make_user_request,
-        make_user_request_from_org,
-        make_user_request_from_non_existant_org,
-        make_user_request_from_org_with_auth_identities,
-    ],
-)
-@django_db_all(transaction=True)
-def test_client_config_in_silo_modes(request_factory: RequestFactory):
-    request_ret = request_factory()
-    if request_ret is not None:
-        request, _ = request_ret
-    else:
-        request = None
-
-    base_line = get_client_config(request)
-
-    # Removing the region list as it varies based on silo mode.
-    # See Region.to_url()
-    base_line.pop("regions")
-    base_line["links"].pop("regionUrl")
-    cache.clear()
-
-    with override_settings(SILO_MODE=SiloMode.REGION):
-        result = get_client_config(request)
-        result.pop("regions")
-        result["links"].pop("regionUrl")
-        assert result == base_line
-        cache.clear()
-
-    with override_settings(SILO_MODE=SiloMode.CONTROL):
-        result = get_client_config(request)
-        result.pop("regions")
-        result["links"].pop("regionUrl")
-        assert result == base_line
-        cache.clear()
-
-
 @django_db_all(transaction=True)
 def test_client_config_deleted_user():
     request, user = make_user_request_from_org()
@@ -186,8 +145,7 @@ def test_client_config_empty_region_data():
 
 
 @django_db_all
-@override_regions(regions=region_data)
-@override_settings(SILO_MODE=SiloMode.CONTROL)
+@control_silo_test(regions=region_data, include_monolith_run=True)
 def test_client_config_with_region_data():
     request, user = make_user_request_from_org()
     request.user = user
@@ -199,8 +157,7 @@ def test_client_config_with_region_data():
 
 
 @django_db_all
-@override_regions(regions=region_data)
-@override_settings(SILO_MODE=SiloMode.CONTROL)
+@control_silo_test(regions=region_data, include_monolith_run=True)
 def test_client_config_with_single_tenant_membership():
     request, user = make_user_request_from_org()
     request.user = user
@@ -217,8 +174,7 @@ def test_client_config_with_single_tenant_membership():
 
 
 @django_db_all
-@override_regions(regions=region_data)
-@override_settings(SILO_MODE=SiloMode.CONTROL)
+@control_silo_test(regions=region_data, include_monolith_run=True)
 def test_client_config_links_regionurl():
     request, user = make_user_request_from_org()
     request.user = user
@@ -235,8 +191,7 @@ def test_client_config_links_regionurl():
 
 
 @django_db_all
-@override_regions(regions=region_data)
-@override_settings(SILO_MODE=SiloMode.CONTROL)
+@control_silo_test(regions=region_data, include_monolith_run=True)
 def test_client_config_links_with_priority_org():
     # request, user = make_user_request_from_non_existant_org()
     request, user = make_user_request_from_org()

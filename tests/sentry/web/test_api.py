@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from functools import cached_property
 from unittest import mock
 
@@ -13,7 +15,8 @@ from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.types.region import Region, RegionCategory
 from sentry.utils import json
 
 
@@ -81,6 +84,13 @@ class RobotsTxtTest(TestCase):
         assert resp["Content-Type"] == "text/plain"
 
 
+@region_silo_test(
+    regions=(
+        Region("reg1", 1, "http://reg1.testserver", RegionCategory.MULTI_TENANT),
+        Region("reg2", 2, "http://reg2.testserver", RegionCategory.MULTI_TENANT),
+    ),
+    include_monolith_run=True,
+)
 class ClientConfigViewTest(TestCase):
     @cached_property
     def path(self):
@@ -264,6 +274,13 @@ class ClientConfigViewTest(TestCase):
             "sentryUrl": "http://testserver",
         }
 
+    def _get_expected_region_url(self, slug: str | None = None) -> str:
+        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+            return "http://testserver"
+        if slug is not None:
+            return f"http://{slug}.reg1.testserver"
+        return "http://reg1.testserver"
+
     def test_links_authenticated(self):
         self.login_as(self.user)
 
@@ -283,8 +300,8 @@ class ClientConfigViewTest(TestCase):
         assert data["isAuthenticated"] is True
         assert data["lastOrganization"] == self.organization.slug
         assert data["links"] == {
-            "organizationUrl": f"http://{self.organization.slug}.testserver",
-            "regionUrl": "http://us.testserver",
+            "organizationUrl": "http://baz.testserver",
+            "regionUrl": self._get_expected_region_url(),
             "sentryUrl": "http://testserver",
         }
 
@@ -334,7 +351,7 @@ class ClientConfigViewTest(TestCase):
             assert data["lastOrganization"] == self.organization.slug
             assert data["links"] == {
                 "organizationUrl": "http://testserver",
-                "regionUrl": "http://us.testserver",
+                "regionUrl": self._get_expected_region_url(),
                 "sentryUrl": "http://testserver",
             }
 
@@ -349,7 +366,7 @@ class ClientConfigViewTest(TestCase):
             assert data["lastOrganization"] == self.organization.slug
             assert data["links"] == {
                 "organizationUrl": f"http://{self.organization.slug}.testserver",
-                "regionUrl": "http://us.testserver",
+                "regionUrl": self._get_expected_region_url(),
                 "sentryUrl": "http://testserver",
             }
 
@@ -374,7 +391,7 @@ class ClientConfigViewTest(TestCase):
             assert data["lastOrganization"] == self.organization.slug
             assert data["links"] == {
                 "organizationUrl": "invalid",
-                "regionUrl": "http://us.testserver",
+                "regionUrl": self._get_expected_region_url(),
                 "sentryUrl": "http://testserver",
             }
 
@@ -389,7 +406,7 @@ class ClientConfigViewTest(TestCase):
             assert data["lastOrganization"] == self.organization.slug
             assert data["links"] == {
                 "organizationUrl": "http://testserver",
-                "regionUrl": "http://us.testserver",
+                "regionUrl": self._get_expected_region_url(),
                 "sentryUrl": "http://testserver",
             }
 
@@ -404,7 +421,7 @@ class ClientConfigViewTest(TestCase):
             assert data["lastOrganization"] == self.organization.slug
             assert data["links"] == {
                 "organizationUrl": f"ftp://{self.organization.slug}.testserver",
-                "regionUrl": "http://us.testserver",
+                "regionUrl": self._get_expected_region_url(),
                 "sentryUrl": "http://testserver",
             }
 
@@ -518,7 +535,10 @@ class ClientConfigViewTest(TestCase):
         assert "activeorg" not in self.client.session
 
     def test_api_token(self):
-        api_token = ApiToken.objects.create(user=self.user, scope_list=["org:write", "org:read"])
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            api_token = ApiToken.objects.create(
+                user=self.user, scope_list=["org:write", "org:read"]
+            )
         HTTP_AUTHORIZATION = f"Bearer {api_token.token}"
 
         # Induce last active organization
@@ -566,7 +586,7 @@ class ClientConfigViewTest(TestCase):
             assert data["lastOrganization"] == self.organization.slug
             assert data["links"] == {
                 "organizationUrl": f"http://{self.organization.slug}.testserver",
-                "regionUrl": "http://foobar.us.testserver",
+                "regionUrl": self._get_expected_region_url("foobar"),
                 "sentryUrl": "http://testserver",
             }
 
