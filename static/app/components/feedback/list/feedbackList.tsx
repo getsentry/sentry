@@ -40,8 +40,6 @@ function NoFeedback({title, subtitle}: {subtitle: string; title: string}) {
 
 export default function FeedbackList() {
   const {
-    hasNextPage,
-    isFetching, // If the network is active
     isFetchingNextPage,
     isFetchingPreviousPage,
     isLoading, // If anything is loaded yet
@@ -99,7 +97,7 @@ export default function FeedbackList() {
         <InfiniteLoader
           isRowLoaded={isRowLoaded}
           loadMoreRows={loadMoreRows}
-          rowCount={hasNextPage ? issues.length + 1 : issues.length}
+          rowCount={hits}
         >
           {({onRowsRendered, registerChild}) => (
             <AutoSizer onResize={updateList}>
@@ -108,7 +106,7 @@ export default function FeedbackList() {
                   deferredMeasurementCache={cache}
                   height={height}
                   noRowsRenderer={() =>
-                    isFetching ? (
+                    isLoading ? (
                       <LoadingIndicator />
                     ) : (
                       <NoFeedback
