@@ -7,7 +7,7 @@ ALLOWED_IPS = frozenset(getattr(settings, "SUPERUSER_ALLOWED_IPS", settings.INTE
 
 
 class ElevatedMode(ABC):
-    allowed_ips = [ipaddress.ip_network(str(v), strict=False) for v in ALLOWED_IPS]
+    allowed_ips = frozenset(ipaddress.ip_network(str(v), strict=False) for v in ALLOWED_IPS)
 
     @staticmethod
     @abstractmethod
