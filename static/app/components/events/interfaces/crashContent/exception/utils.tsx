@@ -89,7 +89,8 @@ function RedirectExternalLink({externalUrl}: Props) {
     }, 1000);
 
     if (count === 0) {
-      window.open(externalUrl, '_blank');
+      window.open('', '_blank');
+      window.location.href = externalUrl;
     }
 
     return () => clearInterval(timer);
