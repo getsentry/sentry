@@ -11,7 +11,7 @@ interface Props {
   organization: Organization;
 }
 
-const PER_PAGE = 5;
+const PER_PAGE = 25;
 
 export default function useFeedbackListQueryKey({organization}: Props): ApiQueryKey {
   const queryView = useLocationQuery({
