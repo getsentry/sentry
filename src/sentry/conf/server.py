@@ -136,6 +136,7 @@ SENTRY_DEBUG_FILES_REDIS_CLUSTER = "default"
 SENTRY_MONITORS_REDIS_CLUSTER = "default"
 SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER = "default"
 SENTRY_METRIC_META_REDIS_CLUSTER = "default"
+SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -953,9 +954,9 @@ CELERYBEAT_SCHEDULE_CONTROL = {
     },
     "deliver-from-outbox-control": {
         "task": "sentry.tasks.enqueue_outbox_jobs_control",
-        # Run every 1 minute
-        "schedule": crontab(minute="*/1"),
-        "options": {"expires": 30, "queue": "outbox.control"},
+        # Run every 10 seconds as integration webhooks are delivered by this task
+        "schedule": timedelta(seconds=10),
+        "options": {"expires": 60, "queue": "outbox.control"},
     },
     "schedule-deletions-control": {
         "task": "sentry.tasks.deletion.run_scheduled_deletions_control",

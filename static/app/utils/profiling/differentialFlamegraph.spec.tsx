@@ -36,7 +36,6 @@ const makeFlamegraph = (profile: Partial<Profiling.Schema>) => {
     SampledProfile.FromProfile(s.profiles[0] as Profiling.SampledProfile, frameIndex, {
       type: 'flamegraph',
     }),
-    0,
     {
       inverted: false,
       sort: 'alphabetical',
@@ -65,7 +64,7 @@ describe('differentialFlamegraph', () => {
         },
       ],
     });
-    const current = makeFlamegraph({
+    const after = makeFlamegraph({
       shared: {
         frames: [{name: 'new function'}],
       },
@@ -78,11 +77,11 @@ describe('differentialFlamegraph', () => {
       ],
     });
 
-    const flamegraph = DifferentialFlamegraph.FromDiff({before, current}, THEME);
+    const flamegraph = DifferentialFlamegraph.FromDiff({before, after}, THEME);
 
     expect(flamegraph.colors?.get('new function')).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_INCREASE,
-      1,
+      1 * DifferentialFlamegraph.ALPHA_SCALING,
     ]);
   });
 
@@ -99,7 +98,7 @@ describe('differentialFlamegraph', () => {
         },
       ],
     });
-    const current = makeFlamegraph({
+    const after = makeFlamegraph({
       shared: {
         frames: [{name: 'function'}, {name: 'other function'}],
       },
@@ -112,15 +111,15 @@ describe('differentialFlamegraph', () => {
       ],
     });
 
-    const flamegraph = DifferentialFlamegraph.FromDiff({before, current}, THEME);
+    const flamegraph = DifferentialFlamegraph.FromDiff({before, after}, THEME);
 
     expect(flamegraph.colors?.get('function')).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_INCREASE,
-      1,
+      1 * DifferentialFlamegraph.ALPHA_SCALING,
     ]);
     expect(flamegraph.colors?.get('other function')).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_INCREASE,
-      0.2, // 2 / 10
+      0.2 * DifferentialFlamegraph.ALPHA_SCALING, // 2 / 10
     ]);
   });
 
@@ -137,7 +136,7 @@ describe('differentialFlamegraph', () => {
         },
       ],
     });
-    const current = makeFlamegraph({
+    const after = makeFlamegraph({
       shared: {
         frames: [{name: 'function'}, {name: 'other function'}],
       },
@@ -150,15 +149,15 @@ describe('differentialFlamegraph', () => {
       ],
     });
 
-    const flamegraph = DifferentialFlamegraph.FromDiff({before, current}, THEME);
+    const flamegraph = DifferentialFlamegraph.FromDiff({before, after}, THEME);
 
     expect(flamegraph.colors?.get('function')).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_INCREASE,
-      1, // (11 - 1) / 10
+      1 * DifferentialFlamegraph.ALPHA_SCALING, // (11 - 1) / 10
     ]);
     expect(flamegraph.colors?.get('other function')).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_INCREASE,
-      0.3, // (4 - 1) / 10
+      0.3 * DifferentialFlamegraph.ALPHA_SCALING, // (4 - 1) / 10
     ]);
   });
 
@@ -175,7 +174,7 @@ describe('differentialFlamegraph', () => {
         },
       ],
     });
-    const current = makeFlamegraph({
+    const after = makeFlamegraph({
       shared: {
         frames: [{name: 'function'}, {name: 'other function'}],
       },
@@ -188,15 +187,15 @@ describe('differentialFlamegraph', () => {
       ],
     });
 
-    const flamegraph = DifferentialFlamegraph.FromDiff({before, current}, THEME);
+    const flamegraph = DifferentialFlamegraph.FromDiff({before, after}, THEME);
 
     expect(flamegraph.colors?.get('function')).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_DECREASE,
-      1,
+      1 * DifferentialFlamegraph.ALPHA_SCALING,
     ]);
     expect(flamegraph.colors?.get('other function')).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_DECREASE,
-      0.2,
+      0.2 * DifferentialFlamegraph.ALPHA_SCALING,
     ]);
   });
 });

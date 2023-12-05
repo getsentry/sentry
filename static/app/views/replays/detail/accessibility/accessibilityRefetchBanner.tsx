@@ -62,7 +62,7 @@ export default function AccessibilityRefetchBanner({initialOffsetMs, refetch}: P
           disabled={currentTime === lastOffsetMs}
         >
           {isPlaying
-            ? tct('Pause and Run validation for [now]', {now})
+            ? tct('Pause and run validation for [now]', {now})
             : tct('Run validation for [now]', {now})}
         </Button>
       </Flex>

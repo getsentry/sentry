@@ -23,7 +23,6 @@ class ProjectDeletionTask(ModelDeletionTask):
             models.Activity,
             models.AppConnectBuild,
             models.EnvironmentProject,
-            models.EventUser,
             models.GroupAssignee,
             models.GroupBookmark,
             models.GroupEmailThread,
