@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+import sentry_sdk
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
@@ -13,6 +14,7 @@ from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.integrations.discord.requests.base import DiscordRequest, DiscordRequestError
 from sentry.integrations.discord.webhooks.command import DiscordCommandHandler
 from sentry.integrations.discord.webhooks.message_component import DiscordMessageComponentHandler
+from sentry.silo import SiloMode
 from sentry.web.decorators import transaction_start
 
 from .types import DiscordResponseTypes
@@ -70,6 +72,8 @@ class DiscordInteractionsEndpoint(Endpoint):
                 return DiscordMessageComponentHandler(discord_request).handle()
 
         except DiscordRequestError as e:
+            if SiloMode.get_current_mode() != SiloMode.MONOLITH:
+                sentry_sdk.capture_exception(e)
             logger.error(
                 "discord.request.error",
                 extra={
