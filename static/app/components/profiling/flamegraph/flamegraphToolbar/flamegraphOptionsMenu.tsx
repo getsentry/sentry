@@ -29,9 +29,13 @@ function FlamegraphOptionsMenu({
     [dispatch]
   );
 
+  const onResetZoom = useCallback(() => {
+    canvasPoolManager.dispatch('reset zoom', []);
+  }, [canvasPoolManager]);
+
   return (
     <Fragment>
-      <Button size="xs" onClick={() => canvasPoolManager.dispatch('reset zoom', [])}>
+      <Button size="xs" onClick={onResetZoom}>
         {t('Reset Zoom')}
       </Button>
       <CompactSelect
