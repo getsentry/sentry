@@ -20,12 +20,12 @@ export const useProjectRawWebVitalsQuery = ({transaction, tag, dataset}: Props =
   const projectEventView = EventView.fromNewQueryWithPageFilters(
     {
       fields: [
-        'p75(measurements.lcp)',
-        'p75(measurements.fcp)',
-        'p75(measurements.cls)',
-        'p75(measurements.ttfb)',
-        'p75(measurements.fid)',
-        'p75(transaction.duration)',
+        'avg(measurements.lcp)',
+        'avg(measurements.fcp)',
+        'avg(measurements.cls)',
+        'avg(measurements.ttfb)',
+        'avg(measurements.fid)',
+        'avg(transaction.duration)',
         'count_web_vitals(measurements.lcp, any)',
         'count_web_vitals(measurements.fcp, any)',
         'count_web_vitals(measurements.cls, any)',

@@ -60,7 +60,7 @@ export default function WebVitalMeters({onClick, projectData, projectScore}: Pro
           const webVitalExists = projectScore[`${webVital}Score`] !== null;
           const formattedMeterValueText = webVitalExists ? (
             WEB_VITALS_METERS_CONFIG[webVital].formatter(
-              projectData?.data?.[0]?.[`p75(measurements.${webVital})`] as number
+              projectData?.data?.[0]?.[`avg(measurements.${webVital})`] as number
             )
           ) : (
             <NoValue />
