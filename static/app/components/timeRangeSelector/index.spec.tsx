@@ -1,3 +1,6 @@
+import {Config} from 'sentry-fixture/config';
+import {User} from 'sentry-fixture/user';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -34,8 +37,18 @@ describe('TimeRangeSelector', function () {
 
   beforeEach(function () {
     ConfigStore.loadInitialData(
-      TestStubs.Config({
-        user: {options: {timezone: 'America/New_York'}},
+      Config({
+        user: User({
+          options: {
+            clock24Hours: false,
+            language: 'en',
+            theme: 'system',
+            defaultIssueEvent: 'recommended',
+            avatarType: 'letter_avatar',
+            stacktraceOrder: -1,
+            timezone: 'America/New_York',
+          },
+        }),
       })
     );
     onChange.mockReset();

@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {Config} from 'sentry-fixture/config';
 import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -60,7 +61,7 @@ describe('AcceptOrganizationInvite', function () {
   });
 
   it('can accept invitation on customer-domains', async function () {
-    window.__initialData = TestStubs.Config({
+    window.__initialData = Config({
       customerDomain: {
         subdomain: 'org-slug',
         organizationUrl: 'https://org-slug.sentry.io',

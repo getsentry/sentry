@@ -1,3 +1,5 @@
+import {Config} from 'sentry-fixture/config';
+
 import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
 import ModalStore from 'sentry/stores/modalStore';
@@ -10,7 +12,7 @@ describe('GuideStore', function () {
 
   beforeEach(function () {
     jest.clearAllMocks();
-    ConfigStore.config = TestStubs.Config({
+    ConfigStore.config = Config({
       user: TestStubs.User({
         id: '5',
         isSuperuser: false,

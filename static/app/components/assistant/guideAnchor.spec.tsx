@@ -1,3 +1,5 @@
+import {Config} from 'sentry-fixture/config';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -13,7 +15,7 @@ describe('GuideAnchor', function () {
   ];
 
   beforeEach(function () {
-    ConfigStore.config = TestStubs.Config({
+    ConfigStore.config = Config({
       user: TestStubs.User({
         isSuperuser: false,
         dateJoined: new Date(2020, 0, 1),

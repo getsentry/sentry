@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {Config} from 'sentry-fixture/config';
 import {Event as EventFixture} from 'sentry-fixture/event';
 import {Organization} from 'sentry-fixture/organization';
 
@@ -112,7 +113,7 @@ describe('GroupEventCarousel', () => {
     });
 
     it('if user default is recommended, it will show it as default', async () => {
-      ConfigStore.loadInitialData(TestStubs.Config({user: recommendedUser}));
+      ConfigStore.loadInitialData(Config({user: recommendedUser}));
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
       render(<GroupEventCarousel {...singleEventProps} />);
@@ -121,7 +122,7 @@ describe('GroupEventCarousel', () => {
     });
 
     it('if user default is latest, it will show it as default', async () => {
-      ConfigStore.loadInitialData(TestStubs.Config({user: latestUser}));
+      ConfigStore.loadInitialData(Config({user: latestUser}));
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
       render(<GroupEventCarousel {...singleEventProps} />);
@@ -130,7 +131,7 @@ describe('GroupEventCarousel', () => {
     });
 
     it('if user default is oldest, it will show it as default', async () => {
-      ConfigStore.loadInitialData(TestStubs.Config({user: oldestUser}));
+      ConfigStore.loadInitialData(Config({user: oldestUser}));
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
       render(<GroupEventCarousel {...singleEventProps} />);

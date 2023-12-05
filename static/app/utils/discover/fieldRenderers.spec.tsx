@@ -1,3 +1,5 @@
+import {Config} from 'sentry-fixture/config';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -104,7 +106,7 @@ describe('getFieldRenderer', function () {
   describe('date', function () {
     beforeEach(function () {
       ConfigStore.loadInitialData(
-        TestStubs.Config({
+        Config({
           user: TestStubs.User({
             options: {
               ...TestStubs.User().options,
@@ -145,7 +147,7 @@ describe('getFieldRenderer', function () {
   it('can render timestamp.to_day', function () {
     // Set timezone
     ConfigStore.loadInitialData(
-      TestStubs.Config({
+      Config({
         user: TestStubs.User({
           options: {
             ...TestStubs.User().options,

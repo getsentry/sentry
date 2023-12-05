@@ -1,3 +1,4 @@
+import {Config} from 'sentry-fixture/config';
 import {Event as EventFixture} from 'sentry-fixture/event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -312,7 +313,7 @@ describe('groupDetails', () => {
   });
 
   it('uses /latest endpoint when default is set to latest', async function () {
-    ConfigStore.loadInitialData(TestStubs.Config({user: latestUser}));
+    ConfigStore.loadInitialData(Config({user: latestUser}));
     const latestMock = MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/latest/`,
       statusCode: 200,
@@ -325,7 +326,7 @@ describe('groupDetails', () => {
   });
 
   it('uses /oldest endpoint when default is set to oldest', async function () {
-    ConfigStore.loadInitialData(TestStubs.Config({user: oldestUser}));
+    ConfigStore.loadInitialData(Config({user: oldestUser}));
     const oldestMock = MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/oldest/`,
       statusCode: 200,
@@ -338,7 +339,7 @@ describe('groupDetails', () => {
   });
 
   it('uses /recommended endpoint when default is set to recommended', async function () {
-    ConfigStore.loadInitialData(TestStubs.Config({user: recommendedUser}));
+    ConfigStore.loadInitialData(Config({user: recommendedUser}));
     const recommendedMock = MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/recommended/`,
       statusCode: 200,

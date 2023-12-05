@@ -1,3 +1,4 @@
+import {Config} from 'sentry-fixture/config';
 import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -562,7 +563,7 @@ describe('PageFiltersContainer', function () {
     it('selects a project if user is superuser and belongs to no projects', function () {
       ConfigStore.init();
       ConfigStore.loadInitialData(
-        TestStubs.Config({
+        Config({
           user: TestStubs.User({isSuperuser: true}),
         })
       );

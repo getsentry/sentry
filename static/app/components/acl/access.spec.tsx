@@ -1,3 +1,4 @@
+import {Config} from 'sentry-fixture/config';
 import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -130,8 +131,8 @@ describe('Access', function () {
 
     it('handles no user', function () {
       // Regression test for the share sheet.
-      ConfigStore.config = TestStubs.Config({
-        user: null,
+      ConfigStore.config = Config({
+        user: undefined,
       });
 
       render(<Access>{childrenMock}</Access>, {context: routerContext, organization});
@@ -143,7 +144,7 @@ describe('Access', function () {
     });
 
     it('is superuser', function () {
-      ConfigStore.config = TestStubs.Config({
+      ConfigStore.config = Config({
         user: TestStubs.User({isSuperuser: true}),
       });
 
@@ -159,7 +160,7 @@ describe('Access', function () {
     });
 
     it('is not superuser', function () {
-      ConfigStore.config = TestStubs.Config({
+      ConfigStore.config = Config({
         user: TestStubs.User({isSuperuser: false}),
       });
 
@@ -199,7 +200,7 @@ describe('Access', function () {
     });
 
     it('has superuser', function () {
-      ConfigStore.config = TestStubs.Config({
+      ConfigStore.config = Config({
         user: TestStubs.User({isSuperuser: true}),
       });
 
@@ -214,7 +215,7 @@ describe('Access', function () {
     });
 
     it('has no superuser', function () {
-      ConfigStore.config = TestStubs.Config({
+      ConfigStore.config = Config({
         user: TestStubs.User({isSuperuser: false}),
       });
 

@@ -1,4 +1,6 @@
+import {Config} from 'sentry-fixture/config';
 import {Organization} from 'sentry-fixture/organization';
+import {User} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -9,6 +11,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import {Config as ConfigType} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {OrganizationLegacyContext} from 'sentry/views/organizationContextContainer';
 
@@ -156,7 +159,9 @@ describe('OrganizationContextContainer', function () {
     const openSudoSpy = jest.spyOn(openSudo, 'openSudo');
     jest
       .mocked(ConfigStore.get)
-      .mockImplementation(() => TestStubs.Config({isSuperuser: true}));
+      .mockImplementation(
+        (k: keyof ConfigType) => Config({user: User({isSuperuser: true})})[k]
+      );
     getOrgMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
       statusCode: 403,
