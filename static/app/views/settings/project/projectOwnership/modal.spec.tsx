@@ -1,3 +1,4 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
 import {EventEntryStacktrace} from 'sentry-fixture/eventEntryStacktrace';
 import {Members} from 'sentry-fixture/members';
 import {Organization} from 'sentry-fixture/organization';
@@ -13,7 +14,7 @@ describe('Project Ownership', () => {
   const project = TestStubs.Project();
   const issueId = '1234';
   const stacktrace = EventEntryStacktrace();
-  const event = TestStubs.Event({
+  const event = EventFixture({
     entries: [stacktrace],
   });
   const user = TestStubs.User();

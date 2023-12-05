@@ -2,6 +2,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -9,6 +10,7 @@ from sentry.incidents.models import AlertRule, AlertRuleTrigger, AlertRuleTrigge
 
 
 class ProjectAlertRuleEndpoint(ProjectEndpoint):
+    owner = ApiOwner.ISSUES
     permission_classes = (ProjectAlertRulePermission,)
 
     def convert_args(self, request: Request, alert_rule_id, *args, **kwargs):

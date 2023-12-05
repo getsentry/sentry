@@ -2,7 +2,8 @@ import {useMemo} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {PageFilters} from 'sentry/types';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, UseApiQueryResult} from 'sentry/utils/queryClient';
+import RequestError from 'sentry/utils/requestError/requestError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -13,14 +14,18 @@ export type AggregateFlamegraphQueryParameters = {
   transaction: string;
 };
 
+export type UseAggregateFlamegraphQueryResult = UseApiQueryResult<
+  Profiling.Schema,
+  RequestError
+>;
+
 export function useAggregateFlamegraphQuery({
   projects,
   datetime,
   environments,
   transaction,
-}: AggregateFlamegraphQueryParameters) {
+}: AggregateFlamegraphQueryParameters): UseAggregateFlamegraphQueryResult {
   const organization = useOrganization();
-  const path = `/organizations/${organization.slug}/profiling/flamegraph/`;
 
   const query = useMemo(() => {
     // TODO: this should contain the user query
@@ -41,9 +46,12 @@ export function useAggregateFlamegraphQuery({
     },
   };
 
-  return useApiQuery<Profiling.Schema>([path, endpointOptions], {
-    staleTime: 0,
-    retry: false,
-    enabled,
-  });
+  return useApiQuery<Profiling.Schema>(
+    [`/organizations/${organization.slug}/profiling/flamegraph/`, endpointOptions],
+    {
+      staleTime: 0,
+      retry: false,
+      enabled,
+    }
+  );
 }

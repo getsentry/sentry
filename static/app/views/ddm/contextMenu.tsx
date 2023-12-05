@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics';
-import {hasDDMExperimentalFeature, hasDDMFeature} from 'sentry/utils/metrics/features';
+import {hasDDMFeature} from 'sentry/utils/metrics/features';
 import {MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -47,8 +47,7 @@ export function MetricWidgetContextMenu({metricsQuery, displayType}: ContextMenu
         {
           key: 'add-dashoard',
           label: t('Add to Dashboard'),
-          disabled:
-            !hasDDMExperimentalFeature(organization) || !handleAddQueryToDashboard,
+          disabled: !handleAddQueryToDashboard,
           onAction: handleAddQueryToDashboard,
         },
       ]}

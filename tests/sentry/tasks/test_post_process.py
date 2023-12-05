@@ -58,8 +58,10 @@ from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import (
     ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
     feedback_filter_decorator,
+    locks,
     post_process_group,
     process_event,
+    run_post_process_job,
 )
 from sentry.testutils.cases import BaseTestCase, PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
@@ -1970,6 +1972,125 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
                 self.assertNotEqual(args, ("post_process.process_replay_link.id_sampled"))
 
 
+class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
+    @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
+    def test_has_escalated(self, mock_run_post_process_job):
+        event = self.create_event(data={}, project_id=self.project.id)
+        group = event.group
+        group.update(first_seen=datetime.now() - timedelta(hours=1), times_seen=10000)
+        event.group = Group.objects.get(id=group.id)
+
+        with self.feature("projects:first-event-severity-new-escalation"):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
+        job = mock_run_post_process_job.call_args[0][0]
+        assert job["has_escalated"]
+        group.refresh_from_db()
+        assert group.substatus == GroupSubStatus.ESCALATING
+
+    @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
+    def test_has_escalated_no_flag(self, mock_run_post_process_job):
+        event = self.create_event(data={}, project_id=self.project.id)
+        group = event.group
+        group.update(first_seen=datetime.now() - timedelta(hours=1), times_seen=10000)
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+        job = mock_run_post_process_job.call_args[0][0]
+        assert not job["has_escalated"]
+        group.refresh_from_db()
+        assert group.substatus == GroupSubStatus.NEW
+
+    @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
+    def test_has_escalated_old(self, mock_run_post_process_job):
+        event = self.create_event(data={}, project_id=self.project.id)
+        group = event.group
+        group.update(first_seen=datetime.now() - timedelta(days=2), times_seen=10000)
+
+        with self.feature("projects:first-event-severity-new-escalation"):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
+        job = mock_run_post_process_job.call_args[0][0]
+        assert not job["has_escalated"]
+        group.refresh_from_db()
+        assert group.substatus == GroupSubStatus.NEW
+
+    @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
+    def test_has_escalated_low_rate(self, mock_run_post_process_job):
+        event = self.create_event(data={}, project_id=self.project.id)
+        group = event.group
+        group.update(first_seen=datetime.now() - timedelta(hours=1), times_seen=1)
+
+        with self.feature("projects:first-event-severity-new-escalation"):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
+        job = mock_run_post_process_job.call_args[0][0]
+        assert not job["has_escalated"]
+        group.refresh_from_db()
+        assert group.substatus == GroupSubStatus.NEW
+
+    @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
+    def test_has_escalated_locked(self, mock_run_post_process_job):
+        event = self.create_event(data={}, project_id=self.project.id)
+        group = event.group
+        group.update(first_seen=datetime.now() - timedelta(hours=1), times_seen=10000)
+        lock = locks.get(f"detect_escalation:{group.id}", duration=10, name="detect_escalation")
+        with self.feature("projects:first-event-severity-new-escalation"), lock.acquire():
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
+        job = mock_run_post_process_job.call_args[0][0]
+        assert not job["has_escalated"]
+        group.refresh_from_db()
+        assert group.substatus == GroupSubStatus.NEW
+
+    @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
+    def test_has_escalated_already_escalated(self, mock_run_post_process_job):
+        event = self.create_event(data={}, project_id=self.project.id)
+        group = event.group
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+        group.update(
+            first_seen=datetime.now() - timedelta(hours=1),
+            times_seen=10000,
+            substatus=GroupSubStatus.ESCALATING,
+        )
+        with self.feature("projects:first-event-severity-new-escalation"):
+            self.call_post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                event=event,
+            )
+        job = mock_run_post_process_job.call_args[0][0]
+        assert not job["has_escalated"]
+        group.refresh_from_db()
+        assert group.substatus == GroupSubStatus.ESCALATING
+
+
 @region_silo_test
 class PostProcessGroupErrorTest(
     TestCase,
@@ -1985,6 +2106,7 @@ class PostProcessGroupErrorTest(
     SnoozeTestSkipSnoozeMixin,
     SDKCrashMonitoringTestMixin,
     ReplayLinkageTestMixin,
+    DetectNewEscalationTestMixin,
 ):
     def setUp(self):
         super().setUp()

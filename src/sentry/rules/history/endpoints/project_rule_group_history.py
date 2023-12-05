@@ -61,7 +61,11 @@ class ProjectRuleGroupHistoryIndexEndpoint(RuleEndpoint):
 
     @extend_schema(
         operation_id="Retrieve a group firing history for an issue alert",
-        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG, IssueAlertParams],
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT_SLUG,
+            IssueAlertParams.ISSUE_RULE_ID,
+        ],
         responses={
             200: RuleGroupHistorySerializer,
             401: RESPONSE_UNAUTHORIZED,

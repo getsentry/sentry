@@ -336,6 +336,13 @@ function Sidebar({organization}: Props) {
           id="performance-browser-interactions"
           icon={<SubitemDot collapsed={collapsed} />}
         />
+        <SidebarItem
+          {...sidebarItemProps}
+          label={<GuideAnchor target="starfish">{t('App Startup')}</GuideAnchor>}
+          to={`/organizations/${organization.slug}/starfish/appStartup`}
+          id="performance-mobile-app-startup"
+          icon={<SubitemDot collapsed={collapsed} />}
+        />
       </SidebarAccordion>
     </Feature>
   );

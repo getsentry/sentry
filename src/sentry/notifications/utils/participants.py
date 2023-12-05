@@ -537,7 +537,7 @@ def combine_recipients_by_provider(
     return recipients_by_provider
 
 
-def get_notification_recipients_v2(
+def get_notification_recipients(
     recipients: Iterable[RpcActor],
     type: NotificationSettingEnum,
     organization_id: Optional[int] = None,
@@ -559,6 +559,23 @@ def get_notification_recipients_v2(
     return out
 
 
+# TODO(Steve): Remove once reference is gone from getsentry
+def get_notification_recipients_v2(
+    recipients: Iterable[RpcActor],
+    type: NotificationSettingEnum,
+    organization_id: Optional[int] = None,
+    project_ids: Optional[List[int]] = None,
+    actor_type: Optional[ActorType] = None,
+) -> Mapping[ExternalProviders, set[RpcActor]]:
+    return get_notification_recipients(
+        recipients=recipients,
+        type=type,
+        organization_id=organization_id,
+        project_ids=project_ids,
+        actor_type=actor_type,
+    )
+
+
 def get_recipients_by_provider(
     project: Project,
     recipients: Iterable[RpcActor],
@@ -577,7 +594,7 @@ def get_recipients_by_provider(
     teams_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]] = {}
 
     # get by team
-    teams_by_provider = get_notification_recipients_v2(
+    teams_by_provider = get_notification_recipients(
         recipients=teams,
         type=setting_type,
         organization_id=project.organization_id,
@@ -598,7 +615,7 @@ def get_recipients_by_provider(
     # Repeat for users.
     users_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]] = {}
     # convert from string to enum
-    users_by_provider = get_notification_recipients_v2(
+    users_by_provider = get_notification_recipients(
         recipients=users,
         type=setting_type,
         organization_id=project.organization_id,

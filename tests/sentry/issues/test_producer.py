@@ -268,7 +268,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
             "grouphash.not_found",
             extra={
                 "project_id": group.project_id,
-                "fingerprint": ["wronghash"],
+                "fingerprint": "wronghash",
             },
         )
         assert group.status == initial_status

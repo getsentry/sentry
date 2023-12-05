@@ -1,3 +1,4 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
 import {Tags} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -92,7 +93,7 @@ describe('GroupSidebar', function () {
           group={group}
           project={project}
           organization={organization}
-          event={TestStubs.Event()}
+          event={EventFixture()}
           environments={[environment]}
         />
       );
@@ -109,7 +110,7 @@ describe('GroupSidebar', function () {
           group={group}
           project={project}
           organization={organization}
-          event={TestStubs.Event()}
+          event={EventFixture()}
           environments={[environment]}
         />
       );
@@ -129,7 +130,7 @@ describe('GroupSidebar', function () {
           group={group}
           project={project}
           organization={organization}
-          event={TestStubs.Event()}
+          event={EventFixture()}
           environments={[environment]}
         />
       );
@@ -140,7 +141,7 @@ describe('GroupSidebar', function () {
           group={group}
           project={project}
           organization={organization}
-          event={TestStubs.Event()}
+          event={EventFixture()}
           environments={[stagingEnv]}
         />
       );
@@ -177,7 +178,7 @@ describe('GroupSidebar', function () {
           group={group}
           project={project}
           organization={organization}
-          event={TestStubs.Event()}
+          event={EventFixture()}
           environments={[environment]}
         />
       );
@@ -215,7 +216,7 @@ describe('GroupSidebar', function () {
         }}
         project={project}
         organization={org}
-        event={TestStubs.Event()}
+        event={EventFixture()}
         environments={[]}
       />,
       {
@@ -254,7 +255,7 @@ describe('GroupSidebar', function () {
             ...organization,
             features: [...organization.features, 'issue-details-tag-improvements'],
           }}
-          event={TestStubs.Event()}
+          event={EventFixture()}
           environments={[environment]}
         />
       );
@@ -273,7 +274,7 @@ describe('GroupSidebar', function () {
             ...organization,
             features: [...organization.features, 'issue-details-tag-improvements'],
           }}
-          event={TestStubs.Event()}
+          event={EventFixture()}
           environments={[environment]}
         />
       );

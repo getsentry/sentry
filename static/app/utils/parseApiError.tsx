@@ -1,7 +1,6 @@
 import {ResponseMeta} from 'sentry/api';
-import RequestError from 'sentry/utils/requestError/requestError';
 
-export default function parseApiError(resp: ResponseMeta | RequestError): string {
+export default function parseApiError(resp: ResponseMeta): string {
   const {detail} = (resp && resp.responseJSON) || ({} as object);
 
   // return immediately if string

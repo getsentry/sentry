@@ -40,7 +40,7 @@ class KafkaMetricsInterfaceTest(GenericMetricsTestMixIn, TestCase):
             self.project_id,
             self.metric_name,
             self.set_values,
-            self.tags,
+            self.metrics_tags,
             self.unit,
         )
 
@@ -50,7 +50,7 @@ class KafkaMetricsInterfaceTest(GenericMetricsTestMixIn, TestCase):
             "name": self.get_mri(self.metric_name, "s", self.use_case_id, self.unit),
             "value": self.set_values,
             "timestamp": int(datetime.now().timestamp()),
-            "tags": self.tags,
+            "tags": self.metrics_tags,
             "retention_days": self.retention_days,
             "type": "s",
         }
@@ -70,7 +70,7 @@ class KafkaMetricsInterfaceTest(GenericMetricsTestMixIn, TestCase):
             self.project_id,
             self.metric_name,
             self.counter_value,
-            self.tags,
+            self.metrics_tags,
             self.unit,
         )
 
@@ -80,7 +80,7 @@ class KafkaMetricsInterfaceTest(GenericMetricsTestMixIn, TestCase):
             "name": self.get_mri(self.metric_name, "c", self.use_case_id, self.unit),
             "value": self.counter_value,
             "timestamp": int(datetime.now().timestamp()),
-            "tags": self.tags,
+            "tags": self.metrics_tags,
             "retention_days": self.retention_days,
             "type": "c",
         }
@@ -100,7 +100,7 @@ class KafkaMetricsInterfaceTest(GenericMetricsTestMixIn, TestCase):
             self.project_id,
             self.metric_name,
             self.dist_values,
-            self.tags,
+            self.metrics_tags,
             self.unit,
         )
 
@@ -110,7 +110,7 @@ class KafkaMetricsInterfaceTest(GenericMetricsTestMixIn, TestCase):
             "name": self.get_mri(self.metric_name, "d", self.use_case_id, self.unit),
             "value": self.dist_values,
             "timestamp": int(datetime.now().timestamp()),
-            "tags": self.tags,
+            "tags": self.metrics_tags,
             "retention_days": self.retention_days,
             "type": "d",
         }
