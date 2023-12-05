@@ -22,6 +22,7 @@ from sentry import options
 from sentry.conf.types.sdk_config import SdkConfig
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
+from sentry.utils.openai_sdk_integration import OpenAiIntegration
 from sentry.utils.rust import RustInfoIntegration
 
 # Can't import models in utils because utils should be the bottom of the food chain
@@ -454,6 +455,7 @@ def configure_sdk():
             RustInfoIntegration(),
             RedisIntegration(),
             ThreadingIntegration(propagate_hub=True),
+            OpenAiIntegration(capture_prompts=True),
         ],
         **sdk_options,
     )
