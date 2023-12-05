@@ -196,7 +196,6 @@ module = [
     "sentry.api.endpoints.organization_events_trends",
     "sentry.api.endpoints.organization_group_index",
     "sentry.api.endpoints.organization_index",
-    "sentry.api.endpoints.organization_integration_repos",
     "sentry.api.endpoints.organization_issues_count",
     "sentry.api.endpoints.organization_member.details",
     "sentry.api.endpoints.organization_member.index",
