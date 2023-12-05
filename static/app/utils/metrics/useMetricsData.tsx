@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react';
 
 import {ApiResult} from 'sentry/api';
-import {DateString, MetricsApiRequestQuery, MetricsApiResponse} from 'sentry/types';
+import {DateString, MetricsApiResponse} from 'sentry/types';
 import {
   getMetricsApiRequestQuery,
   mapToMRIFields,
@@ -9,6 +9,8 @@ import {
 } from 'sentry/utils/metrics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+
+import {MetricsApiRequestQueryOptions} from '../../types/metrics';
 
 function getRefetchInterval(
   data: ApiResult | undefined,
@@ -28,7 +30,7 @@ function getRefetchInterval(
 
 export function useMetricsData(
   {mri, op, datetime, projects, environments, query, groupBy}: MetricsQuery,
-  overrides: Partial<MetricsApiRequestQuery> = {}
+  overrides: Partial<MetricsApiRequestQueryOptions> = {}
 ) {
   const organization = useOrganization();
 
@@ -66,9 +68,12 @@ export function useMetricsData(
 // Wraps useMetricsData and provides two additional features:
 // 1. return data is undefined only during the initial load
 // 2. provides a callback to trim the data to a specific time range when chart zoom is used
-export function useMetricsDataZoom(props: MetricsQuery) {
+export function useMetricsDataZoom(
+  props: MetricsQuery,
+  overrides: Partial<MetricsApiRequestQueryOptions> = {}
+) {
   const [metricsData, setMetricsData] = useState<MetricsApiResponse | undefined>();
-  const {data: rawData, isLoading, isError, error} = useMetricsData(props);
+  const {data: rawData, isLoading, isError, error} = useMetricsData(props, overrides);
 
   useEffect(() => {
     if (rawData) {

@@ -8,7 +8,7 @@ from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.strategies.member_write_role_recipient_strategy import (
     MemberWriteRoleRecipientStrategy,
 )
-from sentry.notifications.types import NotificationSettingEnum, NotificationSettingTypes
+from sentry.notifications.types import NotificationSettingEnum
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.types.integrations import ExternalProviders
 
@@ -21,7 +21,6 @@ class MissingMembersNudgeNotification(BaseNotification):
     template_path = "sentry/emails/missing-members-nudge"
 
     RoleBasedRecipientStrategyClass = MemberWriteRoleRecipientStrategy
-    notification_setting_type = NotificationSettingTypes.APPROVAL
     notification_setting_type_enum = NotificationSettingEnum.APPROVAL
 
     def __init__(

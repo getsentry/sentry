@@ -520,3 +520,10 @@ src/sentry/api/endpoints/user_social_identity*                          @getsent
 /static/app/components/events/aiSuggestedSolution/      @getsentry/machine-learning-ai
 /src/sentry/api/endpoints/event_ai_suggested_fix.py     @getsentry/machine-learning-ai
 ## End of ML & AI
+
+## Processing
+/src/sentry/processing/*                                @getsentry/owners-processing
+/src/sentry/api/endpoints/project_user_reports.py       @getsentry/owners-processing
+/src/sentry/api/endpoints/event_attachments.py          @getsentry/owners-processing
+/src/sentry/api/endpoints/event_reprocessable.py        @getsentry/owners-processing
+/src/sentry/api/endpoints/project_reprocessing.py       @getsentry/owners-processing

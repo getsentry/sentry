@@ -136,6 +136,7 @@ SENTRY_DEBUG_FILES_REDIS_CLUSTER = "default"
 SENTRY_MONITORS_REDIS_CLUSTER = "default"
 SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER = "default"
 SENTRY_METRIC_META_REDIS_CLUSTER = "default"
+SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -953,9 +954,9 @@ CELERYBEAT_SCHEDULE_CONTROL = {
     },
     "deliver-from-outbox-control": {
         "task": "sentry.tasks.enqueue_outbox_jobs_control",
-        # Run every 1 minute
-        "schedule": crontab(minute="*/1"),
-        "options": {"expires": 30, "queue": "outbox.control"},
+        # Run every 10 seconds as integration webhooks are delivered by this task
+        "schedule": timedelta(seconds=10),
+        "options": {"expires": 60, "queue": "outbox.control"},
     },
     "schedule-deletions-control": {
         "task": "sentry.tasks.deletion.run_scheduled_deletions_control",
@@ -1254,6 +1255,7 @@ PROCESSING_QUEUES = [
 
 # We prefer using crontab, as the time for timedelta will reset on each deployment. More information:  https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html#periodic-tasks
 TIMEDELTA_ALLOW_LIST = {
+    "deliver-from-outbox-control",
     "flush-buffers",
     "sync-options",
     "sync-options-control",
@@ -1434,8 +1436,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:alert-migration-ui": False,
     # Enables the migration of alerts (checked in a migration script).
     "organizations:alerts-migration-enabled": False,
-    # Enables tagging javascript errors from the browser console.
-    "organizations:javascript-console-error-tag": False,
     # Enables the cron job to auto-enable codecov integrations.
     "organizations:auto-enable-codecov": False,
     # The overall flag for codecov integration, gated by plans.
@@ -1768,6 +1768,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-sdk-errors-only": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
+    # Enable View Sample Replay button on the Replay-List empty-state page
+    "organizations:session-replay-onboarding-cta-button": False,
     # Enable the Replay Details > Accessibility tab
     "organizations:session-replay-a11y-tab": False,
     # Enable linking from 'new issue' slack notifs to the issue replay list
@@ -1822,10 +1824,12 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-issues-all-events-tab": False,
     # Temporary flag to test search performance that's running slow in S4S
     "organizations:performance-issues-search": True,
-    # Enable profiling statistical detectors ema detection
+    # Enable performance statistical detectors ema detection
     "organizations:performance-statistical-detectors-ema": False,
-    # Enable profiling statistical detectors breakpoint detection
+    # Enable performance statistical detectors breakpoint detection
     "organizations:performance-statistical-detectors-breakpoint": False,
+    # Enable performance statistical detectors breakpoint lifecycles
+    "organizations:performance-statistical-detectors-lifecycles": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable the UI for the overage alert settings
@@ -1903,8 +1907,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:source-maps-debugger-blue-thunder-edition": False,
     # Enable the new suspect commits calculation that uses all frames in the stack trace
     "organizations:suspect-commits-all-frames": False,
-    # Enable logs for debugging weekly reports
-    "organizations:weekly-report-logs": False,
     # Enables region provisioning for individual users
     "organizations:multi-region-selector": False,
     # Enable data forwarding functionality for projects.
@@ -1939,7 +1941,9 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:span-metrics-extraction-resource": False,
     # Enable standalone span ingestion
     "organizations:standalone-span-ingestion": False,
-    # Metrics: Enable ingestion, storage, and rendering of custom metrics
+    # Metrics cardinality limiter in Relay
+    "organizations:relay-cardinality-limiter": False,
+    # Metrics: Enable ingestion and storage of custom metrics. See ddm-ui for UI.
     "organizations:custom-metrics": False,
     # Metrics: Enable creation of investigation dynamic sampling rules (rules that
     # temporary boost the sample rate of particular transactions)

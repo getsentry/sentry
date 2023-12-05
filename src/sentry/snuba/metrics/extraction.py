@@ -81,6 +81,7 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "geo.subdivision": "user.geo.subdivision",
     "http.method": "request.method",
     "http.url": "request.url",
+    "http.referer": "request.headers.Referer",
     # url is a tag extracted by Sentry itself, on Relay it's received as `request.url`
     "url": "request.url",
     "sdk.name": "sdk.name",
@@ -997,6 +998,11 @@ class OnDemandMetricSpec:
             return None
 
         return self._arguments[0]
+
+    @property
+    def metric_type(self) -> str:
+        """Returns c, d or s representing if it's a counter, distribution or set."""
+        return self._metric_type
 
     @cached_property
     def mri(self) -> str:

@@ -66,7 +66,6 @@ default_manager.add("relocation:enabled", SystemFeature, FeatureHandlerStrategy.
 default_manager.add("organizations:multi-region-selector", SystemFeature, FeatureHandlerStrategy.INTERNAL)
 
 # Organization scoped features that are in development or in customer trials.
-default_manager.add("organizations:javascript-console-error-tag", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:alert-allow-indexed", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:alert-crash-free-metrics", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:alert-filters", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -175,6 +174,7 @@ default_manager.add("organizations:performance-screens-view", OrganizationFeatur
 default_manager.add("organizations:performance-remove-metrics-compatibility-fallback", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:performance-statistical-detectors-ema", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:performance-statistical-detectors-breakpoint", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:performance-statistical-detectors-lifecyles", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:performance-calculate-score-relay", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:profiling", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:profiling-ui-frames", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -193,6 +193,7 @@ default_manager.add("organizations:profiling-statistical-detectors-breakpoint", 
 default_manager.add("organizations:project-event-date-limit", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:project-stats", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:related-events", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:relay-cardinality-limiter", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:release-comparison-performance", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:release-health-drop-sessions", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:reprocessing-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -205,6 +206,7 @@ default_manager.add("organizations:session-replay-a11y-tab", OrganizationFeature
 default_manager.add("organizations:session-replay-count-query-optimize", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:session-replay-issue-emails", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:session-replay-recording-scrubbing", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:session-replay-onboarding-cta-button", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:session-replay-sdk-errors-only", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:session-replay-sdk", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:session-replay-slack-new-issue", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -271,7 +273,6 @@ default_manager.add("organizations:releases-v2-st", OrganizationFeature, Feature
 default_manager.add("organizations:releases-v2-banner", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:source-maps-debugger-blue-thunder-edition", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:suspect-commits-all-frames", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:weekly-report-logs", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:metrics-api-new-metrics-layer", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:metric-meta", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 # NOTE: Don't add features down here! Add them to their specific group and sort

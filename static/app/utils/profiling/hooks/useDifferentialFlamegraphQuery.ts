@@ -1,9 +1,7 @@
 import {useMemo} from 'react';
-import {UseQueryResult} from '@tanstack/react-query';
 
 import {RELATIVE_DAYS_WINDOW} from 'sentry/components/events/eventStatisticalDetector/consts';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
-import RequestError from 'sentry/utils/requestError/requestError';
 
 import {
   AggregateFlamegraphQueryParameters,
@@ -17,12 +15,14 @@ interface DifferentialFlamegraphQueryParameters {
   transaction: string;
 }
 
+export interface DifferentialFlamegraphQueryResult {
+  after: ReturnType<typeof useAggregateFlamegraphQuery>;
+  before: ReturnType<typeof useAggregateFlamegraphQuery>;
+}
+
 export function useDifferentialFlamegraphQuery(
   params: DifferentialFlamegraphQueryParameters
-): {
-  after: UseQueryResult<Profiling.Schema, RequestError>;
-  before: UseQueryResult<Profiling.Schema, RequestError>;
-} {
+): DifferentialFlamegraphQueryResult {
   const sharedAggregateQueryParams: AggregateFlamegraphQueryParameters = useMemo(() => {
     return {
       transaction: params.transaction,
@@ -43,7 +43,7 @@ export function useDifferentialFlamegraphQuery(
       ...sharedAggregateQueryParams,
       datetime: {
         start: regressionDateRange.start,
-        end: new Date(params.breakpoint),
+        end: new Date(params.breakpoint * 1000),
       },
     };
   }, [sharedAggregateQueryParams, regressionDateRange.start, params.breakpoint]);
@@ -52,7 +52,7 @@ export function useDifferentialFlamegraphQuery(
     return {
       ...sharedAggregateQueryParams,
       datetime: {
-        start: new Date(params.breakpoint),
+        start: new Date(params.breakpoint * 1000),
         end: regressionDateRange.end,
       },
     };
