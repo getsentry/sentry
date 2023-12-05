@@ -160,9 +160,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(REPLAYS_FEATURES):
             # Query at a time interval which returns only the first segment.
-            response = self.client.get(
-                self.url + f"?timestamp={int(seq2_timestamp.timestamp()) - 1}"
-            )
+            response = self.client.get(self.url + f"?timestamp={seq2_timestamp.timestamp() - 1}")
             assert request_accessibility_issues.called
             assert len(request_accessibility_issues.call_args[0][0]) == 1
             assert response.status_code == 200
