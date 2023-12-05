@@ -21,10 +21,6 @@ NOTIFICATION_SETTINGS_ALL_SOMETIMES = {
     NotificationSettingTypes.QUOTA_WARNINGS: NotificationSettingOptionValues.ALWAYS,
     NotificationSettingTypes.QUOTA_SPEND_ALLOCATIONS: NotificationSettingOptionValues.ALWAYS,
     NotificationSettingTypes.SPIKE_PROTECTION: NotificationSettingOptionValues.ALWAYS,
-}
-
-NOTIFICATION_SETTINGS_ALL_SOMETIMES_V2 = {
-    **NOTIFICATION_SETTINGS_ALL_SOMETIMES,
     NotificationSettingTypes.REPORTS: NotificationSettingOptionValues.ALWAYS,
 }
 
