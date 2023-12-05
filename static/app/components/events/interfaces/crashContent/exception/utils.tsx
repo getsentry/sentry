@@ -58,7 +58,12 @@ export function Linkify({exceptionText}: {exceptionText?: string}): ReactElement
     const link =
       urls && urls[index] ? (
         <Fragment>
-          <a href="#" onClick={handleExternalLink}>
+          <a
+            href={window.location.origin}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={handleExternalLink}
+          >
             {urls[index]}
           </a>
           {isOpen && <RedirectExternalLink externalUrl={urls[index]} />}
@@ -89,8 +94,7 @@ function RedirectExternalLink({externalUrl}: Props) {
     }, 1000);
 
     if (count === 0) {
-      window.open('', '_blank');
-      window.location.href = externalUrl;
+      window.open(externalUrl, '_blank');
     }
 
     return () => clearInterval(timer);
