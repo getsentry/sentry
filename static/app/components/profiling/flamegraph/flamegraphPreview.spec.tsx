@@ -26,7 +26,7 @@ describe('computePreviewConfigView', function () {
       {type: 'flamechart'}
     );
 
-    const flamegraph = new Flamegraph(profile, 1, {});
+    const flamegraph = new Flamegraph(profile, {});
 
     // the view should be taller than the flamegraph
     const configView = new Rect(0, 0, 2, 3);
@@ -65,7 +65,7 @@ describe('computePreviewConfigView', function () {
       {type: 'flamechart'}
     );
 
-    const flamegraph = new Flamegraph(profile, 1, {});
+    const flamegraph = new Flamegraph(profile, {});
 
     // limit the view to 2 rows tall
     const configView = new Rect(0, 0, 2, 2);
@@ -106,7 +106,7 @@ describe('computePreviewConfigView', function () {
       {type: 'flamechart'}
     );
 
-    const flamegraph = new Flamegraph(profile, 1, {});
+    const flamegraph = new Flamegraph(profile, {});
 
     // limit the view to 2 rows talls
     const configView = new Rect(0, 0, 3, 2);
@@ -146,7 +146,7 @@ describe('computePreviewConfigView', function () {
       {type: 'flamechart'}
     );
 
-    const flamegraph = new Flamegraph(profile, 1, {});
+    const flamegraph = new Flamegraph(profile, {});
 
     // make taller than profile's deepest stack
     const configView = new Rect(0, 0, 2, 3);
@@ -185,7 +185,7 @@ describe('computePreviewConfigView', function () {
       {type: 'flamechart'}
     );
 
-    const flamegraph = new Flamegraph(profile, 1, {});
+    const flamegraph = new Flamegraph(profile, {});
 
     const configView = new Rect(0, 0, 4, 2);
 
@@ -223,7 +223,7 @@ describe('computePreviewConfigView', function () {
       {type: 'flamechart'}
     );
 
-    const flamegraph = new Flamegraph(profile, 1, {});
+    const flamegraph = new Flamegraph(profile, {});
 
     const configView = new Rect(0, 0, 4, 3);
 

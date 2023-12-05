@@ -16,7 +16,7 @@ export function useProfileGroup() {
   return context;
 }
 
-const LoadingGroup: ProfileGroup = {
+export const LOADING_PROFILE_GROUP: Readonly<ProfileGroup> = {
   name: 'Loading',
   activeProfileIndex: 0,
   transactionID: null,
@@ -37,13 +37,13 @@ interface ProfileGroupProviderProps {
 export function ProfileGroupProvider(props: ProfileGroupProviderProps) {
   const profileGroup = useMemo(() => {
     if (!props.input) {
-      return LoadingGroup;
+      return LOADING_PROFILE_GROUP;
     }
     try {
       return importProfile(props.input, props.traceID, props.type, props.frameFilter);
     } catch (err) {
       Sentry.captureException(err);
-      return LoadingGroup;
+      return LOADING_PROFILE_GROUP;
     }
   }, [props.input, props.traceID, props.type, props.frameFilter]);
 

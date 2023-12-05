@@ -51,27 +51,23 @@ export function GapSpanDetails({
 
   const profileGroup = useProfileGroup();
 
-  const threadId = useMemo(
-    () => profileGroup.profiles[profileGroup.activeProfileIndex]?.threadId,
-    [profileGroup]
-  );
-
   const profile = useMemo(() => {
+    const threadId = profileGroup.profiles[profileGroup.activeProfileIndex]?.threadId;
     if (!defined(threadId)) {
       return null;
     }
     return profileGroup.profiles.find(p => p.threadId === threadId) ?? null;
-  }, [profileGroup.profiles, threadId]);
+  }, [profileGroup.profiles, profileGroup.activeProfileIndex]);
 
-  const transactionHasProfile = defined(threadId) && defined(profile);
+  const transactionHasProfile = defined(profile);
 
   const flamegraph = useMemo(() => {
     if (!transactionHasProfile) {
       return FlamegraphModel.Example();
     }
 
-    return new FlamegraphModel(profile, threadId, {});
-  }, [transactionHasProfile, profile, threadId]);
+    return new FlamegraphModel(profile, {});
+  }, [transactionHasProfile, profile]);
 
   // The most recent profile formats should contain a timestamp indicating
   // the beginning of the profile. This timestamp can be after the start

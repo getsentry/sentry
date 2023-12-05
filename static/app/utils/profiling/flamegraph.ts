@@ -38,7 +38,6 @@ const leftHeavyTreeSort = makeTreeSort(sortByTotalWeight);
 export class Flamegraph {
   profile: Profile;
   frames: ReadonlyArray<FlamegraphFrame> = [];
-  profileIndex: number;
 
   inverted: boolean = false;
   sort: 'left heavy' | 'alphabetical' | 'call order' = 'call order';
@@ -60,14 +59,14 @@ export class Flamegraph {
   timelineFormatter: (value: number) => string;
 
   static Empty(): Flamegraph {
-    return new Flamegraph(Profile.Empty, 0, {
+    return new Flamegraph(Profile.Empty, {
       inverted: false,
       sort: 'call order',
     });
   }
 
   static Example(): Flamegraph {
-    return new Flamegraph(SampledProfile.Example, 0, {
+    return new Flamegraph(SampledProfile.Example, {
       inverted: false,
       sort: 'call order',
     });
@@ -83,7 +82,7 @@ export class Flamegraph {
       sort?: Flamegraph['sort'];
     }
   ): Flamegraph {
-    return new Flamegraph(from.profile, from.profileIndex, {
+    return new Flamegraph(from.profile, {
       inverted,
       sort,
     });
@@ -91,7 +90,6 @@ export class Flamegraph {
 
   constructor(
     profile: Profile,
-    profileIndex: number,
     {
       inverted = false,
       sort = 'call order',
@@ -107,7 +105,6 @@ export class Flamegraph {
 
     // @TODO check if we can get rid of this profile reference
     this.profile = profile;
-    this.profileIndex = profileIndex;
 
     // If a custom config space is provided, use it and draw the chart in it
     switch (this.sort) {

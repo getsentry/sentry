@@ -47,7 +47,7 @@ export function FlamegraphProvider(props: FlamegraphProviderProps) {
     transaction.setTag('sorting', sorting.split(' ').join('_'));
     transaction.setTag('view', view.split(' ').join('_'));
 
-    const newFlamegraph = new Flamegraph(activeProfile, threadId, {
+    const newFlamegraph = new Flamegraph(activeProfile, {
       inverted: view === 'bottom up',
       sort: sorting,
       configSpace: undefined,

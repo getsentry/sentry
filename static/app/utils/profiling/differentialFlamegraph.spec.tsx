@@ -36,7 +36,6 @@ const makeFlamegraph = (profile: Partial<Profiling.Schema>) => {
     SampledProfile.FromProfile(s.profiles[0] as Profiling.SampledProfile, frameIndex, {
       type: 'flamegraph',
     }),
-    0,
     {
       inverted: false,
       sort: 'alphabetical',
@@ -65,7 +64,7 @@ describe('differentialFlamegraph', () => {
         },
       ],
     });
-    const current = makeFlamegraph({
+    const after = makeFlamegraph({
       shared: {
         frames: [{name: 'new function'}],
       },
@@ -78,7 +77,7 @@ describe('differentialFlamegraph', () => {
       ],
     });
 
-    const flamegraph = DifferentialFlamegraph.FromDiff({before, current}, THEME);
+    const flamegraph = DifferentialFlamegraph.FromDiff({before, after}, THEME);
 
     expect(flamegraph.colors?.get('new function')).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_INCREASE,
@@ -99,7 +98,7 @@ describe('differentialFlamegraph', () => {
         },
       ],
     });
-    const current = makeFlamegraph({
+    const after = makeFlamegraph({
       shared: {
         frames: [{name: 'function'}, {name: 'other function'}],
       },
@@ -112,7 +111,7 @@ describe('differentialFlamegraph', () => {
       ],
     });
 
-    const flamegraph = DifferentialFlamegraph.FromDiff({before, current}, THEME);
+    const flamegraph = DifferentialFlamegraph.FromDiff({before, after}, THEME);
 
     expect(flamegraph.colors?.get('function')).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_INCREASE,
@@ -137,7 +136,7 @@ describe('differentialFlamegraph', () => {
         },
       ],
     });
-    const current = makeFlamegraph({
+    const after = makeFlamegraph({
       shared: {
         frames: [{name: 'function'}, {name: 'other function'}],
       },
@@ -150,7 +149,7 @@ describe('differentialFlamegraph', () => {
       ],
     });
 
-    const flamegraph = DifferentialFlamegraph.FromDiff({before, current}, THEME);
+    const flamegraph = DifferentialFlamegraph.FromDiff({before, after}, THEME);
 
     expect(flamegraph.colors?.get('function')).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_INCREASE,
@@ -175,7 +174,7 @@ describe('differentialFlamegraph', () => {
         },
       ],
     });
-    const current = makeFlamegraph({
+    const after = makeFlamegraph({
       shared: {
         frames: [{name: 'function'}, {name: 'other function'}],
       },
@@ -188,7 +187,7 @@ describe('differentialFlamegraph', () => {
       ],
     });
 
-    const flamegraph = DifferentialFlamegraph.FromDiff({before, current}, THEME);
+    const flamegraph = DifferentialFlamegraph.FromDiff({before, after}, THEME);
 
     expect(flamegraph.colors?.get('function')).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_DECREASE,
