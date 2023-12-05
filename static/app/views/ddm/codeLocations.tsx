@@ -51,7 +51,7 @@ export function CodeLocations({mri}: {mri: string}) {
   const reversedCodeLocations = codeLocations.slice(0, 5);
 
   return (
-    <Wrapper>
+    <CodeLocationsWrapper>
       <Collapsible
         maxVisibleItems={1}
         expandButton={({onExpand, numberOfHiddenItems}) => (
@@ -92,7 +92,7 @@ export function CodeLocations({mri}: {mri: string}) {
           />
         ))}
       </Collapsible>
-    </Wrapper>
+    </CodeLocationsWrapper>
   );
 }
 
@@ -120,7 +120,7 @@ function CodeLocation({codeLocation, showContext, handleShowContext, isFirst, is
         isFirst={isFirst}
         isLast={isLast}
       >
-        <DefaultLine className="title" isFirst={isFirst}>
+        <DefaultLine className="title" showContext={showContext}>
           <DefaultLineTitleWrapper>
             <LeftLineTitle>
               <DefaultTitle
@@ -137,7 +137,7 @@ function CodeLocation({codeLocation, showContext, handleShowContext, isFirst, is
                 borderless
               />
 
-              <ToggleContextButton
+              <Button
                 title={hasContext ? t('Toggle Context') : undefined}
                 size="zero"
                 onClick={handleShowContext}
@@ -149,7 +149,7 @@ function CodeLocation({codeLocation, showContext, handleShowContext, isFirst, is
                   size="xs"
                   legacySize="8px"
                 />
-              </ToggleContextButton>
+              </Button>
             </DefaultLineActionButtons>
           </DefaultLineTitleWrapper>
         </DefaultLine>
@@ -177,7 +177,7 @@ function CodeLocationContext({
     frame.postContext?.map((line, index) => [lineNo + index, line]) ?? [];
 
   return (
-    <ContextWrapper isLast={isLast}>
+    <SourceContextWrapper isLast={isLast}>
       {preContextLines.map(line => (
         <ContextLine key={`pre-${line[1]}`} line={line} isActive={false} />
       ))}
@@ -185,7 +185,7 @@ function CodeLocationContext({
       {postContextLines.map(line => (
         <ContextLine key={`post-${line[1]}`} line={line} isActive={false} />
       ))}
-    </ContextWrapper>
+    </SourceContextWrapper>
   );
 }
 
@@ -193,17 +193,12 @@ const CodeLocationWrapper = styled('div')`
   display: flex;
 `;
 
-const ToggleContextButton = styled(Button)`
-  background-color: ${p => p.theme.background};
-  color: ${p => p.theme.subText};
-`;
-
 const DefaultLineActionButtons = styled('div')`
   display: flex;
   gap: ${space(1)};
 `;
 
-const Wrapper = styled('div')`
+const CodeLocationsWrapper = styled('div')`
   margin-top: ${space(1)};
 
   & code {
@@ -212,7 +207,7 @@ const Wrapper = styled('div')`
   }
 `;
 
-const ContextWrapper = styled('div')<{isLast?: boolean}>`
+const SourceContextWrapper = styled('div')<{isLast?: boolean}>`
   word-wrap: break-word;
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
@@ -242,10 +237,11 @@ const DefaultLineWrapper = styled('div')<{isFirst?: boolean; isLast?: boolean}>`
   background-color: ${p => p.theme.backgroundTertiary};
 `;
 
-const DefaultLine = styled('div')<{isFirst?: boolean}>`
+const DefaultLine = styled('div')<{showContext?: boolean}>`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-bottom: ${p => (p.showContext ? `1px solid ${p.theme.border}` : 'none')};
 `;
 
 const DefaultLineTitleWrapper = styled('div')`
