@@ -2,6 +2,7 @@ from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import (
@@ -22,6 +23,7 @@ UNMIGRATABLE_PROVIDERS = ("bitbucket", "github")
 
 @region_silo_endpoint
 class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,
@@ -59,7 +61,6 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
         # TODO(mn): Remove once old Plugins are removed or everyone migrates to
         # the new Integrations. Hopefully someday?
         elif status == "unmigratable":
-
             integrations = integration_service.get_integrations(
                 status=ObjectStatus.ACTIVE,
                 providers=UNMIGRATABLE_PROVIDERS,

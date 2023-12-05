@@ -13,10 +13,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import MonitorCreateForm from 'sentry/views/monitors/components/monitorCreateForm';
-import MonitorForm from 'sentry/views/monitors/components/monitorForm';
-import {Monitor} from 'sentry/views/monitors/types';
 
 import {
   CRON_SDK_PLATFORMS,
@@ -173,13 +170,6 @@ export function CronsLandingPanel() {
 
   const guides = platformGuides[platform];
 
-  function onCreateMonitor(data: Monitor) {
-    const url = normalizeUrl(`/organizations/${organization.slug}/crons/${data.slug}/`);
-    browserHistory.push(url);
-  }
-
-  const hasNewOnboarding = organization.features.includes('crons-new-monitor-form');
-
   return (
     <Panel>
       <BackButton
@@ -214,16 +204,7 @@ export function CronsLandingPanel() {
               )),
               <TabPanels.Item key={GuideKey.MANUAL}>
                 <GuideContainer>
-                  {hasNewOnboarding ? (
-                    <MonitorCreateForm />
-                  ) : (
-                    <MonitorForm
-                      apiMethod="POST"
-                      apiEndpoint={`/organizations/${organization.slug}/monitors/`}
-                      onSubmitSuccess={onCreateMonitor}
-                      submitLabel={t('Next')}
-                    />
-                  )}
+                  <MonitorCreateForm />
                 </GuideContainer>
               </TabPanels.Item>,
             ]}

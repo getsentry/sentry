@@ -11,7 +11,7 @@ interface Props {
   organization: Organization;
 }
 
-const PER_PAGE = 5;
+const PER_PAGE = 25;
 
 export default function useFeedbackListQueryKey({organization}: Props): ApiQueryKey {
   const queryView = useLocationQuery({
@@ -30,7 +30,7 @@ export default function useFeedbackListQueryKey({organization}: Props): ApiQuery
     },
   });
 
-  const fixedQueryView = useMemo(() => {
+  const {mailbox, ...fixedQueryView} = useMemo(() => {
     // We don't want to use `statsPeriod` directly, because that will mean the
     // start time of our infinite list will change, shifting the index/page
     // where items appear if we invalidate the cache and refetch specific pages.
@@ -52,19 +52,24 @@ export default function useFeedbackListQueryKey({organization}: Props): ApiQuery
         rest;
   }, [queryView]);
 
-  return [
-    `/organizations/${organization.slug}/issues/`,
-    {
-      query: {
-        ...fixedQueryView,
-        collapse: ['inbox'],
-        expand: [
-          'owners', // Gives us assignment
-          'stats', // Gives us `firstSeen`
-        ],
-        shortIdLookup: 0,
-        query: `issue.category:feedback status:${fixedQueryView.mailbox} ${fixedQueryView.query}`,
+  return useMemo(
+    () => [
+      `/organizations/${organization.slug}/issues/`,
+      {
+        query: {
+          ...fixedQueryView,
+          collapse: ['inbox'],
+          expand: [
+            'owners', // Gives us assignment
+            'stats', // Gives us `firstSeen`
+            'pluginActions', // Gives us plugin actions available
+            'pluginIssues', // Gives us plugin issues available
+          ],
+          shortIdLookup: 0,
+          query: `issue.category:feedback status:${mailbox} ${fixedQueryView.query}`,
+        },
       },
-    },
-  ];
+    ],
+    [fixedQueryView, mailbox, organization.slug]
+  );
 }

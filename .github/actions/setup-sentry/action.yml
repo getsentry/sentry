@@ -130,7 +130,7 @@ runs:
       run: |
         cd "$WORKDIR"
         # We need to install editable otherwise things like check migration will fail.
-        SENTRY_LIGHT_BUILD=1 pip install --no-deps -e .
+        python3 -m tools.fast_editable --path .
 
     - name: Start devservices
       shell: bash --noprofile --norc -eo pipefail -ux {0}

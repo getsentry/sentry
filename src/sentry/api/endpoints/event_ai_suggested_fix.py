@@ -10,6 +10,7 @@ from django.http import HttpResponse, StreamingHttpResponse
 from openai import OpenAI, RateLimitError
 
 from sentry import eventstore
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
@@ -258,7 +259,7 @@ def describe_event_for_ai(event, model):
     return data
 
 
-def suggest_fix(event_data, model="gpt-3.5-turbo", stream=False):
+def suggest_fix(event_data, model="gpt-3.5-turbo-16k", stream=False):
     """Runs an OpenAI request to suggest a fix."""
     prompt = PROMPT.replace("___FUN_PROMPT___", random.choice(FUN_PROMPT_CHOICES))
     event_info = describe_event_for_ai(event_data, model=model)
@@ -279,7 +280,7 @@ def suggest_fix(event_data, model="gpt-3.5-turbo", stream=False):
     )
     if stream:
         return reduce_stream(response)
-    return response["choices"][0]["message"]["content"]
+    return response.choices[0].message.content
 
 
 def reduce_stream(response):
@@ -291,6 +292,7 @@ def reduce_stream(response):
 
 @region_silo_endpoint
 class EventAiSuggestedFixEndpoint(ProjectEndpoint):
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

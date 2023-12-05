@@ -51,13 +51,6 @@ logger = logging.getLogger(__name__)
 CHECKIN_QUOTA_LIMIT = 5
 CHECKIN_QUOTA_WINDOW = 60
 
-# lock timeout
-LOCK_TIMEOUT = 1
-# base value for lock retries
-INITIAL_LOCK_DELAY = 0.01
-# lock exponent base
-LOCK_EXP_BASE = 2.0
-
 
 def _ensure_monitor_with_config(
     project: Project,
@@ -551,6 +544,14 @@ def _process_checkin(
             else:
                 mark_ok(check_in, ts=start_time)
 
+            # track how much time it took for the message to make it through
+            # relay into kafka. This should help us understand when missed
+            # check-ins may be slipping in, since we use the `item.ts` to click
+            # the clock forward, if that is delayed it's possible for the
+            # check-in to come in late
+            kafka_delay = message_ts - start_time.replace(tzinfo=None)
+            metrics.gauge("monitors.checkin.relay_kafka_delay", kafka_delay.total_seconds())
+
             # how long in wall-clock time did it take for us to process this
             # check-in. This records from when the message was first appended
             # into the Kafka topic until we just completed processing.
@@ -570,7 +571,7 @@ def _process_checkin(
             tags={**metric_kwargs, "status": "error"},
         )
         txn.set_tag("result", "error")
-        logger.exception("Failed to process check-in", exc_info=True)
+        logger.exception("Failed to process check-in")
 
 
 def _process_message(
@@ -578,17 +579,10 @@ def _process_message(
     partition: int,
     wrapper: CheckinMessage | ClockPulseMessage,
 ) -> None:
-
-    # XXX: Relay does not attach a message type, to properly discriminate the
-    # message_type we add it by default here. This can be removed once the
-    # message_type is guaranteed
-    if "message_type" not in wrapper:
-        wrapper["message_type"] = "check_in"
-
     try:
         try_monitor_tasks_trigger(ts, partition)
     except Exception:
-        logger.exception("Failed to trigger monitor tasks", exc_info=True)
+        logger.exception("Failed to trigger monitor tasks")
 
     # Nothing else to do with clock pulses
     if wrapper["message_type"] == "clock_pulse":

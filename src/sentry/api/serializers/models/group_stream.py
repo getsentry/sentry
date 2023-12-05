@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence
 
 from django.utils import timezone
+from rest_framework.request import Request
 
 from sentry import features, release_health, tsdb
 from sentry.api.serializers.models.group import (
@@ -16,6 +17,7 @@ from sentry.api.serializers.models.group import (
     SeenStats,
     snuba_tsdb,
 )
+from sentry.api.serializers.models.plugin import is_plugin_deprecated
 from sentry.constants import StatsPeriod
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
@@ -27,7 +29,53 @@ from sentry.tsdb.base import TSDBModel
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
+from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import resolve_column, resolve_conditions
+
+
+def get_actions(request: Request, group):
+    from sentry.plugins.base import plugins
+
+    project = group.project
+
+    action_list = []
+    for plugin in plugins.for_project(project, version=1):
+        if is_plugin_deprecated(plugin, project):
+            continue
+
+        results = safe_execute(plugin.actions, request, group, action_list, _with_transaction=False)
+
+        if not results:
+            continue
+
+        action_list = results
+
+    for plugin in plugins.for_project(project, version=2):
+        if is_plugin_deprecated(plugin, project):
+            continue
+        for action in (
+            safe_execute(plugin.get_actions, request, group, _with_transaction=False) or ()
+        ):
+            action_list.append(action)
+
+    return action_list
+
+
+def get_available_issue_plugins(request: Request, group):
+    from sentry.plugins.base import plugins
+    from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
+
+    project = group.project
+
+    plugin_issues = []
+    for plugin in plugins.for_project(project, version=1):
+        if isinstance(plugin, IssueTrackingPlugin2):
+            if is_plugin_deprecated(plugin, project):
+                continue
+            plugin_issues = safe_execute(
+                plugin.plugin_issues, request, group, plugin_issues, _with_transaction=False
+            )
+    return plugin_issues
 
 
 @dataclass
@@ -126,7 +174,10 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         self.stats_period_end = stats_period_end
 
     def get_attrs(
-        self, item_list: Sequence[Group], user: Any, **kwargs: Any
+        self,
+        item_list: Sequence[Group],
+        user: Any,
+        **kwargs: Any,
     ) -> MutableMapping[Group, MutableMapping[str, Any]]:
         attrs = super().get_attrs(item_list, user)
 
@@ -207,7 +258,11 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         self.stats_period_end = stats_period_end
 
     def get_attrs(
-        self, item_list: Sequence[Group], user: Any, **kwargs: Any
+        self,
+        item_list: Sequence[Group],
+        user: Any,
+        request: Request,
+        **kwargs: Any,
     ) -> MutableMapping[Group, MutableMapping[str, Any]]:
         if not self._collapse("base"):
             attrs = super().get_attrs(item_list, user)
@@ -304,6 +359,16 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             for item in item_list:
                 attrs[item].update({"owners": owner_details.get(item.id)})
 
+        if self._expand("pluginActions"):
+            for item in item_list:
+                action_list = get_actions(request, item)
+                attrs[item].update({"pluginActions": action_list})
+
+        if self._expand("pluginIssues"):
+            for item in item_list:
+                plugin_issue_list = get_available_issue_plugins(request, item)
+                attrs[item].update({"pluginIssues": plugin_issue_list})
+
         return attrs
 
     def serialize(
@@ -349,6 +414,12 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
         if self._expand("owners"):
             result["owners"] = attrs["owners"]
+
+        if self._expand("pluginActions"):
+            result["pluginActions"] = attrs["pluginActions"]
+
+        if self._expand("pluginIssues"):
+            result["pluginIssues"] = attrs["pluginIssues"]
 
         return result
 
