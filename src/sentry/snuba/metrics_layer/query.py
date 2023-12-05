@@ -40,6 +40,7 @@ AGGREGATE_ALIASES = {
     "p90": ("quantiles", [0.9]),
     "p95": ("quantiles", [0.95]),
     "p99": ("quantiles", [0.99]),
+    "count_unique": ("uniq", None),
 }
 
 
