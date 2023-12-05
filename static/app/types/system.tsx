@@ -129,6 +129,7 @@ interface CustomerDomain {
   subdomain: string;
 }
 export interface Config {
+  [key: string]: unknown;
   apmSampling: number;
   csrfCookieName: string;
   customerDomain: CustomerDomain | null;
@@ -140,8 +141,8 @@ export interface Config {
   features: Set<string>;
   gravatarBaseUrl: string;
   invitesEnabled: boolean;
-  isAuthenticated: boolean;
 
+  isAuthenticated: boolean;
   // Maintain isOnPremise key for backcompat (plugins?).
   isOnPremise: boolean;
   isSelfHosted: boolean;
