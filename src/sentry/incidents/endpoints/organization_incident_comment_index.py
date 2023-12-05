@@ -2,6 +2,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
@@ -23,6 +24,7 @@ class CommentSerializer(serializers.Serializer, MentionsMixin):
 
 @region_silo_endpoint
 class OrganizationIncidentCommentIndexEndpoint(IncidentEndpoint):
+    owner = ApiOwner.ISSUES
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,
     }
