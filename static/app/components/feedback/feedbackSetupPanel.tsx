@@ -22,7 +22,7 @@ export default function FeedbackSetupPanel() {
   const docsButton = (
     <LinkButton
       external
-      href="https://github.com/getsentry/sentry-javascript/blob/develop/packages/feedback/README.md"
+      href="https://docs.sentry.io/product/user-feedback/setup/"
       priority="primary"
       onClick={() => {
         trackAnalytics('feedback.index-setup-button-clicked', {

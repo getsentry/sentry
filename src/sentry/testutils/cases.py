@@ -1858,7 +1858,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         project: Optional[int] = None,
         use_case_id: UseCaseID = UseCaseID.TRANSACTIONS,
         aggregation_option: Optional[AggregationOption] = None,
-    ):
+    ) -> None:
         internal_metric = METRICS_MAP[metric] if internal_metric is None else internal_metric
         entity = self.ENTITY_MAP[metric] if entity is None else entity
         org_id = self.organization.id
@@ -1891,16 +1891,17 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def store_on_demand_metric(
         self,
-        value: list[Any] | Any,
+        value: int | float,
         spec: OnDemandMetricSpec,
         additional_tags: Optional[Dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
-    ):
-        metric_spec = spec.to_metric_spec(self.project)
-        metric_spec_tags = metric_spec["tags"] or [] if metric_spec else []
+    ) -> None:
+        """Convert on-demand metric and store it"""
+        relay_metric_spec = spec.to_metric_spec(self.project)
+        metric_spec_tags = relay_metric_spec["tags"] or [] if relay_metric_spec else []
         tags = {i["key"]: i.get("value") or i.get("field") for i in metric_spec_tags}
 
-        metric_type = spec._metric_type
+        metric_type = spec.metric_type
         if additional_tags:
             # Additional tags might be needed to override field values from the spec.
             tags.update(additional_tags)
@@ -1913,8 +1914,6 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
             tags=tags,
             timestamp=timestamp,
         )
-
-        return spec
 
     def store_span_metric(
         self,
