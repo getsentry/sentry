@@ -41,18 +41,12 @@ from sentry.deletions.base import BaseDeletionTask
 from sentry.models.actor import Actor
 from sentry.silo import SiloMode, match_fence_query
 from sentry.testutils.region import override_regions
-from sentry.types.region import Region, RegionCategory
+from sentry.types.region import Region
 from sentry.utils.snowflake import SnowflakeIdMixin
 
 TestMethod = Callable[..., None]
 
 SENTRY_USE_MONOLITH_DBS = os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
-
-_DEFAULT_TEST_REGIONS = (
-    Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
-    Region("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT),
-    Region("acme-single-tenant", 3, "acme.my.sentry.io", RegionCategory.SINGLE_TENANT),
-)
 
 
 def _model_silo_limit(t: type[Model]) -> ModelSiloLimit:
@@ -116,7 +110,7 @@ class SiloModeTestDecorator:
     ) -> Any:
         mod = _SiloModeTestModification(
             silo_modes=self.silo_modes,
-            regions=tuple(regions or _DEFAULT_TEST_REGIONS),
+            regions=tuple(regions),
             include_monolith_run=include_monolith_run,
         )
 
