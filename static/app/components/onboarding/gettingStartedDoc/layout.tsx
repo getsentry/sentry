@@ -23,6 +23,7 @@ const ProductSelectionAvailabilityHook = HookOrDefault({
 export type LayoutProps = {
   projectSlug: string;
   steps: StepProps[];
+  hideHeader?: boolean;
   /**
    * An introduction displayed before the steps
    */
@@ -41,22 +42,25 @@ export function Layout({
   platformOptions,
   introduction,
   projectSlug,
+  hideHeader,
 }: LayoutProps) {
   const organization = useOrganization();
 
   return (
     <AuthTokenGeneratorProvider projectSlug={projectSlug}>
       <Wrapper>
-        <Header>
-          {introduction && <Introduction>{introduction}</Introduction>}
-          <ProductSelectionAvailabilityHook
-            organization={organization}
-            platform={platformKey}
-          />
-          {platformOptions ? (
-            <PlatformOptionsControl platformOptions={platformOptions} />
-          ) : null}
-        </Header>
+        {!hideHeader && (
+          <Header>
+            {introduction && <Introduction>{introduction}</Introduction>}
+            <ProductSelectionAvailabilityHook
+              organization={organization}
+              platform={platformKey}
+            />
+            {platformOptions ? (
+              <PlatformOptionsControl platformOptions={platformOptions} />
+            ) : null}
+          </Header>
+        )}
         <Divider withBottomMargin={newOrg} />
         <Steps>
           {steps.map(step => (
