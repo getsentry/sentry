@@ -5,7 +5,7 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import {IconCheckmark, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {parseLargestSuffix} from 'sentry/utils/formatters';
+import {getExactDuration} from 'sentry/utils/formatters';
 
 import {Table, TableRow} from '../../../components/sideTable';
 import {ThresholdStatus} from '../../../utils/types';
@@ -35,9 +35,7 @@ function ThresholdStatuses({thresholdStatuses}: Props) {
             <TableRow key={status.id}>
               <RowGrid>
                 <div>{status.environment?.name}</div>
-                <div>
-                  {parseLargestSuffix(status.window_in_seconds, 'weeks', true).join('')}
-                </div>
+                <div>{getExactDuration(status.window_in_seconds, true, 'seconds')}</div>
                 <div>
                   {status.threshold_type} {status.trigger_type === 'over' ? '>' : '<'}{' '}
                   {status.value}
@@ -64,7 +62,7 @@ const AlignRight = styled('div')`
 
 const RowGrid = styled('div')`
   display: grid;
-  grid-template-columns: 0.5fr 0.5fr max-content 0.2fr;
+  grid-template-columns: 0.5fr 0.5fr max-content 0.1fr;
   gap: ${space(1)};
 `;
 
