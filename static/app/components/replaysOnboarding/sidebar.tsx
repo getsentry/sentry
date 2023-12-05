@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import useOnboardingDocs from 'sentry/components/onboardingWizard/useOnboardingDocs';
 import useCurrentProjectState from 'sentry/components/replaysOnboarding/useCurrentProjectState';
 import {
@@ -164,6 +165,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     isPlatformSupported: isPlatformSupported(currentPlatform),
   });
 
+  const newOnboarding = organization.features.includes('session-replay-new-zero-state');
+
   if (isLoading) {
     return <LoadingIndicator />;
   }
@@ -216,39 +219,54 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     );
   }
 
+  const migrated = ['javascript', 'javascript-react'];
+
   return (
     <Fragment>
-      <div>
+      <IntroText>
         {tct(
           `Adding Session Replay to your [platform] project is simple. Make sure you've got these basics down.`,
           {platform: currentPlatform?.name || currentProject.slug}
         )}
-      </div>
-      {docKeys.map((docKey, index) => {
-        let footer: React.ReactNode = null;
+      </IntroText>
+      {newOnboarding && migrated.includes(currentPlatform.id) ? (
+        <SdkDocumentation
+          platform={currentPlatform}
+          organization={organization}
+          projectSlug={currentProject.slug}
+          projectId={currentProject.id}
+          activeProductSelection={[]}
+          isReplayOnboarding
+        />
+      ) : (
+        docKeys.map((docKey, index) => {
+          let footer: React.ReactNode = null;
 
-        if (index === docKeys.length - 1) {
-          footer = (
-            <EventWaiter
-              api={api}
-              organization={organization}
-              project={currentProject}
-              eventType="replay"
-              onIssueReceived={() => {
-                setReceived(true);
-              }}
-            >
-              {() => (received ? <EventReceivedIndicator /> : <EventWaitingIndicator />)}
-            </EventWaiter>
+          if (index === docKeys.length - 1) {
+            footer = (
+              <EventWaiter
+                api={api}
+                organization={organization}
+                project={currentProject}
+                eventType="replay"
+                onIssueReceived={() => {
+                  setReceived(true);
+                }}
+              >
+                {() =>
+                  received ? <EventReceivedIndicator /> : <EventWaitingIndicator />
+                }
+              </EventWaiter>
+            );
+          }
+          return (
+            <div key={index}>
+              <OnboardingStepV2 step={index + 1} content={docContents[docKey]} />
+              {footer}
+            </div>
           );
-        }
-        return (
-          <div key={index}>
-            <OnboardingStepV2 step={index + 1} content={docContents[docKey]} />
-            {footer}
-          </div>
-        );
-      })}
+        })
+      )}
     </Fragment>
   );
 }
@@ -271,6 +289,10 @@ function OnboardingStepV2({step, content}: OnboardingStepV2Props) {
     </OnboardingStepContainer>
   );
 }
+
+const IntroText = styled('div')`
+  padding-top: ${space(3)};
+`;
 
 const OnboardingStepContainer = styled('div')`
   display: flex;
