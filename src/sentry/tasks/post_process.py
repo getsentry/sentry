@@ -1332,11 +1332,6 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
     return False
 
 
-def get_project_counts(project: Project) -> int:
-    # Dummy function, we'll replace this in a later pr.
-    return 1000
-
-
 MAX_NEW_ESCALATION_AGE_HOURS = 24
 
 
