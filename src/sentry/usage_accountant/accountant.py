@@ -36,6 +36,15 @@ def init_backend(producer: Producer[KafkaPayload]) -> None:
     atexit.register(_shutdown)
 
 
+def reset_backend() -> None:
+    """
+    This method should be used externally only in tests to reset
+    the accountant backend.
+    """
+    global _accountant_backend
+    _accountant_backend = None
+
+
 def _shutdown() -> None:
     global _accountant_backend
     if _accountant_backend is not None:
