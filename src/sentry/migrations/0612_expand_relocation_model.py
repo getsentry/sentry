@@ -55,7 +55,7 @@ class Migration(CheckedMigration):
             constraint=models.CheckConstraint(
                 check=models.Q(
                     ("scheduled_cancel_at_step__gt", django.db.models.expressions.F("step")),
-                    ("scheduled_pause_at_step__isnull", True),
+                    ("scheduled_cancel_at_step__isnull", True),
                     _connector="OR",
                 ),
                 name="scheduled_cancel_at_step_greater_than_current_step",
