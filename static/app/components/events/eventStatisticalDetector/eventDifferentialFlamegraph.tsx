@@ -2,11 +2,14 @@ import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import Placeholder from 'sentry/components/placeholder';
 import {DifferentialFlamegraph} from 'sentry/components/profiling/flamegraph/differentialFlamegraph';
 import {DifferentialFlamegraphToolbar} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/differentialFlamegraphToolbar';
+import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event} from 'sentry/types';
@@ -77,6 +80,33 @@ export function EventDifferentialFlamegraph(props: EventDifferentialFlamegraphPr
     transaction: (transaction?.transaction as string) ?? '',
   });
 
+  const onNextTransactionClick = useMemo(() => {
+    if (!transaction) {
+      return undefined;
+    }
+    const idx = transactions?.data?.data?.indexOf?.(transaction) ?? -1;
+    if (idx === -1 || idx === (transactions?.data?.data?.length ?? 0) - 1) {
+      return undefined;
+    }
+
+    return () => {
+      setTransaction(transactions?.data?.data?.[idx + 1] ?? transaction);
+    };
+  }, [transaction, transactions?.data?.data]);
+
+  const onPreviousTransactionClick = useMemo(() => {
+    if (!transaction) {
+      return undefined;
+    }
+    const idx = transactions?.data?.data?.indexOf?.(transaction) ?? -1;
+    if (idx === -1 || idx === 0) {
+      return undefined;
+    }
+    return () => {
+      setTransaction(transactions?.data?.data?.[idx - 1] ?? transaction);
+    };
+  }, [transaction, transactions?.data?.data]);
+
   return (
     <Fragment>
       <FlamegraphThemeProvider>
@@ -89,6 +119,8 @@ export function EventDifferentialFlamegraph(props: EventDifferentialFlamegraphPr
           }}
         >
           <EventDifferentialFlamegraphView
+            onNextTransactionClick={onNextTransactionClick}
+            onPreviousTransactionClick={onPreviousTransactionClick}
             transaction={transaction}
             before={before}
             after={after}
@@ -102,6 +134,8 @@ export function EventDifferentialFlamegraph(props: EventDifferentialFlamegraphPr
 interface EventDifferentialFlamegraphViewProps {
   after: DifferentialFlamegraphQueryResult['before'];
   before: DifferentialFlamegraphQueryResult['after'];
+  onNextTransactionClick: (() => void) | undefined;
+  onPreviousTransactionClick: (() => void) | undefined;
   transaction: EventsResultsDataRow<string> | undefined;
 }
 function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewProps) {
@@ -163,7 +197,11 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
 
   return (
     <Fragment>
-      <DifferentialFlamegraphTransactionToolbar transaction={props.transaction} />
+      <DifferentialFlamegraphTransactionToolbar
+        transaction={props.transaction}
+        onNextTransactionClick={props.onNextTransactionClick}
+        onPreviousTransactionClick={props.onPreviousTransactionClick}
+      />
       <DifferentialFlamegraphToolbar
         source={source}
         onSourceChange={setSource}
@@ -204,6 +242,8 @@ const numberFormatter = Intl.NumberFormat(undefined, {
 });
 
 interface DifferentialFlamegraphTransactionToolbarProps {
+  onNextTransactionClick: (() => void) | undefined;
+  onPreviousTransactionClick: (() => void) | undefined;
   transaction: EventsResultsDataRow<string> | undefined;
 }
 function DifferentialFlamegraphTransactionToolbar(
@@ -233,9 +273,14 @@ function DifferentialFlamegraphTransactionToolbar(
 
   return (
     <DifferentialFlamegraphTransactionToolbarContainer>
-      <DifferentialFlamegraphTransactionName>
-        {props.transaction?.transaction ?? <Placeholder height="20px" />}{' '}
-      </DifferentialFlamegraphTransactionName>
+      {props.transaction?.transaction ? (
+        <DifferentialFlamegraphTransactionName>
+          {props.transaction.transaction}
+        </DifferentialFlamegraphTransactionName>
+      ) : (
+        <Placeholder height="20px" width="66%" />
+      )}
+
       {props.transaction ? (
         <span>
           <PerformanceDuration nanoseconds={before} abbreviation />
@@ -246,12 +291,35 @@ function DifferentialFlamegraphTransactionToolbar(
           </DifferentialFlamegraphRegressionChange>
         </span>
       ) : (
-        <Placeholder height="20px" />
+        <Fragment>
+          <Placeholder height="20px" width="60px" />
+          <Placeholder height="20px" width="60px" />
+        </Fragment>
       )}
+      <ButtonBar merged>
+        <DifferentialFlamegraphPaginationButton
+          icon={<IconChevron direction="left" size="xs" />}
+          aria-label={t('Previous Transaction')}
+          size="xs"
+          disabled={!props.onPreviousTransactionClick}
+          onClick={props.onPreviousTransactionClick}
+        />
+        <DifferentialFlamegraphPaginationButton
+          icon={<IconChevron direction="right" size="xs" />}
+          aria-label={t('Next Transaction')}
+          size="xs"
+          disabled={!props.onNextTransactionClick}
+          onClick={props.onNextTransactionClick}
+        />
+      </ButtonBar>
     </DifferentialFlamegraphTransactionToolbarContainer>
   );
 }
 
+const DifferentialFlamegraphPaginationButton = styled(Button)`
+  padding-left: ${space(0.75)};
+  padding-right: ${space(0.75)};
+`;
 const DifferentialFlamegraphTransactionName = styled('div')`
   font-weight: 600;
   flex: 1;
