@@ -54,7 +54,7 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
             with sentry_sdk.push_scope() as scope:
                 scope.set_extra("view_class", self.view_class)
                 scope.set_extra("request_method", self.request.method)
-                scope.set_extra("request.path", self.request.path)
+                scope.set_extra("request_path", self.request.path)
                 # Since self.can_infer_integration is True, we should be able to resolve a non-empty set of regions.
                 # If the list of regions is empty, then we need to investigate.
                 sentry_sdk.capture_exception(
