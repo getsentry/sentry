@@ -1,20 +1,24 @@
 import isArray from 'lodash/isArray';
 
-import {PageFilters} from 'sentry/types';
-import {MetricMetaCodeLocation} from 'sentry/utils/metrics';
+import {getDateTimeParams, MetricMetaCodeLocation} from 'sentry/utils/metrics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
-export function useMetricsCodeLocations(
-  mri: string | undefined,
-  projects?: PageFilters['projects']
-) {
+export function useMetricsCodeLocations(mri: string | undefined) {
   const organization = useOrganization();
+  const {selection} = usePageFilters();
 
   const {data, isLoading} = useApiQuery<{codeLocations: MetricMetaCodeLocation[]}>(
     [
       `/organizations/${organization.slug}/ddm/meta/`,
-      {query: {metric: mri, project: projects}},
+      {
+        query: {
+          metric: mri,
+          project: selection.projects,
+          ...getDateTimeParams(selection.datetime),
+        },
+      },
     ],
     {
       enabled: !!mri,
@@ -22,11 +26,28 @@ export function useMetricsCodeLocations(
     }
   );
 
-  if (data && isArray(data?.codeLocations)) {
-    data.codeLocations = data.codeLocations.filter(
-      codeLocation => codeLocation.mri === mri
-    );
+  if (!data || !isArray(data?.codeLocations) || !isArray(data?.codeLocations[0].frames)) {
+    return {data, isLoading};
   }
+
+  deduplicateCodeLocations(data);
 
   return {data, isLoading};
 }
+
+const deduplicateCodeLocations = data => {
+  data.codeLocations = data.codeLocations.filter((element, index) => {
+    return !data.codeLocations.slice(0, index).some(e => equalCodeLocations(e, element));
+  });
+};
+
+const equalCodeLocations = (a, b) => {
+  if (a.mri !== b.mri) {
+    return false;
+  }
+
+  const aFrame = JSON.stringify(a.frames?.[0] ?? {});
+  const bFrame = JSON.stringify(b.frames?.[0] ?? {});
+
+  return aFrame === bFrame;
+};
