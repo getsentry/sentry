@@ -133,6 +133,7 @@ class OrganizationMetricsMetaTest(OrganizationMetricMetaIntegrationTestCase):
         )
 
         assert len(response.data) == 1
+        assert response.data[0]["mri"] == set_mri
         assert "uniq" in response.data[0]["operations"]
 
     def test_metrics_meta_invalid_use_case(self):
