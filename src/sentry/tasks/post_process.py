@@ -583,6 +583,7 @@ def post_process_group(
                     occurrence.event_id,
                     group_id=group_id,
                     skip_transaction_groupevent=True,
+                    occurrence=occurrence,
                 )
                 if retrieved is None:
                     raise EventLookupError(
