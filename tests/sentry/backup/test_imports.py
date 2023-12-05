@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import io
+import os
 import tarfile
 import tempfile
 from datetime import date, datetime
 from pathlib import Path
 from typing import Tuple
-from unittest import mock
 from unittest.mock import patch
 
 import pytest
@@ -875,11 +875,11 @@ class DatabaseResetTests(ImportTestCase):
             with open(tmp_empty_file_path, "rb") as empty_backup_json:
                 import_fn(empty_backup_json, printer=NOOP_PRINTER)
 
-    @mock.patch("sentry.backup.imports.is_split_db", return_value=False)
-    def test_clears_existing_models_in_global_scope(self, is_split_db):
-        if SiloMode.get_current_mode() != SiloMode.MONOLITH:
-            return
-
+    @pytest.mark.skipif(
+        os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "0",
+        reason="only run when in `SENTRY_USE_MONOLITH_DBS=1` env variable is set",
+    )
+    def test_clears_existing_models_in_global_scope(self):
         create_default_projects()
         self.import_empty_backup_file(import_in_global_scope)
 
@@ -891,11 +891,11 @@ class DatabaseResetTests(ImportTestCase):
                 cursor.execute(f"SELECT MAX(id) FROM {model._meta.db_table}")
                 sequence_number = cursor.fetchone()[0]
                 assert sequence_number == 1 or sequence_number is None
-        # During the setup of a fresh Sentry instance, there are a couple of models that are automatically created.
-        # The Sentry org, a Sentry team, and an internal project. During a global import, we want to avoid persisting
-        # these default models and start from scratch. These explicit assertions are here just to double check that these
-        # models have been wiped.
 
+        # During the setup of a fresh Sentry instance, there are a couple of models that are
+        # automatically created: the Sentry org, a Sentry team, and an internal project. During a
+        # global import, we want to avoid persisting these default models and start from scratch.
+        # These explicit assertions are here just to double check that these models have been wiped.
         assert Project.objects.count() == 0
         assert ProjectKey.objects.count() == 0
         assert Organization.objects.count() == 0

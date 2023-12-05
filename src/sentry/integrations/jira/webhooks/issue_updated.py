@@ -9,6 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Scope
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.integrations.utils import get_integration_from_jwt
@@ -23,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 @region_silo_endpoint
 class JiraIssueUpdatedWebhook(JiraWebhookBase):
+    owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,
     }
@@ -60,7 +62,7 @@ class JiraIssueUpdatedWebhook(JiraWebhookBase):
 
         data = request.data
         if not data.get("changelog"):
-            logger.info("missing-changelog", extra={"integration_id": rpc_integration.id})
+            logger.info("jira.missing-changelog", extra={"integration_id": rpc_integration.id})
             return self.respond()
 
         handle_assignee_change(rpc_integration, data, use_email_scope=settings.JIRA_USE_EMAIL_SCOPE)

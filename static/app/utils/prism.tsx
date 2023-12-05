@@ -52,6 +52,12 @@ export async function loadPrismLanguage(
   try {
     const language: string | undefined = prismLanguageMap[lang.toLowerCase()];
 
+    // Short-circuit if language already loaded
+    if (Prism.languages[language]) {
+      onLoad?.();
+      return;
+    }
+
     // If Prism doesn't have any grammar file available for the language
     if (!language) {
       if (!suppressExistenceWarning) {

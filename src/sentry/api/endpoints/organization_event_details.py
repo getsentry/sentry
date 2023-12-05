@@ -46,7 +46,9 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         if hasattr(event, "for_group") and event.group:
             event = event.for_group(event.group)
 
-        data = serialize(event, request.user, SqlFormatEventSerializer())
+        data = serialize(
+            event, request.user, SqlFormatEventSerializer(), include_full_release_data=False
+        )
         data["projectSlug"] = project_slug
 
         return Response(data)

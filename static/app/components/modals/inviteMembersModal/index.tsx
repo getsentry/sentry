@@ -363,6 +363,7 @@ class InviteMembersModal extends DeprecatedAsyncComponent<
           <div>{t('Email addresses')}</div>
           <div>{t('Role')}</div>
           <div>{t('Add to team')}</div>
+          <div />
         </InviteeHeadings>
 
         <Rows>
@@ -474,7 +475,7 @@ const Subtext = styled('p')`
 const inviteRowGrid = css`
   display: grid;
   gap: ${space(1.5)};
-  grid-template-columns: 3fr 180px 2fr max-content;
+  grid-template-columns: 3fr 180px 2fr 0.5fr;
   align-items: start;
 `;
 

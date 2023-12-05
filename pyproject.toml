@@ -32,6 +32,10 @@ filterwarnings = [
     # Consider all warnings to be errors other than the ignored ones.
     "error",
 
+    # a bunch of google packages use legacy namespace packages
+    "ignore:pkg_resources is deprecated as an API",
+    "ignore:Deprecated call to `pkg_resources.declare_namespace\\('google.*'\\)`.",
+
     # The following warning filters are for pytest only.
     # This is so we don't have to wrap most datetime objects in testing code
     # with django.utils.timezone.
@@ -82,7 +86,6 @@ module = [
     "celery.*",
     "confluent_kafka.*",
     "cssselect.*",
-    "datadog.*",
     "django_zero_downtime_migrations.backends.postgres.schema.*",
     "docker.*",
     "fido2.*",
@@ -192,7 +195,6 @@ module = [
     "sentry.api.endpoints.organization_events_trends",
     "sentry.api.endpoints.organization_group_index",
     "sentry.api.endpoints.organization_index",
-    "sentry.api.endpoints.organization_integration_repos",
     "sentry.api.endpoints.organization_issues_count",
     "sentry.api.endpoints.organization_member.details",
     "sentry.api.endpoints.organization_member.index",
@@ -262,7 +264,6 @@ module = [
     "sentry.api.endpoints.user_roles",
     "sentry.api.endpoints.user_subscriptions",
     "sentry.api.event_search",
-    "sentry.api.fields.actor",
     "sentry.api.helpers.deprecation",
     "sentry.api.helpers.events",
     "sentry.api.helpers.group_index.delete",
@@ -306,7 +307,6 @@ module = [
     "sentry.api.serializers.rest_framework.sentry_app_request",
     "sentry.api.serializers.snuba",
     "sentry.api.validators.email",
-    "sentry.auth.access",
     "sentry.auth.helper",
     "sentry.auth.provider",
     "sentry.auth.providers.dummy",
@@ -317,7 +317,6 @@ module = [
     "sentry.auth.providers.saml2.provider",
     "sentry.auth.providers.saml2.rippling.provider",
     "sentry.auth.providers.saml2.views",
-    "sentry.auth.superuser",
     "sentry.auth.system",
     "sentry.auth.view",
     "sentry.db.mixin",
@@ -520,8 +519,6 @@ module = [
     "sentry.rules.conditions.tagged_event",
     "sentry.rules.filters.assigned_to",
     "sentry.rules.filters.latest_release",
-    "sentry.rules.history.endpoints.project_rule_group_history",
-    "sentry.rules.history.endpoints.project_rule_stats",
     "sentry.rules.history.preview",
     "sentry.scim.endpoints.members",
     "sentry.scim.endpoints.teams",
@@ -623,7 +620,6 @@ module = [
     "sentry.utils.performance_issues.detectors.render_blocking_asset_span_detector",
     "sentry.utils.performance_issues.detectors.slow_db_query_detector",
     "sentry.utils.performance_issues.performance_detection",
-    "sentry.utils.query",
     "sentry.utils.redis",
     "sentry.utils.sentry_apps.webhooks",
     "sentry.utils.services",
@@ -707,7 +703,6 @@ module = [
     "tests.sentry.api.test_authentication",
     "tests.sentry.api.test_base",
     "tests.sentry.api.test_event_search",
-    "tests.sentry.api.test_issue_search",
     "tests.sentry.digests.test_notifications",
     "tests.sentry.eventstore.test_base",
     "tests.sentry.grouping.test_result",

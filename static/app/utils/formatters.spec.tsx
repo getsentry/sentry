@@ -3,6 +3,7 @@ import {
   DAY, // ms in day
   formatAbbreviatedNumber,
   formatFloat,
+  formatNumberWithDynamicDecimalPoints,
   formatPercentage,
   formatRate,
   formatSecondsToClock,
@@ -395,5 +396,25 @@ describe('parseLargestSuffix', () => {
     expect(parseLargestSuffix(SEC_IN_WK, 'minutes')).toEqual([10080, 'minutes']);
     expect(parseLargestSuffix(SEC_IN_WK, 'hours')).toEqual([168, 'hours']);
     expect(parseLargestSuffix(SEC_IN_WK, 'days')).toEqual([7, 'days']);
+  });
+});
+
+describe('formatNumberWithDynamicDecimals', () => {
+  it('rounds to two decimal points without forcing them', () => {
+    expect(formatNumberWithDynamicDecimalPoints(0)).toEqual('0');
+    expect(formatNumberWithDynamicDecimalPoints(1)).toEqual('1');
+    expect(formatNumberWithDynamicDecimalPoints(1.0)).toEqual('1');
+    expect(formatNumberWithDynamicDecimalPoints(1.5)).toEqual('1.5');
+    expect(formatNumberWithDynamicDecimalPoints(1.05)).toEqual('1.05');
+    expect(formatNumberWithDynamicDecimalPoints(1.004)).toEqual('1');
+    expect(formatNumberWithDynamicDecimalPoints(1.005)).toEqual('1.01');
+    expect(formatNumberWithDynamicDecimalPoints(1.1009)).toEqual('1.1');
+    expect(formatNumberWithDynamicDecimalPoints(2.236)).toEqual('2.24');
+  });
+
+  it('preserves significant decimal places', () => {
+    expect(formatNumberWithDynamicDecimalPoints(0.001234)).toEqual('0.0012');
+    expect(formatNumberWithDynamicDecimalPoints(0.000125)).toEqual('0.00013');
+    expect(formatNumberWithDynamicDecimalPoints(0.0000123)).toEqual('0.000012');
   });
 });

@@ -77,4 +77,30 @@ describe('ArchiveActions', () => {
       substatus: 'archived_until_condition_met',
     });
   });
+
+  it('does render archive until occurrence options', async () => {
+    render(<ArchiveActions onUpdate={onUpdate} disableArchiveUntilOccurrence={false} />);
+    await userEvent.click(screen.getByRole('button', {name: 'Archive options'}));
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Until this occurs again\u2026'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {
+        name: 'Until this affects an additional\u2026',
+      })
+    ).toBeInTheDocument();
+  });
+
+  it('does not render archive until occurrence options', async () => {
+    render(<ArchiveActions onUpdate={onUpdate} disableArchiveUntilOccurrence />);
+    await userEvent.click(screen.getByRole('button', {name: 'Archive options'}));
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Until this occurs again\u2026'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {
+        name: 'Until this affects an additional\u2026',
+      })
+    ).not.toBeInTheDocument();
+  });
 });

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Collection, Mapping, Sequence
+from typing import Any, Collection, Mapping, Sequence
 
 from sentry_sdk import configure_scope
 
@@ -90,7 +90,7 @@ class RepositoryMixin:
 
         return source_url
 
-    def get_repositories(self, query: str | None = None) -> Sequence[Repository]:
+    def get_repositories(self, query: str | None = None) -> Sequence[dict[str, Any]]:
         """
         Get a list of available repositories for an installation
 
