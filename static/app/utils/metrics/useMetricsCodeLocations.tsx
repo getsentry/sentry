@@ -5,6 +5,8 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
+type ApiResponse = {codeLocations: MetricMetaCodeLocation[]};
+
 export function useMetricsCodeLocations(mri: string | undefined) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -31,17 +33,24 @@ export function useMetricsCodeLocations(mri: string | undefined) {
   }
 
   deduplicateCodeLocations(data);
+  sortCodeLocations(data);
 
   return {data, isLoading};
 }
 
-const deduplicateCodeLocations = data => {
+const sortCodeLocations = (data: ApiResponse) => {
+  data.codeLocations.sort((a, b) => {
+    return b.timestamp - a.timestamp;
+  });
+};
+
+const deduplicateCodeLocations = (data: ApiResponse) => {
   data.codeLocations = data.codeLocations.filter((element, index) => {
     return !data.codeLocations.slice(0, index).some(e => equalCodeLocations(e, element));
   });
 };
 
-const equalCodeLocations = (a, b) => {
+const equalCodeLocations = (a: MetricMetaCodeLocation, b: MetricMetaCodeLocation) => {
   if (a.mri !== b.mri) {
     return false;
   }

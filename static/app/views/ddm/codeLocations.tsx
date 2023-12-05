@@ -9,7 +9,7 @@ import ContextLine from 'sentry/components/events/interfaces/frame/contextLine';
 import DefaultTitle from 'sentry/components/events/interfaces/frame/defaultTitle';
 import {stackTracePlatformIcon} from 'sentry/components/events/interfaces/utils';
 import {IconChevron} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Frame} from 'sentry/types';
 import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
@@ -21,18 +21,21 @@ import {MetricCodeLocationFrame} from '../../utils/metrics/index';
 
 export function CodeLocations({mri}: {mri: string}) {
   const {data} = useMetricsCodeLocations(mri);
-  const [isExpandedLocation, setIsExpandedLocation] = useState(null);
+  // Keeps track of which code location has expanded source context
+  const [expanedCodeLocation, setExpandedCodeLocation] = useState(null);
+  // Keeps track of whether the code locations are collapsed or not
+  const [collapsed, setCollapsed] = useState(true);
   const organization = useOrganization();
 
-  const setExpandLocation = useCallback(
+  const toggleExpandedLocation = useCallback(
     index => {
-      if (isExpandedLocation === index) {
-        setIsExpandedLocation(null);
+      if (expanedCodeLocation === index) {
+        setExpandedCodeLocation(null);
       } else {
-        setIsExpandedLocation(index);
+        setExpandedCodeLocation(index);
       }
     },
-    [isExpandedLocation]
+    [expanedCodeLocation]
   );
 
   if (!hasDDMExperimentalFeature(organization)) {
@@ -45,19 +48,47 @@ export function CodeLocations({mri}: {mri: string}) {
   }
 
   // We only want to show the first 5 code locations
-  const reversedCodeLocations = codeLocations.toReversed().slice(0, 5);
+  const reversedCodeLocations = codeLocations.slice(0, 5);
 
   return (
     <Wrapper>
-      <Collapsible maxVisibleItems={1}>
+      <Collapsible
+        maxVisibleItems={1}
+        expandButton={({onExpand, numberOfHiddenItems}) => (
+          <CollapsibleButton
+            priority="link"
+            onClick={() => {
+              setCollapsed(false);
+              onExpand();
+            }}
+          >
+            {tn(
+              'Show %s more code location',
+              'Show %s more code locations',
+              numberOfHiddenItems
+            )}
+          </CollapsibleButton>
+        )}
+        collapseButton={({onCollapse}) => (
+          <CollapsibleButton
+            priority="link"
+            onClick={() => {
+              setCollapsed(true);
+              onCollapse();
+            }}
+          >
+            {t('Collapse')}
+          </CollapsibleButton>
+        )}
+      >
         {reversedCodeLocations.map((location, index) => (
           <CodeLocation
             key={`location-${index}`}
             codeLocation={location}
-            showContext={isExpandedLocation === index}
-            handleShowContext={() => setExpandLocation(index)}
+            showContext={expanedCodeLocation === index}
+            handleShowContext={() => toggleExpandedLocation(index)}
             isFirst={index === 0}
-            isLast={index === reversedCodeLocations.length - 1}
+            isLast={collapsed || index === reversedCodeLocations.length - 1}
           />
         ))}
       </Collapsible>
@@ -74,11 +105,22 @@ function CodeLocation({codeLocation, showContext, handleShowContext, isFirst, is
 
   const platformIcon = stackTracePlatformIcon(frameToShow.platform, codeLocation.frames);
 
+  const hasContext = !!frameToShow.contextLine;
+
   return (
     <CodeLocationWrapper>
       <PlatformIcon size="20px" radius={null} platform={platformIcon} />
-      <DefaultLineWrapper onClick={handleShowContext} isFirst={isFirst} isLast={isLast}>
-        <DefaultLine className="title" showContext={showContext}>
+      <DefaultLineWrapper
+        onClick={() => {
+          if (!hasContext) {
+            return;
+          }
+          handleShowContext();
+        }}
+        isFirst={isFirst}
+        isLast={isLast}
+      >
+        <DefaultLine className="title" isFirst={isFirst}>
           <DefaultLineTitleWrapper>
             <LeftLineTitle>
               <DefaultTitle
@@ -88,35 +130,44 @@ function CodeLocation({codeLocation, showContext, handleShowContext, isFirst, is
               />
             </LeftLineTitle>
             <DefaultLineActionButtons>
-              {frameToShow.contextLine && (
-                <ToggleContextButton
-                  title={t('Toggle Context')}
-                  size="zero"
-                  onClick={handleShowContext}
-                >
-                  {/* legacy size is deprecated but the icon is too big without it */}
-                  <IconChevron
-                    direction={showContext ? 'up' : 'down'}
-                    size="xs"
-                    legacySize="8px"
-                  />
-                </ToggleContextButton>
-              )}
-              <StyledCopyToClipboardButton
-                text={`${frameToShow.absPath}:${frameToShow.lineNo}`}
+              <CopyToClipboardButton
+                text={`${frameToShow.filename}:${frameToShow.lineNo}`}
                 size="zero"
                 iconSize="xs"
+                borderless
               />
+
+              <ToggleContextButton
+                title={hasContext ? t('Toggle Context') : undefined}
+                size="zero"
+                onClick={handleShowContext}
+                disabled={!hasContext}
+              >
+                {/* legacy size is deprecated but the icon is too big without it */}
+                <IconChevron
+                  direction={showContext ? 'up' : 'down'}
+                  size="xs"
+                  legacySize="8px"
+                />
+              </ToggleContextButton>
             </DefaultLineActionButtons>
           </DefaultLineTitleWrapper>
         </DefaultLine>
-        {showContext && <CodeLocationContext frame={frameToShow} />}
+        {showContext && hasContext && (
+          <CodeLocationContext frame={frameToShow} isLast={isLast} />
+        )}
       </DefaultLineWrapper>
     </CodeLocationWrapper>
   );
 }
 
-function CodeLocationContext({frame}: {frame: MetricCodeLocationFrame}) {
+function CodeLocationContext({
+  frame,
+  isLast,
+}: {
+  frame: MetricCodeLocationFrame;
+  isLast: boolean;
+}) {
   const lineNo = frame.lineNo ?? 0;
 
   const preContextLines: [number, string][] =
@@ -126,7 +177,7 @@ function CodeLocationContext({frame}: {frame: MetricCodeLocationFrame}) {
     frame.postContext?.map((line, index) => [lineNo + index, line]) ?? [];
 
   return (
-    <ContextWrapper>
+    <ContextWrapper isLast={isLast}>
       {preContextLines.map(line => (
         <ContextLine key={`pre-${line[1]}`} line={line} isActive={false} />
       ))}
@@ -154,12 +205,6 @@ const DefaultLineActionButtons = styled('div')`
 
 const Wrapper = styled('div')`
   margin-top: ${space(1)};
-  border-radius: ${p => p.theme.borderRadius};
-
-  & > div > div {
-    border: 1px solid ${p => p.theme.border};
-    border-bottom: 0;
-  }
 
   & code {
     font-family: inherit;
@@ -167,7 +212,7 @@ const Wrapper = styled('div')`
   }
 `;
 
-const ContextWrapper = styled('div')`
+const ContextWrapper = styled('div')<{isLast?: boolean}>`
   word-wrap: break-word;
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
@@ -176,6 +221,8 @@ const ContextWrapper = styled('div')`
   min-height: ${space(3)};
   white-space: pre;
   white-space: pre-wrap;
+
+  background-color: ${p => p.theme.background};
 `;
 
 const DefaultLineWrapper = styled('div')<{isFirst?: boolean; isLast?: boolean}>`
@@ -183,13 +230,22 @@ const DefaultLineWrapper = styled('div')<{isFirst?: boolean; isLast?: boolean}>`
     cursor: pointer;
   }
   flex-grow: 1;
+
+  border-top-left-radius: 0;
+  border-top-right-radius: ${p => (p.isFirst ? p.theme.borderRadius : 0)};
+  border-bottom-left-radius: ${p => (p.isLast ? p.theme.borderRadius : 0)};
+  border-bottom-right-radius: ${p => (p.isLast ? p.theme.borderRadius : 0)};
+
+  border: 1px solid ${p => p.theme.border};
+  border-top: ${p => (p.isFirst ? `1px solid ${p.theme.border}` : 'none')};
+
+  background-color: ${p => p.theme.backgroundTertiary};
 `;
 
-const DefaultLine = styled('div')<{showContext?: boolean}>`
+const DefaultLine = styled('div')<{isFirst?: boolean}>`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: ${p => (p.showContext ? `1px solid ${p.theme.border}` : '0')};
 `;
 
 const DefaultLineTitleWrapper = styled('div')`
@@ -197,13 +253,12 @@ const DefaultLineTitleWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-radius: ${p => p.theme.borderRadius};
-  background-color: ${p => p.theme.backgroundTertiary};
+
   font-size: ${p => p.theme.codeFontSize};
   line-height: ${p => p.theme.fontSizeLarge};
   font-style: normal;
 
-  padding: ${space(0.75)} ${space(2)} ${space(0.75)} ${space(3)};
+  padding: ${space(0.75)} ${space(2)} ${space(0.75)} ${space(1.5)};
   word-break: break-all;
   word-break: break-word;
 `;
@@ -213,7 +268,7 @@ const LeftLineTitle = styled('div')`
   align-items: center;
 `;
 
-const StyledCopyToClipboardButton = styled(CopyToClipboardButton)`
-  display: flex;
-  border: none;
+// done to align the collapsible button with the text in default line title
+const CollapsibleButton = styled(Button)`
+  margin-left: 36px;
 `;
