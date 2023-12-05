@@ -10,6 +10,7 @@ import type {Location} from 'history';
 import MockDate from 'mockdate';
 import {object as propTypesObject} from 'prop-types';
 import {stringify} from 'query-string';
+import {Config} from 'sentry-fixture/config';
 import {Organization} from 'sentry-fixture/organization';
 import {Project} from 'sentry-fixture/project';
 
@@ -227,7 +228,7 @@ const routerFixtures = {
 const jsFixturesDirectory = path.resolve(__dirname, '../../fixtures/js-stubs/');
 const fixtures = makeLazyFixtures(jsFixturesDirectory, routerFixtures);
 
-ConfigStore.loadInitialData(fixtures.Config());
+ConfigStore.loadInitialData(Config());
 
 /**
  * Test Globals
