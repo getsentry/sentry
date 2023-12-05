@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {getInterval} from 'sentry/components/charts/utils';
@@ -6,6 +7,9 @@ import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
+import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
+import {Tooltip} from 'sentry/components/tooltip';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {NewQuery} from 'sentry/types';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -17,6 +21,7 @@ import EventView, {
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import toPercent from 'sentry/utils/number/toPercent';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -32,6 +37,7 @@ import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseCompariso
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {SpanOpSelector} from 'sentry/views/starfish/views/screens/screenLoadSpans/spanOpSelector';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
   SpanMetricsField;
@@ -40,6 +46,18 @@ type Props = {
   primaryRelease?: string;
   secondaryRelease?: string;
   transaction?: string;
+};
+
+const barColors = {
+  ttid: CHART_PALETTE[17][4],
+  ttfd: CHART_PALETTE[17][8],
+  other: CHART_PALETTE[17][10],
+};
+
+const tooltips = {
+  ttid: t('Percentage of spans that ended before TTID.'),
+  ttfd: t('Percentage of spans that ended before TTFD.'),
+  other: t('Percentage of spans that ended after TTID.'),
 };
 
 export function ScreenLoadSpansTable({
@@ -65,11 +83,7 @@ export function ScreenLoadSpansTable({
           'span.op:[file.read,file.write,ui.load,http.client,db,db.sql.room,db.sql.query,db.sql.transaction]',
         ]),
   ]);
-  const queryStringPrimary = appendReleaseFilters(
-    searchQuery,
-    primaryRelease,
-    secondaryRelease
-  );
+  const queryStringPrimary = appendReleaseFilters(searchQuery, primaryRelease);
 
   const sort = fromSorts(
     decodeScalar(location.query[QueryParameterNames.SPANS_SORT])
@@ -87,6 +101,11 @@ export function ScreenLoadSpansTable({
       SPAN_DESCRIPTION,
       `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
       `avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`,
+      `avg_compare(${SPAN_SELF_TIME},release,${secondaryRelease},${primaryRelease})`,
+      'ttid_contribution_rate()',
+      'ttid_count()',
+      'ttfd_contribution_rate()',
+      'ttfd_count()',
       'count()',
       'time_spent_percentage()',
       `sum(${SPAN_SELF_TIME})`,
@@ -113,6 +132,7 @@ export function ScreenLoadSpansTable({
     [SPAN_OP]: t('Operation'),
     [SPAN_DESCRIPTION]: t('Span Description'),
     'count()': t('Total Count'),
+    'ttid_count()': t('Occurences'),
     'time_spent_percentage()': t('Total Time Spent'),
     [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t(
       'Duration (%s)',
@@ -122,6 +142,8 @@ export function ScreenLoadSpansTable({
       'Duration (%s)',
       truncatedSecondary
     ),
+    [`avg_compare(${SPAN_SELF_TIME},release,${secondaryRelease},${primaryRelease})`]:
+      DataTitles.change,
   };
 
   function renderBodyCell(column, row): React.ReactNode {
@@ -146,6 +168,42 @@ export function ScreenLoadSpansTable({
         <Link to={`${pathname}?${qs.stringify(query)}`}>
           <OverflowEllipsisTextContainer>{label}</OverflowEllipsisTextContainer>
         </Link>
+      );
+    }
+
+    if (column.key === 'ttid_count()') {
+      const total = row['count()'];
+      const ttid = row['ttid_count()'] ? parseInt(row['ttid_count()'], 10) : 0;
+      const ttfd = row['ttfd_count()'] ? parseInt(row['ttfd_count()'], 10) : ttid;
+      const ttfdOnly = ttfd - ttid;
+      const other = total - ttfd;
+
+      const orderedSpanContribution = [
+        {key: 'ttid', value: ttid},
+        {key: 'ttfd', value: ttfdOnly},
+        {key: 'other', value: other},
+      ];
+
+      return (
+        <RelativeOpsBreakdown data-test-id="relative-ops-breakdown">
+          {orderedSpanContribution.map((contribution, index) => {
+            const widthPercentage = contribution.value / total;
+            if (widthPercentage === 0) {
+              return null;
+            }
+            return (
+              <div key={index} style={{width: toPercent(widthPercentage || 0)}}>
+                <Tooltip title={tooltips[contribution.key]} containerDisplayMode="block">
+                  <RectangleRelativeOpsBreakdown
+                    style={{
+                      backgroundColor: barColors[contribution.key],
+                    }}
+                  />
+                </Tooltip>
+              </div>
+            );
+          })}
+        </RelativeOpsBreakdown>
       );
     }
 
@@ -218,9 +276,14 @@ export function ScreenLoadSpansTable({
         columnOrder={eventViewColumns
           .filter(
             (col: TableColumn<React.ReactText>) =>
-              col.name !== PROJECT_ID &&
-              col.name !== SPAN_GROUP &&
-              col.name !== `sum(${SPAN_SELF_TIME})`
+              ![
+                String(PROJECT_ID),
+                String(SPAN_GROUP),
+                `sum(${SPAN_SELF_TIME})`,
+                'ttid_contribution_rate()',
+                'ttfd_contribution_rate()',
+                'ttfd_count()',
+              ].includes(col.name)
           )
           .map((col: TableColumn<React.ReactText>) => {
             return {...col, name: columnNameMap[col.key]};
@@ -236,3 +299,13 @@ export function ScreenLoadSpansTable({
     </Fragment>
   );
 }
+
+const RelativeOpsBreakdown = styled('div')`
+  position: relative;
+  display: flex;
+`;
+
+const RectangleRelativeOpsBreakdown = styled(RowRectangle)`
+  position: relative;
+  width: 100%;
+`;
