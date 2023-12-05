@@ -27,6 +27,20 @@ function filterLinkedPlugins(actions: ExternalIssueComponent[]) {
   return plugins.concat(nonPlugins);
 }
 
+function getPluginNames(pluginIssue) {
+  return {
+    name: pluginIssue.props.plugin.name ?? '',
+    icon: pluginIssue.props.plugin.slug ?? '',
+  };
+}
+
+function getIntegrationNames(integrationIssue) {
+  return {
+    name: integrationIssue.props.configurations[0].provider.name ?? '',
+    icon: integrationIssue.key ?? '',
+  };
+}
+
 export default function IssueTrackingSignals({group}: Props) {
   const {actions} = useExternalIssueData({
     group,
@@ -49,15 +63,17 @@ export default function IssueTrackingSignals({group}: Props) {
     );
   }
 
-  const name =
-    linkedIssues[0].type === 'plugin-issue' || linkedIssues[0].type === 'plugin-action'
-      ? linkedIssues[0].props.plugin.slug ?? ''
-      : linkedIssues[0].key;
+  const issue = linkedIssues[0];
+
+  const {name, icon} =
+    issue.type === 'plugin-issue' || issue.type === 'plugin-action'
+      ? getPluginNames(issue)
+      : getIntegrationNames(issue);
 
   return (
     <FeedbackIcon
       tooltipText={t('Linked %s Issue', name)}
-      icon={getIntegrationIcon(name, 'xs')}
+      icon={getIntegrationIcon(icon, 'xs')}
     />
   );
 }

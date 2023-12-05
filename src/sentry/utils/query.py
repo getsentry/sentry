@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 
 import progressbar
@@ -113,7 +115,6 @@ class RangeQuerySetWrapper:
         self.result_value_getter = result_value_getter
 
     def __iter__(self):
-        max_value = None
         if self.min_value is not None:
             cur_value = self.min_value
         else:
@@ -129,10 +130,10 @@ class RangeQuerySetWrapper:
             queryset = queryset.order_by(self.order_by)
 
         # we implement basic cursor pagination for columns that are not unique
-        last_object_pk = None
+        last_object_pk: int | None = None
         has_results = True
         while has_results:
-            if (max_value and cur_value >= max_value) or (limit and num >= limit):
+            if limit and num >= limit:
                 break
 
             start = num
@@ -265,7 +266,7 @@ def bulk_delete_objects(
             query.append(f"{quote_name(column)} = %s")
             params.append(value)
 
-    query = """
+    query_s = """
         delete from %(table)s
         where %(partition_query)s id = any(array(
             select id
@@ -281,7 +282,7 @@ def bulk_delete_objects(
     )
 
     cursor = connection.cursor()
-    cursor.execute(query, params)
+    cursor.execute(query_s, params)
 
     has_more = cursor.rowcount > 0
 
