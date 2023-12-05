@@ -124,7 +124,6 @@ export function isValidGuide(guide?: string): guide is GuideKey {
 export function CronsLandingPanel() {
   const organization = useOrganization();
   const location = useLocation();
-  const {selection} = usePageFilters();
   const platform = decodeScalar(location.query?.platform) ?? null;
   const guide = decodeScalar(location.query?.guide);
 
