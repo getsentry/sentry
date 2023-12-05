@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Iterable, List, Mapping, Optional, Union
 
 from django.db import IntegrityError, models, router, transaction
-from django.db.models.expressions import F
+from django.db.models.expressions import CombinedExpression, F
 from django.dispatch import Signal
 
 from sentry import roles
@@ -285,7 +285,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         return [r.organization for r in results]
 
     def update_flags(self, *, organization_id: int, flags: RpcOrganizationFlagsUpdate) -> None:
-        updates: models.F | models.CombinedExpression = models.F("flags")
+        updates: F | CombinedExpression = models.F("flags")
         for (name, value) in flags.items():
             if value is True:
                 updates = updates.bitor(getattr(Organization.flags, name))
