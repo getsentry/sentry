@@ -226,6 +226,12 @@ function ProfilingDurationRegressionIssueDetailsContent({
         <Feature features="profiling-differential-flamegraph" organization={organization}>
           <ErrorBoundary mini>
             <DataSection>
+              <b>{t('Largest Changes in Call Stack Frequency')}</b>
+              <p>
+                {t(`See which functions changed the most before and after the regression. The
+                frame with the largest increase in call stack population likely
+                contributed to the cause for the duration regression.`)}
+              </p>
               <Panel>
                 <EventDifferentialFlamegraph event={event} />
               </Panel>
