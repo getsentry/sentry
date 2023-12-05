@@ -39,8 +39,8 @@ class UserNotificationSettingOptionWithValueSerializer(
 
     def validate(self, data):
         try:
-            int_type = validate_type(data["type"])
-            validate_value(int_type, data["value"])
+            enum_type = validate_type(data["type"])
+            validate_value(enum_type, data["value"])
         except ParameterValidationError:
             raise serializers.ValidationError("Invalid type for value")
         return data
