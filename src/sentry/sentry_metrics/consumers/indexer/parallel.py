@@ -107,8 +107,8 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         max_parallel_batch_size: int,
         max_parallel_batch_time: float,
         processes: int,
-        input_block_size: int,
-        output_block_size: int,
+        input_block_size: Optional[int],
+        output_block_size: Optional[int],
         ingest_profile: str,
         indexer_db: str,
     ):

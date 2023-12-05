@@ -152,8 +152,8 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         num_processes: int,
         max_batch_size: int,
         max_batch_time: int,
-        input_block_size: int,
-        output_block_size: int,
+        input_block_size: Optional[int],
+        output_block_size: Optional[int],
     ):
         super().__init__()
 

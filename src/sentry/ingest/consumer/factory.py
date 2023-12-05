@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Mapping, MutableMapping, NamedTuple, TypeVar
+from typing import Any, Callable, Mapping, MutableMapping, NamedTuple, Optional, TypeVar
 
 from arroyo import Topic
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
@@ -30,8 +30,8 @@ class MultiProcessConfig(NamedTuple):
     num_processes: int
     max_batch_size: int
     max_batch_time: int
-    input_block_size: int
-    output_block_size: int
+    input_block_size: Optional[int]
+    output_block_size: Optional[int]
 
 
 TInput = TypeVar("TInput")
@@ -67,8 +67,8 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         num_processes: int,
         max_batch_size: int,
         max_batch_time: int,
-        input_block_size: int,
-        output_block_size: int,
+        input_block_size: Optional[int],
+        output_block_size: Optional[int],
     ):
         self.consumer_type = consumer_type
         self.is_attachment_topic = consumer_type == ConsumerType.Attachments
@@ -126,8 +126,8 @@ def get_ingest_consumer(
     max_batch_size: int,
     max_batch_time: int,
     num_processes: int,
-    input_block_size: int,
-    output_block_size: int,
+    input_block_size: Optional[int],
+    output_block_size: Optional[int],
     force_topic: str | None,
     force_cluster: str | None,
 ) -> StreamProcessor[KafkaPayload]:
