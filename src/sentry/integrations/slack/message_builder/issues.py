@@ -122,6 +122,24 @@ def get_option_groups(group: Group) -> Sequence[Mapping[str, Any]]:
     return option_groups
 
 
+def get_group_assignees(group: Group) -> Sequence[Mapping[str, Any]]:
+    all_members = group.project.get_members_as_rpc_users()
+    members = list({m.id: m for m in all_members}.values())
+    teams = group.project.teams.all()
+
+    option_groups = []
+    if teams:
+        for team in teams:
+            option_groups.append({"label": team.slug, "value": f"team:{team.id}"})
+
+    if members:
+        for member in members:
+            # TODO get user name reliably
+            option_groups.append({"label": member.name or "idk man", "value": f"user:{member.id}"})
+
+    return option_groups
+
+
 def get_action_text(
     text: str, actions: Sequence[Any], identity: RpcIdentity, has_escalating: bool = False
 ) -> str:
@@ -208,6 +226,16 @@ def build_actions(
         )
 
     def _assign_button() -> MessageAction:
+        # TODO feature flag this
+        assign_button = MessageAction(
+            name="assign",
+            label="Select Assignee...",
+            type="select",
+            # selected_options=format_actor_options([assignee]) if assignee else [],
+            option_groups=get_group_assignees(group),
+        )
+        return assign_button
+
         assignee = group.get_assignee()
         assign_button = MessageAction(
             name="assign",
@@ -430,11 +458,13 @@ class SlackIssueAlertMessageBuilder(BlockSlackMessageBuilder):
 
         actions = []
         for action in payload_actions:
-            # TODO: assignee will be similar to the resolve dropdown
-            # MessageAction(name='status', label='Ignore', type='button', url=None, value='ignored:forever', action_id=None, style=None, selected_options=None, option_groups=None, block_id=None, elements=None)
             if action.label in ("Archive", "Ignore", "Mark as Ongoing", "Stop Ignoring"):
                 actions.append(self.get_button_action(action))
             elif action.label in ("Resolve", "Unresolve", "Resolve..."):
+                # TODO: to get parity with the existing alerts, this should open up a modal
+                # design is TBD though so unclear if we'll use it. maybe just build it out in case?
+                actions.append(self.get_static_action(action))
+            elif action.name == "assign":
                 actions.append(self.get_static_action(action))
 
         if actions:

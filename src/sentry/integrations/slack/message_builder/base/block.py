@@ -72,7 +72,6 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
 
     @staticmethod
     def get_button_action(action):
-        # for text, label, url, value in actions:  # this will probably break other usages
         button = {
             "type": "button",
             "action_id": action.label,  # hard coded for now, needs to be dynamic

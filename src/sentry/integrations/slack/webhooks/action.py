@@ -451,7 +451,11 @@ class SlackActionEndpoint(Endpoint):
                         value=action_data["selected_option"]["value"],
                         action_id=action_data["action_id"],
                         block_id=action_data["block_id"],
+                        selected_options=[
+                            {"value": action_data.get("selected_option", {}).get("value")}
+                        ],
                     )
+                    # TODO: selected_options is kinda ridiculous, I think this is built to handle multi-select?
                 else:
                     action = BlockKitMessageAction(
                         name=action_data["action_id"],

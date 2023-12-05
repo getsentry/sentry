@@ -40,3 +40,4 @@ class BlockKitMessageAction:
     value: str | None = None
     action_id: str | None = None
     block_id: str | None = None
+    selected_options: Sequence[Mapping[str, Any]] | None = None
