@@ -1,5 +1,6 @@
+import {Entry, EntrySpans, EntryType} from 'sentry/types';
 import {Sort} from 'sentry/utils/discover/fields';
-import {useEventJSON} from 'sentry/views/starfish/queries/useEventJSON';
+import {useEventDetails} from 'sentry/views/starfish/queries/useEventDetails';
 import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
 
@@ -22,21 +23,31 @@ export function useFullSpanFromTrace(
 
   const firstIndexedSpan = indexedSpansResponse.data?.[0];
 
-  const eventJSONResponse = useEventJSON(
-    firstIndexedSpan ? firstIndexedSpan[SpanIndexedField.TRANSACTION_ID] : undefined,
-    firstIndexedSpan ? firstIndexedSpan[SpanIndexedField.PROJECT] : undefined
+  const eventDetailsResponse = useEventDetails({
+    eventId: firstIndexedSpan
+      ? firstIndexedSpan[SpanIndexedField.TRANSACTION_ID]
+      : undefined,
+    projectSlug: firstIndexedSpan
+      ? firstIndexedSpan[SpanIndexedField.PROJECT]
+      : undefined,
+  });
+
+  const spanEntry = eventDetailsResponse.data?.entries.find(
+    (entry: Entry): entry is EntrySpans => {
+      return entry.type === EntryType.SPANS;
+    }
   );
 
-  const fullSpan = eventJSONResponse?.data?.spans?.find(
+  const fullSpan = spanEntry?.data?.find(
     span => span.span_id === firstIndexedSpan?.[SpanIndexedField.ID]
   );
 
   // N.B. There isn't a great pattern for us to merge the responses together,
   // so we're only merging the three most important properties
   return {
-    isLoading: indexedSpansResponse.isLoading || eventJSONResponse.isLoading,
-    isFetching: indexedSpansResponse.isFetching || eventJSONResponse.isFetching,
-    isError: indexedSpansResponse.isError || eventJSONResponse.isError,
+    isLoading: indexedSpansResponse.isLoading || eventDetailsResponse.isLoading,
+    isFetching: indexedSpansResponse.isFetching || eventDetailsResponse.isFetching,
+    isError: indexedSpansResponse.isError || eventDetailsResponse.isError,
     data: fullSpan,
   };
 }
