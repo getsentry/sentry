@@ -4,14 +4,13 @@ import path from 'path';
 import {TextDecoder, TextEncoder} from 'util';
 
 import {ReactElement} from 'react';
-import type {InjectedRouter, RouteComponentProps} from 'react-router';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
-import type {Location} from 'history';
 import MockDate from 'mockdate';
-import {object as propTypesObject} from 'prop-types';
-import {stringify} from 'query-string';
-import {Organization} from 'sentry-fixture/organization';
-import {Project} from 'sentry-fixture/project';
+import LocationFixture from 'sentry-fixture/locationFixture';
+import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import RouterFixture from 'sentry-fixture/routerFixture';
+import RouterPropsFixture from 'sentry-fixture/routerPropsFixture';
 
 // eslint-disable-next-line jest/no-mocks-import
 import type {Client} from 'sentry/__mocks__/api';
@@ -143,85 +142,11 @@ jest.mock('@sentry/react', function sentryReact() {
 });
 
 const routerFixtures = {
-  router: (params = {}): InjectedRouter => ({
-    push: jest.fn(),
-    replace: jest.fn(),
-    go: jest.fn(),
-    goBack: jest.fn(),
-    goForward: jest.fn(),
-    setRouteLeaveHook: jest.fn(),
-    isActive: jest.fn(),
-    createHref: jest.fn().mockImplementation(to => {
-      if (typeof to === 'string') {
-        return to;
-      }
-
-      if (typeof to === 'object') {
-        if (!to.query) {
-          return to.pathname;
-        }
-
-        return `${to.pathname}?${stringify(to.query)}`;
-      }
-
-      return '';
-    }),
-    location: routerFixtures.location(),
-    createPath: jest.fn(),
-    routes: [],
-    params: {},
-    ...params,
-  }),
-
-  location: (params: Partial<Location> = {}): Location => ({
-    key: '',
-    search: '',
-    hash: '',
-    action: 'PUSH',
-    state: null,
-    query: {},
-    pathname: '/mock-pathname/',
-    ...params,
-  }),
-
-  routerProps: (params = {}) => ({
-    location: routerFixtures.location(),
-    params: {},
-    routes: [],
-    stepBack: () => {},
-    ...params,
-  }),
-
-  routeComponentProps: <RouteParams = {orgId: string; projectId: string}>(
-    params: Partial<RouteComponentProps<RouteParams, {}>> = {}
-  ): RouteComponentProps<RouteParams, {}> => {
-    const router = routerFixtures.router(params);
-    return {
-      location: router.location,
-      params: router.params as RouteParams & {},
-      routes: router.routes,
-      route: router.routes[0],
-      routeParams: router.params,
-      router,
-    };
-  },
-
-  routerContext: ([context, childContextTypes] = []) => ({
-    context: {
-      location: routerFixtures.location(),
-      router: routerFixtures.router(),
-      organization: Organization(),
-      project: Project(),
-      ...context,
-    },
-    childContextTypes: {
-      router: propTypesObject,
-      location: propTypesObject,
-      organization: propTypesObject,
-      project: propTypesObject,
-      ...childContextTypes,
-    },
-  }),
+  router: RouterFixture,
+  location: LocationFixture,
+  routeProps: RouterPropsFixture,
+  routeComponentProps: RouteComponentPropsFixture,
+  routerContext: RouterContextFixture,
 };
 
 const jsFixturesDirectory = path.resolve(__dirname, '../../fixtures/js-stubs/');
