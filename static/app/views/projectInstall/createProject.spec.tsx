@@ -93,7 +93,14 @@ describe('CreateProject', function () {
   it('should block if you have access to no teams', function () {
     render(<CreateProject />, {
       context: TestStubs.routerContext([
-        {organization: {id: '1', slug: 'testOrg', access: ['project:read']}},
+        {
+          organization: {
+            id: '1',
+            slug: 'testOrg',
+            access: ['project:read'],
+            features: [],
+          },
+        },
       ]),
     });
   });
@@ -120,6 +127,7 @@ describe('CreateProject', function () {
             id: '1',
             slug: 'testOrg',
             access: ['project:read'],
+            features: [],
           },
         },
       ]),
@@ -168,6 +176,7 @@ describe('CreateProject', function () {
             id: '1',
             slug: 'testOrg',
             access: ['project:read'],
+            features: [],
           },
         },
       ]),
@@ -192,6 +201,7 @@ describe('CreateProject', function () {
     const {organization} = initializeOrg({
       organization: {
         access: ['project:read'],
+        features: [],
       },
     });
 
@@ -223,6 +233,7 @@ describe('CreateProject', function () {
     const {organization} = initializeOrg({
       organization: {
         access: ['project:read'],
+        features: [],
       },
     });
 
@@ -277,6 +288,7 @@ describe('CreateProject', function () {
             id: '1',
             slug: 'testOrg',
             access: ['project:read'],
+            features: [],
           },
         },
       ]),
