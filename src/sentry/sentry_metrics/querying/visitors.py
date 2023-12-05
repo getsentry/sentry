@@ -46,13 +46,6 @@ class ExpansionVisitor(QueryExpressionVisitor[QueryExpression]):
     def __init__(self, registry: ExpressionRegistry):
         self._registry = registry
 
-    def _visit_formula(self, formula: Formula) -> QueryExpression:
-        parameters = []
-        for parameter in formula.parameters:
-            parameters.append(self.visit(parameter))
-
-        return formula.set_parameters(parameters)
-
     def _visit_timeseries(self, timeseries: Timeseries) -> QueryExpression:
         # In case we don't have an MRI set, we don't want to even try to resolve the
         if not timeseries.metric.mri:

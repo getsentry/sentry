@@ -93,6 +93,7 @@ class QueryMeta:
 
 @dataclass(frozen=True)
 class ExecutionResult:
+    query_index: int
     # This is the timeseries query that is being passed to the metrics layer, thus it doesn't contain any
     # mutations that the layer might do.
     query: MetricsQuery
@@ -101,12 +102,7 @@ class ExecutionResult:
 
     @property
     def query_name(self) -> str:
-        timeseries = self.query.query
-
-        aggregate = timeseries.aggregate
-        metric = timeseries.metric.mri or timeseries.metric.public_name
-
-        return f"{aggregate}({metric})"
+        return f"query_{self.query_index}"
 
     @property
     def modified_start(self) -> datetime:
@@ -319,9 +315,11 @@ class QueryExecutor:
             # Run batch query and flatten results.
             pass
         else:
-            for query, with_totals in self._scheduled_queries:
+            for index, (query, with_totals) in enumerate(self._scheduled_queries):
                 result = self._execute(query, with_totals)
-                yield ExecutionResult(query=query, result=result, with_totals=with_totals)
+                yield ExecutionResult(
+                    query_index=index + 1, query=query, result=result, with_totals=with_totals
+                )
 
 
 def _build_intervals(start: datetime, end: datetime, interval: int) -> Sequence[datetime]:
@@ -471,17 +469,17 @@ def _translate_query_results(execution_results: List[ExecutionResult]) -> Mappin
     for group_key, group_metrics in sorted(intermediate_groups.items(), key=lambda v: v[0]):
         translated_serieses: Dict[str, Sequence[ResultValue]] = {}
         translated_totals: Dict[str, ResultValue] = {}
-        for metric_name, metric_values in sorted(group_metrics.items(), key=lambda v: v[0]):
+        for query_name, metric_values in sorted(group_metrics.items(), key=lambda v: v[0]):
             series = metric_values.series
             total = metric_values.total
 
             # We generate the full series by passing as default value the identity of the totals, which is the default
             # value applied in the timeseries.
-            translated_serieses[metric_name] = _generate_full_series(
+            translated_serieses[query_name] = _generate_full_series(
                 int(start.timestamp()), len(intervals), interval, series, _get_identity(total)
             )
             # In case we get nan, we will cast it to None but this can be changed in case there is the need.
-            translated_totals[metric_name] = _nan_to_none(total)
+            translated_totals[query_name] = _nan_to_none(total)
 
         inner_group = {
             "by": {name: value for name, value in group_key},

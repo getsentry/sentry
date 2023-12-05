@@ -5,14 +5,14 @@ import pytest
 from django.utils import timezone as django_timezone
 from snuba_sdk import ArithmeticOperator, Formula, Metric, Timeseries
 
-from sentry.sentry_metrics.querying.api import (
+from sentry.sentry_metrics.querying.api import run_metrics_query
+from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     MetricsQueryExecutionError,
-    run_metrics_query,
 )
 from sentry.sentry_metrics.querying.registry import ExpressionRegistry
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI
+from sentry.snuba.metrics.naming_layer import TransactionMRI
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
@@ -80,9 +80,9 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             assert len(groups) == 1
             assert groups[0]["by"] == {}
             assert groups[0]["series"] == {
-                field: [expected_identity, expected_identity, expected_identity]
+                "query_1": [expected_identity, expected_identity, expected_identity]
             }
-            assert groups[0]["totals"] == {field: expected_identity}
+            assert groups[0]["totals"] == {"query_1": expected_identity}
 
     def test_query_with_one_aggregation(self) -> None:
         # Query with just one aggregation.
@@ -102,8 +102,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         groups = results["groups"]
         assert len(groups) == 1
         assert groups[0]["by"] == {}
-        assert groups[0]["series"] == {field: [0.0, 9.0, 8.0]}
-        assert groups[0]["totals"] == {field: 17.0}
+        assert groups[0]["series"] == {"query_1": [0.0, 9.0, 8.0]}
+        assert groups[0]["totals"] == {"query_1": 17.0}
 
     def test_query_with_one_aggregation_and_environment(self) -> None:
         # Query with just one aggregation.
@@ -123,8 +123,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         groups = results["groups"]
         assert len(groups) == 1
         assert groups[0]["by"] == {}
-        assert groups[0]["series"] == {field: [0.0, 6.0, 3.0]}
-        assert groups[0]["totals"] == {field: 9.0}
+        assert groups[0]["series"] == {"query_1": [0.0, 6.0, 3.0]}
+        assert groups[0]["totals"] == {"query_1": 9.0}
 
     def test_query_with_percentile(self) -> None:
         field = f"p90({TransactionMRI.DURATION.value})"
@@ -143,8 +143,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         groups = results["groups"]
         assert len(groups) == 1
         assert groups[0]["by"] == {}
-        assert groups[0]["series"] == {field: [0.0, 4.6, 3.0]}
-        assert groups[0]["totals"] == {field: 4.0}
+        assert groups[0]["series"] == {"query_1": [0.0, 4.6, 3.0]}
+        assert groups[0]["totals"] == {"query_1": 4.0}
 
     def test_query_with_valid_percentiles(self) -> None:
         # We only want to check if these percentiles return results.
@@ -201,14 +201,14 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         groups = results["groups"]
         assert len(groups) == 3
         assert groups[0]["by"] == {"platform": "android", "transaction": "/hello"}
-        assert groups[0]["series"] == {field: [0.0, 1.0, 2.0]}
-        assert groups[0]["totals"] == {field: 3.0}
+        assert groups[0]["series"] == {"query_1": [0.0, 1.0, 2.0]}
+        assert groups[0]["totals"] == {"query_1": 3.0}
         assert groups[1]["by"] == {"platform": "ios", "transaction": "/hello"}
-        assert groups[1]["series"] == {field: [0.0, 3.0, 3.0]}
-        assert groups[1]["totals"] == {field: 6.0}
+        assert groups[1]["series"] == {"query_1": [0.0, 3.0, 3.0]}
+        assert groups[1]["totals"] == {"query_1": 6.0}
         assert groups[2]["by"] == {"platform": "windows", "transaction": "/world"}
-        assert groups[2]["series"] == {field: [0.0, 5.0, 3.0]}
-        assert groups[2]["totals"] == {field: 8.0}
+        assert groups[2]["series"] == {"query_1": [0.0, 5.0, 3.0]}
+        assert groups[2]["totals"] == {"query_1": 8.0}
 
     def test_query_with_two_simple_filters(self) -> None:
         # Query with one aggregation, one group by and two filters.
@@ -229,8 +229,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         groups = results["groups"]
         assert len(groups) == 1
         assert groups[0]["by"] == {"platform": "ios"}
-        assert groups[0]["series"] == {field: [0.0, 3.0, 3.0]}
-        assert groups[0]["totals"] == {field: 6.0}
+        assert groups[0]["series"] == {"query_1": [0.0, 3.0, 3.0]}
+        assert groups[0]["totals"] == {"query_1": 6.0}
 
     def test_query_one_negated_filter(self) -> None:
         # Query with one aggregation, one group by and two filters.
@@ -250,8 +250,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         groups = results["groups"]
         assert len(groups) == 1
         assert groups[0]["by"] == {"platform": "android"}
-        assert groups[0]["series"] == {field: [0.0, 1.0, 2.0]}
-        assert groups[0]["totals"] == {field: 3.0}
+        assert groups[0]["series"] == {"query_1": [0.0, 1.0, 2.0]}
+        assert groups[0]["totals"] == {"query_1": 3.0}
 
     def test_query_one_in_filter(self) -> None:
         # Query with one aggregation, one group by and two filters.
@@ -271,11 +271,11 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         groups = results["groups"]
         assert len(groups) == 2
         assert groups[0]["by"] == {"platform": "android"}
-        assert groups[0]["series"] == {field: [0.0, 1.0, 2.0]}
-        assert groups[0]["totals"] == {field: 3.0}
+        assert groups[0]["series"] == {"query_1": [0.0, 1.0, 2.0]}
+        assert groups[0]["totals"] == {"query_1": 3.0}
         assert groups[1]["by"] == {"platform": "ios"}
-        assert groups[1]["series"] == {field: [0.0, 3.0, 3.0]}
-        assert groups[1]["totals"] == {field: 6.0}
+        assert groups[1]["series"] == {"query_1": [0.0, 3.0, 3.0]}
+        assert groups[1]["totals"] == {"query_1": 6.0}
 
     def test_query_one_not_in_filter(self) -> None:
         # Query with one aggregation, one group by and two filters.
@@ -295,8 +295,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         groups = results["groups"]
         assert len(groups) == 1
         assert groups[0]["by"] == {"platform": "windows"}
-        assert groups[0]["series"] == {field: [0.0, 5.0, 3.0]}
-        assert groups[0]["totals"] == {field: 8.0}
+        assert groups[0]["series"] == {"query_1": [0.0, 5.0, 3.0]}
+        assert groups[0]["totals"] == {"query_1": 8.0}
 
     def test_query_with_multiple_aggregations(self) -> None:
         # Query with two aggregations.
@@ -317,8 +317,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         groups = results["groups"]
         assert len(groups) == 1
         assert groups[0]["by"] == {}
-        assert groups[0]["series"] == {field_2: [0.0, 5.0, 3.0], field_1: [0.0, 1.0, 2.0]}
-        assert groups[0]["totals"] == {field_2: 5.0, field_1: 1.0}
+        assert groups[0]["series"] == {"query_2": [0.0, 5.0, 3.0], "query_1": [0.0, 1.0, 2.0]}
+        assert groups[0]["totals"] == {"query_2": 5.0, "query_1": 1.0}
 
     def test_query_with_invalid_filters(self) -> None:
         # Query with one aggregation, one group by and two filters.
@@ -406,34 +406,4 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         groups = results["groups"]
         assert len(groups) == 1
         assert groups[0]["by"] == {}
-        assert groups[0]["series"] == {"d": [0.0, 2.5, 0.0]}
-
-    @pytest.mark.skip(reason="sessions are not supported in the new metrics layer")
-    def test_with_sessions(self) -> None:
-        self.store_session(
-            self.build_session(
-                project_id=self.project.id,
-                started=(self.now() + timedelta(minutes=30)).timestamp(),
-                status="exited",
-                release="foobar@2.0",
-                errors=2,
-            )
-        )
-
-        field = f"sum({SessionMRI.RAW_DURATION.value})"
-        results = run_metrics_query(
-            fields=[field],
-            query=None,
-            group_bys=None,
-            start=self.now(),
-            end=self.now() + timedelta(hours=1),
-            interval=3600,
-            organization=self.project.organization,
-            projects=[self.project],
-            environments=[],
-            referrer="metrics.data.api",
-        )
-        groups = results["groups"]
-        assert len(groups) == 1
-        assert groups[0]["by"] == {}
-        assert groups[0]["series"] == {field: [60.0]}
+        assert groups[0]["series"] == {"query_1": [0.0, 2.5, 0.0]}
