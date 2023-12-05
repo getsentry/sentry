@@ -1348,6 +1348,7 @@ def detect_new_escalation(job: PostProcessJob):
     If we detect that the group has escalated, set has_escalated to True in the
     job.
     """
+    from sentry.issues.issue_velocity import get_latest_threshold
     from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 
     group = job["event"].group
@@ -1363,9 +1364,10 @@ def detect_new_escalation(job: PostProcessJob):
     lock = locks.get(f"detect_escalation:{group.id}", duration=10, name="detect_escalation")
     try:
         with lock.acquire():
-            project_escalation_rate = get_project_counts(group.project)
+            project_escalation_rate = get_latest_threshold(job["event"].project)
             group_hourly_event_rate = group.times_seen_with_pending / group_age_hours
-            if group_hourly_event_rate > project_escalation_rate:
+            # a rate of 0 means there was no threshold that could be calculated
+            if project_escalation_rate > 0 and group_hourly_event_rate > project_escalation_rate:
                 job["has_escalated"] = True
                 group.update(substatus=GroupSubStatus.ESCALATING)
                 add_group_to_inbox(group, GroupInboxReason.ESCALATING)
