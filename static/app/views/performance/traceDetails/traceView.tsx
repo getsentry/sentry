@@ -226,6 +226,7 @@ export default function TraceView({
           />
           <TransactionGroup
             location={location}
+            traceViewRef={traceViewRef}
             organization={organization}
             traceInfo={traceInfo}
             transaction={{
@@ -340,6 +341,7 @@ export default function TraceView({
           <TransactionGroup
             location={location}
             organization={organization}
+            traceViewRef={traceViewRef}
             traceInfo={traceInfo}
             transaction={{
               ...error,
@@ -444,6 +446,7 @@ export default function TraceView({
                     renderedChildren={transactionGroups}
                     barColor={pickBarColor('')}
                     onlyOrphanErrors={onlyOrphanErrors}
+                    traceViewRef={traceViewRef}
                     numOfOrphanErrors={orphanErrors?.length}
                   />
                   <TraceHiddenMessage
