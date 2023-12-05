@@ -199,7 +199,11 @@ def get_latest_threshold(project: Project) -> float:
         try:
             with lock.acquire():
                 threshold = update_threshold(project, keys[0], keys[1])
-        except UnableToAcquireLock:  # another process is already updating
+        except UnableToAcquireLock as error:  # another process is already updating
+            logger.warning(
+                "issue_velocity.get_latest_threshold.unable_to_acquire_lock",
+                extra={"org_id": project.organization.id, "project_id": project.id, "error": error},
+            )
             threshold = float(threshold) if threshold else 0  # use stale value if possible
     else:
         # redis stores as strings, so convert back to a float if using the value from the cache
