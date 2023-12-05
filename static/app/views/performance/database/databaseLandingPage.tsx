@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import React, {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -22,7 +22,7 @@ import {DurationChart} from 'sentry/views/performance/database/durationChart';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 import {NoDataMessage} from 'sentry/views/performance/database/noDataMessage';
 import {ThroughputChart} from 'sentry/views/performance/database/throughputChart';
-import {useAvailableDurationAggregates} from 'sentry/views/performance/database/useAvailableDurationAggregates';
+import {useSelectedDurationAggregate} from 'sentry/views/performance/database/useSelectedDurationAggregate';
 import Onboarding from 'sentry/views/performance/onboarding';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
@@ -34,13 +34,13 @@ import SpansTable from 'sentry/views/starfish/views/spans/spansTable';
 import {useModuleFilters} from 'sentry/views/starfish/views/spans/useModuleFilters';
 import {useModuleSort} from 'sentry/views/starfish/views/spans/useModuleSort';
 
-function DatabaseLandingPage() {
+export function DatabaseLandingPage() {
   const organization = useOrganization();
   const moduleName = ModuleName.DB;
   const location = useLocation();
   const onboardingProject = useOnboardingProject();
 
-  const {selectedAggregate} = useAvailableDurationAggregates();
+  const [selectedAggregate] = useSelectedDurationAggregate();
   const spanDescription = decodeScalar(location.query?.['span.description'], '');
   const moduleFilters = useModuleFilters();
   const sort = useModuleSort(QueryParameterNames.SPANS_SORT);
@@ -51,7 +51,7 @@ function DatabaseLandingPage() {
       query: {
         ...location.query,
         'span.description': newQuery === '' ? undefined : newQuery,
-        cursor: undefined,
+        [QueryParameterNames.SPANS_CURSOR]: undefined,
       },
     });
   };
@@ -75,7 +75,7 @@ function DatabaseLandingPage() {
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
 
   return (
-    <ModulePageProviders title={[t('Performance'), t('Database')].join(' — ')}>
+    <React.Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs
@@ -145,7 +145,7 @@ function DatabaseLandingPage() {
           )}
         </Layout.Main>
       </Layout.Body>
-    </ModulePageProviders>
+    </React.Fragment>
   );
 }
 
@@ -177,4 +177,12 @@ const SearchBarContainer = styled('div')`
 
 const LIMIT: number = 25;
 
-export default DatabaseLandingPage;
+function LandingPageWithProviders() {
+  return (
+    <ModulePageProviders title={[t('Performance'), t('Database')].join(' — ')}>
+      <DatabaseLandingPage />
+    </ModulePageProviders>
+  );
+}
+
+export default LandingPageWithProviders;

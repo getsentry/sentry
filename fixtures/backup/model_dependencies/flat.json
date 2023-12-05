@@ -471,11 +471,6 @@
     "sentry.notificationaction",
     "sentry.project"
   ],
-  "sentry.notificationsetting": [
-    "sentry.actor",
-    "sentry.team",
-    "sentry.user"
-  ],
   "sentry.notificationsettingoption": [
     "sentry.team",
     "sentry.user"
@@ -646,6 +641,9 @@
   "sentry.regionoutbox": [],
   "sentry.regionscheduleddeletion": [],
   "sentry.regiontombstone": [],
+  "sentry.regressiongroup": [
+    "sentry.project"
+  ],
   "sentry.relay": [],
   "sentry.relayusage": [],
   "sentry.release": [

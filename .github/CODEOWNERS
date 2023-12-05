@@ -142,8 +142,8 @@ yarn.lock                                                @getsentry/owners-js-de
 
 ## Hybrid Cloud
 /src/sentry/silo/                                        @getsentry/hybrid-cloud
+/src/sentry/hybridcloud                                  @getsentry/hybrid-cloud
 /src/sentry/services/hybrid_cloud/                       @getsentry/hybrid-cloud
-/src/sentry/api_gateway/                                 @getsentry/hybrid-cloud
 /src/sentry/middleware/api_gateway.py                    @getsentry/hybrid-cloud
 /src/sentry/middleware/customer_domain.py                @getsentry/hybrid-cloud
 /src/sentry/middleware/subdomain.py                      @getsentry/hybrid-cloud
@@ -158,7 +158,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /static/app/views/settings/projectAlerts/                 @getsentry/issues
 /static/app/views/alerts/                                 @getsentry/issues
 /static/app/views/issueDetails/                           @getsentry/issues
-/static/app/views/issueDetails/groupEventDetails/         @getsentry/issues
+/static/app/views/issueDetails/groupEventDetails/*        @getsentry/issues
 /static/app/views/projects/                               @getsentry/issues
 /static/app/views/projectDetail/                          @getsentry/issues
 /static/app/views/releases/                               @getsentry/issues
@@ -352,7 +352,6 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/models/identity.py                                       @getsentry/issues
 /src/sentry/models/integrationfeature.py                             @getsentry/issues
 /src/sentry/models/integrations/                                     @getsentry/issues
-/src/sentry/models/notificationsetting.py                            @getsentry/issues
 
 /src/sentry/tasks/code_owners.py                                     @getsentry/issues
 /src/sentry/tasks/commits.py                                         @getsentry/issues
@@ -416,6 +415,8 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/models/release_threshold                                    @getsentry/enterprise
 /src/sentry/api/endpoints/release_threshold*.py                         @getsentry/enterprise
 /src/sentry/web/frontend/auth_login.py                                  @getsentry/enterprise
+src/sentry/api/endpoints/oauth_userinfo.py                              @getsentry/enterprise
+src/sentry/api/endpoints/user_social_identity*                          @getsentry/enterprise
 ## End of Enterprise
 
 
@@ -480,6 +481,7 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /static/app/types/metrics.tsx                                                    @getsentry/telemetry-experience
 /static/app/types/project.tsx                                                    @getsentry/telemetry-experience
 /static/app/utils/metrics/                                                       @getsentry/telemetry-experience
+/static/app/views/ddm/                                                           @getsentry/telemetry-experience
 /static/app/views/performance/landing/dynamicSamplingMetricsAccuracy.spec.tsx    @getsentry/telemetry-experience
 /static/app/views/performance/landing/dynamicSamplingMetricsAccuracyAlert.tsx    @getsentry/telemetry-experience
 /static/app/views/settings/project/dynamicSampling/                              @getsentry/telemetry-experience
@@ -510,3 +512,18 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /static/app/utils/analytics.tsx                                 @getsentry/issues
 /static/app/utils/routeAnalytics*                               @getsentry/issues
 ## End of Issues
+
+## Billing
+/src/sentry/api/endpoints/check_am2_compatibility.py    @getsentry/revenue
+
+## ML & AI
+/static/app/components/events/aiSuggestedSolution/      @getsentry/machine-learning-ai
+/src/sentry/api/endpoints/event_ai_suggested_fix.py     @getsentry/machine-learning-ai
+## End of ML & AI
+
+## Processing
+/src/sentry/processing/*                                @getsentry/owners-processing
+/src/sentry/api/endpoints/project_user_reports.py       @getsentry/owners-processing
+/src/sentry/api/endpoints/event_attachments.py          @getsentry/owners-processing
+/src/sentry/api/endpoints/event_reprocessable.py        @getsentry/owners-processing
+/src/sentry/api/endpoints/project_reprocessing.py       @getsentry/owners-processing

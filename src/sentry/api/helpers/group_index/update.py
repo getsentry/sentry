@@ -245,7 +245,6 @@ def update_groups(
 
     discard = result.get("discard")
     if discard:
-
         return handle_discard(request, list(queryset), projects, acting_user)
 
     status_details = result.pop("statusDetails", result)
@@ -655,6 +654,7 @@ def update_groups(
             tags={
                 # We assume that if someone's merging groups, they're from the same platform
                 "platform": group_list[0].platform or "unknown",
+                "sdk": group_list[0].sdk or "unknown",
                 # TODO: It's probably cleaner to just send this value from the front end
                 "referer": (
                     "issue stream"
@@ -735,11 +735,10 @@ def handle_is_bookmarked(
             user_id=acting_user.id if acting_user else None,
         ).delete()
         if group_list:
-            if features.has("organizations:participants-purge", group_list[0].organization):
-                GroupSubscription.objects.filter(
-                    user_id=acting_user.id,
-                    group__in=group_ids,
-                ).delete()
+            GroupSubscription.objects.filter(
+                user_id=acting_user.id,
+                group__in=group_ids,
+            ).delete()
 
 
 def handle_has_seen(

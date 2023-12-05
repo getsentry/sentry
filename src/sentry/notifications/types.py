@@ -22,14 +22,6 @@ def get_notification_setting_type_name(value: int | NotificationSettingTypes) ->
     return NOTIFICATION_SETTING_TYPES.get(NotificationSettingTypes(value))
 
 
-def get_notification_setting_value_name(value: int) -> Optional[str]:
-    return NOTIFICATION_SETTING_OPTION_VALUES.get(NotificationSettingOptionValues(value))
-
-
-def get_notification_scope_name(value: int) -> Optional[str]:
-    return NOTIFICATION_SCOPE_TYPE.get(NotificationScopeType(value))
-
-
 class NotificationSettingTypes(ValueEqualityEnum):
     """
     Each of these categories of Notification settings has at least an option for
@@ -162,7 +154,7 @@ NOTIFICATION_SETTING_OPTION_VALUES = {
 }
 
 # default is not a choice anymore, we just delete the row if we want to the default
-NOTIFICATION_SETTING_V2_CHOICES = [
+NOTIFICATION_SETTING_CHOICES = [
     NotificationSettingsOptionEnum.ALWAYS.value,
     NotificationSettingsOptionEnum.NEVER.value,
     NotificationSettingsOptionEnum.SUBSCRIBE_ONLY.value,
@@ -205,15 +197,8 @@ class FineTuningAPIKey(Enum):
 
 
 class UserOptionsSettingsKey(Enum):
-    DEPLOY = "deployNotifications"
     SELF_ACTIVITY = "personalActivityNotifications"
     SELF_ASSIGN = "selfAssignOnResolve"
-    SUBSCRIBE_BY_DEFAULT = "subscribeByDefault"
-    WORKFLOW = "workflowNotifications"
-    ACTIVE_RELEASE = "activeReleaseNotifications"
-    APPROVAL = "approvalNotifications"
-    QUOTA = "quotaNotifications"
-    SPIKE_PROTECTION = "spikeProtectionNotifications"
 
 
 VALID_VALUES_FOR_KEY = {
@@ -267,10 +252,6 @@ VALID_VALUES_FOR_KEY = {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.NEVER,
     },
-}
-
-VALID_VALUES_FOR_KEY_V2 = {
-    **VALID_VALUES_FOR_KEY,
     NotificationSettingTypes.REPORTS: {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.NEVER,

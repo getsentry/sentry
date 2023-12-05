@@ -109,7 +109,7 @@ runs:
       with:
         python-version: ${{ inputs.python-version }}
         cache-dependency-path: ${{ inputs.workdir }}/requirements-dev-frozen.txt
-        install-cmd: pip install -r ${{ inputs.workdir }}/requirements-dev-frozen.txt
+        install-cmd: cd ${{ inputs.workdir }} && python3 -m tools.hack_pip && pip install -r requirements-dev-frozen.txt
 
     - name: Set up outputs
       id: config
@@ -130,7 +130,7 @@ runs:
       run: |
         cd "$WORKDIR"
         # We need to install editable otherwise things like check migration will fail.
-        SENTRY_LIGHT_BUILD=1 pip install --no-deps -e .
+        python3 -m tools.fast_editable --path .
 
     - name: Start devservices
       shell: bash --noprofile --norc -eo pipefail -ux {0}

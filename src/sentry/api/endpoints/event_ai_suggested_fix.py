@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 import logging
 import random
+from typing import Any
 
-import openai
 from django.conf import settings
 from django.dispatch import Signal
 from django.http import HttpResponse, StreamingHttpResponse
+from openai import OpenAI, RateLimitError
 
 from sentry import eventstore
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -18,9 +21,6 @@ from sentry.utils.cache import cache
 logger = logging.getLogger(__name__)
 
 from rest_framework.request import Request
-from rest_framework.response import Response
-
-openai.api_key = settings.OPENAI_API_KEY
 
 openai_policy_check = Signal()
 
@@ -110,6 +110,20 @@ BLOCKED_TAGS = frozenset(
     ]
 )
 
+openai_client: OpenAI | None = None
+
+
+def get_openai_client() -> OpenAI:
+    global openai_client
+
+    if openai_client:
+        return openai_client
+
+    # this will raise if OPENAI_API_KEY is not set
+    openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
+
+    return openai_client
+
 
 def get_openai_policy(organization):
     """Uses a signal to determine what the policy for OpenAI should be."""
@@ -186,7 +200,7 @@ def describe_event_for_ai(event, model):
     for idx, exc in enumerate(
         reversed((event.get("exception", {})).get("values", ())[:MAX_EXCEPTIONS])
     ):
-        exception = {}
+        exception: dict[str, Any] = {}
         if idx > 0:
             exception["raised_during_handling_of_previous_exception"] = True
         exception["num"] = idx + 1
@@ -206,7 +220,7 @@ def describe_event_for_ai(event, model):
         if frames:
             stacktrace = []
             for frame in reversed(frames):
-                stack_frame = {}
+                stack_frame: dict[str, Any] = {}
                 set_if_value(stack_frame, "func", frame.get("function"))
                 set_if_value(stack_frame, "module", frame.get("module"))
                 set_if_value(stack_frame, "file", frame.get("filename"))
@@ -249,7 +263,9 @@ def suggest_fix(event_data, model="gpt-3.5-turbo", stream=False):
     prompt = PROMPT.replace("___FUN_PROMPT___", random.choice(FUN_PROMPT_CHOICES))
     event_info = describe_event_for_ai(event_data, model=model)
 
-    response = openai.ChatCompletion.create(
+    client = get_openai_client()
+
+    response = client.chat.completions.create(
         model=model,
         temperature=0.7,
         messages=[
@@ -263,7 +279,7 @@ def suggest_fix(event_data, model="gpt-3.5-turbo", stream=False):
     )
     if stream:
         return reduce_stream(response)
-    return response["choices"][0]["message"]["content"]
+    return response.choices[0].message.content
 
 
 def reduce_stream(response):
@@ -289,7 +305,7 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
         },
     }
 
-    def get(self, request: Request, project, event_id) -> Response:
+    def get(self, request: Request, project, event_id) -> HttpResponse | StreamingHttpResponse:
         """
         Makes AI make suggestions about an event
         ````````````````````````````````````````
@@ -333,9 +349,9 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
         if suggestion is None:
             try:
                 suggestion = suggest_fix(event.data, stream=stream)
-            except openai.error.RateLimitError as err:
+            except RateLimitError as err:
                 return HttpResponse(
-                    json.dumps({"error": err.json_body["error"]}),
+                    json.dumps({"error": err.response.json()["error"]}),
                     content_type="text/plain; charset=utf-8",
                     status=429,
                 )

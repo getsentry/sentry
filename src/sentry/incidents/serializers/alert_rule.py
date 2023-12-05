@@ -6,7 +6,7 @@ from django.conf import settings
 from django.db import router, transaction
 from django.utils import timezone
 from rest_framework import serializers
-from snuba_sdk import Column, Condition, Limit, Op
+from snuba_sdk import Column, Condition, Entity, Limit, Op
 
 from sentry import features
 from sentry.api.fields.actor import ActorField
@@ -135,13 +135,13 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         return query
 
     def validate_aggregate(self, aggregate):
-        try:
-            allow_mri = features.has(
-                "organizations:ddm-experimental",
-                self.context["organization"],
-                actor=self.context.get("user", None),
-            )
+        allow_mri = features.has(
+            "organizations:ddm-experimental",
+            self.context["organization"],
+            actor=self.context.get("user", None),
+        )
 
+        try:
             if not check_aggregate_column_support(
                 aggregate,
                 allow_mri=allow_mri,
@@ -151,7 +151,8 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 )
         except InvalidSearchQuery as e:
             raise serializers.ValidationError(f"Invalid Metric: {e}")
-        return translate_aggregate_field(aggregate)
+
+        return translate_aggregate_field(aggregate, allow_mri=allow_mri)
 
     def validate_query_type(self, query_type):
         try:
@@ -259,7 +260,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             self.context["organization"],
             actor=self.context.get("user", None),
         ):
-            column = get_column_from_aggregate(data["aggregate"])
+            column = get_column_from_aggregate(data["aggregate"], allow_mri=True)
             if is_mri(column) and dataset != Dataset.PerformanceMetrics:
                 raise serializers.ValidationError(
                     "You can use an MRI only on alerts on performance metrics"
@@ -337,11 +338,15 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         dataset = Dataset(data["dataset"].value)
         self._validate_time_window(dataset, data.get("time_window"))
 
+        entity = None
+        if features.has("organizations:metric-alert-ignore-archived", projects[0].organization):
+            entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
+
         time_col = ENTITY_TIME_COLUMNS[get_entity_key_from_query_builder(query_builder)]
         query_builder.add_conditions(
             [
-                Condition(Column(time_col), Op.GTE, start),
-                Condition(Column(time_col), Op.LT, end),
+                Condition(Column(time_col, entity=entity), Op.GTE, start),
+                Condition(Column(time_col, entity=entity), Op.LT, end),
             ]
         )
         query_builder.limit = Limit(1)

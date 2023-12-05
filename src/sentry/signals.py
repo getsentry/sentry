@@ -122,7 +122,6 @@ event_accepted = BetterSignal()  # ["ip", "data", "project"]
 
 # Organization Onboarding Signals
 project_created = BetterSignal()  # ["project", "user", "user_id", "default_rules"]
-first_event_pending = BetterSignal()  # ["project", "user"]
 
 first_event_received = BetterSignal()  # ["project", "event"]
 # We use signal for consistency with other places but
@@ -192,6 +191,9 @@ monitor_environment_failed = BetterSignal()  # ["monitor"]
 join_request_created = BetterSignal()  # ["member"]
 join_request_link_viewed = BetterSignal()  # ["organization"]
 user_signup = BetterSignal()  # ["user", "source"]
+
+# relocation
+relocated = BetterSignal()  # ["relocation_uuid"]
 
 # After `sentry upgrade` has completed.  Better than post_migrate because it won't run in tests.
 post_upgrade = BetterSignal()  # []

@@ -11,7 +11,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectUserReportListTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -190,7 +190,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
         assert response.data == []
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -415,6 +415,8 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         assert mock_event_data["contexts"]["feedback"]["name"] == "Foo Bar"
         assert mock_event_data["contexts"]["feedback"]["replay_id"] == replay_id
         assert mock_event_data["contexts"]["replay"]["replay_id"] == replay_id
+        assert mock_event_data["environment"] == self.environment.name
+
         assert mock_event_data["platform"] == "other"
         assert (
             mock_event_data["contexts"]["feedback"]["associated_event_id"]

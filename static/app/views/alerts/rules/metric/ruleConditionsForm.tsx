@@ -24,9 +24,9 @@ import {SearchInvalidTag} from 'sentry/components/smartSearchBar/searchInvalidTa
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Environment, Organization, Project, SelectValue} from 'sentry/types';
-import {hasDdmAlertsSupport} from 'sentry/utils/ddm/features';
 import {getDisplayName} from 'sentry/utils/environment';
-import {fieldToMri} from 'sentry/utils/metrics';
+import {hasDDMFeature} from 'sentry/utils/metrics/features';
+import {getMRI} from 'sentry/utils/metrics/mri';
 import {getOnDemandKeys, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import withApi from 'sentry/utils/withApi';
@@ -183,7 +183,10 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       },
     ];
 
-    if (organization.features.includes('performance-view') && alertType === 'custom') {
+    if (
+      organization.features.includes('performance-view') &&
+      (alertType === 'custom_transactions' || alertType === 'custom_metrics')
+    ) {
       dataSourceOptions.push({
         label: t('Transactions'),
         options: [
@@ -228,13 +231,14 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   value === Datasource.TRANSACTION
                     ? DEFAULT_TRANSACTION_AGGREGATE
                     : DEFAULT_AGGREGATE;
-                if (alertType === 'custom' && aggregate !== newAggregate) {
+                if (alertType === 'custom_transactions' && aggregate !== newAggregate) {
                   model.setValue('aggregate', newAggregate);
                 }
 
                 // set the value of the dataset and event type from data source
                 const {dataset: datasetFromDataSource, eventTypes} =
                   DATA_SOURCE_TO_SET_AND_EVENT_TYPES[value] ?? {};
+
                 model.setValue('dataset', datasetFromDataSource);
                 model.setValue('eventTypes', eventTypes);
               }}
@@ -375,6 +379,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
   render() {
     const {
+      alertType,
       organization,
       disabled,
       onFilterSearch,
@@ -456,9 +461,9 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 flexibleControlStateSize
               >
                 {({onChange, onBlur, onKeyDown, initialData, value}) => {
-                  return hasDdmAlertsSupport(organization) ? (
+                  return hasDDMFeature(organization) && alertType === 'custom_metrics' ? (
                     <MetricSearchBar
-                      mri={fieldToMri(aggregate).mri}
+                      mri={getMRI(aggregate)}
                       projectIds={[project.id]}
                       placeholder={this.searchPlaceholder}
                       query={initialData.query}

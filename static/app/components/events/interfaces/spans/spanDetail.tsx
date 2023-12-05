@@ -8,6 +8,7 @@ import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import DateTime from 'sentry/components/dateTime';
 import DiscoverButton from 'sentry/components/discoverButton';
+import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSummaryButton';
 import FileSize from 'sentry/components/fileSize';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
@@ -44,14 +45,9 @@ import {
 } from 'sentry/utils/performance/quickTrace/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
-import {
-  querySummaryRouteWithQuery,
-  spanDetailsRouteWithQuery,
-} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
+import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils';
-import {ModuleName} from 'sentry/views/starfish/types';
-import {resolveSpanModule} from 'sentry/views/starfish/utils/resolveSpanModule';
 
 import {OpsDot} from '../../opsBreakdown';
 
@@ -270,23 +266,7 @@ function SpanDetail(props: Props) {
 
     return (
       <ButtonGroup>
-        {organization.features.includes('performance-database-view') &&
-        resolveSpanModule(span.sentry_tags?.op, span.sentry_tags?.category) ===
-          ModuleName.DB &&
-        span.sentry_tags?.group ? (
-          <StyledButton
-            size="xs"
-            to={querySummaryRouteWithQuery({
-              orgSlug: organization.slug,
-              query: location.query,
-              group: span.sentry_tags.group,
-              projectID: event.projectID,
-            })}
-          >
-            {t('View Query Summary')}
-          </StyledButton>
-        ) : null}
-
+        <SpanSummaryButton event={event} organization={organization} span={span} />
         <StyledButton
           size="xs"
           to={spanDetailsRouteWithQuery({
@@ -343,9 +323,12 @@ function SpanDetail(props: Props) {
             relatedErrors.length
           )}
         </ErrorMessageTitle>
-        <ErrorMessageContent>
+        <Fragment>
           {visibleErrors.map(error => (
-            <Fragment key={error.event_id}>
+            <ErrorMessageContent
+              key={error.event_id}
+              excludeLevel={isErrorPerformanceError(error)}
+            >
               {isErrorPerformanceError(error) ? (
                 <ErrorDot level="error" />
               ) : (
@@ -360,9 +343,9 @@ function SpanDetail(props: Props) {
                   {error.title}
                 </Link>
               </ErrorTitle>
-            </Fragment>
+            </ErrorMessageContent>
           ))}
-        </ErrorMessageContent>
+        </Fragment>
         {relatedErrors.length > DEFAULT_ERRORS_VISIBLE && (
           <ErrorToggle size="xs" onClick={toggleErrors}>
             {errorsOpened ? t('Show less') : t('Show more')}
@@ -372,9 +355,12 @@ function SpanDetail(props: Props) {
     );
   }
 
-  function partitionSizes(data) {
+  function partitionSizes(data): {
+    nonSizeKeys: {[key: string]: unknown};
+    sizeKeys: {[key: string]: number};
+  } {
     const sizeKeys = SIZE_DATA_KEYS.reduce((keys, key) => {
-      if (data.hasOwnProperty(key)) {
+      if (data.hasOwnProperty(key) && defined(data[key])) {
         keys[key] = data[key];
       }
       return keys;

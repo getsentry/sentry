@@ -175,13 +175,13 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationSlug(), return_none_if_mapping_not_found=True)
-    @abstractmethod
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
         """
         If exists and matches the only_visible requirement, returns an organization's id by the slug.
         """
-        pass
+        return _organization_check_service.check_organization_by_slug(
+            slug=slug, only_visible=only_visible
+        )
 
     def get_organization_by_slug(
         self, *, slug: str, only_visible: bool, user_id: Optional[int] = None
@@ -363,8 +363,31 @@ class OrganizationService(RpcService):
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
-    def get_organization_owner_members(self, organization_id: int) -> List[RpcOrganizationMember]:
+    def get_organization_owner_members(
+        self, *, organization_id: int
+    ) -> List[RpcOrganizationMember]:
         pass
+
+
+class OrganizationCheckService(abc.ABC):
+    @abstractmethod
+    def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
+        """
+        If exists and matches the only_visible requirement, returns an organization's id by the slug.
+        """
+        pass
+
+
+def _control_check_organization() -> OrganizationCheckService:
+    from sentry.services.hybrid_cloud.organization.impl import ControlOrganizationCheckService
+
+    return ControlOrganizationCheckService()
+
+
+def _region_check_organization() -> OrganizationCheckService:
+    from sentry.services.hybrid_cloud.organization.impl import RegionOrganizationCheckService
+
+    return RegionOrganizationCheckService()
 
 
 class OrganizationSignalService(abc.ABC):
@@ -390,6 +413,15 @@ def _signal_from_on_commit() -> OrganizationSignalService:
     )
 
     return OnCommitBackedOrganizationSignalService()
+
+
+_organization_check_service: OrganizationCheckService = silo_mode_delegation(
+    {
+        SiloMode.REGION: _region_check_organization,
+        SiloMode.CONTROL: _control_check_organization,
+        SiloMode.MONOLITH: _region_check_organization,
+    }
+)
 
 
 _organization_signal_service: OrganizationSignalService = silo_mode_delegation(

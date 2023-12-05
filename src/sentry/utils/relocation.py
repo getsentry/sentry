@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from sentry import options
 from sentry.backup.dependencies import dependencies, get_model_name, sorted_dependencies
+from sentry.backup.helpers import Printer
 from sentry.backup.scopes import RelocationScope
 from sentry.http import get_server_hostname
 from sentry.models.files.utils import get_storage
@@ -159,7 +160,7 @@ artifacts:
   objects:
     location: "$bucket_root/relocations/runs/$uuid/findings/"
     paths: ["/workspace/findings/**"]
-timeout: 2400s
+timeout: 3600s
 options:
   machineType: "N1_HIGHCPU_32"
   env:
@@ -193,7 +194,7 @@ IMPORT_VALIDATION_STEP_TEMPLATE = Template(
       - "--findings-file"
       - "/findings/import-$jsonfile"
       $args
-    timeout: 30s
+    timeout: 300s
     """
 )
 
@@ -207,6 +208,8 @@ EXPORT_VALIDATION_STEP_TEMPLATE = Template(
     args:
       $docker_compose_cmd
       $docker_compose_run
+      - "-v"
+      - "/workspace/in:/in"
       - "-v"
       - "/workspace/out:/out"
       - "-v"
@@ -222,7 +225,7 @@ EXPORT_VALIDATION_STEP_TEMPLATE = Template(
       - "--findings-file"
       - "/findings/export-$jsonfile"
       $args
-    timeout: 30s
+    timeout: 300s
     """
 )
 
@@ -269,9 +272,35 @@ COMPARE_VALIDATION_STEP_TEMPLATE = Template(
       - "--findings-file"
       - "/findings/compare-$jsonfile"
       $args
-    timeout: 30s
+    timeout: 300s
     """
 )
+
+
+# A custom logger that roughly matches the parts of the `click.echo` interface that the
+# `import_*` methods rely on.
+class LoggingPrinter(Printer):
+    def __init__(self, uuid: str):
+        self.uuid = uuid
+        super().__init__()
+
+    def echo(
+        self,
+        text: str,
+        *,
+        err: bool = False,
+        color: bool | None = None,
+    ) -> None:
+        if err:
+            logger.error(
+                f"Import failed: {text}",
+                extra={"uuid": self.uuid, "task": OrderedTask.IMPORTING.name},
+            )
+        else:
+            logger.info(
+                f"Import info: {text}",
+                extra={"uuid": self.uuid, "task": OrderedTask.IMPORTING.name},
+            )
 
 
 class EmailKind(Enum):

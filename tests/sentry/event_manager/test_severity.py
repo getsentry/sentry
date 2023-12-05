@@ -34,7 +34,7 @@ def make_event(**kwargs) -> dict[str, Any]:
     return result
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestGetEventSeverity(TestCase):
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
@@ -47,7 +47,17 @@ class TestGetEventSeverity(TestCase):
         mock_urlopen: MagicMock,
     ) -> None:
         manager = EventManager(
-            make_event(exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]})
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "NopeError",
+                            "value": "Nopey McNopeface",
+                            "mechanism": {"type": "generic", "handled": True},
+                        }
+                    ]
+                }
+            )
         )
         event = manager.save(self.project.id)
 
@@ -56,13 +66,12 @@ class TestGetEventSeverity(TestCase):
         payload = {
             "message": "NopeError: Nopey McNopeface",
             "has_stacktrace": 0,
-            "log_level": "error",
-            "handled": 1,
+            "handled": True,
         }
 
         mock_urlopen.assert_called_with(
             "POST",
-            "/issues/severity-score",
+            "/v0/issues/severity-score",
             body=json.dumps(payload),
             headers={"content-type": "application/json;charset=utf-8"},
         )
@@ -92,7 +101,7 @@ class TestGetEventSeverity(TestCase):
             {"logentry": {"message": "Dogs are great!"}},
         ]
         for case in cases:
-            manager = EventManager(make_event(level="info", **case))
+            manager = EventManager(make_event(**case))
             event = manager.save(self.project.id)
 
             severity = _get_severity_score(event)
@@ -100,13 +109,12 @@ class TestGetEventSeverity(TestCase):
             payload = {
                 "message": "Dogs are great!",
                 "has_stacktrace": 0,
-                "log_level": "info",
-                "handled": 1,
+                "handled": None,
             }
 
             mock_urlopen.assert_called_with(
                 "POST",
-                "/issues/severity-score",
+                "/v0/issues/severity-score",
                 body=json.dumps(payload),
                 headers={"content-type": "application/json;charset=utf-8"},
             )
@@ -124,7 +132,7 @@ class TestGetEventSeverity(TestCase):
         "sentry.event_manager.severity_connection_pool.urlopen",
         return_value=HTTPResponse(body=json.dumps({"severity": 0.1231})),
     )
-    def test_usable_event_title(
+    def test_uses_exception(
         self,
         mock_urlopen: MagicMock,
     ) -> None:
@@ -140,7 +148,37 @@ class TestGetEventSeverity(TestCase):
 
         _get_severity_score(event)
 
-        assert json.loads(mock_urlopen.call_args.kwargs["body"])["message"] == "Dogs are great!"
+        assert (
+            json.loads(mock_urlopen.call_args.kwargs["body"])["message"]
+            == "NopeError: Nopey McNopeface"
+        )
+
+    @patch(
+        "sentry.event_manager.severity_connection_pool.urlopen",
+        return_value=HTTPResponse(body=json.dumps({"severity": 0.1231})),
+    )
+    def test_short_circuit_level(
+        self,
+        mock_urlopen: MagicMock,
+    ) -> None:
+        cases: list[tuple[str, float]] = [
+            ("fatal", 1.0),
+            ("info", 0.0),
+            ("debug", 0.0),
+            ("error", 0.1231),
+        ]
+
+        for level, expected_severity in cases:
+            manager = EventManager(
+                make_event(
+                    exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]},
+                    level=level,
+                )
+            )
+            event = manager.save(self.project.id)
+            severity = _get_severity_score(event)
+
+            assert severity == expected_severity
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
@@ -153,7 +191,7 @@ class TestGetEventSeverity(TestCase):
         mock_urlopen: MagicMock,
     ) -> None:
         for title in NON_TITLE_EVENT_TITLES:
-            manager = EventManager(make_event())
+            manager = EventManager(make_event(exception={"values": []}))
             event = manager.save(self.project.id)
             # `title` is a property with no setter, but it pulls from `metadata`, so it's equivalent
             # to set it there. (We have to ignore mypy because `metadata` isn't supposed to be mutable.)
@@ -187,7 +225,17 @@ class TestGetEventSeverity(TestCase):
         _mock_urlopen: MagicMock,
     ) -> None:
         manager = EventManager(
-            make_event(exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]})
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "NopeError",
+                            "value": "Nopey McNopeface",
+                            "mechanism": {"type": "generic", "handled": True},
+                        }
+                    ]
+                }
+            )
         )
         event = manager.save(self.project.id)
 
@@ -201,8 +249,7 @@ class TestGetEventSeverity(TestCase):
                 "payload": {
                     "message": "NopeError: Nopey McNopeface",
                     "has_stacktrace": 0,
-                    "log_level": "error",
-                    "handled": 1,
+                    "handled": True,
                 },
             },
         )
@@ -219,7 +266,17 @@ class TestGetEventSeverity(TestCase):
         _mock_urlopen: MagicMock,
     ) -> None:
         manager = EventManager(
-            make_event(exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]})
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "NopeError",
+                            "value": "Nopey McNopeface",
+                            "mechanism": {"type": "generic", "handled": True},
+                        }
+                    ],
+                },
+            )
         )
         event = manager.save(self.project.id)
 
@@ -233,15 +290,14 @@ class TestGetEventSeverity(TestCase):
                 "payload": {
                     "message": "NopeError: Nopey McNopeface",
                     "has_stacktrace": 0,
-                    "log_level": "error",
-                    "handled": 1,
+                    "handled": True,
                 },
             },
         )
         assert severity is None
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestEventManagerSeverity(TestCase):
     @patch("sentry.event_manager._get_severity_score", return_value=0.1121)
     def test_flag_on(self, mock_get_severity_score: MagicMock):
@@ -355,7 +411,7 @@ class TestEventManagerSeverity(TestCase):
                 assert group.get_event_metadata()["severity"] == 0.1121
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestSaveAggregateSeverity(TestCase):
     @patch("sentry.event_manager._save_aggregate", wraps=_save_aggregate)
     @patch("sentry.event_manager.logger.error")
@@ -432,7 +488,7 @@ class TestSaveAggregateSeverity(TestCase):
             assert "Group created without severity score" not in logger_messages
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestSaveGroupHashAndGroupSeverity(TestCase):
     @patch("sentry.event_manager.logger.error")
     @patch("sentry.event_manager._get_severity_score", return_value=None)

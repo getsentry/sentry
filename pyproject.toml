@@ -32,6 +32,10 @@ filterwarnings = [
     # Consider all warnings to be errors other than the ignored ones.
     "error",
 
+    # a bunch of google packages use legacy namespace packages
+    "ignore:pkg_resources is deprecated as an API",
+    "ignore:Deprecated call to `pkg_resources.declare_namespace\\('google.*'\\)`.",
+
     # The following warning filters are for pytest only.
     # This is so we don't have to wrap most datetime objects in testing code
     # with django.utils.timezone.
@@ -66,17 +70,8 @@ django_settings_module = "sentry.conf.server_mypy"
 module = [
     # TODO: these cause type errors when followed
     "snuba_sdk.*",
-    # this package marks itself as typed but has no annotations
-    "google.cloud.bigtable.*",
-    # https://github.com/googleapis/python-api-core/pull/453
-    "google.api_core.retry",
 ]
 follow_imports = "skip"
-
-# https://github.com/python/mypy/issues/15343
-[[tool.mypy.overrides]]
-module = "google.*"
-ignore_missing_imports = true
 
 # python3 -m tools.mypy_helpers.make_stub_ignores
 # begin: missing 3rd party stubs
@@ -95,6 +90,13 @@ module = [
     "django_zero_downtime_migrations.backends.postgres.schema.*",
     "docker.*",
     "fido2.*",
+    "google.auth.*",
+    "google.cloud.pubsub_v1.*",
+    "google.cloud.storage.blob.*",
+    "google.cloud.storage.bucket.*",
+    "google.cloud.storage.client.*",
+    "google.resumable_media.common.*",
+    "google.rpc.status_pb2.*",
     "google_crc32c.*",
     "honcho.manager.*",
     "honcho.printer.*",
@@ -139,14 +141,10 @@ module = [
     "sentry.api.endpoints.artifact_lookup",
     "sentry.api.endpoints.auth_config",
     "sentry.api.endpoints.auth_login",
-    "sentry.api.endpoints.avatar.doc_integration",
-    "sentry.api.endpoints.avatar.sentry_app",
-    "sentry.api.endpoints.avatar.user",
     "sentry.api.endpoints.catchall",
     "sentry.api.endpoints.chunk",
     "sentry.api.endpoints.codeowners",
     "sentry.api.endpoints.codeowners.index",
-    "sentry.api.endpoints.event_ai_suggested_fix",
     "sentry.api.endpoints.event_apple_crash_report",
     "sentry.api.endpoints.event_attachments",
     "sentry.api.endpoints.group_details",
@@ -198,7 +196,6 @@ module = [
     "sentry.api.endpoints.organization_events_trends",
     "sentry.api.endpoints.organization_group_index",
     "sentry.api.endpoints.organization_index",
-    "sentry.api.endpoints.organization_integration_repos",
     "sentry.api.endpoints.organization_issues_count",
     "sentry.api.endpoints.organization_member.details",
     "sentry.api.endpoints.organization_member.index",
@@ -261,8 +258,6 @@ module = [
     "sentry.api.endpoints.user_identity_config",
     "sentry.api.endpoints.user_index",
     "sentry.api.endpoints.user_notification_details",
-    "sentry.api.endpoints.user_notification_fine_tuning",
-    "sentry.api.endpoints.user_notification_settings_details",
     "sentry.api.endpoints.user_permission_details",
     "sentry.api.endpoints.user_permissions",
     "sentry.api.endpoints.user_permissions_config",
@@ -270,7 +265,6 @@ module = [
     "sentry.api.endpoints.user_roles",
     "sentry.api.endpoints.user_subscriptions",
     "sentry.api.event_search",
-    "sentry.api.fields.actor",
     "sentry.api.helpers.deprecation",
     "sentry.api.helpers.events",
     "sentry.api.helpers.group_index.delete",
@@ -357,7 +351,6 @@ module = [
     "sentry.identity.providers.dummy",
     "sentry.identity.slack.provider",
     "sentry.identity.vsts.provider",
-    "sentry.incidents.action_handlers",
     "sentry.incidents.endpoints.bases",
     "sentry.incidents.endpoints.organization_alert_rule_details",
     "sentry.incidents.endpoints.organization_alert_rule_index",
@@ -466,7 +459,6 @@ module = [
     "sentry.management.commands.send_fake_data",
     "sentry.middleware.access_log",
     "sentry.middleware.auth",
-    "sentry.middleware.integrations.parsers.base",
     "sentry.middleware.ratelimit",
     "sentry.middleware.subdomain",
     "sentry.middleware.superuser",
@@ -474,7 +466,6 @@ module = [
     "sentry.models.auditlogentry",
     "sentry.models.integrations.external_issue",
     "sentry.models.integrations.sentry_app_installation",
-    "sentry.models.notificationsetting",
     "sentry.models.organizationaccessrequest",
     "sentry.models.organizationmember",
     "sentry.monitors.consumers.monitor_consumer",
@@ -494,7 +485,6 @@ module = [
     "sentry.notifications.notifications.activity.release",
     "sentry.notifications.notifications.integration_nudge",
     "sentry.notifications.notifications.rules",
-    "sentry.notifications.utils.avatar",
     "sentry.ownership.grammar",
     "sentry.pipeline.base",
     "sentry.pipeline.views.base",
@@ -507,7 +497,6 @@ module = [
     "sentry.plugins.bases.notify",
     "sentry.plugins.config",
     "sentry.plugins.endpoints",
-    "sentry.plugins.helpers",
     "sentry.plugins.providers.base",
     "sentry.plugins.providers.integration_repository",
     "sentry.plugins.providers.repository",
@@ -536,13 +525,12 @@ module = [
     "sentry.rules.history.endpoints.project_rule_group_history",
     "sentry.rules.history.endpoints.project_rule_stats",
     "sentry.rules.history.preview",
-    "sentry.runner.importer",
-    "sentry.runner.initializer",
     "sentry.scim.endpoints.members",
     "sentry.scim.endpoints.teams",
     "sentry.scim.endpoints.utils",
     "sentry.sdk_updates",
     "sentry.search.events.builder.discover",
+    "sentry.search.events.builder.errors",
     "sentry.search.events.builder.metrics",
     "sentry.search.events.datasets.discover",
     "sentry.search.events.datasets.filter_aliases",
@@ -567,12 +555,11 @@ module = [
     "sentry.shared_integrations.client.proxy",
     "sentry.similarity.features",
     "sentry.snuba.discover",
+    "sentry.snuba.errors",
     "sentry.snuba.issue_platform",
     "sentry.snuba.metrics.datasource",
     "sentry.snuba.metrics.fields.base",
     "sentry.snuba.metrics.query_builder",
-    "sentry.snuba.metrics_enhanced_performance",
-    "sentry.snuba.metrics_performance",
     "sentry.snuba.sessions",
     "sentry.snuba.sessions_v2",
     "sentry.snuba.spans_indexed",
@@ -638,7 +625,6 @@ module = [
     "sentry.utils.performance_issues.detectors.render_blocking_asset_span_detector",
     "sentry.utils.performance_issues.detectors.slow_db_query_detector",
     "sentry.utils.performance_issues.performance_detection",
-    "sentry.utils.query",
     "sentry.utils.redis",
     "sentry.utils.sentry_apps.webhooks",
     "sentry.utils.services",
@@ -687,7 +673,6 @@ module = [
     "sentry.web.frontend.setup_wizard",
     "sentry.web.frontend.shared_group_details",
     "sentry.web.frontend.twofactor",
-    "sentry.web.frontend.unsubscribe_notifications",
     "sentry_plugins.asana.plugin",
     "sentry_plugins.base",
     "sentry_plugins.bitbucket.client",
@@ -723,7 +708,6 @@ module = [
     "tests.sentry.api.test_authentication",
     "tests.sentry.api.test_base",
     "tests.sentry.api.test_event_search",
-    "tests.sentry.api.test_invite_helper",
     "tests.sentry.api.test_issue_search",
     "tests.sentry.digests.test_notifications",
     "tests.sentry.eventstore.test_base",
@@ -747,7 +731,6 @@ disable_error_code = [
     "call-arg",
     "call-overload",
     "dict-item",
-    "func-returns-value",
     "has-type",
     "index",
     "list-item",

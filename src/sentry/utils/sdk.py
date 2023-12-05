@@ -97,7 +97,6 @@ def is_current_event_safe():
     """
 
     with configure_scope() as scope:
-
         # Scope was explicitly marked as unsafe
         if scope._tags.get(UNSAFE_TAG):
             return False
@@ -431,7 +430,11 @@ def configure_sdk():
     # turn on minimetrics
     sdk_options.setdefault("_experiments", {}).update(
         enable_metrics=True,
+        metric_code_locations=options.get("delightful_metrics.enable_code_locations"),
         before_emit_metric=minimetrics.before_emit_metric,
+        # turn summaries on, but filter them dynamically in the callback
+        metrics_summary_sample_rate=1.0,
+        should_summarize_metric=minimetrics.should_summarize_metric,
     )
 
     sentry_sdk.init(
@@ -456,34 +459,6 @@ def configure_sdk():
     )
 
     minimetrics.patch_sentry_sdk()
-
-
-class RavenShim:
-    """Wrapper around sentry-sdk in case people are writing their own
-    integrations that rely on this being here."""
-
-    def captureException(self, exc_info=None, **kwargs):
-        with sentry_sdk.push_scope() as scope:
-            self._kwargs_into_scope(scope, **kwargs)
-            return capture_exception(exc_info)
-
-    def captureMessage(self, msg, **kwargs):
-        with sentry_sdk.push_scope() as scope:
-            self._kwargs_into_scope(scope, **kwargs)
-            return capture_message(msg)
-
-    def tags_context(self, tags):
-        with sentry_sdk.configure_scope() as scope:
-            for k, v in tags.items():
-                scope.set_tag(k, v)
-
-    def _kwargs_into_scope(self, scope, extra=None, tags=None, fingerprint=None, request=None):
-        for key, value in extra.items() if extra else ():
-            scope.set_extra(key, value)
-        for key, value in tags.items() if tags else ():
-            scope.set_tag(key, value)
-        if fingerprint is not None:
-            scope.fingerprint = fingerprint
 
 
 def check_tag_for_scope_bleed(
@@ -709,7 +684,6 @@ def merge_context_into_scope(
 __all__ = (
     "EXPERIMENT_TAG",
     "LEGACY_RESOLVER",
-    "RavenShim",
     "Scope",
     "UNSAFE_FILES",
     "UNSAFE_TAG",

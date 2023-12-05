@@ -56,6 +56,7 @@ from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.environment import Environment
 from sentry.models.eventattachment import EventAttachment
+from sentry.models.files.control_file import ControlFile
 from sentry.models.files.file import File
 from sentry.models.group import Group
 from sentry.models.grouphistory import GroupHistory
@@ -774,7 +775,7 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_useremail(user, email, **kwargs):
+    def create_useremail(user, email=None, **kwargs):
         if not email:
             email = uuid4().hex + "@example.com"
 
@@ -873,6 +874,9 @@ class Factories:
             kwargs["data"].update({"type": "default", "metadata": {"title": kwargs["message"]}})
         if "short_id" not in kwargs:
             kwargs["short_id"] = project.next_short_id()
+        if "metadata" in kwargs:
+            metadata = kwargs.pop("metadata")
+            kwargs["data"].setdefault("metadata", {}).update(metadata)
         return Group.objects.create(project=project, **kwargs)
 
     @staticmethod
@@ -1236,20 +1240,19 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_doc_integration_avatar(doc_integration=None, **kwargs) -> DocIntegrationAvatar:
         if not doc_integration:
             doc_integration = Factories.create_doc_integration()
-        photo = File.objects.create(name="test.png", type="avatar.file")
+        photo = ControlFile.objects.create(name="test.png", type="avatar.file")
         photo.putfile(io.BytesIO(b"imaginethiswasphotobytes"))
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            return DocIntegrationAvatar.objects.create(
-                doc_integration=doc_integration, avatar_type=0, file_id=photo.id
-            )
+        return DocIntegrationAvatar.objects.create(
+            doc_integration=doc_integration, avatar_type=0, control_file_id=photo.id
+        )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.CONTROL)
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_userreport(project, event_id=None, **kwargs):
         event = Factories.store_event(
             data={

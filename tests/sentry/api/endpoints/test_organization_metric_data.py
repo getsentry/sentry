@@ -37,7 +37,7 @@ rh_indexer_record = partial(indexer_record, UseCaseID.SESSIONS)
 pytestmark = [pytest.mark.sentry_metrics]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
 class OrganizationMetricsDataWithNewLayerTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-metrics-data"
@@ -74,6 +74,29 @@ class OrganizationMetricsDataWithNewLayerTest(MetricsAPIBaseTestCase):
         )
         run_metrics_query.assert_called_once()
 
+    def test_query_with_invalid_query(self):
+        self.get_error_response(
+            self.project.organization.slug,
+            status_code=400,
+            field=f"sum({TransactionMRI.DURATION.value})",
+            query="foo:foz < bar:baz",
+            useCase="transactions",
+            useNewMetricsLayer="true",
+            statsPeriod="1h",
+            interval="1h",
+        )
+
+    def test_query_with_invalid_percentile(self):
+        self.get_error_response(
+            self.project.organization.slug,
+            status_code=500,
+            field=f"p30({TransactionMRI.DURATION.value})",
+            useCase="transactions",
+            useNewMetricsLayer="true",
+            statsPeriod="1h",
+            interval="1h",
+        )
+
     def test_compare_query_with_transactions_metric(self):
         self.store_performance_metric(
             name=TransactionMRI.DURATION.value,
@@ -109,7 +132,7 @@ class OrganizationMetricsDataWithNewLayerTest(MetricsAPIBaseTestCase):
         assert response_old["end"] == response_new["end"]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
 class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-metrics-data"

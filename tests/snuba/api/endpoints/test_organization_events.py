@@ -12,6 +12,7 @@ from snuba_sdk.function import Function
 
 from sentry.discover.models import TeamKeyTransaction
 from sentry.issues.grouptype import ProfileFileIOGroupType
+from sentry.models.group import GroupStatus
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.releaseprojectenvironment import ReleaseStages
 from sentry.models.transaction_threshold import (
@@ -30,6 +31,7 @@ from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_not_arm64
+from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
@@ -91,7 +93,7 @@ class OrganizationEventsEndpointTestBase(APITestCase, SnubaTestCase):
         return load_data(platform, timestamp=timestamp, start_timestamp=start_timestamp, **kwargs)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, PerformanceIssueTestCase):
     def test_no_projects(self):
         response = self.do_request({})
@@ -237,6 +239,45 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 0
+
+    def test_treat_status_as_tag_discover_transaction(self):
+        event_1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "environment": "staging",
+                "timestamp": self.ten_mins_ago_iso,
+                "tags": {"status": "good"},
+            },
+            project_id=self.project.id,
+        )
+        event_2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "environment": "staging",
+                "timestamp": self.ten_mins_ago_iso,
+                "tags": {"status": "bad"},
+            },
+            project_id=self.project.id,
+        )
+
+        query = {
+            "field": ["event_id"],
+            "query": "!status:good",
+            "dataset": "discover",
+        }
+        response = self.do_request(query)
+
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {"event_id": "", "id": event_2.event_id, "project.name": self.project.slug}
+        ]
+
+        query = {"field": ["event_id"], "query": ["status:good"], "dataset": "discover"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {"event_id": "", "id": event_1.event_id, "project.name": self.project.slug}
+        ]
 
     def test_not_has_trace_context(self):
         self.store_event(
@@ -4052,7 +4093,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             results = response.data["data"]
             assert results[0]["count()"] == 1, datum
 
-            for (field, exp) in zip(fields, expected):
+            for field, exp in zip(fields, expected):
                 assert results[0][field] == exp, field + str(datum)
 
     def test_failure_count_alias_field(self):
@@ -6025,4 +6066,330 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             "profile.id": profile_id.replace("-", ""),
             "transaction.duration": 3000,
             "timestamp": event.datetime.replace(microsecond=0).isoformat(),
+        }
+
+
+class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTestBase):
+    def test_status(self):
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group1"],
+                },
+                project_id=self.project.id,
+            ).group
+            group_2 = self.store_event(
+                data={
+                    "event_id": "b" * 32,
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group2"],
+                },
+                project_id=self.project.id,
+            ).group
+            group_3 = self.store_event(
+                data={
+                    "event_id": "c" * 32,
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group3"],
+                },
+                project_id=self.project.id,
+            ).group
+
+            query = {
+                "field": ["count()"],
+                "statsPeriod": "2h",
+                "query": "status:unresolved",
+                "dataset": "errors",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            assert response.data["data"][0]["count()"] == 3
+            group_2.status = GroupStatus.IGNORED
+            group_2.substatus = GroupSubStatus.FOREVER
+            group_2.save(update_fields=["status", "substatus"])
+            group_3.status = GroupStatus.IGNORED
+            group_3.substatus = GroupSubStatus.FOREVER
+            group_3.save(update_fields=["status", "substatus"])
+            # XXX: Snuba caches query results, so change the time period so that the query
+            # changes enough to bust the cache.
+            query["statsPeriod"] = "3h"
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            assert response.data["data"][0]["count()"] == 1
+
+    def test_is_status(self):
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group1"],
+                },
+                project_id=self.project.id,
+            ).group
+            group_2 = self.store_event(
+                data={
+                    "event_id": "b" * 32,
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group2"],
+                },
+                project_id=self.project.id,
+            ).group
+            group_3 = self.store_event(
+                data={
+                    "event_id": "c" * 32,
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group3"],
+                },
+                project_id=self.project.id,
+            ).group
+
+            query = {
+                "field": ["count()"],
+                "statsPeriod": "2h",
+                "query": "is:unresolved",
+                "dataset": "errors",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            assert response.data["data"][0]["count()"] == 3
+            group_2.status = GroupStatus.IGNORED
+            group_2.substatus = GroupSubStatus.FOREVER
+            group_2.save(update_fields=["status", "substatus"])
+            group_3.status = GroupStatus.IGNORED
+            group_3.substatus = GroupSubStatus.FOREVER
+            group_3.save(update_fields=["status", "substatus"])
+            # XXX: Snuba caches query results, so change the time period so that the query
+            # changes enough to bust the cache.
+            query["statsPeriod"] = "3h"
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            assert response.data["data"][0]["count()"] == 1
+
+    def test_short_group_id(self):
+        group_1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": self.ten_mins_ago_iso,
+                "fingerprint": ["group1"],
+            },
+            project_id=self.project.id,
+        ).group
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "1h",
+            "query": f"project:{group_1.project.slug} issue:{group_1.qualified_short_id}",
+            "dataset": "errors",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 1
+
+    def test_user_display(self):
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            group_1 = self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group1"],
+                    "user": {
+                        "email": "hellboy@bar.com",
+                    },
+                },
+                project_id=self.project.id,
+            ).group
+
+        features = {
+            "organizations:discover-basic": True,
+            "organizations:global-views": True,
+        }
+        query = {
+            "field": ["user.display"],
+            "query": f"user.display:hell* issue.id:{group_1.id}",
+            "statsPeriod": "24h",
+            "dataset": "errors",
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        result = {r["user.display"] for r in data}
+        assert result == {"hellboy@bar.com"}
+
+    def test_performance_score(self):
+        self.transaction_data["measurements"] = {
+            "score.lcp": {"value": 0.03},
+            "score.weight.lcp": {"value": 0.3},
+        }
+        self.store_event(self.transaction_data, self.project.id)
+        self.transaction_data["measurements"] = {
+            "score.lcp": {"value": 1.0},
+            "score.weight.lcp": {"value": 1.0},
+        }
+        self.store_event(self.transaction_data, self.project.id)
+        query = {
+            "field": [
+                "performance_score(measurements.score.lcp)",
+            ]
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0] == {
+            "performance_score(measurements.score.lcp)": 0.7923076923076923,
+        }
+
+    def test_weighted_performance_score(self):
+        self.transaction_data["measurements"] = {
+            "score.lcp": {"value": 0.03},
+            "score.weight.lcp": {"value": 0.3},
+            "score.total": {"value": 0.03},
+        }
+        self.store_event(self.transaction_data, self.project.id)
+        self.transaction_data["measurements"] = {
+            "score.lcp": {"value": 1.0},
+            "score.weight.lcp": {"value": 1.0},
+            "score.total": {"value": 1.0},
+        }
+        self.store_event(self.transaction_data, self.project.id)
+        self.transaction_data["measurements"] = {
+            "score.total": {"value": 0.0},
+        }
+        self.store_event(self.transaction_data, self.project.id)
+        query = {
+            "field": [
+                "weighted_performance_score(measurements.score.lcp)",
+            ]
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0] == {
+            "weighted_performance_score(measurements.score.lcp)": 0.3433333333333333,
+        }
+
+    def test_invalid_performance_score_column(self):
+        self.transaction_data["measurements"] = {
+            "score.total": {"value": 0.0},
+        }
+        self.store_event(self.transaction_data, self.project.id)
+        query = {
+            "field": [
+                "performance_score(measurements.score.fp)",
+            ]
+        }
+        response = self.do_request(query)
+        assert response.status_code == 400, response.content
+
+    def test_invalid_weighted_performance_score_column(self):
+        self.transaction_data["measurements"] = {
+            "score.total": {"value": 0.0},
+        }
+        self.store_event(self.transaction_data, self.project.id)
+        query = {
+            "field": [
+                "weighted_performance_score(measurements.score.fp)",
+            ]
+        }
+        response = self.do_request(query)
+        assert response.status_code == 400, response.content
+
+    def test_all_events_fields(self):
+        user_data = {
+            "id": self.user.id,
+            "username": "user",
+            "email": "hellboy@bar.com",
+            "ip_address": "127.0.0.1",
+        }
+        replay_id = str(uuid.uuid4())
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            event = self.store_event(
+                data={
+                    "timestamp": self.ten_mins_ago_iso,
+                    "fingerprint": ["group1"],
+                    "contexts": {
+                        "trace": {
+                            "trace_id": str(uuid.uuid4().hex),
+                            "span_id": "933e5c9a8e464da9",
+                            "type": "trace",
+                        },
+                        "replay": {"replay_id": replay_id},
+                    },
+                    "tags": {"device": "Mac"},
+                    "user": user_data,
+                },
+                project_id=self.project.id,
+            )
+
+        query = {
+            "field": [
+                "id",
+                "transaction",
+                "title",
+                "release",
+                "environment",
+                "user.display",
+                "device",
+                "os",
+                "replayId",
+                "timestamp",
+            ],
+            "statsPeriod": "2d",
+            "query": "is:unresolved",
+            "dataset": "errors",
+            "sort": "-title",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+
+        data = response.data["data"][0]
+
+        assert data == {
+            "id": event.event_id,
+            "events.transaction": "",
+            "project.name": event.project.name.lower(),
+            "events.title": event.group.title,
+            "release": event.release,
+            "events.environment": None,
+            "user.display": user_data["email"],
+            "device": "Mac",
+            "os": "",
+            "replayId": replay_id,
+            "events.timestamp": event.datetime.replace(microsecond=0).isoformat(),
+        }
+
+    def test_opportunity_score(self):
+        self.transaction_data["measurements"] = {
+            "score.lcp": {"value": 0.03},
+            "score.weight.lcp": {"value": 0.3},
+            "score.fcp": {"value": 0.4},
+            "score.weight.fcp": {"value": 0.7},
+            "score.total": {"value": 0.43},
+        }
+        self.store_event(self.transaction_data, self.project.id)
+        self.transaction_data["measurements"] = {
+            "score.lcp": {"value": 1.0},
+            "score.weight.lcp": {"value": 1.0},
+            "score.total": {"value": 1.0},
+        }
+        self.store_event(self.transaction_data, self.project.id)
+        self.transaction_data["measurements"] = {
+            "score.total": {"value": 0.0},
+        }
+        self.store_event(self.transaction_data, self.project.id)
+        query = {
+            "field": [
+                "opportunity_score(measurements.score.lcp)",
+                "opportunity_score(measurements.score.total)",
+            ]
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0] == {
+            "opportunity_score(measurements.score.lcp)": 0.27,
+            "opportunity_score(measurements.score.total)": 1.57,
         }

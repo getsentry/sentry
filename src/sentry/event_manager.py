@@ -139,12 +139,12 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("sentry.events")
 
-SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple")
+SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple", "nel")
 
 # Timeout for cached group crash report counts
 CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 
-NON_TITLE_EVENT_TITLES = ["<untitled>", "<unknown>", "<unlabeled event>"]
+NON_TITLE_EVENT_TITLES = ["<untitled>", "<unknown>", "<unlabeled event>", "Error"]
 
 
 @dataclass
@@ -198,6 +198,30 @@ def normalized_sdk_tag_from_event(event: Event) -> str:
     except Exception:
         logger.warning("failed to get SDK name", exc_info=True)
         return "other"
+
+
+def sdk_metadata_from_event(event: Event) -> Mapping[str, Any]:
+    """
+    Returns a metadata dictionary with "sdk" field populated, including a normalized name
+    Returns {} when event type of event is known to not be SDK generated.
+    """
+
+    if event.get_event_type() in SECURITY_REPORT_INTERFACES:
+        return {}
+
+    if not (sdk_metadata := event.data.get("sdk")):
+        return {}
+
+    try:
+        return {
+            "sdk": {
+                "name": sdk_metadata.get("name") or "unknown",
+                "name_normalized": normalized_sdk_tag_from_event(event),
+            }
+        }
+    except Exception:
+        logger.warning("failed to set normalized SDK name", exc_info=True)
+        return {}
 
 
 def plugin_is_regression(group: Group, event: Event) -> bool:
@@ -708,7 +732,9 @@ class EventManager:
             job["received_timestamp"] - job["recorded_timestamp"],
             tags=metric_tags,
         )
-        metrics.timing("events.size.data.post_save", job["event"].size, tags=metric_tags)
+        metrics.distribution(
+            "events.size.data.post_save", job["event"].size, tags=metric_tags, unit="byte"
+        )
         metrics.incr(
             "events.post_save.normalize.errors",
             amount=len(job["data"].get("errors") or ()),
@@ -1857,12 +1883,7 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
     try:
         short_id = project.next_short_id()
     except OperationalError:
-        metrics.incr(
-            "next_short_id.timeout",
-            tags={
-                "platform": event.platform or "unknown"
-            },  # TODO: remove this tag, it's nor relevant
-        )
+        metrics.incr("next_short_id.timeout")
         sentry_sdk.capture_message("short_id.timeout")
         raise HashDiscarded("Timeout when getting next_short_id", reason="timeout")
 
@@ -1878,8 +1899,12 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
         else None
     )
 
-    # get severity score for use in alerting
     group_data = kwargs.pop("data", {})
+
+    # add sdk tag to metadata
+    group_data.setdefault("metadata", {}).update(sdk_metadata_from_event(event))
+
+    # get severity score for use in alerting
     if features.has("projects:first-event-severity-calculation", event.project):
         severity = _get_severity_score(event)
         if severity is not None:  # Severity can be 0
@@ -2102,25 +2127,38 @@ severity_connection_pool = connection_from_url(
 
 
 def _get_severity_score(event: Event) -> float | None:
+    # Short circuit the severity value if we know the event is fatal or info/debug
+    level = str(event.data.get("level", "error"))
+    if LOG_LEVELS_MAP[level] == logging.FATAL:
+        return 1.0
+    if LOG_LEVELS_MAP[level] <= logging.INFO:
+        return 0.0
+
     op = "event_manager._get_severity_score"
     logger_data = {"event_id": event.data["event_id"], "op": op}
     severity = None
 
-    # We're using the title (which truncates the error message) rather than the full error type and
-    # message here because the `exception` property in event data (where they live) isn't mirrored
-    # to BigQuery for storage space reasons (stacktraces can be enormous). Since the ML model is
-    # trained on BQ data, we have to use the title to match.
-    #
-    # TODO: Figure out if there's a way to get the full error message to the model. (If we do that,
-    # though, it'll only work for `ErrorEvent`-type events. We'll still have to use `title` for
-    # `DefaultEvent`-type events - like those which come from `capture_message` calls - or find the
-    # message data elsewhere in the event.)
-    title = event.title
     event_type = get_event_type(event.data)
+    metadata = event_type.get_metadata(event.data)
+
+    exception_type = metadata.get("type")
+    exception_value = metadata.get("value")
+
+    if exception_type:
+        title = exception_type
+        if exception_value:
+            title += f": {exception_value}"
+
+        # We truncate the title to 128 characters as any more than that is unlikely to be helpful
+        # and would slow down the model.
+        title = trim(title, 128)
+    else:
+        # Fall back to using just the title for events without an exception.
+        title = event.title
 
     # If the event hasn't yet been given a helpful title, attempt to calculate one
     if title in NON_TITLE_EVENT_TITLES:
-        title = event_type.get_title(event_type.get_metadata(event.data))
+        title = event_type.get_title(metadata)
 
     # If there's still nothing helpful to be had, bail
     if title in NON_TITLE_EVENT_TITLES:
@@ -2136,10 +2174,7 @@ def _get_severity_score(event: Event) -> float | None:
     payload = {
         "message": title,
         "has_stacktrace": int(has_stacktrace(event.data)),
-        "log_level": event.data.get("level"),
-        # TODO: For now we're counting not having a `handled` value as being handled, but
-        # we should update the model to account for three values: True, False, and None
-        "handled": 0 if is_handled(event.data) is False else 1,
+        "handled": is_handled(event.data),
     }
 
     if options.get("processing.severity-backlog-test.timeout"):
@@ -2154,7 +2189,7 @@ def _get_severity_score(event: Event) -> float | None:
             try:
                 response = severity_connection_pool.urlopen(
                     "POST",
-                    "/issues/severity-score",
+                    "/v0/issues/severity-score",
                     body=json.dumps(payload),
                     headers={"content-type": "application/json;charset=utf-8"},
                 )
@@ -2570,7 +2605,7 @@ def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> 
                 groupings = event.get_span_groupings()
             groupings.write_to_event(event.data)
 
-            metrics.timing("save_event.transaction.span_count", len(groupings.results))
+            metrics.distribution("save_event.transaction.span_count", len(groupings.results))
             unique_default_hashes = set(groupings.results.values())
             metrics.incr(
                 "save_event.transaction.span_group_count.default",

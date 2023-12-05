@@ -9,11 +9,11 @@ from sentry.testutils.silo import region_silo_test
 WEBHOOK_URL = "/extensions/discord/interactions/"
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class DiscordWebhookTest(APITestCase):
     @mock.patch("sentry.integrations.discord.requests.base.verify_signature")
     def test_ping_interaction(self, mock_verify_signature):
-        mock_verify_signature.return_value = True
+        mock_verify_signature.return_value = None
         resp = self.client.post(
             path=WEBHOOK_URL,
             data={

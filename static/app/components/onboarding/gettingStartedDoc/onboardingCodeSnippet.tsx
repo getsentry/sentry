@@ -3,7 +3,6 @@ import {createPortal} from 'react-dom';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {AuthTokenGenerator} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {NODE_ENV} from 'sentry/constants';
 
 interface OnboardingCodeSnippetProps
   extends Omit<React.ComponentProps<typeof CodeSnippet>, 'onAfterHighlight'> {}
@@ -32,11 +31,7 @@ export function OnboardingCodeSnippet(props: OnboardingCodeSnippetProps) {
   const [authTokenNodes, setAuthTokenNodes] = useState<HTMLSpanElement[]>([]);
 
   const handleAfterHighlight = useCallback((element: HTMLElement) => {
-    // Don't execute this code in tests as it will throw an error
-    // code snippet calls the onAfterHighlight callback too late, so it triggers the "updates should be wrapped into act(...)" error
-    if (NODE_ENV !== 'test') {
-      setAuthTokenNodes(replaceTokensWithSpan(element));
-    }
+    setAuthTokenNodes(replaceTokensWithSpan(element));
   }, []);
 
   return (

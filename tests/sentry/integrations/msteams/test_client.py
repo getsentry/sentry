@@ -14,7 +14,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class MsTeamsClientTest(TestCase):
     @pytest.fixture(autouse=True)
     def _setup_metric_patch(self):
@@ -23,8 +23,11 @@ class MsTeamsClientTest(TestCase):
 
     def setUp(self):
         self.expires_at = 1594768808
-        self.integration = Integration.objects.create(
+        self.organization = self.create_organization(owner=self.user)
+        self.integration = self.create_integration(
+            organization=self.organization,
             provider="msteams",
+            external_id="foobar",
             name="my_team",
             metadata={
                 "access_token": "my_token",
@@ -119,6 +122,42 @@ class MsTeamsClientTest(TestCase):
         ]
         assert self.metrics.incr.mock_calls == calls
 
+    @responses.activate
+    def test_api_client_from_integration_installation(self):
+        installation = self.integration.get_installation(organization_id=self.organization.id)
+        client = installation.get_client()
+        assert isinstance(client, MsTeamsClient)
+
+        client.get_team_info("foobar")
+        assert len(responses.calls) == 2
+        token_request = responses.calls[0].request
+
+        # Token request
+        assert (
+            "https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token"
+            == token_request.url
+        )
+
+        # API request to service url
+        request = responses.calls[1].request
+        assert "https://smba.trafficmanager.net/amer/v3/teams/foobar" == request.url
+        assert self.msteams_client.base_url in request.url
+
+        # Check if metrics is generated properly
+        calls = [
+            call(
+                "integrations.http_response",
+                sample_rate=1.0,
+                tags={"integration": "msteams", "status": 200},
+            ),
+            call(
+                "integrations.http_response",
+                sample_rate=1.0,
+                tags={"integration": "msteams", "status": 200},
+            ),
+        ]
+        assert self.metrics.incr.mock_calls == calls
+
 
 def assert_proxy_request(request, is_proxy=True):
     assert (PROXY_BASE_PATH in request.url) == is_proxy
@@ -136,8 +175,11 @@ def assert_proxy_request(request, is_proxy=True):
 class MsTeamsProxyApiClientTest(TestCase):
     def setUp(self):
         self.expires_at = 1594768808
-        self.integration = Integration.objects.create(
+        self.organization = self.create_organization(owner=self.user)
+        self.integration = self.create_integration(
+            organization=self.organization,
             provider="msteams",
+            external_id="foobar",
             name="my_team",
             metadata={
                 "access_token": "my_token",

@@ -323,7 +323,6 @@ function extractFrames(node: CallTreeNode | null, platform: PlatformKey): Frame[
       absPath: node.frame.path ?? null,
       colNo: node.frame.column ?? null,
       context: [],
-      errors: null,
       filename: node.frame.file ?? null,
       function: node.frame.name ?? null,
       inApp: node.frame.is_application,

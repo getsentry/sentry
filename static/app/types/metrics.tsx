@@ -1,7 +1,5 @@
 import {DateString} from 'sentry/types/core';
 
-export type MetricsType = 'set' | 'counter' | 'distribution' | 'numeric';
-
 export type MetricsOperation =
   | 'sum'
   | 'count_unique'
@@ -12,6 +10,19 @@ export type MetricsOperation =
   | 'p75'
   | 'p95'
   | 'p99';
+
+export type MetricType = 'c' | 'd' | 'g' | 'e' | 's';
+
+export type UseCase = 'custom' | 'transactions' | 'sessions' | 'spans';
+
+export type MRI = `${MetricType}:${UseCase}${string}@${string}`;
+
+export type ParsedMRI = {
+  name: string;
+  type: MetricType;
+  unit: string;
+  useCase: UseCase;
+};
 
 export type MetricsApiRequestMetric = {
   field: string;
@@ -28,8 +39,12 @@ export type MetricsApiRequestQuery = MetricsApiRequestMetric & {
   orderBy?: string;
   per_page?: number;
   project?: number[];
-  star?: DateString;
+  start?: DateString;
   statsPeriod?: string;
+};
+
+export type MetricsApiRequestQueryOptions = MetricsApiRequestQuery & {
+  fidelity?: 'high' | 'low';
   useNewMetricsLayer?: boolean;
 };
 
@@ -37,7 +52,7 @@ export type MetricsApiResponse = {
   end: string;
   groups: MetricsGroup[];
   intervals: string[];
-  meta: MetricsMeta[];
+  meta: MetricMeta[];
   query: string;
   start: string;
 };
@@ -59,12 +74,13 @@ export type MetricsTagValue = {
   value: string;
 };
 
-export type MetricsMeta = {
-  mri: string;
-  name: string;
+export type MetricMeta = {
+  mri: MRI;
+  // name is returned by the API but should not be used, use parseMRI(mri).name instead
+  // name: string;
   operations: MetricsOperation[];
-  type: MetricsType; // TODO(ddm): I think this is wrong, api returns "c" instead of "counter"
+  type: MetricType;
   unit: string;
 };
 
-export type MetricsMetaCollection = Record<string, MetricsMeta>;
+export type MetricsMetaCollection = Record<string, MetricMeta>;

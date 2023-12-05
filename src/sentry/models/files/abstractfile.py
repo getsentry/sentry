@@ -299,7 +299,7 @@ class AbstractFile(Model):
             offset += blob.size
         self.size = offset
         self.checksum = checksum.hexdigest()
-        metrics.timing("filestore.file-size", offset)
+        metrics.distribution("filestore.file-size", offset, unit="byte")
         if commit:
             self.save()
         return results
@@ -355,7 +355,7 @@ class AbstractFile(Model):
                 tf.close()
                 raise AssembleChecksumMismatch("Checksum mismatch")
 
-        metrics.timing("filestore.file-size", offset)
+        metrics.distribution("filestore.file-size", offset, unit="byte")
         self.save()
 
         tf.flush()

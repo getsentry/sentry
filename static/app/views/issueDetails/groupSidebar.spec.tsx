@@ -1,3 +1,4 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
 import {Tags} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -92,7 +93,7 @@ describe('GroupSidebar', function () {
           group={group}
           project={project}
           organization={organization}
-          event={TestStubs.Event()}
+          event={EventFixture()}
           environments={[environment]}
         />
       );
@@ -109,7 +110,7 @@ describe('GroupSidebar', function () {
           group={group}
           project={project}
           organization={organization}
-          event={TestStubs.Event()}
+          event={EventFixture()}
           environments={[environment]}
         />
       );
@@ -129,7 +130,7 @@ describe('GroupSidebar', function () {
           group={group}
           project={project}
           organization={organization}
-          event={TestStubs.Event()}
+          event={EventFixture()}
           environments={[environment]}
         />
       );
@@ -140,7 +141,7 @@ describe('GroupSidebar', function () {
           group={group}
           project={project}
           organization={organization}
-          event={TestStubs.Event()}
+          event={EventFixture()}
           environments={[stagingEnv]}
         />
       );
@@ -177,7 +178,7 @@ describe('GroupSidebar', function () {
           group={group}
           project={project}
           organization={organization}
-          event={TestStubs.Event()}
+          event={EventFixture()}
           environments={[environment]}
         />
       );
@@ -187,43 +188,9 @@ describe('GroupSidebar', function () {
     });
   });
 
-  it('renders participants and viewers', async () => {
-    const users = [
-      TestStubs.User({
-        id: '2',
-        name: 'John Smith',
-        email: 'johnsmith@example.com',
-      }),
-      TestStubs.User({
-        id: '3',
-        name: 'Sohn Jmith',
-        email: 'sohnjmith@example.com',
-      }),
-    ];
-    render(
-      <GroupSidebar
-        group={{
-          ...group,
-          participants: users,
-          seenBy: users,
-        }}
-        project={project}
-        organization={organization}
-        event={TestStubs.Event()}
-        environments={[]}
-      />
-    );
-
-    expect(
-      await screen.findByRole('heading', {name: 'Participants (2)'})
-    ).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Viewers (2)'})).toBeInTheDocument();
-  });
-
   it('expands participants and viewers', async () => {
     const org = {
       ...organization,
-      features: ['participants-purge'],
     };
     const teams = [{...TestStubs.Team(), type: 'team'}];
     const users = [
@@ -249,7 +216,7 @@ describe('GroupSidebar', function () {
         }}
         project={project}
         organization={org}
-        event={TestStubs.Event()}
+        event={EventFixture()}
         environments={[]}
       />,
       {
@@ -288,7 +255,7 @@ describe('GroupSidebar', function () {
             ...organization,
             features: [...organization.features, 'issue-details-tag-improvements'],
           }}
-          event={TestStubs.Event()}
+          event={EventFixture()}
           environments={[environment]}
         />
       );
@@ -307,7 +274,7 @@ describe('GroupSidebar', function () {
             ...organization,
             features: [...organization.features, 'issue-details-tag-improvements'],
           }}
-          event={TestStubs.Event()}
+          event={EventFixture()}
           environments={[environment]}
         />
       );
