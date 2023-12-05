@@ -29,8 +29,6 @@ from sentry.utils.services import LazyServiceWrapper
 # always different from `NULL`.
 NULL_UUID = "00000000-00000000-00000000-00000000"
 NULL_STRING = ""
-# Number of bundles that have to be associated to a release/dist pair before indexing takes place.
-INDEXING_THRESHOLD = 1
 
 
 class SourceFileType(Enum):

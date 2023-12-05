@@ -61,7 +61,7 @@ def get_artifact_bundles(project, release_name="", dist_name=""):
             projectartifactbundle__project_id=project.id,
             releaseartifactbundle__release_name=release_name,
             releaseartifactbundle__dist_name=dist_name,
-        )
+        ).order_by("date_last_modified")
     )
 
 
@@ -101,7 +101,8 @@ class ArtifactLookupTest(TestCase):
                 },
             }
         )
-        upload_bundle(bundle, self.project, "1.0.0")
+        with self.tasks():
+            upload_bundle(bundle, self.project, "1.0.0")
 
         # the first upload will not index anything
         bundles = get_artifact_bundles(self.project, "1.0.0")
@@ -121,7 +122,8 @@ class ArtifactLookupTest(TestCase):
                 },
             }
         )
-        upload_bundle(bundle, self.project, "1.0.0")
+        with self.tasks():
+            upload_bundle(bundle, self.project, "1.0.0")
 
         # Uploading the same bundle a second time which internally still creates two artifact bundles, which both
         # cover the same set of files.
@@ -129,14 +131,7 @@ class ArtifactLookupTest(TestCase):
         bundles = get_artifact_bundles(self.project, "1.0.0")
         assert len(bundles) == 2
         indexed = get_indexed_files(self.project, "1.0.0", distinct=True)
-        assert len(indexed) == 3
-
-        assert indexed[0].url == "~/path/to/app.js"
-        assert indexed[0].artifact_bundle == bundles[1]
-        assert indexed[1].url == "~/path/to/only1.js"
-        assert indexed[1].artifact_bundle == bundles[0]
-        assert indexed[2].url == "~/path/to/other1.js"
-        assert indexed[2].artifact_bundle == bundles[1]
+        assert len(indexed) == 0
 
         bundle = make_compressed_zip_file(
             {
@@ -150,7 +145,8 @@ class ArtifactLookupTest(TestCase):
                 },
             }
         )
-        upload_bundle(bundle, self.project, "1.0.0")
+        with self.tasks():
+            upload_bundle(bundle, self.project, "1.0.0")
 
         # the second upload will backfill everything that needs indexing
         bundles = get_artifact_bundles(self.project, "1.0.0")

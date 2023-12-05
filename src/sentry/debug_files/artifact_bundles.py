@@ -12,7 +12,6 @@ from django.utils import timezone
 
 from sentry import options
 from sentry.models.artifactbundle import (
-    INDEXING_THRESHOLD,
     ArtifactBundle,
     ArtifactBundleArchive,
     ArtifactBundleIndex,
@@ -22,6 +21,7 @@ from sentry.models.artifactbundle import (
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
 )
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils import metrics, redis
 from sentry.utils.db import atomic_transaction
@@ -29,13 +29,16 @@ from sentry.utils.db import atomic_transaction
 # The number of Artifact Bundles that we return in case of incomplete indexes.
 MAX_BUNDLES_QUERY = 5
 
+# Number of bundles that have to be associated to a release/dist pair before indexing takes place.
+# A value of 3 means that the third upload will trigger indexing and backfill.
+INDEXING_THRESHOLD = 3
+
 # Number of days that determine whether an artifact bundle is ready for being renewed.
 AVAILABLE_FOR_RENEWAL_DAYS = 30
 
 # We want to keep the bundle as being indexed for 600 seconds = 10 minutes. We might need to revise this number and
 # optimize it based on the time taken to perform the indexing (on average).
 INDEXING_CACHE_TIMEOUT = 600
-
 
 # ===== Indexing of Artifact Bundles =====
 
@@ -96,7 +99,7 @@ def index_artifact_bundles_for_release(
                 metrics.incr("artifact_bundle_indexing.bundle_already_being_indexed")
                 continue
 
-            _index_urls_in_bundle(organization_id, artifact_bundle, archive)
+            index_urls_in_bundle(organization_id, artifact_bundle, archive)
         except Exception as e:
             # We want to catch the error and continue execution, since we can try to index the other bundles.
             metrics.incr("artifact_bundle_indexing.index_single_artifact_bundle_error")
@@ -107,8 +110,20 @@ def index_artifact_bundles_for_release(
             # debounce this in case there is a persistent error?
 
 
+def backfill_artifact_bundle_db_indexing(organization_id: int, release: str, dist: str):
+    artifact_bundles = ArtifactBundle.objects.filter(
+        releaseartifactbundle__organization_id=organization_id,
+        releaseartifactbundle__release_name=release,
+        releaseartifactbundle__dist_name=dist,
+        indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
+    )
+    artifact_bundles = [(ab, None) for ab in artifact_bundles]
+
+    index_artifact_bundles_for_release(organization_id, artifact_bundles)
+
+
 @sentry_sdk.tracing.trace
-def _index_urls_in_bundle(
+def index_urls_in_bundle(
     organization_id: int,
     artifact_bundle: ArtifactBundle,
     existing_archive: ArtifactBundleArchive | None,
@@ -231,7 +246,7 @@ def maybe_renew_artifact_bundles(used_artifact_bundles: Dict[int, datetime]):
     # We compute the threshold used to determine whether we want to renew the specific bundle.
     threshold_date = now - timedelta(days=AVAILABLE_FOR_RENEWAL_DAYS)
 
-    for (artifact_bundle_id, date_added) in used_artifact_bundles.items():
+    for artifact_bundle_id, date_added in used_artifact_bundles.items():
         # We perform the condition check also before running the query, in order to reduce the amount of queries to the database.
         if date_added > threshold_date:
             continue
@@ -333,12 +348,14 @@ def query_artifact_bundles_containing_file(
     # want to return the N most recent bundles associated with the release,
     # under the assumption that one of those should ideally contain the file we
     # are looking for.
-    is_fully_indexed = total_bundles > INDEXING_THRESHOLD and indexed_bundles == total_bundles
+    is_fully_indexed = total_bundles >= INDEXING_THRESHOLD and indexed_bundles == total_bundles
 
-    if total_bundles > INDEXING_THRESHOLD and indexed_bundles < total_bundles:
+    if total_bundles >= INDEXING_THRESHOLD and indexed_bundles < total_bundles:
         metrics.incr("artifact_bundle_indexing.query_partial_index")
         # TODO: spawn an async task to backfill non-indexed bundles
         # lets do this in a different PR though :-)
+        # ^ we would want to use a Redis SET to not spawn a ton of duplicated
+        # celery tasks here.
 
     # We keep track of all the discovered artifact bundles, by the various means of lookup.
     # We are intentionally overwriting the `resolved` flag, as we want to rank these from
@@ -346,7 +363,7 @@ def query_artifact_bundles_containing_file(
     artifact_bundles: Dict[int, Tuple[datetime, str]] = dict()
 
     def update_bundles(bundles: Set[Tuple[int, datetime]], resolved: str):
-        for (bundle_id, date_added) in bundles:
+        for bundle_id, date_added in bundles:
             artifact_bundles[bundle_id] = (date_added, resolved)
 
     # First, get the N most recently uploaded bundles for the release,
@@ -380,7 +397,9 @@ def query_artifact_bundles_containing_file(
 # multiple tables in a single query.
 
 
-def get_bundles_indexing_state(project: Project, release_name: str, dist_name: str):
+def get_bundles_indexing_state(
+    org_or_project: Project | Organization, release_name: str, dist_name: str
+) -> Tuple[int, int]:
     """
     Returns the number of total bundles, and the number of fully indexed bundles
     associated with the given `release` / `dist`.
@@ -388,16 +407,21 @@ def get_bundles_indexing_state(project: Project, release_name: str, dist_name: s
     total_bundles = 0
     indexed_bundles = 0
 
-    for state, count in (
-        ArtifactBundle.objects.filter(
-            releaseartifactbundle__organization_id=project.organization.id,
-            releaseartifactbundle__release_name=release_name,
-            releaseartifactbundle__dist_name=dist_name,
-            projectartifactbundle__project_id=project.id,
+    query = ArtifactBundle.objects.filter(
+        releaseartifactbundle__release_name=release_name,
+        releaseartifactbundle__dist_name=dist_name,
+    )
+    if isinstance(org_or_project, Project):
+        query = query.filter(
+            releaseartifactbundle__organization_id=org_or_project.organization.id,
+            projectartifactbundle__project_id=org_or_project.id,
         )
-        .values_list("indexing_state")
-        .annotate(count=Count("*"))
-    ):
+    else:
+        query = query.filter(
+            releaseartifactbundle__organization_id=org_or_project.id,
+        )
+
+    for state, count in query.values_list("indexing_state").annotate(count=Count("*")):
         if state == ArtifactBundleIndexingState.WAS_INDEXED.value:
             indexed_bundles = count
         total_bundles += count
