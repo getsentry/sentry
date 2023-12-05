@@ -202,59 +202,59 @@ class UserOptionsSettingsKey(Enum):
 
 
 VALID_VALUES_FOR_KEY = {
-    NotificationSettingTypes.APPROVAL: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.APPROVAL: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.DEPLOY: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.COMMITTED_ONLY,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.DEPLOY: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.COMMITTED_ONLY,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.ISSUE_ALERTS: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.ISSUE_ALERTS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.QUOTA: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.QUOTA: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.QUOTA_ERRORS: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.QUOTA_ERRORS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.QUOTA_TRANSACTIONS: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.QUOTA_TRANSACTIONS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.QUOTA_ATTACHMENTS: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.QUOTA_ATTACHMENTS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.QUOTA_REPLAYS: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.QUOTA_REPLAYS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.QUOTA_WARNINGS: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.QUOTA_WARNINGS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.QUOTA_SPEND_ALLOCATIONS: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.QUOTA_SPEND_ALLOCATIONS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.WORKFLOW: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.WORKFLOW: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.SPIKE_PROTECTION: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.SPIKE_PROTECTION: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.REPORTS: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.REPORTS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
 }
 
