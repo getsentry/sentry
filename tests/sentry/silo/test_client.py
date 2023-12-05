@@ -1,14 +1,18 @@
 import ipaddress
+from hashlib import sha1
+from unittest import mock
 from unittest.mock import MagicMock, patch
 
 import responses
 from django.test import RequestFactory, override_settings
 from pytest import raises
 
-from sentry.shared_integrations.exceptions import ApiHostError
+from sentry.shared_integrations.exceptions import ApiError, ApiHostError
 from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo import SiloMode
 from sentry.silo.client import (
+    CACHE_TIMEOUT,
+    REQUEST_ATTEMPTS_LIMIT,
     RegionSiloClient,
     SiloClientError,
     get_region_ip_addresses,
@@ -57,7 +61,8 @@ class SiloClientTest(TestCase):
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_client_request(self):
+    @mock.patch("sentry.silo.client.cache")
+    def test_client_request_success(self, mock_cache):
         with override_regions(self.region_config):
             client = RegionSiloClient(self.region)
             path = "/api/0/imaginary-public-endpoint/"
@@ -68,10 +73,253 @@ class SiloClientTest(TestCase):
             )
 
             response = client.request("GET", path)
+
+            assert len(responses.calls) == 1
             assert isinstance(response, BaseApiResponse)
 
             assert response.status_code == 200
             assert response.body.get("ok")
+
+            assert mock_cache.get.call_count == 0
+            assert mock_cache.set.call_count == 0
+            assert mock_cache.delete.call_count == 0
+
+    @responses.activate
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @mock.patch("sentry.silo.client.cache")
+    def test_client_request_success_with_retry(self, mock_cache):
+        with override_regions(self.region_config):
+            client = RegionSiloClient(self.region)
+            path = "/api/0/imaginary-public-endpoint/"
+            responses.add(
+                responses.GET,
+                f"{self.dummy_address}{path}",
+                json={"ok": True},
+            )
+            prefix_hash = "123"
+
+            response = client.request("GET", path, prefix_hash=prefix_hash)
+
+            assert len(responses.calls) == 1
+            assert isinstance(response, BaseApiResponse)
+
+            assert response.status_code == 200
+            assert response.body.get("ok")
+
+            assert mock_cache.get.call_count == 0
+            assert mock_cache.set.call_count == 0
+            assert mock_cache.delete.call_count == 1
+
+            hash = sha1(f"{prefix_hash}{self.region.name}GET{path}".encode("utf-8")).hexdigest()
+            cache_key = f"region_silo_client:request_attempts:{hash}"
+            mock_cache.delete.assert_called_with(cache_key)
+
+    @responses.activate
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @mock.patch("sentry.silo.client.cache")
+    def test_client_request_retry_limit_reached(self, mock_cache):
+        with override_regions(self.region_config):
+            client = RegionSiloClient(self.region)
+            path = "/api/0/imaginary-public-endpoint/"
+            responses.add(
+                responses.POST,
+                f"{self.dummy_address}{path}",
+                json={"error": "bad request"},
+                status=400,
+            )
+
+            prefix_hash = "123"
+            hash = sha1(f"{prefix_hash}{self.region.name}POST{path}".encode("utf-8")).hexdigest()
+            cache_key = f"region_silo_client:request_attempts:{hash}"
+            num_of_request_attempts = 0
+
+            while True:
+                if num_of_request_attempts > REQUEST_ATTEMPTS_LIMIT:
+                    assert False, "Request attempts limit not captured"
+
+                mock_cache.reset_mock()
+                responses.calls.reset()
+
+                if num_of_request_attempts == 0:
+                    mock_cache.get.return_value = None
+                else:
+                    mock_cache.get.return_value = num_of_request_attempts
+
+                parent_mock = mock.Mock()
+                parent_mock.attach_mock(mock_cache.get, "cache_get")
+                parent_mock.attach_mock(mock_cache.set, "cache_set")
+                parent_mock.attach_mock(mock_cache.delete, "cache_delete")
+
+                if num_of_request_attempts == REQUEST_ATTEMPTS_LIMIT:
+                    with raises(SiloClientError) as exception_info:
+                        client.request("POST", path, prefix_hash=prefix_hash)
+                    assert len(responses.calls) == 1
+                    assert (
+                        exception_info.value.args[0]
+                        == f"Request attempts limit reached for: POST {path}"
+                    )
+
+                    assert mock_cache.get.call_count == 1
+                    assert mock_cache.set.call_count == 0
+                    assert mock_cache.delete.call_count == 1
+
+                    # Assert order of cache method calls
+                    expected_calls = [
+                        mock.call.cache_get(cache_key),
+                        mock.call.cache_delete(cache_key),
+                    ]
+                    assert parent_mock.mock_calls == expected_calls
+                    return
+                else:
+                    with raises(ApiError):
+                        client.request("POST", path, prefix_hash=prefix_hash)
+                    assert len(responses.calls) == 1
+                    resp = responses.calls[0].response
+                    assert resp.status_code == 400
+
+                    num_of_request_attempts += 1
+
+                    assert mock_cache.get.call_count == 1
+                    assert mock_cache.set.call_count == 1
+                    assert mock_cache.delete.call_count == 0
+
+                    # Assert order of cache method calls
+                    expected_calls = [
+                        mock.call.cache_get(cache_key),
+                        mock.call.cache_set(
+                            cache_key, num_of_request_attempts, timeout=CACHE_TIMEOUT
+                        ),
+                    ]
+                    # breakpoint()
+                    assert parent_mock.mock_calls == expected_calls
+
+    @responses.activate
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @mock.patch("sentry.silo.client.cache")
+    def test_client_request_retry_within_limit(self, mock_cache):
+        with override_regions(self.region_config):
+            client = RegionSiloClient(self.region)
+            path = "/api/0/imaginary-public-endpoint/"
+            responses.add(
+                responses.POST,
+                f"{self.dummy_address}{path}",
+                json={"error": "bad request"},
+                status=400,
+            )
+
+            prefix_hash = "123"
+            hash = sha1(f"{prefix_hash}{self.region.name}POST{path}".encode("utf-8")).hexdigest()
+            cache_key = f"region_silo_client:request_attempts:{hash}"
+            num_of_request_attempts = 0
+
+            while True:
+                mock_cache.reset_mock()
+                responses.calls.reset()
+
+                if num_of_request_attempts == (REQUEST_ATTEMPTS_LIMIT - 1):
+                    responses.replace(
+                        responses.POST,
+                        f"{self.region.address}{path}",
+                        status=200,
+                        json={"ok": True},
+                    )
+                if num_of_request_attempts == 0:
+                    mock_cache.get.return_value = None
+                else:
+                    mock_cache.get.return_value = num_of_request_attempts
+
+                parent_mock = mock.Mock()
+                parent_mock.attach_mock(mock_cache.get, "cache_get")
+                parent_mock.attach_mock(mock_cache.set, "cache_set")
+                parent_mock.attach_mock(mock_cache.delete, "cache_delete")
+
+                if num_of_request_attempts == (REQUEST_ATTEMPTS_LIMIT - 1):
+                    client.request("POST", path, prefix_hash=prefix_hash)
+                    assert len(responses.calls) == 1
+
+                    assert mock_cache.get.call_count == 0
+                    assert mock_cache.set.call_count == 0
+                    assert mock_cache.delete.call_count == 1
+
+                    # Assert order of cache method calls
+                    expected_calls = [
+                        mock.call.cache_delete(cache_key),
+                    ]
+                    assert parent_mock.mock_calls == expected_calls
+                    return
+                else:
+                    with raises(ApiError):
+                        client.request("POST", path, prefix_hash=prefix_hash)
+
+                    assert len(responses.calls) == 1
+                    resp = responses.calls[0].response
+                    assert resp.status_code == 400
+
+                    num_of_request_attempts += 1
+
+                    assert mock_cache.get.call_count == 1
+                    assert mock_cache.set.call_count == 1
+                    assert mock_cache.delete.call_count == 0
+
+                    # Assert order of cache method calls
+                    expected_calls = [
+                        mock.call.cache_get(cache_key),
+                        mock.call.cache_set(
+                            cache_key, num_of_request_attempts, timeout=CACHE_TIMEOUT
+                        ),
+                    ]
+                    assert parent_mock.mock_calls == expected_calls
+
+    @responses.activate
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_client_request_on_3xx(self):
+        with override_regions(self.region_config):
+            client = RegionSiloClient(self.region)
+            path = "/api/0/imaginary-public-endpoint/"
+            responses.add(
+                responses.POST,
+                f"{self.dummy_address}{path}",
+                json={"error": "redirect"},
+                status=300,
+            )
+
+            response = client.request("POST", path)
+            assert isinstance(response, BaseApiResponse)
+
+            assert response.status_code == 300
+            assert response.json == {"error": "redirect"}
+
+    @responses.activate
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_client_request_on_4xx(self):
+        with override_regions(self.region_config):
+            client = RegionSiloClient(self.region)
+            path = "/api/0/imaginary-public-endpoint/"
+            responses.add(
+                responses.POST,
+                f"{self.dummy_address}{path}",
+                json={"error": "bad request"},
+                status=400,
+            )
+
+            with raises(ApiError):
+                client.request("POST", path)
+
+    @responses.activate
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_client_request_on_5xx(self):
+        with override_regions(self.region_config):
+            client = RegionSiloClient(self.region)
+            path = "/api/0/imaginary-public-endpoint/"
+            responses.add(
+                responses.POST,
+                f"{self.dummy_address}{path}",
+                json={"error": "server exploded"},
+                status=500,
+            )
+
+            with raises(ApiError):
+                client.request("POST", path)
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
