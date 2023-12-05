@@ -509,7 +509,7 @@ def test_build_snuba_query_mri(mock_now, mock_now2):
 
     assert fields_in_entities == {
         "metrics_counters": [
-            ("sum", SessionMRI.RAW_SESSION.value, SessionMRI.RAW_SESSION.value),
+            ("sum", SessionMRI.RAW_SESSION.value, "sum(sentry.sessions.session)"),
         ]
     }
 
@@ -533,7 +533,7 @@ def test_build_snuba_query_mri(mock_now, mock_now2):
                             alias=None,
                         ),
                     ],
-                    alias="c:sessions/session@none",
+                    alias="sum(sentry.sessions.session)",
                 )
             ],
             groupby=groupby,

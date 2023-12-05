@@ -6,7 +6,6 @@ import {
   Token,
   TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {Organization} from 'sentry/types';
 import {AggregationKey, FieldKey, getFieldDefinition} from 'sentry/utils/fields';
 import {
   ON_DEMAND_METRICS_UNSUPPORTED_TAGS,
@@ -101,15 +100,4 @@ function getTokenKeyValuePair(
 export function getOnDemandKeys(query: string): string[] {
   const searchFilterKeys = getSearchFilterKeys(query);
   return searchFilterKeys.filter(isOnDemandSearchKey);
-}
-
-export function hasOnDemandMetricAlertFeature(organization: Organization) {
-  return organization.features.includes('on-demand-metrics-extraction');
-}
-
-export function hasOnDemandMetricWidgetFeature(organization: Organization) {
-  return (
-    organization.features.includes('on-demand-metrics-extraction') &&
-    organization.features.includes('on-demand-metrics-extraction-experimental')
-  );
 }

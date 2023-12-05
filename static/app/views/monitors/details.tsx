@@ -3,9 +3,9 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
-import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -87,7 +87,7 @@ function MonitorDetails({params, location}: Props) {
         <Layout.Body>
           <Layout.Main>
             <StyledPageFilterBar condensed>
-              <DatePageFilter alignDropdown="left" />
+              <DatePageFilter />
               <EnvironmentPageFilter />
             </StyledPageFilterBar>
             {!hasLastCheckIn(monitor) ? (

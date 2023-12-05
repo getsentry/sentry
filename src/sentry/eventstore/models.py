@@ -117,7 +117,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         if column in self._snuba_data:
             return parse_date(self._snuba_data[column]).replace(tzinfo=timezone.utc)
 
-        timestamp = self.data.get("timestamp")
+        timestamp = self.data["timestamp"]
         date = datetime.fromtimestamp(timestamp)
         date = date.replace(tzinfo=timezone.utc)
         return date
@@ -306,7 +306,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
     def get_interface(self, name: str) -> Interface | None:
         return self.interfaces.get(name)
 
-    def get_event_metadata(self) -> Mapping[str, str]:
+    def get_event_metadata(self) -> Mapping[str, Any]:
         """
         Return the metadata of this event.
 
@@ -652,6 +652,8 @@ class Event(BaseEvent):
     def group(self, group: Group) -> None:
         self.group_id = group.id
         self._group_cache = group
+
+    _groups_cache: Sequence[Group]
 
     @property
     def groups(self) -> Sequence[Group]:

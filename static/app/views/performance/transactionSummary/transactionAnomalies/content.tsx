@@ -7,10 +7,10 @@ import omit from 'lodash/omit';
 import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {LineChartSeries} from 'sentry/components/charts/lineChart';
-import DatePageFilter from 'sentry/components/datePageFilter';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
@@ -278,7 +278,7 @@ function AnomaliesContent(props: Props) {
       <FilterActions>
         <PageFilterBar condensed>
           <EnvironmentPageFilter />
-          <DatePageFilter alignDropdown="left" />
+          <DatePageFilter />
         </PageFilterBar>
         <SearchBar
           organization={organization}

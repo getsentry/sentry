@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import ipaddress
 import logging
+import mimetypes
 import random
 import re
 import time
@@ -74,7 +75,7 @@ from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.issues.producer import produce_occurrence_to_kafka
+from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
 from sentry.locks import locks
@@ -131,18 +132,19 @@ from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
+from sentry.utils.tag_normalization import normalize_sdk_tag
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import BaseEvent, Event
 
 logger = logging.getLogger("sentry.events")
 
-SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple")
+SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple", "nel")
 
 # Timeout for cached group crash report counts
 CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 
-NON_TITLE_EVENT_TITLES = ["<untitled>", "<unknown>", "<unlabeled event>"]
+NON_TITLE_EVENT_TITLES = ["<untitled>", "<unknown>", "<unlabeled event>", "Error"]
 
 
 @dataclass
@@ -176,6 +178,50 @@ def get_tag(data: dict[str, Any], key: str) -> Optional[Any]:
 
 def is_sample_event(job):
     return get_tag(job["data"], "sample_event") == "yes"
+
+
+def normalized_sdk_tag_from_event(event: Event) -> str:
+    """
+     Normalize tags coming from SDKs to more manageable canonical form, by:
+
+     - combining synonymous tags (`sentry.react` -> `sentry.javascript.react`),
+     - ignoring framework differences (`sentry.python.flask` and `sentry.python.django` -> `sentry.python`)
+     - collapsing all community/third-party SDKs into a single `other` category
+
+    Note: Some platforms may keep their framework-specific values, as needed for analytics.
+
+    This is done to reduce the cardinality of the `sdk.name` tag, while keeping
+    the ones interesinting to us as granual as possible.
+    """
+    try:
+        return normalize_sdk_tag((event.data.get("sdk") or {}).get("name") or "other")
+    except Exception:
+        logger.warning("failed to get SDK name", exc_info=True)
+        return "other"
+
+
+def sdk_metadata_from_event(event: Event) -> Mapping[str, Any]:
+    """
+    Returns a metadata dictionary with "sdk" field populated, including a normalized name
+    Returns {} when event type of event is known to not be SDK generated.
+    """
+
+    if event.get_event_type() in SECURITY_REPORT_INTERFACES:
+        return {}
+
+    if not (sdk_metadata := event.data.get("sdk")):
+        return {}
+
+    try:
+        return {
+            "sdk": {
+                "name": sdk_metadata.get("name") or "unknown",
+                "name_normalized": normalized_sdk_tag_from_event(event),
+            }
+        }
+    except Exception:
+        logger.warning("failed to set normalized SDK name", exc_info=True)
+        return {}
 
 
 def plugin_is_regression(group: Group, event: Event) -> bool:
@@ -373,7 +419,7 @@ class EventManager:
         # XXX: This is a hack to make generic events work (for now?). I'm not sure whether we should
         # include this in the rust normalizer, since we don't want people sending us these via the
         # sdk.
-        if pre_normalize_type == "generic":
+        if pre_normalize_type in ("generic", "feedback"):
             self._data["type"] = pre_normalize_type
 
     def get_data(self) -> CanonicalKeyDict:
@@ -423,7 +469,12 @@ class EventManager:
 
         projects = {project.id: project}
 
-        job = {"data": self._data, "project_id": project.id, "raw": raw, "start_time": start_time}
+        job: dict[str, Any] = {
+            "data": self._data,
+            "project_id": project.id,
+            "raw": raw,
+            "start_time": start_time,
+        }
 
         # After calling _pull_out_data we get some keys in the job like the platform
         with sentry_sdk.start_span(op="event_manager.save.pull_out_data"):
@@ -446,7 +497,10 @@ class EventManager:
 
             return jobs[0]["event"]
         else:
-            metric_tags = {"platform": job["event"].platform or "unknown"}
+            metric_tags = {
+                "platform": job["event"].platform or "unknown",
+                "sdk": normalized_sdk_tag_from_event(job["event"]),
+            }
             # This metric allows differentiating from all calls to the `event_manager.save` metric
             # and adds support for differentiating based on platforms
             with metrics.timer("event_manager.save_error_events", tags=metric_tags):
@@ -678,7 +732,9 @@ class EventManager:
             job["received_timestamp"] - job["recorded_timestamp"],
             tags=metric_tags,
         )
-        metrics.timing("events.size.data.post_save", job["event"].size, tags=metric_tags)
+        metrics.distribution(
+            "events.size.data.post_save", job["event"].size, tags=metric_tags, unit="byte"
+        )
         metrics.incr(
             "events.post_save.normalize.errors",
             amount=len(job["data"].get("errors") or ()),
@@ -771,7 +827,7 @@ def _auto_update_grouping(project: Project) -> None:
             "sentry:secondary_grouping_expiry": expiry,
             "sentry:grouping_config": new_grouping,
         }
-        for (key, value) in changes.items():
+        for key, value in changes.items():
             project.update_option(key, value)
         create_system_audit_entry(
             organization=project.organization,
@@ -781,11 +837,17 @@ def _auto_update_grouping(project: Project) -> None:
         )
 
 
-@metrics.wraps("event_manager.background_grouping")
+# TODO: this seems to be dead code, validate and remove
 def _calculate_background_grouping(
     project: Project, event: Event, config: GroupingConfig
 ) -> CalculatedHashes:
-    return _calculate_event_grouping(project, event, config)
+    metric_tags: MutableTags = {
+        "grouping_config": config["id"],
+        "platform": event.platform or "unknown",
+        "sdk": normalized_sdk_tag_from_event(event),
+    }
+    with metrics.timer("event_manager.background_grouping", tags=metric_tags):
+        return _calculate_event_grouping(project, event, config)
 
 
 def _run_background_grouping(project: Project, job: Job) -> None:
@@ -1576,7 +1638,6 @@ def _save_aggregate(
     kwargs["data"]["last_received"] = received_timestamp
 
     if existing_grouphash is None:
-
         if killswitch_matches_context(
             "store.load-shed-group-creation-projects",
             {
@@ -1616,7 +1677,6 @@ def _save_aggregate(
                 root_hierarchical_grouphash = None
 
             if existing_grouphash is None:
-
                 group = _create_group(project, event, **kwargs)
 
                 if (
@@ -1649,7 +1709,10 @@ def _save_aggregate(
                 metrics.incr(
                     "group.created",
                     skip_internal=True,
-                    tags={"platform": event.platform or "unknown"},
+                    tags={
+                        "platform": event.platform or "unknown",
+                        "sdk": normalized_sdk_tag_from_event(event),
+                    },
                 )
 
                 # This only applies to events with stacktraces
@@ -1660,6 +1723,7 @@ def _save_aggregate(
                         sample_rate=1.0,
                         tags={
                             "platform": event.platform or "unknown",
+                            "sdk": normalized_sdk_tag_from_event(event),
                             "frame_mix": frame_mix,
                         },
                     )
@@ -1819,10 +1883,7 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
     try:
         short_id = project.next_short_id()
     except OperationalError:
-        metrics.incr(
-            "next_short_id.timeout",
-            tags={"platform": event.platform or "unknown"},
-        )
+        metrics.incr("next_short_id.timeout")
         sentry_sdk.capture_message("short_id.timeout")
         raise HashDiscarded("Timeout when getting next_short_id", reason="timeout")
 
@@ -1838,8 +1899,12 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
         else None
     )
 
-    # get severity score for use in alerting
     group_data = kwargs.pop("data", {})
+
+    # add sdk tag to metadata
+    group_data.setdefault("metadata", {}).update(sdk_metadata_from_event(event))
+
+    # get severity score for use in alerting
     if features.has("projects:first-event-severity-calculation", event.project):
         severity = _get_severity_score(event)
         if severity is not None:  # Severity can be 0
@@ -2062,25 +2127,38 @@ severity_connection_pool = connection_from_url(
 
 
 def _get_severity_score(event: Event) -> float | None:
+    # Short circuit the severity value if we know the event is fatal or info/debug
+    level = str(event.data.get("level", "error"))
+    if LOG_LEVELS_MAP[level] == logging.FATAL:
+        return 1.0
+    if LOG_LEVELS_MAP[level] <= logging.INFO:
+        return 0.0
+
     op = "event_manager._get_severity_score"
     logger_data = {"event_id": event.data["event_id"], "op": op}
     severity = None
 
-    # We're using the title (which truncates the error message) rather than the full error type and
-    # message here because the `exception` property in event data (where they live) isn't mirrored
-    # to BigQuery for storage space reasons (stacktraces can be enormous). Since the ML model is
-    # trained on BQ data, we have to use the title to match.
-    #
-    # TODO: Figure out if there's a way to get the full error message to the model. (If we do that,
-    # though, it'll only work for `ErrorEvent`-type events. We'll still have to use `title` for
-    # `DefaultEvent`-type events - like those which come from `capture_message` calls - or find the
-    # message data elsewhere in the event.)
-    title = event.title
     event_type = get_event_type(event.data)
+    metadata = event_type.get_metadata(event.data)
+
+    exception_type = metadata.get("type")
+    exception_value = metadata.get("value")
+
+    if exception_type:
+        title = exception_type
+        if exception_value:
+            title += f": {exception_value}"
+
+        # We truncate the title to 128 characters as any more than that is unlikely to be helpful
+        # and would slow down the model.
+        title = trim(title, 128)
+    else:
+        # Fall back to using just the title for events without an exception.
+        title = event.title
 
     # If the event hasn't yet been given a helpful title, attempt to calculate one
     if title in NON_TITLE_EVENT_TITLES:
-        title = event_type.get_title(event_type.get_metadata(event.data))
+        title = event_type.get_title(metadata)
 
     # If there's still nothing helpful to be had, bail
     if title in NON_TITLE_EVENT_TITLES:
@@ -2096,11 +2174,14 @@ def _get_severity_score(event: Event) -> float | None:
     payload = {
         "message": title,
         "has_stacktrace": int(has_stacktrace(event.data)),
-        "log_level": event.data.get("level"),
-        # TODO: For now we're counting not having a `handled` value as being handled, but
-        # we should update the model to account for three values: True, False, and None
-        "handled": 0 if is_handled(event.data) is False else 1,
+        "handled": is_handled(event.data),
     }
+
+    if options.get("processing.severity-backlog-test.timeout"):
+        payload["trigger_timeout"] = True
+    if options.get("processing.severity-backlog-test.error"):
+        payload["trigger_error"] = True
+
     logger_data["payload"] = payload
 
     with metrics.timer(op):
@@ -2108,7 +2189,7 @@ def _get_severity_score(event: Event) -> float | None:
             try:
                 response = severity_connection_pool.urlopen(
                     "POST",
-                    "/issues/severity-score",
+                    "/v0/issues/severity-score",
                     body=json.dumps(payload),
                     headers={"content-type": "application/json;charset=utf-8"},
                 )
@@ -2196,7 +2277,10 @@ def discard_event(job: Job, attachments: Sequence[Attachment]) -> None:
     metrics.incr(
         "events.discarded",
         skip_internal=True,
-        tags={"platform": job["platform"]},
+        tags={
+            "platform": job["platform"],
+            "sdk": normalized_sdk_tag_from_event(job["event"]),
+        },
     )
 
 
@@ -2371,20 +2455,32 @@ def save_attachment(
         logger.exception("Missing chunks for cache_key=%s", cache_key)
         return
 
+    content_type = normalize_content_type(attachment.content_type, attachment.name)
+
     file = File.objects.create(
         name=attachment.name,
         type=attachment.type,
-        headers={"Content-Type": attachment.content_type},
+        headers={"Content-Type": content_type},
     )
     file.putfile(BytesIO(data), blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE)
 
+    size = file.size
+    sha1 = file.checksum
+    file_id = file.id
+
     EventAttachment.objects.create(
-        event_id=event_id,
+        # lookup:
         project_id=project.id,
         group_id=group_id,
-        name=attachment.name,
-        file_id=file.id,
+        event_id=event_id,
+        # metadata:
         type=attachment.type,
+        name=attachment.name,
+        content_type=content_type,
+        size=size,
+        sha1=sha1,
+        # storage:
+        file_id=file_id,
     )
 
     track_outcome(
@@ -2398,6 +2494,12 @@ def save_attachment(
         category=DataCategory.ATTACHMENT,
         quantity=attachment.size or 1,
     )
+
+
+def normalize_content_type(content_type: str | None, name: str) -> str:
+    if content_type:
+        return content_type.split(";")[0].strip()
+    return mimetypes.guess_type(name)[0] or "application/octet-stream"
 
 
 def save_attachments(cache_key: Optional[str], attachments: list[Attachment], job: Job) -> None:
@@ -2444,7 +2546,6 @@ def _materialize_event_metrics(jobs: Sequence[Job]) -> None:
         job["event_metrics"] = event_metrics
 
 
-@metrics.wraps("save_event.calculate_event_grouping")
 def _calculate_event_grouping(
     project: Project, event: Event, grouping_config: GroupingConfig
 ) -> CalculatedHashes:
@@ -2455,40 +2556,42 @@ def _calculate_event_grouping(
     metric_tags: MutableTags = {
         "grouping_config": grouping_config["id"],
         "platform": event.platform or "unknown",
+        "sdk": normalized_sdk_tag_from_event(event),
     }
 
-    with metrics.timer("event_manager.normalize_stacktraces_for_grouping", tags=metric_tags):
-        with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):
-            event.normalize_stacktraces_for_grouping(load_grouping_config(grouping_config))
+    with metrics.timer("save_event.calculate_event_grouping", tags=metric_tags):
+        with metrics.timer("event_manager.normalize_stacktraces_for_grouping", tags=metric_tags):
+            with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):
+                event.normalize_stacktraces_for_grouping(load_grouping_config(grouping_config))
 
-    # Detect & set synthetic marker if necessary
-    detect_synthetic_exception(event.data, grouping_config)
+        # Detect & set synthetic marker if necessary
+        detect_synthetic_exception(event.data, grouping_config)
 
-    with metrics.timer("event_manager.apply_server_fingerprinting"):
-        # The active grouping config was put into the event in the
-        # normalize step before.  We now also make sure that the
-        # fingerprint was set to `'{{ default }}' just in case someone
-        # removed it from the payload.  The call to get_hashes will then
-        # look at `grouping_config` to pick the right parameters.
-        event.data["fingerprint"] = event.data.data.get("fingerprint") or ["{{ default }}"]
-        apply_server_fingerprinting(
-            event.data.data,
-            get_fingerprinting_config_for_project(project),
-            allow_custom_title=True,
-        )
+        with metrics.timer("event_manager.apply_server_fingerprinting", tags=metric_tags):
+            # The active grouping config was put into the event in the
+            # normalize step before.  We now also make sure that the
+            # fingerprint was set to `'{{ default }}' just in case someone
+            # removed it from the payload.  The call to get_hashes will then
+            # look at `grouping_config` to pick the right parameters.
+            event.data["fingerprint"] = event.data.data.get("fingerprint") or ["{{ default }}"]
+            apply_server_fingerprinting(
+                event.data.data,
+                get_fingerprinting_config_for_project(project),
+                allow_custom_title=True,
+            )
 
-    with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
-        # Here we try to use the grouping config that was requested in the
-        # event. If that config has since been deleted (because it was an
-        # experimental grouping config) we fall back to the default.
-        try:
-            hashes = event.get_hashes(grouping_config)
-        except GroupingConfigNotFound:
-            event.data["grouping_config"] = get_grouping_config_dict_for_project(project)
-            hashes = event.get_hashes()
+        with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
+            # Here we try to use the grouping config that was requested in the
+            # event. If that config has since been deleted (because it was an
+            # experimental grouping config) we fall back to the default.
+            try:
+                hashes = event.get_hashes(grouping_config)
+            except GroupingConfigNotFound:
+                event.data["grouping_config"] = get_grouping_config_dict_for_project(project)
+                hashes = event.get_hashes()
 
-    hashes.write_to_event(event.data)
-    return hashes
+        hashes.write_to_event(event.data)
+        return hashes
 
 
 @metrics.wraps("save_event.calculate_span_grouping")
@@ -2502,12 +2605,15 @@ def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> 
                 groupings = event.get_span_groupings()
             groupings.write_to_event(event.data)
 
-            metrics.timing("save_event.transaction.span_count", len(groupings.results))
+            metrics.distribution("save_event.transaction.span_count", len(groupings.results))
             unique_default_hashes = set(groupings.results.values())
             metrics.incr(
                 "save_event.transaction.span_group_count.default",
                 amount=len(unique_default_hashes),
-                tags={"platform": job["platform"] or "unknown"},
+                tags={
+                    "platform": job["platform"] or "unknown",
+                    "sdk": normalized_sdk_tag_from_event(event),
+                },
             )
         except Exception:
             sentry_sdk.capture_exception()
@@ -2612,7 +2718,7 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
                 level=job["level"],
             )
 
-            produce_occurrence_to_kafka(occurrence)
+            produce_occurrence_to_kafka(payload_type=PayloadType.OCCURRENCE, occurrence=occurrence)
 
 
 @metrics.wraps("event_manager.save_transaction_events")

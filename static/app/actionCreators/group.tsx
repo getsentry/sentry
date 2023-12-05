@@ -413,11 +413,11 @@ export type GroupTagsResponse = GroupTagResponseItem[];
 
 type FetchIssueTagsParameters = {
   environment: string[];
-  limit: number;
   orgSlug: string;
-  readable: boolean;
   groupId?: string;
   isStatisticalDetector?: boolean;
+  limit?: number;
+  readable?: boolean;
   statisticalDetectorParameters?: {
     durationBaseline: number;
     end: string;

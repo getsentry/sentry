@@ -84,17 +84,21 @@ class IntegrationProxyClient(ApiClient):
         )
         self.org_integration_id = org_integration_id
 
-        is_region_silo = SiloMode.get_current_mode() == SiloMode.REGION
-        subnet_secret = getattr(settings, "SENTRY_SUBNET_SECRET", None)
-        control_address = getattr(settings, "SENTRY_CONTROL_ADDRESS", None)
-
-        if is_region_silo and subnet_secret and control_address:
+        if self.determine_whether_should_proxy_to_control():
             self._should_proxy_to_control = True
             self.proxy_url = get_proxy_url()
 
         if in_test_environment() and not self._use_proxy_url_for_tests:
             logger.info("proxy_disabled_in_test_env")
             self.proxy_url = self.base_url
+
+    @staticmethod
+    def determine_whether_should_proxy_to_control() -> bool:
+        return (
+            SiloMode.get_current_mode() == SiloMode.REGION
+            and getattr(settings, "SENTRY_SUBNET_SECRET", None) is not None
+            and getattr(settings, "SENTRY_CONTROL_ADDRESS", None) is not None
+        )
 
     @control_silo_function
     def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:

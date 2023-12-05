@@ -9,6 +9,16 @@ import {EventOrGroupType} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
 
 describe('Threads', function () {
+  beforeEach(() => {
+    const promptResponse = {
+      dismissed_ts: undefined,
+      snoozed_ts: undefined,
+    };
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      body: promptResponse,
+    });
+  });
   const {project, organization} = initializeOrg();
 
   describe('non native platform', function () {
@@ -47,7 +57,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -66,7 +75,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -93,7 +101,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: true,
                         trust: null,
-                        errors: null,
                         vars: null,
                         minGroupingLevel: 1,
                       },
@@ -121,7 +128,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: true,
                         trust: null,
-                        errors: null,
                         vars: null,
                         minGroupingLevel: 0,
                       },
@@ -342,7 +348,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -361,7 +366,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -380,7 +384,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -400,7 +403,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: true,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -420,7 +422,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                     ],
@@ -504,7 +505,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -523,7 +523,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -543,7 +542,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: true,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -563,7 +561,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: true,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -583,7 +580,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                     ],
@@ -663,7 +659,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -682,7 +677,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                     ],
@@ -963,7 +957,6 @@ describe('Threads', function () {
                       colNo: null,
                       inApp: false,
                       trust: null,
-                      errors: null,
                       vars: null,
                     },
                   ],
@@ -1013,7 +1006,6 @@ describe('Threads', function () {
                 colNo: null,
                 inApp: false,
                 trust: null,
-                errors: null,
                 vars: null,
               },
             ],
@@ -1220,7 +1212,6 @@ describe('Threads', function () {
                 colNo: null,
                 inApp: false,
                 trust: null,
-                errors: null,
                 vars: null,
               },
             ],

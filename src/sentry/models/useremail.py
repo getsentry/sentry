@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import timedelta
-from typing import TYPE_CHECKING, Iterable, List, Mapping, Optional, Tuple
+from typing import TYPE_CHECKING, ClassVar, Iterable, List, Mapping, Optional, Tuple
 
 from django.conf import settings
 from django.db import models
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from sentry.models.user import User
 
 
-class UserEmailManager(BaseManager):
+class UserEmailManager(BaseManager["UserEmail"]):
     def get_emails_by_user(self, organization: RpcOrganization) -> Mapping[User, Iterable[str]]:
         from sentry.models.organizationmembermapping import OrganizationMemberMapping
 
@@ -46,6 +46,7 @@ class UserEmailManager(BaseManager):
 class UserEmail(ControlOutboxProducingModel):
     __relocation_scope__ = RelocationScope.User
     __relocation_dependencies__ = {"sentry.Email"}
+    __relocation_custom_ordinal__ = ["user", "email"]
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, related_name="emails")
     email = models.EmailField(_("email address"), max_length=75)
@@ -57,7 +58,7 @@ class UserEmail(ControlOutboxProducingModel):
         help_text=_("Designates whether this user has confirmed their email."),
     )
 
-    objects = UserEmailManager()
+    objects: ClassVar[UserEmailManager] = UserEmailManager()
 
     class Meta:
         app_label = "sentry"
@@ -102,12 +103,9 @@ class UserEmail(ControlOutboxProducingModel):
         if old_pk is None:
             return None
 
-        # If we are merging users, ignore this import and use the merged user's data.
+        # If we are merging users, ignore the imported email and use the existing user's email
+        # instead.
         if pk_map.get_kind(get_model_name(User), old_user_id) == ImportKind.Existing:
-            # TODO(getsentry/team-ospo#190): Mutating `pk_map` here is a bit hacky, and we probably
-            # shouldn't do it.
-            useremail = self.__class__.objects.get(user_id=self.user_id)
-            pk_map.insert(get_model_name(self), self.pk, useremail.pk, ImportKind.Existing)
             return None
 
         # Only preserve validation hashes in the backup/restore scope - in all others, have the user
@@ -122,13 +120,23 @@ class UserEmail(ControlOutboxProducingModel):
     def write_relocation_import(
         self, _s: ImportScope, _f: ImportFlags
     ) -> Optional[Tuple[int, ImportKind]]:
-        # The `UserEmail` was automatically generated `post_save()`. We just need to update it with
-        # the data being imported. Note that if we've reached this point, we cannot be merging into
-        # an existing user, and are instead modifying the just-created `UserEmail` for a new one.
-        useremail = self.__class__.objects.get(user=self.user, email=self.email)
-        for f in self._meta.fields:
-            if f.name not in ["id", "pk"]:
-                setattr(useremail, f.name, getattr(self, f.name))
+        # The `UserEmail` was automatically generated `post_save()`, but only if it was the user's
+        # primary email. We just need to update it with the data being imported. Note that if we've
+        # reached this point, we cannot be merging into an existing user, and are instead modifying
+        # the just-created `UserEmail` for a new one.
+        try:
+            useremail = self.__class__.objects.get(user=self.user, email=self.email)
+            for f in self._meta.fields:
+                if f.name not in ["id", "pk"]:
+                    setattr(useremail, f.name, getattr(self, f.name))
+        except self.__class__.DoesNotExist:
+            # This is a non-primary email, so was not auto-created - go ahead and add it in.
+            useremail = self
+
         useremail.save()
 
+        # If we've entered this method at all, we can be sure that the `UserEmail` was created as
+        # part of the import, since this is a new `User` (the "existing" `User` due to
+        # `--merge_users=true` case is handled in the `normalize_before_relocation_import()` method
+        # above).
         return (useremail.pk, ImportKind.Inserted)

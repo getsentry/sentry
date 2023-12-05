@@ -1,12 +1,13 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import * as qs from 'query-string';
 
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
-import {t} from 'sentry/locale';
-import {NewQuery} from 'sentry/types';
+import {Tooltip} from 'sentry/components/tooltip';
+import {t, tct} from 'sentry/locale';
 import {
   TableData,
   TableDataRow,
@@ -15,76 +16,62 @@ import {
 import EventView, {isFieldSortable, MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
-import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
+import {TOP_SCREENS} from 'sentry/views/starfish/views/screens';
 
-export function ScreensTable() {
-  const {selection} = usePageFilters();
+type Props = {
+  data: TableData | undefined;
+  eventView: EventView;
+  isLoading: boolean;
+  pageLinks: string | undefined;
+};
+
+export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
   const location = useLocation();
+  const {selection} = usePageFilters();
+  const {projects} = useProjects();
   const organization = useOrganization();
-  const routingContext = useRoutingContext();
-  const {query} = location;
-  const {
-    primaryRelease,
-    secondaryRelease,
-    isLoading: isReleasesLoading,
-  } = useReleaseSelection();
+  const {primaryRelease, secondaryRelease} = useReleaseSelection();
+  const truncatedPrimary = formatVersionAndCenterTruncate(primaryRelease ?? '', 15);
+  const truncatedSecondary = formatVersionAndCenterTruncate(secondaryRelease ?? '', 15);
 
-  const searchQuery = new MutableSearch([
-    'event.type:transaction',
-    'transaction.op:ui.load',
-  ]);
-  const queryStringPrimary = appendReleaseFilters(
-    searchQuery,
-    primaryRelease,
-    secondaryRelease
-  );
+  const project = useMemo(() => {
+    if (selection.projects.length !== 1) {
+      return null;
+    }
+    return projects.find(p => p.id === String(selection.projects));
+  }, [projects, selection.projects]);
 
-  const orderby = decodeScalar(query.sort, `-count`);
-  const newQuery: NewQuery = {
-    name: '',
-    fields: [
-      'transaction',
-      SpanMetricsField.PROJECT_ID,
-      'avg(measurements.time_to_initial_display)', // TODO: Update these to avgIf with primary release when available
-      `avg_compare(measurements.time_to_initial_display,release,${primaryRelease},${secondaryRelease})`,
-      'avg(measurements.time_to_full_display)',
-      `avg_compare(measurements.time_to_full_display,release,${primaryRelease},${secondaryRelease})`,
-      'count()',
-    ],
-    query: queryStringPrimary,
-    dataset: DiscoverDatasets.METRICS,
-    version: 2,
-    projects: selection.projects,
-  };
-  newQuery.orderby = orderby;
-  const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
-
-  const {data, isLoading, pageLinks} = useTableQuery({
-    eventView,
-    enabled: !isReleasesLoading,
-  });
   const eventViewColumns = eventView.getColumns();
 
   const columnNameMap = {
     transaction: t('Screen'),
-    'avg(measurements.time_to_initial_display)': DataTitles.ttid,
-    'avg(measurements.time_to_full_display)': DataTitles.ttfd,
-    'count()': DataTitles.count,
-    [`avg_compare(measurements.time_to_initial_display,release,${primaryRelease},${secondaryRelease})`]:
-      DataTitles.change,
-    [`avg_compare(measurements.time_to_full_display,release,${primaryRelease},${secondaryRelease})`]:
-      DataTitles.change,
+    [`avg_if(measurements.time_to_initial_display,release,${primaryRelease})`]: t(
+      'TTID (%s)',
+      truncatedPrimary
+    ),
+    [`avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`]: t(
+      'TTID (%s)',
+      truncatedSecondary
+    ),
+    [`avg_if(measurements.time_to_full_display,release,${primaryRelease})`]: t(
+      'TTFD (%s)',
+      truncatedPrimary
+    ),
+    [`avg_if(measurements.time_to_full_display,release,${secondaryRelease})`]: t(
+      'TTFD (%s)',
+      truncatedSecondary
+    ),
+    'count()': t('Total Count'),
   };
 
   function renderBodyCell(column, row): React.ReactNode {
@@ -92,22 +79,31 @@ export function ScreensTable() {
       return row[column.key];
     }
 
+    const index = data.data.indexOf(row);
+
     const field = String(column.key);
 
     if (field === 'transaction') {
       return (
-        <Link
-          to={`${routingContext.baseURL}/pageload/spans/?${qs.stringify({
-            ...location.query,
-            project: row['project.id'],
-            transaction: row.transaction,
-            primaryRelease,
-            secondaryRelease,
-          })}`}
-          style={{display: `block`, width: `100%`}}
-        >
-          {row.transaction}
-        </Link>
+        <Fragment>
+          <TopResultsIndicator count={TOP_SCREENS} index={index} />
+          <Link
+            to={normalizeUrl(
+              `/organizations/${
+                organization.slug
+              }/performance/mobile/screens/spans/?${qs.stringify({
+                ...location.query,
+                project: row['project.id'],
+                transaction: row.transaction,
+                primaryRelease,
+                secondaryRelease,
+              })}`
+            )}
+            style={{display: `block`, width: `100%`}}
+          >
+            {row.transaction}
+          </Link>
+        </Fragment>
       );
     }
 
@@ -117,6 +113,34 @@ export function ScreensTable() {
       organization,
       unit: data?.meta.units?.[column.key],
     });
+    if (
+      column.key.includes('time_to_full_display') &&
+      row[column.key] === 0 &&
+      project?.platform &&
+      ['android', 'apple-ios'].includes(project.platform)
+    ) {
+      const docsUrl =
+        project?.platform === 'android'
+          ? 'https://docs.sentry.io/platforms/android/performance/instrumentation/automatic-instrumentation/#time-to-full-display'
+          : 'https://docs.sentry.io/platforms/apple/guides/ios/performance/instrumentation/automatic-instrumentation/#time-to-full-display';
+      return (
+        <div style={{textAlign: 'right'}}>
+          <Tooltip
+            title={tct(
+              'Measuring TTFD requires manual instrumentation in your application. To learn how to collect TTFD, see the documentation [link].',
+              {
+                link: <ExternalLink href={docsUrl}>{t('here')}</ExternalLink>,
+              }
+            )}
+            showUnderline
+            isHoverable
+          >
+            {rendered}
+          </Tooltip>
+        </div>
+      );
+    }
+
     return rendered;
   }
 
@@ -169,7 +193,8 @@ export function ScreensTable() {
         columnOrder={eventViewColumns
           .filter(
             (col: TableColumn<React.ReactText>) =>
-              col.name !== SpanMetricsField.PROJECT_ID
+              col.name !== SpanMetricsField.PROJECT_ID &&
+              !col.name.startsWith('avg_compare')
           )
           .map((col: TableColumn<React.ReactText>) => {
             return {...col, name: columnNameMap[col.key]};
@@ -196,25 +221,34 @@ export function useTableQuery({
   enabled,
   referrer,
   initialData,
+  limit,
+  staleTime,
+  cursor,
 }: {
   eventView: EventView;
+  cursor?: string;
   enabled?: boolean;
   excludeOther?: boolean;
   initialData?: TableData;
+  limit?: number;
   referrer?: string;
+  staleTime?: number;
 }) {
   const location = useLocation();
   const organization = useOrganization();
+  const {isReady: pageFiltersReady} = usePageFilters();
 
   const result = useDiscoverQuery({
     eventView,
     location,
     orgSlug: organization.slug,
-    limit: 25,
+    limit: limit ?? 25,
     referrer,
+    cursor,
     options: {
       refetchOnWindowFocus: false,
-      enabled,
+      enabled: enabled && pageFiltersReady,
+      staleTime,
     },
   });
 

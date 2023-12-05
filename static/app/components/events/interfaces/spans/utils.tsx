@@ -112,7 +112,8 @@ const HTTP_DATA_KEYS = [
   'http.request.response_start',
   'http.request.response_end',
 ];
-const HIDDEN_DATA_KEYS = HTTP_DATA_KEYS;
+const INTERNAL_DATA_KEYS = ['sentry_tags'];
+const HIDDEN_DATA_KEYS = [...HTTP_DATA_KEYS, ...INTERNAL_DATA_KEYS];
 
 const TIMING_DATA_KEYS = [
   SpanSubTimingMark.HTTP_REQUEST_START,
@@ -668,6 +669,7 @@ export function isEventFromBrowserJavaScriptSDK(
     'sentry.javascript.remix',
     'sentry.javascript.svelte',
     'sentry.javascript.sveltekit',
+    'sentry.javascript.astro',
   ].includes(sdkName.toLowerCase());
 }
 

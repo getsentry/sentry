@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.db import models
 from django.db.models import QuerySet
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.integration import RpcIntegration
 
 
-class ExternalIssueManager(BaseManager):
+class ExternalIssueManager(BaseManager["ExternalIssue"]):
     def get_for_integration(
         self, integration: RpcIntegration, external_issue_key: str | None = None
     ) -> QuerySet:
@@ -83,7 +83,7 @@ class ExternalIssue(Model):
     description = models.TextField(null=True)
     metadata = JSONField(null=True)
 
-    objects = ExternalIssueManager()
+    objects: ClassVar[ExternalIssueManager] = ExternalIssueManager()
 
     class Meta:
         app_label = "sentry"

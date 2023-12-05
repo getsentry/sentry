@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
+import OrganizationBadge from 'sentry/components/idBadge/organizationBadge';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -24,6 +25,14 @@ export function OrganizationSelectHeader({
           return {
             label: org.name,
             value: org.id,
+            leadingItems: (
+              <OrganizationBadge
+                organization={org}
+                avatarSize={20}
+                avatarProps={{consistentWidth: true}}
+                hideName
+              />
+            ),
           };
         })}
         onChange={option => handleOrgChange(option.value)}

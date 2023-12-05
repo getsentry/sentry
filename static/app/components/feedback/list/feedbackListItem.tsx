@@ -1,119 +1,198 @@
-import {CSSProperties, forwardRef} from 'react';
+import {CSSProperties, forwardRef, ReactNode} from 'react';
 import {browserHistory} from 'react-router';
+import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Checkbox from 'sentry/components/checkbox';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
+import IssueTrackingSignals from 'sentry/components/feedback/list/issueTrackingSignals';
+import useFeedbackHasReplayId from 'sentry/components/feedback/useFeedbackHasReplayId';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {Flex} from 'sentry/components/profiling/flex';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import {IconPlay} from 'sentry/icons';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconCircleFill, IconIssues, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
+import {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {HydratedFeedbackItem} from 'sentry/utils/feedback/item/types';
+import {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {darkTheme, lightTheme} from 'sentry/utils/theme';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 interface Props {
-  feedbackItem: HydratedFeedbackItem;
-  isChecked: boolean;
-  onChecked: (isChecked: boolean) => void;
+  feedbackItem: FeedbackIssue;
+  isSelected: 'all-selected' | boolean;
+  onSelect: (isSelected: boolean) => void;
   className?: string;
   style?: CSSProperties;
 }
 
-const ReplayBadge = styled(props => (
-  <span {...props}>
-    <IconPlay size="xs" />
-    {t('Replay')}
-  </span>
-))`
-  display: flex;
-  gap: ${space(0.5)};
-  align-items: center;
-`;
+export function FeedbackIcon({
+  tooltipText,
+  icon,
+}: {
+  icon: ReactNode;
+  tooltipText: string;
+}) {
+  return (
+    <StyledTooltip
+      title={<span style={{textTransform: 'capitalize'}}>{tooltipText}</span>}
+    >
+      {icon}
+    </StyledTooltip>
+  );
+}
 
-function useIsSelectedFeedback({feedbackItem}: {feedbackItem: HydratedFeedbackItem}) {
+function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackIssue}) {
   const {feedbackSlug} = useLocationQuery({
     fields: {feedbackSlug: decodeScalar},
   });
   const [, feedbackId] = feedbackSlug.split(':') ?? [];
-  return feedbackId === feedbackItem.feedback_id;
+  return feedbackId === feedbackItem.id;
 }
 
-const FeedbackListItem = forwardRef<HTMLAnchorElement, Props>(
-  ({className, feedbackItem, isChecked, onChecked, style}: Props, ref) => {
+function MutedText({children, isOpen}: {children: ReactNode; isOpen: boolean}) {
+  const config = useLegacyStore(ConfigStore);
+
+  return (
+    <ThemeProvider theme={isOpen || config.theme === 'dark' ? lightTheme : darkTheme}>
+      <StyledText>{children}</StyledText>
+    </ThemeProvider>
+  );
+}
+
+const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
+  ({className, feedbackItem, isSelected, onSelect, style}: Props, ref) => {
     const organization = useOrganization();
-    const {projects} = useProjects();
-
-    const isSelected = useIsSelectedFeedback({feedbackItem});
-
-    const project = projects.find(p => p.id === String(feedbackItem.project_id));
-    if (!project) {
-      // TODO[feedback]: Guard against invalid test data that has no valid project.
-      return null;
-    }
-    const slug = project?.slug;
+    const isOpen = useIsSelectedFeedback({feedbackItem});
+    const hasReplayId = useFeedbackHasReplayId({feedbackId: feedbackItem.id});
+    const isCrashReport = feedbackItem.metadata.source === 'crash_report_embed_form';
 
     return (
-      <Wrapper
-        ref={ref}
-        className={className}
-        style={style}
-        data-selected={isSelected}
-        to={() => {
-          const location = browserHistory.getCurrentLocation();
-          return {
-            pathname: normalizeUrl(`/organizations/${organization.slug}/feedback/`),
-            query: {
-              ...location.query,
-              referrer: 'feedback_list_page',
-              feedbackSlug: `${project.slug}:${feedbackItem.feedback_id}`,
-            },
-          };
-        }}
-        onClick={() => {
-          trackAnalytics('feedback_list.details_link.click', {organization});
-        }}
-      >
-        <InteractionStateLayer />
-        <Flex column style={{gridArea: 'right'}}>
-          <Checkbox
-            checked={isChecked}
-            onChange={e => onChecked(e.target.checked)}
-            onClick={e => e.stopPropagation()}
-          />
-        </Flex>
-        <strong style={{gridArea: 'user'}}>
-          <FeedbackItemUsername feedbackItem={feedbackItem} />
-        </strong>
-        <span style={{gridArea: 'time'}}>
-          <TimeSince date={feedbackItem.timestamp} />
-        </span>
-        <div style={{gridArea: 'message'}}>
-          <TextOverflow>{feedbackItem.message}</TextOverflow>
-        </div>
-        <Flex style={{gridArea: 'icons'}} gap={space(1)} align="center">
-          <Flex align="center" gap={space(0.5)}>
-            <ProjectAvatar project={project} size={12} /> {slug}
+      <CardSpacing className={className} style={style} ref={ref}>
+        <LinkedFeedbackCard
+          data-selected={isOpen}
+          to={() => {
+            const location = browserHistory.getCurrentLocation();
+            return {
+              pathname: normalizeUrl(`/organizations/${organization.slug}/feedback/`),
+              query: {
+                ...location.query,
+                referrer: 'feedback_list_page',
+                feedbackSlug: `${feedbackItem.project.slug}:${feedbackItem.id}`,
+              },
+            };
+          }}
+          onClick={() => {
+            trackAnalytics('feedback.list-item-selected', {organization});
+          }}
+        >
+          <InteractionStateLayer />
+          <Flex column style={{gridArea: 'checkbox'}}>
+            <Checkbox
+              disabled={isSelected === 'all-selected'}
+              checked={isSelected !== false}
+              onChange={e => onSelect(e.target.checked)}
+              onClick={e => e.stopPropagation()}
+              invertColors={isOpen}
+            />
           </Flex>
-          {feedbackItem.replay_id ? <ReplayBadge /> : null}
-        </Flex>
-      </Wrapper>
+          <TextOverflow>
+            <span style={{gridArea: 'user'}}>
+              <FeedbackItemUsername feedbackIssue={feedbackItem} detailDisplay={false} />
+            </span>
+          </TextOverflow>
+          <span style={{gridArea: 'time'}}>
+            <StyledTimeSince date={feedbackItem.firstSeen} />
+          </span>
+          <Flex justify="center" style={{gridArea: 'unread'}}>
+            {feedbackItem.hasSeen ? null : (
+              <IconCircleFill size="xs" color={isOpen ? 'white' : 'purple400'} />
+            )}
+          </Flex>
+          <div style={{gridArea: 'message'}}>
+            <MutedText isOpen={isOpen}>
+              <TextOverflow>{feedbackItem.metadata.message}</TextOverflow>
+            </MutedText>
+          </div>
+          <RightAlignedIcons
+            style={{
+              gridArea: 'icons',
+            }}
+          >
+            <IssueTrackingSignals group={feedbackItem as unknown as Group} />
+            {isCrashReport && (
+              <FeedbackIcon
+                tooltipText={t('Linked Issue')}
+                icon={<IconIssues size="xs" />}
+              />
+            )}
+            {hasReplayId && (
+              <FeedbackIcon
+                tooltipText={t('Linked Replay')}
+                icon={<IconPlay size="xs" />}
+              />
+            )}
+            {feedbackItem.assignedTo && (
+              <StyledAvatar actor={feedbackItem.assignedTo} size={16} />
+            )}
+          </RightAlignedIcons>
+          <Flex style={{gridArea: 'proj'}} gap={space(1)} align="center">
+            <ProjectAvatar project={feedbackItem.project} size={12} />
+            <MutedText isOpen={isOpen}>
+              <ProjectOverflow>{feedbackItem.project.slug}</ProjectOverflow>
+            </MutedText>
+          </Flex>
+        </LinkedFeedbackCard>
+      </CardSpacing>
     );
   }
 );
 
-const Wrapper = styled(Link)`
+const StyledText = styled('div')`
+  color: ${p => p.theme.gray200};
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  display: flex;
+  align-items: center;
+`;
+
+const StyledAvatar = styled(ActorAvatar)`
+  display: flex;
+  align-items: center;
+`;
+
+const StyledTimeSince = styled(TimeSince)`
+  display: flex;
+  justify-content: end;
+`;
+
+const RightAlignedIcons = styled('div')`
+  display: flex;
+  justify-content: end;
+  gap: ${space(0.75)};
+  align-items: center;
+`;
+
+const CardSpacing = styled('div')`
+  padding: ${space(0.25)} ${space(0.5)};
+`;
+
+const LinkedFeedbackCard = styled(Link)`
+  position: relative;
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1)} ${space(0.75)} ${space(1)} ${space(1)};
+  padding: ${space(1)} ${space(3)} ${space(1)} ${space(1.5)};
 
   color: ${p => p.theme.textColor};
   &:hover {
@@ -128,11 +207,19 @@ const Wrapper = styled(Link)`
   grid-template-columns: max-content 1fr max-content;
   grid-template-rows: max-content 1fr max-content;
   grid-template-areas:
-    'right user time'
-    'right message message'
-    'right icons icons';
+    'checkbox user time'
+    'unread message message'
+    '. proj icons';
   gap: ${space(1)};
   place-items: stretch;
+  align-items: center;
+`;
+
+const ProjectOverflow = styled('span')`
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  max-width: 150px;
 `;
 
 export default FeedbackListItem;

@@ -1,7 +1,6 @@
-import {Fragment, useContext, useEffect} from 'react';
+import {Fragment, useCallback, useContext, useEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
@@ -14,7 +13,6 @@ import {isDone} from 'sentry/components/sidebar/utils';
 import {
   IconChevron,
   IconDashboard,
-  IconFile,
   IconGraph,
   IconIssues,
   IconLightning,
@@ -46,7 +44,8 @@ import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useProjects from 'sentry/utils/useProjects';
-import {RELEASE_LEVEL} from 'sentry/views/performance/database/settings';
+import {RELEASE_LEVEL as WEBVITALS_RELEASE_LEVEL} from 'sentry/views/performance/browser/webVitals/settings';
+import {SCREENS_RELEASE_LEVEL} from 'sentry/views/performance/mobile/settings';
 
 import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
 
@@ -60,7 +59,6 @@ import SidebarItem from './sidebarItem';
 import {SidebarOrientation, SidebarPanelKey} from './types';
 
 type Props = {
-  location?: Location;
   organization?: Organization;
 };
 
@@ -109,7 +107,8 @@ function useOpenOnboardingSidebar(organization?: Organization) {
   }, [openOnboardingSidebar]);
 }
 
-function Sidebar({location, organization}: Props) {
+function Sidebar({organization}: Props) {
+  const location = useLocation();
   const config = useLegacyStore(ConfigStore);
   const preferences = useLegacyStore(PreferencesStore);
   const activePanel = useLegacyStore(SidebarPanelStore);
@@ -119,10 +118,13 @@ function Sidebar({location, organization}: Props) {
 
   useOpenOnboardingSidebar();
 
-  const toggleCollapse = () => {
-    const action = collapsed ? showSidebar : hideSidebar;
-    action();
-  };
+  const toggleCollapse = useCallback(() => {
+    if (collapsed) {
+      showSidebar();
+    } else {
+      hideSidebar();
+    }
+  }, [collapsed]);
 
   // Close panel on any navigation
   useEffect(() => void hidePanel(), [location?.pathname]);
@@ -191,7 +193,8 @@ function Sidebar({location, organization}: Props) {
       {...sidebarItemProps}
       icon={<IconIssues />}
       label={<GuideAnchor target="issues">{t('Issues')}</GuideAnchor>}
-      to={`/organizations/${organization.slug}/issues/?referrer=sidebar`}
+      to={`/organizations/${organization.slug}/issues/`}
+      search="?referrer=sidebar"
       id="issues"
     />
   );
@@ -199,7 +202,7 @@ function Sidebar({location, organization}: Props) {
   const discover2 = hasOrganization && (
     <Feature
       hookName="feature-disabled:discover2-sidebar-item"
-      features={['discover-basic']}
+      features="discover-basic"
       organization={organization}
     >
       <SidebarItem
@@ -215,12 +218,16 @@ function Sidebar({location, organization}: Props) {
   const performance = hasOrganization && (
     <Feature
       hookName="feature-disabled:performance-sidebar-item"
-      features={['performance-view']}
+      features="performance-view"
       organization={organization}
     >
       {(() => {
-        // If Database View is enabled, show a Performance accordion with a Database sub-item
-        if (organization.features.includes('performance-database-view')) {
+        // If Database View or Web Vitals View is enabled, show a Performance accordion with a Database and/or Web Vitals sub-item
+        if (
+          organization.features.includes('performance-database-view') ||
+          organization.features.includes('starfish-browser-webvitals') ||
+          organization.features.includes('performance-screens-view')
+        ) {
           return (
             <SidebarAccordion
               {...sidebarItemProps}
@@ -229,18 +236,59 @@ function Sidebar({location, organization}: Props) {
               to={`/organizations/${organization.slug}/performance/`}
               id="performance"
             >
-              <SidebarItem
-                {...sidebarItemProps}
-                isAlpha={RELEASE_LEVEL === 'alpha'}
-                isBeta={RELEASE_LEVEL === 'beta'}
-                isNew={RELEASE_LEVEL === 'new'}
-                label={
-                  <GuideAnchor target="performance-database">{t('Queries')}</GuideAnchor>
-                }
-                to={`/organizations/${organization.slug}/performance/database/`}
-                id="performance-database"
-                icon={<SubitemDot collapsed={collapsed} />}
-              />
+              <Feature features="performance-database-view" organization={organization}>
+                <SidebarItem
+                  {...sidebarItemProps}
+                  label={
+                    <GuideAnchor target="performance-database">
+                      {t('Queries')}
+                    </GuideAnchor>
+                  }
+                  to={`/organizations/${organization.slug}/performance/database/`}
+                  id="performance-database"
+                  // collapsed controls whether the dot is visible or not.
+                  // We always want it visible for these sidebar items so force it to true.
+                  icon={<SubitemDot collapsed />}
+                />
+              </Feature>
+              <Feature features="starfish-browser-webvitals" organization={organization}>
+                <SidebarItem
+                  {...sidebarItemProps}
+                  isAlpha={WEBVITALS_RELEASE_LEVEL === 'alpha'}
+                  isBeta={WEBVITALS_RELEASE_LEVEL === 'beta'}
+                  isNew={WEBVITALS_RELEASE_LEVEL === 'new'}
+                  label={
+                    <GuideAnchor target="performance-webvitals">
+                      {t('Web Vitals')}
+                    </GuideAnchor>
+                  }
+                  to={`/organizations/${organization.slug}/performance/browser/pageloads/`}
+                  id="performance-webvitals"
+                  icon={<SubitemDot collapsed />}
+                />
+              </Feature>
+              <Feature features="performance-screens-view" organization={organization}>
+                <SidebarItem
+                  {...sidebarItemProps}
+                  isAlpha={SCREENS_RELEASE_LEVEL === 'alpha'}
+                  isBeta={SCREENS_RELEASE_LEVEL === 'beta'}
+                  isNew={SCREENS_RELEASE_LEVEL === 'new'}
+                  label={t('Mobile')}
+                  to={`/organizations/${organization.slug}/performance/mobile/screens/`}
+                  id="performance-mobile-screens"
+                  icon={<SubitemDot collapsed />}
+                />
+              </Feature>
+              <Feature features="starfish-browser-resource-module-ui">
+                <SidebarItem
+                  {...sidebarItemProps}
+                  isNew
+                  label={<GuideAnchor target="starfish">{t('Resources')}</GuideAnchor>}
+                  to={`/organizations/${organization.slug}/performance/browser/resources`}
+                  id="performance-browser-resources"
+                  icon={<SubitemDot collapsed />}
+                />
+              </Feature>
             </SidebarAccordion>
           );
         }
@@ -262,7 +310,7 @@ function Sidebar({location, organization}: Props) {
   const starfish = hasOrganization && (
     <Feature
       hookName="feature-disabled:starfish-view"
-      features={['starfish-view']}
+      features="starfish-view"
       organization={organization}
     >
       <SidebarAccordion
@@ -288,27 +336,6 @@ function Sidebar({location, organization}: Props) {
           id="performance-browser-interactions"
           icon={<SubitemDot collapsed={collapsed} />}
         />
-        <SidebarItem
-          {...sidebarItemProps}
-          label={<GuideAnchor target="starfish">{t('Resources')}</GuideAnchor>}
-          to={`/organizations/${organization.slug}/performance/browser/resources`}
-          id="performance-browser-resources"
-          icon={<IconFile />}
-        />
-        <SidebarItem
-          {...sidebarItemProps}
-          label={<GuideAnchor target="starfish">{t('Page Loads')}</GuideAnchor>}
-          to={`/organizations/${organization.slug}/performance/browser/pageloads`}
-          id="performance-browser-page-loads"
-          icon={<SubitemDot collapsed={collapsed} />}
-        />
-        <SidebarItem
-          {...sidebarItemProps}
-          label={<GuideAnchor target="starfish">{t('Screen Load')}</GuideAnchor>}
-          to={`/organizations/${organization.slug}/starfish/pageload/`}
-          id="starfish-mobile-screen-loads"
-          icon={<SubitemDot collapsed={collapsed} />}
-        />
       </SidebarAccordion>
     </Feature>
   );
@@ -324,24 +351,27 @@ function Sidebar({location, organization}: Props) {
   );
 
   const userFeedback = hasOrganization && (
-    <SidebarItem
-      {...sidebarItemProps}
-      icon={<IconSupport />}
-      label={t('User Feedback')}
-      to={`/organizations/${organization.slug}/user-feedback/`}
-      id="user-feedback"
-    />
+    <Feature features="old-user-feedback" organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconSupport />}
+        label={t('User Feedback')}
+        to={`/organizations/${organization.slug}/user-feedback/`}
+        id="user-feedback"
+      />
+    </Feature>
   );
 
   const feedback = hasOrganization && (
-    <Feature features={['user-feedback-ui']} organization={organization}>
+    <Feature features="user-feedback-ui" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconMegaphone />}
-        label={t('Bug Reports')}
+        label={t('User Feedback')}
+        isBeta
+        variant="short"
         to={`/organizations/${organization.slug}/feedback/`}
         id="feedback"
-        isAlpha
       />
     </Feature>
   );
@@ -357,7 +387,7 @@ function Sidebar({location, organization}: Props) {
   );
 
   const monitors = hasOrganization && (
-    <Feature features={['monitors']} organization={organization}>
+    <Feature features="monitors" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconTimer />}
@@ -372,7 +402,7 @@ function Sidebar({location, organization}: Props) {
   const replays = hasOrganization && (
     <Feature
       hookName="feature-disabled:replay-sidebar-item"
-      features={['session-replay-ui']}
+      features="session-replay-ui"
       organization={organization}
       requireAll={false}
     >
@@ -424,7 +454,7 @@ function Sidebar({location, organization}: Props) {
   const profiling = hasOrganization && (
     <Feature
       hookName="feature-disabled:profiling-sidebar-item"
-      features={['profiling']}
+      features="profiling"
       organization={organization}
       requireAll={false}
     >
@@ -486,6 +516,7 @@ function Sidebar({location, organization}: Props) {
                 {profiling}
                 {ddm}
                 {replays}
+                {feedback}
                 {monitors}
                 {alerts}
               </SidebarSection>
@@ -495,7 +526,6 @@ function Sidebar({location, organization}: Props) {
                 {dashboards}
                 {releases}
                 {userFeedback}
-                {feedback}
               </SidebarSection>
 
               <SidebarSection>
@@ -656,14 +686,6 @@ const PrimaryItems = styled('div')`
     border-bottom: 1px solid ${p => p.theme.gray400};
     padding-bottom: ${space(1)};
     box-shadow: rgba(0, 0, 0, 0.15) 0px -10px 10px inset;
-    &::-webkit-scrollbar {
-      background-color: transparent;
-      width: 8px;
-    }
-    &::-webkit-scrollbar-thumb {
-      background: ${p => p.theme.gray400};
-      border-radius: 8px;
-    }
   }
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     overflow-y: visible;

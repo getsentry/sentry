@@ -164,7 +164,7 @@ def get_current_release_version_of_group(
 
 def update_groups(
     request: Request,
-    group_ids: Sequence[int],
+    group_ids: Sequence[int] | None,
     projects: Sequence[Project],
     organization_id: int,
     search_fn: SearchFunction | None,
@@ -245,7 +245,6 @@ def update_groups(
 
     discard = result.get("discard")
     if discard:
-
         return handle_discard(request, list(queryset), projects, acting_user)
 
     status_details = result.pop("statusDetails", result)
@@ -655,6 +654,7 @@ def update_groups(
             tags={
                 # We assume that if someone's merging groups, they're from the same platform
                 "platform": group_list[0].platform or "unknown",
+                "sdk": group_list[0].sdk or "unknown",
                 # TODO: It's probably cleaner to just send this value from the front end
                 "referer": (
                     "issue stream"
@@ -711,7 +711,7 @@ def handle_is_subscribed(
 
 def handle_is_bookmarked(
     is_bookmarked: bool,
-    group_list: Sequence[Group],
+    group_list: Sequence[Group] | None,
     group_ids: Sequence[Group],
     project_lookup: Dict[int, Project],
     acting_user: User | None,
@@ -734,7 +734,7 @@ def handle_is_bookmarked(
             group__in=group_ids,
             user_id=acting_user.id if acting_user else None,
         ).delete()
-        if features.has("organizations:participants-purge", group_list[0].organization):
+        if group_list:
             GroupSubscription.objects.filter(
                 user_id=acting_user.id,
                 group__in=group_ids,
@@ -837,7 +837,6 @@ def handle_assigned_to(
     if assigned_actor:
         for group in group_list:
             resolved_actor: RpcUser | Team = assigned_actor.resolve()
-
             assignment = GroupAssignee.objects.assign(
                 group, resolved_actor, acting_user, extra=extra
             )

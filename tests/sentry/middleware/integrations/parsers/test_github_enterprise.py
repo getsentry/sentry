@@ -14,7 +14,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class GithubEnterpriseRequestParserTest(TestCase):
     get_response = MagicMock(return_value=HttpResponse(content=b"no-error", status=200))
     factory = RequestFactory()
@@ -39,8 +39,7 @@ class GithubEnterpriseRequestParserTest(TestCase):
         )
         parser = GithubEnterpriseRequestParser(request=request, response_handler=self.get_response)
         response = parser.get_response()
-        assert response.status_code == 200
-        assert response.content == b"no-error"
+        assert response.status_code == 400
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_routing_properly(self):

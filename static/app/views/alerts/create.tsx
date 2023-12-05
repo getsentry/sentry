@@ -16,7 +16,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
 import MetricRulesCreate from 'sentry/views/alerts/rules/metric/create';
-import MetricRulesDuplicate from 'sentry/views/alerts/rules/metric/duplicate';
+import MetricRuleDuplicate from 'sentry/views/alerts/rules/metric/duplicate';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 import {
   AlertType as WizardAlertType,
@@ -98,12 +98,13 @@ class Create extends Component<Props, State> {
   render() {
     const {hasMetricAlerts, organization, project, location, members} = this.props;
     const {alertType} = this.state;
-    const {aggregate, dataset, eventTypes, createFromWizard, createFromDiscover} =
+    const {aggregate, dataset, eventTypes, createFromWizard, createFromDiscover, query} =
       location?.query ?? {};
     const wizardTemplate: WizardRuleTemplate = {
       aggregate: aggregate ?? DEFAULT_WIZARD_TEMPLATE.aggregate,
       dataset: dataset ?? DEFAULT_WIZARD_TEMPLATE.dataset,
       eventTypes: eventTypes ?? DEFAULT_WIZARD_TEMPLATE.eventTypes,
+      query: query ?? DEFAULT_WIZARD_TEMPLATE.query,
     };
     const eventView = createFromDiscover ? EventView.fromLocation(location) : undefined;
 
@@ -151,7 +152,7 @@ class Create extends Component<Props, State> {
                   {hasMetricAlerts &&
                     alertType === AlertRuleType.METRIC &&
                     (this.isDuplicateRule ? (
-                      <MetricRulesDuplicate
+                      <MetricRuleDuplicate
                         {...this.props}
                         eventView={eventView}
                         wizardTemplate={wizardTemplate}

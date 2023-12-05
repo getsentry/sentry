@@ -4,7 +4,7 @@ from sentry.models.actor import ActorTuple, get_actor_for_user
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.grouplink import GroupLink
 from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.options.user_option import UserOption
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -17,7 +17,8 @@ from sentry.models.rule import Rule
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.user import User
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.notifications.types import NotificationSettingEnum
+from sentry.notifications.utils.participants import get_notification_recipients
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.silo.base import SiloMode
 from sentry.snuba.models import SnubaQuery
@@ -29,7 +30,7 @@ from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectTest(APITestCase, TestCase):
     def test_member_set_simple(self):
         user = self.create_user()
@@ -326,7 +327,7 @@ class ProjectTest(APITestCase, TestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class CopyProjectSettingsTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -423,7 +424,12 @@ class CopyProjectSettingsTest(TestCase):
 
 class FilterToSubscribedUsersTest(TestCase):
     def run_test(self, users: Iterable[User], expected_users: Iterable[User]):
-        recipients = NotificationSetting.objects.filter_to_accepting_recipients(self.project, users)
+        recipients = get_notification_recipients(
+            recipients=RpcActor.many_from_object(users),
+            type=NotificationSettingEnum.ISSUE_ALERTS,
+            project_ids=[self.project.id],
+            organization_id=self.project.organization.id,
+        )
         actual_recipients = recipients[ExternalProviders.EMAIL]
         expected_recipients = {
             RpcActor.from_orm_user(user, fetch_actor=False) for user in expected_users
@@ -435,103 +441,84 @@ class FilterToSubscribedUsersTest(TestCase):
 
     def test_global_enabled(self):
         user = self.create_user()
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=user.id,
-        )
         self.run_test({user}, {user})
 
     def test_global_disabled(self):
         user = self.create_user()
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.NEVER,
+        NotificationSettingOption.objects.create(
             user_id=user.id,
+            scope_type="user",
+            scope_identifier=user.id,
+            type="alerts",
+            value="never",
         )
         self.run_test({user}, set())
 
     def test_project_enabled(self):
         user = self.create_user()
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.NEVER,
+
+        # disable default
+        NotificationSettingOption.objects.create(
             user_id=user.id,
+            scope_type="user",
+            scope_identifier=user.id,
+            type="alerts",
+            value="never",
         )
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.ALWAYS,
+        # override project
+        NotificationSettingOption.objects.create(
             user_id=user.id,
-            project=self.project,
+            scope_type="project",
+            scope_identifier=self.project.id,
+            type="alerts",
+            value="always",
         )
         self.run_test({user}, {user})
 
     def test_project_disabled(self):
         user = self.create_user()
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOption.objects.create(
             user_id=user.id,
-        )
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.NEVER,
-            user_id=user.id,
-            project=self.project,
+            scope_type="project",
+            scope_identifier=self.project.id,
+            type="alerts",
+            value="never",
         )
         self.run_test({user}, set())
 
     def test_mixed(self):
         user_global_enabled = self.create_user()
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=user_global_enabled.id,
-        )
-
         user_global_disabled = self.create_user()
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.NEVER,
+        NotificationSettingOption.objects.create(
             user_id=user_global_disabled.id,
+            scope_type="user",
+            scope_identifier=user_global_disabled.id,
+            type="alerts",
+            value="never",
         )
-
         user_project_enabled = self.create_user()
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.NEVER,
+        NotificationSettingOption.objects.create(
             user_id=user_project_enabled.id,
+            scope_type="user",
+            scope_identifier=user_project_enabled.id,
+            type="alerts",
+            value="never",
         )
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOption.objects.create(
             user_id=user_project_enabled.id,
-            project=self.project,
+            scope_type="project",
+            scope_identifier=self.project.id,
+            type="alerts",
+            value="always",
         )
 
         user_project_disabled = self.create_user()
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOption.objects.create(
             user_id=user_project_disabled.id,
-        )
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.NEVER,
-            user_id=user_project_disabled.id,
-            project=self.project,
+            scope_type="user",
+            scope_identifier=user_project_disabled.id,
+            type="alerts",
+            value="never",
         )
         self.run_test(
             {
@@ -544,7 +531,7 @@ class FilterToSubscribedUsersTest(TestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectDeletionTest(TestCase):
     def test_hybrid_cloud_deletion(self):
         proj = self.create_project()

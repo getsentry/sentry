@@ -15,19 +15,52 @@ import {IconDelete, IconPlay} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
+import RequestError from 'sentry/utils/requestError/requestError';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
   eventTimestampMs: number;
   orgSlug: string;
   replaySlug: string;
   buttonProps?: Partial<ComponentProps<typeof LinkButton>>;
+  focusTab?: TabKey;
 };
 
-function ReplayPreview({orgSlug, replaySlug, eventTimestampMs, buttonProps}: Props) {
+function getReplayAnalyticsStatus({
+  fetchError,
+  replayRecord,
+}: {
+  fetchError?: RequestError;
+  replayRecord?: ReplayRecord;
+}) {
+  if (fetchError) {
+    return 'error';
+  }
+
+  if (replayRecord?.is_archived) {
+    return 'archived';
+  }
+
+  if (replayRecord) {
+    return 'success';
+  }
+
+  return 'none';
+}
+
+function ReplayPreview({
+  buttonProps,
+  eventTimestampMs,
+  focusTab,
+  orgSlug,
+  replaySlug,
+}: Props) {
   const routes = useRoutes();
   const {fetching, replay, replayRecord, fetchError, replayId} = useReplayReader({
     orgSlug,
@@ -42,6 +75,10 @@ function ReplayPreview({orgSlug, replaySlug, eventTimestampMs, buttonProps}: Pro
 
     return 0;
   }, [eventTimestampMs, startTimestampMs]);
+
+  useRouteAnalyticsParams({
+    event_replay_status: getReplayAnalyticsStatus({fetchError, replayRecord}),
+  });
 
   if (replayRecord?.is_archived) {
     return (
@@ -114,7 +151,7 @@ function ReplayPreview({orgSlug, replaySlug, eventTimestampMs, buttonProps}: Pro
     pathname: normalizeUrl(`/organizations/${orgSlug}/replays/${replayId}/`),
     query: {
       referrer: getRouteStringFromRoutes(routes),
-      t_main: 'console',
+      t_main: focusTab ?? TabKey.ERRORS,
       t: initialTimeOffsetMs / 1000,
     },
   };
@@ -139,9 +176,6 @@ function ReplayPreview({orgSlug, replaySlug, eventTimestampMs, buttonProps}: Pro
             {t('Open Replay')}
           </LinkButton>
         </CTAOverlay>
-        <BadgeContainer>
-          <FeatureText>{t('Replays')}</FeatureText>
-        </BadgeContainer>
       </PlayerContainer>
     </ReplayContextProvider>
   );
@@ -167,25 +201,6 @@ const CTAOverlay = styled('div')`
   justify-content: center;
   align-items: center;
   background: rgba(255, 255, 255, 0.5);
-`;
-
-const BadgeContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  position: absolute;
-  top: ${space(1)};
-  right: ${space(1)};
-  background: ${p => p.theme.background};
-  border-radius: 2.25rem;
-  padding: ${space(0.75)} ${space(0.75)} ${space(0.75)} ${space(1)};
-  box-shadow: ${p => p.theme.dropShadowLight};
-  gap: 0 ${space(0.25)};
-`;
-
-const FeatureText = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  line-height: 0;
-  color: ${p => p.theme.text};
 `;
 
 const StyledPlaceholder = styled(Placeholder)`

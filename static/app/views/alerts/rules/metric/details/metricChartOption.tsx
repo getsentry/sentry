@@ -12,6 +12,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {SessionApiResponse} from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
+import {formatMRIField} from 'sentry/utils/metrics/mri';
 import {getCrashFreeRateSeries} from 'sentry/utils/sessions';
 import {lightTheme as theme} from 'sentry/utils/theme';
 import {
@@ -143,8 +144,8 @@ export type MetricChartData = {
   timeseriesData: Series[];
   handleIncidentClick?: (incident: Incident) => void;
   incidents?: Incident[];
-  isOnDemandMetricAlert?: boolean;
   selectedIncident?: Incident | null;
+  showWaitingForData?: boolean;
 };
 
 type MetricChartOption = {
@@ -161,7 +162,7 @@ export function getMetricAlertChartOption({
   incidents,
   selectedIncident,
   handleIncidentClick,
-  isOnDemandMetricAlert,
+  showWaitingForData,
 }: MetricChartData): MetricChartOption {
   const criticalTrigger = rule.triggers.find(
     ({label}) => label === AlertRuleTriggerType.CRITICAL
@@ -170,7 +171,10 @@ export function getMetricAlertChartOption({
     ({label}) => label === AlertRuleTriggerType.WARNING
   );
 
-  const series: AreaChartSeries[] = [...timeseriesData];
+  const series: AreaChartSeries[] = timeseriesData.map(s => ({
+    ...s,
+    seriesName: s.seriesName && formatMRIField(s.seriesName),
+  }));
   const areaSeries: AreaChartSeries[] = [];
   // Ensure series data appears below incident/mark lines
   series[0].z = 1;
@@ -207,7 +211,7 @@ export function getMetricAlertChartOption({
     createStatusAreaSeries(theme.green300, firstPoint, lastPoint, minChartValue)
   );
 
-  if (isOnDemandMetricAlert) {
+  if (showWaitingForData) {
     const {startIndex, endIndex} = getWaitingForDataRange(dataArr);
     const startTime = new Date(dataArr[startIndex]?.name).getTime();
     const endTime = new Date(dataArr[endIndex]?.name).getTime();

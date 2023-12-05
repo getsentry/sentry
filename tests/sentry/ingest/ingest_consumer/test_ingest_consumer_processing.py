@@ -1,11 +1,19 @@
+from __future__ import annotations
+
 import datetime
 import time
 import uuid
 import zipfile
 from io import BytesIO
+from typing import Any
 from unittest.mock import Mock
 
 import pytest
+from arroyo.backends.kafka.consumer import KafkaPayload
+from arroyo.backends.local.backend import LocalBroker
+from arroyo.backends.local.storages.memory import MemoryMessageStorage
+from arroyo.types import Partition, Topic
+from django.conf import settings
 
 from sentry.event_manager import EventManager
 from sentry.ingest.consumer.processors import (
@@ -19,9 +27,12 @@ from sentry.models.eventattachment import EventAttachment
 from sentry.models.eventuser import EventUser
 from sentry.models.files.file import File
 from sentry.models.userreport import UserReport
+from sentry.options import set
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
+from sentry.usage_accountant import accountant
 from sentry.utils import json
+from sentry.utils.json import loads
 
 pytestmark = [requires_snuba]
 
@@ -45,6 +56,13 @@ def get_normalized_event(data, project):
 def save_event_transaction(monkeypatch):
     mock = Mock()
     monkeypatch.setattr("sentry.ingest.consumer.processors.save_event_transaction", mock)
+    return mock
+
+
+@pytest.fixture
+def save_event_feedback(monkeypatch):
+    mock = Mock()
+    monkeypatch.setattr("sentry.ingest.consumer.processors.save_event_feedback", mock)
     return mock
 
 
@@ -136,6 +154,106 @@ def test_transactions_spawn_save_event_transaction(
         event_id=event_id,
         project_id=project_id,
     )
+
+
+@django_db_all
+def test_accountant_transaction(default_project):
+    storage: MemoryMessageStorage[KafkaPayload] = MemoryMessageStorage()
+    broker = LocalBroker(storage)
+    topic = Topic("shared-resources-usage")
+    broker.create_topic(topic, 1)
+    producer = broker.get_producer()
+
+    set("shared_resources_accounting_enabled", [settings.EVENT_PROCESSING_STORE])
+
+    accountant.init_backend(producer)
+
+    now = datetime.datetime.now()
+    event = {
+        "type": "transaction",
+        "timestamp": now.isoformat(),
+        "start_timestamp": now.isoformat(),
+        "spans": [],
+        "contexts": {
+            "trace": {
+                "parent_span_id": "8988cec7cc0779c1",
+                "type": "trace",
+                "op": "foobar",
+                "trace_id": "a7d67cf796774551a95be6543cacd459",
+                "span_id": "babaae0d4b7512d9",
+                "status": "ok",
+            }
+        },
+    }
+    payload = get_normalized_event(event, default_project)
+    serialized = json.dumps(payload)
+    process_event(
+        {
+            "payload": serialized,
+            "start_time": time.time() - 3600,
+            "event_id": payload["event_id"],
+            "project_id": default_project.id,
+            "remote_addr": "127.0.0.1",
+        },
+        project=default_project,
+    )
+
+    accountant._shutdown()
+    msg1 = broker.consume(Partition(topic, 0), 0)
+    assert msg1 is not None
+    payload = msg1.payload
+    assert payload is not None
+    formatted = loads(payload.value.decode("utf-8"))
+    assert formatted["shared_resource_id"] == settings.EVENT_PROCESSING_STORE
+    assert formatted["app_feature"] == "transactions"
+    assert formatted["usage_unit"] == "bytes"
+    assert formatted["amount"] == len(serialized)
+
+
+@django_db_all
+def test_feedbacks_spawn_save_event_feedback(
+    default_project, task_runner, preprocess_event, save_event_feedback, monkeypatch
+):
+    monkeypatch.setattr("sentry.features.has", lambda *a, **kw: True)
+
+    project_id = default_project.id
+    now = datetime.datetime.now()
+    event: dict[str, Any] = {
+        "type": "feedback",
+        "timestamp": now.isoformat(),
+        "start_timestamp": now.isoformat(),
+        "spans": [],
+        "contexts": {
+            "feedback": {
+                "contact_email": "test_test.com",
+                "message": "I really like this user-feedback feature!",
+                "replay_id": "ec3b4dc8b79f417596f7a1aa4fcca5d2",
+                "url": "https://docs.sentry.io/platforms/javascript/",
+                "name": "Colton Allen",
+                "type": "feedback",
+            },
+        },
+    }
+    payload = get_normalized_event(event, default_project)
+    event_id = payload["event_id"]
+    start_time = time.time() - 3600
+    process_event(
+        {
+            "payload": json.dumps(payload),
+            "start_time": start_time,
+            "event_id": event_id,
+            "project_id": project_id,
+            "remote_addr": "127.0.0.1",
+        },
+        project=default_project,
+    )
+    assert not len(preprocess_event)
+    assert save_event_feedback.delay.call_args[0] == ()
+    assert (
+        save_event_feedback.delay.call_args[1]["data"]["contexts"]["feedback"]
+        == event["contexts"]["feedback"]
+    )
+    assert save_event_feedback.delay.call_args[1]["data"]["type"] == "feedback"
 
 
 @django_db_all
@@ -380,9 +498,6 @@ def test_userreport(django_cache, default_project, monkeypatch):
     mgr.normalize()
     mgr.save(default_project.id)
 
-    (evtuser,) = EventUser.objects.all()
-    assert not evtuser.name
-
     assert not UserReport.objects.all()
 
     assert process_userreport(
@@ -404,9 +519,6 @@ def test_userreport(django_cache, default_project, monkeypatch):
 
     (report,) = UserReport.objects.all()
     assert report.comments == "hello world"
-
-    (evtuser,) = EventUser.objects.all()
-    assert evtuser.name == "Hans Gans"
 
 
 @django_db_all

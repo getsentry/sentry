@@ -4,6 +4,7 @@ import re
 from typing import Any
 from unittest.mock import patch
 
+from sentry.api.fields.sentry_slug import ORG_SLUG_PATTERN
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models.authenticator import Authenticator
 from sentry.models.organization import Organization, OrganizationStatus
@@ -12,7 +13,6 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
@@ -25,7 +25,7 @@ class OrganizationIndexTest(APITestCase):
         self.login_as(self.user)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationsListTest(OrganizationIndexTest):
     def test_membership(self):
         org = self.organization  # force creation
@@ -108,7 +108,7 @@ class OrganizationsListTest(OrganizationIndexTest):
         assert len(response.data) == 0
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
     method = "post"
 
@@ -164,7 +164,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         OrganizationMemberTeam.objects.get(organizationmember_id=org_member.id, team_id=team.id)
 
     def test_slugs(self):
-        valid_slugs = ["santry", "downtown-canada", "1234", "CaNaDa"]
+        valid_slugs = ["santry", "downtown-canada", "1234-foo", "CaNaDa"]
         for input_slug in valid_slugs:
             self.organization.refresh_from_db()
             response = self.get_success_response(name=input_slug, slug=input_slug)
@@ -180,8 +180,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
             self.get_error_response(name="name", slug="canada-", status_code=400)
             self.get_error_response(name="name", slug="-canada", status_code=400)
             self.get_error_response(name="name", slug="----", status_code=400)
-            with override_options({"api.prevent-numeric-slugs": True}):
-                self.get_error_response(name="name", slug="1234", status_code=400)
+            self.get_error_response(name="name", slug="1234", status_code=400)
 
     def test_without_slug(self):
         response = self.get_success_response(name="hello world")
@@ -190,7 +189,6 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         org = Organization.objects.get(id=organization_id)
         assert org.slug == "hello-world"
 
-    @override_options({"api.prevent-numeric-slugs": True})
     def test_generated_slug_not_entirely_numeric(self):
         response = self.get_success_response(name="1234")
 
@@ -208,7 +206,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         org = Organization.objects.get(id=response.data["id"])
         assert org.slug == "foo"
 
-        org_slug_pattern = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$")
+        org_slug_pattern = re.compile(ORG_SLUG_PATTERN)
 
         response = self.get_success_response(name="---foo---")
         org = Organization.objects.get(id=response.data["id"])
@@ -236,9 +234,9 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         assert org.slug == "canada"
         assert org_slug_pattern.match(org.slug)
 
-        response = self.get_success_response(name="1234")
+        response = self.get_success_response(name="1234-foo")
         org = Organization.objects.get(id=response.data["id"])
-        assert org.slug == "1234"
+        assert org.slug == "1234-foo"
         assert org_slug_pattern.match(org.slug)
 
     def test_required_terms_with_terms_url(self):
@@ -282,7 +280,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         self.assert_org_member_mapping(org_member=org_member)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationIndex2faTest(TwoFactorAPITestCase):
     endpoint = "sentry-organization-home"
 
@@ -331,7 +329,7 @@ class OrganizationIndex2faTest(TwoFactorAPITestCase):
         self.get_success_response(self.org_2fa.slug)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationIndexMemberLimitTest(APITestCase):
     endpoint = "sentry-organization-index"
 

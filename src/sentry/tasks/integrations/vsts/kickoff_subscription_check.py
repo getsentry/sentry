@@ -9,7 +9,7 @@ from sentry.tasks.base import instrumented_task, retry
 
 @instrumented_task(
     name="sentry.tasks.integrations.kickoff_vsts_subscription_check",
-    queue="integrations",
+    queue="integrations.control",
     default_retry_delay=60 * 5,
     max_retries=5,
     silo_mode=SiloMode.CONTROL,

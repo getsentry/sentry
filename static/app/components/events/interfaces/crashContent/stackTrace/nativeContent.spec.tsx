@@ -1,5 +1,5 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
 import {EventEntryStacktrace} from 'sentry-fixture/eventEntryStacktrace';
-import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -8,7 +8,7 @@ import {EventOrGroupType} from 'sentry/types';
 import {StacktraceType} from 'sentry/types/stacktrace';
 
 const eventEntryStacktrace = EventEntryStacktrace();
-const event = TestStubs.Event({
+const event = EventFixture({
   entries: [eventEntryStacktrace],
   type: EventOrGroupType.ERROR,
 });
@@ -30,11 +30,17 @@ function renderedComponent(
     />
   );
 }
-describe('with stacktrace improvements feature flag enabled', function () {
-  const organization = Organization({
-    features: ['issue-details-stacktrace-improvements'],
+describe('Native StackTrace', function () {
+  beforeEach(() => {
+    const promptResponse = {
+      dismissed_ts: undefined,
+      snoozed_ts: undefined,
+    };
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      body: promptResponse,
+    });
   });
-
   it('does not render non in app tags', function () {
     const dataFrames = [...data.frames];
     dataFrames[0] = {...dataFrames[0], inApp: false};
@@ -45,7 +51,6 @@ describe('with stacktrace improvements feature flag enabled', function () {
     };
 
     renderedComponent({
-      organization,
       data: newData,
     });
 
@@ -62,7 +67,6 @@ describe('with stacktrace improvements feature flag enabled', function () {
     };
 
     renderedComponent({
-      organization,
       data: newData,
       includeSystemFrames: false,
     });
@@ -84,7 +88,6 @@ describe('with stacktrace improvements feature flag enabled', function () {
     };
 
     renderedComponent({
-      organization,
       data: newData,
       includeSystemFrames: false,
     });
@@ -106,7 +109,6 @@ describe('with stacktrace improvements feature flag enabled', function () {
     };
 
     renderedComponent({
-      organization,
       data: newData,
       includeSystemFrames: false,
     });

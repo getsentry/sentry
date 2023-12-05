@@ -2,7 +2,7 @@ import responses
 from django.test import override_settings
 
 from sentry import options
-from sentry.integrations.discord.client import DiscordClient
+from sentry.integrations.discord.client import GUILD_URL, DiscordClient
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
@@ -40,7 +40,7 @@ class DiscordClientTest(TestCase):
 
         responses.add(
             responses.GET,
-            url=f"{DiscordClient.base_url}{DiscordClient.GUILD_URL.format(guild_id=guild_id)}",
+            url=f"{DiscordClient.base_url}{GUILD_URL.format(guild_id=guild_id)}",
             json={
                 "id": guild_id,
                 "name": server_name,
@@ -86,14 +86,14 @@ class DiscordProxyClientTest(TestCase):
 
         responses.add(
             method=responses.GET,
-            url=f"{DiscordClient.base_url}{DiscordClient.GUILD_URL.format(guild_id=self.integration.external_id)}",
+            url=f"{DiscordClient.base_url}{GUILD_URL.format(guild_id=self.integration.external_id)}",
             json={"guild_id": "1234567890", "name": "Cool server"},
             status=200,
         )
 
         responses.add(
             method=responses.GET,
-            url=f"{control_address}{PROXY_BASE_PATH}{DiscordClient.GUILD_URL.format(guild_id=self.integration.external_id)}",
+            url=f"{control_address}{PROXY_BASE_PATH}{GUILD_URL.format(guild_id=self.integration.external_id)}",
             json={"guild_id": "1234567890", "name": "Cool server"},
             status=200,
         )
@@ -103,7 +103,7 @@ class DiscordProxyClientTest(TestCase):
             client.get_guild_name(self.integration.external_id)
             request = responses.calls[0].request
 
-            assert client.GUILD_URL.format(guild_id=self.integration.external_id) in request.url
+            assert GUILD_URL.format(guild_id=self.integration.external_id) in request.url
             assert client.base_url in request.url
             client.assert_proxy_request(request, is_proxy=False)
 
@@ -113,7 +113,7 @@ class DiscordProxyClientTest(TestCase):
             client.get_guild_name(self.integration.external_id)
             request = responses.calls[0].request
 
-            assert client.GUILD_URL.format(guild_id=self.integration.external_id) in request.url
+            assert GUILD_URL.format(guild_id=self.integration.external_id) in request.url
             assert client.base_url in request.url
             client.assert_proxy_request(request, is_proxy=False)
 
@@ -123,6 +123,6 @@ class DiscordProxyClientTest(TestCase):
             client.get_guild_name(self.integration.external_id)
             request = responses.calls[0].request
 
-            assert client.GUILD_URL.format(guild_id=self.integration.external_id) in request.url
+            assert GUILD_URL.format(guild_id=self.integration.external_id) in request.url
             assert client.base_url not in request.url
             client.assert_proxy_request(request, is_proxy=True)

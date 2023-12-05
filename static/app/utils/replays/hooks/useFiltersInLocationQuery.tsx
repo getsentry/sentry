@@ -9,7 +9,7 @@ function useFiltersInLocationQuery<Q extends Query>() {
 
   const setFilter = useCallback(
     (updatedQuery: Partial<Q>) => {
-      browserHistory.push({pathname, query: {...query, ...updatedQuery}});
+      browserHistory.replace({pathname, query: {...query, ...updatedQuery}});
     },
     [pathname, query]
   );

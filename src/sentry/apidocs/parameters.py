@@ -278,6 +278,16 @@ keys if not specified.
             description=description,
         )
 
+    @staticmethod
+    def source_id(description: str, required: bool) -> OpenApiParameter:
+        return OpenApiParameter(
+            name="id",
+            location="query",
+            required=required,
+            type=str,
+            description=description,
+        )
+
 
 class TeamParams:
     DETAILED = OpenApiParameter(

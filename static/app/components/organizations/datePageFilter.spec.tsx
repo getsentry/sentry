@@ -142,6 +142,7 @@ describe('DatePageFilter', function () {
     PageFiltersStore.reset();
     initializeUrlState({
       memberProjects: [],
+      nonMemberProjects: [],
       organization: desyncOrganization,
       queryParams: {statsPeriod: '14d'},
       router: desyncRouter,

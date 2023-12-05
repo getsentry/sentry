@@ -112,7 +112,8 @@ def test_synchronized_consumer() -> None:
                         "leader-a",
                         Partition(topic, 0),
                         messages[0].next_offset,
-                        datetime.now(),
+                        datetime.now().timestamp(),
+                        None,
                     ),
                 ),
             ).result(),
@@ -134,7 +135,8 @@ def test_synchronized_consumer() -> None:
                         "leader-b",
                         Partition(topic, 0),
                         messages[0].next_offset,
-                        datetime.now(),
+                        datetime.now().timestamp(),
+                        None,
                     )
                 ),
             ).result(),
@@ -164,7 +166,13 @@ def test_synchronized_consumer() -> None:
         producer.produce(
             commit_log_topic,
             commit_codec.encode(
-                Commit("leader-a", Partition(topic, 0), messages[3].offset, datetime.now())
+                Commit(
+                    "leader-a",
+                    Partition(topic, 0),
+                    messages[3].offset,
+                    datetime.now().timestamp(),
+                    None,
+                )
             ),
         ).result()
 
@@ -177,7 +185,8 @@ def test_synchronized_consumer() -> None:
                         "leader-b",
                         Partition(topic, 0),
                         messages[5].offset,
-                        datetime.now(),
+                        datetime.now().timestamp(),
+                        None,
                     )
                 ),
             ).result(),
@@ -218,7 +227,8 @@ def test_synchronized_consumer() -> None:
                         "leader-a",
                         Partition(topic, 0),
                         messages[5].offset,
-                        datetime.now(),
+                        datetime.now().timestamp(),
+                        None,
                     )
                 ),
             ).result(),
@@ -280,7 +290,8 @@ def test_synchronized_consumer_pause_resume() -> None:
                         "leader",
                         Partition(topic, 0),
                         messages[0].next_offset,
-                        datetime.now(),
+                        datetime.now().timestamp(),
+                        None,
                     )
                 ),
             ).result(),
@@ -356,7 +367,8 @@ def test_synchronized_consumer_handles_end_of_partition() -> None:
                         "leader",
                         Partition(topic, 0),
                         messages[0].next_offset,
-                        datetime.now(),
+                        datetime.now().timestamp(),
+                        None,
                     ),
                 ),
             ).result(),
@@ -375,7 +387,8 @@ def test_synchronized_consumer_handles_end_of_partition() -> None:
                         "leader",
                         Partition(topic, 0),
                         messages[1].next_offset,
-                        datetime.now(),
+                        datetime.now().timestamp(),
+                        None,
                     ),
                 ),
             ).result(),

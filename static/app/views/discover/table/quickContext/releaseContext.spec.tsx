@@ -36,7 +36,9 @@ const renderReleaseContext = () => {
 describe('Quick Context Content Release Column', function () {
   beforeEach(() => {
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/releases/backend@22.10.0+aaf33944f93dc8fa4234ca046a8d88fb1dccfb76/',
+      url: `/organizations/org-slug/releases/${encodeURIComponent(
+        'backend@22.10.0+aaf33944f93dc8fa4234ca046a8d88fb1dccfb76'
+      )}/`,
       body: mockedReleaseWithHealth,
     });
   });

@@ -19,3 +19,8 @@ def initialize_replays_publisher(is_async=False) -> KafkaPublisher:
         )
 
     return replay_publisher
+
+
+def clear_replay_publisher() -> None:
+    global replay_publisher
+    replay_publisher = None

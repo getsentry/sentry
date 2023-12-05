@@ -1,7 +1,7 @@
 """Scalar query filtering configuration module."""
 from __future__ import annotations
 
-from typing import Union
+from typing import Sequence, Union
 
 from sentry.api.event_search import ParenExpression, SearchFilter
 from sentry.replays.lib.new_query.conditions import IPv4Scalar, StringArray, StringScalar, UUIDArray
@@ -90,7 +90,7 @@ scalar_search_config = {**static_search_config, **varying_search_config}
 
 
 def can_scalar_search_subquery(
-    search_filters: list[Union[ParenExpression, SearchFilter, str]]
+    search_filters: Sequence[Union[ParenExpression, SearchFilter, str]]
 ) -> bool:
     """Return "True" if a scalar event search can be performed."""
     has_seen_varying_field = False

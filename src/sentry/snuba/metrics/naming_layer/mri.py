@@ -25,14 +25,26 @@ __all__ = (
     "ErrorsMRI",
     "parse_mri",
     "get_available_operations",
+    "is_mri_field",
+    "parse_mri_field",
+    "format_mri_field",
+    "format_mri_field_value",
 )
 
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, cast
 
-from sentry.snuba.metrics.utils import AVAILABLE_GENERIC_OPERATIONS, AVAILABLE_OPERATIONS, OP_REGEX
+from sentry.api.utils import InvalidParams
+from sentry.snuba.metrics.units import format_value_using_unit_and_op
+from sentry.snuba.metrics.utils import (
+    AVAILABLE_GENERIC_OPERATIONS,
+    AVAILABLE_OPERATIONS,
+    OP_REGEX,
+    MetricOperationType,
+    MetricUnit,
+)
 
 NAMESPACE_REGEX = r"(transactions|errors|issues|sessions|alerts|custom|spans|escalating_issues)"
 ENTITY_TYPE_REGEX = r"(c|s|d|g|e)"
@@ -152,6 +164,9 @@ class SpanMRI(Enum):
     DURATION = "d:spans/duration@millisecond"
     SELF_TIME = "d:spans/exclusive_time@millisecond"
     SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
+    RESPONSE_CONTENT_LENGTH = "d:spans/http.response_content_length@byte"
+    DECODED_RESPONSE_CONTENT_LENGTH = "d:spans/http.decoded_response_content_length@byte"
+    RESPONSE_TRANSFER_SIZE = "d:spans/http.response_transfer_size@byte"
 
     # Derived
     ALL = "e:spans/all@none"
@@ -178,8 +193,82 @@ class ParsedMRI:
         return f"{self.entity}:{self.namespace}/{self.name}@{self.unit}"
 
 
-def parse_mri(mri_string: str) -> Optional[ParsedMRI]:
-    """Parse a mri string to determine its entity, namespace, name and unit"""
+@dataclass
+class ParsedMRIField:
+    op: MetricOperationType
+    mri: ParsedMRI
+
+    def __str__(self) -> str:
+        return f"{self.op}({self.mri.name})"
+
+
+def parse_mri_field(field: Optional[str]) -> Optional[ParsedMRIField]:
+    if field is None:
+        return None
+
+    matches = MRI_EXPRESSION_REGEX.match(field)
+
+    if matches is None:
+        return None
+
+    try:
+        op = cast(MetricOperationType, matches[1])
+        mri = ParsedMRI(**matches.groupdict())
+    except (IndexError, TypeError):
+        return None
+
+    return ParsedMRIField(op=op, mri=mri)
+
+
+def is_mri_field(field: str) -> bool:
+    """
+    Returns True if the passed value is an MRI field.
+    """
+    return parse_mri_field(field) is not None
+
+
+def format_mri_field(field: str) -> str:
+    """
+    Format a metric field to be used in a metric expression.
+
+    For example, if the field is `avg(c:custom/foo@none)`, it will be returned as `avg(foo)`.
+    """
+    try:
+        parsed = parse_mri_field(field)
+
+        return str(parsed) if parsed else field
+    except InvalidParams:
+        return field
+
+
+def format_mri_field_value(field: str, value: str) -> str:
+    """
+    Formats MRI field value to a human-readable format using unit.
+
+    For example, if the value of avg(c:custom/duration@second) is 60,
+    it will be returned as 1 minute.
+
+    """
+
+    try:
+        parsed_mri_field = parse_mri_field(field)
+        if parsed_mri_field is None:
+            return value
+
+        unit = cast(MetricUnit, parsed_mri_field.mri.unit)
+
+        return format_value_using_unit_and_op(float(value), unit, parsed_mri_field.op)
+    except InvalidParams:
+        return value
+
+
+def parse_mri(mri_string: Optional[str]) -> Optional[ParsedMRI]:
+    """
+    Parse a mri string to determine its entity, namespace, name and unit.
+    """
+    if mri_string is None:
+        return None
+
     match = MRI_SCHEMA_REGEX.match(mri_string)
     if match is None:
         return None
@@ -187,11 +276,26 @@ def parse_mri(mri_string: str) -> Optional[ParsedMRI]:
     return ParsedMRI(**match.groupdict())
 
 
+def is_mri(mri_string: Optional[str]) -> bool:
+    """
+    Returns true if the passed value is a mri.
+    """
+    return parse_mri(mri_string) is not None
+
+
+def is_custom_metric(parsed_mri: ParsedMRI) -> bool:
+    """
+    A custom mri is a mri which uses the custom namespace, and it's different from a custom measurement.
+    """
+    return parsed_mri.namespace == "custom"
+
+
 def is_custom_measurement(parsed_mri: ParsedMRI) -> bool:
-    """A custom measurement won't use the custom namespace, but will be under the transaction namespace
+    """
+    A custom measurement won't use the custom namespace, but will be under the transaction namespace.
 
     This checks the namespace, and name to match what we expect first before iterating through the
-    members of the transaction MRI enum to make sure it isn't a standard measurement
+    members of the transaction MRI enum to make sure it isn't a standard measurement.
     """
     return (
         parsed_mri.namespace == "transactions"

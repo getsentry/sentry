@@ -44,7 +44,7 @@ from sentry.constants import (
     SCRAPE_JAVASCRIPT_DEFAULT,
     SENSITIVE_FIELDS_DEFAULT,
 )
-from sentry.datascrubbing import validate_pii_config_update
+from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
     STORE_CRASH_REPORTS_DEFAULT,
@@ -250,7 +250,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     def validate_safeFields(self, value):
         if value and not all(value):
             raise serializers.ValidationError("Empty values are not allowed.")
-        return value
+        return validate_pii_selectors(value)
 
     def validate_attachmentsRole(self, value):
         try:
@@ -602,23 +602,21 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             context={"organization": organization, "user": request.user, "request": request},
         )
         if serializer.is_valid():
+            slug_change_requested = "slug" in request.data and request.data["slug"]
+
+            # Attempt slug change first as it's a more complex, control-silo driven workflow.
+            if slug_change_requested:
+                slug = request.data["slug"]
+                try:
+                    organization_provisioning_service.change_organization_slug(
+                        organization_id=organization.id, slug=slug
+                    )
+                except OrganizationSlugCollisionException:
+                    return self.respond(
+                        {"slug": ["An organization with this slug already exists."]},
+                        status=status.HTTP_409_CONFLICT,
+                    )
             with transaction.atomic(router.db_for_write(Organization)):
-                slug_change_requested = "slug" in request.data and request.data["slug"]
-
-                # Start with the slug change first, as this may fail independent of
-                # the remaining organization changes.
-                if slug_change_requested:
-                    slug = request.data["slug"]
-                    try:
-                        organization_provisioning_service.modify_organization_slug(
-                            organization_id=organization.id, slug=slug
-                        )
-                    except OrganizationSlugCollisionException:
-                        return self.respond(
-                            {"slug": ["An organization with this slug already exists."]},
-                            status=status.HTTP_409_CONFLICT,
-                        )
-
                 organization, changed_data = serializer.save()
 
             if was_pending_deletion:

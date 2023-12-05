@@ -266,8 +266,8 @@ describe('ReleasesList', () => {
       organization,
     });
 
-    const input = await screen.findByRole('textbox');
-    expect(input).toHaveValue('derp ');
+    const input = await screen.findByDisplayValue('derp');
+    expect(input).toBeInTheDocument();
 
     expect(endpointMock).toHaveBeenCalledWith(
       '/organizations/org-slug/releases/',

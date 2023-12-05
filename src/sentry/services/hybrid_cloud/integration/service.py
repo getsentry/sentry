@@ -5,7 +5,7 @@
 
 from abc import abstractmethod
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from sentry.models.integrations.organization_integration import (
     OrganizationIntegration,
@@ -92,6 +92,7 @@ class IntegrationService(RpcService):
         external_id: Optional[str] = None,
         organization_id: Optional[int] = None,
         organization_integration_id: Optional[int] = None,
+        status: Optional[int] = None,
     ) -> Optional[RpcIntegration]:
         """
         Returns an RpcIntegration using either the id or a combination of the provider and external_id
@@ -287,6 +288,4 @@ class IntegrationService(RpcService):
         pass
 
 
-integration_service: IntegrationService = cast(
-    IntegrationService, IntegrationService.create_delegation()
-)
+integration_service = IntegrationService.create_delegation()

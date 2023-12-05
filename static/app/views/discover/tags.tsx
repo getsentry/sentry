@@ -29,6 +29,7 @@ type Props = {
   organization: Organization;
   totalValues: null | number;
   confirmedQuery?: boolean;
+  onTagValueClick?: (title: string, value: TagSegment) => void;
 };
 
 type State = {
@@ -133,7 +134,7 @@ class Tags extends Component<Props, State> {
   };
 
   renderTag(tag: Tag, index: number) {
-    const {generateUrl, totalValues} = this.props;
+    const {generateUrl, onTagValueClick, totalValues} = this.props;
 
     const segments: TagSegment[] = tag.topValues.map(segment => {
       segment.url = generateUrl(tag.key, segment.value);
@@ -153,6 +154,7 @@ class Tags extends Component<Props, State> {
           segments={segments}
           totalValues={Number(maxTotalValues)}
           expandByDefault={index === 0}
+          onTagValueClick={onTagValueClick}
         />
       </li>
     );
@@ -187,7 +189,8 @@ class Tags extends Component<Props, State> {
     if (tags.length > 0) {
       return (
         <Fragment>
-          <StyledTagFacetList>
+          {/* sentry-discover-tags-chromext depends on a stable id */}
+          <StyledTagFacetList id="tag-facet-list">
             {tags.map((tag, index) => this.renderTag(tag, index))}
           </StyledTagFacetList>
           {hasMore &&

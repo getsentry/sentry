@@ -15,16 +15,22 @@ export type IssueTypeConfig = {
    * Enable/disable actions for an issue type
    */
   actions: {
+    archiveUntilOccurrence: DisabledWithReasonConfig;
     delete: DisabledWithReasonConfig;
     deleteAndDiscard: DisabledWithReasonConfig;
     ignore: DisabledWithReasonConfig;
     merge: DisabledWithReasonConfig;
+    resolveInRelease: DisabledWithReasonConfig;
     share: DisabledWithReasonConfig;
   };
   /**
    * Is the Attachments tab shown for this issue
    */
   attachments: DisabledWithReasonConfig;
+  /**
+   * Is the "Open in Discover" button available for this issue
+   */
+  discover: DisabledWithReasonConfig;
   /**
    * Is the Events tab show for this issue
    */
@@ -40,6 +46,10 @@ export type IssueTypeConfig = {
    * Is the Merged Issues tab shown for this issue
    */
   mergedIssues: DisabledWithReasonConfig;
+  /**
+   * Enables various regression related supporting data for an issue type.
+   */
+  regression: DisabledWithReasonConfig;
   /**
    * Is the Replays tab shown for this issue
    */

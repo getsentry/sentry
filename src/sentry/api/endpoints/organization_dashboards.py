@@ -154,6 +154,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 "organization": organization,
                 "request": request,
                 "projects": self.get_projects(request, organization),
+                "environment": self.request.GET.getlist("environment"),
             },
         )
 

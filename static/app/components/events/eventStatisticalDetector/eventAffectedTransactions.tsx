@@ -1,27 +1,25 @@
-import {Fragment, useEffect, useMemo} from 'react';
-import styled from '@emotion/styled';
+import {useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {LineChart} from 'sentry/components/charts/lineChart';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
-import Link from 'sentry/components/links/link';
-import PerformanceDuration from 'sentry/components/performanceDuration';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconArrow} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
+import {t} from 'sentry/locale';
 import {Event, Group, Project} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
-import {tooltipFormatter} from 'sentry/utils/discover/charts';
-import {Container, NumberContainer} from 'sentry/utils/discover/styles';
-import {getDuration} from 'sentry/utils/formatters';
-import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useProfileTopEventsStats} from 'sentry/utils/profiling/hooks/useProfileTopEventsStats';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
-import {generateProfileSummaryRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {
+  generateProfileFlamechartRouteWithQuery,
+  generateProfileSummaryRouteWithQuery,
+} from 'sentry/utils/profiling/routes';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
+
+import {RELATIVE_DAYS_WINDOW} from './consts';
+import {EventRegressionTable} from './eventRegressionTable';
+import {useTransactionsDelta} from './transactionsDeltaProvider';
 
 interface EventAffectedTransactionsProps {
   event: Event;
@@ -36,6 +34,8 @@ export function EventAffectedTransactions({
   const evidenceData = event.occurrence?.evidenceData;
   const fingerprint = evidenceData?.fingerprint;
   const breakpoint = evidenceData?.breakpoint;
+  const frameName = evidenceData?.function;
+  const framePackage = evidenceData?.package || evidenceData?.module;
 
   const isValid = defined(fingerprint) && defined(breakpoint);
 
@@ -64,47 +64,48 @@ export function EventAffectedTransactions({
     <EventAffectedTransactionsInner
       breakpoint={breakpoint}
       fingerprint={fingerprint}
+      frameName={frameName}
+      framePackage={framePackage}
       project={project}
     />
   );
 }
 
-const TRANSACTIONS_LIMIT = 5;
+const TRANSACTIONS_LIMIT = 10;
+
+const ADDITIONAL_COLUMNS = [
+  {key: 'transaction', name: t('Transaction'), width: COL_WIDTH_UNDEFINED},
+];
 
 interface EventAffectedTransactionsInnerProps {
   breakpoint: number;
   fingerprint: number;
+  frameName: string;
+  framePackage: string;
   project: Project;
 }
 
 function EventAffectedTransactionsInner({
   breakpoint,
   fingerprint,
+  frameName,
+  framePackage,
   project,
 }: EventAffectedTransactionsInnerProps) {
+  const [causeType, setCauseType] = useState<'duration' | 'throughput'>('duration');
   const organization = useOrganization();
 
   const datetime = useRelativeDateTime({
     anchor: breakpoint,
-    relativeDays: 14,
+    relativeDays: RELATIVE_DAYS_WINDOW,
   });
+
+  const transactionsDeltaQuery = useTransactionsDelta();
 
   const percentileBefore = `percentile_before(function.duration, 0.95, ${breakpoint})`;
   const percentileAfter = `percentile_after(function.duration, 0.95, ${breakpoint})`;
-  const percentileDelta = `percentile_delta(function.duration, 0.95, ${breakpoint})`;
-
-  const transactionsDeltaQuery = useProfileFunctions({
-    datetime,
-    fields: ['transaction', percentileBefore, percentileAfter, percentileDelta],
-    sort: {
-      key: percentileDelta,
-      order: 'desc',
-    },
-    query: `fingerprint:${fingerprint} ${percentileDelta}:>0`,
-    projects: [project.id],
-    limit: TRANSACTIONS_LIMIT,
-    referrer: 'api.profiling.functions.regression.transactions',
-  });
+  const throughputBefore = `cpm_before(${breakpoint})`;
+  const throughputAfter = `cpm_after(${breakpoint})`;
 
   const query = useMemo(() => {
     const data = transactionsDeltaQuery.data?.data ?? [];
@@ -132,140 +133,225 @@ function EventAffectedTransactionsInner({
     query: query ?? '',
     enabled: defined(query),
     others: false,
-    referrer: 'api.profiling.functions.regression.stats', // TODO: update this
+    referrer: 'api.profiling.functions.regression.transaction-stats',
     topEvents: TRANSACTIONS_LIMIT,
-    yAxes: ['p95()', 'worst()'],
+    yAxes: ['worst()'],
   });
 
-  const timeseriesByTransaction: Record<string, Series> = useMemo(() => {
-    const allTimeseries: Record<string, Series> = {};
+  const examplesByTransaction = useMemo(() => {
+    const allExamples: Record<string, [string | null, string | null]> = {};
     if (!defined(functionStats.data)) {
-      return allTimeseries;
+      return allExamples;
     }
 
     const timestamps = functionStats.data.timestamps;
+    const breakpointIndex = timestamps.indexOf(breakpoint);
+    if (breakpointIndex < 0) {
+      return allExamples;
+    }
 
     transactionsDeltaQuery.data?.data?.forEach(row => {
       const transaction = row.transaction as string;
       const data = functionStats.data.data.find(
-        ({axis, label}) => axis === 'p95()' && label === transaction
+        ({axis, label}) => axis === 'worst()' && label === transaction
       );
       if (!defined(data)) {
         return;
       }
 
-      allTimeseries[transaction] = {
-        data: timestamps.map((timestamp, i) => {
-          return {
-            name: timestamp * 1000,
-            value: data.values[i],
-          };
-        }),
-        seriesName: 'p95()',
-      };
+      allExamples[transaction] = findExamplePair(data.values, breakpointIndex);
     });
 
-    return allTimeseries;
-  }, [transactionsDeltaQuery, functionStats]);
+    return allExamples;
+  }, [breakpoint, transactionsDeltaQuery, functionStats]);
 
-  const chartOptions = useMemo(() => {
-    return {
-      width: 300,
-      height: 20,
-      grid: {
-        top: '2px',
-        left: '2px',
-        right: '2px',
-        bottom: '2px',
-        containLabel: false,
-      },
-      xAxis: {
-        show: false,
-        type: 'time' as const,
-      },
-      yAxis: {
-        show: false,
-      },
-      tooltip: {
-        valueFormatter: value => tooltipFormatter(value, 'duration'),
-      },
-    };
-  }, []);
+  const tableData = useMemo(() => {
+    return (
+      transactionsDeltaQuery.data?.data.map(row => {
+        const [exampleBefore, exampleAfter] = examplesByTransaction[
+          row.transaction as string
+        ] ?? [null, null];
 
-  return (
-    <EventDataSection type="transactions-impacted" title={t('Transactions Impacted')}>
-      <ListContainer>
-        {(transactionsDeltaQuery.data?.data ?? []).map(transaction => {
-          const series = timeseriesByTransaction[transaction.transaction as string] ?? {
-            seriesName: 'p95()',
-            data: [],
+        if (causeType === 'throughput') {
+          const before = row[throughputBefore] as number;
+          const after = row[throughputAfter] as number;
+          return {
+            exampleBefore,
+            exampleAfter,
+            transaction: row.transaction,
+            throughputBefore: before,
+            throughputAfter: after,
+            percentageChange: after / before - 1,
           };
+        }
 
-          const summaryTarget = generateProfileSummaryRouteWithQuery({
+        const before = (row[percentileBefore] as number) / 1e9;
+        const after = (row[percentileAfter] as number) / 1e9;
+        return {
+          exampleBefore,
+          exampleAfter,
+          transaction: row.transaction,
+          durationBefore: before,
+          durationAfter: after,
+          percentageChange: after / before - 1,
+        };
+      }) || []
+    );
+  }, [
+    causeType,
+    percentileBefore,
+    percentileAfter,
+    throughputBefore,
+    throughputAfter,
+    transactionsDeltaQuery.data?.data,
+    examplesByTransaction,
+  ]);
+
+  const options = useMemo(() => {
+    function handleGoToProfile() {
+      trackAnalytics('profiling_views.go_to_flamegraph', {
+        organization,
+        source: 'profiling.issue.function_regression.transactions',
+      });
+    }
+
+    const before = dataRow =>
+      defined(dataRow.exampleBefore)
+        ? {
+            target: generateProfileFlamechartRouteWithQuery({
+              orgSlug: organization.slug,
+              projectSlug: project.slug,
+              profileId: dataRow.exampleBefore,
+              query: {
+                frameName,
+                framePackage,
+              },
+            }),
+            onClick: handleGoToProfile,
+          }
+        : undefined;
+
+    const after = dataRow =>
+      defined(dataRow.exampleAfter)
+        ? {
+            target: generateProfileFlamechartRouteWithQuery({
+              orgSlug: organization.slug,
+              projectSlug: project.slug,
+              profileId: dataRow.exampleAfter,
+              query: {
+                frameName,
+                framePackage,
+              },
+            }),
+            onClick: handleGoToProfile,
+          }
+        : undefined;
+
+    return {
+      transaction: {
+        link: dataRow => ({
+          target: generateProfileSummaryRouteWithQuery({
             orgSlug: organization.slug,
             projectSlug: project.slug,
-            transaction: transaction.transaction as string,
-          });
-          return (
-            <Fragment key={transaction.transaction as string}>
-              <Container>
-                <Link to={summaryTarget}>{transaction.transaction}</Link>
-              </Container>
-              <LineChart
-                {...chartOptions}
-                series={[series]}
-                isGroupedByDate
-                showTimeInTooltip
-              />
-              <NumberContainer>
-                <Tooltip
-                  title={tct(
-                    'The function duration in this transaction increased from [before] to [after]',
-                    {
-                      before: getDuration(
-                        (transaction[percentileBefore] as number) / 1_000_000_000,
-                        2,
-                        true
-                      ),
-                      after: getDuration(
-                        (transaction[percentileAfter] as number) / 1_000_000_000,
-                        2,
-                        true
-                      ),
-                    }
-                  )}
-                  position="top"
-                >
-                  <DurationChange>
-                    <PerformanceDuration
-                      nanoseconds={transaction[percentileBefore] as number}
-                      abbreviation
-                    />
-                    <IconArrow direction="right" size="xs" />
-                    <PerformanceDuration
-                      nanoseconds={transaction[percentileAfter] as number}
-                      abbreviation
-                    />
-                  </DurationChange>
-                </Tooltip>
-              </NumberContainer>
-            </Fragment>
-          );
-        })}
-      </ListContainer>
+            transaction: dataRow.transaction as string,
+          }),
+        }),
+      },
+      durationBefore: {link: before},
+      durationAfter: {link: after},
+      throughputBefore: {link: before},
+      throughputAfter: {link: after},
+    };
+  }, [organization, project, frameName, framePackage]);
+
+  return (
+    <EventDataSection
+      type="most-affected"
+      title={t('Most Affected')}
+      actions={
+        <SegmentedControl
+          size="xs"
+          aria-label={t('Duration or Throughput')}
+          value={causeType}
+          onChange={setCauseType}
+        >
+          <SegmentedControl.Item key="duration">
+            {t('Duration (P95)')}
+          </SegmentedControl.Item>
+          <SegmentedControl.Item key="throughput">
+            {t('Throughput')}
+          </SegmentedControl.Item>
+        </SegmentedControl>
+      }
+    >
+      <EventRegressionTable
+        causeType={causeType}
+        columns={ADDITIONAL_COLUMNS}
+        data={tableData || []}
+        isLoading={transactionsDeltaQuery.isLoading}
+        isError={transactionsDeltaQuery.isError}
+        options={options}
+      />
     </EventDataSection>
   );
 }
 
-const ListContainer = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: ${space(1)};
-`;
+/**
+ * Find an example pair of profile ids from before and after the breakpoint.
+ *
+ * We prioritize profile ids from outside some window around the breakpoint
+ * because the breakpoint is not 100% accurate and giving a buffer around
+ * the breakpoint to so we can more accurate get a example profile from
+ * before and after ranges.
+ *
+ * @param examples list of example profile ids
+ * @param breakpointIndex the index where the breakpoint is
+ * @param window the window around the breakpoint to deprioritize
+ */
+function findExamplePair(
+  examples: string[],
+  breakpointIndex,
+  window = 3
+): [string | null, string | null] {
+  let before: string | null = null;
 
-const DurationChange = styled('span')`
-  color: ${p => p.theme.gray300};
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
+  for (let i = breakpointIndex - window; i < examples.length && i >= 0; i--) {
+    if (examples[i]) {
+      before = examples[i];
+      break;
+    }
+  }
+
+  if (!defined(before)) {
+    for (
+      let i = breakpointIndex;
+      i < examples.length && i > breakpointIndex - window;
+      i--
+    ) {
+      if (examples[i]) {
+        before = examples[i];
+        break;
+      }
+    }
+  }
+
+  let after: string | null = null;
+
+  for (let i = breakpointIndex + window; i < examples.length; i++) {
+    if (examples[i]) {
+      after = examples[i];
+      break;
+    }
+  }
+
+  if (!defined(before)) {
+    for (let i = breakpointIndex; i < breakpointIndex + window; i++) {
+      if (examples[i]) {
+        after = examples[i];
+        break;
+      }
+    }
+  }
+
+  return [before, after];
+}

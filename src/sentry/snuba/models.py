@@ -1,15 +1,15 @@
 from datetime import timedelta
 from enum import Enum
-from typing import Optional, Tuple
+from typing import ClassVar, Optional, Tuple
 
 from django.db import models
 from django.utils import timezone
+from typing_extensions import Self
 
 from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import BaseManager, FlexibleForeignKey, Model, region_silo_only_model
-from sentry.db.models.base import DefaultFieldsModel
 
 
 class QueryAggregations(Enum):
@@ -92,7 +92,7 @@ class SnubaQueryEventType(Model):
 
 
 @region_silo_only_model
-class QuerySubscription(DefaultFieldsModel):
+class QuerySubscription(Model):
     __relocation_scope__ = RelocationScope.Organization
 
     class Status(Enum):
@@ -110,7 +110,7 @@ class QuerySubscription(DefaultFieldsModel):
     date_added = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(default=timezone.now, null=True)
 
-    objects = BaseManager(
+    objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=("pk", "subscription_id"), cache_ttl=int(timedelta(hours=1).total_seconds())
     )
 

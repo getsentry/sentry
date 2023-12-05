@@ -17,7 +17,6 @@ from sentry.models.rule import Rule
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.slack import send_notification
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -99,7 +98,8 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
             )
 
     @patch("sentry.analytics.record")
-    def test_sends_digest_to_every_member(self, mock_record):
+    @patch("sentry.notifications.notifications.digest.logger")
+    def test_sends_digest_to_every_member(self, mock_logger, mock_record):
         """Test that each member of the project the events are created in receive a digest email notification"""
         event_count = 4
         self.run_test(event_count=event_count, performance_issues=True, generic_issues=True)
@@ -120,7 +120,6 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
             alert_id=self.rule.id,
             project_id=self.project.id,
             organization_id=self.organization.id,
-            actor_id=ANY,
             id=ANY,
             actor_type="User",
             group_id=None,
@@ -135,6 +134,17 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
             alert_type="issue_alert",
             external_id=ANY,
             notification_uuid=ANY,
+        )
+        mock_logger.info.assert_called_with(
+            "mail.adapter.notify_digest",
+            extra={
+                "project_id": self.project.id,
+                "target_type": "IssueOwners",
+                "target_identifier": None,
+                "team_ids": ANY,
+                "user_ids": ANY,
+                "notification_uuid": ANY,
+            },
         )
 
     def test_sends_alert_rule_notification_to_each_member(self):
@@ -151,9 +161,8 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
 
 class DigestSlackNotification(SlackActivityNotificationTest):
     @responses.activate
-    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     @mock.patch.object(sentry, "digests")
-    def test_slack_digest_notification(self, digests, mock_func):
+    def test_slack_digest_notification(self, digests):
         """
         Test that with digests enabled, but Slack notification settings
         (and not email settings), we send a Slack notification

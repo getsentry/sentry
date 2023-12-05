@@ -24,7 +24,6 @@ import {SpanGroupBreakdown} from 'sentry/views/starfish/views/webServiceView/spa
 
 const {SPAN_SELF_TIME} = SpanMetricsField;
 
-const OTHER_SPAN_GROUP_MODULE = 'Other';
 export const NULL_SPAN_CATEGORY = t('custom');
 
 type Props = {
@@ -33,7 +32,7 @@ type Props = {
 };
 
 type Group = {
-  'span.category': string;
+  'span.module': string;
 };
 
 export type DataRow = {
@@ -56,22 +55,22 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
   const theme = useTheme();
 
   const options: SelectOption<DataDisplayType>[] = [
-    {label: t('Percentages'), value: DataDisplayType.PERCENTAGE},
     {label: t('Average Duration'), value: DataDisplayType.DURATION_AVG},
+    {label: t('Percentages'), value: DataDisplayType.PERCENTAGE},
     {label: t('Total Duration'), value: DataDisplayType.CUMULATIVE_DURATION},
   ];
 
   const [dataDisplayType, setDataDisplayType] = useState<DataDisplayType>(
-    DataDisplayType.PERCENTAGE
+    DataDisplayType.DURATION_AVG
   );
 
   const {data: segments, isLoading: isSegmentsLoading} = useDiscoverQuery({
     eventView: getCumulativeTimeEventView(
       selection,
-      `transaction.op:http.server ${transaction ? `transaction:${transaction}` : ''} ${
-        transactionMethod ? `http.method:${transactionMethod}` : ''
-      }`,
-      ['span.category']
+      `!span.module:other transaction.op:http.server ${
+        transaction ? `transaction:${transaction}` : ''
+      } ${transactionMethod ? `http.method:${transactionMethod}` : ''}`,
+      ['span.module']
     ),
     orgSlug: organization.slug,
     referrer: 'api.starfish-web-service.span-category-breakdown',
@@ -99,10 +98,10 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
   } = useEventsStatsQuery({
     eventView: getEventView(
       selection,
-      `transaction.op:http.server ${transaction ? `transaction:${transaction}` : ''} ${
-        transactionMethod ? `http.method:${transactionMethod}` : ''
-      }`,
-      ['span.category'],
+      `!span.module:other transaction.op:http.server ${
+        transaction ? `transaction:${transaction}` : ''
+      } ${transactionMethod ? `http.method:${transactionMethod}` : ''}`,
+      ['span.module'],
       dataDisplayType,
       true
     ),
@@ -114,46 +113,30 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
   const totalValues = cumulativeTime?.data[0]?.[`sum(${SPAN_SELF_TIME})`]
     ? parseInt(cumulativeTime?.data[0][`sum(${SPAN_SELF_TIME})`] as string, 10)
     : 0;
-  const totalSegments =
-    segments?.data.reduce(
-      (acc, segment) => acc + parseInt(segment[`sum(${SPAN_SELF_TIME})`] as string, 10),
-      0
-    ) ?? 0;
-
-  const otherValue = totalValues ? totalValues - totalSegments : 0;
 
   const transformedData: DataRow[] = [];
 
   if (defined(segments)) {
     for (let index = 0; index < segments.data.length; index++) {
       const element = segments.data[index];
-      const category = element['span.category'] as string;
+      const spanModule = element['span.module'] as string;
       transformedData.push({
         cumulativeTime: parseInt(element[`sum(${SPAN_SELF_TIME})`] as string, 10),
         group: {
-          'span.category': category === '' ? NULL_SPAN_CATEGORY : category,
-        },
-      });
-    }
-
-    if (otherValue > 0 && topData && OTHER_SPAN_GROUP_MODULE in topData) {
-      transformedData.push({
-        cumulativeTime: otherValue,
-        group: {
-          'span.category': OTHER_SPAN_GROUP_MODULE,
+          'span.module': spanModule === '' ? NULL_SPAN_CATEGORY : spanModule,
         },
       });
     }
   }
 
-  const seriesByDomain: {[category: string]: Series} = {};
+  const seriesByDomain: {[spanModule: string]: Series} = {};
   const colorPalette = theme.charts.getColorPalette(transformedData.length - 2);
 
   if (defined(topData)) {
     if (!isTopDataLoading && transformedData.length > 0) {
       transformedData.forEach((segment, index) => {
-        const category = segment.group['span.category'] as string;
-        const label = category === '' ? NULL_SPAN_CATEGORY : category;
+        const spanModule = segment.group['span.module'] as string;
+        const label = spanModule === '' ? NULL_SPAN_CATEGORY : spanModule;
         seriesByDomain[label] = {
           seriesName: label,
           data: [],

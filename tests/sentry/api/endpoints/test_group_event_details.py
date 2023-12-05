@@ -56,7 +56,7 @@ class GroupEventDetailsEndpointTestBase(APITestCase, SnubaTestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCase, SnubaTestCase):
     def test_get_simple_latest(self):
         url = f"/api/0/issues/{self.event_a.group.id}/events/latest/"
@@ -138,7 +138,7 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupEventDetailsHelpfulEndpointTest(
     GroupEventDetailsEndpointTestBase, APITestCase, SnubaTestCase, OccurrenceTestMixin
 ):
@@ -167,6 +167,42 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(self.event_d.event_id)
         assert response.data["previousEventID"] == self.event_c.event_id
+        assert response.data["nextEventID"] is None
+
+    def test_get_helpful_event_id(self):
+        """
+        When everything else is equal, the event_id should be used to break ties.
+        """
+        timestamp = iso_format(before_now(minutes=1))
+
+        self.event_d = self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "environment": "staging",
+                "timestamp": timestamp,
+                "fingerprint": ["group-1"],
+                "contexts": {},
+                "errors": [],
+            },
+            project_id=self.project_1.id,
+        )
+        self.event_e = self.store_event(
+            data={
+                "event_id": "e" * 32,
+                "environment": "staging",
+                "timestamp": timestamp,
+                "fingerprint": ["group-1"],
+                "contexts": {},
+                "errors": [],
+            },
+            project_id=self.project_1.id,
+        )
+        url = f"/api/0/issues/{self.event_a.group.id}/events/helpful/"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(self.event_e.event_id)
+        assert response.data["previousEventID"] == self.event_d.event_id
         assert response.data["nextEventID"] is None
 
     def test_get_helpful_replay_id_order(self):

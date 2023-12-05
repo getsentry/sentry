@@ -1,28 +1,29 @@
 from __future__ import annotations
 
 import io
-import tarfile
 import tempfile
 from copy import deepcopy
 from datetime import datetime, timedelta
-from functools import cached_property, lru_cache
+from functools import cached_property, cmp_to_key
 from pathlib import Path
 from typing import Tuple
+from unittest.mock import MagicMock
 from uuid import uuid4
 
-from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 from django.apps import apps
-from django.conf import settings
-from django.core.management import call_command
 from django.db import connections, router
 from django.utils import timezone
 from sentry_relay.auth import generate_key_pair
 
-from sentry.backup.comparators import ComparatorMap
-from sentry.backup.dependencies import sorted_dependencies
+from sentry.backup.dependencies import (
+    NormalizedModelName,
+    get_model,
+    reversed_dependencies,
+    sorted_dependencies,
+)
 from sentry.backup.exports import (
     export_in_config_scope,
     export_in_global_scope,
@@ -30,10 +31,18 @@ from sentry.backup.exports import (
     export_in_user_scope,
 )
 from sentry.backup.findings import ComparatorFindings
+from sentry.backup.helpers import (
+    KeyManagementServiceClient,
+    LocalFileDecryptor,
+    LocalFileEncryptor,
+    Printer,
+    decrypt_encrypted_tarball,
+)
 from sentry.backup.imports import import_in_global_scope
 from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
 from sentry.db.models.fields.bounded import BoundedBigAutoField
+from sentry.db.models.paranoia import ParanoidModel
 from sentry.incidents.models import (
     IncidentActivity,
     IncidentSnapshot,
@@ -80,6 +89,7 @@ from sentry.models.user import User
 from sentry.models.userip import UserIP
 from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
+from sentry.nodestore.django.models import Node
 from sentry.sentry_apps.apps import SentryAppUpdater
 from sentry.silo import unguarded_write
 from sentry.silo.base import SiloMode
@@ -91,12 +101,25 @@ from sentry.utils.json import JSONData
 
 __all__ = [
     "export_to_file",
-    "import_export_then_validate",
-    "import_export_from_fixture_then_validate",
     "ValidationError",
 ]
 
-NOOP_PRINTER = lambda *args, **kwargs: None
+NOOP_PRINTER = Printer()
+
+
+class FakeKeyManagementServiceClient:
+    """
+    Fake version of `KeyManagementServiceClient` that removes the two network calls we rely on: the
+    `Transport` setup on class construction, and the call to the hosted `asymmetric_decrypt`
+    endpoint.
+    """
+
+    asymmetric_decrypt = MagicMock()
+    get_public_key = MagicMock()
+
+    @staticmethod
+    def crypto_key_version_path(**kwargs) -> str:
+        return KeyManagementServiceClient.crypto_key_version_path(**kwargs)
 
 
 class ValidationError(Exception):
@@ -106,7 +129,9 @@ class ValidationError(Exception):
 
 
 def export_to_file(path: Path, scope: ExportScope, filter_by: set[str] | None = None) -> JSONData:
-    """Helper function that exports the current state of the database to the specified file."""
+    """
+    Helper function that exports the current state of the database to the specified file.
+    """
 
     json_file_path = str(path)
     with open(json_file_path, "wb+") as tmp_file:
@@ -166,16 +191,26 @@ def export_to_encrypted_tarball(
         # These functions are just thin wrappers, but its best to exercise them directly anyway in
         # case that ever changes.
         if scope == ExportScope.Global:
-            export_in_global_scope(tmp_file, encrypt_with=public_key_fp, printer=NOOP_PRINTER)
+            export_in_global_scope(
+                tmp_file, encryptor=LocalFileEncryptor(public_key_fp), printer=NOOP_PRINTER
+            )
         elif scope == ExportScope.Config:
-            export_in_config_scope(tmp_file, encrypt_with=public_key_fp, printer=NOOP_PRINTER)
+            export_in_config_scope(
+                tmp_file, encryptor=LocalFileEncryptor(public_key_fp), printer=NOOP_PRINTER
+            )
         elif scope == ExportScope.Organization:
             export_in_organization_scope(
-                tmp_file, encrypt_with=public_key_fp, org_filter=filter_by, printer=NOOP_PRINTER
+                tmp_file,
+                encryptor=LocalFileEncryptor(public_key_fp),
+                org_filter=filter_by,
+                printer=NOOP_PRINTER,
             )
         elif scope == ExportScope.User:
             export_in_user_scope(
-                tmp_file, encrypt_with=public_key_fp, user_filter=filter_by, printer=NOOP_PRINTER
+                tmp_file,
+                encryptor=LocalFileEncryptor(public_key_fp),
+                user_filter=filter_by,
+                printer=NOOP_PRINTER,
             )
         else:
             raise AssertionError(f"Unknown `ExportScope`: `{scope.name}`")
@@ -183,63 +218,38 @@ def export_to_encrypted_tarball(
     # Read the files in the generated tarball. This bit of code assume the file names, but that is
     # part of the encrypt/decrypt tar-ing API, so we need to ensure that these exact names are
     # present and contain the data we expect.
-    export = None
-    encrypted_dek = None
-    pub_key = None
-    with tarfile.open(tar_file_path, "r") as tar:
-        for member in tar.getmembers():
-            if member.isfile():
-                file = tar.extractfile(member)
-                if file is None:
-                    raise AssertionError(f"Could not extract file for {member.name}")
-
-                content = file.read()
-                if member.name == "export.json":
-                    export = content.decode("utf-8")
-                elif member.name == "data.key":
-                    encrypted_dek = content
-                elif member.name == "key.pub":
-                    pub_key = content
-                else:
-                    raise AssertionError(f"Unknown tarball entity {member.name}")
-
-    if export is None or encrypted_dek is None or pub_key is None:
-        raise AssertionError("A required file was missing from the temporary test tarball")
-
-    # Decrypt the DEK, then use it to decrypt the underlying JSON.
-    private_key = serialization.load_pem_private_key(
-        private_key_pem,
-        password=None,  # Use the password here if the PEM was encrypted
-        backend=default_backend(),
-    )
-    decrypted_dek = private_key.decrypt(  # type: ignore
-        encrypted_dek,
-        padding.OAEP(
-            mgf=padding.MGF1(algorithm=hashes.SHA256()),
-            algorithm=hashes.SHA256(),
-            label=None,
-        ),
-    )
-    decryptor = Fernet(decrypted_dek)
-    return json.loads(decryptor.decrypt(export))
+    with open(tar_file_path, "rb") as f:
+        return json.loads(
+            decrypt_encrypted_tarball(f, LocalFileDecryptor.from_bytes(private_key_pem))
+        )
 
 
-# No arguments, so we lazily cache the result after the first calculation.
-@lru_cache(maxsize=1)
-def reversed_dependencies():
-    sorted = list(sorted_dependencies())
-    sorted.reverse()
-    return sorted
+def is_control_model(model):
+    meta = model._meta
+    return not hasattr(meta, "silo_limit") or SiloMode.CONTROL in meta.silo_limit.modes
 
 
+def clear_model(model, *, reset_pks: bool):
+    using = router.db_for_write(model)
+    with unguarded_write(using=using):
+        manager = model.with_deleted if issubclass(model, ParanoidModel) else model.objects
+        manager.all().delete()
+
+        # TODO(getsentry/team-ospo#190): Remove the "Node" kludge below in favor of a more permanent
+        # solution.
+        if reset_pks and model is not Node:
+            table = model._meta.db_table
+            seq = f"{table}_id_seq"
+            with connections[using].cursor() as cursor:
+                cursor.execute("SELECT setval(%s, 1, false)", [seq])
+
+
+@assume_test_silo_mode(SiloMode.REGION)
 def clear_database(*, reset_pks: bool = False):
-    """Deletes all models we care about from the database, in a sequence that ensures we get no
-    foreign key errors."""
-
-    if reset_pks:
-        for db in settings.DATABASES.keys():
-            call_command("flush", database=db, verbosity=0, interactive=False)
-        return
+    """
+    Deletes all models we care about from the database, in a sequence that ensures we get no
+    foreign key errors.
+    """
 
     # TODO(hybrid-cloud): actor refactor. Remove this kludge when done.
     with unguarded_write(using=router.db_for_write(Team)):
@@ -247,19 +257,25 @@ def clear_database(*, reset_pks: bool = False):
 
     reversed = reversed_dependencies()
     for model in reversed:
-        with unguarded_write(using=router.db_for_write(model)):
-            # For some reason, the tables for `SentryApp*` models don't get deleted properly here
-            # when using `model.objects.all().delete()`, so we have to call out to Postgres
-            # manually.
-            connection = connections[router.db_for_write(model)]
-            with connection.cursor() as cursor:
-                table = model._meta.db_table
-                cursor.execute(f"DELETE FROM {table:s};")
+        if is_control_model(model):
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                clear_model(model, reset_pks=reset_pks)
+        else:
+            clear_model(model, reset_pks=reset_pks)
 
     # Clear remaining tables that are not explicitly in Sentry's own model dependency graph.
     for model in set(apps.get_models()) - set(reversed):
-        with unguarded_write(using=router.db_for_write(model)):
-            model.objects.all().delete()
+        # We don't know which silo these models reside in, so try both.
+        try:
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                clear_model(model, reset_pks=False)
+        except Exception:
+            pass
+
+        try:
+            clear_model(model, reset_pks=False)
+        except Exception:
+            pass
 
 
 def import_export_then_validate(method_name: str, *, reset_pks: bool = True) -> JSONData:
@@ -278,7 +294,7 @@ def import_export_then_validate(method_name: str, *, reset_pks: bool = True) -> 
         clear_database(reset_pks=reset_pks)
 
         # Write the contents of the "expected" JSON file into the now clean database.
-        with open(tmp_expect) as tmp_file:
+        with open(tmp_expect, "rb") as tmp_file:
             import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
 
         # Validate that the "expected" and "actual" JSON matches.
@@ -306,33 +322,11 @@ def import_export_then_validate(method_name: str, *, reset_pks: bool = True) -> 
     return actual
 
 
-EMPTY_COMPARATORS_FOR_TESTING: ComparatorMap = {}
-
-
-def import_export_from_fixture_then_validate(
-    tmp_path: Path,
-    fixture_file_name: str,
-    map: ComparatorMap = EMPTY_COMPARATORS_FOR_TESTING,
-) -> None:
-    """Test helper that validates that data imported from a fixture `.json` file correctly matches
-    the actual outputted export data."""
-
-    fixture_file_path = get_fixture_path("backup", fixture_file_name)
-    with open(fixture_file_path) as backup_file:
-        expect = json.load(backup_file)
-    with open(fixture_file_path) as fixture_file:
-        import_in_global_scope(fixture_file, printer=NOOP_PRINTER)
-
-    res = validate(
-        expect, export_to_file(tmp_path.joinpath("tmp_test_file.json"), ExportScope.Global), map
-    )
-    if res.findings:
-        raise ValidationError(res)
-
-
 class BackupTestCase(TransactionTestCase):
-    """Instruments a database state that includes an instance of every Sentry model with every field
-    set to a non-default, non-null value. This is useful for exhaustive conformance testing."""
+    """
+    Instruments a database state that includes an instance of every Sentry model with every field
+    set to a non-default, non-null value. This is useful for exhaustive conformance testing.
+    """
 
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_exhaustive_user(
@@ -400,7 +394,8 @@ class BackupTestCase(TransactionTestCase):
         # Integration*
         org_integration = self.create_exhaustive_organization_integration(org)
         integration_id = org_integration.integration.id
-        # Note: this model is deprecated, and can safely be removed from this test when it is finally removed. Until then, it is included for completeness.
+        # Note: this model is deprecated, and can safely be removed from this test when it is
+        # finally removed. Until then, it is included for completeness.
         ProjectIntegration.objects.create(
             project=project, integration_id=integration_id, config='{"hello":"hello"}'
         )
@@ -424,6 +419,7 @@ class BackupTestCase(TransactionTestCase):
             organization_id=org.id,
             num_samples=100,
             sample_rate=0.5,
+            query="environment:prod event.type:transaction",
         )
 
         # Environment*
@@ -564,7 +560,10 @@ class BackupTestCase(TransactionTestCase):
         # Api*
         ApiAuthorization.objects.create(application=app.application, user=owner)
         ApiToken.objects.create(
-            application=app.application, user=owner, token=uuid4().hex, expires_at=None
+            application=app.application,
+            user=owner,
+            expires_at=None,
+            name="create_exhaustive_sentry_app",
         )
         ApiGrant.objects.create(
             user=owner,
@@ -597,7 +596,9 @@ class BackupTestCase(TransactionTestCase):
         self.create_exhaustive_global_configs_regional()
         ControlOption.objects.create(key="bar", value="b")
         ApiAuthorization.objects.create(user=owner)
-        ApiToken.objects.create(user=owner, token=uuid4().hex, expires_at=None)
+        ApiToken.objects.create(
+            user=owner, expires_at=None, name="create_exhaustive_global_configs"
+        )
 
     @assume_test_silo_mode(SiloMode.REGION)
     def create_exhaustive_global_configs_regional(self):
@@ -609,7 +610,9 @@ class BackupTestCase(TransactionTestCase):
 
     def create_exhaustive_instance(self, *, is_superadmin: bool = False):
         """
-        Takes an empty Sentry instance's database, and populates it with an "exhaustive" version of every model. The end result is two users, in one organization, with one full set of extensions, and all global flags set.
+        Takes an empty Sentry instance's database, and populates it with an "exhaustive" version of
+        every model. The end result is two users, in one organization, with one full set of
+        extensions, and all global flags set.
         """
 
         owner = self.create_exhaustive_user(
@@ -639,15 +642,43 @@ class BackupTestCase(TransactionTestCase):
     def json_of_exhaustive_user_with_minimum_privileges(self) -> JSONData:
         return deepcopy(self._json_of_exhaustive_user_with_minimum_privileges)
 
+    @cached_property
+    def _json_of_exhaustive_user_with_roles_no_superadmin(self) -> JSONData:
+        with open(get_fixture_path("backup", "user-with-roles-no-superadmin.json")) as backup_file:
+            return json.load(backup_file)
+
+    def json_of_exhaustive_user_with_roles_no_superadmin(self) -> JSONData:
+        return deepcopy(self._json_of_exhaustive_user_with_roles_no_superadmin)
+
+    @cached_property
+    def _json_of_exhaustive_user_with_superadmin_no_roles(self) -> JSONData:
+        with open(get_fixture_path("backup", "user-with-superadmin-no-roles.json")) as backup_file:
+            return json.load(backup_file)
+
+    def json_of_exhaustive_user_with_superadmin_no_roles(self) -> JSONData:
+        return deepcopy(self._json_of_exhaustive_user_with_superadmin_no_roles)
+
     @staticmethod
-    def copy_user(exhaustive_user: JSONData, username: str) -> JSONData:
-        user = deepcopy(exhaustive_user)
+    def sort_in_memory_json(json_data: JSONData) -> JSONData:
+        """
+        Helper function that takes an unordered set of JSON models and sorts them first in
+        dependency order, and then, within each model, by ascending pk number.
+        """
 
-        for model in user:
-            if model["model"] == "sentry.user":
-                model["fields"]["username"] = username
+        def sort_by_model_then_pk(a: JSONData, b: JSONData) -> int:
+            sorted_deps = sorted_dependencies()
+            a_model = get_model(NormalizedModelName(a["model"]))
+            b_model = get_model(NormalizedModelName(b["model"]))
+            model_diff = sorted_deps.index(a_model) - sorted_deps.index(b_model)  # type: ignore
+            if model_diff != 0:
+                return model_diff
 
-        return user
+            return a["pk"] - b["pk"]
+
+        return sorted(
+            json_data,
+            key=cmp_to_key(sort_by_model_then_pk),
+        )
 
     def generate_tmp_users_json(self) -> JSONData:
         """
@@ -655,29 +686,18 @@ class BackupTestCase(TransactionTestCase):
         """
 
         # A user with the maximal amount of "evil" settings.
-        max_user = self.copy_user(
-            self.json_of_exhaustive_user_with_maximum_privileges(), "max_user"
-        )
+        max_user = deepcopy(self.json_of_exhaustive_user_with_maximum_privileges())
 
         # A user with no "evil" settings.
-        min_user = self.copy_user(
-            self.json_of_exhaustive_user_with_minimum_privileges(), "min_user"
-        )
+        min_user = deepcopy(self.json_of_exhaustive_user_with_minimum_privileges())
 
         # A copy of the `min_user`, but with a maximal `UserPermissions` attached.
-        permission_user = self.copy_user(min_user, "permission_user") + deepcopy(
-            list(filter(lambda mod: mod["model"] == "sentry.userpermission", max_user))
-        )
+        roles_user = deepcopy(self.json_of_exhaustive_user_with_roles_no_superadmin())
 
         # A copy of the `min_user`, but with all of the "evil" flags set to `True`.
-        superadmin_user = self.copy_user(min_user, "superadmin_user")
-        for model in superadmin_user:
-            if model["model"] == "sentry.user":
-                model["fields"]["is_managed"] = True
-                model["fields"]["is_staff"] = True
-                model["fields"]["is_superuser"] = True
+        superadmin_user = deepcopy(self.json_of_exhaustive_user_with_superadmin_no_roles())
 
-        return max_user + min_user + permission_user + superadmin_user
+        return self.sort_in_memory_json(max_user + min_user + roles_user + superadmin_user)
 
     def generate_tmp_users_json_file(self, tmp_path: Path) -> JSONData:
         """

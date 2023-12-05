@@ -3,7 +3,7 @@ from __future__ import annotations
 from functools import reduce
 from typing import List, Mapping, Optional
 
-from snuba_sdk import Condition, Op
+from snuba_sdk import Column, Condition, Op
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
@@ -16,7 +16,7 @@ from sentry.search.events.filter import (
     to_list,
 )
 from sentry.search.events.types import WhereType
-from sentry.search.utils import parse_release
+from sentry.search.utils import DEVICE_CLASS, parse_release
 from sentry.utils.strings import oxfordize_list
 
 
@@ -110,6 +110,20 @@ def project_slug_converter(
             return converted_filter
 
     return None
+
+
+def span_is_segment_converter(search_filter: SearchFilter) -> Optional[WhereType]:
+    """Convert the search filter from a string to a boolean
+    and unalias the filter key.
+    """
+    if search_filter.value.raw_value not in ["0", "1"]:
+        raise ValueError("is_segment must be 0 or 1")
+
+    return Condition(
+        Column("is_segment"),
+        Op.NEQ if search_filter.operator == "!=" else Op.EQ,
+        int(search_filter.value.raw_value),
+    )
 
 
 def release_stage_filter_converter(
@@ -270,3 +284,12 @@ def semver_build_filter_converter(
         versions = [constants.SEMVER_EMPTY_RELEASE]
 
     return Condition(builder.column("release"), Op.IN, versions)
+
+
+def device_class_converter(
+    builder: builder.QueryBuilder, search_filter: SearchFilter
+) -> Optional[WhereType]:
+    value = search_filter.value.value
+    if value not in DEVICE_CLASS:
+        raise InvalidSearchQuery(f"{value} is not a supported device.class")
+    return Condition(builder.column("device.class"), Op.IN, list(DEVICE_CLASS[value]))

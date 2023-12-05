@@ -210,7 +210,8 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
 
     @freeze_time("2023-07-12 18:40:00Z")
     @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
-    def test_unordered_ids(self, mock_backend):
+    @mock.patch("sentry.tasks.auto_ongoing_issues.logger")
+    def test_unordered_ids(self, mock_logger, mock_backend):
         """
         Group ids can be non-chronological with first_seen time (ex. as a result of merging).
         Test that in this case, only groups that are >= TRANSITION_AFTER_DAYS days old are
@@ -257,6 +258,15 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         assert GroupHistory.objects.filter(
             group=group_old, status=GroupHistoryStatus.ONGOING
         ).exists()
+
+        mock_logger.info.assert_called_once_with(
+            "auto_transition_issues_new_to_ongoing started",
+            extra={
+                "first_seen_lte": 1688582400,
+                "first_seen_lte_datetime": datetime(2023, 7, 5, 18, 40, tzinfo=timezone.utc),
+                "issue_first_seen": datetime(2023, 7, 5, 17, 40, tzinfo=timezone.utc),
+            },
+        )
 
 
 @apply_feature_flag_on_cls("organizations:escalating-issues")

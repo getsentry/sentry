@@ -10,7 +10,6 @@ import {Button, ButtonProps} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DateTime from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import FeatureBadge from 'sentry/components/featureBadge';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {
@@ -23,7 +22,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Group, IssueType, Organization} from 'sentry/types';
+import {Event, Group, Organization} from 'sentry/types';
 import {defined, formatBytesBase2} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {eventDetailsRoute, generateEventSlug} from 'sentry/utils/discover/urls';
@@ -146,12 +145,7 @@ function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigatio
   const eventNavDropdownOptions = [
     {
       value: EventNavDropdownOption.RECOMMENDED,
-      label: (
-        <div>
-          {t('Recommended')}
-          <FeatureBadge type="new" />
-        </div>
-      ),
+      label: t('Recommended'),
       textValue: t('Recommended'),
       details: t('Event with the most context'),
     },
@@ -249,11 +243,10 @@ export function GroupEventActions({event, group, projectSlug}: GroupEventActions
   const isReplayEnabled =
     organization.features.includes('session-replay') &&
     projectCanLinkToReplay(group.project);
-  const isDurationRegressionIssue =
-    group?.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION;
 
   const downloadJson = () => {
-    const jsonUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${event.id}/json/`;
+    const host = organization.links.regionUrl;
+    const jsonUrl = `${host}/api/0/projects/${organization.slug}/${projectSlug}/events/${event.id}/json/`;
     window.open(jsonUrl);
     trackAnalytics('issue_details.event_json_clicked', {
       organization,
@@ -272,18 +265,6 @@ export function GroupEventActions({event, group, projectSlug}: GroupEventActions
         ...getAnalyticsDataForGroup(group),
         ...getAnalyticsDataForEvent(event),
       }),
-  });
-
-  const {onClick: copyEventDetailLink} = useCopyToClipboard({
-    successMessage: t('Event URL copied to clipboard'),
-    text:
-      window.location.origin +
-      normalizeUrl(
-        eventDetailsRoute({
-          eventSlug: generateEventSlug({project: projectSlug, id: event.id}),
-          orgSlug: organization.slug,
-        })
-      ),
   });
 
   const {onClick: copyEventId} = useCopyToClipboard({
@@ -311,7 +292,7 @@ export function GroupEventActions({event, group, projectSlug}: GroupEventActions
             key: 'copy-event-url',
             label: t('Copy Event Link'),
             hidden: xlargeViewport,
-            onAction: isDurationRegressionIssue ? copyEventDetailLink : copyLink,
+            onAction: copyLink,
           },
           {
             key: 'json',
@@ -353,20 +334,11 @@ export function GroupEventActions({event, group, projectSlug}: GroupEventActions
           },
         ]}
       />
-      {xlargeViewport && !isDurationRegressionIssue && (
+      {xlargeViewport && (
         <Button
           title={t('Copy link to this issue event')}
           size={BUTTON_SIZE}
           onClick={copyLink}
-          aria-label={t('Copy Link')}
-          icon={<IconLink />}
-        />
-      )}
-      {xlargeViewport && isDurationRegressionIssue && (
-        <Button
-          title={t('Copy link to this event')}
-          size={BUTTON_SIZE}
-          onClick={copyEventDetailLink}
           aria-label={t('Copy Link')}
           icon={<IconLink />}
         />

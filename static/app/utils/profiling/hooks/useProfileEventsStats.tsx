@@ -14,6 +14,7 @@ interface UseProfileEventsStatsOptions<F> {
   referrer: string;
   yAxes: readonly F[];
   datetime?: PageFilters['datetime'];
+  enabled?: boolean;
   interval?: string;
   query?: string;
 }
@@ -25,6 +26,7 @@ export function useProfileEventsStats<F extends string>({
   query,
   referrer,
   yAxes,
+  enabled = true,
 }: UseProfileEventsStatsOptions<F>) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -57,6 +59,7 @@ export function useProfileEventsStats<F extends string>({
   };
 
   const {data, ...rest} = useApiQuery<any>([path, endpointOptions], {
+    enabled,
     staleTime: Infinity,
   });
 
@@ -148,22 +151,21 @@ export function transformSingleSeries<F extends string>(
   dataset: 'discover' | 'profiles' | 'profileFunctions',
   yAxis: F,
   rawSeries: any,
-  label?: string,
-  formatter?: any
+  label?: string
 ) {
-  if (!defined(formatter)) {
-    const type =
-      rawSeries.meta.fields[yAxis] ?? rawSeries.meta.fields[getAggregateAlias(yAxis)];
-    formatter =
-      type === 'duration'
-        ? makeFormatTo(
-            rawSeries.meta.units[yAxis] ??
-              rawSeries.meta.units[getAggregateAlias(yAxis)] ??
-              'nanoseconds',
-            'milliseconds'
-          )
-        : value => value;
-  }
+  const type =
+    rawSeries.meta.fields[yAxis] ?? rawSeries.meta.fields[getAggregateAlias(yAxis)];
+  const formatter =
+    type === 'duration'
+      ? makeFormatTo(
+          rawSeries.meta.units[yAxis] ??
+            rawSeries.meta.units[getAggregateAlias(yAxis)] ??
+            'nanoseconds',
+          'milliseconds'
+        )
+      : type === 'string'
+      ? value => value || ''
+      : value => value;
 
   const series: EventsStatsSeries<F>['data'][number] = {
     axis: yAxis,

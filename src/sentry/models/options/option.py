@@ -5,6 +5,7 @@ import abc
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.dependencies import PrimaryKeyMap
 from sentry.backup.mixins import OverwritableConfigMixin
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
@@ -31,6 +32,7 @@ class BaseOption(OverwritableConfigMixin, Model):
 
     # Subclasses should overwrite the relocation scope as appropriate.
     __relocation_scope__ = RelocationScope.Excluded
+    __relocation_custom_ordinal__ = ["key"]
 
     key = models.CharField(max_length=128, unique=True)
     last_updated = models.DateTimeField(default=timezone.now)
@@ -44,6 +46,11 @@ class BaseOption(OverwritableConfigMixin, Model):
     value = PickledObjectField()
 
     __repr__ = sane_repr("key", "value")
+
+    @classmethod
+    def query_for_relocation_export(cls, q: models.Q, pk_map: PrimaryKeyMap) -> models.Q:
+        # These ping options change too frequently to be useful in exports.
+        return q & ~models.Q(key__in={"sentry:last_worker_ping", "sentry:last_worker_version"})
 
 
 @region_silo_only_model

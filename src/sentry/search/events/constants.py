@@ -46,6 +46,7 @@ SPAN_MODULE_ALIAS = "span.module"
 SPAN_DOMAIN_ALIAS = "span.domain"
 SPAN_DOMAIN_SEPARATOR = ","
 UNIQUE_SPAN_DOMAIN_ALIAS = "unique.span_domains"
+SPAN_IS_SEGMENT_ALIAS = "span.is_segment"
 
 
 class ThresholdDict(TypedDict):
@@ -268,6 +269,17 @@ METRICS_MAP = {
     MEASUREMENTS_FRAMES_FROZEN_RATE: "d:transactions/measurements.frames_frozen_rate@ratio",
     MEASUREMENTS_FRAMES_SLOW_RATE: "d:transactions/measurements.frames_slow_rate@ratio",
     MEASUREMENTS_STALL_PERCENTAGE: "d:transactions/measurements.stall_percentage@ratio",
+    "measurements.score.lcp": "d:transactions/measurements.score.lcp@ratio",
+    "measurements.score.fid": "d:transactions/measurements.score.fid@ratio",
+    "measurements.score.cls": "d:transactions/measurements.score.cls@ratio",
+    "measurements.score.fcp": "d:transactions/measurements.score.fcp@ratio",
+    "measurements.score.ttfb": "d:transactions/measurements.score.ttfb@ratio",
+    "measurements.score.total": "d:transactions/measurements.score.total@ratio",
+    "measurements.score.weight.lcp": "d:transactions/measurements.score.weight.lcp@ratio",
+    "measurements.score.weight.fid": "d:transactions/measurements.score.weight.fid@ratio",
+    "measurements.score.weight.cls": "d:transactions/measurements.score.weight.cls@ratio",
+    "measurements.score.weight.fcp": "d:transactions/measurements.score.weight.fcp@ratio",
+    "measurements.score.weight.ttfb": "d:transactions/measurements.score.weight.ttfb@ratio",
     "spans.browser": "d:transactions/breakdowns.span_ops.ops.browser@millisecond",
     "spans.db": "d:transactions/breakdowns.span_ops.ops.db@millisecond",
     "spans.http": "d:transactions/breakdowns.span_ops.ops.http@millisecond",
@@ -281,6 +293,8 @@ SPAN_METRICS_MAP = {
     "span.self_time": "d:spans/exclusive_time@millisecond",
     "span.duration": "d:spans/duration@millisecond",
     "http.response_content_length": "d:spans/http.response_content_length@byte",
+    "http.decoded_response_content_length": "d:spans/http.decoded_response_content_length@byte",
+    "http.response_transfer_size": "d:spans/http.response_transfer_size@byte",
 }
 SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
 # 50 to match the size of tables in the UI + 1 for pagination reasons

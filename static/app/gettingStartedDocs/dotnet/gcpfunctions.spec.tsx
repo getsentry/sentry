@@ -1,18 +1,39 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
+import {screen} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import docs from './gcpfunctions';
 
-import {GettingStartedWithGCPFunctions, steps} from './gcpfunctions';
+describe('gcpfunctions onboarding docs', function () {
+  it('renders docs correctly', async function () {
+    renderWithOnboardingLayout(docs, {
+      releaseRegistry: {
+        'sentry.dotnet.google-cloud-function': {
+          version: '1.99.9',
+        },
+      },
+    });
 
-describe('GettingStartedWithGCPFunctions', function () {
-  it('renders doc correctly', function () {
-    render(<GettingStartedWithGCPFunctions dsn="test-dsn" projectSlug="test-project" />);
+    // Renders main headings
+    expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Samples'})).toBeInTheDocument();
 
-    // Steps
-    for (const step of steps()) {
-      expect(
-        screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
-      ).toBeInTheDocument();
-    }
+    // Renders SDK version from registry
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(
+          /Install-Package Sentry.Google.Cloud.Functions -Version 1\.99\.9/
+        )
+      )
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(
+          /<PackageReference Include="Sentry\.Google\.Cloud\.Functions" Version="1\.99\.9"\/>/
+        )
+      )
+    ).toBeInTheDocument();
   });
 });

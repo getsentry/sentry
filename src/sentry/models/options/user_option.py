@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Mapping, Optional, Tuple
+from typing import TYPE_CHECKING, Any, ClassVar, Mapping, Optional, Tuple
 
 from django.conf import settings
 from django.db import models
@@ -198,7 +198,7 @@ class UserOption(Model):
     key = models.CharField(max_length=64)
     value = PickledObjectField()
 
-    objects = UserOptionManager()
+    objects: ClassVar[UserOptionManager] = UserOptionManager()
 
     class Meta:
         app_label = "sentry"

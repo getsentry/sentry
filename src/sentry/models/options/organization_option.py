@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, ClassVar, Mapping, Sequence
 
 from django.db import models
 
@@ -105,7 +105,7 @@ class OrganizationOption(Model):
     key = models.CharField(max_length=64)
     value = PickledObjectField()
 
-    objects = OrganizationOptionManager()
+    objects: ClassVar[OrganizationOptionManager] = OrganizationOptionManager()
 
     class Meta:
         app_label = "sentry"

@@ -2,9 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from sentry.services.hybrid_cloud import ValueEqualityEnum
+
+if TYPE_CHECKING:
+    from sentry.models.organization import Organization
 
 """
 TODO(postgres): We've encoded these enums as integers to facilitate
@@ -17,14 +20,6 @@ integers to their string values.
 
 def get_notification_setting_type_name(value: int | NotificationSettingTypes) -> Optional[str]:
     return NOTIFICATION_SETTING_TYPES.get(NotificationSettingTypes(value))
-
-
-def get_notification_setting_value_name(value: int) -> Optional[str]:
-    return NOTIFICATION_SETTING_OPTION_VALUES.get(NotificationSettingOptionValues(value))
-
-
-def get_notification_scope_name(value: int) -> Optional[str]:
-    return NOTIFICATION_SCOPE_TYPE.get(NotificationScopeType(value))
 
 
 class NotificationSettingTypes(ValueEqualityEnum):
@@ -159,7 +154,7 @@ NOTIFICATION_SETTING_OPTION_VALUES = {
 }
 
 # default is not a choice anymore, we just delete the row if we want to the default
-NOTIFICATION_SETTING_V2_CHOICES = [
+NOTIFICATION_SETTING_CHOICES = [
     NotificationSettingsOptionEnum.ALWAYS.value,
     NotificationSettingsOptionEnum.NEVER.value,
     NotificationSettingsOptionEnum.SUBSCRIBE_ONLY.value,
@@ -202,15 +197,8 @@ class FineTuningAPIKey(Enum):
 
 
 class UserOptionsSettingsKey(Enum):
-    DEPLOY = "deployNotifications"
     SELF_ACTIVITY = "personalActivityNotifications"
     SELF_ASSIGN = "selfAssignOnResolve"
-    SUBSCRIBE_BY_DEFAULT = "subscribeByDefault"
-    WORKFLOW = "workflowNotifications"
-    ACTIVE_RELEASE = "activeReleaseNotifications"
-    APPROVAL = "approvalNotifications"
-    QUOTA = "quotaNotifications"
-    SPIKE_PROTECTION = "spikeProtectionNotifications"
 
 
 VALID_VALUES_FOR_KEY = {
@@ -264,10 +252,6 @@ VALID_VALUES_FOR_KEY = {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.NEVER,
     },
-}
-
-VALID_VALUES_FOR_KEY_V2 = {
-    **VALID_VALUES_FOR_KEY,
     NotificationSettingTypes.REPORTS: {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.NEVER,
@@ -357,3 +341,11 @@ class GroupSubscriptionStatus:
     is_disabled: bool
     is_active: bool
     has_only_inactive_subscriptions: bool
+
+
+@dataclass
+class UnsubscribeContext:
+    organization: Organization
+    resource_id: int
+    key: str
+    referrer: str | None = None

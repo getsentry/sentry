@@ -43,6 +43,7 @@ SUPPORTED_SDK_VERSIONS = {
     # JavaScript
     "sentry-browser": "7.6.0",
     "sentry.javascript.angular": "7.6.0",
+    "sentry.javascript.astro": "7.6.0",
     "sentry.javascript.browser": "7.6.0",
     "sentry.javascript.ember": "7.6.0",
     "sentry.javascript.gatsby": "7.6.0",
@@ -495,7 +496,9 @@ class CheckAM2Compatibility:
 
     @classmethod
     def is_on_demand_metrics_data(cls, aggregate, query):
-        return should_use_on_demand_metrics(Dataset.Transactions.value, aggregate, query, True)
+        return should_use_on_demand_metrics(
+            Dataset.Transactions.value, aggregate, query, None, True
+        )
 
     @classmethod
     def get_excluded_conditions(cls):

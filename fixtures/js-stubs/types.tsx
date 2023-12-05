@@ -1,7 +1,4 @@
 import {EntryException} from 'sentry/types';
-import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
-
-import type {Replay} from './replay';
 
 type SimpleStub<T = any> = () => T;
 
@@ -38,7 +35,6 @@ type TestStubFixtures = {
   Members: OverridableStubList;
   MetricRule: OverridableStub;
   OrgRoleList: OverridableStub;
-  Organization: OverridableStub;
   PageFilters: OverridableStub;
   PlatformExternalIssue: OverridableStub;
   Plugin: OverridableStub;
@@ -47,9 +43,6 @@ type TestStubFixtures = {
   ProjectAlertRule: OverridableStub;
   ProjectKeys: OverridableStubList;
   Release: (params?: any, healthParams?: any) => any;
-  Replay: typeof Replay;
-  ReplayError: OverridableStub<ReplayError>;
-  ReplayRecord: OverridableStub<ReplayRecord>;
   Repository: OverridableStub;
   SentryApp: OverridableStub;
   SentryAppComponent: OverridableStub;

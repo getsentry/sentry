@@ -7,10 +7,11 @@ from collections import defaultdict
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Iterable, List, MutableMapping, Optional, Union
 
-from sentry.models.actor import ACTOR_TYPES, get_actor_for_user, get_actor_id_for_user
+from sentry.models.actor import ACTOR_TYPES, get_actor_id_for_user
 from sentry.services.hybrid_cloud import RpcModel
 from sentry.services.hybrid_cloud.organization import RpcTeam
 from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 
 if TYPE_CHECKING:
     from sentry.models.actor import Actor
@@ -31,9 +32,6 @@ class RpcActor(RpcModel):
 
     id: int
     """The id of the user/team this actor represents"""
-
-    actor_id: Optional[int]
-    """The id of the Actor record"""
 
     actor_type: ActorType
     """Whether this actor is a User or Team"""
@@ -56,7 +54,6 @@ class RpcActor(RpcModel):
         Queries for actors are batched to increase efficiency. Users that are
         missing actors will have actors generated.
         """
-        from sentry.models.actor import Actor
         from sentry.models.team import Team
         from sentry.models.user import User
 
@@ -74,31 +71,19 @@ class RpcActor(RpcModel):
 
         if grouped_by_type[ActorType.TEAM]:
             team_ids = grouped_by_type[ActorType.TEAM]
-            actors = Actor.objects.filter(type=ACTOR_TYPES["team"], team__in=team_ids)
-            actors_by_team_id = {actor.team_id: actor for actor in actors}
             for team_id in team_ids:
-                actor = actors_by_team_id[team_id]
                 result.append(
                     RpcActor(
-                        actor_id=actor.id,
-                        id=actor.team_id,
+                        id=team_id,
                         actor_type=ActorType.TEAM,
-                        slug=team_slugs.get(actor.team_id),
+                        slug=team_slugs.get(team_id),
                     )
                 )
 
         if grouped_by_type[ActorType.USER]:
             user_ids = grouped_by_type[ActorType.USER]
-            actors = Actor.objects.filter(type=ACTOR_TYPES["user"], user_id__in=user_ids)
-            actors_by_user_id = {actor.user_id: actor for actor in actors}
             for user_id in user_ids:
-                if user_id in actors_by_user_id:
-                    actor = actors_by_user_id[user_id]
-                else:
-                    actor = get_actor_for_user(user_id)
-                result.append(
-                    RpcActor(actor_id=actor.id, id=actor.user_id, actor_type=ActorType.USER)
-                )
+                result.append(RpcActor(id=user_id, actor_type=ActorType.USER))
         return result
 
     @classmethod
@@ -127,12 +112,8 @@ class RpcActor(RpcModel):
 
     @classmethod
     def from_orm_user(cls, user: "User", fetch_actor: bool = True) -> "RpcActor":
-        actor_id = None
-        if fetch_actor:
-            actor_id = get_actor_id_for_user(user)
         return cls(
             id=user.id,
-            actor_id=actor_id,
             actor_type=ActorType.USER,
         )
 
@@ -172,3 +153,11 @@ class RpcActor(RpcModel):
             and self.id == other.id
             and self.actor_type == other.actor_type
         )
+
+    def resolve(self) -> Optional[Union["Team", "RpcUser"]]:
+        from sentry.models.team import Team
+
+        if self.actor_type == ActorType.TEAM:
+            return Team.objects.filter(id=self.id).first()
+        if self.actor_type == ActorType.USER:
+            return user_service.get_user(user_id=self.id)

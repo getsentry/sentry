@@ -47,6 +47,7 @@ export function SpanGroupBar(props: SpanGroupBarProps) {
           name: '',
           fields: [`sum(${SPAN_SELF_TIME})`, 'span.module'],
           dataset: DiscoverDatasets.SPANS_METRICS,
+          query: '!span.module:other',
           orderby: '-sum_span_self_time',
           version: 2,
         },

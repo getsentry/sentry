@@ -9,23 +9,25 @@ from sentry.backup.scopes import ImportScope, RelocationScope
 
 class OverwritableConfigMixin:
     """
-    Handles the `ImportFlags.overwrite_configs` setting when it's piped through to a `RelocationScope.Config` model with at least one `unique=True` field, thereby handling the collision in the manner the importer requested.
+    Handles the `ImportFlags.overwrite_configs` setting when it's piped through to a
+    `RelocationScope.Config` model with at least one `unique=True` field, thereby handling the
+    collision in the manner the importer requested.
     """
 
+    # TODO(getsentry/team-ospo#190): Clean up the type checking in this method.
     def write_relocation_import(
         self, scope: ImportScope, flags: ImportFlags
     ) -> Optional[Tuple[int, ImportKind]]:
-        # TODO(getsentry/team-ospo#190): Clean up the type checking here.
+        # Get all unique sets that will potentially cause collisions.
+        uniq_sets = dependencies()[get_model_name(self)].get_uniques_without_foreign_keys()  # type: ignore
+
+        # Don't use this mixin for models with multiple unique sets; write custom logic instead.
+        assert len(uniq_sets) <= 1
+
+        # Must set `__relocation_custom_ordinal__` on models that use this mixin.
+        assert getattr(self.__class__, "__relocation_custom_ordinal__", None) is not None
+
         if self.get_relocation_scope() == RelocationScope.Config:  # type: ignore
-            # Get all unique sets that will potentially cause collisions.
-            uniq_sets = dependencies()[get_model_name(self)].get_uniques_without_foreign_keys()  # type: ignore
-
-            # Don't use this mixin for models with multiple unique sets; write custom logic instead.
-            if len(uniq_sets) > 1:
-                raise ValueError(
-                    "Cannot use `OverwritableConfigMixin` on model with multiple unique sets"
-                )
-
             if len(uniq_sets) == 1:
                 uniq_set = uniq_sets[0]
                 query = dict()
@@ -33,8 +35,8 @@ class OverwritableConfigMixin:
                     if getattr(self, uniq_field_name, None) is not None:
                         query[uniq_field_name] = getattr(self, uniq_field_name)
 
-                # If all of the fields in the unique set are NULL, we'll avoid a collision, so go
-                # ahead and write a new entry.
+                # If all of the fields in the unique set are NULL, we'll avoid a collision, so exit
+                # early and write a new entry.
                 if len(query) > 0:
                     existing = self.__class__.objects.filter(**query).first()  # type: ignore
                     if existing:

@@ -466,7 +466,7 @@ describe('IssueRuleEditor', function () {
         router: {
           location: {
             query: {
-              createFromDuplicate: true,
+              createFromDuplicate: 'true',
               duplicateRuleId: `${rule.id}`,
             },
           },
@@ -474,7 +474,32 @@ describe('IssueRuleEditor', function () {
       });
 
       expect(await screen.findByTestId('alert-name')).toHaveValue(`${rule.name} copy`);
+      expect(screen.queryByText('A new issue is created')).toBeInTheDocument();
       expect(mock).toHaveBeenCalled();
+    });
+
+    it('does not add FirstSeenEventCondition to a duplicate rule', async function () {
+      MockApiClient.addMockResponse({
+        url: endpoint,
+        method: 'GET',
+        body: {...rule, conditions: []},
+      });
+      createWrapper({
+        organization: {
+          access: ['alerts:write'],
+        },
+        router: {
+          location: {
+            query: {
+              createFromDuplicate: 'true',
+              duplicateRuleId: `${rule.id}`,
+            },
+          },
+        },
+      });
+
+      expect(await screen.findByTestId('alert-name')).toHaveValue(`${rule.name} copy`);
+      expect(screen.queryByText('A new issue is created')).not.toBeInTheDocument();
     });
   });
 });

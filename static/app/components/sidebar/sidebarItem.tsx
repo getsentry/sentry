@@ -1,12 +1,14 @@
-import {Fragment, isValidElement} from 'react';
+import {Fragment, isValidElement, useCallback, useMemo} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {LocationDescriptor} from 'history';
 
 import FeatureBadge from 'sentry/components/featureBadge';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
+import {Flex} from 'sentry/components/profiling/flex';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
@@ -18,11 +20,16 @@ import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {SidebarOrientation} from './types';
+import {SIDEBAR_NAVIGATION_SOURCE} from './utils';
 
 const LabelHook = HookOrDefault({
   hookName: 'sidebar:item-label',
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
+
+const tooltipDisabledProps = {
+  disabled: true,
+};
 
 export type SidebarItemProps = {
   /**
@@ -76,7 +83,7 @@ export type SidebarItemProps = {
    */
   isBeta?: boolean;
   /**
-   * Additional badge letting users know a tab is new.
+   * Specify the variant for the badge.
    */
   isNew?: boolean;
   /**
@@ -88,17 +95,23 @@ export type SidebarItemProps = {
    * The current organization. Useful for analytics.
    */
   organization?: Organization;
+  search?: string;
   to?: string;
   /**
    * Content to render at the end of the item.
    */
   trailingItems?: React.ReactNode;
+  /**
+   * Content to render at the end of the item.
+   */
+  variant?: 'badge' | 'indicator' | 'short' | undefined;
 };
 
 function SidebarItem({
   id,
   href,
   to,
+  search,
   icon,
   label,
   badge,
@@ -115,6 +128,7 @@ function SidebarItem({
   organization,
   onClick,
   trailingItems,
+  variant,
   ...props
 }: SidebarItemProps) {
   const router = useRouter();
@@ -135,41 +149,56 @@ function SidebarItem({
   const isNewSeenKey = `sidebar-new-seen:${id}${seenSuffix}`;
   const showIsNew = isNew && !localStorage.getItem(isNewSeenKey);
 
-  const recordAnalytics = () => {
+  const recordAnalytics = useCallback(() => {
     trackAnalytics('growth.clicked_sidebar', {
       item: id,
       organization: organization || null,
     });
-  };
+  }, [id, organization]);
+
+  const toProps: LocationDescriptor = useMemo(() => {
+    return {
+      pathname: to ? to : href ?? '#',
+      search,
+      state: {source: SIDEBAR_NAVIGATION_SOURCE},
+    };
+  }, [to, href, search]);
 
   const badges = (
     <Fragment>
-      {showIsNew && <FeatureBadge type="new" />}
-      {isBeta && <FeatureBadge type="beta" />}
-      {isAlpha && <FeatureBadge type="alpha" />}
+      {showIsNew && <FeatureBadge type="new" variant={variant} />}
+      {isBeta && <FeatureBadge type="beta" variant={variant} />}
+      {isAlpha && <FeatureBadge type="alpha" variant={variant} />}
     </Fragment>
   );
 
-  const tooltipLabel = (
-    <Fragment>
-      {label} {badges}
-    </Fragment>
+  const handleItemClick = useCallback(
+    (event: React.MouseEvent<HTMLAnchorElement>) => {
+      !(to || href) && event.preventDefault();
+      recordAnalytics();
+      onClick?.(id, event);
+      showIsNew && localStorage.setItem(isNewSeenKey, 'true');
+    },
+    [href, to, id, onClick, recordAnalytics, showIsNew, isNewSeenKey]
   );
 
   return (
-    <Tooltip disabled={!collapsed} title={tooltipLabel} position={placement}>
+    <Tooltip
+      disabled={!collapsed && !isTop}
+      title={
+        <Flex align="center">
+          {label} {badges}
+        </Flex>
+      }
+      position={placement}
+    >
       <StyledSidebarItem
         {...props}
         id={`sidebar-item-${id}`}
         active={isActive ? 'true' : undefined}
-        to={(to ? to : href) || '#'}
+        to={toProps}
         className={className}
-        onClick={(event: React.MouseEvent<HTMLAnchorElement>) => {
-          !(to || href) && event.preventDefault();
-          recordAnalytics();
-          onClick?.(id, event);
-          showIsNew && localStorage.setItem(isNewSeenKey, 'true');
-        }}
+        onClick={handleItemClick}
       >
         <InteractionStateLayer isPressed={isActive} color="white" higherOpacity />
         <SidebarItemWrapper collapsed={collapsed}>
@@ -186,21 +215,21 @@ function SidebarItem({
             <CollapsedFeatureBadge
               type="new"
               variant="indicator"
-              tooltipProps={{disabled: true}}
+              tooltipProps={tooltipDisabledProps}
             />
           )}
           {collapsed && isBeta && (
             <CollapsedFeatureBadge
               type="beta"
               variant="indicator"
-              tooltipProps={{disabled: true}}
+              tooltipProps={tooltipDisabledProps}
             />
           )}
           {collapsed && isAlpha && (
             <CollapsedFeatureBadge
               type="alpha"
               variant="indicator"
-              tooltipProps={{disabled: true}}
+              tooltipProps={tooltipDisabledProps}
             />
           )}
           {badge !== undefined && badge > 0 && (
@@ -351,6 +380,7 @@ const SidebarItemLabel = styled('span')`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  overflow: hidden;
 `;
 
 const getCollapsedBadgeStyle = ({collapsed, theme}) => {

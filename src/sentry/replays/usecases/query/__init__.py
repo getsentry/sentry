@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from collections import namedtuple
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Union, cast
+from typing import Any, Mapping, Sequence, Union, cast
 
 from rest_framework.exceptions import ParseError
 from snuba_sdk import (
@@ -45,7 +45,7 @@ from sentry.utils.snuba import raw_snql_query
 
 def handle_search_filters(
     search_config: dict[str, FieldProtocol],
-    search_filters: list[Union[SearchFilter, str, ParenExpression]],
+    search_filters: Sequence[Union[SearchFilter, str, ParenExpression]],
 ) -> list[Condition]:
     """Convert search filters to snuba conditions."""
     result: list[Condition] = []
@@ -144,7 +144,7 @@ Paginators = namedtuple("Paginators", ("limit", "offset"))
 
 def query_using_optimized_search(
     fields: list[str],
-    search_filters: list[Union[SearchFilter, str, ParenExpression]],
+    search_filters: Sequence[Union[SearchFilter, str, ParenExpression]],
     environments: list[str],
     sort: str | None,
     pagination: Paginators | None,
@@ -158,9 +158,10 @@ def query_using_optimized_search(
     # Environments is provided to us outside of the ?query= url parameter. It's stil filtered like
     # the values in that parameter so let's shove it inside and process it like any other filter.
     if environments:
-        search_filters.append(
-            SearchFilter(SearchKey("environment"), "IN", SearchValue(environments))
-        )
+        search_filters = [
+            *search_filters,
+            SearchFilter(SearchKey("environment"), "IN", SearchValue(environments)),
+        ]
 
     can_scalar_sort = sort_is_scalar_compatible(sort or "started_at")
     can_scalar_search = can_scalar_search_subquery(search_filters)
@@ -216,7 +217,7 @@ def query_using_optimized_search(
 
 
 def make_scalar_search_conditions_query(
-    search_filters: list[Union[SearchFilter, str, ParenExpression]],
+    search_filters: Sequence[Union[SearchFilter, str, ParenExpression]],
     sort: str | None,
     project_ids: list[int],
     period_start: datetime,
@@ -248,7 +249,7 @@ def make_scalar_search_conditions_query(
 
 
 def make_aggregate_search_conditions_query(
-    search_filters: list[Union[SearchFilter, str, ParenExpression]],
+    search_filters: Sequence[Union[SearchFilter, str, ParenExpression]],
     sort: str | None,
     project_ids: list[int],
     period_start: datetime,

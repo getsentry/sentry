@@ -11,6 +11,7 @@ from unittest.mock import Mock, call
 
 import pytest
 from arroyo.backends.kafka import KafkaPayload
+from arroyo.dlq import InvalidMessage
 from arroyo.processing.strategies import MessageRejected
 from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 
@@ -18,7 +19,11 @@ from sentry.ratelimits.cardinality import CardinalityLimiter
 from sentry.sentry_metrics.aggregation_option_registry import get_aggregation_option
 from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.consumers.indexer.batch import valid_metric_name
-from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, MetricsBatchBuilder
+from sentry.sentry_metrics.consumers.indexer.common import (
+    BatchMessages,
+    IndexerOutputMessageBatch,
+    MetricsBatchBuilder,
+)
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
 from sentry.sentry_metrics.indexer.limiters.cardinality import (
     TimeseriesCardinalityLimiter,
@@ -51,6 +56,10 @@ def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Messag
     actual_payload = actual.payload
     expected_payload = expected.payload
 
+    if isinstance(actual_payload, InvalidMessage):
+        assert actual_payload == expected_payload
+        return
+
     assert actual_payload.key == expected_payload.key
 
     actual_headers_without_mapping_sources = [
@@ -65,10 +74,10 @@ def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Messag
 
 
 def compare_message_batches_ignoring_metadata(
-    actual: Sequence[Message], expected: Sequence[Message]
+    actual: IndexerOutputMessageBatch, expected: Sequence[Message]
 ) -> None:
-    assert len(actual) == len(expected)
-    for (a, e) in zip(actual, expected):
+    assert len(actual.data) == len(expected)
+    for a, e in zip(actual.data, expected):
         compare_messages_ignoring_mapping_metadata(a, e)
 
 
@@ -386,7 +395,9 @@ def test_process_messages_default_card_rollout(set_sentry_option) -> None:
         "sentry-metrics.cardinality-limiter.orgs-rollout-rate",
         1.0,
     ):
-        MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
+        new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
+
+    assert len(new_batch.data) == len(message_batch)
 
 
 invalid_payloads = [
@@ -492,7 +503,13 @@ def test_process_messages_invalid_messages(
                 ),
                 expected_msg.committable,
             )
-        )
+        ),
+        Message(
+            Value(
+                InvalidMessage(Partition(Topic("topic"), 0), 1),
+                message_batch[1].committable,
+            )
+        ),
     ]
     compare_message_batches_ignoring_metadata(new_batch, expected_new_batch)
     assert error_text in caplog.text

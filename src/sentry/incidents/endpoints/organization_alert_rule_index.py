@@ -11,6 +11,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
@@ -135,6 +136,7 @@ class AlertRuleIndexMixin(Endpoint):
 
 @region_silo_endpoint
 class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
@@ -177,14 +179,22 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 team_filter_query = team_filter_query | Q(owner_id=None)
 
         alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
-        if not features.has("organizations:performance-view", organization):
-            # Filter to only error alert rules
-            alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
         issue_rules = Rule.objects.filter(
             status__in=[ObjectStatus.ACTIVE, ObjectStatus.DISABLED],
             source__in=[RuleSource.ISSUE],
             project__in=projects,
         )
+
+        if not features.has("organizations:performance-view", organization):
+            # Filter to only error alert rules
+            alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
+        else:
+            datasets = request.GET.getlist("dataset", [])
+            if len(datasets) > 0:
+                alert_rules = alert_rules.filter(snuba_query__dataset__in=datasets)
+                if Dataset.Events.value not in datasets:
+                    issue_rules = Rule.objects.none()
+
         name = request.GET.get("name", None)
         if name:
             alert_rules = alert_rules.filter(Q(name__icontains=name))
@@ -373,6 +383,7 @@ Metric alert rule trigger actions follow the following structure:
 @extend_schema(tags=["Alerts"])
 @region_silo_endpoint
 class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMixin):
+    owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,

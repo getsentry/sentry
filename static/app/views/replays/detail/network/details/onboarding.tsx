@@ -174,7 +174,8 @@ function SetupInstructions({
   }
 
   function trimUrl(oldUrl: string): string {
-    return oldUrl.substring(0, oldUrl.indexOf('?'));
+    const end = oldUrl.indexOf('?') > 0 ? oldUrl.indexOf('?') : oldUrl.length;
+    return oldUrl.substring(0, end);
   }
 
   const urlSnippet = `

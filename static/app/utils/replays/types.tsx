@@ -15,6 +15,8 @@ import type {
 } from '@sentry/react';
 import invariant from 'invariant';
 
+import {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
+
 /**
  * Extra breadcrumb types not included in `@sentry/replay`
  */
@@ -79,6 +81,12 @@ export function getFrameOpOrCategory(frame: ReplayFrame) {
   const val = ('op' in frame && frame.op) || ('category' in frame && frame.category);
   invariant(val, 'Frame has no category or op');
   return val;
+}
+
+export function getNodeId(frame: ReplayFrame) {
+  return 'data' in frame && frame.data && 'nodeId' in frame.data
+    ? frame.data.nodeId
+    : undefined;
 }
 
 export function isConsoleFrame(frame: BreadcrumbFrame): frame is ConsoleFrame {
@@ -268,4 +276,4 @@ export type ErrorFrame = Overwrite<
   }
 >;
 
-export type ReplayFrame = BreadcrumbFrame | ErrorFrame | SpanFrame;
+export type ReplayFrame = BreadcrumbFrame | ErrorFrame | SpanFrame | HydratedA11yFrame;

@@ -22,27 +22,33 @@ export function NoDataMessage({Wrapper = DivWrapper}: Props) {
 
   const selectedProjectIds = selection.projects.map(projectId => projectId.toString());
 
-  const {data: projectSpanMetricsCounts, isLoading} = useProjectSpanMetricCounts({
-    query: 'span.module:db',
-    statsPeriod: SAMPLE_STATS_PERIOD,
-    enabled: pageFilterIsReady,
-    projectId: selectedProjectIds,
-  });
+  const {data: projectSpanMetricsCounts, isLoading: areSpanMetricCountsLoading} =
+    useProjectSpanMetricCounts({
+      query: 'span.module:db',
+      statsPeriod: SAMPLE_STATS_PERIOD,
+      enabled: pageFilterIsReady,
+      projectId: selectedProjectIds,
+    });
 
   const doesAnySelectedProjectHaveMetrics =
     sumBy(projectSpanMetricsCounts, 'count()') > 0;
 
-  const {ineligibleProjects} = useIneligibleProjects({
-    projectId: selectedProjectIds,
-    enabled: pageFilterIsReady && !doesAnySelectedProjectHaveMetrics,
-  });
+  const {ineligibleProjects, isFetching: areIneligibleProjectsFetching} =
+    useIneligibleProjects({
+      projectId: selectedProjectIds,
+      enabled: pageFilterIsReady && !doesAnySelectedProjectHaveMetrics,
+    });
 
   const organization = useOrganization();
 
   const hasMoreIneligibleProjectsThanVisible =
     ineligibleProjects.length > MAX_LISTED_PROJECTS;
 
-  if (isLoading) {
+  if (areSpanMetricCountsLoading || areIneligibleProjectsFetching) {
+    return null;
+  }
+
+  if (!projectSpanMetricsCounts) {
     return null;
   }
 

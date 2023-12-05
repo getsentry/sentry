@@ -270,13 +270,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "api.prevent-numeric-slugs",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Beacon
 register("beacon.anonymous", type=Bool, flags=FLAG_REQUIRED)
 
@@ -379,6 +372,18 @@ register(
     "replay.ingest.dom-click-search",
     type=Int,
     default=0,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Replay Analyzer service.
+register(
+    "replay.analyzer_service_url",
+    default=None,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "organizations:session-replay-accessibility-issues-enabled",
+    type=Bool,
+    default=True,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -722,6 +727,22 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Enable sending the flag to the microservice to tell it to purposefully take longer than our
+# timeout, to see the effect on the overall error event processing backlog
+register(
+    "processing.severity-backlog-test.timeout",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enable sending the flag to the microservice to tell it to purposefully send back an error, to see
+# the effect on the overall error event processing backlog
+register(
+    "processing.severity-backlog-test.error",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # ## sentry.killswitches
 #
@@ -968,6 +989,36 @@ register(
 register(
     "sentry-metrics.indexer.disable-memcache-replenish-rollout",
     default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# An option to enable reading from the new schema for the caching indexer
+register(
+    "sentry-metrics.indexer.read-new-cache-namespace",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# An option to enable writing from the new schema for the caching indexer
+register(
+    "sentry-metrics.indexer.write-new-cache-namespace",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Option to control sampling percentage of schema validation on the generic metrics pipeline
+# based on namespace.
+register(
+    "sentry-metrics.indexer.generic-metrics.schema-validation-rules",
+    default={},  # empty dict means validate schema for all use cases
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Option to control sampling percentage of schema validation on the release health metrics
+# pipeline based on namespace.
+register(
+    "sentry-metrics.indexer.release-health.schema-validation-rules",
+    default={},  # empty dict means validate schema for all use cases
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1297,48 +1348,6 @@ register(
 register(
     "performance.issues.http_overhead.ga-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
-# Experimental issue
-register(
-    "performance.issues.duration_regression.problem-creation",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "performance.issues.duration_regression.la-rollout",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "performance.issues.duration_regression.ea-rollout",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "performance.issues.duration_regression.ga-rollout",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Actual duration regression issue
-register(
-    "performance.issues.p95_duration_regression.problem-creation",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "performance.issues.p95_duration_regression.la-rollout",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "performance.issues.p95_duration_regression.ea-rollout",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "performance.issues.p95_duration_regression.ga-rollout",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # System-wide options for default performance detection settings for any org opted into the performance-issues-ingest feature. Meant for rollout.
 register(
@@ -1462,6 +1471,9 @@ register(
 )
 
 register("hybrid_cloud.outbox_rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("hybrid_cloud.multi-region-selector", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("hybrid_cloud.region-user-allow-list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
 register("txnames.bump-lifetime-sample-rate", default=0.1, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Decides whether an incoming span triggers an update of the clustering rule applied to it.
@@ -1563,6 +1575,18 @@ register(
     default=100,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "statistical_detectors.query.transactions.timeseries_days",
+    type=Int,
+    default=14,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "statistical_detectors.ratelimit.ema",
+    type=Int,
+    default=-1,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "options_automator_slack_webhook_enabled",
@@ -1579,6 +1603,16 @@ register(
 register(
     "on_demand.max_widget_specs",
     default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "on_demand.max_widget_cardinality.count",
+    default=10000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "on_demand.max_widget_cardinality.killswitch",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1629,3 +1663,95 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+register(
+    "delightful_metrics.emit_gauges",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "delightful_metrics.enable_code_locations",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "delightful_metrics.metrics_summary_sample_rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# SDK Crash Detection
+#
+# The project ID belongs to the sentry organization: https://sentry.sentry.io/projects/cocoa-sdk-crashes/?project=4505469596663808.
+register(
+    "issues.sdk_crash_detection.cocoa.project_id",
+    default=4505469596663808,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.sdk_crash_detection.cocoa.sample_rate",
+    default=1.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# The project ID belongs to the sentry organization: https://sentry.sentry.io/projects/cocoa-sdk-crashes/?project=4506155486085120.
+register(
+    "issues.sdk_crash_detection.react-native.project_id",
+    default=4506155486085120,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.sdk_crash_detection.react-native.sample_rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# END: SDK Crash Detection
+
+register(
+    # Lists the shared resource ids we want to account usage for.
+    "shared_resources_accounting_enabled",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "releases_v2.single-tenant",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# sample rate for using v2 of deobfuscation that
+# uses function params when line info is missing
+register(
+    "profiling.android.deobfuscation_v2_sample_rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# org IDs that will be using v2 of deobfuscation
+# regardless of the sample rate defined by:
+# "profiling.android.deobfuscation_v2_sample_rate"
+register(
+    "profiling.android.deobfuscation_v2_org_ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# The flag disables the file io on main thread detector
+register(
+    "performance_issues.file_io_main_thread.disabled",
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Relocation
+#
+# Throttling limits for relocation requests
+register("relocation.daily-limit-small", default=0)
+register("relocation.daily-limit-medium", default=0)
+register("relocation.daily-limit-large", default=0)

@@ -14,7 +14,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils.http import absolute_uri
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class BuildMetricAlertAttachmentTest(TestCase):
     def setUp(self):
         super().setUp()

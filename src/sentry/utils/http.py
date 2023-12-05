@@ -107,7 +107,7 @@ def parse_uri_match(value: str) -> ParsedUriMatch:
 
 
 def is_valid_origin(
-    origin: str, project: Project | None = None, allowed: frozenset[str] | None = None
+    origin: str | None, project: Project | None = None, allowed: frozenset[str] | None = None
 ) -> bool:
     """
     Given an ``origin`` which matches a base URI (e.g. http://example.com)

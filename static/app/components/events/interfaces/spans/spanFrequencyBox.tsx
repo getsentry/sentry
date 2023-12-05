@@ -35,10 +35,10 @@ export function SpanFrequencyBox({span}: Props) {
     <StyledBox frequency={frequency ?? 0}>
       <Tooltip
         isHoverable
-        title={tct(
-          'This span occurs in [x] out of every [total] events ([percentage] frequency)',
-          {x: count, total, percentage: formatPercentage(frequency ?? 0, 0)}
-        )}
+        title={tct('This span occurred in [x] out of [total] events aggregated', {
+          x: count,
+          total,
+        })}
       >
         {formatPercentage(frequency ?? 0, 0)}
       </Tooltip>
@@ -49,15 +49,15 @@ export function SpanFrequencyBox({span}: Props) {
 function getBoxColors(theme: Theme, frequency?: number) {
   if (!frequency || frequency >= 0.9) {
     return `
-      background: ${theme.white};
-      color: ${theme.black};
+      background: ${purples[3]};
+      color: ${theme.white};
     `;
   }
 
   if (frequency >= 0.7) {
     return `
-      background: ${purples[0]};
-      color: ${theme.black};
+      background: ${purples[2]};
+      color: ${theme.white};
     `;
   }
 
@@ -70,14 +70,14 @@ function getBoxColors(theme: Theme, frequency?: number) {
 
   if (frequency >= 0.3) {
     return `
-      background: ${purples[2]};
-      color: ${theme.white};
+      background: ${purples[0]};
+      color: ${theme.black};
     `;
   }
 
   return `
-      background: ${purples[3]};
-      color: ${theme.white};
+      background: ${theme.white};
+      color: ${theme.black};
     `;
 }
 

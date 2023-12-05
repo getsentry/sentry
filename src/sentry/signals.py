@@ -122,7 +122,6 @@ event_accepted = BetterSignal()  # ["ip", "data", "project"]
 
 # Organization Onboarding Signals
 project_created = BetterSignal()  # ["project", "user", "user_id", "default_rules"]
-first_event_pending = BetterSignal()  # ["project", "user"]
 
 first_event_received = BetterSignal()  # ["project", "event"]
 # We use signal for consistency with other places but
@@ -131,7 +130,9 @@ first_event_with_minified_stack_trace_received = BetterSignal()  # ["project", "
 first_transaction_received = BetterSignal()  # ["project", "event"]
 first_profile_received = BetterSignal()  # ["project"]
 first_replay_received = BetterSignal()  # ["project"]
+first_feedback_received = BetterSignal()  # ["project"]
 first_cron_monitor_created = BetterSignal()  # ["project", "user", "from_upsert"]
+cron_monitor_created = BetterSignal()  # ["project", "user", "from_upsert"]
 first_cron_checkin_received = BetterSignal()  # ["project", "monitor_id"]
 member_invited = BetterSignal()  # ["member", "user"]
 member_joined = BetterSignal()  # ["organization_member_id", "organization_id", "user_id"]
@@ -190,6 +191,9 @@ monitor_environment_failed = BetterSignal()  # ["monitor"]
 join_request_created = BetterSignal()  # ["member"]
 join_request_link_viewed = BetterSignal()  # ["organization"]
 user_signup = BetterSignal()  # ["user", "source"]
+
+# relocation
+relocated = BetterSignal()  # ["relocation_uuid"]
 
 # After `sentry upgrade` has completed.  Better than post_migrate because it won't run in tests.
 post_upgrade = BetterSignal()  # []

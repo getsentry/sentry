@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 from collections import namedtuple
-from typing import Any, Callable, ClassVar, Dict, Mapping, Sequence, Type
+from typing import Any, Callable, ClassVar, Dict, Sequence, Type
 
 from django import forms
 
@@ -58,7 +58,7 @@ class RuleBase(abc.ABC):
     def __init__(
         self,
         project: Project,
-        data: Mapping[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
         rule: Rule | None = None,
     ) -> None:
         self.project = project
@@ -77,7 +77,7 @@ class RuleBase(abc.ABC):
         return self.data.get(key, default)
 
     def get_form_instance(self) -> forms.Form:
-        data: Mapping[str, Any] | None = None
+        data: dict[str, Any] | None = None
         if self.had_data:
             data = self.data
         return self.form_cls(data)

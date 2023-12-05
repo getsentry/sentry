@@ -32,7 +32,7 @@ def send_issue_assigned_webhook(project, group, user, **kwargs):
     actor: RpcUser | Team = assignee.resolve()
 
     data = {
-        "assignee": {"type": assignee.type.__name__.lower(), "name": actor.name, "id": actor.id}
+        "assignee": {"type": str(assignee.actor_type).lower(), "name": actor.name, "id": actor.id}
     }
 
     org = project.organization

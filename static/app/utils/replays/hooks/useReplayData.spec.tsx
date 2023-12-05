@@ -1,5 +1,11 @@
 import {duration} from 'moment';
-import {ReplayError} from 'sentry-fixture/replayError';
+import {
+  ReplayConsoleEventFixture,
+  ReplayNavigateEventFixture,
+} from 'sentry-fixture/replay/helpers';
+import {RRWebInitFrameEvents} from 'sentry-fixture/replay/rrweb';
+import {ReplayErrorFixture} from 'sentry-fixture/replayError';
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
@@ -24,7 +30,7 @@ jest.mocked(useProjects).mockReturnValue({
 });
 
 function getMockReplayRecord(replayRecord?: Partial<ReplayRecord>) {
-  const HYDRATED_REPLAY = TestStubs.ReplayRecord({
+  const HYDRATED_REPLAY = ReplayRecordFixture({
     ...replayRecord,
     project_id: project.id,
   });
@@ -116,12 +122,12 @@ describe('useReplayData', () => {
       },
     });
 
-    const mockSegmentResponse1 = TestStubs.Replay.RRWebInitFrameEvents({
+    const mockSegmentResponse1 = RRWebInitFrameEvents({
       timestamp: startedAt,
     });
     const mockSegmentResponse2 = [
-      TestStubs.Replay.ConsoleEvent({timestamp: startedAt}),
-      TestStubs.Replay.NavigateEvent({
+      ReplayConsoleEventFixture({timestamp: startedAt}),
+      ReplayNavigateEventFixture({
         startTimestamp: startedAt,
         endTimestamp: finishedAt,
       }),
@@ -183,14 +189,14 @@ describe('useReplayData', () => {
     });
 
     const mockErrorResponse1 = [
-      ReplayError({
+      ReplayErrorFixture({
         id: ERROR_IDS[0],
         issue: 'JAVASCRIPT-123E',
         timestamp: startedAt.toISOString(),
       }),
     ];
     const mockErrorResponse2 = [
-      ReplayError({
+      ReplayErrorFixture({
         id: ERROR_IDS[1],
         issue: 'JAVASCRIPT-789Z',
         timestamp: startedAt.toISOString(),
@@ -266,11 +272,11 @@ describe('useReplayData', () => {
       count_segments: 1,
       error_ids: [ERROR_ID],
     });
-    const mockSegmentResponse = TestStubs.Replay.RRWebInitFrameEvents({
+    const mockSegmentResponse = RRWebInitFrameEvents({
       timestamp: startedAt,
     });
     const mockErrorResponse = [
-      ReplayError({
+      ReplayErrorFixture({
         id: ERROR_ID,
         issue: 'JAVASCRIPT-123E',
         timestamp: startedAt.toISOString(),

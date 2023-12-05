@@ -9,7 +9,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationMissingMembersTestCase(APITestCase):
     endpoint = "sentry-api-0-organization-missing-members"
     method = "get"
@@ -56,6 +56,12 @@ class OrganizationMissingMembersTestCase(APITestCase):
         self.integration = self.create_integration(
             organization=self.organization, provider="github", name="Github", external_id="github:1"
         )
+        self.integration2 = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="Github2",
+            external_id="github:3",
+        )
         self.repo = self.create_repo(
             project=self.project, provider="integrations:github", integration_id=self.integration.id
         )
@@ -72,6 +78,19 @@ class OrganizationMissingMembersTestCase(APITestCase):
         not_shared_domain_author.external_id = "github:not"
         not_shared_domain_author.save()
         self.create_commit(repo=self.repo, author=not_shared_domain_author)
+
+        self.invited_member = self.create_member(
+            email="invited@example.com",
+            organization=self.organization,
+        )
+        self.invited_member.user_email = "invited@example.com"
+        self.invited_member.save()
+        self.invited_member_commit_author = self.create_commit_author(
+            project=self.project, email="invited@example.com"
+        )
+        self.invited_member_commit_author.external_id = "github:invited"
+        self.invited_member_commit_author.save()
+        self.create_commit(repo=self.repo, author=self.invited_member_commit_author)
 
         self.login_as(self.user)
 
@@ -205,28 +224,10 @@ class OrganizationMissingMembersTestCase(APITestCase):
             {"email": "d@example.com", "externalId": "d", "commitCount": 1},
         ]
 
-    def test_query_on_author_email_and_external_id(self):
-        # self.nonmember_commit_author1 matches on email
-        # the below matches on external id
-        nonmember_commit_author = self.create_commit_author(
-            project=self.project, email="c2@example.com"
-        )
-        nonmember_commit_author.external_id = "github:c@example.com"
-        nonmember_commit_author.save()
-
-        self.create_commit(repo=self.repo, author=nonmember_commit_author)
-
-        response = self.get_success_response(self.organization.slug, query="c@example.com")
-
-        assert response.data[0]["integration"] == "github"
-        assert response.data[0]["users"] == [
-            {"email": "c@example.com", "externalId": "c", "commitCount": 2},
-            {"email": "c2@example.com", "externalId": "c@example.com", "commitCount": 1},
-        ]
-
     def test_no_github_integration(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.delete()
+            self.integration2.delete()
 
         response = self.get_success_response(self.organization.slug)
         assert len(response.data) == 0
@@ -235,6 +236,8 @@ class OrganizationMissingMembersTestCase(APITestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.status = ObjectStatus.DISABLED
             self.integration.save()
+            self.integration2.status = ObjectStatus.DISABLED
+            self.integration2.save()
 
         response = self.get_success_response(self.organization.slug)
         assert len(response.data) == 0
@@ -242,6 +245,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
     def test_nongithub_integration(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.delete()
+            self.integration2.delete()
 
         integration = self.create_integration(
             organization=self.organization,

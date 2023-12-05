@@ -57,7 +57,10 @@ class Refresher(Mediator):
             scope_list=self.sentry_app.scope_list,
             expires_at=token_expiration(),
         )
-        SentryAppInstallation.objects.filter(id=self.install.id).update(api_token=token)
+        try:
+            SentryAppInstallation.objects.get(id=self.install.id).update(api_token=token)
+        except SentryAppInstallation.DoesNotExist:
+            pass
         return token
 
     @memoize

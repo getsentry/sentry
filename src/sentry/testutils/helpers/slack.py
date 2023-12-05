@@ -4,7 +4,6 @@ from urllib.parse import parse_qs
 import responses
 
 from sentry.integrations.slack.message_builder import SlackBody
-from sentry.integrations.slack.notifications import send_notification_as_slack
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.integrations.integration import Integration
@@ -92,14 +91,19 @@ def link_team(team: Team, integration: Integration, channel_name: str, channel_i
     )
 
 
-def send_notification(provider, *args_list):
-    if provider == ExternalProviders.SLACK:
-        send_notification_as_slack(*args_list, {})
-
-
-def get_attachment():
+def get_channel(index=0):
+    """Get the channel ID the Slack message went to"""
     assert len(responses.calls) >= 1
-    data = parse_qs(responses.calls[0].request.body)
+    data = parse_qs(responses.calls[index].request.body)
+    assert "channel" in data
+    channel = json.loads(data["channel"][0])
+
+    return channel
+
+
+def get_attachment(index=0):
+    assert len(responses.calls) >= 1
+    data = parse_qs(responses.calls[index].request.body)
     assert "text" in data
     assert "attachments" in data
     attachments = json.loads(data["attachments"][0])

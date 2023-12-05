@@ -126,7 +126,7 @@ def configoptions(ctx, dry_run: bool, file: Optional[str], hide_drift: bool) -> 
 
     drifted_options = set()
     invalid_options = set()
-    presenter_delegator = PresenterDelegator()
+    presenter_delegator = PresenterDelegator("options-automator")
     ctx.obj["presenter_delegator"] = presenter_delegator
 
     for key, value in options_to_update.items():

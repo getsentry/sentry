@@ -237,6 +237,8 @@ class SAML2Provider(Provider, abc.ABC):
       constants to the Identity Provider attribute keys.
     """
 
+    # SAML does nothing with refresh state -- don't waste resources calling it in check_auth job.
+    requires_refresh = False
     required_feature = "organizations:sso-saml2"
 
     def get_auth_pipeline(self):

@@ -103,7 +103,10 @@ describe('TraceLiteQuery', function () {
     });
     traceFullMock = MockApiClient.addMockResponse({
       url: `/organizations/test-org/events-trace/0${traceId}/`,
-      body: [{event_id: eventId, children: []}],
+      body: {
+        transactions: [{event_id: eventId, children: []}],
+        orphan_errors: [],
+      },
     });
     traceMetaMock = MockApiClient.addMockResponse({
       url: `/organizations/test-org/events-trace-meta/0${traceId}/`,

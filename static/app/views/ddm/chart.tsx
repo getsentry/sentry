@@ -1,6 +1,7 @@
 import {useEffect, useRef} from 'react';
 import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useHover} from '@react-aria/interactions';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
@@ -12,11 +13,7 @@ import {RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {DateString, PageFilters} from 'sentry/types';
 import {ReactEchartsRef} from 'sentry/types/echarts';
-import {
-  formatMetricsUsingUnitAndOp,
-  getNameFromMRI,
-  MetricDisplayType,
-} from 'sentry/utils/metrics';
+import {formatMetricsUsingUnitAndOp, MetricDisplayType} from 'sentry/utils/metrics';
 import theme from 'sentry/utils/theme';
 import useRouter from 'sentry/utils/useRouter';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
@@ -53,6 +50,10 @@ export function MetricChart({
   const chartRef = useRef<ReactEchartsRef>(null);
   const router = useRouter();
 
+  const {hoverProps, isHovered} = useHover({
+    isDisabled: false,
+  });
+
   // TODO(ddm): Try to do this in a more elegant way
   useEffect(() => {
     const echartsInstance = chartRef?.current?.getEchartsInstance();
@@ -66,15 +67,16 @@ export function MetricChart({
 
   // TODO(ddm): This assumes that all series have the same bucket size
   const bucketSize = seriesToShow[0]?.data[1]?.name - seriesToShow[0]?.data[0]?.name;
+  const isSubMinuteBucket = bucketSize < 60_000;
   const seriesLength = seriesToShow[0]?.data.length;
 
   const formatters = {
     valueFormatter: (value: number) =>
       formatMetricsUsingUnitAndOp(value, unit, operation),
-    nameFormatter: mri => getNameFromMRI(mri),
     isGroupedByDate: true,
     bucketSize,
     showTimeInTooltip: true,
+    addSecondsToTimeFormat: isSubMinuteBucket,
   };
   const displayFogOfWar = operation && ['sum', 'count'].includes(operation);
 
@@ -109,7 +111,7 @@ export function MetricChart({
   };
 
   return (
-    <ChartWrapper>
+    <ChartWrapper {...hoverProps}>
       <ChartZoom
         router={router}
         period={period}
@@ -149,9 +151,13 @@ export function MetricChart({
                   })
                 : undefined;
 
+              // Zoom render props are slowing down the chart rendering,
+              // so we only pass them when the chart is hovered over
+              const zoomProps = isHovered ? zoomRenderProps : {};
+
               const allProps = {
                 ...chartProps,
-                ...zoomRenderProps,
+                ...zoomProps,
                 series: [...seriesToShow, ...releaseSeries],
                 legend,
               };
@@ -185,8 +191,7 @@ function FogOfWar({
     return null;
   }
 
-  // For smaller time frames we want to show a wider fog of war
-  const widthFactor = bucketSize > 30 * 60_000 ? 1 : 2;
+  const widthFactor = getWidthFactor(bucketSize);
   const fogOfWarWidth = widthFactor * bucketSize + 30_000;
 
   const seriesWidth = bucketSize * seriesLength;
@@ -199,6 +204,22 @@ function FogOfWar({
   const width = (fogOfWarWidth / seriesWidth) * 100;
 
   return <FogOfWarOverlay width={width ?? 0} />;
+}
+
+function getWidthFactor(bucketSize: number) {
+  // In general, fog of war should cover the last bucket
+  if (bucketSize > 30 * 60_000) {
+    return 1;
+  }
+
+  // for 10s timeframe we want to show a fog of war that spans last 10 buckets
+  // because on average, we are missing last 90 seconds of data
+  if (bucketSize <= 10_000) {
+    return 10;
+  }
+
+  // For smaller time frames we want to show a wider fog of war
+  return 2;
 }
 
 const ChartWrapper = styled('div')`

@@ -1,3 +1,5 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -7,7 +9,7 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Environment, Group, IssueCategory} from 'sentry/types';
-import GroupDetails from 'sentry/views/issueDetails';
+import GroupDetails from 'sentry/views/issueDetails/groupDetails';
 
 jest.unmock('sentry/utils/recreateRoute');
 
@@ -16,7 +18,7 @@ const SAMPLE_EVENT_ALERT_TEXT =
 
 describe('groupDetails', () => {
   const group = TestStubs.Group({issueCategory: IssueCategory.ERROR});
-  const event = TestStubs.Event();
+  const event = EventFixture();
   const project = TestStubs.Project({teams: [TestStubs.Team()]});
 
   const routes = [

@@ -1,9 +1,15 @@
 import logging
+import random
 from dataclasses import dataclass
 from typing import Any, Dict, List, Literal, Optional, Sequence, Set, Tuple, TypedDict, Union
 
+import sentry_sdk
+from celery.exceptions import SoftTimeLimitExceeded
+from sentry_relay.processing import validate_sampling_condition
+
 from sentry import features, options
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
+from sentry.api.utils import get_date_range_from_params
 from sentry.incidents.models import AlertRule, AlertRuleStatus
 from sentry.models.dashboard_widget import DashboardWidgetQuery, DashboardWidgetTypes
 from sentry.models.organization import Organization
@@ -13,29 +19,43 @@ from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
+from sentry.search.events import fields
+from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     MetricSpec,
+    MetricSpecType,
     OnDemandMetricSpec,
     RuleCondition,
     should_use_on_demand_metrics,
 )
 from sentry.snuba.models import SnubaQuery
-from sentry.utils import metrics
+from sentry.snuba.referrer import Referrer
+from sentry.utils import json, metrics
+from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
 
 # GENERIC METRIC EXTRACTION
 
 # Version of the metric extraction config.
-_METRIC_EXTRACTION_VERSION = 1
+_METRIC_EXTRACTION_VERSION = 2
 
 # Maximum number of custom metrics that can be extracted for alerts and widgets with
 # advanced filter expressions.
 _MAX_ON_DEMAND_ALERTS = 50
 _MAX_ON_DEMAND_WIDGETS = 100
 
+# TTL for cardinality check
+_WIDGET_QUERY_CARDINALITY_TTL = 3600 * 24  # 24h
+_WIDGET_QUERY_CARDINALITY_SOFT_DEADLINE_TTL = 3600 * 0.5  # 30m
+
 HashedMetricSpec = Tuple[str, MetricSpec]
+
+
+class HighCardinalityWidgetException(Exception):
+    pass
 
 
 class MetricExtractionConfig(TypedDict):
@@ -45,6 +65,7 @@ class MetricExtractionConfig(TypedDict):
     metrics: List[MetricSpec]
 
 
+@metrics.wraps("on_demand_metrics.get_metric_extraction_config")
 def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionConfig]:
     """
     Returns generic metric extraction config for the given project.
@@ -75,6 +96,7 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
 def on_demand_metrics_feature_flags(organization: Organization) -> Set[str]:
     feature_names = [
         "organizations:on-demand-metrics-extraction",
+        "organizations:on-demand-metrics-extraction-widgets",  # Controls extraction for widgets
         "organizations:on-demand-metrics-extraction-experimental",
         "organizations:on-demand-metrics-prefill",
     ]
@@ -87,6 +109,7 @@ def on_demand_metrics_feature_flags(organization: Organization) -> Set[str]:
     return enabled_features
 
 
+@metrics.wraps("on_demand_metrics._get_alert_metric_specs")
 def _get_alert_metric_specs(
     project: Project, enabled_features: Set[str], prefilling: bool
 ) -> List[HashedMetricSpec]:
@@ -113,27 +136,29 @@ def _get_alert_metric_specs(
     )
 
     specs = []
-    for alert in alert_rules:
-        alert_snuba_query = alert.snuba_query
-        metrics.incr(
-            "on_demand_metrics.before_alert_spec_generation",
-            tags={"prefilling": prefilling, "dataset": alert_snuba_query.dataset},
-        )
-        if result := _convert_snuba_query_to_metric(project, alert_snuba_query, prefilling):
-            _log_on_demand_metric_spec(
-                project_id=project.id,
-                spec_for="alert",
-                spec=result,
-                id=alert.id,
-                field=alert_snuba_query.aggregate,
-                query=alert_snuba_query.query,
-                prefilling=prefilling,
-            )
+    with metrics.timer("on_demand_metrics.alert_spec_convert"):
+        for alert in alert_rules:
+            alert_snuba_query = alert.snuba_query
             metrics.incr(
-                "on_demand_metrics.on_demand_spec.for_alert",
-                tags={"prefilling": prefilling},
+                "on_demand_metrics.before_alert_spec_generation",
+                tags={"prefilling": prefilling, "dataset": alert_snuba_query.dataset},
             )
-            specs.append(result)
+
+            if result := _convert_snuba_query_to_metric(project, alert_snuba_query, prefilling):
+                _log_on_demand_metric_spec(
+                    project_id=project.id,
+                    spec_for="alert",
+                    spec=result,
+                    id=alert.id,
+                    field=alert_snuba_query.aggregate,
+                    query=alert_snuba_query.query,
+                    prefilling=prefilling,
+                )
+                metrics.incr(
+                    "on_demand_metrics.on_demand_spec.for_alert",
+                    tags={"prefilling": prefilling},
+                )
+                specs.append(result)
 
     max_alert_specs = options.get("on_demand.max_alert_specs") or _MAX_ON_DEMAND_ALERTS
     if len(specs) > max_alert_specs:
@@ -145,13 +170,12 @@ def _get_alert_metric_specs(
     return specs
 
 
+@metrics.wraps("on_demand_metrics._get_widget_metric_specs")
 def _get_widget_metric_specs(
     project: Project, enabled_features: Set[str], prefilling: bool
 ) -> List[HashedMetricSpec]:
-    if not (
-        "organizations:on-demand-metrics-extraction" in enabled_features
-        and "organizations:on-demand-metrics-extraction-experimental" in enabled_features
-    ):
+    if "organizations:on-demand-metrics-extraction-widgets" not in enabled_features:
+        metrics.incr("on_demand_metrics.get_widget_metric_specs.extraction_feature_disabled")
         return []
 
     metrics.incr(
@@ -165,10 +189,15 @@ def _get_widget_metric_specs(
         widget__widget_type=DashboardWidgetTypes.DISCOVER,
     )
 
+    metrics.incr(
+        "on_demand_metrics.widgets_to_process", amount=len(widget_queries), sample_rate=1.0
+    )
+
     specs = []
-    for widget in widget_queries:
-        for result in _convert_widget_query_to_metric(project, widget, prefilling):
-            specs.append(result)
+    with metrics.timer("on_demand_metrics.widget_spec_convert"):
+        for widget in widget_queries:
+            for result in _convert_widget_query_to_metric(project, widget, prefilling):
+                specs.append(result)
 
     max_widget_specs = options.get("on_demand.max_widget_specs") or _MAX_ON_DEMAND_WIDGETS
     if len(specs) > max_widget_specs:
@@ -180,6 +209,7 @@ def _get_widget_metric_specs(
     return specs
 
 
+@metrics.wraps("on_demand_metrics._merge_metric_specs")
 def _merge_metric_specs(
     alert_specs: List[HashedMetricSpec], widget_specs: List[HashedMetricSpec]
 ) -> List[MetricSpec]:
@@ -208,8 +238,14 @@ def _convert_snuba_query_to_metric(
     If the passed snuba_query is a valid query for on-demand metric extraction,
     returns a tuple of (hash, MetricSpec) for the query. Otherwise, returns None.
     """
+    environment = snuba_query.environment.name if snuba_query.environment is not None else None
     return _convert_aggregate_and_query_to_metric(
-        project, snuba_query.dataset, snuba_query.aggregate, snuba_query.query, prefilling
+        project,
+        snuba_query.dataset,
+        snuba_query.aggregate,
+        snuba_query.query,
+        environment,
+        prefilling,
     )
 
 
@@ -225,6 +261,10 @@ def _convert_widget_query_to_metric(
     if not widget_query.aggregates:
         return metrics_specs
 
+    if not _is_widget_query_low_cardinality(widget_query, project):
+        # High cardinality widgets don't have metrics specs created
+        return metrics_specs
+
     for aggregate in widget_query.aggregates:
         metrics.incr(
             "on_demand_metrics.before_widget_spec_generation",
@@ -232,12 +272,15 @@ def _convert_widget_query_to_metric(
         )
         if result := _convert_aggregate_and_query_to_metric(
             project,
-            # there is an internal check to make sure we extract metrics oly for performance dataset
+            # there is an internal check to make sure we extract metrics only for performance dataset
             # however widgets do not have a dataset field, so we need to pass it explicitly
             Dataset.PerformanceMetrics.value,
             aggregate,
             widget_query.conditions,
+            None,
             prefilling,
+            groupbys=widget_query.columns,
+            spec_type=MetricSpecType.DYNAMIC_QUERY,
         ):
             _log_on_demand_metric_spec(
                 project_id=project.id,
@@ -257,22 +300,184 @@ def _convert_widget_query_to_metric(
     return metrics_specs
 
 
+def _get_widget_cardinality_query_ttl():
+    # Add ttl + 25% jitter to query so queries aren't all made at once.
+    return int(random.uniform(_WIDGET_QUERY_CARDINALITY_TTL, _WIDGET_QUERY_CARDINALITY_TTL * 1.5))
+
+
+def _get_widget_cardinality_softdeadline_ttl():
+    # This is a much shorter deadline than the main cardinality TTL in the case softdeadline is hit
+    # We want to query again soon, but still avoid thundering herd problems.
+    return int(
+        random.uniform(
+            _WIDGET_QUERY_CARDINALITY_SOFT_DEADLINE_TTL,
+            _WIDGET_QUERY_CARDINALITY_SOFT_DEADLINE_TTL * 1.5,
+        )
+    )
+
+
+def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project: Project):
+    """
+    Checks cardinality of existing widget queries before allowing the metric spec, so that
+    group by clauses with high-cardinality tags are not added to the on_demand metric.
+
+    New queries will be checked upon creation and not allowed at that time.
+    """
+    params: Dict[str, Any] = {
+        "statsPeriod": "30m",
+        "project_objects": [project],
+        "organization_id": project.organization_id,  # Organization id has to be specified to not violate allocation policy.
+    }
+    start, end = get_date_range_from_params(params)
+    params["start"] = start
+    params["end"] = end
+
+    metrics.incr("on_demand_metrics.cardinality_check")
+
+    query_killswitch = options.get("on_demand.max_widget_cardinality.killswitch")
+    if query_killswitch:
+        return False
+
+    # No columns or only errors means no high-cardinality tags.
+    if not widget_query.columns or "event.type:error" in widget_query.conditions:
+
+        metrics.incr("on_demand_metrics.cardinality_check.not_applicable")
+        return True
+
+    max_cardinality_allowed = options.get("on_demand.max_widget_cardinality.count")
+    cache_key = f"check-widget-query-cardinality:{widget_query.id}"
+    cardinality_allowed = cache.get(cache_key)
+
+    if cardinality_allowed is not None:
+        metrics.incr(
+            "on_demand_metrics.cardinality_check.using_cache",
+            tags={"low_cardinality": cardinality_allowed},
+        )
+        return cardinality_allowed
+
+    unique_columns = [
+        f"count_unique({column})"
+        for column in widget_query.columns
+        if not fields.is_function(column)
+    ]
+
+    query_builder = QueryBuilder(
+        dataset=Dataset.Discover,
+        params=params,
+        selected_columns=unique_columns,
+        config=QueryBuilderConfig(
+            transform_alias_to_input_format=True,
+        ),
+    )
+
+    with sentry_sdk.push_scope() as scope:
+        metrics.incr("on_demand_metrics.cardinality_check.query")
+        scope.set_tag("widget_query.widget_id", widget_query.id)
+        scope.set_tag("widget_query.org_id", project.organization_id)
+        scope.set_tag("widget_query.conditions", widget_query.conditions)
+
+        try:
+            results = query_builder.run_query(Referrer.METRIC_EXTRACTION_CARDINALITY_CHECK.value)
+            processed_results = query_builder.process_results(results)
+        except SoftTimeLimitExceeded as error:
+            metrics.incr(
+                "on_demand_metrics.cardinality_check.query.error",
+                tags={"reason": "timelimit-exceeded"},
+            )
+            scope.set_tag("widget_soft_deadline", True)
+            sentry_sdk.capture_exception(error)
+            # We're setting a much shorter cache timeout here since this is essentially a permissive 'unknown' state
+            cache.set(cache_key, True, timeout=_get_widget_cardinality_softdeadline_ttl())
+            return True
+
+        except Exception as error:
+            metrics.incr(
+                "on_demand_metrics.cardinality_check.query.error", tags={"reason": "other"}
+            )
+            sentry_sdk.capture_exception(error)
+            cache.set(cache_key, False, timeout=_get_widget_cardinality_query_ttl())
+            return False
+
+        try:
+            for index, column in enumerate(unique_columns):
+                count = processed_results["data"][0][unique_columns[index]]
+                if count > max_cardinality_allowed:
+                    cache.set(cache_key, False, timeout=_get_widget_cardinality_query_ttl())
+                    scope.set_tag("widget_query.column_name", column)
+                    raise HighCardinalityWidgetException(
+                        f"Cardinality exceeded for dashboard_widget_query:{widget_query.id} with count:{count} and column:{column}"
+                    )
+        except HighCardinalityWidgetException as error:
+            metrics.incr(
+                "on_demand_metrics.cardinality_check.query.success", tags={"low_cardinality": False}
+            )
+            sentry_sdk.capture_exception(error)
+            return False
+
+    metrics.incr(
+        "on_demand_metrics.cardinality_check.query.success", tags={"low_cardinality": True}
+    )
+    cache.set(cache_key, True)
+    return True
+
+
 def _convert_aggregate_and_query_to_metric(
-    project: Project, dataset: str, aggregate: str, query: str, prefilling: bool
+    project: Project,
+    dataset: str,
+    aggregate: str,
+    query: str,
+    environment: Optional[str],
+    prefilling: bool,
+    spec_type: MetricSpecType = MetricSpecType.SIMPLE_QUERY,
+    groupbys: Optional[Sequence[str]] = None,
 ) -> Optional[HashedMetricSpec]:
     """
     Converts an aggregate and a query to a metric spec with its hash value.
     """
     try:
-        if not should_use_on_demand_metrics(dataset, aggregate, query, prefilling):
+        # We can avoid injection of the environment in the query, since it's supported by standard, thus it won't change
+        # the supported state of a query, since if it's standard, and we added environment it will still be standard
+        # and if it's on demand, it will always be on demand irrespectively of what we add.
+        if not should_use_on_demand_metrics(dataset, aggregate, query, groupbys, prefilling):
             return None
 
         on_demand_spec = OnDemandMetricSpec(
             field=aggregate,
             query=query,
+            environment=environment,
+            groupbys=groupbys,
+            spec_type=spec_type,
         )
 
-        return on_demand_spec.query_hash, on_demand_spec.to_metric_spec(project)
+        metric_spec = on_demand_spec.to_metric_spec(project)
+        # TODO: switch to validate_rule_condition
+        if (condition := metric_spec.get("condition")) is not None:
+            validate_sampling_condition(json.dumps(condition))
+        else:
+            metrics.incr(
+                "on_demand_metrics.missing_condition_spec",
+                tags={"prefilling": prefilling},
+            )
+
+        return on_demand_spec.query_hash, metric_spec
+    except ValueError:
+        # raised by validate_sampling_condition or metric_spec lacking "condition"
+        metrics.incr(
+            "on_demand_metrics.invalid_metric_spec",
+            tags={"prefilling": prefilling},
+        )
+        logger.error(
+            "Invalid on-demand metric spec",
+            exc_info=True,
+            extra={
+                "dataset": dataset,
+                "aggregate": aggregate,
+                "query": query,
+                "groupbys": groupbys,
+            },
+        )
+
+        return None
     except Exception as e:
         # Since prefilling might include several non-ondemand-compatible alerts, we want to not trigger errors in the
         # Sentry console.

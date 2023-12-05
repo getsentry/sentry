@@ -1,5 +1,5 @@
 ---
-created: '2023-10-02T11:41:08.185986Z'
+created: '2023-10-31T14:18:43.292106Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -88,12 +88,14 @@ config:
       isEnabled: true
       patterns:
       - '*healthcheck*'
-      - '*healthy*'
-      - '*live*'
-      - '*ready*'
       - '*heartbeat*'
       - '*/health'
+      - '*/healthy'
       - '*/healthz'
+      - '*/live'
+      - '*/livez'
+      - '*/ready'
+      - '*/readyz'
       - '*/ping'
   groupingConfig:
     enhancements: eJybzDRxc15qeXFJZU6qlZGBkbGugaGuoeEEAHJMCAM

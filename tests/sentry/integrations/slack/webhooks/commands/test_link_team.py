@@ -30,8 +30,16 @@ class SlackCommandsLinkTeamTestBase(SlackCommandsTest):
             content_type="application/json",
         )
 
+        self.team_admin_user = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=self.team_admin_user,
+            role="member",
+            organization=self.organization,
+        )
 
-@region_silo_test(stable=True)
+
+@region_silo_test
 class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
     @responses.activate
     def test_link_another_team_to_channel(self):
@@ -114,8 +122,19 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
         data = self.send_slack_message("link team", user_id=OTHER_SLACK_ID)
         assert "Link your Sentry team to this Slack channel!" in get_response_text(data)
 
+    @responses.activate
+    def test_link_team_as_team_admin(self):
+        """
+        Test that when a user who is a team admin attempts to link a team we allow it.
+        """
+        self.login_as(self.team_admin_user)
+        link_user(self.team_admin_user, self.idp, slack_id=OTHER_SLACK_ID)
 
-@region_silo_test(stable=True)
+        data = self.send_slack_message("link team", user_id=OTHER_SLACK_ID)
+        assert "Link your Sentry team to this Slack channel!" in get_response_text(data)
+
+
+@region_silo_test
 class SlackCommandsUnlinkTeamTest(SlackCommandsLinkTeamTestBase):
     def setUp(self):
         super().setUp()
@@ -123,6 +142,21 @@ class SlackCommandsUnlinkTeamTest(SlackCommandsLinkTeamTestBase):
 
     @responses.activate
     def test_unlink_team(self):
+        data = self.send_slack_message(
+            "unlink team",
+            channel_name=self.channel_name,
+            channel_id=self.channel_id,
+        )
+        assert "Click here to unlink your team from this channel" in get_response_text(data)
+
+    @responses.activate
+    def test_unlink_team_as_team_admin(self):
+        """
+        Test that when a user who is a team admin attempts to unlink a team we allow it.
+        """
+        self.login_as(self.team_admin_user)
+        link_user(self.team_admin_user, self.idp, slack_id=OTHER_SLACK_ID)
+
         data = self.send_slack_message(
             "unlink team",
             channel_name=self.channel_name,

@@ -5,14 +5,19 @@ from typing import Iterable, Mapping, MutableMapping, Union
 
 from django.db.models import Q
 
+from sentry import features
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.notifications.helpers import (
     get_default_for_provider,
+    get_team_members,
     get_type_defaults,
     recipient_is_team,
     recipient_is_user,
+    team_is_valid_recipient,
 )
 from sentry.notifications.types import (
     GroupSubscriptionStatus,
@@ -21,6 +26,7 @@ from sentry.notifications.types import (
     NotificationSettingsOptionEnum,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_organization_mapping
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.integrations import (
     EXTERNAL_PROVIDERS_REVERSE,
@@ -29,7 +35,8 @@ from sentry.types.integrations import (
     ExternalProviders,
 )
 
-Recipient = Union[RpcActor, Team, RpcUser]
+Recipient = Union[RpcActor, Team, RpcUser, User]
+TEAM_NOTIFICATION_PROVIDERS = [ExternalProviderEnum.SLACK]
 
 
 def sort_settings_by_scope(setting: NotificationSettingOption | NotificationSettingProvider) -> int:
@@ -53,19 +60,40 @@ class NotificationController:
 
     def __init__(
         self,
-        recipients: Iterable[RpcActor] | Iterable[Team] | Iterable[RpcUser],
+        recipients: Iterable[Recipient],
         project_ids: Iterable[int] | None = None,
         organization_id: int | None = None,
         type: NotificationSettingEnum | None = None,
         provider: ExternalProviderEnum | None = None,
     ) -> None:
-        self.recipients = recipients
         self.project_ids = project_ids
         self.organization_id = organization_id
         self.type = type
         self.provider = provider
 
-        if recipients:
+        org = (
+            serialize_organization_mapping(
+                OrganizationMapping.objects.filter(organization_id=organization_id).first()
+            )
+            if organization_id
+            else None
+        )
+        if org and features.has("organizations:team-workflow-notifications", org):
+            self.recipients: list[Recipient] = []
+            for recipient in recipients:
+                if recipient_is_team(
+                    recipient
+                ):  # this call assures the recipient type is okay (so can safely ignore below type errors)
+                    if team_is_valid_recipient(recipient):  # type: ignore
+                        self.recipients.append(recipient)
+                    else:
+                        self.recipients += get_team_members(recipient)  # type: ignore
+                else:
+                    self.recipients.append(recipient)
+        else:
+            self.recipients = list(recipients)
+
+        if self.recipients:
             query = self._get_query()
             type_filter = Q(type=self.type.value) if self.type else Q()
             provider_filter = Q(provider=self.provider.value) if self.provider else Q()
@@ -129,13 +157,27 @@ class NotificationController:
             else Q()
         )
 
-        team_or_user_settings = Q(
-            (Q(user_id__in=user_ids) | Q(team_id__in=team_ids)),
-            scope_type=NotificationScopeEnum.USER.value,
-            scope_identifier__in=user_ids,
+        user_settings = (
+            Q(
+                Q(user_id__in=user_ids),
+                scope_type=NotificationScopeEnum.USER.value,
+                scope_identifier__in=user_ids,
+            )
+            if user_ids
+            else Q()
         )
 
-        return project_settings | org_settings | team_or_user_settings
+        team_settings = (
+            Q(
+                Q(team_id__in=team_ids),
+                scope_type=NotificationScopeEnum.TEAM.value,
+                scope_identifier__in=team_ids,
+            )
+            if team_ids
+            else Q()
+        )
+
+        return project_settings | org_settings | user_settings | team_settings
 
     def _filter_options(
         self,
@@ -171,9 +213,8 @@ class NotificationController:
         Args:
             setting_type: If specified, only return settings of this type.
         """
-
-        if self.project_ids and len(list(self.project_ids)) > 2 and not project_id:
-            raise Exception("Must specify project_id if controller has more than 2 projects")
+        if self.project_ids and len(list(self.project_ids)) > 1 and not project_id:
+            raise Exception("Must specify project_id if controller has more than 1 projects")
 
         most_specific_setting_options: MutableMapping[
             Recipient, MutableMapping[NotificationSettingEnum, NotificationSettingsOptionEnum]
@@ -213,7 +254,6 @@ class NotificationController:
             for type, default in get_type_defaults().items():
                 if type not in most_specific_recipient_options:
                     most_specific_recipient_options[type] = default
-
         return most_specific_setting_options
 
     def _get_layered_setting_providers(
@@ -249,6 +289,15 @@ class NotificationController:
             )
         )
 
+        org = (
+            serialize_organization_mapping(
+                OrganizationMapping.objects.filter(organization_id=self.organization_id).first()
+            )
+            if self.organization_id
+            else None
+        )
+        has_team_workflow = org and features.has("organizations:team-workflow-notifications", org)
+
         for recipient in self.recipients:
             # get the settings for this user/team
             filter_kwargs = kwargs.copy()
@@ -281,8 +330,8 @@ class NotificationController:
                 for provider_str in PERSONAL_NOTIFICATION_PROVIDERS:
                     provider = ExternalProviderEnum(provider_str)
                     if provider not in most_specific_recipient_providers[type]:
-                        # TODO: fix so team defaults don't have different logic
-                        if recipient_is_team(recipient):
+                        # TODO(jangjodi): Remove this once the flag is removed
+                        if recipient_is_team(recipient) and (not has_team_workflow):
                             most_specific_recipient_providers[type][
                                 provider
                             ] = NotificationSettingsOptionEnum.NEVER
@@ -488,10 +537,6 @@ class NotificationController:
             RpcActor, MutableMapping[ExternalProviders, NotificationSettingsOptionEnum]
         ] = defaultdict(dict)
         for recipient, setting_map in combined_settings.items():
-            # TODO: make work for teams
-            if not recipient_is_user(recipient):
-                continue
-
             actor = RpcActor.from_object(recipient)
             provider_map = setting_map[self.type]
             user_to_providers[actor] = {

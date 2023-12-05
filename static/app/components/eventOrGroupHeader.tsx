@@ -23,6 +23,7 @@ type Size = 'small' | 'normal';
 interface EventOrGroupHeaderProps {
   data: Event | Group | GroupTombstoneHelper;
   organization: Organization;
+  eventId?: string;
   /* is issue breakdown? */
   grouping?: boolean;
   hideIcons?: boolean;
@@ -46,6 +47,7 @@ function EventOrGroupHeader({
   onClick,
   hideIcons,
   hideLevel,
+  eventId,
   size = 'normal',
   grouping = false,
   source,
@@ -86,7 +88,7 @@ function EventOrGroupHeader({
 
   function getTitle() {
     const {id, status} = data as Group;
-    const {eventID, groupID} = data as Event;
+    const {eventID: latestEventId, groupID} = data as Event;
     const hasEscalatingIssues = organization.features.includes('escalating-issues');
 
     const commonEleProps = {
@@ -103,13 +105,16 @@ function EventOrGroupHeader({
       );
     }
 
+    // If we have passed in a custom event ID, use it; otherwise use default
+    const finalEventId = eventId ?? latestEventId;
+
     return (
       <TitleWithLink
         {...commonEleProps}
         to={{
           pathname: `/organizations/${organization.slug}/issues/${
-            eventID ? groupID : id
-          }/${eventID ? `events/${eventID}/` : ''}`,
+            latestEventId ? groupID : id
+          }/${finalEventId ? `events/${finalEventId}/` : ''}`,
           query: {
             referrer: source || 'event-or-group-header',
             stream_index: index,
@@ -222,6 +227,7 @@ const GroupLevel = styled(ErrorLevel)<{level: Level}>`
 
 const TitleWithLink = styled(GlobalSelectionLink)`
   display: inline-flex;
+  align-items: center;
 `;
 const TitleWithoutLink = styled('span')`
   display: inline-flex;

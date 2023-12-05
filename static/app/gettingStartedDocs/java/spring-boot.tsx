@@ -10,11 +10,7 @@ import {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
-
-export enum SpringBootVersion {
-  V2 = 'v2',
-  V3 = 'v3',
-}
+import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
 export enum PackageManager {
   GRADLE = 'gradle',
@@ -22,19 +18,6 @@ export enum PackageManager {
 }
 
 const platformOptions = {
-  springBootVersion: {
-    label: t('Spring Boot Version'),
-    items: [
-      {
-        label: t('Spring Boot 3'),
-        value: SpringBootVersion.V3,
-      },
-      {
-        label: t('Spring Boot 2'),
-        value: SpringBootVersion.V2,
-      },
-    ],
-  },
   packageManager: {
     label: t('Package Manager'),
     items: [
@@ -61,12 +44,11 @@ buildscript {
 }
 
 plugins {
-  id "io.sentry.jvm.gradle" version "${
-    params.sourcePackageRegistries.isLoading
-      ? t('\u2026loading')
-      : params.sourcePackageRegistries.data?.['sentry.java.android.gradle-plugin']
-          ?.version ?? '3.12.0'
-  }"
+  id "io.sentry.jvm.gradle" version "${getPackageVersion(
+    params,
+    'sentry.java.android.gradle-plugin',
+    '3.12.0'
+  )}"
 }
 
 sentry {
@@ -80,44 +62,7 @@ sentry {
   authToken = System.getenv("SENTRY_AUTH_TOKEN")
 }`;
 
-const getMavenInstallSnippet = (params: Params) =>
-  params.platformOptions.springBootVersion === SpringBootVersion.V3
-    ? `
-<dependency>
-  <groupId>io.sentry</groupId>
-  <artifactId>sentry-spring-boot-starter-jakarta</artifactId>
-  <version>${
-    params.sourcePackageRegistries?.isLoading
-      ? t('\u2026loading')
-      : params.sourcePackageRegistries?.data?.['sentry.java.spring-boot.jakarta']
-          ?.version ?? '6.28.0'
-  }</version>
-</dependency>`
-    : `
-<dependency>
-  <groupId>io.sentry</groupId>
-  <artifactId>sentry-spring-boot-starter</artifactId>
-  <version>${
-    params.sourcePackageRegistries?.isLoading
-      ? t('\u2026loading')
-      : params.sourcePackageRegistries?.data?.['sentry.java.spring-boot']?.version ??
-        '6.28.0'
-  }</version>
-</dependency>`;
-
-const getLogbackInstallSnippet = (params: Params) => `
-<dependency>
-    <groupId>io.sentry</groupId>
-    <artifactId>sentry-logback</artifactId>
-    <version>${
-      params.sourcePackageRegistries?.isLoading
-        ? t('\u2026loading')
-        : params.sourcePackageRegistries?.data?.['sentry.java.logback']?.version ??
-          '6.28.0'
-    }</version>
-</dependency>`;
-
-const getMavenPluginSnippet = (params: Params) => `
+const getMavenInstallSnippet = (params: Params) => `
 <build>
   <plugins>
     <plugin>
@@ -126,9 +71,10 @@ const getMavenPluginSnippet = (params: Params) => `
       <version>${
         params.sourcePackageRegistries?.isLoading
           ? t('\u2026loading')
-          : params.sourcePackageRegistries?.data?.['sentry.java.mavenplugin']?.version ??
+          : params.sourcePackageRegistries?.data?.['sentry.java.maven-plugin']?.version ??
             '0.0.4'
       }</version>
+      <extensions>true</extensions>
       <configuration>
         <!-- for showing output of sentry-cli -->
         <debugSentryCli>true</debugSentryCli>
@@ -145,15 +91,19 @@ const getMavenPluginSnippet = (params: Params) => `
       </configuration>
       <executions>
         <execution>
-          <phase>generate-resources</phase>
           <goals>
+            <!--
+            Generates a JVM (Java, Kotlin, etc.) source bundle and uploads your source code to Sentry.
+            This enables source context, allowing you to see your source
+            code as part of your stack traces in Sentry.
+            -->
             <goal>uploadSourceBundle</goal>
           </goals>
         </execution>
       </executions>
     </plugin>
   </plugins>
-...
+  ...
 </build>`;
 
 const getConfigurationPropertiesSnippet = (params: Params) => `
@@ -173,7 +123,7 @@ sentry:
       ? `
   # Set traces-sample-rate to 1.0 to capture 100% of transactions for performance monitoring.
   # We recommend adjusting this value in production.
-  sentry.traces-sample-rate: 1.0`
+  traces-sample-rate: 1.0`
       : ''
   }`;
 
@@ -237,31 +187,31 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
               code: getGradleInstallSnippet(params),
             }
           : {
-              description: t('Install using Maven:'),
-              configurations: [
+              description: tct(
+                'The [link:Sentry Maven Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:pom.xml] file:',
                 {
-                  language: 'xml',
-                  partialLoading: params.sourcePackageRegistries?.isLoading,
-                  code: getMavenInstallSnippet(params),
-                  additionalInfo: tct(
-                    'If you use Logback for logging you may also want to send error logs to Sentry. Add a dependency to the [sentryLogbackCode:sentry-logback] module. Sentry Spring Boot Starter will auto-configure [sentryAppenderCode:SentryAppender].',
-                    {sentryAppenderCode: <code />, sentryLogbackCode: <code />}
+                  code: <code />,
+                  link: (
+                    <ExternalLink href="https://github.com/getsentry/sentry-maven-plugin" />
                   ),
-                },
-                {
-                  language: 'xml',
-                  code: getLogbackInstallSnippet(params),
-                },
-                {
-                  language: 'xml',
-                  description: t(
-                    'To upload your source code to Sentry so it can be shown in stack traces, use our Maven plugin.'
-                  ),
-                  code: getMavenPluginSnippet(params),
-                },
-              ],
+                }
+              ),
+              language: 'xml',
+              code: getMavenInstallSnippet(params),
             },
       ],
+      additionalInfo: (
+        <p>
+          {tct(
+            'If you prefer to manually upload your source code to Sentry, please refer to [link:Manually Uploading Source Context].',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/java/source-context/#manually-uploading-source-context" />
+              ),
+            }
+          )}
+        </p>
+      ),
     },
   ],
   configure: (params: Params) => [

@@ -388,7 +388,12 @@ export function ActionableItems({event, project, isShare}: ActionableItemsProps)
     actionable_items: data ? Object.keys(errorMessages) : [],
   });
 
-  if (isLoading || !defined(data) || data.errors.length === 0) {
+  if (
+    isLoading ||
+    !defined(data) ||
+    data.errors.length === 0 ||
+    Object.keys(errorMessages).length === 0
+  ) {
     return null;
   }
 

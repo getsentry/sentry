@@ -13,7 +13,7 @@ from sentry.services.hybrid_cloud.user.service import user_service
 
 
 @control_silo_endpoint
-class UserAvatarEndpoint(AvatarMixin, UserEndpoint):
+class UserAvatarEndpoint(AvatarMixin[UserAvatar], UserEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
         "PUT": ApiPublishStatus.UNKNOWN,

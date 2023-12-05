@@ -20,14 +20,14 @@ const WarningText = styled('span')`
   color: ${p => p.theme.errorText};
 `;
 
-export function Warning({warnings}: {warnings: undefined | string[]}) {
-  if (warnings?.includes('JSON_TRUNCATED') || warnings?.includes('TEXT_TRUNCATED')) {
+export function Warning({warnings}: {warnings: string[]}) {
+  if (warnings.includes('JSON_TRUNCATED') || warnings.includes('TEXT_TRUNCATED')) {
     return (
       <WarningText>{t('Truncated (~~) due to exceeding 150k characters')}</WarningText>
     );
   }
 
-  if (warnings?.includes('INVALID_JSON')) {
+  if (warnings.includes('INVALID_JSON')) {
     return <WarningText>{t('Invalid JSON')}</WarningText>;
   }
 
@@ -58,7 +58,7 @@ export function keyValueTableOrNotFound(data: KeyValueTuple[], notFoundText: str
           key={key}
           keyName={key}
           type={type}
-          value={<span>{value}</span>}
+          value={<ValueContainer>{value}</ValueContainer>}
         />
       ))}
     </StyledKeyValueTable>
@@ -68,6 +68,10 @@ export function keyValueTableOrNotFound(data: KeyValueTuple[], notFoundText: str
     </Indent>
   );
 }
+
+const ValueContainer = styled('span')`
+  overflow: scroll;
+`;
 
 const SectionTitle = styled('dt')``;
 

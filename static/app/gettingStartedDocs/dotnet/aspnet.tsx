@@ -5,75 +5,32 @@ import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
-import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {
+  Docs,
+  DocsParams,
+  OnboardingConfig,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
+import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
-// Configuration Start
-export const steps = ({
-  dsn,
-  sourcePackageRegistries,
-}: Partial<
-  Pick<ModuleProps, 'dsn' | 'sourcePackageRegistries'>
-> = {}): LayoutProps['steps'] => [
-  {
-    type: StepType.INSTALL,
-    description: (
-      <p>
-        {tct('Install the [strong:NuGet] package:', {
-          strong: <strong />,
-        })}
-      </p>
-    ),
-    configurations: [
-      {
-        language: 'shell',
-        partialLoading: sourcePackageRegistries?.isLoading,
-        description: t('Package Manager:'),
-        code: `Install-Package Sentry.AspNet -Version ${
-          sourcePackageRegistries?.isLoading
-            ? t('\u2026loading')
-            : sourcePackageRegistries?.data?.['sentry.dotnet.aspnet']?.version ?? '3.34.0'
-        }`,
-      },
-      {
-        language: 'shell',
-        partialLoading: sourcePackageRegistries?.isLoading,
-        description: t('Using Entity Framework 6?'),
-        code: `Install-Package Sentry.EntityFramework -Version ${
-          sourcePackageRegistries?.isLoading
-            ? t('\u2026loading')
-            : sourcePackageRegistries?.data?.['sentry.dotnet.ef']?.version ?? '3.34.0'
-        }`,
-      },
-    ],
-    additionalInfo: (
-      <AlertWithoutMarginBottom type="info">
-        {tct(
-          '[strong:Using .NET Framework prior to 4.6.1?] Our legacy SDK supports .NET Framework as early as 3.5.',
-          {strong: <strong />}
-        )}
-      </AlertWithoutMarginBottom>
-    ),
-  },
-  {
-    type: StepType.CONFIGURE,
-    description: (
-      <p>
-        {tct(
-          'You should [initCode:init] the Sentry SDK as soon as possible during your application load by adding Sentry to [globalCode:Global.asax.cs]:',
-          {
-            initCode: <code />,
-            globalCode: <code />,
-          }
-        )}
-      </p>
-    ),
-    configurations: [
-      {
-        language: 'csharp',
-        code: `
+type Params = DocsParams;
+
+const getInstallSnippetPackageManager = (params: Params) => `
+Install-Package Sentry.AspNet -Version ${getPackageVersion(
+  params,
+  'sentry.dotnet.aspnet',
+  '3.34.0'
+)}`;
+
+const getInstallSnippetEntityFramework = (params: Params) => `
+Install-Package Sentry.EntityFramework -Version ${getPackageVersion(
+  params,
+  'sentry.dotnet.aspnet',
+  '3.34.0'
+)}`;
+
+const getConfigureSnippet = (params: Params) => `
 using System;
 using System.Configuration;
 using System.Web.Mvc;
@@ -92,7 +49,7 @@ public class MvcApplication : HttpApplication
         _sentry = SentrySdk.Init(o =>
         {
             o.AddAspNet();
-            o.Dsn = "${dsn}";
+            o.Dsn = "${params.dsn}";
             // When configuring for the first time, to see what the SDK is doing:
             o.Debug = true;
             // Set TracesSampleRate to 1.0 to capture 100%
@@ -123,67 +80,108 @@ public class MvcApplication : HttpApplication
         _sentry?.Dispose();
     }
 }
-        `,
-      },
-    ],
-  },
-  {
-    title: t('Documentation'),
-    description: (
-      <p>
-        {tct(
-          "Once you've verified the package is initialized properly and sent a test event, consider visiting our [link:complete ASP.NET docs].",
-          {
-            link: (
-              <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/aspnet/" />
-            ),
-          }
-        )}
-      </p>
-    ),
-  },
-  {
-    title: t('Samples'),
-    description: (
-      <Fragment>
-        {t(
-          'See the following examples that demonstrate how to integrate Sentry with various frameworks.'
-        )}
-        <List symbol="bullet">
-          <ListItem>
-            {tct(
-              '[link:Multiple samples in the [code:dotnet] SDK repository] [strong:(C#)]',
-              {
-                link: (
-                  <ExternalLink href="https://github.com/getsentry/sentry-dotnet/tree/main/samples" />
-                ),
-                code: <code />,
+        `;
+
+const onboarding: OnboardingConfig = {
+  install: params => [
+    {
+      type: StepType.INSTALL,
+      description: tct('Install the [strong:NuGet] package:', {
+        strong: <strong />,
+      }),
+      configurations: [
+        {
+          language: 'shell',
+          partialLoading: params.sourcePackageRegistries.isLoading,
+          description: t('Package Manager:'),
+          code: getInstallSnippetPackageManager(params),
+        },
+        {
+          language: 'shell',
+          partialLoading: params.sourcePackageRegistries.isLoading,
+          description: t('Using Entity Framework 6?'),
+          code: getInstallSnippetEntityFramework(params),
+        },
+      ],
+      additionalInfo: (
+        <AlertWithoutMarginBottom type="info">
+          {tct(
+            '[strong:Using .NET Framework prior to 4.6.1?] Our legacy SDK supports .NET Framework as early as 3.5.',
+            {strong: <strong />}
+          )}
+        </AlertWithoutMarginBottom>
+      ),
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'You should [initCode:init] the Sentry SDK as soon as possible during your application load by adding Sentry to [globalCode:Global.asax.cs]:',
+        {
+          initCode: <code />,
+          globalCode: <code />,
+        }
+      ),
+      configurations: [
+        {
+          language: 'csharp',
+          code: getConfigureSnippet(params),
+        },
+      ],
+    },
+  ],
+  // TODO: Add proper verify step
+  verify: () => [
+    {
+      title: t('Documentation'),
+      description: tct(
+        "Once you've verified the package is initialized properly and sent a test event, consider visiting our [link:complete ASP.NET docs].",
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/aspnet/" />
+          ),
+        }
+      ),
+    },
+    {
+      title: t('Samples'),
+      description: (
+        <Fragment>
+          {t(
+            'See the following examples that demonstrate how to integrate Sentry with various frameworks.'
+          )}
+          <List symbol="bullet">
+            <ListItem>
+              {tct(
+                '[link:Multiple samples in the [code:dotnet] SDK repository] [strong:(C#)]',
+                {
+                  link: (
+                    <ExternalLink href="https://github.com/getsentry/sentry-dotnet/tree/main/samples" />
+                  ),
+                  code: <code />,
+                  strong: <strong />,
+                }
+              )}
+            </ListItem>
+            <ListItem>
+              {tct('[link:Basic F# sample] [strong:(F#)]', {
+                link: <ExternalLink href="https://github.com/sentry-demos/fsharp" />,
                 strong: <strong />,
-              }
-            )}
-          </ListItem>
-          <ListItem>
-            {tct('[link:Basic F# sample] [strong:(F#)]', {
-              link: <ExternalLink href="https://github.com/sentry-demos/fsharp" />,
-              strong: <strong />,
-            })}
-          </ListItem>
-        </List>
-      </Fragment>
-    ),
-  },
-];
-// Configuration End
+              })}
+            </ListItem>
+          </List>
+        </Fragment>
+      ),
+    },
+  ],
+};
 
-export function GettingStartedWithAspnet({
-  dsn,
-  sourcePackageRegistries,
-  ...props
-}: ModuleProps) {
-  return <Layout steps={steps({dsn, sourcePackageRegistries})} {...props} />;
-}
+const docs: Docs = {
+  onboarding,
+};
 
-export default GettingStartedWithAspnet;
+export default docs;
 
 const AlertWithoutMarginBottom = styled(Alert)`
   margin-bottom: 0;

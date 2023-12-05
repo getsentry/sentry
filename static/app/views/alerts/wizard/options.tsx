@@ -1,7 +1,7 @@
 import mapValues from 'lodash/mapValues';
 
 import {t} from 'sentry/locale';
-import {Organization, TagCollection} from 'sentry/types';
+import type {Organization, TagCollection} from 'sentry/types';
 import {
   FieldKey,
   makeTagCollection,
@@ -11,7 +11,10 @@ import {
   SpanOpBreakdown,
   WebVital,
 } from 'sentry/utils/fields';
+import {hasDDMFeature} from 'sentry/utils/metrics/features';
+import {DEFAULT_METRIC_ALERT_FIELD} from 'sentry/utils/metrics/mri';
 import {ON_DEMAND_METRICS_UNSUPPORTED_TAGS} from 'sentry/utils/onDemandMetrics/constants';
+import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {
   Dataset,
   EventTypes,
@@ -29,9 +32,10 @@ export type AlertType =
   | 'lcp'
   | 'fid'
   | 'cls'
-  | 'custom'
   | 'crash_free_sessions'
-  | 'crash_free_users';
+  | 'crash_free_users'
+  | 'custom_transactions'
+  | 'custom_metrics';
 
 export enum MEPAlertsQueryType {
   ERROR = 0,
@@ -66,7 +70,8 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   lcp: t('Largest Contentful Paint'),
   fid: t('First Input Delay'),
   cls: t('Cumulative Layout Shift'),
-  custom: t('Custom Metric'),
+  custom_metrics: t('Custom Metric'),
+  custom_transactions: t('Custom Measurement'),
   crash_free_sessions: t('Crash Free Session Rate'),
   crash_free_users: t('Crash Free User Rate'),
 };
@@ -84,7 +89,7 @@ export const getAlertWizardCategories = (org: Organization): AlertWizardCategory
     ? [
         {
           categoryHeading: t('Sessions'),
-          options: ['crash_free_sessions', 'crash_free_users'] as AlertType[],
+          options: ['crash_free_sessions', 'crash_free_users'] satisfies AlertType[],
         },
       ]
     : []),
@@ -98,11 +103,12 @@ export const getAlertWizardCategories = (org: Organization): AlertWizardCategory
       'lcp',
       'fid',
       'cls',
+      ...(hasDDMFeature(org) ? (['custom_transactions'] satisfies AlertType[]) : []),
     ],
   },
   {
-    categoryHeading: t('Other'),
-    options: ['custom'],
+    categoryHeading: hasDDMFeature(org) ? t('Metrics') : t('Custom'),
+    options: [hasDDMFeature(org) ? 'custom_metrics' : 'custom_transactions'],
   },
 ];
 
@@ -110,6 +116,7 @@ export type WizardRuleTemplate = {
   aggregate: string;
   dataset: Dataset;
   eventTypes: EventTypes;
+  query?: string;
 };
 
 export const AlertWizardRuleTemplates: Record<
@@ -161,9 +168,14 @@ export const AlertWizardRuleTemplates: Record<
     dataset: Dataset.TRANSACTIONS,
     eventTypes: EventTypes.TRANSACTION,
   },
-  custom: {
+  custom_transactions: {
     aggregate: 'p95(measurements.fp)',
-    dataset: Dataset.TRANSACTIONS,
+    dataset: Dataset.GENERIC_METRICS,
+    eventTypes: EventTypes.TRANSACTION,
+  },
+  custom_metrics: {
+    aggregate: DEFAULT_METRIC_ALERT_FIELD,
+    dataset: Dataset.GENERIC_METRICS,
     eventTypes: EventTypes.TRANSACTION,
   },
   crash_free_sessions: {
@@ -242,7 +254,9 @@ export function datasetSupportedTags(
 ): TagCollection | undefined {
   return mapValues(
     {
-      [Dataset.ERRORS]: undefined,
+      [Dataset.ERRORS]: org.features.includes('metric-alert-ignore-archived')
+        ? [FieldKey.IS]
+        : undefined,
       [Dataset.TRANSACTIONS]: org.features.includes('alert-allow-indexed')
         ? undefined
         : transactionSupportedTags(org),
@@ -259,8 +273,8 @@ export function datasetSupportedTags(
 }
 
 function transactionSupportedTags(org: Organization) {
-  if (org.features.includes('on-demand-metrics-extraction')) {
-    // on-demand metrics support all tags
+  if (shouldShowOnDemandMetricAlertUI(org)) {
+    // on-demand metrics support all tags, except the ones defined in ommited tags
     return undefined;
   }
   return TRANSACTION_SUPPORTED_TAGS;
@@ -304,7 +318,7 @@ export function datasetOmittedTags(
 }
 
 function transactionOmittedTags(org: Organization) {
-  if (org.features.includes('on-demand-metrics-extraction')) {
+  if (shouldShowOnDemandMetricAlertUI(org)) {
     return [...ON_DEMAND_METRICS_UNSUPPORTED_TAGS];
   }
   return org.features.includes('alert-allow-indexed')
@@ -312,17 +326,27 @@ function transactionOmittedTags(org: Organization) {
     : undefined;
 }
 
-export function getSupportedAndOmittedTags(dataset: Dataset, organization: Organization) {
+export function getSupportedAndOmittedTags(
+  dataset: Dataset,
+  organization: Organization
+): {
+  omitTags?: string[];
+  supportedTags?: TagCollection;
+} {
   const omitTags = datasetOmittedTags(dataset, organization);
   const supportedTags = datasetSupportedTags(dataset, organization);
 
   const result = {omitTags, supportedTags};
 
   // remove undefined values, since passing explicit undefined to the SeachBar overrides its defaults
-  return Object.keys({omitTags, supportedTags}).reduce((acc, key) => {
+  return Object.keys({omitTags, supportedTags}).reduce<{
+    omitTags?: string[];
+    supportedTags?: TagCollection;
+  }>((acc, key) => {
     if (result[key] !== undefined) {
       acc[key] = result[key];
     }
+
     return acc;
   }, {});
 }
@@ -341,7 +365,7 @@ export function getMEPAlertsDataset(
   }
 
   if (dataset === Dataset.GENERIC_METRICS) {
-    return MEPAlertsDataset.METRICS;
+    return MEPAlertsDataset.METRICS_ENHANCED;
   }
 
   return MEPAlertsDataset.DISCOVER;

@@ -4,11 +4,11 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ExternalActorTest(TestCase):
     def setUp(self) -> None:
         actor = Actor.objects.create(type=ACTOR_TYPES["team"])
-        org = self.create_organization()
+        org = self.create_organization(owner=self.user)
         team = self.create_team(organization=org, actor=actor)
 
         integrations = [

@@ -38,6 +38,7 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.models.options.user_option import UserOption
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseStages
+from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
@@ -55,7 +56,7 @@ from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupListTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
 
@@ -1451,7 +1452,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_response(
             sort_by="date",
             limit=10,
-            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}",
+            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED.value}",
             environment=self.environment.name,
         )
         assert response.status_code == 200, response.content
@@ -1463,21 +1464,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_response(
             sort_by="date",
             limit=10,
-            query=f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION}",
-            environment=self.environment.name,
-        )
-        assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
-            adopted_release_g_1,
-            adopted_release_g_2,
-            replaced_release_g_1,
-            replaced_release_g_2,
-        ]
-
-        response = self.get_response(
-            sort_by="date",
-            limit=10,
-            query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED}, {ReleaseStages.REPLACED}]",
+            query=f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION.value}",
             environment=self.environment.name,
         )
         assert response.status_code == 200, response.content
@@ -1491,7 +1478,21 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_response(
             sort_by="date",
             limit=10,
-            query=f"!{RELEASE_STAGE_ALIAS}:[{ReleaseStages.LOW_ADOPTION}, {ReleaseStages.REPLACED}]",
+            query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED.value}, {ReleaseStages.REPLACED.value}]",
+            environment=self.environment.name,
+        )
+        assert response.status_code == 200, response.content
+        assert [int(r["id"]) for r in response.json()] == [
+            adopted_release_g_1,
+            adopted_release_g_2,
+            replaced_release_g_1,
+            replaced_release_g_2,
+        ]
+
+        response = self.get_response(
+            sort_by="date",
+            limit=10,
+            query=f"!{RELEASE_STAGE_ALIAS}:[{ReleaseStages.LOW_ADOPTION.value}, {ReleaseStages.REPLACED.value}]",
             environment=self.environment.name,
         )
         assert response.status_code == 200, response.content
@@ -1713,6 +1714,30 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
         assert response.data[0]["inbox"]["reason_details"] is None
 
+    def test_expand_plugin_actions_and_issues(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        query = "status:unresolved"
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date", limit=10, query=query, expand=["pluginActions", "pluginIssues"]
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert response.data[0]["pluginActions"] is not None
+        assert response.data[0]["pluginIssues"] is not None
+
+        # Test with no expand
+        response = self.get_response(sort_by="date", limit=10, query=query)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert "pluginActions" not in response.data[0]
+        assert "pluginIssues" not in response.data[0]
+
     def test_expand_owners(self):
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -1917,6 +1942,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event.group.id
 
+    @with_feature("organizations:issue-stream-performance")
     def test_collapse_unhandled(self):
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -1930,6 +1956,118 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event.group.id
         assert "isUnhandled" not in response.data[0]
+
+    def test_selected_saved_search(self):
+        saved_search = SavedSearch.objects.create(
+            name="Saved Search",
+            query="ZeroDivisionError",
+            organization=self.organization,
+            owner_id=self.user.id,
+        )
+        event = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=500)),
+                "fingerprint": ["group-1"],
+                "message": "ZeroDivisionError",
+            },
+            project_id=self.project.id,
+        )
+
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=500)),
+                "fingerprint": ["group-2"],
+                "message": "TypeError",
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date",
+            limit=10,
+            collapse=["unhandled"],
+            savedSearch=0,
+            searchId=saved_search.id,
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+
+    def test_pinned_saved_search(self):
+        SavedSearch.objects.create(
+            name="Saved Search",
+            query="ZeroDivisionError",
+            organization=self.organization,
+            owner_id=self.user.id,
+            visibility=Visibility.OWNER_PINNED,
+        )
+        event = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=500)),
+                "fingerprint": ["group-1"],
+                "message": "ZeroDivisionError",
+            },
+            project_id=self.project.id,
+        )
+
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=500)),
+                "fingerprint": ["group-2"],
+                "message": "TypeError",
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date",
+            limit=10,
+            collapse=["unhandled"],
+            savedSearch=0,
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+
+    def test_pinned_saved_search_with_query(self):
+        SavedSearch.objects.create(
+            name="Saved Search",
+            query="TypeError",
+            organization=self.organization,
+            owner_id=self.user.id,
+            visibility=Visibility.OWNER_PINNED,
+        )
+        event = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=500)),
+                "fingerprint": ["group-1"],
+                "message": "ZeroDivisionError",
+            },
+            project_id=self.project.id,
+        )
+
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=500)),
+                "fingerprint": ["group-2"],
+                "message": "TypeError",
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date",
+            limit=10,
+            collapse=["unhandled"],
+            query="ZeroDivisionError",
+            savedSearch=0,
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
 
     def test_query_status_and_substatus_overlapping(self):
         event = self.store_event(
@@ -2040,7 +2178,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
     method = "put"
@@ -3378,7 +3516,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         ).exists()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupDeleteTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
     method = "delete"

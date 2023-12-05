@@ -2,6 +2,7 @@ import {browserHistory, InjectedRouter} from 'react-router';
 import {Location} from 'history';
 import {Commit} from 'sentry-fixture/commit';
 import {CommitAuthor} from 'sentry-fixture/commitAuthor';
+import {Event as EventFixture} from 'sentry-fixture/event';
 import {SentryApp} from 'sentry-fixture/sentryApp';
 import {SentryAppComponent} from 'sentry-fixture/sentryAppComponent';
 
@@ -42,7 +43,7 @@ const makeDefaultMockData = (
         },
       }),
     }),
-    event: TestStubs.Event({
+    event: EventFixture({
       size: 1,
       dateCreated: '2019-03-20T00:00:00.000Z',
       errors: [],
@@ -187,12 +188,16 @@ const mockGroupApis = (
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/events-trace/${TRACE_ID}/`,
-    body: trace ? [trace] : [],
+    body: trace
+      ? {transactions: [trace], orphan_errors: []}
+      : {transactions: [], orphan_errors: []},
   });
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/events-trace-light/${TRACE_ID}/`,
-    body: trace ? [trace] : [],
+    body: trace
+      ? {transactions: [trace], orphan_errors: []}
+      : {transactions: [], orphan_errors: []},
   });
 
   MockApiClient.addMockResponse({
@@ -331,7 +336,7 @@ describe('groupEventDetails', () => {
       props.organization,
       props.project,
       props.group,
-      TestStubs.Event({
+      EventFixture({
         size: 1,
         dateCreated: '2019-03-20T00:00:00.000Z',
         errors: [],
@@ -357,7 +362,7 @@ describe('groupEventDetails', () => {
       issueCategory: IssueCategory.PERFORMANCE,
       issueType: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     });
-    const transaction = TestStubs.Event({
+    const transaction = EventFixture({
       entries: [{type: EntryType.SPANS, data: []}],
     });
 
@@ -365,7 +370,7 @@ describe('groupEventDetails', () => {
       props.organization,
       props.project,
       props.group,
-      TestStubs.Event({
+      EventFixture({
         size: 1,
         dateCreated: '2019-03-20T00:00:00.000Z',
         errors: [],
@@ -400,7 +405,7 @@ describe('groupEventDetails', () => {
       issueCategory: IssueCategory.PERFORMANCE,
       issueType: IssueType.PROFILE_FILE_IO_MAIN_THREAD,
     });
-    const transaction = TestStubs.Event({
+    const transaction = EventFixture({
       entries: [],
       occurrence: {
         evidenceDisplay: [],
@@ -415,7 +420,7 @@ describe('groupEventDetails', () => {
       props.organization,
       props.project,
       props.group,
-      TestStubs.Event({
+      EventFixture({
         size: 1,
         dateCreated: '2019-03-20T00:00:00.000Z',
         errors: [],
@@ -458,14 +463,14 @@ describe('EventCause', () => {
   it('renders suspect commit', async function () {
     const props = makeDefaultMockData(
       undefined,
-      TestStubs.Project({firstEvent: TestStubs.Event()})
+      TestStubs.Project({firstEvent: EventFixture()})
     );
 
     mockGroupApis(
       props.organization,
       props.project,
       props.group,
-      TestStubs.Event({
+      EventFixture({
         size: 1,
         dateCreated: '2019-03-20T00:00:00.000Z',
         errors: [],
@@ -490,8 +495,7 @@ describe('EventCause', () => {
 
     render(<TestComponent project={props.project} />, {organization: props.organization});
 
-    expect(await screen.findByTestId(/event-cause/)).toBeInTheDocument();
-    expect(screen.queryByTestId(/loaded-event-cause-empty/)).not.toBeInTheDocument();
+    expect(await screen.findByTestId(/suspect-commit/)).toBeInTheDocument();
   });
 });
 
@@ -526,7 +530,7 @@ describe('Platform Integrations', () => {
       props.organization,
       props.project,
       props.group,
-      TestStubs.Event({
+      EventFixture({
         size: 1,
         dateCreated: '2019-03-20T00:00:00.000Z',
         errors: [],

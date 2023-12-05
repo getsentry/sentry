@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import random
 import uuid
-from datetime import datetime
-from typing import Any, Mapping, Optional, cast
+from datetime import datetime, timezone
+from typing import Any, Mapping, Optional
 
 import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
@@ -14,7 +14,7 @@ from django.conf import settings
 from sentry_kafka_schemas import get_codec
 from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import IngestSpanMessage
-from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent, _SentryExtractedTags
+from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.spans.grouping.strategy.base import Span
@@ -30,52 +30,48 @@ def _process_relay_span_v1(relay_span: Mapping[str, Any]) -> SpanEvent:
     start_timestamp = datetime.utcfromtimestamp(relay_span["start_timestamp"])
     end_timestamp = datetime.utcfromtimestamp(relay_span["timestamp"])
     snuba_span: SpanEvent = SpanEvent(
+        duration_ms=max(
+            int((end_timestamp - start_timestamp).total_seconds() * 1e3),
+            0,
+        ),
         exclusive_time_ms=int(relay_span.get("exclusive_time", 0)),
         is_segment=relay_span.get("is_segment", False),
         organization_id=relay_span["organization_id"],
         parent_span_id=relay_span.get("parent_span_id", "0"),
         project_id=relay_span["project_id"],
+        received=relay_span.get("received", datetime.now(tz=timezone.utc).timestamp()),
         retention_days=relay_span["retention_days"],
         segment_id=relay_span.get("segment_id", "0"),
         span_id=relay_span.get("span_id", "0"),
-        trace_id=uuid.UUID(relay_span["trace_id"]).hex,
         start_timestamp_ms=int(start_timestamp.timestamp() * 1e3),
-        duration_ms=max(
-            int((end_timestamp - start_timestamp).total_seconds() * 1e3),
-            0,
-        ),
+        trace_id=_format_event_id(relay_span["trace_id"]),
     )
 
-    if value := relay_span.get("description"):
-        snuba_span["description"] = value
+    for key in {"description", "tags", "measurements", "sentry_tags"}:
+        if value := relay_span.get(key):
+            snuba_span[key] = value  # type: ignore
 
-    if value := relay_span.get("tags"):
-        snuba_span["tags"] = value
+    for key in {"event_id", "profile_id"}:
+        if value := format_event_id(relay_span, key=key):
+            snuba_span[key] = value  # type: ignore
 
-    if value := _format_event_id(relay_span, key="event_id"):
-        snuba_span["event_id"] = value
-
-    if value := _format_event_id(relay_span, key="profile_id"):
-        snuba_span["profile_id"] = value
-
-    snuba_span["sentry_tags"] = cast(_SentryExtractedTags, relay_span.get("sentry_tags", {}))
-
-    _process_group_raw(snuba_span, snuba_span["sentry_tags"].get("transaction", ""))
+    _process_group_raw(snuba_span)
 
     return snuba_span
 
 
-def _process_group_raw(snuba_span: SpanEvent, transaction: str) -> None:
+def _process_group_raw(snuba_span: SpanEvent) -> None:
     grouping_config = load_span_grouping_config()
+    sentry_tags = snuba_span.get("sentry_tags", {})
 
     if snuba_span["is_segment"]:
         group_raw = grouping_config.strategy.get_transaction_span_group(
-            {"transaction": transaction},
+            {"transaction": sentry_tags.get("transaction", "")},
         )
     else:
         # Build a span with only necessary values filled.
         span = Span(
-            op=snuba_span.get("sentry_tags", {}).get("op", ""),
+            op=sentry_tags.get("op", ""),
             description=snuba_span.get("description", ""),
             fingerprint=None,
             trace_id="",
@@ -97,11 +93,14 @@ def _process_group_raw(snuba_span: SpanEvent, transaction: str) -> None:
         metrics.incr("spans.invalid_group_raw")
 
 
-def _format_event_id(payload: Mapping[str, Any], key="event_id") -> Optional[str]:
-    event_id = payload.get(key)
-    if event_id:
-        return uuid.UUID(event_id).hex
+def format_event_id(payload: Mapping[str, Any], key: str) -> Optional[str]:
+    if event_id := payload.get(key):
+        return _format_event_id(event_id)
     return None
+
+
+def _format_event_id(event_id: str) -> str:
+    return uuid.UUID(event_id).hex
 
 
 def _deserialize_payload(payload: bytes) -> Mapping[str, Any]:
@@ -112,7 +111,7 @@ def _process_message(message: Message[KafkaPayload]) -> KafkaPayload | FilteredP
     try:
         payload = _deserialize_payload(message.payload.value)
     except ValidationError as err:
-        metrics.incr("spans.consumer.input.schema_validation.failed")
+        metrics.incr("spans.consumer.schema_validation.failed.input")
         _capture_exception(err)
         return FILTERED_PAYLOAD
 
@@ -127,7 +126,7 @@ def _process_message(message: Message[KafkaPayload]) -> KafkaPayload | FilteredP
         snuba_payload = SNUBA_SPAN_SCHEMA.encode(snuba_span)
         return KafkaPayload(key=None, value=snuba_payload, headers=[])
     except ValidationError as err:
-        metrics.incr("spans.consumer.input.schema_validation.failed")
+        metrics.incr("spans.consumer.schema_validation.failed.output")
         _capture_exception(err)
         return FILTERED_PAYLOAD
 

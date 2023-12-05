@@ -2,7 +2,6 @@ import {ComponentProps, CSSProperties, forwardRef} from 'react';
 import classNames from 'classnames';
 
 import {
-  ButtonWrapper,
   Cell,
   CodeHighlightCell,
   Text,
@@ -10,15 +9,14 @@ import {
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconFire, IconInfo, IconWarning} from 'sentry/icons';
 import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
-import {HydratedA11yIssue} from 'sentry/utils/replays/hydrateA11yRecord';
+import {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
 import {Color} from 'sentry/utils/theme';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import useSortAccessibility from 'sentry/views/replays/detail/accessibility/useSortAccessibility';
-import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 const EMPTY_CELL = '--';
 
-const IMPACT_ICON_MAPPING: Record<keyof HydratedA11yIssue['impact'], Color> = {
+const IMPACT_ICON_MAPPING: Record<keyof HydratedA11yFrame['impact'], Color> = {
   minor: <IconInfo size="xs" />,
   moderate: <IconInfo size="xs" />,
   serious: <IconWarning size="xs" color="yellow400" />,
@@ -26,14 +24,13 @@ const IMPACT_ICON_MAPPING: Record<keyof HydratedA11yIssue['impact'], Color> = {
 };
 
 interface Props extends ReturnType<typeof useCrumbHandlers> {
-  a11yIssue: HydratedA11yIssue;
+  a11yIssue: HydratedA11yFrame;
   columnIndex: number;
   currentHoverTime: number | undefined;
   currentTime: number;
   onClickCell: (props: {dataIndex: number; rowIndex: number}) => void;
   rowIndex: number;
   sortConfig: ReturnType<typeof useSortAccessibility>['sortConfig'];
-  startTimestampMs: number;
   style: CSSProperties;
 }
 
@@ -45,12 +42,10 @@ const AccessibilityTableCell = forwardRef<HTMLDivElement, Props>(
       currentHoverTime,
       currentTime,
       onClickCell,
-      onClickTimestamp,
       onMouseEnter,
       onMouseLeave,
       rowIndex,
       sortConfig,
-      startTimestampMs,
       style,
     }: Props,
     ref
@@ -122,24 +117,9 @@ const AccessibilityTableCell = forwardRef<HTMLDivElement, Props>(
       ),
       () => (
         <Cell {...columnProps}>
-          <CodeHighlightCell language="html" hideCopyButton>
-            {a11yIssue.elements?.[0].element ?? EMPTY_CELL}
+          <CodeHighlightCell language="html" hideCopyButton data-render-inline>
+            {a11yIssue.element.element ?? EMPTY_CELL}
           </CodeHighlightCell>
-        </Cell>
-      ),
-      () => (
-        <Cell {...columnProps} numeric>
-          <ButtonWrapper>
-            <TimestampButton
-              format="mm:ss.SSS"
-              onClick={event => {
-                event.stopPropagation();
-                onClickTimestamp(a11yIssue);
-              }}
-              startTimestampMs={startTimestampMs}
-              timestampMs={a11yIssue.timestampMs}
-            />
-          </ButtonWrapper>
         </Cell>
       ),
     ];

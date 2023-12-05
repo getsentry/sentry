@@ -46,7 +46,11 @@ def validate_codeowners_associations(
     external_actors = ExternalActor.objects.filter(
         external_name__in=usernames + team_names,
         organization_id=project.organization_id,
-        provider__in=[ExternalProviders.GITHUB.value, ExternalProviders.GITLAB.value],
+        provider__in=[
+            ExternalProviders.GITHUB.value,
+            ExternalProviders.GITHUB_ENTERPRISE.value,
+            ExternalProviders.GITLAB.value,
+        ],
     )
 
     # Convert CODEOWNERS into IssueOwner syntax

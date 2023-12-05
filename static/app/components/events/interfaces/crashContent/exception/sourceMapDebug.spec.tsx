@@ -1,9 +1,10 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
 import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {Event, ExceptionValue} from 'sentry/types';
+import {ExceptionValue} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 import {SourceMapDebug} from './sourceMapDebug';
@@ -47,7 +48,6 @@ describe('SourceMapDebug', () => {
             colNo: 25,
             inApp: true,
             trust: null,
-            errors: null,
             vars: null,
             minGroupingLevel: 0,
           },
@@ -66,13 +66,12 @@ describe('SourceMapDebug', () => {
     projectSlug: project.slug,
     eventId,
   });
-  const event: Event = {
-    ...TestStubs.Event(),
+  const event = EventFixture({
     id: eventId,
     sdk: {
       name: sdkName,
     },
-  } as Event;
+  });
 
   it('should use unqiue in app frames', () => {
     expect(debugFrames).toHaveLength(1);

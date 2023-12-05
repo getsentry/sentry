@@ -1,30 +1,37 @@
+import {useMemo} from 'react';
+
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import hydrateA11yIssue, {A11yIssue} from 'sentry/utils/replays/hydrateA11yRecord';
+import {useQuery} from 'sentry/utils/queryClient';
+import hydrateA11yFrame, {RawA11yResponse} from 'sentry/utils/replays/hydrateA11yFrame';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
 export default function useA11yData() {
+  const api = useApi();
   const organization = useOrganization();
-  const {replay} = useReplayContext();
+  const {currentTime, replay} = useReplayContext();
   const {projects} = useProjects();
-
   const replayRecord = replay?.getReplay();
   const startTimestampMs = replayRecord?.started_at.getTime();
   const project = projects.find(p => p.id === replayRecord?.project_id);
-
-  const {data} = useApiQuery<A11yIssue[]>(
-    [
+  const unixTimestamp = ((startTimestampMs || 0) + currentTime) / 1000;
+  const {data, ...rest} = useQuery<RawA11yResponse>({
+    queryKey: [
       `/projects/${organization.slug}/${project?.slug}/replays/${replayRecord?.id}/accessibility-issues/`,
     ],
-    {
-      staleTime: 0,
-      enabled: Boolean(project) && Boolean(replayRecord),
-    }
-  );
+    queryFn: ({queryKey: [url]}) =>
+      api.requestPromise(String(url), {
+        method: 'GET',
+        query: {timestamp: unixTimestamp},
+      }),
+    staleTime: 0,
+    enabled: Boolean(project) && Boolean(replayRecord),
+  });
 
-  if (project && replayRecord && startTimestampMs) {
-    return data?.map(record => hydrateA11yIssue(record));
-  }
-  return [];
+  const hydrated = useMemo(
+    () => data?.data?.flatMap(record => hydrateA11yFrame(record, startTimestampMs ?? 0)),
+    [data?.data, startTimestampMs]
+  );
+  return {data: hydrated, dataOffsetMs: currentTime, ...rest};
 }

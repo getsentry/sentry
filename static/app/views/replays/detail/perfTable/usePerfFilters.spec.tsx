@@ -1,5 +1,11 @@
 import {browserHistory} from 'react-router';
 import type {Location} from 'history';
+import {ReplayClickFrameFixture} from 'sentry-fixture/replay/replayBreadcrumbFrameData';
+import {
+  ReplayLargestContentfulPaintFrameFixture,
+  ReplayNavigationFrameFixture,
+} from 'sentry-fixture/replay/replaySpanFrameData';
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
@@ -15,14 +21,15 @@ jest.mock('react-router');
 jest.mock('sentry/utils/useLocation');
 
 const mockUseLocation = jest.mocked(useLocation);
+const mockRRWebFrames = []; // This is only needed for replay.hydrate breadcrumbs.
 
-const replayRecord = TestStubs.ReplayRecord();
+const replayRecord = ReplayRecordFixture();
 
 const CRUMB_1_NAV: ReplayTraceRow = {
   durationMs: 100,
   flattenedTraces: [],
   lcpFrames: hydrateSpans(replayRecord, [
-    TestStubs.Replay.LargestContentfulPaintFrame({
+    ReplayLargestContentfulPaintFrameFixture({
       startTimestamp: new Date(1663691559961),
       endTimestamp: new Date(1663691559962),
       data: {
@@ -35,7 +42,7 @@ const CRUMB_1_NAV: ReplayTraceRow = {
   offsetMs: 100,
   paintFrames: [],
   replayFrame: hydrateSpans(replayRecord, [
-    TestStubs.Replay.NavigationFrame({
+    ReplayNavigationFrameFixture({
       startTimestamp: new Date(1663691559961),
       endTimestamp: new Date(1663691559962),
     }),
@@ -50,11 +57,15 @@ const CRUMB_2_CLICK: ReplayTraceRow = {
   lcpFrames: [],
   offsetMs: 100,
   paintFrames: [],
-  replayFrame: hydrateBreadcrumbs(replayRecord, [
-    TestStubs.Replay.ClickFrame({
-      timestamp: new Date(1663691559961),
-    }),
-  ])[0],
+  replayFrame: hydrateBreadcrumbs(
+    replayRecord,
+    [
+      ReplayClickFrameFixture({
+        timestamp: new Date(1663691559961),
+      }),
+    ],
+    mockRRWebFrames
+  )[0],
   timestampMs: 1663691560061,
   traces: [],
 };
@@ -63,7 +74,7 @@ describe('usePerfFilters', () => {
   const traceRows: ReplayTraceRow[] = [CRUMB_1_NAV, CRUMB_2_CLICK];
 
   beforeEach(() => {
-    jest.mocked(browserHistory.push).mockReset();
+    jest.mocked(browserHistory.replace).mockReset();
   });
 
   it('should update the url when setters are called', () => {
@@ -88,7 +99,7 @@ describe('usePerfFilters', () => {
     });
 
     result.current.setFilters([TYPE_OPTION]);
-    expect(browserHistory.push).toHaveBeenLastCalledWith({
+    expect(browserHistory.replace).toHaveBeenLastCalledWith({
       pathname: '/',
       query: {
         f_p_type: [TYPE_OPTION.value],

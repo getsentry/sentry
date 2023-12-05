@@ -27,12 +27,11 @@ from sentry.integrations.jira_server.utils.choice import build_user_choice
 from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration_external_project import IntegrationExternalProject
-from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.organization import Organization
-from sentry.models.user import User
 from sentry.pipeline import PipelineView
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.organization.service import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -77,6 +76,12 @@ FEATURE_DESCRIPTIONS = [
         Synchronize Comments on Sentry Issues directly to the linked Jira ticket.
         """,
         IntegrationFeatures.ISSUE_SYNC,
+    ),
+    FeatureDescription(
+        """
+        Automatically create Jira tickets based on Issue Alert conditions.
+        """,
+        IntegrationFeatures.TICKET_RULES,
     ),
 ]
 
@@ -360,7 +365,9 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                 "Unable to communicate with the Jira instance. You may need to reinstall the addon."
             )
 
-        organization = Organization.objects.get(id=self.organization_id)
+        context = organization_service.get_organization_by_id(id=self.organization_id)
+        organization = context.organization
+
         has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
         if not has_issue_sync:
             for field in configuration:
@@ -528,7 +535,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
         return self.get_client().create_comment(issue_id, quoted_comment)
 
     def create_comment_attribution(self, user_id, comment_text):
-        user = User.objects.get(id=user_id)
+        user = user_service.get_user(user_id=user_id)
         attribution = f"{user.name} wrote:\n\n"
         return f"{attribution}{{quote}}{comment_text}{{quote}}"
 
@@ -615,7 +622,9 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             organization = (
                 group.organization
                 if group
-                else Organization.objects.get_from_cache(id=self.organization_id)
+                else organization_service.get_organization_by_id(
+                    id=self.organization_id
+                ).organization
             )
             fkwargs["url"] = self.search_url(organization.slug)
             fkwargs["choices"] = []
@@ -870,7 +879,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
         schema. Send this cleaned data to Jira. Finally, make another API call
         to Jira to make sure the issue was created and return basic issue details.
 
-        :param data: JiraCreateTicketAction object
+        :param data: JiraServerCreateTicketAction object
         :param kwargs: not used
         :return: simple object with basic Jira issue details
         """
@@ -971,7 +980,20 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             # above clean method.)
             cleaned_data["issuetype"] = {"id": issue_type}
 
+        # sometimes the project is missing as well and we need to add it
+        if "project" not in cleaned_data:
+            cleaned_data["project"] = {"id": jira_project}
+
         try:
+            logger.info(
+                "jira_server.create_issue",
+                extra={
+                    "organization_id": self.organization_id,
+                    "integration_id": self.model.id,
+                    "jira_project": jira_project,
+                    "cleaned_data": cleaned_data,
+                },
+            )
             response = client.create_issue(cleaned_data)
         except Exception as e:
             self.raise_error(e)
@@ -1043,15 +1065,12 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
         jira_issue = client.get_issue(external_issue.key)
         jira_project = jira_issue["fields"]["project"]
 
-        try:
-            external_project = IntegrationExternalProject.objects.get(
-                external_id=jira_project["id"],
-                organization_integration_id__in=OrganizationIntegration.objects.filter(
-                    organization_id=external_issue.organization_id,
-                    integration_id=external_issue.integration_id,
-                ),
-            )
-        except IntegrationExternalProject.DoesNotExist:
+        external_project = integration_service.get_integration_external_project(
+            organization_id=external_issue.organization_id,
+            integration_id=external_issue.integration_id,
+            external_id=jira_project["id"],
+        )
+        if not external_project:
             return
 
         jira_status = (
@@ -1122,8 +1141,6 @@ class JiraServerIntegrationProvider(IntegrationProvider):
     integration_cls = JiraServerIntegration
 
     needs_default_identity = True
-
-    can_add = True
 
     features = frozenset([IntegrationFeatures.ISSUE_BASIC, IntegrationFeatures.ISSUE_SYNC])
 

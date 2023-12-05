@@ -24,13 +24,14 @@ from sentry.constants import SentryAppInstallationStatus
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.activity import Activity
 from sentry.models.group import Group
-from sentry.models.integrations.sentry_app import VALID_EVENTS, SentryApp
+from sentry.models.integrations.sentry_app import VALID_EVENTS
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.sentryfunction import SentryFunction
 from sentry.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.models.user import User
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import metrics
@@ -122,21 +123,22 @@ def send_alert_event(
         "rule": rule,
     }
 
-    try:
-        sentry_app = SentryApp.objects.get(id=sentry_app_id)
-    except SentryApp.DoesNotExist:
+    sentry_app = app_service.get_sentry_app_by_id(id=sentry_app_id)
+    if sentry_app is None:
         logger.info("event_alert_webhook.missing_sentry_app", extra=extra)
         return
 
-    try:
-        install = SentryAppInstallation.objects.get(
+    installations = app_service.get_many(
+        filter=dict(
             organization_id=organization.id,
-            sentry_app=sentry_app,
+            app_ids=[sentry_app.id],
             status=SentryAppInstallationStatus.INSTALLED,
         )
-    except SentryAppInstallation.DoesNotExist:
+    )
+    if not installations:
         logger.info("event_alert_webhook.missing_installation", extra=extra)
         return
+    (install,) = installations
 
     event_context = _webhook_event_data(event, group.id, project.id)
 
@@ -257,9 +259,8 @@ def installation_webhook(installation_id, user_id, *args, **kwargs):
         logger.info("installation_webhook.missing_installation", extra=extra)
         return
 
-    try:
-        user = User.objects.get(id=user_id)
-    except User.DoesNotExist:
+    user = user_service.get_user(user_id=user_id)
+    if not user:
         logger.info("installation_webhook.missing_user", extra=extra)
         return
 

@@ -1,10 +1,13 @@
+from datetime import timedelta
 from typing import Optional
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from django.contrib.auth.models import AnonymousUser
+from django.utils import timezone
 
 from sentry.auth import access
 from sentry.auth.access import Access, NoAccess
+from sentry.auth.providers.dummy import DummyProvider
 from sentry.constants import ObjectStatus
 from sentry.models.apikey import ApiKey
 from sentry.models.authidentity import AuthIdentity
@@ -76,7 +79,7 @@ class AccessFactoryTestCase(TestCase):
         return AuthIdentity.objects.create(auth_provider=auth_provider, user=user, **kwds)
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class FromUserTest(AccessFactoryTestCase):
     def test_no_access(self):
         organization = self.create_organization()
@@ -356,6 +359,42 @@ class FromUserTest(AccessFactoryTestCase):
             assert not result.sso_is_valid
             assert result.requires_sso
 
+    def test_last_verified_sso(self):
+        user = self.create_user()
+        organization = self.create_organization(owner=user)
+        ap = self.create_auth_provider(organization=organization, provider="dummy")
+        ai = self.create_auth_identity(auth_provider=ap, user=user)
+
+        om = organization_service.check_membership_by_id(
+            organization_id=organization.id, user_id=ai.user_id
+        )
+        assert om
+        setattr(om.flags, "sso:linked", True)
+        organization_service.update_membership_flags(organization_member=om)
+
+        request = self.make_request(user=user)
+        results = [self.from_user(user, organization), self.from_request(request, organization)]
+
+        for result in results:
+            assert result.sso_is_valid
+            assert result.requires_sso
+
+        # If the auth identity has not been updated in awhile, it is not valid.
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            ai.update(last_verified=timezone.now() - timedelta(days=10))
+
+        results = [self.from_user(user, organization), self.from_request(request, organization)]
+        for result in results:
+            assert not result.sso_is_valid
+            assert result.requires_sso
+
+        # but it is valid if the requires_fresh is False
+        with patch.object(DummyProvider, "requires_refresh", False):
+            results = [self.from_user(user, organization), self.from_request(request, organization)]
+            for result in results:
+                assert result.sso_is_valid
+                assert result.requires_sso
+
     def test_unlinked_sso_with_owner_from_team(self):
         organization = self.create_organization()
         ap = self.create_auth_provider(organization=organization, provider="dummy")
@@ -472,7 +511,7 @@ class FromUserTest(AccessFactoryTestCase):
             assert not result.has_project_scope(project_other, "project:read")
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class FromRequestTest(AccessFactoryTestCase):
     def setUp(self) -> None:
         self.superuser = self.create_user(is_superuser=True)
@@ -640,7 +679,7 @@ class FromRequestTest(AccessFactoryTestCase):
         assert result.has_global_access is False
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class FromSentryAppTest(AccessFactoryTestCase):
     def setUp(self):
         super().setUp()
@@ -760,7 +799,7 @@ class FromSentryAppTest(AccessFactoryTestCase):
         assert result.has_scope("team:admin") is False
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class DefaultAccessTest(TestCase):
     def test_no_access(self):
         result = access.DEFAULT
@@ -775,7 +814,7 @@ class DefaultAccessTest(TestCase):
         assert not result.permissions
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class SystemAccessTest(TestCase):
     def test_system_access(self):
         org = self.create_organization()
@@ -791,7 +830,7 @@ class SystemAccessTest(TestCase):
         assert result.has_team_access(team)
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class GetPermissionsForUserTest(TestCase):
     def test_combines_roles_and_perms(self):
         user = self.user

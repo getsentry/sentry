@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import logging
+
+from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import analytics
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.integrations.discord.requests.base import DiscordRequest, DiscordRequestError
 from sentry.integrations.discord.webhooks.command import DiscordCommandHandler
 from sentry.integrations.discord.webhooks.message_component import DiscordMessageComponentHandler
@@ -14,8 +16,10 @@ from sentry.web.decorators import transaction_start
 
 from .types import DiscordResponseTypes
 
+logger = logging.getLogger(__name__)
 
-@region_silo_endpoint
+
+@all_silo_endpoint
 class DiscordInteractionsEndpoint(Endpoint):
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,
@@ -34,16 +38,20 @@ class DiscordInteractionsEndpoint(Endpoint):
     def __init__(self) -> None:
         super().__init__()
 
+    @classmethod
+    def respond_ping(cls) -> JsonResponse:
+        # https://discord.com/developers/docs/tutorials/upgrading-to-application-commands#adding-an-interactions-endpoint-url
+        return JsonResponse({"type": DiscordResponseTypes.PONG})
+
     @csrf_exempt
     @transaction_start("DiscordInteractionsEndpoint")
-    def post(self, request: Request) -> Response:
+    def post(self, request: Request) -> HttpResponse:
         try:
             discord_request = self.discord_request_class(request)
             discord_request.validate()
 
             if discord_request.is_ping():
-                # https://discord.com/developers/docs/tutorials/upgrading-to-application-commands#adding-an-interactions-endpoint-url
-                return self.respond({"type": DiscordResponseTypes.PONG}, status=200)
+                return DiscordInteractionsEndpoint.respond_ping()
 
             elif discord_request.is_command():
                 analytics.record(
@@ -60,7 +68,23 @@ class DiscordInteractionsEndpoint(Endpoint):
                 return DiscordMessageComponentHandler(discord_request).handle()
 
         except DiscordRequestError as e:
+            logger.error(
+                "discord.request.error",
+                extra={
+                    "error": str(e),
+                    "status": e.status,
+                },
+            )
             return self.respond(status=e.status)
+        except Exception as e:
+            logger.error(
+                "discord.request.unexpected_error",
+                extra={
+                    "error": str(e),
+                },
+                exc_info=True,
+            )
+            return self.respond(status=500)
 
         # This isn't an interaction type that we need to worry about, so we'll
         # just return 200.

@@ -31,8 +31,6 @@ from sentry.middleware.placeholder import placeholder_get_response
 from sentry.models.avatars.base import AvatarBase
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
-from sentry.models.team import Team, TeamStatus
-from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganization,
     RpcOrganizationSummary,
@@ -42,10 +40,11 @@ from sentry.services.hybrid_cloud.organization import (
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloLimit
 from sentry.silo.base import SiloMode
+from sentry.types.region import subdomain_is_region
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.auth import construct_link_with_query, is_valid_redirect
-from sentry.utils.http import absolute_uri, is_using_customer_domain
+from sentry.utils.http import absolute_uri, is_using_customer_domain, origin_from_request
 from sentry.web.frontend.generic import FOREVER_CACHE
 from sentry.web.helpers import render_to_response
 from sudo.views import redirect_to_sudo
@@ -247,23 +246,6 @@ class OrganizationMixin:
     ) -> bool:
         return is_member_disabled_from_limit(request, organization)
 
-    def get_active_team(
-        self, request: HttpRequest, organization: RpcOrganization, team_slug: str
-    ) -> Team | None:
-        """
-        Returns the currently selected team for the request or None
-        if no match.
-        """
-        try:
-            team = Team.objects.get_from_cache(slug=team_slug, organization=organization)
-        except Team.DoesNotExist:
-            return None
-
-        if team.status != TeamStatus.ACTIVE:
-            return None
-
-        return team
-
     def get_active_project(
         self, request: HttpRequest, organization: RpcOrganization, project_slug: str
     ) -> Project | None:
@@ -362,9 +344,8 @@ class BaseView(View, OrganizationMixin):
            check unconditionally again.
 
         """
-
         organization_slug = kwargs.get("organization_slug", None)
-        if request and is_using_customer_domain(request):
+        if request and is_using_customer_domain(request) and not subdomain_is_region(request):
             organization_slug = request.subdomain
         self.determine_active_organization(request, organization_slug)
 
@@ -489,9 +470,6 @@ class BaseView(View, OrganizationMixin):
                 res[k] = v
         return res
 
-    def get_team_list(self, user: User, organization: Organization) -> list[Team]:
-        return Team.objects.get_for_user(organization=organization, user=user, with_projects=True)
-
     def create_audit_entry(
         self, request: HttpRequest, transaction_id: int | None = None, **kwargs: Any
     ) -> object:
@@ -524,7 +502,13 @@ class AbstractOrganizationView(BaseView, abc.ABC):
         context["organization"] = organization
         return context
 
-    def has_permission(self, request: HttpRequest, organization: RpcOrganization | Organization, *args: Any, **kwargs: Any) -> bool:  # type: ignore[override]
+    def has_permission(
+        self,
+        request: HttpRequest,
+        organization: RpcOrganization | Organization,
+        *args: Any,
+        **kwargs: Any,
+    ) -> bool:
         if organization is None:
             return False
         if self.valid_sso_required:
@@ -570,7 +554,13 @@ class AbstractOrganizationView(BaseView, abc.ABC):
 
         return False
 
-    def handle_permission_required(self, request: HttpRequest, organization: Organization | RpcOrganization | None, *args: Any, **kwargs: Any) -> HttpResponse:  # type: ignore[override]
+    def handle_permission_required(
+        self,
+        request: HttpRequest,
+        organization: Organization | RpcOrganization | None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> HttpResponse:
         query_params = {
             "referrer": request.GET.get("referrer"),
         }
@@ -757,4 +747,11 @@ class AvatarPhotoView(View):
 
         res = HttpResponse(photo_file, content_type="image/png")
         res["Cache-Control"] = FOREVER_CACHE
+
+        origin = origin_from_request(request)
+        if origin is None or origin == "null":
+            res["Access-Control-Allow-Origin"] = "*"
+        else:
+            res["Access-Control-Allow-Origin"] = origin
+
         return res

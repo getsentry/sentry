@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {Event} from 'sentry/types/event';
 import {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
@@ -7,18 +8,12 @@ import TraceLiteQuery from 'sentry/utils/performance/quickTrace/traceLiteQuery';
 import {
   EventLite,
   QuickTraceQueryChildrenProps,
-  TraceFull,
-  TraceLite,
-  TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import {
   flattenRelevantPaths,
   getTraceTimeRangeFromEvent,
   isCurrentEvent,
-  isTraceSplitResult,
 } from 'sentry/utils/performance/quickTrace/utils';
-import useOrganization from 'sentry/utils/useOrganization';
-import {getTraceSplitResults} from 'sentry/views/performance/traceDetails/utils';
 
 type QueryProps = Omit<DiscoverQueryProps, 'api' | 'eventView'> & {
   children: (props: QuickTraceQueryChildrenProps) => React.ReactNode;
@@ -26,7 +21,6 @@ type QueryProps = Omit<DiscoverQueryProps, 'api' | 'eventView'> & {
 };
 
 export default function QuickTraceQuery({children, event, ...props}: QueryProps) {
-  const organization = useOrganization();
   const renderEmpty = () => (
     <Fragment>
       {children({
@@ -68,17 +62,19 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
           {...props}
         >
           {traceFullResults => {
-            const {transactions, orphanErrors} = getTraceSplitResults<TraceFull>(
-              traceFullResults.traces ?? [],
-              organization
-            );
+            const scope = new Sentry.Scope();
+            const traceErrorMsg =
+              'Updated: Trace endpoints returning non-array in response';
+            scope.setFingerprint([traceErrorMsg]);
 
             if (
               !traceFullResults.isLoading &&
               traceFullResults.error === null &&
               traceFullResults.traces !== null
             ) {
-              const orphanError = orphanErrors?.find(e => e.event_id === event.id);
+              const orphanError = traceFullResults.traces.orphan_errors?.find(
+                e => e.event_id === event.id
+              );
               if (orphanError) {
                 return children({
                   ...traceFullResults,
@@ -88,19 +84,30 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
                 });
               }
 
-              for (const subtrace of transactions ??
-                (traceFullResults.traces as TraceFull[])) {
-                try {
-                  const trace = flattenRelevantPaths(event, subtrace);
-                  return children({
-                    ...traceFullResults,
-                    trace,
-                    currentEvent: trace.find(e => isCurrentEvent(e, event)) ?? null,
-                  });
-                } catch {
-                  // let this fall through and check the next subtrace
-                  // or use the trace lite results
+              const traceTransactions = traceFullResults.traces.transactions;
+
+              try {
+                for (const subtrace of traceTransactions) {
+                  try {
+                    const trace = flattenRelevantPaths(event, subtrace);
+                    return children({
+                      ...traceFullResults,
+                      trace,
+                      currentEvent: trace.find(e => isCurrentEvent(e, event)) ?? null,
+                    });
+                  } catch {
+                    // let this fall through and check the next subtrace
+                    // or use the trace lite results
+                  }
                 }
+              } catch {
+                // capture exception and let this fall through to
+                // use the /events-trace-lite/ response below
+                scope.setExtras({
+                  traceTransactions,
+                  traceFullResults,
+                });
+                Sentry.captureException(new Error(traceErrorMsg), scope);
               }
             }
 
@@ -109,23 +116,32 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
               traceLiteResults.error === null &&
               traceLiteResults.trace !== null
             ) {
-              const {trace} = traceLiteResults;
-              const {transactions: transactionLite, orphanErrors: orphanErrorsLite} =
-                getTraceSplitResults<EventLite>(trace ?? [], organization);
+              const orphanErrorsLite = traceLiteResults.trace.orphan_errors;
+              const transactionsLite = traceLiteResults.trace.transactions;
 
-              const orphanError =
+              const currentOrphanError =
                 orphanErrorsLite && orphanErrorsLite.length === 1
                   ? orphanErrorsLite[0]
                   : undefined;
-              const traceTransactions = transactionLite ?? (trace as TraceLite);
+
+              let traceTransaction: EventLite | undefined;
+              try {
+                traceTransaction = transactionsLite.find(e => isCurrentEvent(e, event));
+              } catch {
+                scope.setExtras({
+                  traceTransaction,
+                  currentOrphanError,
+                  transactionsLite,
+                  trace: traceLiteResults.trace,
+                });
+                Sentry.captureException(new Error(traceErrorMsg), scope);
+              }
+
               return children({
                 ...traceLiteResults,
-                trace: traceTransactions,
+                trace: Array.isArray(transactionsLite) ? transactionsLite : [],
                 orphanErrors: orphanErrorsLite,
-                currentEvent:
-                  orphanError ??
-                  traceTransactions.find(e => isCurrentEvent(e, event)) ??
-                  null,
+                currentEvent: currentOrphanError ?? traceTransaction ?? null,
               });
             }
 
@@ -143,12 +159,8 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
               // that means there were other transactions in the trace, but the current
               // event could not be found
               type:
-                (transactions && transactions.length) ||
-                (traceFullResults.traces &&
-                  !isTraceSplitResult<TraceSplitResults<TraceFull>, TraceFull[]>(
-                    traceFullResults.traces
-                  ) &&
-                  traceFullResults.traces?.length)
+                traceFullResults.traces?.transactions &&
+                traceFullResults.traces?.transactions.length
                   ? 'missing'
                   : 'empty',
               currentEvent: null,

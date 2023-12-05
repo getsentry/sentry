@@ -54,11 +54,11 @@ import {
 import {
   IssueAlertActionType,
   IssueAlertConditionType,
+  IssueAlertConfiguration,
   IssueAlertFilterType,
   IssueAlertRule,
   IssueAlertRuleAction,
   IssueAlertRuleActionTemplate,
-  IssueAlertRuleConditionTemplate,
   UnsavedIssueAlertRule,
 } from 'sentry/types/alerts';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
@@ -119,7 +119,7 @@ const defaultRule: UnsavedIssueAlertRule = {
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
 
-type ConditionOrActionProperty = 'conditions' | 'actions' | 'filters';
+type ConfigurationKey = keyof IssueAlertConfiguration;
 
 type RuleTaskResponse = {
   status: 'pending' | 'failed' | 'success';
@@ -146,11 +146,7 @@ type Props = {
 } & RouteComponentProps<RouteParams, {}>;
 
 type State = DeprecatedAsyncView['state'] & {
-  configs: {
-    actions: IssueAlertRuleActionTemplate[];
-    conditions: IssueAlertRuleConditionTemplate[];
-    filters: IssueAlertRuleConditionTemplate[];
-  } | null;
+  configs: IssueAlertConfiguration | null;
   detailedError: null | {
     [key: string]: string[];
   };
@@ -325,16 +321,11 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
         addErrorMessage(detail, {append: true})
       );
     }
-    if (!ruleId) {
+
+    if (!ruleId && !this.isDuplicateRule) {
       // now that we've loaded all the possible conditions, we can populate the
       // value of conditions for a new alert
-      const id = 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition';
-      this.handleChange('conditions', [
-        {
-          id,
-          label: `${CHANGE_ALERT_PLACEHOLDERS_LABELS[id]}...`,
-        },
-      ]);
+      this.handleChange('conditions', [{id: IssueAlertConditionType.FIRST_SEEN_EVENT}]);
     }
   }
 
@@ -629,7 +620,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
   };
 
   handlePropertyChange = <T extends keyof IssueAlertRuleAction>(
-    type: ConditionOrActionProperty,
+    type: ConfigurationKey,
     idx: number,
     prop: T,
     val: IssueAlertRuleAction[T]
@@ -641,7 +632,10 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     });
   };
 
-  getInitialValue = (type: ConditionOrActionProperty, id: string) => {
+  getInitialValue = (
+    type: ConfigurationKey,
+    id: string
+  ): IssueAlertConfiguration[ConfigurationKey] => {
     const configuration = this.state.configs?.[type]?.find(c => c.id === id);
 
     const hasChangeAlerts =
@@ -665,7 +659,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
   };
 
   handleResetRow = <T extends keyof IssueAlertRuleAction>(
-    type: ConditionOrActionProperty,
+    type: ConfigurationKey,
     idx: number,
     prop: T,
     val: IssueAlertRuleAction[T]
@@ -686,10 +680,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     });
   };
 
-  handleAddRow = (
-    type: ConditionOrActionProperty,
-    item: IssueAlertRuleActionTemplate
-  ) => {
+  handleAddRow = (type: ConfigurationKey, item: IssueAlertRuleActionTemplate) => {
     this.setState(prevState => {
       const clonedState = cloneDeep(prevState);
 
@@ -715,7 +706,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     });
   };
 
-  handleDeleteRow = (type: ConditionOrActionProperty, idx: number) => {
+  handleDeleteRow = (type: ConfigurationKey, idx: number) => {
     this.setState(prevState => {
       const clonedState = cloneDeep(prevState);
 
@@ -765,7 +756,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     }));
   };
 
-  getConditions() {
+  getConditions(): IssueAlertConfiguration['conditions'] | null {
     const {organization} = this.props;
 
     if (!organization.features.includes('change-alerts')) {
@@ -775,10 +766,10 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     return (
       this.state.configs?.conditions?.map(condition =>
         CHANGE_ALERT_CONDITION_IDS.includes(condition.id)
-          ? ({
+          ? {
               ...condition,
               label: `${CHANGE_ALERT_PLACEHOLDERS_LABELS[condition.id]}...`,
-            } as IssueAlertRuleConditionTemplate)
+            }
           : condition
       ) ?? null
     );
@@ -895,11 +886,11 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
 
   displayNoConditionsWarning(): boolean {
     const {rule} = this.state;
-    const acceptedNoisyActionIds = [
+    const acceptedNoisyActionIds: string[] = [
       // Webhooks
-      'sentry.rules.actions.notify_event_service.NotifyEventServiceAction',
+      IssueAlertActionType.NOTIFY_EVENT_SERVICE_ACTION,
       // Legacy integrations
-      'sentry.rules.actions.notify_event.NotifyEventAction',
+      IssueAlertActionType.NOTIFY_EVENT_ACTION,
     ];
 
     return (

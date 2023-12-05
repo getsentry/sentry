@@ -88,7 +88,7 @@ describe('SpanEvidenceKeyValueList', () => {
     });
   });
 
-  describe('N+1 Database Queries with occurences', () => {
+  describe('N+1 Database Queries with occurrences', () => {
     const builder = new TransactionEventBuilder('a1', '/', undefined, undefined, true);
     builder.getEvent().projectID = '123';
 

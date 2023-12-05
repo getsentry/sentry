@@ -1,5 +1,3 @@
-from unittest import mock, skip
-
 import responses
 from django.utils import timezone
 
@@ -8,17 +6,15 @@ from sentry.models.deploy import Deploy
 from sentry.models.release import Release
 from sentry.notifications.notifications.activity.release import ReleaseActivityNotification
 from sentry.testutils.cases import SlackActivityNotificationTest
-from sentry.testutils.helpers.slack import get_attachment, send_notification
+from sentry.testutils.helpers.slack import get_attachment
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SlackDeployNotificationTest(SlackActivityNotificationTest):
     @responses.activate
-    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
-    @skip("Test is flaky")
-    def test_deploy(self, mock_func):
+    def test_deploy(self):
         """
         Test that a Slack message is sent with the expected payload when a deploy happens.
         """

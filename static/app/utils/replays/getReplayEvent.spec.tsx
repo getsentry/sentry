@@ -1,35 +1,41 @@
+import {ReplayClickFrameFixture} from 'sentry-fixture/replay/replayBreadcrumbFrameData';
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
+
 import {
   getNextReplayFrame,
   getPrevReplayFrame,
 } from 'sentry/utils/replays/getReplayEvent';
 import hydrateBreadcrumbs from 'sentry/utils/replays/hydrateBreadcrumbs';
 
+const mockRRWebFrames = []; // This is only needed for replay.hydrate breadcrumbs.
+
 const frames = hydrateBreadcrumbs(
-  TestStubs.ReplayRecord({
+  ReplayRecordFixture({
     started_at: new Date('2022-05-04T19:41:30.00Z'),
   }),
   [
-    TestStubs.Replay.ClickFrame({
+    ReplayClickFrameFixture({
       timestamp: new Date('2022-05-04T19:41:32.002Z'),
       message: 'index 0',
     }),
-    TestStubs.Replay.ClickFrame({
+    ReplayClickFrameFixture({
       timestamp: new Date('2022-05-04T19:47:08.085000Z'),
       message: 'index 1',
     }),
-    TestStubs.Replay.ClickFrame({
+    ReplayClickFrameFixture({
       timestamp: new Date('2022-05-04T19:47:11.086000Z'),
       message: 'index 2',
     }),
-    TestStubs.Replay.ClickFrame({
+    ReplayClickFrameFixture({
       timestamp: new Date('2022-05-04T19:47:52.915000Z'),
       message: 'index 3',
     }),
-    TestStubs.Replay.ClickFrame({
+    ReplayClickFrameFixture({
       timestamp: new Date('2022-05-04T19:47:59.915000Z'),
       message: 'index 4',
     }),
-  ]
+  ],
+  mockRRWebFrames
 );
 
 const CURRENT_OFFSET_MS = frames[0].offsetMs + 15000;

@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.ingest.userreport import save_userreport
 from sentry.models.group import GroupStatus
 from sentry.models.userreport import UserReport
@@ -7,7 +8,7 @@ from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-user-feedback"
     method = "get"
@@ -120,7 +121,13 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
                 "event_id": "d" * 32,
                 "message": "oh no",
                 "environment": self.env_1.name,
-                "user": {"id": 1234, "email": "alice@example.com"},
+                "user": {
+                    "id": "123",
+                    "email": "alice@example.com",
+                    "username": "haveibeenpwned",
+                    "ip_address": "8.8.8.8",
+                    "name": "Alice",
+                },
             },
             project_id=self.project_1.id,
         )
@@ -132,10 +139,11 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
             "email": "",
             "comments": "It broke",
         }
-        save_userreport(self.project_1, report_data)
-
+        save_userreport(
+            self.project_1, report_data, FeedbackCreationSource.USER_REPORT_DJANGO_ENDPOINT
+        )
         response = self.get_response(self.project_1.organization.slug, project=[self.project_1.id])
         assert response.status_code == 200
         assert response.data[0]["comments"] == "It broke"
-        assert response.data[0]["user"]["name"] == "alice@example.com"
+        assert response.data[0]["user"]["name"] == "Alice"
         assert response.data[0]["user"]["email"] == "alice@example.com"

@@ -333,7 +333,7 @@ describe('SampledProfile', () => {
     expect(profile.callTree.children[0].children[0].children[0].frame.selfWeight).toBe(6);
   });
 
-  it('flamegraph tracks node occurences', () => {
+  it('flamegraph tracks node occurrences', () => {
     const trace: Profiling.SampledProfile = {
       name: 'profile',
       startValue: 0,

@@ -1,8 +1,12 @@
+import time
+from unittest.mock import Mock
+
 import pytest
 from django.test.utils import override_settings
 from django.urls import reverse
+from openai.types.chat.chat_completion import ChatCompletion, Choice
+from openai.types.chat.chat_completion_message import ChatCompletionMessage
 
-from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 
@@ -11,9 +15,8 @@ pytestmark = [requires_snuba]
 
 @pytest.fixture(autouse=True)
 def openai_features():
-    with Feature({"organizations:open-ai-suggestion": True}):
-        with override_settings(OPENAI_API_KEY="X"):
-            yield
+    with override_settings(OPENAI_API_KEY="X"):
+        yield
 
 
 @pytest.fixture(autouse=True)
@@ -23,10 +26,27 @@ def auto_login(client, default_user):
 
 @pytest.fixture(autouse=True)
 def openai_mock(monkeypatch):
-    def dummy_response(*a, **kw):
-        return {"choices": [{"message": {"content": "AI generated response"}}]}
+    def dummy_response(*args, **kwargs):
+        return ChatCompletion(
+            id="test",
+            choices=[
+                Choice(
+                    index=0,
+                    message=ChatCompletionMessage(
+                        content="AI generated response", role="assistant"
+                    ),
+                    finish_reason="stop",
+                )
+            ],
+            created=time.time(),
+            model="gpt3.5-trubo",
+            object="chat.completion",
+        )
 
-    monkeypatch.setattr("openai.ChatCompletion.create", dummy_response)
+    mock_openai = Mock()
+    mock_openai().chat.completions.create = dummy_response
+
+    monkeypatch.setattr("sentry.api.endpoints.event_ai_suggested_fix.OpenAI", mock_openai)
 
 
 @pytest.fixture

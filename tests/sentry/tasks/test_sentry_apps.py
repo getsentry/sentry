@@ -5,6 +5,7 @@ from unittest.mock import ANY, patch
 import pytest
 from celery import Task
 from django.core import mail
+from django.db import router
 from django.test import override_settings
 from django.urls import reverse
 from requests.exceptions import Timeout
@@ -22,7 +23,9 @@ from sentry.models.integrations.sentry_app_installation import SentryAppInstalla
 from sentry.models.integrations.utils import get_redis_key
 from sentry.models.rule import Rule
 from sentry.models.sentryfunction import SentryFunction
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ClientError
+from sentry.silo import unguarded_write
 from sentry.tasks.post_process import post_process_group
 from sentry.tasks.sentry_apps import (
     build_comment_webhook,
@@ -261,8 +264,9 @@ class TestProcessResourceChange(TestCase):
         assert len(safe_urlopen.mock_calls) == 0
 
     def test_does_not_process_sentry_apps_without_issue_webhooks(self, safe_urlopen):
-        SentryAppInstallation.objects.all().delete()
-        SentryApp.objects.all().delete()
+        with unguarded_write(router.db_for_write(SentryAppInstallation)):
+            SentryAppInstallation.objects.all().delete()
+            SentryApp.objects.all().delete()
 
         # DOES NOT subscribe to Issue events
         self.create_sentry_app_installation(organization=self.organization)
@@ -500,6 +504,7 @@ class TestInstallationWebhook(TestCase):
     def setUp(self):
         self.project = self.create_project()
         self.user = self.create_user()
+        self.rpc_user = user_service.get_user(user_id=self.user.id)
 
         self.sentry_app = self.create_sentry_app(organization=self.project.organization)
 
@@ -510,7 +515,7 @@ class TestInstallationWebhook(TestCase):
     def test_sends_installation_notification(self, run):
         installation_webhook(self.install.id, self.user.id)
 
-        run.assert_called_with(install=self.install, user=self.user, action="created")
+        run.assert_called_with(install=self.install, user=self.rpc_user, action="created")
 
     def test_gracefully_handles_missing_install(self, run):
         installation_webhook(999, self.user.id)

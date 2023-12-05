@@ -18,6 +18,7 @@ import {
   useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
+import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -92,6 +93,18 @@ function useGetExistingRule(
     {
       staleTime: 0,
       enabled,
+      // No retries for 4XX errors.
+      // This makes the error feedback a lot faster, and there is no unnecessary network traffic.
+      retry: (failureCount, error) => {
+        if (failureCount >= 2) {
+          return false;
+        }
+        if (error.status && error.status >= 400 && error.status < 500) {
+          // don't retry 4xx errors (in theory 429 should be retried but not immediately)
+          return false;
+        }
+        return true;
+      },
     }
   );
 
@@ -108,7 +121,7 @@ function useCreateInvestigationRuleMutation(vars: CreateCustomRuleVariables) {
   const queryClient = useQueryClient();
   const {mutate} = useMutation<
     CustomDynamicSamplingRule,
-    Error,
+    RequestError,
     CreateCustomRuleVariables
   >({
     mutationFn: (variables: CreateCustomRuleVariables) => {
@@ -132,8 +145,17 @@ function useCreateInvestigationRuleMutation(vars: CreateCustomRuleVariables) {
         success: true,
       });
     },
-    onError: (_error: Error) => {
-      addErrorMessage(t('Unable to create investigation rule'));
+    onError: (_error: RequestError) => {
+      if (_error.status === 429) {
+        addErrorMessage(
+          t(
+            'You have reached the maximum number of concurrent investigation rules allowed'
+          )
+        );
+      } else {
+        addErrorMessage(t('Unable to create investigation rule'));
+      }
+
       trackAnalytics('dynamic_sampling.custom_rule_add', {
         organization: vars.organization,
         projects: vars.projects,
@@ -141,12 +163,12 @@ function useCreateInvestigationRuleMutation(vars: CreateCustomRuleVariables) {
         success: false,
       });
     },
+    retry: false,
   });
   return mutate;
 }
 
 const InvestigationInProgressNotification = styled('span')`
-  margin: ${space(1.5)};
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.subText};
   font-weight: 600;
@@ -154,6 +176,23 @@ const InvestigationInProgressNotification = styled('span')`
   align-items: center;
   gap: ${space(0.5)};
 `;
+
+function handleRequestError(error: RequestError) {
+  // check why it failed (if it is due to the fact that the query is not supported (e.g. non transaction query)
+  // do nothing we just don't show the button
+  if (error.responseJSON?.query) {
+    const query = error.responseJSON.query;
+    if (Array.isArray(query)) {
+      for (const reason of query) {
+        if (reason === 'not_transaction_query') {
+          return; // this is not an error we just don't show the button
+        }
+      }
+    }
+  }
+  const errorResponse = t('Unable to fetch investigation rule');
+  addErrorMessage(errorResponse);
+}
 
 function InvestigationRuleCreationInternal(props: PropsInternal) {
   const projects = [...props.eventView.project];
@@ -177,8 +216,7 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
     return null;
   }
   if (request.isError) {
-    const errorResponse = t('Unable to fetch investigation rule');
-    addErrorMessage(errorResponse);
+    handleRequestError(request.error);
     return null;
   }
 
@@ -206,7 +244,7 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
             }
           )}
         >
-          <IconQuestion size="xs" color="subText" />
+          <StyledIconQuestion size="sm" color="subText" />
         </Tooltip>
       </InvestigationInProgressNotification>
     );
@@ -225,6 +263,7 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
       )}
     >
       <Button
+        priority="primary"
         {...props.buttonProps}
         onClick={() => createInvestigationRule({organization, period, projects, query})}
         icon={<IconStack size="xs" />}
@@ -238,8 +277,13 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
 export function InvestigationRuleCreation(props: Props) {
   const organization = useOrganization();
   return (
-    <Feature features={['investigation-bias']}>
+    <Feature features="investigation-bias">
       <InvestigationRuleCreationInternal {...props} organization={organization} />
     </Feature>
   );
 }
+
+const StyledIconQuestion = styled(IconQuestion)`
+  position: relative;
+  top: 2px;
+`;

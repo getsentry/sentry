@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import namedtuple
 from datetime import datetime
 from typing import Any, Dict, Generator, List, Optional, Sequence, Union
 
@@ -25,6 +24,7 @@ from sentry.api.event_search import ParenExpression, SearchConfig, SearchFilter
 from sentry.models.organization import Organization
 from sentry.replays.lib.query import all_values_for_tag_key
 from sentry.replays.usecases.query import (
+    Paginators,
     execute_query,
     make_full_aggregation_query,
     query_using_optimized_search,
@@ -36,7 +36,6 @@ DEFAULT_PAGE_SIZE = 10
 DEFAULT_OFFSET = 0
 MAX_REPLAY_LENGTH_HOURS = 1
 ELIGIBLE_SUBQUERY_SORTS = {"started_at", "browser.name", "os.name"}
-Paginators = namedtuple("Paginators", ("limit", "offset"))
 
 
 def query_replays_collection(
@@ -285,7 +284,6 @@ replay_url_parser_config = SearchConfig(
         "count_dead_clicks",
         "count_rage_clicks",
         "activity",
-        "new_count_errors",
         "count_warnings",
         "count_infos",
     },
@@ -425,7 +423,7 @@ def _collect_new_errors():
                 ],
             ),
         ],
-        alias="new_error_ids",
+        alias="errorIds",
     )
 
 
@@ -540,13 +538,10 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
         "click.text",
         "click.title",
     ],
-    "new_error_id": ["new_error_ids"],
     "warning_id": ["warning_ids"],
     "info_id": ["info_ids"],
-    "new_error_ids": ["new_error_ids"],
     "warning_ids": ["warning_ids"],
     "info_ids": ["info_ids"],
-    "new_count_errors": ["new_count_errors"],
     "count_warnings": ["count_warnings"],
     "count_infos": ["count_infos"],
 }
@@ -572,17 +567,6 @@ QUERY_ALIAS_COLUMN_MAP = {
         ],
         alias="traceIds",
     ),
-    "error_ids": Function(
-        "arrayMap",
-        parameters=[
-            Lambda(["id"], _strip_uuid_dashes("id", Identifier("id"))),
-            Function(
-                "groupUniqArrayArray",
-                parameters=[Column("error_ids")],
-            ),
-        ],
-        alias="errorIds",
-    ),
     "started_at": Function(
         "min", parameters=[Column("replay_start_timestamp")], alias="started_at"
     ),
@@ -600,11 +584,6 @@ QUERY_ALIAS_COLUMN_MAP = {
         alias="agg_urls",
     ),
     "count_segments": Function("count", parameters=[Column("segment_id")], alias="count_segments"),
-    "count_errors": Function(
-        "sum",
-        parameters=[Function("length", parameters=[Column("error_ids")])],
-        alias="count_errors",
-    ),
     "count_urls": Function(
         "sum",
         parameters=[Function("length", parameters=[Column("urls")])],
@@ -691,13 +670,13 @@ QUERY_ALIAS_COLUMN_MAP = {
     ),
     "click.text": Function("groupArray", parameters=[Column("click_text")], alias="click_text"),
     "click.title": Function("groupArray", parameters=[Column("click_title")], alias="click_title"),
-    "new_error_ids": _collect_new_errors(),
+    "error_ids": _collect_new_errors(),
     "warning_ids": _collect_event_ids("warning_ids", ["warning_id"]),
     "info_ids": _collect_event_ids("info_ids", ["info_id", "debug_id"]),
-    "new_count_errors": Function(
+    "count_errors": Function(
         "sum",
         parameters=[Column("count_error_events")],
-        alias="new_count_errors",
+        alias="count_errors",
     ),
     "count_warnings": Function(
         "sum",
@@ -765,7 +744,7 @@ def select_from_fields(fields: List[str]) -> List[Union[Column, Function]]:
     return [QUERY_ALIAS_COLUMN_MAP[alias] for alias in collect_aliases(fields)]
 
 
-def _extract_children(expression: ParenExpression) -> Generator[str, None, None]:
+def _extract_children(expression: ParenExpression) -> Generator[SearchFilter, None, None]:
     for child in expression.children:
         if isinstance(child, SearchFilter):
             yield child

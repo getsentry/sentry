@@ -31,7 +31,9 @@ describe('ProjectDetail > ProjectFilters', () => {
       {context: TestStubs.routerContext()}
     );
 
-    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.click(
+      screen.getByPlaceholderText('Search by release version, build, package, or stage')
+    );
 
     // Should suggest all semver tags
     await screen.findByText('release');

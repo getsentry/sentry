@@ -20,6 +20,34 @@ describe('Frame', () => {
       });
     }
   );
+  it('marks frame as extension', () => {
+    for (const prefix of ['@moz-extension://', 'chrome-extension://']) {
+      expect(
+        new Frame(
+          {
+            key: 0,
+            name: 'foo',
+            line: undefined,
+            column: undefined,
+            file: `${prefix}foo/bar.js`,
+          },
+          'javascript'
+        ).is_browser_extension
+      ).toBe(true);
+    }
+    expect(
+      new Frame(
+        {
+          key: 0,
+          name: 'foo',
+          line: undefined,
+          column: undefined,
+          file: `bar.js`,
+        },
+        'javascript'
+      ).is_browser_extension
+    ).toBe(false);
+  });
   describe('pulls package from path for web|node platforms', () => {
     it('file in node modules', () => {
       expect(

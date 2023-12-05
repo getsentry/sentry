@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from enum import IntEnum, auto, unique
-from typing import List, NamedTuple, Optional
+from typing import Any, Dict, List, NamedTuple, Optional
 
 from sentry.utils import json
 
@@ -37,6 +36,9 @@ class ComparatorFindingKind(FindingKind):
 
     # The instances of a particular model did not maintain total ordering of pks (that is, pks did not appear in ascending order, or appear multiple times).
     UnorderedInput = auto()
+
+    # Multiple instances of the same custom ordinal signature exist in the input.
+    DuplicateCustomOrdinal = auto()
 
     # The number of instances of a particular model on the left and right side of the input were not
     # equal.
@@ -90,10 +92,6 @@ class ComparatorFindingKind(FindingKind):
     # Failed to compare an ignored field.
     IgnoredComparator = auto()
 
-    # Failed to compare an ignored field because one of the fields being compared was not present or
-    # `None`.
-    IgnoredComparatorExistenceCheck = auto()
-
     # Secret token fields did not match their regex specification.
     SecretHexComparator = auto()
 
@@ -107,6 +105,13 @@ class ComparatorFindingKind(FindingKind):
     # Failed to compare a subscription id field because one of the fields being compared was not
     # present or `None`.
     SubscriptionIDComparatorExistenceCheck = auto()
+
+    # Unordered list fields did not match.
+    UnorderedListComparator = auto()
+
+    # Failed to compare a unordered list field because one of the fields being compared was not
+    # present or `None`.
+    UnorderedListComparatorExistenceCheck = auto()
 
     # UUID4 fields did not match their regex specification.
     UUID4Comparator = auto()
@@ -141,22 +146,29 @@ class Finding(ABC):
 
     reason: str = ""
 
+    def get_finding_name(self) -> str:
+        return self.__class__.__name__
+
     def _pretty_inner(self) -> str:
         """
         Pretty print only the fields on the shared `Finding` portion.
         """
 
-        out = f"\n\ton: {self.on.pretty()}"
+        out = f"\n    on: {self.on.pretty()}"
         if self.left_pk:
-            out += f",\n\tleft_pk: {self.left_pk}"
+            out += f",\n    left_pk: {self.left_pk}"
         if self.right_pk:
-            out += f",\n\tright_pk: {self.right_pk}"
+            out += f",\n    right_pk: {self.right_pk}"
         if self.reason:
-            out += f",\n\treason: {self.reason}"
+            out += f",\n    reason: {self.reason}"
         return out
 
     @abstractmethod
     def pretty(self) -> str:
+        pass
+
+    @abstractmethod
+    def to_dict(self) -> dict[str, Any]:
         pass
 
 
@@ -169,7 +181,10 @@ class ComparatorFinding(Finding):
     kind: ComparatorFindingKind = ComparatorFindingKind.Unknown
 
     def pretty(self) -> str:
-        return f"ComparatorFinding(\n\tkind: {self.kind.name},{self._pretty_inner()}\n)"
+        return f"ComparatorFinding(\n    kind: {self.kind.name},{self._pretty_inner()}\n)"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
 
 
 class ComparatorFindings:
@@ -196,9 +211,12 @@ class FindingJSONEncoder(json.JSONEncoder):
 
     def default(self, obj):
         if isinstance(obj, Finding):
-            d = deepcopy(obj.__dict__)
-            kind = d.get("kind")
+            kind = getattr(obj, "kind", None)
+            d = obj.to_dict()
+            d["finding"] = obj.get_finding_name()
             if isinstance(kind, FindingKind):
                 d["kind"] = kind.name
+            elif isinstance(kind, str):
+                d["kind"] = kind
             return d
         return super().default(obj)

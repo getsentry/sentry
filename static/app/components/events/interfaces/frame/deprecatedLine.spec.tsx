@@ -1,3 +1,4 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
 import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
@@ -6,13 +7,12 @@ import DeprecatedLine from 'sentry/components/events/interfaces/frame/deprecated
 import {EntryType, Frame} from 'sentry/types';
 
 describe('Frame - Line', function () {
-  const event = TestStubs.Event();
+  const event = EventFixture();
 
   const data: Frame = {
     absPath: null,
     colNo: null,
     context: [],
-    errors: null,
     filename: null,
     function: null,
     inApp: false,
@@ -159,8 +159,7 @@ describe('Frame - Line', function () {
   describe('ANR suspect frame', () => {
     it('should render suspect frame', () => {
       const org = {...Organization(), features: ['anr-analyze-frames']};
-      const eventWithThreads = {
-        ...event,
+      const eventWithThreads = EventFixture({
         entries: [
           {
             data: {
@@ -179,7 +178,7 @@ describe('Frame - Line', function () {
             type: EntryType.THREADS,
           },
         ],
-      };
+      });
       const suspectFrame: Frame = {
         filename: 'Instrumentation.java',
         absPath: 'Instrumentation.java',
@@ -196,7 +195,6 @@ describe('Frame - Line', function () {
         colNo: null,
         inApp: false,
         trust: null,
-        errors: null,
         vars: null,
       };
 

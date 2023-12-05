@@ -1,10 +1,11 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
 import {Organization} from 'sentry-fixture/organization';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
-import {Event, EventOrGroupType} from 'sentry/types/event';
+import {EventOrGroupType} from 'sentry/types/event';
 import EventView, {EventData} from 'sentry/utils/discover/eventView';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -32,15 +33,6 @@ const renderQuickContextContent = (
     </QueryClientProvider>,
     {organization}
   );
-};
-
-const makeEvent = (event: Partial<Event> = {}): Event => {
-  const evt: Event = {
-    ...TestStubs.Event(),
-    ...event,
-  };
-
-  return evt;
 };
 
 jest.mock('sentry/utils/useLocation');
@@ -136,7 +128,9 @@ describe('Quick Context', function () {
 
     it('Renders release header with copy button', async () => {
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/releases/backend@22.10.0+aaf33944f93dc8fa4234ca046a8d88fb1dccfb76/',
+        url: `/organizations/org-slug/releases/${encodeURIComponent(
+          'backend@22.10.0+aaf33944f93dc8fa4234ca046a8d88fb1dccfb76'
+        )}/`,
         body: TestStubs.Release({
           id: '1',
           shortVersion: 'sentry-android-shop@1.2.0',
@@ -168,7 +162,7 @@ describe('Quick Context', function () {
       jest.spyOn(ConfigStore, 'get').mockImplementation(() => null);
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
-        body: makeEvent({type: EventOrGroupType.ERROR, entries: []}),
+        body: EventFixture({type: EventOrGroupType.ERROR, entries: []}),
       });
 
       renderQuickContextContent(defaultRow, ContextType.EVENT);

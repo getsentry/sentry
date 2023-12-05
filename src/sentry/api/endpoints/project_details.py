@@ -1,3 +1,4 @@
+import logging
 import math
 import time
 from datetime import timedelta
@@ -13,15 +14,11 @@ from rest_framework.serializers import ListField
 
 from sentry import audit_log, features
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import (
-    DEFAULT_SLUG_ERROR_MESSAGE,
-    DEFAULT_SLUG_PATTERN,
-    PreventNumericSlugMixin,
-    region_silo_endpoint,
-)
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.api.fields.empty_integer import EmptyIntegerField
+from sentry.api.fields.sentry_slug import SentrySlugField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectSerializer
 from sentry.api.serializers.rest_framework.list import EmptyListField
@@ -31,7 +28,7 @@ from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
-from sentry.datascrubbing import validate_pii_config_update
+from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.dynamic_sampling import generate_rules, get_supported_biases_ids, get_user_biases
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
@@ -49,18 +46,16 @@ from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.models.scheduledeletion import RegionScheduledDeletion
-from sentry.notifications.types import NotificationSettingTypes
 from sentry.notifications.utils import has_alert_integration
-from sentry.notifications.utils.legacy_mappings import get_option_value_from_boolean
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
-from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.tasks.recap_servers import (
     RECAP_SERVER_TOKEN_OPTION,
     RECAP_SERVER_URL_OPTION,
     poll_project_recap_server,
 )
-from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
+
+logger = logging.getLogger(__name__)
+
 
 #: Maximum total number of characters in sensitiveFields.
 #: Relay compiles this list into a regex which cannot exceed a certain size.
@@ -94,10 +89,6 @@ class DynamicSamplingBiasSerializer(serializers.Serializer):
 class ProjectMemberSerializer(serializers.Serializer):
     isBookmarked = serializers.BooleanField(
         help_text="Enables starring the project within the projects tab. Can be updated with **`project:read`** permission.",
-        required=False,
-    )
-    isSubscribed = serializers.BooleanField(
-        help_text="Subscribes the member for notifications related to the project. Can be updated with **`project:read`** permission.",
         required=False,
     )
 
@@ -138,17 +129,15 @@ class ProjectMemberSerializer(serializers.Serializer):
         "recapServerToken",
     ]
 )
-class ProjectAdminSerializer(ProjectMemberSerializer, PreventNumericSlugMixin):
+class ProjectAdminSerializer(ProjectMemberSerializer):
     name = serializers.CharField(
         help_text="The name for the project",
         max_length=200,
         required=False,
     )
-    slug = serializers.RegexField(
-        DEFAULT_SLUG_PATTERN,
-        max_length=50,
-        error_messages={"invalid": DEFAULT_SLUG_ERROR_MESSAGE},
+    slug = SentrySlugField(
         help_text="Uniquely identifies a project and is used for the interface.",
+        max_length=50,
         required=False,
     )
     platform = serializers.CharField(
@@ -270,7 +259,6 @@ class ProjectAdminSerializer(ProjectMemberSerializer, PreventNumericSlugMixin):
             raise serializers.ValidationError(
                 "Another project (%s) is already using that slug" % other.name
             )
-        slug = super().validate_slug(slug)
         return slug
 
     def validate_relayPiiConfig(self, value):
@@ -423,6 +411,9 @@ class ProjectAdminSerializer(ProjectMemberSerializer, PreventNumericSlugMixin):
             raise serializers.ValidationError("List of sensitive fields is too long.")
         return value
 
+    def validate_safeFields(self, value):
+        return validate_pii_selectors(value)
+
     def validate_recapServerUrl(self, value):
         from sentry import features
 
@@ -551,7 +542,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         Update various attributes and configurable settings for the given project.
 
         Note that solely having the **`project:read`** scope restricts updatable settings to
-        `isBookmarked` and `isSubscribed`.
+        `isBookmarked`.
         """
 
         old_data = serialize(project, request.user, DetailedProjectSerializer())
@@ -746,15 +737,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get("allowedDomains"):
             if project.update_option("sentry:origins", result["allowedDomains"]):
                 changed_proj_settings["sentry:origins"] = result["allowedDomains"]
-
-        if "isSubscribed" in result:
-            notifications_service.update_settings(
-                external_provider=ExternalProviders.EMAIL,
-                notification_type=NotificationSettingTypes.ISSUE_ALERTS,
-                setting_option=get_option_value_from_boolean(result.get("isSubscribed")),
-                actor=RpcActor(id=request.user.id, actor_type=ActorType.USER),
-                project_id=project.id,
-            )
 
         if "dynamicSamplingBiases" in result:
             updated_biases = get_user_biases(user_set_biases=result["dynamicSamplingBiases"])

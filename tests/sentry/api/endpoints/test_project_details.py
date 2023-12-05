@@ -10,7 +10,7 @@ from django.db import router
 from django.urls import reverse
 
 from sentry import audit_log
-from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.api.fields.sentry_slug import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
@@ -19,7 +19,6 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.deletedproject import DeletedProject
 from sentry.models.environment import EnvironmentProject
 from sentry.models.integrations.integration import Integration
-from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
@@ -29,14 +28,11 @@ from sentry.models.projectredirect import ProjectRedirect
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.rule import Rule
 from sentry.models.scheduledeletion import RegionScheduledDeletion
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
-from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
 
@@ -111,7 +107,7 @@ def first_symbol_source_id(sources_json):
     return sources[0]["id"]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectDetailsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
 
@@ -250,7 +246,7 @@ class ProjectDetailsTest(APITestCase):
         self.get_error_response(other_org.slug, "old_slug", status_code=403)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectUpdateTestTokenAuthenticated(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
@@ -379,7 +375,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             teams=[self.team],
             role="member",
         )
-        # members are only allowed to update 'isBookmarked' and 'isSubscribed' fields
+        # members are only allowed to update 'isBookmarked' fields
         token = self.create_user_auth_token(user=self.user, scope_list=["project:read"])
 
         response = self.client.put(
@@ -429,7 +425,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         assert response.data["detail"] == "You do not have permission to perform this action."
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectUpdateTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
@@ -548,7 +544,6 @@ class ProjectUpdateTest(APITestCase):
         project = Project.objects.get(id=self.project.id)
         assert project.slug != new_project.slug
 
-    @override_options({"api.prevent-numeric-slugs": True})
     def test_invalid_numeric_slug(self):
         response = self.get_error_response(
             self.org_slug,
@@ -723,27 +718,6 @@ class ProjectUpdateTest(APITestCase):
             project_id=self.project.id, user_id=self.user.id
         ).exists()
 
-    def test_subscription(self):
-        self.get_success_response(self.org_slug, self.proj_slug, isSubscribed="true")
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            value0 = NotificationSetting.objects.get_settings(
-                provider=ExternalProviders.EMAIL,
-                type=NotificationSettingTypes.ISSUE_ALERTS,
-                user_id=self.user.id,
-                project=self.project,
-            )
-            assert value0 == NotificationSettingOptionValues.ALWAYS
-
-        self.get_success_response(self.org_slug, self.proj_slug, isSubscribed="false")
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            value1 = NotificationSetting.objects.get_settings(
-                provider=ExternalProviders.EMAIL,
-                type=NotificationSettingTypes.ISSUE_ALERTS,
-                user_id=self.user.id,
-                project=self.project,
-            )
-        assert value1 == NotificationSettingOptionValues.NEVER
-
     def test_security_token(self):
         resp = self.get_success_response(self.org_slug, self.proj_slug, securityToken="fizzbuzz")
         assert self.project.get_security_token() == "fizzbuzz"
@@ -827,13 +801,19 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data["allowedDomains"] == ["*"]
 
     def test_safe_fields(self):
-        value = ["foobar.com", "https://example.com"]
+        value = ["foobar", "extra.fields.**"]
         resp = self.get_success_response(self.org_slug, self.proj_slug, safeFields=value)
         assert self.project.get_option("sentry:safe_fields") == [
-            "foobar.com",
-            "https://example.com",
+            "foobar",
+            "extra.fields.**",
         ]
-        assert resp.data["safeFields"] == ["foobar.com", "https://example.com"]
+        assert resp.data["safeFields"] == ["foobar", "extra.fields.**"]
+
+        value = ["er ror", "double.**.wildcard.**"]
+        resp = self.get_error_response(self.org_slug, self.proj_slug, safeFields=value)
+        assert resp.data["safeFields"] == [
+            'Invalid syntax near "er ror" (line 1),\nDeep wildcard used more than once (line 2)',
+        ]
 
     def test_store_crash_reports(self):
         resp = self.get_success_response(self.org_slug, self.proj_slug, storeCrashReports=10)
@@ -1193,7 +1173,7 @@ class ProjectUpdateTest(APITestCase):
             assert not poll_project_recap_server.called
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class CopyProjectSettingsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
@@ -1392,7 +1372,7 @@ class CopyProjectSettingsTest(APITestCase):
         self.assert_other_project_settings_not_changed()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectDeleteTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "delete"
@@ -1457,7 +1437,7 @@ class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
         self.project.update(date_added=old_date)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestProjectDetailsDynamicSamplingRules(TestProjectDetailsDynamicSamplingBase):
     endpoint = "sentry-api-0-project-details"
 
@@ -1541,7 +1521,7 @@ class TestProjectDetailsDynamicSamplingRules(TestProjectDetailsDynamicSamplingBa
             assert "dynamicSamplingRules" not in response.data
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingBase):
     endpoint = "sentry-api-0-project-details"
 

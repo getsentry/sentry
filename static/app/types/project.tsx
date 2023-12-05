@@ -28,6 +28,7 @@ export type Project = {
   groupingAutoUpdate: boolean;
   groupingConfig: string;
   hasAccess: boolean;
+  hasFeedbacks: boolean;
   hasMinifiedStackTrace: boolean;
   hasProfiles: boolean;
   hasReplays: boolean;
@@ -176,6 +177,7 @@ export type PlatformKey =
   | 'javascript'
   | 'javascript-angular'
   | 'javascript-angularjs'
+  | 'javascript-astro'
   | 'javascript-backbone'
   | 'javascript-browser'
   | 'javascript-capacitor'

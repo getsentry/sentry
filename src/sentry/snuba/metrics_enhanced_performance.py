@@ -1,11 +1,15 @@
+from __future__ import annotations
+
 from datetime import timedelta
-from typing import Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence
 
 import sentry_sdk
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
+from sentry.models.organization import Organization
 from sentry.snuba import discover
+from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.metrics_performance import histogram_query as metrics_histogram_query
 from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.snuba.metrics_performance import timeseries_query as metrics_timeseries_query
@@ -33,12 +37,14 @@ def query(
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
+    on_demand_metrics_type=None,
 ):
     metrics_compatible = not equations
+    dataset_reason = discover.DEFAULT_DATASET_REASON
 
     if metrics_compatible:
         try:
-            return metrics_query(
+            result = metrics_query(
                 selected_columns,
                 query,
                 params,
@@ -58,13 +64,18 @@ def query(
                 has_metrics,
                 use_metrics_layer,
                 on_demand_metrics_enabled,
+                on_demand_metrics_type=on_demand_metrics_type,
             )
+            result["meta"]["datasetReason"] = dataset_reason
+
+            return result
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery as error:
             raise error
         # any remaining errors mean we should try again with discover
         except IncompatibleMetricsQuery as error:
             sentry_sdk.set_tag("performance.mep_incompatible", str(error))
+            dataset_reason = str(error)
             metrics_compatible = False
         except Exception as error:
             raise error
@@ -90,6 +101,8 @@ def query(
             has_metrics=has_metrics,
         )
         results["meta"]["isMetricsData"] = False
+        results["meta"]["isMetricsExtractedData"] = False
+        results["meta"]["datasetReason"] = dataset_reason
 
         return results
 
@@ -109,15 +122,14 @@ def timeseries_query(
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
+    on_demand_metrics_type=None,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
     this API should match that of sentry.snuba.discover.timeseries_query
     """
-    metrics_compatible = False
     equations, columns = categorize_columns(selected_columns)
-    if comparison_delta is None and not equations:
-        metrics_compatible = True
+    metrics_compatible = not equations
 
     if metrics_compatible:
         try:
@@ -133,6 +145,7 @@ def timeseries_query(
                 functions_acl,
                 use_metrics_layer=use_metrics_layer,
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
+                on_demand_metrics_type=on_demand_metrics_type,
             )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery as error:
@@ -171,24 +184,26 @@ def timeseries_query(
 
 
 def top_events_timeseries(
-    timeseries_columns,
-    selected_columns,
-    user_query,
-    params,
-    orderby,
-    rollup,
-    limit,
-    organization,
-    equations=None,
-    referrer=None,
+    timeseries_columns: Sequence[str],
+    selected_columns: Sequence[str],
+    user_query: str,
+    params: dict[str, str],
+    orderby: Sequence[str],
+    rollup: int,
+    limit: int,
+    organization: Organization,
+    equations: Optional[Sequence[Any]] = None,
+    referrer: Optional[str] = None,
     top_events=None,
-    allow_empty=True,
-    zerofill_results=True,
-    include_other=False,
-    functions_acl=None,
-):
+    allow_empty: Optional[bool] = True,
+    zerofill_results: Optional[bool] = True,
+    include_other: Optional[bool] = False,
+    functions_acl: Optional[List[str]] = None,
+    on_demand_metrics_enabled: Optional[bool] = False,
+    on_demand_metrics_type: Optional[MetricSpecType] = None,
+) -> SnubaTSResult | dict[str, Any]:
     metrics_compatible = False
-    equations, columns = categorize_columns(selected_columns)
+    equations, _ = categorize_columns(selected_columns)
     if not equations:
         metrics_compatible = True
 
@@ -210,6 +225,8 @@ def top_events_timeseries(
                 zerofill_results,
                 include_other,
                 functions_acl,
+                on_demand_metrics_enabled=on_demand_metrics_enabled,
+                on_demand_metrics_type=on_demand_metrics_type,
             )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery as error:
@@ -271,6 +288,7 @@ def histogram_query(
     normalize_results=True,
     use_metrics_layer=False,
     on_demand_metrics_enabled=False,
+    on_demand_metrics_type=None,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.

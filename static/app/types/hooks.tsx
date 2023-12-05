@@ -4,9 +4,9 @@ import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
 import type {ButtonProps} from 'sentry/components/button';
 import {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
-import type DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
-import type SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
+import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
+import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
 import {SVGIconProps} from 'sentry/icons/svgIcon';
 import type {Group} from 'sentry/types';
 import {UseExperiment} from 'sentry/utils/useExperiment';
@@ -104,7 +104,7 @@ type ProfilingUpgradePlanButtonProps = ButtonProps & {
   organization: Organization;
 };
 
-type ProfilingAM1OrMMXUpgrade = {
+type ProfilingAM1OrMMXUpgradeProps = {
   fallback: React.ReactNode;
   organization: Organization;
 };
@@ -168,13 +168,14 @@ export type ComponentHooks = {
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
   'component:product-selection-availability': () => React.ComponentType<ProductSelectionAvailabilityProps>;
   'component:product-unavailable-cta': () => React.ComponentType<ProductUnavailableCTAProps>;
-  'component:profiling-am1-or-mmx-upgrade': () => React.ComponentType<ProfilingAM1OrMMXUpgrade>;
+  'component:profiling-am1-or-mmx-upgrade': () => React.ComponentType<ProfilingAM1OrMMXUpgradeProps>;
   'component:profiling-billing-banner': () => React.ComponentType<ProfilingBetaAlertBannerProps>;
   'component:profiling-upgrade-plan-button': () => React.ComponentType<ProfilingUpgradePlanButtonProps>;
   'component:replay-feedback-button': () => React.ComponentType<ReplayFeedbackButton>;
   'component:replay-list-page-header': () => React.ComponentType<ReplayListPageHeaderProps> | null;
   'component:replay-onboarding-alert': () => React.ComponentType<ReplayOnboardingAlertProps>;
   'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;
+  'component:replay-onboarding-cta-button': () => React.ComponentType<{}> | null;
   'component:sentry-logo': () => React.ComponentType<SentryLogoProps>;
   'component:superuser-access-category': React.ComponentType<any>;
 };

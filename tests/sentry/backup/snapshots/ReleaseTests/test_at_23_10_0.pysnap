@@ -1,0 +1,1333 @@
+---
+created: '2023-10-16T20:41:57.455229Z'
+creator: sentry
+source: tests/sentry/backup/test_releases.py
+---
+- fields:
+    key: bar
+    last_updated: '2023-10-16T20:41:57.171Z'
+    last_updated_by: unknown
+    value: '"b"'
+  model: sentry.controloption
+  pk: 1
+- fields:
+    date_added: '2023-10-16T20:41:56.768Z'
+    date_updated: '2023-10-16T20:41:56.768Z'
+    external_id: slack:test-org
+    metadata: {}
+    name: Slack for test-org
+    provider: slack
+    status: 0
+  model: sentry.integration
+  pk: 1
+- fields:
+    key: foo
+    last_updated: '2023-10-16T20:41:57.169Z'
+    last_updated_by: unknown
+    value: '"a"'
+  model: sentry.option
+  pk: 1
+- fields:
+    date_added: '2023-10-16T20:41:56.415Z'
+    default_role: member
+    flags: '1'
+    is_test: false
+    name: test-org
+    slug: test-org
+    status: 0
+  model: sentry.organization
+  pk: 4552809988227072
+- fields:
+    date_added: '2023-10-16T20:41:56.950Z'
+    default_role: member
+    flags: '1'
+    is_test: false
+    name: Ready Mustang
+    slug: ready-mustang
+    status: 0
+  model: sentry.organization
+  pk: 4552809988227076
+- fields:
+    config:
+      hello: hello
+    date_added: '2023-10-16T20:41:56.769Z'
+    date_updated: '2023-10-16T20:41:56.769Z'
+    default_auth_id: null
+    grace_period_end: null
+    integration: 1
+    organization_id: 4552809988227072
+    status: 0
+  model: sentry.organizationintegration
+  pk: 1
+- fields:
+    key: sentry:account-rate-limit
+    organization: 4552809988227072
+    value: 0
+  model: sentry.organizationoption
+  pk: 1
+- fields:
+    date_added: '2023-10-16T20:41:56.643Z'
+    first_event: null
+    flags: '10'
+    forced_color: null
+    name: project-test-org
+    organization: 4552809988227072
+    platform: null
+    public: false
+    slug: project-test-org
+    status: 0
+  model: sentry.project
+  pk: 4552809988227074
+- fields:
+    date_added: '2023-10-16T20:41:56.805Z'
+    first_event: null
+    flags: '10'
+    forced_color: null
+    name: other-project-test-org
+    organization: 4552809988227072
+    platform: null
+    public: false
+    slug: other-project-test-org
+    status: 0
+  model: sentry.project
+  pk: 4552809988227075
+- fields:
+    date_added: '2023-10-16T20:41:57.015Z'
+    first_event: null
+    flags: '10'
+    forced_color: null
+    name: Natural Moth
+    organization: 4552809988227072
+    platform: null
+    public: false
+    slug: natural-moth
+    status: 0
+  model: sentry.project
+  pk: 4552809988292608
+- fields:
+    date_added: '2023-10-16T20:41:57.119Z'
+    first_event: null
+    flags: '10'
+    forced_color: null
+    name: Social Rat
+    organization: 4552809988227072
+    platform: null
+    public: false
+    slug: social-rat
+    status: 0
+  model: sentry.project
+  pk: 4552809988292609
+- fields:
+    config:
+      hello: hello
+    integration_id: 1
+    project: 4552809988227074
+  model: sentry.projectintegration
+  pk: 1
+- fields:
+    data:
+      dynamicSdkLoaderOptions:
+        hasPerformance: true
+        hasReplay: true
+    date_added: '2023-10-16T20:41:56.664Z'
+    label: Default
+    project: 4552809988227074
+    public_key: 0840cf0440433f3e790d1c488b5003d6
+    rate_limit_count: null
+    rate_limit_window: null
+    roles: '1'
+    secret_key: 03cd0592b7b928d163b401d61fa90c6d
+    status: 0
+  model: sentry.projectkey
+  pk: 1
+- fields:
+    data:
+      dynamicSdkLoaderOptions:
+        hasPerformance: true
+        hasReplay: true
+    date_added: '2023-10-16T20:41:56.823Z'
+    label: Default
+    project: 4552809988227075
+    public_key: 581cbc89dad2a98956541558f40d97b9
+    rate_limit_count: null
+    rate_limit_window: null
+    roles: '1'
+    secret_key: 6d4ae41b46d4d5edb4ff6fb6e47892b5
+    status: 0
+  model: sentry.projectkey
+  pk: 2
+- fields:
+    data:
+      dynamicSdkLoaderOptions:
+        hasPerformance: true
+        hasReplay: true
+    date_added: '2023-10-16T20:41:57.035Z'
+    label: Default
+    project: 4552809988292608
+    public_key: abfb42f26f51d7cc4dfc7bfc57fd33f7
+    rate_limit_count: null
+    rate_limit_window: null
+    roles: '1'
+    secret_key: d91693e882a676d681db195637a9aea8
+    status: 0
+  model: sentry.projectkey
+  pk: 3
+- fields:
+    data:
+      dynamicSdkLoaderOptions:
+        hasPerformance: true
+        hasReplay: true
+    date_added: '2023-10-16T20:41:57.137Z'
+    label: Default
+    project: 4552809988292609
+    public_key: 460028ce5413393bfc112ccfc18fa6ab
+    rate_limit_count: null
+    rate_limit_window: null
+    roles: '1'
+    secret_key: 8ebaabfe8b4c4596c2627ab6243edfab
+    status: 0
+  model: sentry.projectkey
+  pk: 4
+- fields:
+    key: sentry:relay-rev
+    project: 4552809988227074
+    value: '"6ab4dd593a2d419fa402dbe6ef102ffd"'
+  model: sentry.projectoption
+  pk: 1
+- fields:
+    key: sentry:relay-rev-lastchange
+    project: 4552809988227074
+    value: '"2023-10-16T20:41:56.670398Z"'
+  model: sentry.projectoption
+  pk: 2
+- fields:
+    key: sentry:option-epoch
+    project: 4552809988227074
+    value: 11
+  model: sentry.projectoption
+  pk: 3
+- fields:
+    key: sentry:relay-rev
+    project: 4552809988227075
+    value: '"aff190eca44a4a789af18fd78483826d"'
+  model: sentry.projectoption
+  pk: 4
+- fields:
+    key: sentry:relay-rev-lastchange
+    project: 4552809988227075
+    value: '"2023-10-16T20:41:56.828874Z"'
+  model: sentry.projectoption
+  pk: 5
+- fields:
+    key: sentry:option-epoch
+    project: 4552809988227075
+    value: 11
+  model: sentry.projectoption
+  pk: 6
+- fields:
+    key: sentry:relay-rev
+    project: 4552809988292608
+    value: '"58056fd9b8824c178c8046e24a4cbba3"'
+  model: sentry.projectoption
+  pk: 7
+- fields:
+    key: sentry:relay-rev-lastchange
+    project: 4552809988292608
+    value: '"2023-10-16T20:41:57.039509Z"'
+  model: sentry.projectoption
+  pk: 8
+- fields:
+    key: sentry:option-epoch
+    project: 4552809988292608
+    value: 11
+  model: sentry.projectoption
+  pk: 9
+- fields:
+    key: sentry:relay-rev
+    project: 4552809988292609
+    value: '"9e8246bed16b42dcb054ce815199dea0"'
+  model: sentry.projectoption
+  pk: 10
+- fields:
+    key: sentry:relay-rev-lastchange
+    project: 4552809988292609
+    value: '"2023-10-16T20:41:57.142543Z"'
+  model: sentry.projectoption
+  pk: 11
+- fields:
+    key: sentry:option-epoch
+    project: 4552809988292609
+    value: 11
+  model: sentry.projectoption
+  pk: 12
+- fields:
+    auto_assignment: true
+    codeowners_auto_sync: true
+    date_created: '2023-10-16T20:41:56.689Z'
+    fallthrough: true
+    is_active: true
+    last_updated: '2023-10-16T20:41:56.689Z'
+    project: 4552809988227074
+    raw: '{"hello":"hello"}'
+    schema:
+      hello: hello
+    suspect_committer_auto_assignment: false
+  model: sentry.projectownership
+  pk: 1
+- fields:
+    date_added: '2023-10-16T20:41:56.697Z'
+    organization: 4552809988227072
+    project: 4552809988227074
+    redirect_slug: project_slug_in_test-org
+  model: sentry.projectredirect
+  pk: 1
+- fields:
+    first_seen: null
+    is_internal: true
+    last_seen: null
+    public_key: JJ066abhIZ9h2AEeckely9Qr-msDm0Kr1FlZqRapMxg
+    relay_id: f46b246b-9c39-411b-8fb1-88a000b3e3eb
+  model: sentry.relay
+  pk: 1
+- fields:
+    first_seen: '2023-10-16T20:41:57.168Z'
+    last_seen: '2023-10-16T20:41:57.168Z'
+    public_key: JJ066abhIZ9h2AEeckely9Qr-msDm0Kr1FlZqRapMxg
+    relay_id: f46b246b-9c39-411b-8fb1-88a000b3e3eb
+    version: 0.0.1
+  model: sentry.relayusage
+  pk: 1
+- fields:
+    config: {}
+    date_added: '2023-10-16T20:41:56.924Z'
+    external_id: null
+    integration_id: 1
+    languages: '[]'
+    name: getsentry/getsentry
+    organization_id: 4552809988227072
+    provider: integrations:github
+    status: 0
+    url: https://github.com/getsentry/getsentry
+  model: sentry.repository
+  pk: 1
+- fields:
+    actor: 1
+    date_added: '2023-10-16T20:41:56.582Z'
+    idp_provisioned: false
+    name: test_team_in_test-org
+    org_role: null
+    organization: 4552809988227072
+    slug: test_team_in_test-org
+    status: 0
+  model: sentry.team
+  pk: 4552809988227073
+- fields:
+    avatar_type: 0
+    avatar_url: null
+    date_joined: '2023-10-16T20:41:56.265Z'
+    email: owner
+    flags: '0'
+    is_active: true
+    is_managed: false
+    is_password_expired: false
+    is_sentry_app: null
+    is_staff: true
+    is_superuser: true
+    is_unclaimed: false
+    last_active: '2023-10-16T20:41:56.265Z'
+    last_login: null
+    last_password_change: '2023-10-16T20:41:56.265Z'
+    name: ''
+    password: md5$ssXfJ6VuZeDwUMJ6hPCV3a$f927f7d4b950b266e26afc694c9ec053
+    session_nonce: null
+    username: owner
+  model: sentry.user
+  pk: 1
+- fields:
+    avatar_type: 0
+    avatar_url: null
+    date_joined: '2023-10-16T20:41:56.367Z'
+    email: invitee
+    flags: '0'
+    is_active: true
+    is_managed: false
+    is_password_expired: false
+    is_sentry_app: null
+    is_staff: false
+    is_superuser: false
+    is_unclaimed: false
+    last_active: '2023-10-16T20:41:56.367Z'
+    last_login: null
+    last_password_change: '2023-10-16T20:41:56.367Z'
+    name: ''
+    password: md5$6CBL1irpEjwkq6KTBtxaR9$bcb102e64fdae6886ab550ba579de87b
+    session_nonce: null
+    username: invitee
+  model: sentry.user
+  pk: 2
+- fields:
+    avatar_type: 0
+    avatar_url: null
+    date_joined: '2023-10-16T20:41:56.863Z'
+    email: admin@localhost
+    flags: '0'
+    is_active: true
+    is_managed: false
+    is_password_expired: false
+    is_sentry_app: null
+    is_staff: true
+    is_superuser: true
+    is_unclaimed: false
+    last_active: '2023-10-16T20:41:56.863Z'
+    last_login: null
+    last_password_change: '2023-10-16T20:41:56.863Z'
+    name: ''
+    password: md5$t6gMsw6Sty9t1j6oycGKwx$5146dbbaefd9d1582ea9d2d9601ff30d
+    session_nonce: null
+    username: admin@localhost
+  model: sentry.user
+  pk: 3
+- fields:
+    avatar_type: 0
+    avatar_url: null
+    date_joined: '2023-10-16T20:41:56.926Z'
+    email: b8db72bc53164ecfa65474c59cd110ce@example.com
+    flags: '0'
+    is_active: true
+    is_managed: false
+    is_password_expired: false
+    is_sentry_app: null
+    is_staff: true
+    is_superuser: false
+    is_unclaimed: false
+    last_active: '2023-10-16T20:41:56.926Z'
+    last_login: null
+    last_password_change: '2023-10-16T20:41:56.926Z'
+    name: ''
+    password: md5$tY3BiQK9vC3ENWaSIj98lK$546e30f4fbb9de511652b696faec507e
+    session_nonce: null
+    username: b8db72bc53164ecfa65474c59cd110ce@example.com
+  model: sentry.user
+  pk: 4
+- fields:
+    avatar_type: 0
+    avatar_url: null
+    date_joined: '2023-10-16T20:41:56.986Z'
+    email: ''
+    flags: '0'
+    is_active: true
+    is_managed: false
+    is_password_expired: false
+    is_sentry_app: true
+    is_staff: false
+    is_superuser: false
+    is_unclaimed: false
+    last_active: '2023-10-16T20:41:56.986Z'
+    last_login: null
+    last_password_change: null
+    name: ''
+    password: ''
+    session_nonce: null
+    username: test-app-dfaed824-a5fa-4a41-ad3f-94a537566c54
+  model: sentry.user
+  pk: 5
+- fields:
+    avatar_type: 0
+    avatar_url: null
+    date_joined: '2023-10-16T20:41:57.095Z'
+    email: ee39e4e3d56a487b879531499f954335@example.com
+    flags: '0'
+    is_active: true
+    is_managed: false
+    is_password_expired: false
+    is_sentry_app: null
+    is_staff: true
+    is_superuser: false
+    is_unclaimed: false
+    last_active: '2023-10-16T20:41:57.095Z'
+    last_login: null
+    last_password_change: '2023-10-16T20:41:57.095Z'
+    name: ''
+    password: md5$37I6VfNo1eEbl46V3M47SZ$6267eb70c7305a189255eabc80de35c1
+    session_nonce: null
+    username: ee39e4e3d56a487b879531499f954335@example.com
+  model: sentry.user
+  pk: 6
+- fields:
+    country_code: null
+    first_seen: '2012-04-05T03:29:45.000Z'
+    ip_address: 127.0.0.2
+    last_seen: '2012-04-05T03:29:45.000Z'
+    region_code: null
+    user: 1
+  model: sentry.userip
+  pk: 1
+- fields:
+    country_code: null
+    first_seen: '2012-04-05T03:29:45.000Z'
+    ip_address: 127.0.0.2
+    last_seen: '2012-04-05T03:29:45.000Z'
+    region_code: null
+    user: 2
+  model: sentry.userip
+  pk: 2
+- fields:
+    key: timezone
+    organization_id: null
+    project_id: null
+    user: 1
+    value: '"Europe/Vienna"'
+  model: sentry.useroption
+  pk: 1
+- fields:
+    key: timezone
+    organization_id: null
+    project_id: null
+    user: 2
+    value: '"Europe/Vienna"'
+  model: sentry.useroption
+  pk: 2
+- fields:
+    permission: users.admin
+    user: 1
+  model: sentry.userpermission
+  pk: 1
+- fields:
+    date_added: '2023-10-16T20:41:56.343Z'
+    date_updated: '2023-10-16T20:41:56.343Z'
+    name: test-admin-role
+    permissions: '[]'
+  model: sentry.userrole
+  pk: 1
+- fields:
+    date_added: '2023-10-16T20:41:56.349Z'
+    date_updated: '2023-10-16T20:41:56.349Z'
+    role: 1
+    user: 1
+  model: sentry.userroleuser
+  pk: 1
+- fields:
+    date_added: '2023-10-16T20:41:56.917Z'
+    is_global: false
+    name: Saved query for test-org
+    organization: 4552809988227072
+    owner_id: null
+    query: saved query for test-org
+    sort: date
+    type: 0
+    visibility: organization
+  model: sentry.savedsearch
+  pk: 1
+- fields:
+    date_added: '2023-10-16T20:41:56.915Z'
+    last_seen: '2023-10-16T20:41:56.915Z'
+    organization: 4552809988227072
+    query: some query for test-org
+    query_hash: 7c69362cd42207b83f80087bc15ebccb
+    type: 0
+    user_id: 1
+  model: sentry.recentsearch
+  pk: 1
+- fields:
+    project: 4552809988227074
+    team: 4552809988227073
+  model: sentry.projectteam
+  pk: 1
+- fields:
+    project: 4552809988227075
+    team: 4552809988227073
+  model: sentry.projectteam
+  pk: 2
+- fields:
+    date_added: '2023-10-16T20:41:56.687Z'
+    project: 4552809988227074
+    user_id: 1
+  model: sentry.projectbookmark
+  pk: 1
+- fields:
+    created_by: null
+    date_added: '2023-10-16T20:41:56.766Z'
+    date_deactivated: null
+    date_last_used: null
+    name: token 1 for test-org
+    organization_id: 4552809988227072
+    project_last_used_id: 4552809988227074
+    scope_list: '[''org:ci'']'
+    token_hashed: ABCDEFtest-org
+    token_last_characters: xyz1
+  model: sentry.orgauthtoken
+  pk: 1
+- fields:
+    date_added: '2023-10-16T20:41:56.468Z'
+    email: null
+    flags: '0'
+    has_global_access: true
+    invite_status: 0
+    inviter_id: null
+    organization: 4552809988227072
+    role: owner
+    token: null
+    token_expires_at: null
+    type: 50
+    user_email: owner
+    user_id: 1
+    user_is_active: true
+  model: sentry.organizationmember
+  pk: 1
+- fields:
+    date_added: '2023-10-16T20:41:56.509Z'
+    email: null
+    flags: '0'
+    has_global_access: true
+    invite_status: 0
+    inviter_id: null
+    organization: 4552809988227072
+    role: member
+    token: null
+    token_expires_at: null
+    type: 50
+    user_email: invitee
+    user_id: 2
+    user_is_active: true
+  model: sentry.organizationmember
+  pk: 2
+- fields:
+    member: 2
+    requester_id: null
+    team: 4552809988227073
+  model: sentry.organizationaccessrequest
+  pk: 1
+- fields:
+    config:
+      schedule: '* * * * *'
+      schedule_type: 1
+    date_added: '2023-10-16T20:41:56.800Z'
+    guid: a7ddde4a-4b7c-4573-9379-62b5a5be208e
+    name: ''
+    organization_id: 4552809988227072
+    project_id: 4552809988227074
+    slug: 0c569c62af5d
+    status: 0
+    type: 3
+  model: sentry.monitor
+  pk: 1
+- fields:
+    date_added: '2023-10-16T20:41:56.795Z'
+    name: promptly brief ibex
+    organization_id: 4552809988227072
+  model: sentry.environment
+  pk: 1
+- fields:
+    date_added: '2023-10-16T20:41:56.272Z'
+    email: owner
+  model: sentry.email
+  pk: 1
+- fields:
+    date_added: '2023-10-16T20:41:56.371Z'
+    email: invitee
+  model: sentry.email
+  pk: 2
+- fields:
+    date_added: '2023-10-16T20:41:56.867Z'
+    email: admin@localhost
+  model: sentry.email
+  pk: 3
+- fields:
+    date_added: '2023-10-16T20:41:56.930Z'
+    email: b8db72bc53164ecfa65474c59cd110ce@example.com
+  model: sentry.email
+  pk: 4
+- fields:
+    date_added: '2023-10-16T20:41:56.990Z'
+    email: ''
+  model: sentry.email
+  pk: 5
+- fields:
+    date_added: '2023-10-16T20:41:57.099Z'
+    email: ee39e4e3d56a487b879531499f954335@example.com
+  model: sentry.email
+  pk: 6
+- fields:
+    date_added: '2023-10-16T20:41:56.914Z'
+    organization: 4552809988227072
+    slug: test-tombstone-in-test-org
+  model: sentry.dashboardtombstone
+  pk: 1
+- fields:
+    created_by_id: 1
+    date_added: '2023-10-16T20:41:56.909Z'
+    filters: null
+    last_visited: '2023-10-16T20:41:56.909Z'
+    organization: 4552809988227072
+    title: Dashboard 1 for test-org
+    visits: 1
+  model: sentry.dashboard
+  pk: 1
+- fields:
+    condition: '{"op":"equals","name":"environment","value":"prod"}'
+    condition_hash: b63bd418800aecf3dbe91c4850f4242be35252f8
+    date_added: '2023-10-16T20:41:56.787Z'
+    end_date: '2023-10-16T21:41:56.784Z'
+    is_active: true
+    is_org_level: false
+    num_samples: 100
+    organization: 4552809988227072
+    rule_id: 1
+    sample_rate: 0.5
+    start_date: '2023-10-16T20:41:56.784Z'
+  model: sentry.customdynamicsamplingrule
+  pk: 1
+- fields:
+    project: 4552809988227074
+    value: 1
+  model: sentry.counter
+  pk: 1
+- fields:
+    config: {}
+    date_added: '2023-10-16T20:41:56.724Z'
+    default_global_access: true
+    default_role: 50
+    flags: '0'
+    last_sync: null
+    organization_id: 4552809988227072
+    provider: sentry
+    sync_time: null
+  model: sentry.authprovider
+  pk: 1
+- fields:
+    auth_provider: 1
+    data:
+      key1: value1
+      key2: 42
+      key3:
+      - 1
+      - 2
+      - 3
+      key4:
+        nested_key: nested_value
+    date_added: '2023-10-16T20:41:56.744Z'
+    ident: 123456789test-org
+    last_synced: '2023-10-16T20:41:56.744Z'
+    last_verified: '2023-10-16T20:41:56.744Z'
+    user: 1
+  model: sentry.authidentity
+  pk: 1
+- fields:
+    config: '""'
+    created_at: '2023-10-16T20:41:56.307Z'
+    last_used_at: null
+    type: 1
+    user: 1
+  model: sentry.authenticator
+  pk: 1
+- fields:
+    config: '""'
+    created_at: '2023-10-16T20:41:56.397Z'
+    last_used_at: null
+    type: 1
+    user: 2
+  model: sentry.authenticator
+  pk: 2
+- fields:
+    allowed_origins: null
+    date_added: '2023-10-16T20:41:56.706Z'
+    key: 098156be75bb4ef4bcb2eaaf0e33a0d2
+    label: Default
+    organization_id: 4552809988227072
+    scope_list: '[]'
+    scopes: '0'
+    status: 0
+  model: sentry.apikey
+  pk: 1
+- fields:
+    allowed_origins: ''
+    client_id: 4d2e06199dca31da8d7282c7832718ea756fbeedb0db739b04a6672883f9e3a5
+    client_secret: d8a13a0ea6b2cc9d472819edfbec8261189c4dfd0ad286bad758ccb761d886a5
+    date_added: '2023-10-16T20:41:56.995Z'
+    homepage_url: null
+    name: Mighty Dove
+    owner: 5
+    privacy_url: null
+    redirect_uris: ''
+    status: 0
+    terms_url: null
+  model: sentry.apiapplication
+  pk: 1
+- fields:
+    team: 4552809988227073
+    type: 0
+    user_id: null
+  model: sentry.actor
+  pk: 1
+- fields:
+    date_hash_added: '2023-10-16T20:41:56.269Z'
+    email: owner
+    is_verified: true
+    user: 1
+    validation_hash: oUkrTjXbhdfDkdr10Vby9D7UOXroVxhF
+  model: sentry.useremail
+  pk: 1
+- fields:
+    date_hash_added: '2023-10-16T20:41:56.369Z'
+    email: invitee
+    is_verified: true
+    user: 2
+    validation_hash: Ih4S5dPAC2r9a10AoMsYIjFWzHC8cRl0
+  model: sentry.useremail
+  pk: 2
+- fields:
+    date_hash_added: '2023-10-16T20:41:56.865Z'
+    email: admin@localhost
+    is_verified: true
+    user: 3
+    validation_hash: E6sKYC1dlpcGKGAnpaFkHJd2XwvvD6Xt
+  model: sentry.useremail
+  pk: 3
+- fields:
+    date_hash_added: '2023-10-16T20:41:56.928Z'
+    email: b8db72bc53164ecfa65474c59cd110ce@example.com
+    is_verified: true
+    user: 4
+    validation_hash: 6C5TydLbwqnX34k6DjUn1StNQ3o2LkZu
+  model: sentry.useremail
+  pk: 4
+- fields:
+    date_hash_added: '2023-10-16T20:41:56.988Z'
+    email: ''
+    is_verified: false
+    user: 5
+    validation_hash: HpJ6xFA8LZSY9adBh2NLsR1l7nt5x6Xg
+  model: sentry.useremail
+  pk: 5
+- fields:
+    date_hash_added: '2023-10-16T20:41:57.097Z'
+    email: ee39e4e3d56a487b879531499f954335@example.com
+    is_verified: true
+    user: 6
+    validation_hash: 1Fvqy6DOdKusj1BATPcNT6gljS6VD270
+  model: sentry.useremail
+  pk: 6
+- fields:
+    aggregate: count()
+    dataset: events
+    date_added: '2023-10-16T20:41:56.843Z'
+    environment: null
+    query: level:error
+    resolution: 60
+    time_window: 600
+    type: 0
+  model: sentry.snubaquery
+  pk: 1
+- fields:
+    aggregate: count()
+    dataset: events
+    date_added: '2023-10-16T20:41:56.889Z'
+    environment: null
+    query: test query
+    resolution: 60
+    time_window: 60
+    type: 0
+  model: sentry.snubaquery
+  pk: 2
+- fields:
+    application: 1
+    author: A Company
+    creator_label: b8db72bc53164ecfa65474c59cd110ce@example.com
+    creator_user: 4
+    date_added: '2023-10-16T20:41:56.997Z'
+    date_deleted: null
+    date_published: null
+    date_updated: '2023-10-16T20:41:57.084Z'
+    events: '[]'
+    is_alertable: false
+    name: test app
+    overview: null
+    owner_id: 4552809988227072
+    popularity: 1
+    proxy_user: 5
+    redirect_url: null
+    schema:
+      elements:
+      - settings:
+          optional_fields:
+          - label: Points
+            name: points
+            options:
+            - - '1'
+              - '1'
+            - - '2'
+              - '2'
+            - - '3'
+              - '3'
+            - - '5'
+              - '5'
+            - - '8'
+              - '8'
+            type: select
+          - label: Assignee
+            name: assignee
+            type: select
+            uri: /sentry/members
+          required_fields:
+          - label: Title
+            name: title
+            type: text
+          - label: Summary
+            name: summary
+            type: text
+          type: alert-rule-settings
+          uri: /sentry/alert-rule
+        title: Create Task with App
+        type: alert-rule-action
+    scope_list: '[]'
+    scopes: '0'
+    slug: test-app
+    status: 0
+    uuid: d4a21260-38eb-48e8-ae54-ced530fd4c02
+    verify_install: true
+    webhook_url: https://example.com/webhook
+  model: sentry.sentryapp
+  pk: 1
+- fields:
+    data: '{"conditions":[{"id":"sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},{"id":"sentry.rules.conditions.every_event.EveryEventCondition"}],"action_match":"all","filter_match":"all","actions":[{"id":"sentry.rules.actions.notify_event.NotifyEventAction"},{"id":"sentry.rules.actions.notify_event_service.NotifyEventServiceAction","service":"mail"}]}'
+    date_added: '2023-10-16T20:41:56.777Z'
+    environment_id: null
+    label: ''
+    owner: null
+    project: 4552809988227074
+    source: 0
+    status: 0
+  model: sentry.rule
+  pk: 1
+- fields:
+    date_added: '2023-10-16T20:41:56.852Z'
+    date_updated: '2023-10-16T20:41:56.852Z'
+    project: 4552809988227074
+    snuba_query: 1
+    status: 1
+    subscription_id: null
+    type: incidents
+  model: sentry.querysubscription
+  pk: 1
+- fields:
+    date_added: '2023-10-16T20:41:56.892Z'
+    date_updated: '2023-10-16T20:41:56.892Z'
+    project: 4552809988227074
+    snuba_query: 2
+    status: 1
+    subscription_id: null
+    type: incidents
+  model: sentry.querysubscription
+  pk: 2
+- fields:
+    date_added: '2023-10-16T20:41:57.019Z'
+    date_updated: '2023-10-16T20:41:57.019Z'
+    project: 4552809988292608
+    snuba_query: 1
+    status: 1
+    subscription_id: null
+    type: incidents
+  model: sentry.querysubscription
+  pk: 3
+- fields:
+    date_added: '2023-10-16T20:41:57.123Z'
+    date_updated: '2023-10-16T20:41:57.123Z'
+    project: 4552809988292609
+    snuba_query: 1
+    status: 1
+    subscription_id: null
+    type: incidents
+  model: sentry.querysubscription
+  pk: 4
+- fields:
+    is_active: true
+    organizationmember: 1
+    role: null
+    team: 4552809988227073
+  model: sentry.organizationmemberteam
+  pk: 1
+- fields:
+    integration_id: null
+    organization: 4552809988227072
+    sentry_app_id: null
+    target_display: Sentry User
+    target_identifier: '1'
+    target_type: 1
+    trigger_type: 0
+    type: 5
+  model: sentry.notificationaction
+  pk: 1
+- fields:
+    integration_id: null
+    organization: 4552809988227072
+    sentry_app_id: 1
+    target_display: Sentry User
+    target_identifier: '1'
+    target_type: 1
+    trigger_type: 0
+    type: 5
+  model: sentry.notificationaction
+  pk: 2
+- fields:
+    disable_date: '2023-10-16T20:41:56.783Z'
+    opted_out: false
+    organization: 4552809988227072
+    rule: 1
+    sent_final_email_date: '2023-10-16T20:41:56.783Z'
+    sent_initial_email_date: '2023-10-16T20:41:56.783Z'
+  model: sentry.neglectedrule
+  pk: 1
+- fields:
+    environment: 1
+    is_hidden: null
+    project: 4552809988227074
+  model: sentry.environmentproject
+  pk: 1
+- fields:
+    dashboard: 1
+    date_added: '2023-10-16T20:41:56.911Z'
+    description: null
+    detail: null
+    display_type: 0
+    interval: null
+    limit: null
+    order: 1
+    thresholds: null
+    title: Test Widget for test-org
+    widget_type: 0
+  model: sentry.dashboardwidget
+  pk: 1
+- fields:
+    custom_dynamic_sampling_rule: 1
+    project: 4552809988227074
+  model: sentry.customdynamicsamplingruleproject
+  pk: 1
+- fields:
+    application: 1
+    date_added: '2023-10-16T20:41:57.074Z'
+    expires_at: '2023-10-17T04:41:57.074Z'
+    refresh_token: 679433f0effd6e71fb5b5c607f462c95a44fb0b9f1b2e2eba011d270241756d7
+    scope_list: '[]'
+    scopes: '0'
+    token: 2fd5b43342d071f1d73a9708d272792778bc6056206648dd9b25dbf14fb841e9
+    user: 5
+  model: sentry.apitoken
+  pk: 1
+- fields:
+    application: 1
+    date_added: '2023-10-16T20:41:57.092Z'
+    expires_at: null
+    refresh_token: c2950bf6929d1a295f5f65d5f2d9f4e34f733ff8d1723fac6c8b1c23c4b4adb4
+    scope_list: '[]'
+    scopes: '0'
+    token: 6e6c5de74615443492abd84d1bcbdd0b
+    user: 1
+  model: sentry.apitoken
+  pk: 2
+- fields:
+    application: null
+    date_added: '2023-10-16T20:41:57.173Z'
+    expires_at: null
+    refresh_token: d59861373fe26f5ecb2769e644401f6474b21bc7660a7a38883329f02b4238e6
+    scope_list: '[]'
+    scopes: '0'
+    token: 864b0e8735f94e509c7ec608a9d81cfb
+    user: 1
+  model: sentry.apitoken
+  pk: 3
+- fields:
+    application: 1
+    code: 6a0081732ce061f3217277b643abc088ec101485c6d00c0aa60ebf505ead1409
+    expires_at: '2022-01-01T11:11:00.000Z'
+    redirect_uri: https://example.com
+    scope_list: '[''openid'', ''profile'', ''email'']'
+    scopes: '0'
+    user: 1
+  model: sentry.apigrant
+  pk: 2
+- fields:
+    application: 1
+    date_added: '2023-10-16T20:41:57.090Z'
+    scope_list: '[]'
+    scopes: '0'
+    user: 1
+  model: sentry.apiauthorization
+  pk: 1
+- fields:
+    application: null
+    date_added: '2023-10-16T20:41:57.172Z'
+    scope_list: '[]'
+    scopes: '0'
+    user: 1
+  model: sentry.apiauthorization
+  pk: 2
+- fields:
+    comparison_delta: null
+    date_added: '2023-10-16T20:41:56.847Z'
+    date_modified: '2023-10-16T20:41:56.847Z'
+    include_all_projects: true
+    name: Super Honeybee
+    organization: 4552809988227072
+    owner: null
+    resolve_threshold: null
+    snuba_query: 1
+    status: 0
+    threshold_period: 1
+    threshold_type: 0
+  model: sentry.alertrule
+  pk: 1
+- fields:
+    comparison_delta: null
+    date_added: '2023-10-16T20:41:56.891Z'
+    date_modified: '2023-10-16T20:41:56.891Z'
+    include_all_projects: false
+    name: Resolved Kid
+    organization: 4552809988227072
+    owner: null
+    resolve_threshold: null
+    snuba_query: 2
+    status: 0
+    threshold_period: 1
+    threshold_type: 0
+  model: sentry.alertrule
+  pk: 2
+- fields:
+    snuba_query: 1
+    type: 0
+  model: sentry.snubaqueryeventtype
+  pk: 1
+- fields:
+    snuba_query: 2
+    type: 0
+  model: sentry.snubaqueryeventtype
+  pk: 2
+- fields:
+    api_grant: null
+    api_token: 1
+    date_added: '2023-10-16T20:41:57.055Z'
+    date_deleted: null
+    date_updated: '2023-10-16T20:41:57.064Z'
+    organization_id: 4552809988227072
+    sentry_app: 1
+    status: 1
+    uuid: bf6ac4cc-2450-415f-a84b-86f8ca9fb015
+  model: sentry.sentryappinstallation
+  pk: 1
+- fields:
+    schema:
+      settings:
+        optional_fields:
+        - label: Points
+          name: points
+          options:
+          - - '1'
+            - '1'
+          - - '2'
+            - '2'
+          - - '3'
+            - '3'
+          - - '5'
+            - '5'
+          - - '8'
+            - '8'
+          type: select
+        - label: Assignee
+          name: assignee
+          type: select
+          uri: /sentry/members
+        required_fields:
+        - label: Title
+          name: title
+          type: text
+        - label: Summary
+          name: summary
+          type: text
+        type: alert-rule-settings
+        uri: /sentry/alert-rule
+      title: Create Task with App
+      type: alert-rule-action
+    sentry_app: 1
+    type: alert-rule-action
+    uuid: 078d2c2c-7da5-485f-8555-b5e4eef8e7f7
+  model: sentry.sentryappcomponent
+  pk: 1
+- fields:
+    alert_rule: null
+    date_added: '2023-10-16T20:41:56.781Z'
+    owner_id: 1
+    rule: 1
+    until: null
+    user_id: 1
+  model: sentry.rulesnooze
+  pk: 1
+- fields:
+    date_added: '2023-10-16T20:41:56.779Z'
+    rule: 1
+    type: 1
+    user_id: null
+  model: sentry.ruleactivity
+  pk: 1
+- fields:
+    action: 1
+    project: 4552809988227074
+  model: sentry.notificationactionproject
+  pk: 1
+- fields:
+    action: 2
+    project: 4552809988227074
+  model: sentry.notificationactionproject
+  pk: 2
+- fields:
+    alert_rule: 2
+    date_added: '2023-10-16T20:41:56.897Z'
+    date_closed: null
+    date_detected: '2023-10-16T20:41:56.895Z'
+    date_started: '2023-10-16T20:41:56.895Z'
+    detection_uuid: null
+    identifier: 1
+    organization: 4552809988227072
+    status: 1
+    status_method: 3
+    title: Game Jennet
+    type: 2
+  model: sentry.incident
+  pk: 1
+- fields:
+    aggregates: null
+    columns: null
+    conditions: ''
+    date_added: '2023-10-16T20:41:56.913Z'
+    field_aliases: null
+    fields: '[]'
+    name: Test Query for test-org
+    order: 1
+    orderby: ''
+    widget: 1
+  model: sentry.dashboardwidgetquery
+  pk: 1
+- fields:
+    alert_rule: 1
+    alert_threshold: 100.0
+    date_added: '2023-10-16T20:41:56.859Z'
+    label: Adapted Boa
+    resolve_threshold: null
+    threshold_type: null
+  model: sentry.alertruletrigger
+  pk: 1
+- fields:
+    alert_rule: 1
+    date_added: '2023-10-16T20:41:56.849Z'
+    project: 4552809988227075
+  model: sentry.alertruleexcludedprojects
+  pk: 1
+- fields:
+    alert_rule: 1
+    date_added: '2023-10-16T20:41:56.853Z'
+    previous_alert_rule: null
+    type: 1
+    user_id: null
+  model: sentry.alertruleactivity
+  pk: 1
+- fields:
+    alert_rule: 2
+    date_added: '2023-10-16T20:41:56.893Z'
+    previous_alert_rule: null
+    type: 1
+    user_id: null
+  model: sentry.alertruleactivity
+  pk: 2
+- fields:
+    date_added: '2023-10-16T20:41:56.903Z'
+    end: '2023-10-16T20:41:56.903Z'
+    period: 1
+    start: '2023-10-15T20:41:56.903Z'
+    values: '[[1.0, 2.0, 3.0], [1.5, 2.5, 3.5]]'
+  model: sentry.timeseriessnapshot
+  pk: 1
+- fields:
+    actor_id: 1
+    application_id: 1
+    date_added: '2023-10-16T20:41:57.061Z'
+    events: '[]'
+    guid: cd58634b2c684a22b9f6dbc7614966b9
+    installation_id: 1
+    organization_id: 4552809988227072
+    project_id: null
+    secret: b44eda34022d80d4e8e59c9188beeb4ba6184b710b975936cd1a05da065ab5c8
+    status: 0
+    url: https://example.com/webhook
+    version: 0
+  model: sentry.servicehook
+  pk: 1
+- fields:
+    actor_id: 6
+    application_id: 1
+    date_added: '2023-10-16T20:41:57.153Z'
+    events: '[''event.created'']'
+    guid: 48bf25a42a4840c082c9abca63b1c09d
+    installation_id: 1
+    organization_id: 4552809988227072
+    project_id: 4552809988292609
+    secret: 3ccf42df4668e9c635b177b06332dc19e23576a17dc1718d384da9ae61310a63
+    status: 0
+    url: https://example.com/sentry/webhook
+    version: 0
+  model: sentry.servicehook
+  pk: 2
+- fields:
+    date_added: '2023-10-16T20:41:56.908Z'
+    incident: 1
+    target_run_date: '2023-10-17T00:41:56.908Z'
+  model: sentry.pendingincidentsnapshot
+  pk: 1
+- fields:
+    alert_rule_trigger: 1
+    date_added: '2023-10-16T20:41:56.907Z'
+    date_modified: '2023-10-16T20:41:56.907Z'
+    incident: 1
+    status: 1
+  model: sentry.incidenttrigger
+  pk: 1
+- fields:
+    date_added: '2023-10-16T20:41:56.905Z'
+    incident: 1
+    user_id: 1
+  model: sentry.incidentsubscription
+  pk: 1
+- fields:
+    date_added: '2023-10-16T20:41:56.904Z'
+    event_stats_snapshot: 1
+    incident: 1
+    total_events: 1
+    unique_users: 1
+  model: sentry.incidentsnapshot
+  pk: 1
+- fields:
+    comment: hello test-org
+    date_added: '2023-10-16T20:41:56.901Z'
+    incident: 1
+    notification_uuid: null
+    previous_value: null
+    type: 1
+    user_id: null
+    value: null
+  model: sentry.incidentactivity
+  pk: 1
+- fields:
+    alert_rule_trigger: 1
+    date_added: '2023-10-16T20:41:56.860Z'
+    query_subscription: 1
+  model: sentry.alertruletriggerexclusion
+  pk: 1
+- fields:
+    alert_rule_trigger: 1
+    date_added: '2023-10-16T20:41:56.887Z'
+    integration_id: null
+    sentry_app_config: null
+    sentry_app_id: null
+    target_display: null
+    target_identifier: '3'
+    target_type: 1
+    type: 0
+  model: sentry.alertruletriggeraction
+  pk: 1

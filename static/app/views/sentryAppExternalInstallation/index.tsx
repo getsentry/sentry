@@ -12,7 +12,7 @@ import SentryAppDetailsModal from 'sentry/components/modals/sentryAppDetailsModa
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import {Organization, SentryApp, SentryAppInstallation} from 'sentry/types';
-import {generateBaseControlSiloUrl} from 'sentry/utils';
+import {generateBaseControlSiloUrl, generateOrgSlugUrl} from 'sentry/utils';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
@@ -204,7 +204,7 @@ export default class SentryAppExternalInstallation extends DeprecatedAsyncView<
               {organization: <strong>{organization.slug}</strong>}
             )}
           </p>
-          <InstallLink>{window.location.href}</InstallLink>
+          <InstallLink>{generateOrgSlugUrl(selectedOrgSlug)}</InstallLink>
         </Alert>
       );
     }

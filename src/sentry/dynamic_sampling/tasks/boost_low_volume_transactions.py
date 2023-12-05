@@ -315,7 +315,7 @@ class FetchProjectTransactionTotals:
                 dataset=Dataset.PerformanceMetrics.value,
                 app_id="dynamic_sampling",
                 query=query,
-                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value},
+                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value, "cross_org_query": 1},
             )
             data = raw_snql_query(
                 request,
@@ -494,7 +494,7 @@ class FetchProjectTransactionVolumes:
                 dataset=Dataset.PerformanceMetrics.value,
                 app_id="dynamic_sampling",
                 query=query,
-                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value},
+                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value, "cross_org_query": 1},
             )
             data = raw_snql_query(
                 request,

@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from functools import reduce
 from operator import or_
-from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, Any, ClassVar, Mapping, Optional, Sequence
 
 from django.core.cache import cache
 from django.db import models
@@ -39,6 +39,7 @@ from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_type_by_type_id
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.models.organization import Organization
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.snuba.dataset import Dataset
 from sentry.types.activity import ActivityType
 from sentry.types.group import (
@@ -210,6 +211,7 @@ class EventOrdering(Enum):
         "num_processing_errors",
         "-trace.sampled",
         "-timestamp",
+        "-event_id",
     ]
 
 
@@ -294,7 +296,7 @@ def get_recommended_event_for_environments(
     return None
 
 
-class GroupManager(BaseManager):
+class GroupManager(BaseManager["Group"]):
     use_for_related_fields = True
 
     def by_qualified_short_id(self, organization_id: int, short_id: str):
@@ -541,7 +543,7 @@ class Group(Model):
     short_id = BoundedBigIntegerField(null=True)
     type = BoundedPositiveIntegerField(default=ErrorGroupType.type_id, db_index=True)
 
-    objects = GroupManager(cache_fields=("id",))
+    objects: ClassVar[GroupManager] = GroupManager(cache_fields=("id",))
 
     class Meta:
         app_label = "sentry"
@@ -596,13 +598,24 @@ class Group(Model):
         # Built manually in preference to django.urls.reverse,
         # because reverse has a measured performance impact.
         organization = self.organization
-        path = f"/organizations/{organization.slug}/issues/{self.id}/"
-        if event_id:
-            path += f"events/{event_id}/"
-        query = None
-        if params:
+
+        if self.issue_category == GroupCategory.FEEDBACK:
+            path = f"/organizations/{organization.slug}/feedback/"
+            slug = {"feedbackSlug": f"{self.project.slug}:{self.id}"}
+            params = {
+                **(params or {}),
+                **slug,
+            }
             query = urlencode(params)
-        return organization.absolute_url(path, query=query)
+            return organization.absolute_url(path, query=query)
+        else:
+            path = f"/organizations/{organization.slug}/issues/{self.id}/"
+            if event_id:
+                path += f"events/{event_id}/"
+            query = None
+            if params:
+                query = urlencode(params)
+            return organization.absolute_url(path, query=query)
 
     @property
     def qualified_short_id(self):
@@ -786,7 +799,7 @@ class Group(Model):
         """
         return self.data.get("type", "default")
 
-    def get_event_metadata(self) -> Mapping[str, str]:
+    def get_event_metadata(self) -> Mapping[str, Any]:
         """
         Return the metadata of this issue.
 
@@ -811,6 +824,15 @@ class Group(Model):
     @property
     def organization(self):
         return self.project.organization
+
+    @property
+    def sdk(self) -> str | None:
+        """returns normalized SDK name"""
+
+        try:
+            return self.get_event_metadata()["sdk"]["name_normalized"]
+        except KeyError:
+            return None
 
     @property
     def checksum(self):
@@ -841,12 +863,9 @@ class Group(Model):
         except GroupAssignee.DoesNotExist:
             return None
 
-        assigned_actor = group_assignee.assigned_actor()
+        assigned_actor: RpcActor = group_assignee.assigned_actor()
 
-        try:
-            return assigned_actor.resolve()
-        except assigned_actor.type.DoesNotExist:
-            return None
+        return assigned_actor.resolve()
 
     @property
     def times_seen_with_pending(self) -> int:

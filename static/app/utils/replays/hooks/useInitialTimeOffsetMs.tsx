@@ -143,7 +143,7 @@ async function fromListPageQuery({
     const firstTimestmpMs = new Date(firstTimestamp).getTime();
     return {
       highlight: {
-        annotation: listPageQuery,
+        annotation: undefined,
         nodeId,
         spotlight: true,
       },

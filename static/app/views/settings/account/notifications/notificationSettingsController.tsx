@@ -1,25 +1,23 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
-import {Organization} from 'sentry/types';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import type {Organization} from 'sentry/types';
 import withOrganizations from 'sentry/utils/withOrganizations';
 
 import NotificationSettings from './notificationSettings';
-import NotificationSettingsV2 from './notificationSettingsV2';
 
-type Props = RouteComponentProps<{fineTuneType: string}, {}> & {
+interface NotificationSettingsControllerProps extends RouteComponentProps<{}, {}> {
   organizations: Organization[];
-};
+  organizationsLoading?: boolean;
+}
 
-export function NotificationSettingsController({organizations, ...props}: Props) {
-  // check if feature is enabled for any organization
-  const hasFeature = organizations.some(org =>
-    org.features.includes('notification-settings-v2')
-  );
-  return hasFeature ? (
-    <NotificationSettingsV2 {...props} />
-  ) : (
-    <NotificationSettings {...props} />
-  );
+export function NotificationSettingsController({
+  organizationsLoading,
+}: NotificationSettingsControllerProps) {
+  if (organizationsLoading) {
+    return <LoadingIndicator />;
+  }
+  return <NotificationSettings />;
 }
 
 export default withOrganizations(NotificationSettingsController);

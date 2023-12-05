@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from enum import Enum
 from typing import List, Optional
 
 import sentry_sdk
@@ -32,6 +33,19 @@ MAX_RULE_PERIOD = parse_stats_period(MAX_RULE_PERIOD_STRING)
 DEFAULT_PERIOD_STRING = "1h"
 # the number of samples to collect per custom rule
 NUM_SAMPLES_PER_CUSTOM_RULE = 100
+
+
+class UnsupportedSearchQueryReason(Enum):
+    # we only support transaction queries
+    NOT_TRANSACTION_QUERY = "not_transaction_query"
+
+
+class UnsupportedSearchQuery(Exception):
+    def __init__(self, error_code: UnsupportedSearchQueryReason, *args, **kwargs):
+        super().__init__(error_code.value, *args, **kwargs)
+        self.error_code = error_code.value
+
+    pass
 
 
 class CustomRulesInputSerializer(serializers.Serializer):
@@ -127,6 +141,7 @@ class CustomRulesEndpoint(OrganizationEndpoint):
 
         query = serializer.validated_data["query"]
         projects = serializer.validated_data.get("projects")
+
         try:
             condition = get_condition(query)
 
@@ -144,12 +159,16 @@ class CustomRulesEndpoint(OrganizationEndpoint):
                 organization_id=organization.id,
                 num_samples=NUM_SAMPLES_PER_CUSTOM_RULE,
                 sample_rate=1.0,
+                query=query,
+                created_by_id=request.user.id,
             )
 
             # schedule update for affected project configs
             _schedule_invalidate_project_configs(organization, projects)
 
             return _rule_to_response(rule)
+        except UnsupportedSearchQuery as e:
+            return Response({"query": [e.error_code]}, status=400)
         except InvalidSearchQuery as e:
             return Response({"query": [str(e)]}, status=400)
 
@@ -198,6 +217,8 @@ class CustomRulesEndpoint(OrganizationEndpoint):
 
         try:
             condition = get_condition(query)
+        except UnsupportedSearchQuery as e:
+            return Response({"query": [e.error_code]}, status=400)
         except InvalidSearchQuery as e:
             return Response({"query": [str(e)]}, status=400)
         except ValueError as e:
@@ -245,19 +266,48 @@ def _rule_to_response(rule: CustomDynamicSamplingRule) -> Response:
     return Response(response_data, status=200)
 
 
+def _is_not_supported(searchFilters: List[SearchFilter]) -> Optional[UnsupportedSearchQueryReason]:
+    """
+    Check if the search query is not supported by the custom rules
+
+    Curently we only support transaction queries
+    """
+    transaction_filter = False
+
+    for searchFilter in searchFilters:
+        if searchFilter.key.name == "event.type" and searchFilter.value.value == "transaction":
+            transaction_filter = True
+            break
+    if not transaction_filter:
+        return UnsupportedSearchQueryReason.NOT_TRANSACTION_QUERY
+    return None
+
+
 def get_condition(query: Optional[str]) -> RuleCondition:
     try:
         if not query:
-            # True condition when query not specified
-            condition: RuleCondition = {"op": "and", "inner": []}
+            raise UnsupportedSearchQuery(UnsupportedSearchQueryReason.NOT_TRANSACTION_QUERY)
         else:
             tokens = parse_search_query(query)
+
+            reason = _is_not_supported(tokens)
+            if reason is not None:
+                raise UnsupportedSearchQuery(reason)
             # transform a simple message query into a transaction condition:
             # "foo environment:development" -> "transaction:foo environment:development"
             tokens = message_to_transaction_condition(tokens)
             converter = SearchQueryConverter(tokens)
             condition = converter.convert()
         return condition
+    except UnsupportedSearchQuery as unsupported_ex:
+        # log unsupported queries with a different message so that
+        # we can differentiate them from other errors
+        with sentry_sdk.push_scope() as scope:
+            scope.set_extra("query", query)
+            scope.set_extra("error", unsupported_ex)
+            message = "Unsupported search query"
+            sentry_sdk.capture_message(message, level="warning")
+        raise
     except Exception as ex:
         with sentry_sdk.push_scope() as scope:
             scope.set_extra("query", query)

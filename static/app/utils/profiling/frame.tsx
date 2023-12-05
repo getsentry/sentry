@@ -2,6 +2,7 @@ import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types
 import {t} from 'sentry/locale';
 
 const ROOT_KEY = 'sentry root';
+const BROWSER_EXTENSION_REGEXP = /^(\@moz-extension\:\/\/|chrome-extension\:\/\/)/;
 export class Frame {
   readonly key: string | number;
   readonly name: string;
@@ -9,6 +10,7 @@ export class Frame {
   readonly line?: number;
   readonly column?: number;
   readonly is_application: boolean;
+  readonly is_browser_extension?: boolean;
   readonly path?: string;
   readonly package?: string;
   readonly module?: string;
@@ -19,7 +21,6 @@ export class Frame {
   readonly symbol?: string;
   readonly symbolAddr?: string;
   readonly symbolicatorStatus?: SymbolicatorStatus;
-
   readonly isRoot: boolean;
 
   totalWeight: number = 0;
@@ -34,7 +35,10 @@ export class Frame {
 
   constructor(
     frameInfo: Profiling.FrameInfo,
-    type?: 'mobile' | 'javascript' | 'node' | string
+    type?: 'mobile' | 'javascript' | 'node' | string,
+    // In aggregate mode, we miss certain info like lineno/col and so
+    // we need to make sure we don't try to use it or infer data based on it
+    mode?: 'detailed' | 'aggregate'
   ) {
     this.key = frameInfo.key;
     this.file = frameInfo.file;
@@ -75,9 +79,21 @@ export class Frame {
       if (!this.name || this.name === 'unknown') {
         this.name = t('<anonymous>');
       }
+
       // If the frame had no line or column, it was part of the native code, (e.g. calling String.fromCharCode)
-      if (this.line === undefined && this.column === undefined) {
+      if (this.line === undefined && this.column === undefined && mode !== 'aggregate') {
         this.name += ` ${t('[native code]')}`;
+        this.is_application = false;
+      }
+
+      if (!this.file && this.path) {
+        this.file = this.path;
+      }
+
+      this.is_browser_extension = !!(
+        this.file && BROWSER_EXTENSION_REGEXP.test(this.file)
+      );
+      if (this.is_browser_extension && this.is_application) {
         this.is_application = false;
       }
 

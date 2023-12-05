@@ -28,7 +28,7 @@ from snuba_sdk import (
     Or,
     Query,
 )
-from snuba_sdk.conditions import BooleanCondition, ConditionGroup
+from snuba_sdk.conditions import And, BooleanCondition, ConditionGroup
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.api.event_search import SearchFilter
@@ -59,7 +59,7 @@ from sentry.snuba.metrics.naming_layer.mapping import (
     get_operation_with_public_name,
     parse_expression,
 )
-from sentry.snuba.metrics.naming_layer.mri import MRI_EXPRESSION_REGEX, MRI_SCHEMA_REGEX
+from sentry.snuba.metrics.naming_layer.mri import parse_mri_field
 from sentry.snuba.metrics.naming_layer.public import PUBLIC_EXPRESSION_REGEX
 from sentry.snuba.metrics.query import (
     MetricActionByField,
@@ -76,10 +76,10 @@ from sentry.snuba.metrics.utils import (
     FILTERABLE_TAGS,
     NON_RESOLVABLE_TAG_VALUES,
     TS_COL_GROUP,
-    TS_COL_QUERY,
     DerivedMetricParseException,
     MetricDoesNotExistException,
     get_num_intervals,
+    get_timestamp_column_name,
     require_rhs_condition_resolution,
 )
 from sentry.snuba.sessions_v2 import finite_or_none
@@ -110,30 +110,16 @@ def _strip_project_id(condition: Condition) -> Optional[Condition]:
     return None
 
 
-def parse_field(field: str, allow_mri: bool = False, allow_private: bool = False) -> MetricField:
+def parse_field(field: str, allow_mri: bool = False) -> MetricField:
     if allow_mri:
-        mri_matches = MRI_SCHEMA_REGEX.match(field) or MRI_EXPRESSION_REGEX.match(field)
-        if mri_matches:
-            return parse_mri_field(field, allow_private)
+        if parsed_mri_field := parse_mri_field(field):
+            return MetricField(parsed_mri_field.op, parsed_mri_field.mri.mri_string)
 
     return parse_public_field(field)
 
 
-def parse_mri_field(field: str, allow_private: bool = False) -> MetricField:
-    matches = MRI_EXPRESSION_REGEX.match(field)
-
-    try:
-        operation = matches[1]
-        mri = matches[2]
-    except (IndexError, TypeError):
-        operation = None
-        mri = field
-
-    return MetricField(operation, mri, alias=mri, allow_private=allow_private)
-
-
+# TODO(ddm): implement this similar to parse_mri_field
 def parse_public_field(field: str) -> MetricField:
-
     matches = PUBLIC_EXPRESSION_REGEX.match(field)
 
     try:
@@ -142,6 +128,7 @@ def parse_public_field(field: str) -> MetricField:
     except (TypeError, IndexError):
         operation = None
         metric_name = field
+
     return MetricField(operation, get_mri(metric_name))
 
 
@@ -164,6 +151,20 @@ def transform_null_transaction_to_unparameterized(use_case_id, org_id, alias=Non
         ],
         alias=alias,
     )
+
+
+def _refers_to_column(expression: Union[Column, Function]) -> Optional[str]:
+    """
+    Tries to compute to which column the input expression is referring to.
+    """
+
+    if isinstance(expression, Column):
+        return expression.name
+    elif isinstance(expression, Function):
+        if expression.function == "ifNull":
+            return expression.parameters[0].name
+
+    return None
 
 
 # Allow these snuba functions.
@@ -330,6 +331,16 @@ def resolve_tags(
                 op=op,
                 rhs=rhs_ids,
             )
+
+        # Hacky way to apply a transformation for backward compatibility, which converts `unknown_error` to `unknown`
+        # for metrics queries.
+        transformed_rhs = input_.rhs
+        if (
+            _refers_to_column(input_.lhs) == "tags[transaction.status]"
+            and input_.rhs == "unknown_error"
+        ):
+            transformed_rhs = "unknown"
+
         return Condition(
             lhs=resolve_tags(
                 use_case_id, org_id, input_.lhs, projects, allowed_tag_keys=allowed_tag_keys
@@ -338,7 +349,7 @@ def resolve_tags(
             rhs=resolve_tags(
                 use_case_id,
                 org_id,
-                input_.rhs,
+                transformed_rhs,
                 projects,
                 is_tag_value=True,
                 allowed_tag_keys=allowed_tag_keys,
@@ -346,11 +357,17 @@ def resolve_tags(
         )
 
     if isinstance(input_, BooleanCondition):
+        additional_args = {"op": input_.op}
+        if isinstance(input_, Or) or isinstance(input_, And):
+            # In case we use `Or` or `And`, the operation doesn't need to be injected.
+            additional_args = {}
+
         return input_.__class__(
             conditions=[
                 resolve_tags(use_case_id, org_id, item, projects, allowed_tag_keys=allowed_tag_keys)
                 for item in input_.conditions
-            ]
+            ],
+            **additional_args,
         )
     if isinstance(input_, Column):
         # If a column has the name belonging to the set, it means that we don't need to resolve its name.
@@ -500,7 +517,6 @@ class QueryDefinition:
             parse_field(
                 key,
                 allow_mri=allow_mri,
-                allow_private=query_params.get("allowPrivate") == "true",
             )
             for key in query_params.getlist("field", [])
         ]
@@ -752,6 +768,7 @@ class SnubaQueryBuilder:
         "generic_metrics_counters",
         "generic_metrics_distributions",
         "generic_metrics_sets",
+        "generic_metrics_gauges",
     }
 
     def __init__(
@@ -870,10 +887,7 @@ class SnubaQueryBuilder:
             Condition(Column("project_id"), Op.IN, self._metrics_query.project_ids),
         ]
 
-        if self._metrics_query.start:
-            where.append(Condition(Column(TS_COL_QUERY), Op.GTE, self._metrics_query.start))
-        if self._metrics_query.end:
-            where.append(Condition(Column(TS_COL_QUERY), Op.LT, self._metrics_query.end))
+        where += self._build_timeframe()
 
         if not self._metrics_query.where:
             return where
@@ -912,6 +926,23 @@ class SnubaQueryBuilder:
         filter_ = resolve_tags(self._use_case_id, self._org_id, snuba_conditions, self._projects)
         if filter_:
             where.extend(filter_)
+
+        return where
+
+    def _build_timeframe(self) -> List[Union[BooleanCondition, Condition]]:
+        """
+        Builds the timeframe of the query, comprehending the `start` and `end` intervals.
+        """
+        where = []
+
+        if self._metrics_query.start:
+            where.append(
+                Condition(Column(get_timestamp_column_name()), Op.GTE, self._metrics_query.start)
+            )
+        if self._metrics_query.end:
+            where.append(
+                Condition(Column(get_timestamp_column_name()), Op.LT, self._metrics_query.end)
+            )
 
         return where
 
@@ -1012,8 +1043,10 @@ class SnubaQueryBuilder:
 
         if self._metrics_query.include_series:
             series_limit = limit.limit * intervals_len
+            if self._metrics_query.max_limit:
+                series_limit = self._metrics_query.max_limit
 
-            if self._use_case_id is UseCaseID.TRANSACTIONS:
+            if self._use_case_id in [UseCaseID.TRANSACTIONS, UseCaseID.SPANS, UseCaseID.CUSTOM]:
                 time_groupby_column = self.__generate_time_groupby_column_for_discover_queries(
                     self._metrics_query.interval
                 )
@@ -1031,7 +1064,7 @@ class SnubaQueryBuilder:
         return Function(
             function="toStartOfInterval",
             parameters=[
-                Column(name="timestamp"),
+                Column(name=get_timestamp_column_name()),
                 Function(
                     function="toIntervalSecond",
                     parameters=[interval],

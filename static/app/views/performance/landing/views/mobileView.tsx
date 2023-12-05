@@ -39,6 +39,9 @@ export function MobileView(props: BasePerformanceViewProps) {
       ]
     );
   }
+  if (organization.features.includes('performance-screens-view')) {
+    doubleRowAllowedCharts[0] = PerformanceWidgetSetting.SLOW_SCREENS_BY_TTID;
+  }
   if (
     organization.features.includes('performance-new-trends') &&
     canUseMetricsData(props.organization)

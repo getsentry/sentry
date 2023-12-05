@@ -20,6 +20,7 @@ from sentry.models.user import User
 from sentry.receivers import create_default_projects
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -27,7 +28,7 @@ from sentry.utils import json
 
 
 # TODO(dcramer): need tests for SSO behavior and single org behavior
-@control_silo_test(stable=True)
+@control_silo_test
 class AuthLoginTest(TestCase, HybridCloudTestMixin):
     @cached_property
     def path(self):
@@ -70,6 +71,16 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert resp.context["login_form"].errors["__all__"] == [
             "Please enter a correct username and password. Note that both fields may be case-sensitive."
         ]
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    def test_login_ratelimited_ip_gets(self):
+        url = reverse("sentry-login")
+
+        with freeze_time("2000-01-01"):
+            for _ in range(25):
+                self.client.get(url)
+            resp = self.client.get(url)
+            assert resp.status_code == 429
 
     def test_login_ratelimited_user(self):
         self.client.get(self.path)
@@ -423,7 +434,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
     settings.SENTRY_NEWSLETTER != "sentry.newsletter.dummy.DummyNewsletter",
     reason="Requires DummyNewsletter.",
 )
-@control_silo_test(stable=True)
+@control_silo_test
 class AuthLoginNewsletterTest(TestCase):
     @cached_property
     def path(self):
@@ -499,7 +510,7 @@ class AuthLoginNewsletterTest(TestCase):
         assert not results[0].verified
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 @override_settings(
     SENTRY_USE_CUSTOMER_DOMAINS=True,
 )

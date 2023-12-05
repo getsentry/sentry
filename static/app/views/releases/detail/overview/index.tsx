@@ -14,11 +14,10 @@ import PerformanceCardTable from 'sentry/components/discover/performanceCardTabl
 import TransactionsList, {
   DropdownOption,
 } from 'sentry/components/discover/transactionsList';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
-import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
+import {ChangeData, TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
@@ -551,7 +550,7 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
                             withChart
                           />
 
-                          <Feature features={['performance-view']}>
+                          <Feature features="performance-view">
                             {hasReleaseComparisonPerformance ? (
                               <PerformanceCardTable
                                 organization={organization}
@@ -574,6 +573,7 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
                                 }
                                 titles={titles}
                                 generateLink={generateLink}
+                                supportsInvestigationRule={false}
                               />
                             )}
                           </Feature>

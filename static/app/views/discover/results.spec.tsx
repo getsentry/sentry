@@ -1040,13 +1040,13 @@ describe('Results', function () {
 
       const projectPageFilter = await screen.findByTestId('page-filter-project-selector');
 
-      expect(projectPageFilter).toHaveTextContent('Pinned Project');
+      expect(projectPageFilter).toHaveTextContent('All Projects');
     });
 
     it('displays tip when events response contains a tip', async function () {
       renderMockRequests();
 
-      const eventsResultsMock = MockApiClient.addMockResponse({
+      MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/',
         body: {
           meta: {
@@ -1081,11 +1081,7 @@ describe('Results', function () {
         {context: initialData.routerContext, organization}
       );
 
-      await waitFor(() => {
-        expect(eventsResultsMock).toHaveBeenCalled();
-      });
-
-      expect(screen.getByText('this is a tip')).toBeInTheDocument();
+      expect(await screen.findByText('this is a tip')).toBeInTheDocument();
     });
 
     it('renders metric fallback alert', async function () {

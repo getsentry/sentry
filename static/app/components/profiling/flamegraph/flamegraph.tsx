@@ -10,6 +10,7 @@ import {
 import * as Sentry from '@sentry/react';
 import {mat3, vec2} from 'gl-matrix';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ProfileDragDropImport} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/profileDragDropImport';
 import {FlamegraphOptionsMenu} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphOptionsMenu';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
@@ -51,9 +52,11 @@ import {
   computeConfigViewWithStrategy,
   computeMinZoomConfigViewForFrames,
   formatColorForFrame,
+  initializeFlamegraphRenderer,
   useResizeCanvasObserver,
 } from 'sentry/utils/profiling/gl/utils';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphRenderer2D';
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import {SpanTree} from 'sentry/utils/profiling/spanTree';
@@ -81,23 +84,31 @@ import {FlamegraphLayout} from './flamegraphLayout';
 import {FlamegraphSpans} from './flamegraphSpans';
 import {FlamegraphUIFrames} from './flamegraphUIFrames';
 
-function getTransactionConfigSpace(
+function getMaxConfigSpace(
   profileGroup: ProfileGroup,
   transaction: EventTransaction | null,
   unit: ProfilingFormatterUnit | string
 ): Rect {
   // We have a transaction, so we should do our best to align the profile
   // with the transaction's timeline.
+  const maxProfileDuration = Math.max(...profileGroup.profiles.map(p => p.duration));
   if (transaction) {
     // TODO: Adjust the alignment based on the profile's timestamp if it does
     // not match the transaction's start timestamp
-    const duration = transaction.endTimestamp - transaction.startTimestamp;
-    return new Rect(0, 0, formatTo(duration, 'seconds', unit), 0);
+    const transactionDuration = transaction.endTimestamp - transaction.startTimestamp;
+    // On most platforms, profile duration < transaction duration, however
+    // there is one beloved platform where that is not true; android.
+    // Hence, we should take the max of the two to ensure both the transaction
+    // and profile are fully visible to the user.
+    const duration = Math.max(
+      formatTo(transactionDuration, 'seconds', unit),
+      maxProfileDuration
+    );
+    return new Rect(0, 0, duration, 0);
   }
 
   // No transaction was found, so best we can do is align it to the starting
   // position of the profiles - find the max of profile durations
-  const maxProfileDuration = Math.max(...profileGroup.profiles.map(p => p.duration));
   return new Rect(0, 0, maxProfileDuration, 0);
 }
 
@@ -283,8 +294,15 @@ function Flamegraph(): ReactElement {
       return null;
     }
 
-    return new SpanChart(spanTree, {unit: profile.unit});
-  }, [spanTree, profile]);
+    return new SpanChart(spanTree, {
+      unit: profile.unit,
+      configSpace: getMaxConfigSpace(
+        profileGroup,
+        profiledTransaction.type === 'resolved' ? profiledTransaction.data : null,
+        profile.unit
+      ),
+    });
+  }, [spanTree, profile, profileGroup, profiledTransaction]);
 
   const flamegraph = useMemo(() => {
     if (typeof threadId !== 'number') {
@@ -317,7 +335,7 @@ function Flamegraph(): ReactElement {
     const newFlamegraph = new FlamegraphModel(profile, threadId, {
       inverted: view === 'bottom up',
       sort: sorting,
-      configSpace: getTransactionConfigSpace(
+      configSpace: getMaxConfigSpace(
         profileGroup,
         profiledTransaction.type === 'resolved' ? profiledTransaction.data : null,
         profile.unit
@@ -646,7 +664,7 @@ function Flamegraph(): ReactElement {
       newView.setConfigView(
         flamegraphView.configView.withHeight(newView.configView.height),
         {
-          width: {min: 0},
+          width: {min: 1},
         }
       );
 
@@ -690,7 +708,7 @@ function Flamegraph(): ReactElement {
       newView.setConfigView(
         flamegraphView.configView.withHeight(newView.configView.height),
         {
-          width: {min: 0},
+          width: {min: 1},
         }
       );
 
@@ -734,7 +752,7 @@ function Flamegraph(): ReactElement {
       newView.setConfigView(
         flamegraphView.configView.withHeight(newView.configView.height),
         {
-          width: {min: 0},
+          width: {min: 1},
         }
       );
 
@@ -760,7 +778,7 @@ function Flamegraph(): ReactElement {
         canvas: spansCanvas,
         model: spanChart,
         options: {
-          inverted: flamegraph.inverted,
+          inverted: false,
           minWidth: spanChart.minSpanDuration,
           barHeight: flamegraphTheme.SIZES.SPANS_BAR_HEIGHT,
           depthOffset: flamegraphTheme.SIZES.SPANS_DEPTH_OFFSET,
@@ -770,11 +788,12 @@ function Flamegraph(): ReactElement {
       // Initialize configView to whatever the flamegraph configView is
       newView.setConfigView(
         flamegraphView.configView.withHeight(newView.configView.height),
-        {width: {min: 0}}
+        {width: {min: 1}}
       );
+
       return newView;
     },
-    [spanChart, spansCanvas, flamegraph.inverted, flamegraphView, flamegraphTheme.SIZES]
+    [spanChart, spansCanvas, flamegraphView, flamegraphTheme.SIZES]
   );
 
   // We want to make sure that the views have the same min zoom levels so that
@@ -1147,10 +1166,26 @@ function Flamegraph(): ReactElement {
       return null;
     }
 
-    return new FlamegraphRendererWebGL(flamegraphCanvasRef, flamegraph, flamegraphTheme, {
-      colorCoding,
-      draw_border: true,
-    });
+    const renderer = initializeFlamegraphRenderer(
+      [FlamegraphRendererWebGL, FlamegraphRenderer2D],
+      [
+        flamegraphCanvasRef,
+        flamegraph,
+        flamegraphTheme,
+        {
+          colorCoding,
+          draw_border: true,
+        },
+      ]
+    );
+
+    if (renderer === null) {
+      Sentry.captureException('Failed to initialize a flamegraph renderer');
+      addErrorMessage('Failed to initialize renderer');
+      return null;
+    }
+
+    return renderer;
   }, [colorCoding, flamegraph, flamegraphCanvasRef, flamegraphTheme]);
 
   const getFrameColor = useCallback(

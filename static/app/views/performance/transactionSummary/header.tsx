@@ -90,7 +90,7 @@ function TransactionHeader({
           // frontend projects should always show the web vitals tab
           if (
             getCurrentLandingDisplay(location, projects, eventView).field ===
-            LandingDisplayField.FRONTEND_PAGELOAD
+            LandingDisplayField.FRONTEND_OTHER
           ) {
             return true;
           }
@@ -143,7 +143,7 @@ function TransactionHeader({
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
-          <Feature organization={organization} features={['incidents']}>
+          <Feature organization={organization} features="incidents">
             {({hasFeature}) =>
               hasFeature && !metricsCardinality?.isLoading ? (
                 <CreateAlertFromViewButton
@@ -230,10 +230,10 @@ function TransactionHeader({
               </TabList.Item>
               <TabList.Item
                 key={Tab.AGGREGATE_WATERFALL}
-                textValue={t('Aggregate Waterfall')}
+                textValue={t('Aggregate Spans')}
                 hidden={!hasAggregateWaterfall}
               >
-                {t('Aggregate Waterfall')}
+                {t('Aggregate Spans')}
               </TabList.Item>
             </TabList>
           );

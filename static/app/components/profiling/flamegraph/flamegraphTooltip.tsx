@@ -44,6 +44,7 @@ export interface FlamegraphTooltipProps {
   flamegraphView: CanvasView<Flamegraph>;
   frame: FlamegraphFrame;
   platform: 'javascript' | 'python' | 'ios' | 'android' | string | undefined;
+  disableColorCoding?: boolean;
 }
 
 export function FlamegraphTooltip(props: FlamegraphTooltipProps) {

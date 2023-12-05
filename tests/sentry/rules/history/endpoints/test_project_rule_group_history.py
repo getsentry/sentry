@@ -29,8 +29,8 @@ class RuleGroupHistorySerializerTest(TestCase):
         ]
 
 
-@freeze_time()
 @region_silo_test
+@freeze_time()
 class ProjectRuleGroupHistoryIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-rule-group-history-index"
 

@@ -5,7 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from typing_extensions import TypedDict
 
-from sentry import eventstore, features
+from sentry import eventstore
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -17,7 +17,6 @@ from sentry.api.helpers.actionable_items_helper import (
     priority_ranking,
 )
 from sentry.models.eventerror import EventError
-from sentry.models.organization import Organization
 from sentry.models.project import Project
 
 
@@ -42,17 +41,8 @@ class ActionableItemsEndpoint(ProjectEndpoint):
     }
     owner = ApiOwner.ISSUES
 
-    def has_feature(self, organization: Organization, request: Request):
-        return features.has("organizations:actionable-items", organization, actor=request.user)
-
     def get(self, request: Request, project: Project, event_id: str) -> Response:
         # Retrieve information about actionable items (source maps, event errors, etc.) for a given event.
-        organization = project.organization
-        if not self.has_feature(organization, request):
-            raise NotFound(
-                detail="Endpoint not available without 'organizations:actionable-items' feature flag"
-            )
-
         event = eventstore.backend.get_event_by_id(project.id, event_id)
         if event is None:
             raise NotFound(detail="Event not found")
