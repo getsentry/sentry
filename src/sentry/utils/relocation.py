@@ -327,7 +327,7 @@ class LoggingPrinter(Printer):
 
 def send_relocation_update_email(
     relocation: Relocation, email_kind: Relocation.EmailKind, args: dict[str, Any]
-):
+) -> None:
     name = str(email_kind.name)
     name_lower = name.lower()
     msg = MessageBuilder(
@@ -348,6 +348,9 @@ def send_relocation_update_email(
             email_to.append(creator.email)
 
     msg.send_async(to=email_to)
+
+    relocation.latest_notified = email_kind.value
+    relocation.save()
 
 
 def start_relocation_task(
