@@ -1,4 +1,4 @@
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.notifications.types import NotificationSettingEnum, NotificationSettingsOptionEnum
 from sentry.types.integrations import ExternalProviders
 
 """
@@ -9,36 +9,36 @@ into receiving emails but no Slack messages.
 
 # Each type has a different "sometimes" value.
 NOTIFICATION_SETTINGS_ALL_SOMETIMES = {
-    NotificationSettingTypes.DEPLOY: NotificationSettingOptionValues.COMMITTED_ONLY,
-    NotificationSettingTypes.ISSUE_ALERTS: NotificationSettingOptionValues.ALWAYS,
-    NotificationSettingTypes.WORKFLOW: NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-    NotificationSettingTypes.APPROVAL: NotificationSettingOptionValues.ALWAYS,
-    NotificationSettingTypes.QUOTA: NotificationSettingOptionValues.ALWAYS,
-    NotificationSettingTypes.QUOTA_ERRORS: NotificationSettingOptionValues.ALWAYS,
-    NotificationSettingTypes.QUOTA_TRANSACTIONS: NotificationSettingOptionValues.ALWAYS,
-    NotificationSettingTypes.QUOTA_ATTACHMENTS: NotificationSettingOptionValues.ALWAYS,
-    NotificationSettingTypes.QUOTA_REPLAYS: NotificationSettingOptionValues.ALWAYS,
-    NotificationSettingTypes.QUOTA_WARNINGS: NotificationSettingOptionValues.ALWAYS,
-    NotificationSettingTypes.QUOTA_SPEND_ALLOCATIONS: NotificationSettingOptionValues.ALWAYS,
-    NotificationSettingTypes.SPIKE_PROTECTION: NotificationSettingOptionValues.ALWAYS,
-    NotificationSettingTypes.REPORTS: NotificationSettingOptionValues.ALWAYS,
+    NotificationSettingEnum.DEPLOY: NotificationSettingsOptionEnum.COMMITTED_ONLY,
+    NotificationSettingEnum.ISSUE_ALERTS: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.WORKFLOW: NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
+    NotificationSettingEnum.APPROVAL: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.QUOTA: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.QUOTA_ERRORS: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.QUOTA_TRANSACTIONS: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.QUOTA_ATTACHMENTS: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.QUOTA_REPLAYS: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.QUOTA_WARNINGS: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.QUOTA_SPEND_ALLOCATIONS: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.SPIKE_PROTECTION: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.REPORTS: NotificationSettingsOptionEnum.ALWAYS,
 }
 
 
 NOTIFICATION_SETTINGS_DEFAULT_OFF = {
-    NotificationSettingTypes.DEPLOY: NotificationSettingOptionValues.NEVER,
-    NotificationSettingTypes.ISSUE_ALERTS: NotificationSettingOptionValues.NEVER,
-    NotificationSettingTypes.WORKFLOW: NotificationSettingOptionValues.NEVER,
-    NotificationSettingTypes.APPROVAL: NotificationSettingOptionValues.NEVER,
-    NotificationSettingTypes.QUOTA: NotificationSettingOptionValues.NEVER,
-    NotificationSettingTypes.QUOTA_ERRORS: NotificationSettingOptionValues.NEVER,
-    NotificationSettingTypes.QUOTA_TRANSACTIONS: NotificationSettingOptionValues.NEVER,
-    NotificationSettingTypes.QUOTA_ATTACHMENTS: NotificationSettingOptionValues.NEVER,
-    NotificationSettingTypes.QUOTA_REPLAYS: NotificationSettingOptionValues.NEVER,
-    NotificationSettingTypes.QUOTA_WARNINGS: NotificationSettingOptionValues.NEVER,
-    NotificationSettingTypes.QUOTA_SPEND_ALLOCATIONS: NotificationSettingOptionValues.NEVER,
-    NotificationSettingTypes.SPIKE_PROTECTION: NotificationSettingOptionValues.NEVER,
-    NotificationSettingTypes.REPORTS: NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.DEPLOY: NotificationSettingsOptionEnum.NEVER,
+    NotificationSettingEnum.ISSUE_ALERTS: NotificationSettingsOptionEnum.NEVER,
+    NotificationSettingEnum.WORKFLOW: NotificationSettingsOptionEnum.NEVER,
+    NotificationSettingEnum.APPROVAL: NotificationSettingsOptionEnum.NEVER,
+    NotificationSettingEnum.QUOTA: NotificationSettingsOptionEnum.NEVER,
+    NotificationSettingEnum.QUOTA_ERRORS: NotificationSettingsOptionEnum.NEVER,
+    NotificationSettingEnum.QUOTA_TRANSACTIONS: NotificationSettingsOptionEnum.NEVER,
+    NotificationSettingEnum.QUOTA_ATTACHMENTS: NotificationSettingsOptionEnum.NEVER,
+    NotificationSettingEnum.QUOTA_REPLAYS: NotificationSettingsOptionEnum.NEVER,
+    NotificationSettingEnum.QUOTA_WARNINGS: NotificationSettingsOptionEnum.NEVER,
+    NotificationSettingEnum.QUOTA_SPEND_ALLOCATIONS: NotificationSettingsOptionEnum.NEVER,
+    NotificationSettingEnum.SPIKE_PROTECTION: NotificationSettingsOptionEnum.NEVER,
+    NotificationSettingEnum.REPORTS: NotificationSettingsOptionEnum.NEVER,
 }
 
 

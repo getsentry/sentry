@@ -55,29 +55,14 @@ def get_default_for_provider(
     provider: ExternalProviderEnum,
 ) -> NotificationSettingsOptionEnum:
     defaults = PROVIDER_DEFAULTS
-    if provider not in defaults:
-        return NotificationSettingsOptionEnum.NEVER
-
-    # Defaults are defined for the old int enum
-    _type = [key for key, val in NOTIFICATION_SETTING_TYPES.items() if val == type.value]
-    if len(_type) != 1 or _type[0] not in NOTIFICATION_SETTINGS_ALL_SOMETIMES:
-        # some keys are missing that we should default to never
-        return NotificationSettingsOptionEnum.NEVER
-
-    try:
-        default_value = NOTIFICATION_SETTINGS_ALL_SOMETIMES[_type[0]]
-        default_enum = NotificationSettingsOptionEnum(
-            NOTIFICATION_SETTING_OPTION_VALUES[default_value]
-        )
-    except KeyError:
-        # If we don't have a default value for the type, then it's never
+    if provider not in defaults or type not in NotificationSettingEnum:
         return NotificationSettingsOptionEnum.NEVER
 
     if type == NotificationSettingEnum.REPORTS and provider != ExternalProviderEnum.EMAIL:
         # Reports are only sent to email
         return NotificationSettingsOptionEnum.NEVER
 
-    return default_enum or NotificationSettingsOptionEnum.NEVER
+    return defaults[provider][type]
 
 
 def get_type_defaults() -> Mapping[NotificationSettingEnum, NotificationSettingsOptionEnum]:
