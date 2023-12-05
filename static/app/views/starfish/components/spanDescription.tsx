@@ -49,7 +49,7 @@ function DatabaseSpanDescription({span, project}: Props) {
           <StackTraceMiniFrame
             project={project}
             frame={{
-              absPath: span?.data?.['code.filepath'],
+              filename: span?.data?.['code.filepath'],
               lineNo: span?.data?.['code.lineno'],
               function: span?.data?.['code.function'],
             }}
