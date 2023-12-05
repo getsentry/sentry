@@ -25,19 +25,16 @@ from snuba_sdk import (
 )
 
 from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.tasks.post_process import locks
 from sentry.utils import json
 from sentry.utils.locking import UnableToAcquireLock
-from sentry.utils.locking.manager import LockManager
 from sentry.utils.redis import redis_clusters
-from sentry.utils.services import build_instance_from_options
 
 if TYPE_CHECKING:
     from sentry.models.project import Project
 
 
 logger = logging.getLogger(__name__)
-
-locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS))
 
 # for snuba operations
 REFERRER = "sentry.issues.issue_velocity"

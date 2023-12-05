@@ -1993,10 +1993,9 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         group.refresh_from_db()
         assert group.substatus == GroupSubStatus.ESCALATING
 
-    @patch("sentry.issues.issue_velocity.get_latest_threshold")
+    @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=1)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
     def test_has_escalated_no_flag(self, mock_run_post_process_job, mock_threshold):
-        mock_threshold.return_value = 1
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
         group.update(first_seen=datetime.now() - timedelta(hours=1), times_seen=10000)
@@ -2012,10 +2011,9 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         group.refresh_from_db()
         assert group.substatus == GroupSubStatus.NEW
 
-    @patch("sentry.issues.issue_velocity.get_latest_threshold")
+    @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=1)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
     def test_has_escalated_old(self, mock_run_post_process_job, mock_threshold):
-        mock_threshold.return_value = 1
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
         group.update(first_seen=datetime.now() - timedelta(days=2), times_seen=10000)
@@ -2032,10 +2030,9 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         group.refresh_from_db()
         assert group.substatus == GroupSubStatus.NEW
 
-    @patch("sentry.issues.issue_velocity.get_latest_threshold")
+    @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=2)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
     def test_has_not_escalated(self, mock_run_post_process_job, mock_threshold):
-        mock_threshold.return_value = 2
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
         group.update(first_seen=datetime.now() - timedelta(hours=1), times_seen=1)
@@ -2052,10 +2049,9 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         group.refresh_from_db()
         assert group.substatus == GroupSubStatus.NEW
 
-    @patch("sentry.issues.issue_velocity.get_latest_threshold")
+    @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=1)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
     def test_has_escalated_locked(self, mock_run_post_process_job, mock_threshold):
-        mock_threshold.return_value = 1
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
         group.update(first_seen=datetime.now() - timedelta(hours=1), times_seen=10000)
@@ -2072,10 +2068,9 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         group.refresh_from_db()
         assert group.substatus == GroupSubStatus.NEW
 
-    @patch("sentry.issues.issue_velocity.get_latest_threshold")
+    @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=1)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
     def test_has_escalated_already_escalated(self, mock_run_post_process_job, mock_threshold):
-        mock_threshold.return_value = 1
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
         self.call_post_process_group(
@@ -2126,10 +2121,9 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         group.refresh_from_db()
         assert group.substatus == GroupSubStatus.NEW
 
-    @patch("sentry.issues.issue_velocity.get_latest_threshold")
+    @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=0)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
     def test_zero_escalation_rate(self, mock_run_post_process_job, mock_threshold):
-        mock_threshold.return_value = 0
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
         group.update(first_seen=datetime.now() - timedelta(hours=1), times_seen=10000)
