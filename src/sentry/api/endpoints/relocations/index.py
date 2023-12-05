@@ -62,7 +62,7 @@ def should_throttle_relocation(relocation_bucket_size) -> bool:
 
 class RelocationPostSerializer(serializers.Serializer):
     file = serializers.FileField(required=True)
-    orgs = serializers.ListField(required=True, allow_empty=False)
+    orgs = serializers.CharField(required=True, allow_blank=False, allow_null=False)
     owner = serializers.CharField(
         max_length=MAX_USERNAME_LENGTH, required=True, allow_blank=False, allow_null=False
     )
@@ -107,7 +107,7 @@ class RelocationIndexEndpoint(Endpoint):
         validated = serializer.validated_data
         fileobj = validated.get("file")
         owner_username = validated.get("owner")
-        org_slugs = validated.get("orgs")
+        org_slugs = validated.get("orgs").split(",")
         try:
             owner = user_service.get_by_username(username=owner_username)[0]
         except IndexError:

@@ -69,7 +69,7 @@ class RelocationCreateTest(APITestCase):
                                 ).getvalue(),
                                 content_type="application/tar",
                             ),
-                            "orgs": ["testing", "foo"],
+                            "orgs": "testing, foo",
                         },
                         format="multipart",
                     )
@@ -77,6 +77,7 @@ class RelocationCreateTest(APITestCase):
         assert response.status_code == 201
         assert Relocation.objects.count() == relocation_count + 1
         assert RelocationFile.objects.count() == relocation_file_count + 1
+        assert Relocation.objects.get(owner_id=self.owner.id).want_org_slugs == ["testing", " foo"]
         assert uploading_complete_mock.call_count == 1
 
     def test_success_relocation_for_same_owner_already_completed(self):
@@ -115,7 +116,7 @@ class RelocationCreateTest(APITestCase):
                                 ).getvalue(),
                                 content_type="application/tar",
                             ),
-                            "orgs": ["testing", "foo"],
+                            "orgs": "testing, foo",
                         },
                         format="multipart",
                     )
@@ -141,7 +142,7 @@ class RelocationCreateTest(APITestCase):
                                 ).getvalue(),
                                 content_type="application/tar",
                             ),
-                            "orgs": ["testing", "foo"],
+                            "orgs": "testing, foo",
                         },
                         format="multipart",
                     )
@@ -160,7 +161,7 @@ class RelocationCreateTest(APITestCase):
                     reverse(self.endpoint),
                     {
                         "owner": self.owner.username,
-                        "orgs": ["testing", "foo"],
+                        "orgs": "testing, foo",
                     },
                     format="multipart",
                 )
@@ -214,7 +215,7 @@ class RelocationCreateTest(APITestCase):
                                 ).getvalue(),
                                 content_type="application/tar",
                             ),
-                            "orgs": ["testing", "foo"],
+                            "orgs": "testing, foo",
                         },
                         format="multipart",
                     )
@@ -242,7 +243,7 @@ class RelocationCreateTest(APITestCase):
                                 ).getvalue(),
                                 content_type="application/tar",
                             ),
-                            "orgs": ["testing", "foo"],
+                            "orgs": "testing, foo",
                         },
                         format="multipart",
                     )
@@ -277,7 +278,7 @@ class RelocationCreateTest(APITestCase):
                         {
                             "owner": self.owner.username,
                             "file": simple_file,
-                            "orgs": ["testing", "foo"],
+                            "orgs": "testing, foo",
                         },
                         format="multipart",
                     )
@@ -306,7 +307,7 @@ class RelocationCreateTest(APITestCase):
                                 ).getvalue(),
                                 content_type="application/tar",
                             ),
-                            "orgs": ["testing", "foo"],
+                            "orgs": "testing, foo",
                         },
                         format="multipart",
                     )
@@ -329,7 +330,7 @@ class RelocationCreateTest(APITestCase):
                                 ).getvalue(),
                                 content_type="application/tar",
                             ),
-                            "orgs": ["testing", "foo"],
+                            "orgs": "testing, foo",
                         },
                         format="multipart",
                     )
@@ -366,7 +367,7 @@ class RelocationCreateTest(APITestCase):
                                 ).getvalue(),
                                 content_type="application/tar",
                             ),
-                            "orgs": ["testing", "foo"],
+                            "orgs": "testing, foo",
                         },
                         format="multipart",
                     )
@@ -390,7 +391,7 @@ class RelocationCreateTest(APITestCase):
                                 * 1000,
                                 content_type="application/tar",
                             ),
-                            "orgs": ["testing", "foo"],
+                            "orgs": "testing, foo",
                         },
                         format="multipart",
                     )
@@ -422,7 +423,7 @@ class RelocationCreateTest(APITestCase):
                                 ).getvalue(),
                                 content_type="application/tar",
                             ),
-                            "orgs": ["testing", "foo"],
+                            "orgs": "testing, foo",
                         },
                         format="multipart",
                     )
@@ -449,7 +450,7 @@ class RelocationCreateTest(APITestCase):
                                 ).getvalue(),
                                 content_type="application/tar",
                             ),
-                            "orgs": ["testing", "foo"],
+                            "orgs": "testing, foo",
                         },
                         format="multipart",
                     )
