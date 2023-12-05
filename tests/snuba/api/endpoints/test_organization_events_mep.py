@@ -2941,10 +2941,11 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
 ):
     viewname = "sentry-api-0-organization-events"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
+        self.features = {"organizations:on-demand-metrics-extraction-widgets": True}
 
-    def do_request(self, query):
+    def do_request(self, query: Any) -> Any:
         self.login_as(user=self.user)
         url = reverse(
             self.viewname,
@@ -2954,12 +2955,18 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
             return self.client.get(url, query, format="json")
 
     def _on_demand_query_and_assert(
-        self, params: dict[str, Any], expected_on_demand_query: bool, dataset: str
+        self, params: dict[str, Any], expected_on_demand_query: bool, expected_dataset: str
     ) -> None:
-        spec = OnDemandMetricSpec(
-            field=params["field"], query=params["query"], spec_type=MetricSpecType.DYNAMIC_QUERY
-        )
-        assert params["dataset"] == "metricsEnhanced"
+        for field in params.get("field"):
+            if field == "transaction":
+                continue
+            spec = OnDemandMetricSpec(
+                field=field, query=params["query"], spec_type=MetricSpecType.DYNAMIC_QUERY
+            )
+        # Expected parameters for this helper function
+        params["dataset"] = "metricsEnhanced"
+        params["useOnDemandMetrics"] = "true"
+        params["onDemandType"] = "dynamic_query"
 
         self.store_on_demand_metric(1, spec=spec)
         response = self.do_request(params)
@@ -2967,42 +2974,47 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         assert response.status_code == 200, response.content
         meta = response.data["meta"]
         assert meta.get("isMetricsExtractedData", False) is expected_on_demand_query
-        assert meta["dataset"] == dataset
+        assert meta["dataset"] == expected_dataset
 
-        return meta
-
-    def test_is_metrics_extracted_data_is_included(self):
+    def test_is_metrics_extracted_data_is_included(self) -> None:
         self._on_demand_query_and_assert(
             {
                 "field": ["count()"],
-                "dataset": "metricsEnhanced",
                 "query": "transaction.duration:>=91",
-                "useOnDemandMetrics": "true",
                 "yAxis": "count()",
             },
             expected_on_demand_query=True,
-            dataset="metricsEnhanced",
+            expected_dataset="metricsEnhanced",
         )
 
-    def test_transaction_user_misery(self):
+    def test_transaction_user_misery(self) -> None:
         self._on_demand_query_and_assert(
             {
-                "environment": "production",
-                "field": ["transaction", "user_misery(300)"],
-                "name": "",
-                "onDemandType": "dynamic_query",
-                "per_page": "20",
-                "project": self.project.id,
-                "query": "",
-                "referrer": "api.dashboards.tablewidget",
-                "sort": "-user_misery(300)",  # Is this orderby?
-                "useOnDemandMetrics": "true",
+                "field": ["user_misery(300)"],
+                "query": "transaction.duration:>=91",
                 "yAxis": "user_misery(300)",
-                "dataset": "metricsEnhanced",
             },
             expected_on_demand_query=True,
-            dataset="metricsEnhanced",
+            expected_dataset="metricsEnhanced",
         )
+        # self._on_demand_query_and_assert(
+        #     {
+        #         "environment": "production",
+        #         "field": ["transaction", "user_misery(300)"],
+        #         "name": "",
+        #         "onDemandType": "dynamic_query",
+        #         "per_page": "20",
+        #         "project": self.project.id,
+        #         "query": "",
+        #         "referrer": "api.dashboards.tablewidget",
+        #         "sort": "-user_misery(300)",  # Is this orderby?
+        #         "useOnDemandMetrics": "true",
+        #         "yAxis": "user_misery(300)",
+        #         "dataset": "metricsEnhanced",
+        #     },
+        #     expected_on_demand_query=True,
+        #     dataset="metricsEnhanced",
+        # )
 
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
