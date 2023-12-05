@@ -43,7 +43,8 @@ export function CodeLocations({mri}: {mri: string}) {
     return null;
   }
 
-  const reversedCodeLocations = codeLocations.toReversed();
+  // We only want to show the first 5 code locations
+  const reversedCodeLocations = codeLocations.toReversed().slice(0, 5);
 
   return (
     <Wrapper>
