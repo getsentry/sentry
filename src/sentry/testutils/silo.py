@@ -129,7 +129,7 @@ class _SiloModeTestModification:
 
     @contextmanager
     def test_config(self, silo_mode: SiloMode):
-        monolith_region = self.regions[0].name
+        monolith_region = self.regions[0].name if self.regions else settings.SENTRY_MONOLITH_REGION
         with contextlib.ExitStack() as stack:
             stack.enter_context(
                 override_settings(
