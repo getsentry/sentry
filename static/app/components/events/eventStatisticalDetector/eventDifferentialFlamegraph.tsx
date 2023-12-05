@@ -1,7 +1,11 @@
 import {useEffect, useMemo, useState} from 'react';
+import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DifferentialFlamegraph} from 'sentry/components/profiling/flamegraph/differentialFlamegraph';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {Event} from 'sentry/types';
 import {
   CanvasPoolManager,
@@ -168,14 +172,60 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
       theme
     );
   }, [beforeFlamegraph, afterFlamegraph, theme]);
+
   return (
-    <div style={{height: '500px'}}>
+    <DifferentialFlamegraphContainer>
+      {props.after.isLoading || props.before.isLoading ? (
+        <LoadingIndicatorContainer>
+          <LoadingIndicator />
+        </LoadingIndicatorContainer>
+      ) : props.before.isError && props.after.isError ? (
+        <ErrorMessageContainer>
+          {t('Failed to load flamegraph for before and after regression time range.')}
+        </ErrorMessageContainer>
+      ) : props.before.isError ? (
+        <ErrorMessageContainer>
+          {t('Failed to load flamegraph for before regression time range.')}
+        </ErrorMessageContainer>
+      ) : props.after.isError ? (
+        <ErrorMessageContainer>
+          {t('Failed to load flamegraph for after regression time range.')}
+        </ErrorMessageContainer>
+      ) : null}
       <DifferentialFlamegraph
         profileGroup={afterProfileGroup ?? LOADING_PROFILE_GROUP}
         differentialFlamegraph={differentialFlamegraph}
         canvasPoolManager={canvasPoolManager}
         scheduler={scheduler}
       />
-    </div>
+    </DifferentialFlamegraphContainer>
   );
 }
+
+const ErrorMessageContainer = styled('div')`
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background-color: ${p => p.theme.background};
+  color: ${p => p.theme.subText};
+  text-align: center;
+  padding: ${space(2)} ${space(4)};
+`;
+
+const LoadingIndicatorContainer = styled('div')`
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+`;
+
+const DifferentialFlamegraphContainer = styled('div')`
+  position: relative;
+  width: 100%;
+  height: 500px;
+`;
