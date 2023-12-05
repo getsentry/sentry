@@ -303,7 +303,7 @@ class SnubaEventStorage(EventStorage):
         group_id=None,
         skip_transaction_groupevent=False,
         tenant_ids=None,
-        occurrence=None,
+        occurrence_id: Optional[str] = None,
     ):
         """
         Get an event given a project ID and event ID
@@ -325,12 +325,11 @@ class SnubaEventStorage(EventStorage):
             return None
 
         if group_id is not None and (
-            event.get_event_type() == "error"
+            occurrence_id is not None
+            or event.get_event_type() == "error"
             or (event.get_event_type() == "transaction" and skip_transaction_groupevent)
         ):
             event.group_id = group_id
-        elif occurrence is not None:
-            event.occurrence = occurrence
         elif event.get_event_type() != "transaction" or group_id:
             # Load group_id from Snuba if not a transaction
             raw_query_kwargs = {}
