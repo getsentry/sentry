@@ -10,6 +10,8 @@ from sentry.rules.conditions.base import EventCondition
 from sentry.types.activity import ActivityType
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
 
+HIGH_SEVERITY_THRESHOLD = 0.1
+
 
 class HighPriorityIssueCondition(EventCondition):
     id = "sentry.rules.conditions.high_priority_issue.HighPriorityIssueCondition"
@@ -24,7 +26,7 @@ class HighPriorityIssueCondition(EventCondition):
         except (KeyError, TypeError, ValueError):
             return False
 
-        return severity >= 0.1
+        return severity >= HIGH_SEVERITY_THRESHOLD
 
     def passes(self, event: GroupEvent, state: EventState) -> bool:
         has_issue_priority_alerts = features.has("projects:high-priority-alerts", self.project)
