@@ -106,7 +106,7 @@ class ReleaseTests(BackupTestCase):
                 json.dump(snapshot_data, f)
 
             with open(tmp_path, "rb") as f:
-                import_in_global_scope(f)
+                import_in_global_scope(f, printer=NOOP_PRINTER)
 
     def test_at_23_11_1(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
