@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 import math
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from django.conf import settings
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
@@ -24,15 +24,20 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry.models.project import Project
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.tasks.post_process import locks
 from sentry.utils import json
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.locking.manager import LockManager
 from sentry.utils.redis import redis_clusters
-from sentry.utils.snuba import raw_snql_query
+from sentry.utils.services import build_instance_from_options
+
+if TYPE_CHECKING:
+    from sentry.models.project import Project
+
 
 logger = logging.getLogger(__name__)
+
+locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS))
 
 # for snuba operations
 REFERRER = "sentry.issues.issue_velocity"
@@ -51,6 +56,8 @@ def calculate_threshold(project: Project) -> Optional[float]:
     """
     Calculates the velocity threshold based on event frequency in the project for the past week.
     """
+    from sentry.utils.snuba import raw_snql_query
+
     now = datetime.now()
     one_hour_ago = now - timedelta(hours=1)
     one_week_ago = now - timedelta(days=7)
