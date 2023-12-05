@@ -76,7 +76,7 @@ class ProjectReplayAccessibilityIssuesEndpoint(ProjectEndpoint):
             timestamp = None
         else:
             try:
-                timestamp = int(timestamp_param)
+                timestamp = float(timestamp_param)
             except TypeError:
                 timestamp = None
             except ValueError:
