@@ -86,7 +86,6 @@ module = [
     "celery.*",
     "confluent_kafka.*",
     "cssselect.*",
-    "datadog.*",
     "django_zero_downtime_migrations.backends.postgres.schema.*",
     "docker.*",
     "fido2.*",
