@@ -24,12 +24,8 @@ export function useFullSpanFromTrace(
   const firstIndexedSpan = indexedSpansResponse.data?.[0];
 
   const eventDetailsResponse = useEventDetails({
-    eventId: firstIndexedSpan
-      ? firstIndexedSpan[SpanIndexedField.TRANSACTION_ID]
-      : undefined,
-    projectSlug: firstIndexedSpan
-      ? firstIndexedSpan[SpanIndexedField.PROJECT]
-      : undefined,
+    eventId: firstIndexedSpan?.[SpanIndexedField.TRANSACTION_ID],
+    projectSlug: firstIndexedSpan?.[SpanIndexedField.PROJECT],
   });
 
   const spanEntry = eventDetailsResponse.data?.entries.find(
