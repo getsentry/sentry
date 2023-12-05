@@ -1,11 +1,13 @@
-import {useState} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import isArray from 'lodash/isArray';
+import {PlatformIcon} from 'platformicons';
 
 import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import ContextLine from 'sentry/components/events/interfaces/frame/contextLine';
 import DefaultTitle from 'sentry/components/events/interfaces/frame/defaultTitle';
+import {stackTracePlatformIcon} from 'sentry/components/events/interfaces/utils';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -22,24 +24,23 @@ export function CodeLocations({mri}: {mri: string}) {
   const [isExpandedLocation, setIsExpandedLocation] = useState(null);
   const organization = useOrganization();
 
-  const setExpandLocation = index => {
-    if (isExpandedLocation === index) {
-      setIsExpandedLocation(null);
-    } else {
-      setIsExpandedLocation(index);
-    }
-  };
+  const setExpandLocation = useCallback(
+    index => {
+      if (isExpandedLocation === index) {
+        setIsExpandedLocation(null);
+      } else {
+        setIsExpandedLocation(index);
+      }
+    },
+    [isExpandedLocation]
+  );
 
   if (!hasDDMExperimentalFeature(organization)) {
     return null;
   }
-
-  if (!isArray(data?.codeLocations) || data?.codeLocations.length === 0) {
-    return null;
-  }
-
   const codeLocations = data?.codeLocations;
-  if (!codeLocations) {
+
+  if (!codeLocations || !isArray(codeLocations) || codeLocations.length === 0) {
     return null;
   }
 
@@ -55,6 +56,8 @@ export function CodeLocations({mri}: {mri: string}) {
             codeLocation={location}
             showContext={isExpandedLocation === index}
             handleShowContext={() => setExpandLocation(index)}
+            isFirst={index === 0}
+            isLast={index === reversedCodeLocations.length - 1}
           />
         ))}
       </Collapsible>
@@ -62,59 +65,56 @@ export function CodeLocations({mri}: {mri: string}) {
   );
 }
 
-function CodeLocation({codeLocation, showContext, handleShowContext}) {
+function CodeLocation({codeLocation, showContext, handleShowContext, isFirst, isLast}) {
   const frameToShow = codeLocation.frames[0];
 
   if (!frameToShow) {
     return null;
   }
 
+  const platformIcon = stackTracePlatformIcon(frameToShow.platform, codeLocation.frames);
+
   return (
-    <DefaultLineWrapper onClick={handleShowContext}>
-      <DefaultLine className="title" showContext={showContext}>
-        <DefaultLineTitleWrapper>
-          <LeftLineTitle>
-            <DefaultTitle
-              frame={frameToShow as Frame}
-              platform={frameToShow.platform}
-              isHoverPreviewed={false}
-            />
-          </LeftLineTitle>
-          <DefaultLineActionButtons>
-            <StyledCopyToClipboardButton
-              text={`${frameToShow.absPath}:${frameToShow.lineNo}`}
-              size="zero"
-              iconSize="xs"
-            />
-            <ToggleContextButton
-              title={t('Toggle Context')}
-              size="zero"
-              onClick={handleShowContext}
-            >
-              {/* legacy size is deprecated but the icon is too big without it */}
-              <IconChevron
-                direction={showContext ? 'up' : 'down'}
-                size="xs"
-                legacySize="8px"
+    <CodeLocationWrapper>
+      <PlatformIcon size="20px" radius={null} platform={platformIcon} />
+      <DefaultLineWrapper onClick={handleShowContext} isFirst={isFirst} isLast={isLast}>
+        <DefaultLine className="title" showContext={showContext}>
+          <DefaultLineTitleWrapper>
+            <LeftLineTitle>
+              <DefaultTitle
+                frame={frameToShow as Frame}
+                platform={frameToShow.platform}
+                isHoverPreviewed={false}
               />
-            </ToggleContextButton>
-          </DefaultLineActionButtons>
-        </DefaultLineTitleWrapper>
-      </DefaultLine>
-      {showContext && <CodeLocationContext frame={frameToShow} />}
-    </DefaultLineWrapper>
+            </LeftLineTitle>
+            <DefaultLineActionButtons>
+              {frameToShow.contextLine && (
+                <ToggleContextButton
+                  title={t('Toggle Context')}
+                  size="zero"
+                  onClick={handleShowContext}
+                >
+                  {/* legacy size is deprecated but the icon is too big without it */}
+                  <IconChevron
+                    direction={showContext ? 'up' : 'down'}
+                    size="xs"
+                    legacySize="8px"
+                  />
+                </ToggleContextButton>
+              )}
+              <StyledCopyToClipboardButton
+                text={`${frameToShow.absPath}:${frameToShow.lineNo}`}
+                size="zero"
+                iconSize="xs"
+              />
+            </DefaultLineActionButtons>
+          </DefaultLineTitleWrapper>
+        </DefaultLine>
+        {showContext && <CodeLocationContext frame={frameToShow} />}
+      </DefaultLineWrapper>
+    </CodeLocationWrapper>
   );
 }
-
-const ToggleContextButton = styled(Button)`
-  background-color: ${p => p.theme.background};
-  color: ${p => p.theme.subText};
-`;
-
-const DefaultLineActionButtons = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-`;
 
 function CodeLocationContext({frame}: {frame: MetricCodeLocationFrame}) {
   const lineNo = frame.lineNo ?? 0;
@@ -138,6 +138,20 @@ function CodeLocationContext({frame}: {frame: MetricCodeLocationFrame}) {
   );
 }
 
+const CodeLocationWrapper = styled('div')`
+  display: flex;
+`;
+
+const ToggleContextButton = styled(Button)`
+  background-color: ${p => p.theme.background};
+  color: ${p => p.theme.subText};
+`;
+
+const DefaultLineActionButtons = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+`;
+
 const Wrapper = styled('div')`
   margin-top: ${space(1)};
   border-radius: ${p => p.theme.borderRadius};
@@ -145,15 +159,6 @@ const Wrapper = styled('div')`
   & > div > div {
     border: 1px solid ${p => p.theme.border};
     border-bottom: 0;
-  }
-
-  & > div:last-of-type > div {
-    border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
-    border-bottom: 1px solid ${p => p.theme.border};
-  }
-
-  & > div:first-of-type > div:first-child {
-    border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   }
 
   & code {
@@ -173,10 +178,11 @@ const ContextWrapper = styled('div')`
   white-space: pre-wrap;
 `;
 
-const DefaultLineWrapper = styled('div')`
+const DefaultLineWrapper = styled('div')<{isFirst?: boolean; isLast?: boolean}>`
   :hover {
     cursor: pointer;
   }
+  flex-grow: 1;
 `;
 
 const DefaultLine = styled('div')<{showContext?: boolean}>`
@@ -209,4 +215,5 @@ const LeftLineTitle = styled('div')`
 
 const StyledCopyToClipboardButton = styled(CopyToClipboardButton)`
   display: flex;
+  border: none;
 `;
