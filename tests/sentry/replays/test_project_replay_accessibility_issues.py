@@ -199,7 +199,6 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         self.store_replays(mock_replay(seq2_timestamp, self.project.id, replay_id, segment_id=1))
 
         with self.feature(REPLAYS_FEATURES):
-            # Query at a time interval which returns only the first segment.
             response = self.client.get(self.url + "?timestamp=0")
             assert not request_accessibility_issues.called
             assert response.status_code == 200
