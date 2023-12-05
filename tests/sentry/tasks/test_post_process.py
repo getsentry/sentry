@@ -2263,8 +2263,10 @@ class PostProcessGroupPerformanceTest(
     @patch("sentry.rules.processor.RuleProcessor")
     @patch("sentry.signals.transaction_processed.send_robust")
     @patch("sentry.signals.event_processed.send_robust")
+    @patch("sentry.utils.snuba.raw_query")
     def test_full_pipeline_with_group_states(
         self,
+        snuba_raw_query_mock,
         event_processed_signal_mock,
         transaction_processed_signal_mock,
         mock_processor,
@@ -2308,6 +2310,7 @@ class PostProcessGroupPerformanceTest(
             mock_handle_auto_assignment,
             mock_process_rules,
         ]
+        assert snuba_raw_query_mock.call_count == 0
 
 
 @region_silo_test
