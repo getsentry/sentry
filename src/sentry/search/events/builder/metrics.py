@@ -122,6 +122,15 @@ class MetricsQueryBuilder(QueryBuilder):
         if self.use_on_demand:
             return True
 
+        # If we are using the metrics layer, we consider columns to be resolved if they are of type `Function` or
+        # `AlisedExpression`. The reason for why we have to check for `AlisedExpression` is because some derived metrics
+        # are passed as aliased expressions to the MQB query transformer.
+        if self.use_metrics_layer:
+            first_column = self.columns[0]
+            return self.columns and (
+                isinstance(first_column, Function) or isinstance(first_column, AliasedExpression)
+            )
+
         return super().are_columns_resolved()
 
     def _get_on_demand_metric_spec(self, field: str) -> Optional[OnDemandMetricSpec]:
