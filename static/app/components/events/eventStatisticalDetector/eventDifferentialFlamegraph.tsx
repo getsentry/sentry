@@ -56,7 +56,7 @@ export function EventDifferenialFlamegraph(props: EventDifferenialFlamegraphProp
     projectID,
     breakpoint,
     environments: [],
-    transaction: transactions.data?.data?.[0]?.transaction as string,
+    transaction: transactions?.data?.data?.[0]?.transaction as string,
   });
 
   if (!isValid) {
@@ -66,7 +66,6 @@ export function EventDifferenialFlamegraph(props: EventDifferenialFlamegraphProp
   return (
     <div>
       <h3>Differential Flamegraph</h3>
-
       <FlamegraphThemeProvider>
         <FlamegraphStateProvider
           initialState={{

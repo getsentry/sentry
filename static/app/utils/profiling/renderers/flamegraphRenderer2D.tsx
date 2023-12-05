@@ -83,7 +83,7 @@ export class FlamegraphRenderer2D extends FlamegraphRenderer {
 
       this.ctx.fillStyle =
         this.isSearching && !this.searchResults.has(getFlamegraphFrameSearchId(frame))
-          ? colorComponentsToRgba(this.theme.COLORS.FRAME_GRAYSCALE_COLOR)
+          ? colorComponentsToRgba(this.theme.COLORS.FRAME_FALLBACK_COLOR)
           : colorComponentsToRgba(color);
 
       this.ctx.fillRect(
