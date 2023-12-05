@@ -31,6 +31,7 @@ import sentry_sdk
 from django.conf import settings
 from typing_extensions import Self
 
+from sentry.app import env
 from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, RpcModel
 from sentry.services.hybrid_cloud.rpcmetrics import RpcMetricRecord
 from sentry.services.hybrid_cloud.sig import SerializableFunctionSignature
@@ -447,6 +448,12 @@ def dispatch_remote_call(
     return remote_silo_call.dispatch(use_test_client)
 
 
+RPC_CACHE_ALLOW_LIST = [
+    "/api/0/internal/rpc/user_option/get_many/",
+    "/api/0/internal/rpc/subscription/get_for_organization/",
+]
+
+
 @dataclass(frozen=True)
 class _RemoteSiloCall:
     region: Region | None
@@ -509,6 +516,12 @@ class _RemoteSiloCall:
             "Authorization": f"Rpcsignature {signature}",
         }
 
+        hash_value = 1
+        if self.path in RPC_CACHE_ALLOW_LIST:
+            hash_value = hash((self.path, data))
+            if hash_value in env.rpc_cache:
+                return env.rpc_cache.get(hash_value)
+
         with self._open_request_context():
             if use_test_client:
                 response = self._fire_test_request(headers, data)
@@ -525,7 +538,10 @@ class _RemoteSiloCall:
                     len(response.content),
                     tags=self._metrics_tags(),
                 )
-                return response.json()
+                result = response.json()
+                if self.path in RPC_CACHE_ALLOW_LIST:
+                    env.rpc_cache[hash_value] = result
+                return result
             self._raise_from_response_status_error(response)
 
     @contextmanager

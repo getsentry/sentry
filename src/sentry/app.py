@@ -10,6 +10,7 @@ class State(local):
     request: HttpRequest | None = None
     request_stack: List[HttpRequest] | None = None
     data: dict[str, Any] = {}
+    rpc_cache: dict[int, Any] = {}
 
     def clear(self) -> None:
         self.request = None
