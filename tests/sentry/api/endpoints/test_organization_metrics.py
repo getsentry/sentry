@@ -112,6 +112,29 @@ class OrganizationMetricsMetaTest(OrganizationMetricMetaIntegrationTestCase):
 
         assert isinstance(response.data, list)
 
+    def test_metrics_meta_with_metrics_layer(self):
+        set_mri = "s:custom/user_click@none"
+        self.store_metric(
+            self.project.organization.id,
+            self.project.id,
+            "set",
+            set_mri,
+            {},
+            int(self.now.timestamp()),
+            "marco",
+            UseCaseID.CUSTOM,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            project=[self.project.id],
+            useCase=["custom"],
+            useNewMetricsLayer="true",
+        )
+
+        assert len(response.data) == 1
+        assert "uniq" in response.data[0]["operations"]
+
     def test_metrics_meta_invalid_use_case(self):
         response = self.get_error_response(
             self.organization.slug, project=[self.project.id], useCase=["not-a-use-case"]

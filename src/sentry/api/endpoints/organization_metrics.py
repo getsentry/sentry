@@ -57,7 +57,12 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization) -> Response:
         projects = self.get_projects(request, organization)
 
-        metrics = get_metrics_meta(projects, use_case_id=get_use_case_id(request))
+        use_new_metrics_layer = request.GET.get("useNewMetricsLayer", "false") == "true"
+        metrics = get_metrics_meta(
+            projects,
+            use_case_id=get_use_case_id(request),
+            use_new_metrics_layer=use_new_metrics_layer,
+        )
 
         return Response(metrics, status=200)
 

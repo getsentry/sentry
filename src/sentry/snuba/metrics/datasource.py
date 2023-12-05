@@ -78,6 +78,11 @@ from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
 
+# Temporary mapping that returns the new operation names that are understood by the new metrics layer. The idea is to
+# remove this mapping as soon as we fully switched over to the new metrics layer and the meta queries are implemented
+# in the new metrics layer.
+OLD_TO_NEW_METRICS_LAYER_OPS = {"count_unique": "uniq"}
+
 
 def _build_use_case_id_filter(use_case_id: UseCaseID):
     use_case_values = [use_case_id.value]
@@ -164,24 +169,35 @@ def get_available_derived_metrics(
     return found_derived_metrics.intersection(all_derived_metrics)
 
 
-def get_metrics_meta(projects: Sequence[Project], use_case_id: UseCaseID) -> Sequence[MetricMeta]:
+def get_metrics_meta(
+    projects: Sequence[Project], use_case_id: UseCaseID, use_new_metrics_layer: bool
+) -> Sequence[MetricMeta]:
     metas = []
     stored_mris = get_stored_mris(projects, use_case_id) if projects else []
 
     for mri in stored_mris:
         parsed_mri = parse_mri(mri)
-
-        # TODO(ogi): check how is this possible
         if parsed_mri is None:
             continue
 
         ops = get_available_operations(parsed_mri)
+        new_ops = ops
+
+        # TODO(ddm): remove this mutation as soon as we are fully onboard with the new metrics layer.
+        # We temporarily mutate the ops in case we are using the new metrics layer.
+        if use_new_metrics_layer:
+            new_ops = []
+            for op in ops:
+                new_op = op
+                if (found_op := OLD_TO_NEW_METRICS_LAYER_OPS.get(op)) is not None:
+                    new_op = found_op
+                new_ops.append(new_op)
 
         metas.append(
             MetricMeta(
                 mri=mri,
                 name=parsed_mri.name,
-                operations=ops,
+                operations=new_ops,
                 # TODO: check unit casting
                 unit=parsed_mri.unit,
                 # TODO: add entity letter to entity key mapping i.e. c -> counter
