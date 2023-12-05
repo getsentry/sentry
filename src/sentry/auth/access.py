@@ -349,7 +349,10 @@ class DbAccess(Access):
 
     def get_team_role(self, team: Team) -> TeamRole | None:
         team_member = self._team_memberships.get(team)
-        return team_member and team_member.get_team_role()
+        if team_member:
+            return team_member.get_team_role()
+        else:
+            return None
 
     def has_any_project_scope(self, project: Project, scopes: Collection[str]) -> bool:
         """
