@@ -30,6 +30,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
             "organizations:integrations-ticket-rules", project.organization
         )
         has_issue_severity_alerts = features.has("projects:first-event-severity-alerting", project)
+        has_high_priority_issue_alert = features.has("projects:high-priority-alerts", project)
 
         # TODO: conditions need to be based on actions
         for rule_type, rule_cls in rules:
@@ -70,6 +71,12 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
                 continue
 
             if rule_type.startswith("condition/"):
+                if (
+                    context["id"]
+                    == "sentry.rules.filters.high_priority_issue.HighPriorityIssueCondition"
+                    and not has_high_priority_issue_alert
+                ):
+                    continue
                 condition_list.append(context)
             elif rule_type.startswith("filter/"):
                 if (
