@@ -112,6 +112,7 @@ class Superuser:
         return self._is_active
 
     def __init__(self, request, allowed_ips=UNSET, org_id=UNSET, current_datetime=None):
+        self.uid: str | None = None
         self.request = request
         if allowed_ips is not UNSET:
             self.allowed_ips = frozenset(
@@ -305,7 +306,7 @@ class Superuser:
         if current_datetime is None:
             current_datetime = timezone.now()
         self.token = token
-        self.uid: str | None = str(user.id)
+        self.uid = str(user.id)
         # the absolute maximum age of this session
         self.expires = expires
         # do we have a valid superuser session?
