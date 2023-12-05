@@ -49,7 +49,10 @@ export default function EditMonitor() {
     browserHistory.push(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/crons/${data.slug}/`,
-        query: {environment: selection.environments},
+        query: {
+          environment: selection.environments,
+          project: selection.projects,
+        },
       })
     );
   }

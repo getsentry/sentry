@@ -5,6 +5,7 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import CronsFeedbackButton from './components/cronsFeedbackButton';
@@ -13,10 +14,21 @@ import {Monitor} from './types';
 
 function CreateMonitor() {
   const {slug: orgSlug} = useOrganization();
+  const {selection} = usePageFilters();
 
   function onSubmitSuccess(data: Monitor) {
-    const url = normalizeUrl(`/organizations/${orgSlug}/crons/${data.slug}/`);
-    browserHistory.push(url);
+    const endpointOptions = {
+      query: {
+        project: selection.projects,
+        environment: selection.environments,
+      },
+    };
+    browserHistory.push(
+      normalizeUrl({
+        pathname: `/organizations/${orgSlug}/crons/${data.slug}/`,
+        query: endpointOptions.query,
+      })
+    );
   }
 
   return (
