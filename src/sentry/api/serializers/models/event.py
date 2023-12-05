@@ -414,12 +414,13 @@ class SqlFormatEventSerializer(EventSerializer):
             sentry_sdk.capture_exception(exc)
             return event_data
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, include_full_release_data=False):
         result = super().serialize(obj, attrs, user)
 
         with sentry_sdk.start_span(op="serialize", description="Format SQL"):
             result = self._format_breadcrumb_messages(result, obj, user)
             result = self._format_db_spans(result, obj, user)
+            result["release"] = self._get_release_info(user, obj, include_full_release_data)
 
         return result
 
@@ -450,8 +451,7 @@ class IssueEventSerializer(SqlFormatEventSerializer):
         return list(unique_resolution_methods)
 
     def serialize(self, obj, attrs, user, include_full_release_data=False):
-        result = super().serialize(obj, attrs, user)
-        result["release"] = self._get_release_info(user, obj, include_full_release_data)
+        result = super().serialize(obj, attrs, user, include_full_release_data)
         result["userReport"] = self._get_user_report(user, obj)
         result["sdkUpdates"] = self._get_sdk_updates(obj)
         result["resolvedWith"] = self._get_resolved_with(obj)
