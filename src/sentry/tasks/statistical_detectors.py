@@ -607,7 +607,6 @@ def query_transactions(
         DetectorPayload(
             project_id=row["project_id"],
             group=row["transaction_name"],
-            # take the first 16 chars of the fingerprint as that's sufficiently unique
             fingerprint=fingerprint_regression(row["transaction_name"]),
             count=row["count"],
             value=row["p95"],
