@@ -11,7 +11,7 @@ from sentry import audit_log, options
 from sentry.http import safe_urlopen
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
-from sentry.models.integrations.sentry_app import track_response_code
+from sentry.models.integrations.sentry_app import SentryApp, track_response_code
 from sentry.models.integrations.utils import get_redis_key, is_response_error, is_response_success
 from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
@@ -20,7 +20,7 @@ from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 if TYPE_CHECKING:
     from sentry.api.serializers import AppPlatformEvent
-    from sentry.models.integrations.sentry_app import SentryApp
+    from sentry.services.hybrid_cloud.app.model import RpcSentryApp
 
 
 TIMEOUT_STATUS_CODE = 0
@@ -41,12 +41,14 @@ def ignore_unpublished_app_errors(func):
     return wrapper
 
 
-def check_broken(sentryapp: SentryApp, org_id: str):
+def check_broken(sentryapp: SentryApp | RpcSentryApp, org_id: str):
+    from sentry.services.hybrid_cloud.app.service import app_service
+
     redis_key = get_redis_key(sentryapp, org_id)
     buffer = IntegrationRequestBuffer(redis_key)
     if buffer.is_integration_broken():
         org = Organization.objects.get(id=org_id)
-        sentryapp._disable()
+        app_service.disable_sentryapp(id=sentryapp.id)
         notify_disable(org, sentryapp.name, redis_key, sentryapp.slug, sentryapp.webhook_url)
         buffer.clear()
         create_system_audit_entry(
@@ -68,7 +70,9 @@ def check_broken(sentryapp: SentryApp, org_id: str):
         )
 
 
-def record_timeout(sentryapp: SentryApp, org_id: str, e: Union[ConnectionError, Timeout]):
+def record_timeout(
+    sentryapp: SentryApp | RpcSentryApp, org_id: str, e: Union[ConnectionError, Timeout]
+):
     """
     Record Unpublished Sentry App timeout or connection error in integration buffer to check if it is broken and should be disabled
     """
@@ -82,7 +86,7 @@ def record_timeout(sentryapp: SentryApp, org_id: str, e: Union[ConnectionError, 
     check_broken(sentryapp, org_id)
 
 
-def record_response(sentryapp: SentryApp, org_id: str, response: Response):
+def record_response(sentryapp: SentryApp | RpcSentryApp, org_id: str, response: Response):
     if not sentryapp.is_internal:
         return
     redis_key = get_redis_key(sentryapp, org_id)
@@ -99,7 +103,7 @@ def record_response(sentryapp: SentryApp, org_id: str, response: Response):
 
 @ignore_unpublished_app_errors
 def send_and_save_webhook_request(
-    sentry_app: SentryApp,
+    sentry_app: SentryApp | RpcSentryApp,
     app_platform_event: AppPlatformEvent,
     url: str | None = None,
 ) -> Response:

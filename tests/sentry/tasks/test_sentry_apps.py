@@ -5,7 +5,6 @@ from unittest.mock import ANY, patch
 import pytest
 from celery import Task
 from django.core import mail
-from django.db import router
 from django.test import override_settings
 from django.urls import reverse
 from requests.exceptions import Timeout
@@ -25,7 +24,6 @@ from sentry.models.rule import Rule
 from sentry.models.sentryfunction import SentryFunction
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ClientError
-from sentry.silo import unguarded_write
 from sentry.tasks.post_process import post_process_group
 from sentry.tasks.sentry_apps import (
     build_comment_webhook,
@@ -40,7 +38,8 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
@@ -222,6 +221,7 @@ class TestSendAlertEvent(TestCase):
         assert requests[0]["event_type"] == "event_alert.triggered"
 
 
+@region_silo_test
 @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
 class TestProcessResourceChange(TestCase):
     def setUp(self):
@@ -264,7 +264,7 @@ class TestProcessResourceChange(TestCase):
         assert len(safe_urlopen.mock_calls) == 0
 
     def test_does_not_process_sentry_apps_without_issue_webhooks(self, safe_urlopen):
-        with unguarded_write(router.db_for_write(SentryAppInstallation)):
+        with assume_test_silo_mode_of(SentryApp):
             SentryAppInstallation.objects.all().delete()
             SentryApp.objects.all().delete()
 
@@ -365,6 +365,7 @@ class TestProcessResourceChange(TestCase):
         assert not safe_urlopen.called
 
 
+@region_silo_test
 @patch("sentry.tasks.sentry_functions.send_sentry_function_webhook.delay")
 class TestProcessResourceChangeSentryFunctions(TestCase):
     def setUp(self):
@@ -448,6 +449,7 @@ class TestProcessResourceChangeSentryFunctions(TestCase):
         assert len(send_sentry_function_webhook.mock_calls) == 0
 
 
+@region_silo_test
 class TestSendResourceChangeWebhook(TestCase):
     def setUp(self):
         self.project = self.create_project()
@@ -499,6 +501,7 @@ class TestSendResourceChangeWebhook(TestCase):
         assert self.sentry_app_2.webhook_url in call_urls
 
 
+@control_silo_test
 @patch("sentry.mediators.sentry_app_installations.InstallationNotifier.run")
 class TestInstallationWebhook(TestCase):
     def setUp(self):
@@ -526,6 +529,7 @@ class TestInstallationWebhook(TestCase):
         assert len(run.mock_calls) == 0
 
 
+@region_silo_test
 @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
 class TestCommentWebhook(TestCase):
     def setUp(self):
@@ -596,6 +600,7 @@ class TestCommentWebhook(TestCase):
         assert data["data"]["issue_id"] == self.issue.id
 
 
+@region_silo_test
 @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
 class TestWorkflowNotification(TestCase):
     def setUp(self):
@@ -655,6 +660,7 @@ class TestWorkflowNotification(TestCase):
         assert not safe_urlopen.called
 
 
+@region_silo_test
 class TestWebhookRequests(TestCase):
     def setUp(self):
         self.organization = self.create_organization(owner=self.user, id=1)
@@ -664,7 +670,8 @@ class TestWebhookRequests(TestCase):
             events=["issue.resolved", "issue.ignored", "issue.assigned"],
             webhook_url="https://example.com",
         )
-        self.sentry_app.update(status=SentryAppStatus.PUBLISHED)
+        with assume_test_silo_mode_of(SentryApp):
+            self.sentry_app.update(status=SentryAppStatus.PUBLISHED)
 
         self.install = self.create_sentry_app_installation(
             organization=self.organization, slug=self.sentry_app.slug
@@ -807,7 +814,8 @@ class TestWebhookRequests(TestCase):
         """
         Tests that buffer records when unpublished app has a timeout but error is not raised
         """
-        self.sentry_app.update(status=SentryAppStatus.INTERNAL)
+        with assume_test_silo_mode_of(SentryApp):
+            self.sentry_app.update(status=SentryAppStatus.INTERNAL)
         events = self.sentry_app.events
         data = {"issue": serialize(self.issue)}
         # we don't raise errors for unpublished and internal apps
@@ -828,7 +836,8 @@ class TestWebhookRequests(TestCase):
         """
         Test that the integration is disabled after BROKEN_TIMEOUT_THRESHOLD number of timeouts
         """
-        self.sentry_app.update(status=SentryAppStatus.INTERNAL)
+        with assume_test_silo_mode_of(SentryApp):
+            self.sentry_app.update(status=SentryAppStatus.INTERNAL)
         data = {"issue": serialize(self.issue)}
         # we don't raise errors for unpublished and internal apps
         for i in range(3):
@@ -849,7 +858,8 @@ class TestWebhookRequests(TestCase):
         Tests that the integration is broken after 7 days of errors and disabled
         Slow shut off
         """
-        self.sentry_app.update(status=SentryAppStatus.INTERNAL)
+        with assume_test_silo_mode_of(SentryApp):
+            self.sentry_app.update(status=SentryAppStatus.INTERNAL)
         data = {"issue": serialize(self.issue)}
         now = datetime.now() + timedelta(hours=1)
         for i in reversed(range(7)):
@@ -858,15 +868,21 @@ class TestWebhookRequests(TestCase):
                     installation=self.install, event="issue.assigned", data=data, actor=self.user
                 )
 
+        # Flush audit logs
+        with outbox_runner():
+            pass
+
         assert safe_urlopen.called
         assert [len(item) == 0 for item in self.integration_buffer._get_broken_range_from_buffer()]
         self.sentry_app.refresh_from_db()  # reload to get updated events
         assert len(self.sentry_app.events) == 0  # check that events are empty / app is disabled
         assert len(self.integration_buffer._get_all_from_buffer()) == 0
-        assert AuditLogEntry.objects.filter(
-            event=audit_log.get_event_id("INTERNAL_INTEGRATION_DISABLED"),
-            organization_id=self.organization.id,
-        ).exists()
+
+        with assume_test_silo_mode_of(AuditLogEntry):
+            assert AuditLogEntry.objects.filter(
+                event=audit_log.get_event_id("INTERNAL_INTEGRATION_DISABLED"),
+                organization_id=self.organization.id,
+            ).exists()
 
     def test_notify_disabled_email(self):
         with self.tasks():
