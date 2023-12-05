@@ -104,13 +104,12 @@ function MockTimelineVisualization({schedule}: Props) {
       return;
     }
 
-    const currScheduleType = form.getValue('config.schedule_type');
-    if (currScheduleType === ScheduleType.INTERVAL) {
+    if (scheduleType === ScheduleType.INTERVAL) {
       form.setError('config.schedule.frequency', errorMessage);
-    } else if (currScheduleType === ScheduleType.CRONTAB) {
+    } else if (scheduleType === ScheduleType.CRONTAB) {
       form.setError('config.schedule', errorMessage);
     }
-  }, [errorMessage, form]);
+  }, [errorMessage, form, scheduleType]);
 
   const mockTimestamps = data?.map(ts => new Date(ts * 1000));
   const start = mockTimestamps?.[0];
