@@ -199,11 +199,13 @@ export function getReadableMetricType(type?: string) {
   return metricTypeToReadable[type as MetricType] ?? t('unknown');
 }
 
-export function formatDuration(seconds: number): string {
-  if (seconds === 0) {
-    return '0';
-  }
+const MILLISECOND = 1;
+const MICROSECOND = MILLISECOND / 1000;
 
+export function formatDuration(seconds: number): string {
+  if (!seconds) {
+    return '0ms';
+  }
   const absValue = Math.abs(seconds * 1000);
   // value in milliseconds
   const msValue = seconds * 1000;
@@ -229,10 +231,10 @@ export function formatDuration(seconds: number): string {
   } else if (absValue >= SECOND) {
     unit = 'second';
     value = msValue / SECOND;
-  } else if (absValue >= 1) {
+  } else if (absValue >= MILLISECOND) {
     unit = 'millisecond';
     value = msValue;
-  } else if (absValue >= 0.001) {
+  } else if (absValue >= MICROSECOND) {
     unit = 'microsecond';
     value = msValue * 1000;
   }
