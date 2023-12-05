@@ -56,7 +56,7 @@ export function EventDifferenialFlamegraph(props: EventDifferenialFlamegraphProp
     projectID,
     breakpoint,
     environments: [],
-    transaction,
+    transaction: transactions?.data?.data?.[0]?.transaction as string,
   });
 
   if (!isValid) {
