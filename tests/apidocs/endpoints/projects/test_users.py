@@ -55,6 +55,7 @@ class ProjectUsersDocs(APIDocsTestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
     def test_get(self):
-        response = self.client.get(self.url)
-        request = RequestFactory().get(self.url)
-        self.validate_schema(request, response)
+        with self.feature("organizations:eventuser-from-snuba"):
+            response = self.client.get(self.url)
+            request = RequestFactory().get(self.url)
+            self.validate_schema(request, response)
