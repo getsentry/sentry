@@ -81,7 +81,7 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "geo.subdivision": "user.geo.subdivision",
     "http.method": "request.method",
     "http.url": "request.url",
-    "http.referer": "request.referer",
+    "http.referer": "request.headers.Referer",
     # url is a tag extracted by Sentry itself, on Relay it's received as `request.url`
     "url": "request.url",
     "sdk.name": "sdk.name",

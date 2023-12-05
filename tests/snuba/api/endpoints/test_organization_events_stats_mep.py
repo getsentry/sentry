@@ -1296,7 +1296,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             "mri": "c:transactions/on_demand@none",
             "field": None,
             "tags": [
-                {"key": "query_hash", "value": "fc0c932e"},
+                {"key": "query_hash", "value": "ac241f56"},
                 {"key": "networkId", "field": "event.tags.networkId"},
                 {"key": "environment", "field": "event.environment"},
             ],
@@ -1310,7 +1310,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
                     },
                     {
                         "op": "glob",
-                        "name": "event.request.referer",
+                        "name": "event.request.headers.Referer",
                         "value": ["https://sentry.io/*/bar/*"],
                     },
                 ],
