@@ -24,7 +24,7 @@ def get_global_config():
     options = dict()
     for option in RELAY_OPTIONS:
         if (value := sentry.options.get(option)) is not None:
-                options[option] = value
+            options[option] = value
 
     if options:
         global_config["options"] = options
