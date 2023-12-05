@@ -147,22 +147,24 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
     const {releases} = this.state;
 
     // Grab earliest release and latest release - then fetch all statuses within
-    let start = releases[0].dateCreated;
-    let end = releases[0].dateCreated;
+    const fuzzSec = 30;
+    let start = new Date(new Date(releases[0].dateCreated).getTime() - fuzzSec * 1000);
+    let end = new Date(new Date(releases[0].dateCreated).getTime() + fuzzSec * 1000);
     const releaseVersions: string[] = [];
     releases.forEach(release => {
-      if (release.dateCreated < start) {
-        start = release.dateCreated;
+      const created = new Date(release.dateCreated);
+      if (created < start) {
+        start = created;
       }
-      if (release.dateCreated > end) {
-        end = release.dateCreated;
+      if (created > end) {
+        end = created;
       }
       releaseVersions.push(release.version);
     });
 
     const query: ThresholdStatusesQuery = {
-      start,
-      end,
+      start: start.toISOString(),
+      end: end.toISOString(),
       release: releaseVersions,
     };
     if (selection.projects.length) {

@@ -523,7 +523,9 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
                               }}
                             />
                           </ReleaseDetailsPageFilters>
-
+                          <div>FOO BAR</div>
+                          <div>{JSON.stringify(Object.keys(this.props))}</div>
+                          <div>{JSON.stringify(Object.keys(this.context))}</div>
                           {(hasDiscover || hasPerformance || hasHealthData) && (
                             <ReleaseComparisonChart
                               release={release}
@@ -540,7 +542,6 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
                               hasHealthData={hasHealthData}
                             />
                           )}
-
                           <ReleaseIssues
                             organization={organization}
                             version={version}
@@ -549,7 +550,6 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
                             queryFilterDescription={t('In this release')}
                             withChart
                           />
-
                           <Feature features="performance-view">
                             {hasReleaseComparisonPerformance ? (
                               <PerformanceCardTable
@@ -748,4 +748,5 @@ const ReleaseBoundsDescription = styled('span')<{primary: boolean}>`
   color: ${p => (p.primary ? p.theme.activeText : p.theme.subText)};
 `;
 
+ReleaseOverview.contextType = ReleaseContext;
 export default withApi(withPageFilters(withOrganization(ReleaseOverview)));
