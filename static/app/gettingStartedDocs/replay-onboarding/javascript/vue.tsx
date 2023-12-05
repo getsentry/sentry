@@ -2,7 +2,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Organization, PlatformKey} from 'sentry/types';
 
 type StepProps = {
@@ -32,17 +32,8 @@ export const steps = ({
 }: Partial<StepProps> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
-    description: (
-      <p>
-        {tct(
-          'Add the Sentry SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn]. You need a minimum version 7.27.0 of [code:@sentry/react] in order to use Session Replay. You do not need to install any additional packages.',
-          {
-            code: <code />,
-            codeYarn: <code />,
-            codeNpm: <code />,
-          }
-        )}
-      </p>
+    description: t(
+      'The Replay integration is already included with the Vue SDK package.'
     ),
     configurations: [
       {
@@ -52,13 +43,13 @@ export const steps = ({
             label: 'npm',
             value: 'npm',
             language: 'bash',
-            code: 'npm install --save @sentry/react',
+            code: 'npm install --save @sentry/vue',
           },
           {
             label: 'yarn',
             value: 'yarn',
             language: 'bash',
-            code: 'yarn add @sentry/react',
+            code: 'yarn add @sentry/vue',
           },
         ],
       },
@@ -79,15 +70,11 @@ export const steps = ({
       {
         language: 'javascript',
         code: `
-import * as Sentry from "@sentry/react";
+        import * as Sentry from "@sentry/vue";
 
-Sentry.init({
-  ${sentryInitContent}
-});
-
-const container = document.getElementById(“app”);
-const root = createRoot(container);
-root.render(<App />);
+        Sentry.init({
+          ${sentryInitContent}
+        });
         `,
       },
     ],
@@ -96,7 +83,7 @@ root.render(<App />);
 
 // Configuration End
 
-export function GettingStartedWithReactReplay({
+export function GettingStartedWithVueReplay({
   dsn,
   organization,
   newOrg,
@@ -119,12 +106,12 @@ export function GettingStartedWithReactReplay({
         platformKey,
         projectId,
       })}
-      newOrg={newOrg}
       platformKey={platformKey}
+      newOrg={newOrg}
       hideHeader
       {...props}
     />
   );
 }
 
-export default GettingStartedWithReactReplay;
+export default GettingStartedWithVueReplay;
