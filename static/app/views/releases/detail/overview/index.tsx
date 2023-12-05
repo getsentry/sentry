@@ -62,6 +62,7 @@ import OtherProjects from './sidebar/otherProjects';
 import ProjectReleaseDetails from './sidebar/projectReleaseDetails';
 import ReleaseAdoption from './sidebar/releaseAdoption';
 import ReleaseStats from './sidebar/releaseStats';
+import ThresholdStatuses from './sidebar/thresholdStatuses';
 import TotalCrashFreeUsers from './sidebar/totalCrashFreeUsers';
 import ReleaseArchivedNotice from './releaseArchivedNotice';
 import ReleaseComparisonChart from './releaseComparisonChart';
@@ -375,6 +376,7 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
           refetchData,
           hasHealthData,
           releaseBounds,
+          thresholdStatuses,
         }) => {
           const {commitCount, version} = release;
           const hasDiscover = organization.features.includes('discover-basic');
@@ -382,6 +384,14 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
           const hasReleaseComparisonPerformance = organization.features.includes(
             'release-comparison-performance'
           );
+          const thresholdList =
+            (thresholdStatuses &&
+              thresholdStatuses[`${project.slug}-${release.version}`]) ||
+            [];
+          const lastDeploy = release.lastDeploy;
+          const filteredThresholdList = thresholdList?.filter(status => {
+            return status.environment?.name === lastDeploy?.environment;
+          });
           const {environments} = selection;
           const performanceType = platformToPerformanceType([project], [project.id]);
           const {selectedSort, sortOptions} = getTransactionsListSort(location);
@@ -523,9 +533,6 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
                               }}
                             />
                           </ReleaseDetailsPageFilters>
-                          <div>FOO BAR</div>
-                          <div>{JSON.stringify(Object.keys(this.props))}</div>
-                          <div>{JSON.stringify(Object.keys(this.context))}</div>
                           {(hasDiscover || hasPerformance || hasHealthData) && (
                             <ReleaseComparisonChart
                               release={release}
@@ -584,6 +591,11 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
                             release={release}
                             project={project}
                           />
+                          {filteredThresholdList.length > 0 && (
+                            <ThresholdStatuses
+                              thresholdStatuses={filteredThresholdList}
+                            />
+                          )}
                           {hasHealthData && (
                             <ReleaseAdoption
                               releaseSessions={thisRelease}
