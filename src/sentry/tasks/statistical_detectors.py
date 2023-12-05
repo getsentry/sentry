@@ -33,8 +33,6 @@ from sentry.constants import ObjectStatus
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.profiles.utils import get_from_profiling_service
-from sentry.search.events.builder import ProfileTopFunctionsTimeseriesQueryBuilder
-from sentry.search.events.types import QueryBuilderConfig
 from sentry.seer.utils import BreakpointData
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -839,29 +837,16 @@ def query_functions_timeseries(
         for project, fingerprint in functions_list
     ]
 
-    builder = ProfileTopFunctionsTimeseriesQueryBuilder(
-        dataset=Dataset.Functions,
-        params=params,
-        interval=interval,
-        top_events=chunk,
-        other=False,
-        query="is_application:1",
-        selected_columns=["project.id", "fingerprint"],
+    results = functions.top_events_timeseries(
         timeseries_columns=[agg_function],
-        config=QueryBuilderConfig(
-            skip_tag_resolution=True,
-        ),
-    )
-    raw_results = raw_snql_query(
-        builder.get_snql_query(),
+        selected_columns=["project.id", "fingerprint"],
+        user_query="is_application:1",
+        params=params,
+        orderby=None,  # unused because top events is specified
+        rollup=interval,
+        limit=len(chunk),
+        organization=None,  # unused
         referrer=Referrer.API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_STATS.value,
-    )
-
-    results = functions.format_top_events_timeseries_results(
-        raw_results,
-        builder,
-        params,
-        interval,
         top_events={"data": chunk},
         result_key_order=["project.id", "fingerprint"],
     )
