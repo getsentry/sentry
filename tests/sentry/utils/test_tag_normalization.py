@@ -1,6 +1,9 @@
+from unittest import mock
+
 import pytest
 
-from sentry.utils.tag_normalization import normalize_sdk_tag
+from sentry.eventstore.models import Event
+from sentry.utils.tag_normalization import normalize_sdk_tag, normalized_sdk_tag_from_event
 
 
 @pytest.mark.parametrize(
@@ -70,3 +73,22 @@ def test_responses_cached():
 
     assert normalize_sdk_tag.cache_info().hits == 1
     assert normalize_sdk_tag.cache_info().misses == 1
+
+
+@pytest.fixture
+def mock_event():
+    return mock.Mock(spec=Event)
+
+
+@pytest.mark.parametrize(
+    ("tag", "expected"),
+    (("foo.baz.bar", "other"), ("sentryfoo", "other"), ("raven", "other")),
+)
+def test_normalized_sdk_tag_from_event(tag, expected, mock_event):
+    mock_event.data.sdk.name = tag
+    assert normalized_sdk_tag_from_event(mock_event) == expected
+
+
+def test_normalized_sdk_tag_from_event_exception(mock_event):
+    mock_event.data.sdk.name.side_effect = Exception("foo")
+    assert normalized_sdk_tag_from_event(mock_event) == "other"
