@@ -44,6 +44,12 @@ from sentry.testutils.pytest.fixtures import django_db_all
             "transaction.duration:>1",
             True,
         ),  # transaction.duration query is on-demand
+        ("p90(transaction.duration)", "release:a", False),  # supported by standard metrics
+        (
+            "p90(transaction.duration)",
+            "transaction.duration:>1",
+            True,
+        ),  # transaction.duration query is on-demand
         ("count()", "", False),  # Malformed aggregate should return false
         (
             "count()",
@@ -120,6 +126,8 @@ class TestCreatesOndemandMetricSpec:
             # we don't support custom percentiles that can be mapped to one of standard percentiles
             ("percentile(transaction.duration, 0.5)", "transaction.duration>0"),
             ("percentile(transaction.duration, 0.50)", "transaction.duration>0"),
+            ("percentile(transaction.duration, 0.9)", "transaction.duration>0"),
+            ("percentile(transaction.duration, 0.90)", "transaction.duration>0"),
             ("percentile(transaction.duration, 0.95)", "transaction.duration>0"),
             ("percentile(transaction.duration, 0.99)", "transaction.duration>0"),
             ("percentile(transaction.duration, 1)", "transaction.duration>0"),
