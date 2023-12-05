@@ -1,5 +1,6 @@
 from django.db import connections
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
@@ -43,6 +44,7 @@ from rest_framework.response import Response
 
 @region_silo_endpoint
 class OrganizationMemberUnreleasedCommitsEndpoint(OrganizationMemberEndpoint):
+    owner = ApiOwner.ECOSYSTEM
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }

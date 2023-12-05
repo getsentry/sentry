@@ -147,11 +147,10 @@ def _get_shared_email_domain(organization: Organization) -> str | None:
 
 @region_silo_endpoint
 class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.ECOSYSTEM
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
-
-    owner = ApiOwner.ENTERPRISE
 
     permission_classes = (MissingMembersPermission,)
 

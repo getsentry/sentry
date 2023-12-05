@@ -22,7 +22,7 @@ from sentry.utils.outcomes import Outcome
 
 @region_silo_endpoint
 class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
-    owner = ApiOwner.OWNERS_INGEST
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }

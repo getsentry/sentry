@@ -2,6 +2,7 @@ from django.urls import reverse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
@@ -39,6 +40,7 @@ def replace_keys(html, project_key):
 
 @region_silo_endpoint
 class ProjectDocsPlatformEndpoint(ProjectEndpoint):
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }

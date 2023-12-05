@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import SentryAppInstallationBaseEndpoint
@@ -15,6 +16,7 @@ from sentry.utils.functional import extract_lazy_object
 
 @region_silo_endpoint
 class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBaseEndpoint):
+    owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,
     }

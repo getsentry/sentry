@@ -3,6 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import (
@@ -22,6 +23,7 @@ class ApiKeySerializer(serializers.ModelSerializer):
 
 @control_silo_endpoint
 class OrganizationApiKeyDetailsEndpoint(ControlSiloOrganizationEndpoint):
+    owner = ApiOwner.ECOSYSTEM
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "GET": ApiPublishStatus.UNKNOWN,

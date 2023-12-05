@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import all_silo_endpoint
 from sentry.integrations.slack.client import SlackClient
@@ -30,6 +31,7 @@ from .command import LINK_FROM_CHANNEL_MESSAGE
 
 @all_silo_endpoint  # Only challenge verification is handled at control
 class SlackEventEndpoint(SlackDMEndpoint):
+    owner = ApiOwner.ECOSYSTEM
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }

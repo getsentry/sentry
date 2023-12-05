@@ -4,6 +4,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
@@ -15,6 +16,7 @@ from sentry.utils.cloudfunctions import delete_function, update_function
 
 @region_silo_endpoint
 class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,

@@ -3,6 +3,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
@@ -45,6 +46,7 @@ class UserPasswordSerializer(serializers.Serializer):
 
 @control_silo_endpoint
 class UserPasswordEndpoint(UserEndpoint):
+    owner = ApiOwner.SECURITY
     publish_status = {
         "PUT": ApiPublishStatus.UNKNOWN,
     }
