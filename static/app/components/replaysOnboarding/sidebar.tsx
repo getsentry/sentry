@@ -219,8 +219,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     );
   }
 
-  const migrated = ['javascript', 'javascript-react'];
-
   return (
     <Fragment>
       <IntroText>
@@ -229,7 +227,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           {platform: currentPlatform?.name || currentProject.slug}
         )}
       </IntroText>
-      {newOnboarding && migrated.includes(currentPlatform.id) ? (
+      {newOnboarding ? (
         <SdkDocumentation
           platform={currentPlatform}
           organization={organization}
