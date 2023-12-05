@@ -142,7 +142,7 @@ pyrsistent==0.18.1
 pysocks==1.7.1
 pytest==7.2.1
 pytest-cov==4.0.0
-pytest-django==4.4.0
+pytest-django==4.7.0
 pytest-fail-slow==0.3.0
 pytest-rerunfailures==11.0
 pytest-sentry==0.1.11
