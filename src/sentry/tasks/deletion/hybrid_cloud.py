@@ -18,7 +18,7 @@ import sentry_sdk
 from celery import Task
 from django.apps import apps
 from django.db import connections, router
-from django.db.models import Max
+from django.db.models import Max, Min
 from django.db.models.manager import BaseManager
 from django.utils import timezone
 
@@ -77,7 +77,9 @@ def _chunk_watermark_batch(
     prefix: str, field: HybridCloudForeignKey, manager: BaseManager, *, batch_size: int
 ) -> WatermarkBatch:
     lower, transaction_id = get_watermark(prefix, field)
-    upper = manager.aggregate(Max("id"))["id__max"] or 0
+    agg = manager.aggregate(Min("id"), Max("id"))
+    lower = lower or ((agg["id__min"] or 1) - 1)
+    upper = agg["id__max"] or 0
     batch_upper = min(upper, lower + batch_size)
 
     # cap to batch size so that query timeouts don't get us.
