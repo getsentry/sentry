@@ -542,6 +542,8 @@ class MonitorEnvironmentManager(BaseManager["MonitorEnvironment"]):
     def ensure_environment(
         self, project: Project, monitor: Monitor, environment_name: str | None
     ) -> MonitorEnvironment:
+        from sentry.monitors.rate_limit import update_monitor_quota
+
         if not environment_name:
             environment_name = "production"
 
@@ -551,9 +553,15 @@ class MonitorEnvironmentManager(BaseManager["MonitorEnvironment"]):
         # TODO: assume these objects exist once backfill is completed
         environment = Environment.get_or_create(project=project, name=environment_name)
 
-        return MonitorEnvironment.objects.get_or_create(
+        monitor_env, created = MonitorEnvironment.objects.get_or_create(
             monitor=monitor, environment=environment, defaults={"status": MonitorStatus.ACTIVE}
-        )[0]
+        )
+
+        # recompute per-project monitor check-in rate limit quota
+        if created:
+            update_monitor_quota(monitor_env)
+
+        return monitor_env
 
 
 @region_silo_only_model

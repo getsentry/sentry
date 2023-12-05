@@ -76,6 +76,7 @@ class RedisQuotaTest(TestCase):
         # AssertionError: reject-all quotas cannot be tracked
         self.get_project_quota.return_value = (100, 10)
         self.get_organization_quota.return_value = (1000, 10)
+        self.get_monitor_quota.return_value = (15, 60)
 
         # A negative quota means reject-all.
         self.organization.update_option("project-abuse-quota.error-limit", -1)
@@ -199,6 +200,7 @@ class RedisQuotaTest(TestCase):
         # AssertionError: reject-all quotas cannot be tracked
         self.get_project_quota.return_value = (100, 10)
         self.get_organization_quota.return_value = (1000, 10)
+        self.get_monitor_quota.return_value = (15, 60)
 
         self.organization.update_option("project-abuse-quota.transaction-limit", 600)
         with self.feature({"organizations:transaction-metrics-extraction": False}):
@@ -226,9 +228,17 @@ class RedisQuotaTest(TestCase):
         ) as self.get_organization_quota:
             yield
 
+    @pytest.fixture(autouse=True)
+    def _patch_get_monitor_quota(self):
+        with mock.patch.object(
+            RedisQuota, "get_monitor_quota", return_value=(0, 60)
+        ) as self.get_monitor_quota:
+            yield
+
     def test_uses_defined_quotas(self):
         self.get_project_quota.return_value = (200, 60)
         self.get_organization_quota.return_value = (300, 60)
+        self.get_monitor_quota.return_value = (15, 60)
         quotas = self.quota.get_quotas(self.project)
 
         assert quotas[0].id == "p"
@@ -241,6 +251,11 @@ class RedisQuotaTest(TestCase):
         assert quotas[1].scope_id == str(self.organization.id)
         assert quotas[1].limit == 300
         assert quotas[1].window == 60
+        assert quotas[2].id == "mrl"
+        assert quotas[2].scope == QuotaScope.PROJECT
+        assert quotas[2].scope_id == str(self.project.id)
+        assert quotas[2].limit == 15
+        assert quotas[2].window == 60
 
     @mock.patch("sentry.quotas.redis.is_rate_limited")
     @mock.patch.object(RedisQuota, "get_quotas", return_value=[])
@@ -253,12 +268,14 @@ class RedisQuotaTest(TestCase):
     def test_is_not_limited_without_rejections(self, is_rate_limited):
         self.get_organization_quota.return_value = (100, 60)
         self.get_project_quota.return_value = (200, 60)
+        self.get_monitor_quota.return_value = (15, 60)
         assert not self.quota.is_rate_limited(self.project).is_limited
 
     @mock.patch("sentry.quotas.redis.is_rate_limited", return_value=(True, False))
     def test_is_limited_on_rejections(self, is_rate_limited):
         self.get_organization_quota.return_value = (100, 60)
         self.get_project_quota.return_value = (200, 60)
+        self.get_monitor_quota.return_value = (15, 60)
         assert self.quota.is_rate_limited(self.project).is_limited
 
     @mock.patch.object(RedisQuota, "get_quotas")
@@ -314,6 +331,7 @@ class RedisQuotaTest(TestCase):
 
         self.get_project_quota.return_value = (200, 60)
         self.get_organization_quota.return_value = (300, 60)
+        self.get_monitor_quota.return_value = (15, 60)
 
         n = 10
         for _ in range(n):
@@ -327,9 +345,13 @@ class RedisQuotaTest(TestCase):
 
         usage = self.quota.get_usage(self.project.organization_id, all_quotas, timestamp=timestamp)
 
-        # Only quotas with an ID are counted in Redis (via this ID). Assume the
-        # count for these quotas and None for the others.
-        assert usage == [n if q.id else None for q in quotas] + [0, 0]
+        assert usage == [
+            n,  # project quota is consumed
+            n,  # organization quota is consumed
+            0,  # monitor quota is not consumed
+            0,  # unlimited quota is not consumed
+            0,  # dummy quota is not consumed
+        ]
 
     @mock.patch.object(RedisQuota, "get_quotas")
     def test_refund_defaults(self, mock_get_quotas):
@@ -434,6 +456,7 @@ class RedisQuotaTest(TestCase):
 
         self.get_project_quota.return_value = (200, 60)
         self.get_organization_quota.return_value = (300, 60)
+        self.get_monitor_quota.return_value = (15, 60)
 
         n = 10
         for _ in range(n):
@@ -452,4 +475,10 @@ class RedisQuotaTest(TestCase):
         # Only quotas with an ID are counted in Redis (via this ID). Assume the
         # count for these quotas and None for the others.
         # The ``- 1`` is because we refunded once.
-        assert usage == [n - 1 if q.id else None for q in quotas] + [0, 0]
+        assert usage == [
+            n - 1,  # project quota has been refunded one
+            n - 1,  # organization quota has been refunded one
+            0,  # monitor quota was not consumed
+            0,  # unlimited quota was not consumed
+            0,  # dummy quota was not consumed
+        ]
