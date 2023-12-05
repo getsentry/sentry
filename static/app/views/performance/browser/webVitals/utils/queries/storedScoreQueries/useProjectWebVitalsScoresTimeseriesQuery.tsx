@@ -52,8 +52,7 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
       version: 2,
       fields: [],
       interval: getInterval(pageFilters.selection.datetime, 'low'),
-      // Using discover dataset for now because metrics numbers don't seem to add up
-      dataset: DiscoverDatasets.DISCOVER,
+      dataset: DiscoverDatasets.METRICS,
     },
     pageFilters.selection
   );
