@@ -1280,6 +1280,88 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             [{"count": 0.5}],
         ]
 
+    def test_glob_http_referer_on_demand(self):
+        agg = "count()"
+        network_id_tag = "networkId"
+        url = "https://sentry.io"
+        query = f'http.url:{url}/*/foo/bar/* http.referer:"{url}/*/bar/*" event.type:transaction'
+        spec = OnDemandMetricSpec(
+            field=agg,
+            groupbys=[network_id_tag],
+            query=query,
+            spec_type=MetricSpecType.DYNAMIC_QUERY,
+        )
+        assert spec.to_metric_spec(self.project) == {
+            "category": "transaction",
+            "mri": "c:transactions/on_demand@none",
+            "field": None,
+            "tags": [
+                {"key": "query_hash", "value": "ac241f56"},
+                {"key": "networkId", "field": "event.tags.networkId"},
+                {"key": "environment", "field": "event.environment"},
+            ],
+            "condition": {
+                "op": "and",
+                "inner": [
+                    {
+                        "op": "glob",
+                        "name": "event.request.url",
+                        "value": ["https://sentry.io/*/foo/bar/*"],
+                    },
+                    {
+                        "op": "glob",
+                        "name": "event.request.headers.Referer",
+                        "value": ["https://sentry.io/*/bar/*"],
+                    },
+                ],
+            },
+        }
+
+        for hour in range(0, 5):
+            self.store_on_demand_metric(
+                1,
+                spec=spec,
+                additional_tags={network_id_tag: "1234"},
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+            self.store_on_demand_metric(
+                1,
+                spec=spec,
+                additional_tags={network_id_tag: "5678"},
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+
+        response = self.do_request(
+            data={
+                "dataset": "metricsEnhanced",
+                "field": [network_id_tag, agg],
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=5)),
+                "onDemandType": "dynamic_query",
+                "orderby": f"-{agg}",
+                "interval": "1d",
+                "partial": 1,
+                "query": query,
+                "referrer": "api.dashboards.widget.bar-chart",
+                "project": self.project.id,
+                "topEvents": 2,
+                "useOnDemandMetrics": "true",
+                "yAxis": agg,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        for datum in response.data.values():
+            assert datum["meta"] == {
+                "dataset": "metricsEnhanced",
+                "datasetReason": "unchanged",
+                "fields": {},
+                "isMetricsData": False,
+                "isMetricsExtractedData": True,
+                "tips": {},
+                "units": {},
+            }
+
     def _test_is_metrics_extracted_data(
         self, params: dict[str, Any], expected_on_demand_query: bool, dataset: str
     ) -> None:
