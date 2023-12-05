@@ -45,7 +45,7 @@ django==3.2.23
 django-crispy-forms==1.14.0
 django-csp==3.7
 django-pg-zero-downtime-migrations==0.13
-django-stubs-ext==4.2.5
+django-stubs-ext==4.2.7
 djangorestframework==3.14.0
 docker==3.7.0
 docker-pycreds==0.4.0
@@ -173,7 +173,7 @@ s3transfer==0.6.1
 selenium==4.3.0
 sentry-arroyo==2.14.25
 sentry-cli==2.16.0
-sentry-forked-django-stubs==4.2.6.post3
+sentry-forked-django-stubs==4.2.7.post1
 sentry-forked-djangorestframework-stubs==3.14.4.post2
 sentry-kafka-schemas==0.1.37
 sentry-redis-tools==0.1.7
