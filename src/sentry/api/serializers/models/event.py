@@ -321,6 +321,9 @@ class SqlFormatEventSerializer(EventSerializer):
         super().__init__()
         self.formatted_sql_cache: Dict[str, str] = {}
 
+    def get_attrs(self, item_list, user, is_public=False, **kwargs):
+        return super().get_attrs(item_list, user, is_public=is_public)
+
     # Various checks to ensure that we don't spend too much time formatting
     def _should_skip_formatting(self, query: str):
         if (
