@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import PerformanceDuration from 'sentry/components/performanceDuration';
+import Placeholder from 'sentry/components/placeholder';
 import {DifferentialFlamegraph} from 'sentry/components/profiling/flamegraph/differentialFlamegraph';
 import {DifferentialFlamegraphToolbar} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/differentialFlamegraphToolbar';
 import {t} from 'sentry/locale';
@@ -17,11 +19,13 @@ import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
+import {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {
   DifferentialFlamegraphQueryResult,
   useDifferentialFlamegraphQuery,
 } from 'sentry/utils/profiling/hooks/useDifferentialFlamegraphQuery';
 import {importProfile} from 'sentry/utils/profiling/profile/importProfile';
+import {relativeChange} from 'sentry/utils/profiling/units/units';
 import {LOADING_PROFILE_GROUP} from 'sentry/views/profiling/profileGroupProvider';
 
 import {useTransactionsDelta} from './transactionsDeltaProvider';
@@ -54,19 +58,24 @@ export function EventDifferentialFlamegraph(props: EventDifferentialFlamegraphPr
     });
   }, [isValid, fingerprint, breakpoint]);
 
-  const projectID = parseInt(props.event.projectID, 10);
   const transactions = useTransactionsDelta();
+  const [transaction, setTransaction] = useState<
+    EventsResultsDataRow<string> | undefined
+  >(undefined);
+
+  if (transaction === undefined) {
+    const firstTransaction = transactions?.data?.data?.[0];
+    if (firstTransaction) {
+      setTransaction(firstTransaction);
+    }
+  }
 
   const {before, after} = useDifferentialFlamegraphQuery({
-    projectID,
+    projectID: parseInt(props.event.projectID, 10),
     breakpoint,
     environments: [],
-    transaction: transactions?.data?.data?.[0]?.transaction as string,
+    transaction: (transaction?.transaction as string) ?? '',
   });
-
-  if (!isValid) {
-    return null;
-  }
 
   return (
     <Fragment>
@@ -79,7 +88,11 @@ export function EventDifferentialFlamegraph(props: EventDifferentialFlamegraphPr
             },
           }}
         >
-          <EventDifferentialFlamegraphView before={before} after={after} />
+          <EventDifferentialFlamegraphView
+            transaction={transaction}
+            before={before}
+            after={after}
+          />
         </FlamegraphStateProvider>
       </FlamegraphThemeProvider>
     </Fragment>
@@ -89,6 +102,7 @@ export function EventDifferentialFlamegraph(props: EventDifferentialFlamegraphPr
 interface EventDifferentialFlamegraphViewProps {
   after: DifferentialFlamegraphQueryResult['before'];
   before: DifferentialFlamegraphQueryResult['after'];
+  transaction: EventsResultsDataRow<string> | undefined;
 }
 function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewProps) {
   const theme = useFlamegraphTheme();
@@ -149,6 +163,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
 
   return (
     <Fragment>
+      <DifferentialFlamegraphTransactionToolbar transaction={props.transaction} />
       <DifferentialFlamegraphToolbar
         source={source}
         onSourceChange={setSource}
@@ -183,6 +198,80 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
     </Fragment>
   );
 }
+
+const numberFormatter = Intl.NumberFormat(undefined, {
+  maximumFractionDigits: 2,
+});
+
+interface DifferentialFlamegraphTransactionToolbarProps {
+  transaction: EventsResultsDataRow<string> | undefined;
+}
+function DifferentialFlamegraphTransactionToolbar(
+  props: DifferentialFlamegraphTransactionToolbarProps
+) {
+  const [before, after] = useMemo(() => {
+    if (!props.transaction) {
+      return [0, 0];
+    }
+
+    const keys = Object.keys(props.transaction);
+
+    let beforePercentile = 0;
+    let afterPercentile = 0;
+
+    for (const key of keys) {
+      if (key.startsWith('percentile_after')) {
+        afterPercentile = props.transaction[key] as number;
+      }
+      if (key.startsWith('percentile_before')) {
+        beforePercentile = props.transaction[key] as number;
+      }
+    }
+
+    return [beforePercentile, afterPercentile];
+  }, [props.transaction]);
+
+  return (
+    <DifferentialFlamegraphTransactionToolbarContainer>
+      <DifferentialFlamegraphTransactionName>
+        {props.transaction?.transaction ?? <Placeholder height="20px" />}{' '}
+      </DifferentialFlamegraphTransactionName>
+      {props.transaction ? (
+        <span>
+          <PerformanceDuration nanoseconds={before} abbreviation />
+          <DifferentialFlamegraphRegressionChange>
+            {after === 0 || before === 0
+              ? ''
+              : '+' + numberFormatter.format(relativeChange(after, before) * 100) + '%'}
+          </DifferentialFlamegraphRegressionChange>
+        </span>
+      ) : (
+        <Placeholder height="20px" />
+      )}
+    </DifferentialFlamegraphTransactionToolbarContainer>
+  );
+}
+
+const DifferentialFlamegraphTransactionName = styled('div')`
+  font-weight: 600;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const DifferentialFlamegraphRegressionChange = styled('span')`
+  margin-left: ${space(1)};
+  color: ${p => p.theme.red300};
+`;
+
+const DifferentialFlamegraphTransactionToolbarContainer = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: ${space(1)};
+  gap: ${space(1)};
+  border-bottom: 1px solid ${p => p.theme.border};
+`;
 
 const ErrorMessageContainer = styled('div')`
   position: absolute;
