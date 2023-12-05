@@ -30,6 +30,6 @@ def refresh_artifact_bundles_in_use():
     queue="assemble",
 )
 def backfill_artifact_bundle_db_indexing(organization_id: int, release: str, dist: str):
-    from .artifact_bundle_indexing import backfill_artifact_bundle_db_indexing as do_backfill
+    from .artifact_bundles import backfill_artifact_bundle_db_indexing as do_backfill
 
     do_backfill(organization_id, release, dist)
