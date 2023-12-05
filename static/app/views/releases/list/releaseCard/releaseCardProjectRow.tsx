@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import LazyLoad from 'react-lazyload';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -19,7 +20,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Release, ReleaseProject} from 'sentry/types';
+import {Deploy, Organization, Release, ReleaseProject} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import type {IconSize} from 'sentry/utils/theme';
 
@@ -73,6 +74,7 @@ type Props = {
   showReleaseAdoptionStages: boolean;
   thresholdStatuses: ThresholdStatus[];
   adoptionStages?: Release['adoptionStages'];
+  lastDeploy?: Deploy | undefined;
 };
 
 function ReleaseCardProjectRow({
@@ -82,6 +84,7 @@ function ReleaseCardProjectRow({
   hasThresholds,
   index,
   isTopRelease,
+  lastDeploy,
   location,
   organization,
   project,
@@ -98,6 +101,23 @@ function ReleaseCardProjectRow({
     id,
     ReleasesDisplayOption.SESSIONS
   );
+
+  const thresholds = useMemo(() => {
+    return (
+      thresholdStatuses?.filter(status => {
+        return status.environment?.name === lastDeploy?.environment;
+      }) || []
+    );
+  }, [thresholdStatuses, lastDeploy]);
+
+  const healthyThresholds = thresholds.filter(status => {
+    return status.is_healthy;
+  });
+
+  const pendingThresholds = thresholds.filter(status => {
+    return new Date(status.end) > new Date();
+  });
+
   const crashFreeRate = getHealthData.getCrashFreeRate(releaseVersion, id, activeDisplay);
   const get24hCountByProject = getHealthData.get24hCountByProject(id, activeDisplay);
   const timeSeries = getHealthData.getTimeSeries(releaseVersion, id, activeDisplay);
@@ -218,7 +238,31 @@ function ReleaseCardProjectRow({
 
         {hasThresholds && (
           <DisplaySmallCol>
-            {thresholdStatuses && thresholdStatuses.length}
+            {thresholds && thresholds.length > 0 && (
+              <Tooltip
+                title={
+                  <div>
+                    <div>
+                      {`${healthyThresholds.length} / ${thresholds.length} ` +
+                        t('thresholds succeeded')}
+                    </div>
+                    {pendingThresholds.length > 0 && (
+                      <div>
+                        {`${pendingThresholds.length} / ${thresholds.length} ` +
+                          t('still pending')}
+                      </div>
+                    )}
+                  </div>
+                }
+              >
+                <ThresholdHealth
+                  allHealthy={healthyThresholds.length === thresholds.length}
+                  allThresholdsFinished={pendingThresholds.length === 0}
+                >
+                  {healthyThresholds.length} / {thresholds && thresholds.length}
+                </ThresholdHealth>
+              </Tooltip>
+            )}
           </DisplaySmallCol>
         )}
 
@@ -285,4 +329,19 @@ const ViewColumn = styled('div')`
   ${p => p.theme.overflowEllipsis};
   line-height: 20px;
   text-align: right;
+`;
+
+const ThresholdHealth = styled('div')<{
+  allHealthy?: boolean;
+  allThresholdsFinished?: boolean;
+}>`
+  color: ${p => {
+    if (!p.allHealthy) {
+      return p.theme.errorText;
+    }
+    if (p.allThresholdsFinished) {
+      return p.theme.successText;
+    }
+    return p.theme.activeText;
+  }};
 `;

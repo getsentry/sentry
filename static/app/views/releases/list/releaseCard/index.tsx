@@ -71,31 +71,39 @@ function ReleaseCard({
   showReleaseAdoptionStages,
   thresholdStatuses,
 }: Props) {
-  const {version, commitCount, lastDeploy, dateCreated, versionInfo} = release;
+  const {
+    version,
+    commitCount,
+    lastDeploy,
+    dateCreated,
+    versionInfo,
+    adoptionStages,
+    projects,
+  } = release;
 
   const [projectsToShow, projectsToHide] = useMemo(() => {
     // sort health rows inside release card alphabetically by project name,
     // show only the ones that are selected in global header
     return partition(
-      release.projects.sort((a, b) => a.slug.localeCompare(b.slug)),
+      projects.sort((a, b) => a.slug.localeCompare(b.slug)),
       p =>
         // do not filter for My Projects & All Projects
         selection.projects.length > 0 && !selection.projects.includes(-1)
           ? selection.projects.includes(p.id)
           : true
     );
-  }, [release, selection.projects]);
+  }, [projects, selection.projects]);
 
   const hasThresholds = useMemo(() => {
-    const project_slugs = release.projects.map(proj => proj.slug);
+    const project_slugs = projects.map(proj => proj.slug);
     let has = false;
     project_slugs.forEach(slug => {
-      if (`${slug}-${release.version}` in thresholdStatuses) {
-        has = thresholdStatuses[`${slug}-${release.version}`].length > 0;
+      if (`${slug}-${version}` in thresholdStatuses) {
+        has = thresholdStatuses[`${slug}-${version}`].length > 0;
       }
     });
     return has;
-  }, [thresholdStatuses, release]);
+  }, [thresholdStatuses, version, projects]);
 
   const getHiddenProjectsTooltip = () => {
     const limitedProjects = projectsToHide.map(p => p.slug).slice(0, 5);
@@ -185,12 +193,12 @@ function ReleaseCard({
             )}
           >
             {projectsToShow.map((project, index) => {
-              const key = `${project.slug}-${release.version}`;
+              const key = `${project.slug}-${version}`;
               return (
                 <ReleaseCardProjectRow
                   key={`${key}-row`}
                   activeDisplay={activeDisplay}
-                  adoptionStages={release.adoptionStages}
+                  adoptionStages={adoptionStages}
                   getHealthData={getHealthData}
                   hasThresholds={hasThresholds}
                   index={index}
@@ -198,7 +206,8 @@ function ReleaseCard({
                   location={location}
                   organization={organization}
                   project={project}
-                  releaseVersion={release.version}
+                  releaseVersion={version}
+                  lastDeploy={lastDeploy}
                   showPlaceholders={showHealthPlaceholders}
                   showReleaseAdoptionStages={showReleaseAdoptionStages}
                   thresholdStatuses={hasThresholds ? thresholdStatuses[`${key}`] : []}

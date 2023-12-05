@@ -596,8 +596,6 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
               {organization.features.includes('releases-v2-banner') && (
                 <ReleaseFeedbackBanner />
               )}
-              {/* TODO: REMOVE THIS */}
-              {JSON.stringify(this.state.thresholdStatuses)}
 
               {this.renderHealthCta()}
 

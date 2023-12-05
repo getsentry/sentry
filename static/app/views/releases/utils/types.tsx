@@ -18,9 +18,11 @@ export type ThresholdStatus = Threshold & {
   is_healthy: boolean;
 };
 export type Threshold = {
+  end: string;
   environment: Environment;
   id: string;
   project: Project;
+  start: string;
   threshold_type: string;
   trigger_type: 'over' | 'under';
   value: number;
