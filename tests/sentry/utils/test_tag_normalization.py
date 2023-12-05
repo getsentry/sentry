@@ -82,13 +82,19 @@ def mock_event():
 
 @pytest.mark.parametrize(
     ("tag", "expected"),
-    (("foo.baz.bar", "other"), ("sentryfoo", "other"), ("raven", "other")),
+    (
+        ("sentry.javascript.angular", "sentry.javascript.angular"),
+        ("sentry.javascript.angular.ivy", "sentry.javascript.angular"),
+        ("sentry.symfony", "sentry.php"),
+        ("sentry.unity", "sentry.native.unity"),
+        ("sentry.javascript.react.native.expo", "sentry.javascript.react.native"),
+    ),
 )
 def test_normalized_sdk_tag_from_event(tag, expected, mock_event):
-    mock_event.data.sdk.name = tag
+    mock_event.data = {"sdk": {"name": tag}}
     assert normalized_sdk_tag_from_event(mock_event) == expected
 
 
 def test_normalized_sdk_tag_from_event_exception(mock_event):
-    mock_event.data.sdk.name.side_effect = Exception("foo")
+    mock_event.side_effect = Exception("foo")
     assert normalized_sdk_tag_from_event(mock_event) == "other"
