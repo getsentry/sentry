@@ -51,10 +51,6 @@ def query_segment_storage_meta_by_timestamp(
         use_cache=False,
     )
 
-    items = results["data"]
-    if len(items) == 0:
-        raise ValueError("No segment could be found for timestamp.")
-
     return results
 
 
