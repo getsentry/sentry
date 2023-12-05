@@ -31,7 +31,7 @@ export function StackTraceMiniFrame({frame, eventId, projectId}: Props) {
           <ProjectAvatar project={project} size={16} />
         </ProjectAvatarContainer>
       )}
-      {frame.absPath && <Emphasize>{frame?.absPath}</Emphasize>}
+      {frame.filename && <Emphasize>{frame?.filename}</Emphasize>}
       {frame.function && (
         <Fragment>
           <Deemphasize> {t('in')} </Deemphasize>
