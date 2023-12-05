@@ -14,7 +14,7 @@ def query_segment_storage_meta_by_timestamp(
     organization_id: int,
     project_id: int,
     replay_id: str,
-    timestamp: int,
+    timestamp: float,
 ) -> Mapping[str, Any]:
     # These timestamps do not specify a timezone. They are presumed UTC but we can not verify.
     # Since these times originate from the same place it is enough to treat them relatively. We
