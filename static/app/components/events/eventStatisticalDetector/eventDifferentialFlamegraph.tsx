@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {DifferentialFlamegraph} from 'sentry/components/profiling/flamegraph/differentialFlamegraph';
@@ -52,11 +52,17 @@ export function EventDifferenialFlamegraph(props: EventDifferenialFlamegraphProp
   const projectID = parseInt(props.event.projectID, 10);
   const transactions = useTransactionsDelta();
 
+  const [transaction, setTransaction] = useState<string>('');
+
+  if (!transaction && transactions.data?.data?.[0]?.transaction) {
+    setTransaction(transactions.data?.data?.[0]?.transaction as string);
+  }
+
   const {before, after} = useDifferentialFlamegraphQuery({
     projectID,
     breakpoint,
     environments: [],
-    transaction: transactions.data?.data?.[0]?.transaction as string,
+    transaction,
   });
 
   if (!isValid) {
@@ -66,7 +72,37 @@ export function EventDifferenialFlamegraph(props: EventDifferenialFlamegraphProp
   return (
     <div>
       <h3>Differential Flamegraph</h3>
-
+      <div>
+        <span>{transaction}</span>
+        <button
+          onClick={() => {
+            let i = 0;
+            while (i < (transactions.data?.data?.length ?? 0)) {
+              if (transactions.data?.data?.[i]?.transaction === transaction) {
+                break;
+              }
+              i++;
+            }
+            setTransaction(transactions.data?.data?.[i - 1]?.transaction as string);
+          }}
+        >
+          prev txn
+        </button>
+        <button
+          onClick={() => {
+            let i = 0;
+            while (i < (transactions.data?.data?.length ?? 0)) {
+              if (transactions.data?.data?.[i]?.transaction === transaction) {
+                break;
+              }
+              i++;
+            }
+            setTransaction(transactions.data?.data?.[i + 1]?.transaction as string);
+          }}
+        >
+          next txn
+        </button>
+      </div>
       <FlamegraphThemeProvider>
         <FlamegraphStateProvider
           initialState={{

@@ -1,23 +1,15 @@
+import {makeColorBuffer} from 'sentry/utils/profiling/colors/utils';
+
 import {ColorChannels, FlamegraphTheme} from './flamegraph/flamegraphTheme';
 import {Profile} from './profile/profile';
 import {Flamegraph} from './flamegraph';
 import {FlamegraphFrame} from './flamegraphFrame';
 
-const frameDiffKey = (frame: FlamegraphFrame) => {
-  return (
-    frame.frame.name +
-    (frame.frame.file ?? '') +
-    (frame.frame.path ?? '') +
-    (frame.frame.module ?? '') +
-    (frame.frame.package ?? '')
-  );
-};
-
 function makeFrameMap(frames: ReadonlyArray<FlamegraphFrame>): Map<string, number> {
   const counts = new Map<string, number>();
 
   for (const frame of frames) {
-    const key = frameDiffKey(frame);
+    const key = DifferentialFlamegraph.FrameKey(frame);
     counts.set(key, frame.node.selfWeight + (counts.get(key) ?? 0));
   }
 
@@ -26,6 +18,7 @@ function makeFrameMap(frames: ReadonlyArray<FlamegraphFrame>): Map<string, numbe
 
 export class DifferentialFlamegraph extends Flamegraph {
   colors: Map<string, ColorChannels> = new Map();
+  colorBuffer: number[] = [];
 
   beforeCounts: Map<string, number> = new Map();
   afterCounts: Map<string, number> = new Map();
@@ -33,6 +26,16 @@ export class DifferentialFlamegraph extends Flamegraph {
   newFrames: FlamegraphFrame[] = [];
   increasedFrames: [number, FlamegraphFrame][] = [];
   decreasedFrames: [number, FlamegraphFrame][] = [];
+
+  static FrameKey(frame: FlamegraphFrame): string {
+    return (
+      frame.frame.name +
+      (frame.frame.file ?? '') +
+      (frame.frame.path ?? '') +
+      (frame.frame.module ?? '') +
+      (frame.frame.package ?? '')
+    );
+  }
 
   static Empty(): DifferentialFlamegraph {
     return new DifferentialFlamegraph(Profile.Empty, {
@@ -70,7 +73,7 @@ export class DifferentialFlamegraph extends Flamegraph {
     let maxDecrease = 0;
 
     for (const frame of after.frames) {
-      const key = frameDiffKey(frame);
+      const key = DifferentialFlamegraph.FrameKey(frame);
 
       const beforeCount = beforeCounts.get(key);
       const afterCount = afterCounts.get(key);
@@ -95,27 +98,34 @@ export class DifferentialFlamegraph extends Flamegraph {
     }
 
     for (const frame of newFrames) {
-      colorMap.set(frameDiffKey(frame), [
+      colorMap.set(DifferentialFlamegraph.FrameKey(frame), [
         ...theme.COLORS.DIFFERENTIAL_INCREASE,
-        1,
+        0.8,
       ] as ColorChannels);
     }
 
     for (const frame of increasedFrames) {
-      colorMap.set(frameDiffKey(frame[1]), [
+      colorMap.set(DifferentialFlamegraph.FrameKey(frame[1]), [
         ...theme.COLORS.DIFFERENTIAL_INCREASE,
-        frame[0] / maxIncrease,
+        (frame[0] / maxIncrease) * 0.8,
       ] as ColorChannels);
     }
 
     for (const frame of decreasedFrames) {
-      colorMap.set(frameDiffKey(frame[1]), [
+      colorMap.set(DifferentialFlamegraph.FrameKey(frame[1]), [
         ...theme.COLORS.DIFFERENTIAL_DECREASE,
-        frame[0] / maxDecrease,
+        (frame[0] / maxDecrease) * 0.8,
       ] as ColorChannels);
     }
 
     differentialFlamegraph.colors = colorMap;
+    differentialFlamegraph.colorBuffer = makeColorBuffer(
+      after.frames,
+      colorMap,
+      theme.COLORS.FRAME_FALLBACK_COLOR as unknown as ColorChannels,
+      DifferentialFlamegraph.FrameKey
+    );
+
     differentialFlamegraph.newFrames = newFrames;
     differentialFlamegraph.increasedFrames = increasedFrames;
     differentialFlamegraph.decreasedFrames = decreasedFrames;

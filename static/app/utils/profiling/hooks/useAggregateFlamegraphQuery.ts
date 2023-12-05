@@ -26,7 +26,6 @@ export function useAggregateFlamegraphQuery({
   transaction,
 }: AggregateFlamegraphQueryParameters): UseAggregateFlamegraphQueryResult {
   const organization = useOrganization();
-  const path = `/organizations/${organization.slug}/profiling/flamegraph/`;
 
   const query = useMemo(() => {
     // TODO: this should contain the user query
@@ -47,9 +46,12 @@ export function useAggregateFlamegraphQuery({
     },
   };
 
-  return useApiQuery<Profiling.Schema>([path, endpointOptions], {
-    staleTime: 0,
-    retry: false,
-    enabled,
-  });
+  return useApiQuery<Profiling.Schema>(
+    [`/organizations/${organization.slug}/profiling/flamegraph/`, endpointOptions],
+    {
+      staleTime: 0,
+      retry: false,
+      enabled,
+    }
+  );
 }
