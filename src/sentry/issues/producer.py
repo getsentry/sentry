@@ -9,7 +9,7 @@ from django.conf import settings
 
 from sentry import features
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.issues.status_change_consumer import get_group_from_fingerprint, update_status
+from sentry.issues.status_change_consumer import bulk_get_groups_from_fingerprints, update_status
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud import ValueEqualityEnum
@@ -108,7 +108,13 @@ def _prepare_status_change_message(
         from sentry.issues.ingest import process_occurrence_data
 
         process_occurrence_data(status_change.to_dict())
-        group = get_group_from_fingerprint(status_change.to_dict())
+        fingerprint = status_change.fingerprint
+        groups_by_fingerprints = bulk_get_groups_from_fingerprints(
+            [(status_change.project_id, fingerprint)]
+        )
+
+        key = (status_change.project_id, fingerprint[0])
+        group = groups_by_fingerprints.get(key, None)
         if not group:
             return None
         update_status(group, status_change.to_dict())
