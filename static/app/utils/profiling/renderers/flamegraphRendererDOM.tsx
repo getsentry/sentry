@@ -60,7 +60,7 @@ export class FlamegraphRendererDOM extends FlamegraphRenderer {
       ).transformRect(configViewToPhysicalSpace);
 
       const colors =
-        this.colorMap.get(frame.key) ?? this.theme.COLORS.FRAME_GRAYSCALE_COLOR;
+        this.colorMap.get(frame.key) ?? this.theme.COLORS.FRAME_FALLBACK_COLOR;
       const color = colorComponentsToRgba(colors);
 
       const div = document.createElement('div');
