@@ -407,7 +407,7 @@ def get_bundles_indexing_state(
     total_bundles = 0
     indexed_bundles = 0
 
-    filter = {
+    filter: dict = {
         "releaseartifactbundle__release_name": release_name,
         "releaseartifactbundle__dist_name": dist_name,
     }
