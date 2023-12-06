@@ -7,10 +7,8 @@ import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
-import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {Tooltip} from 'sentry/components/tooltip';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {NewQuery} from 'sentry/types';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView, {
@@ -21,7 +19,7 @@ import EventView, {
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import toPercent from 'sentry/utils/number/toPercent';
+import {formatPercentage} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -30,6 +28,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
+import {useTTFDConfigured} from 'sentry/views/starfish/queries/useHasTtfdConfigured';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
@@ -48,18 +47,6 @@ type Props = {
   transaction?: string;
 };
 
-const barColors = {
-  ttid: CHART_PALETTE[17][4],
-  ttfd: CHART_PALETTE[17][8],
-  other: CHART_PALETTE[17][10],
-};
-
-const tooltips = {
-  ttid: t('Percentage of spans that ended before TTID.'),
-  ttfd: t('Percentage of spans that ended before TTFD.'),
-  other: t('Percentage of spans that ended after TTID.'),
-};
-
 export function ScreenLoadSpansTable({
   transaction,
   primaryRelease,
@@ -72,6 +59,7 @@ export function ScreenLoadSpansTable({
   const spanOp = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
   const truncatedPrimary = formatVersionAndCenterTruncate(primaryRelease ?? '', 15);
   const truncatedSecondary = formatVersionAndCenterTruncate(secondaryRelease ?? '', 15);
+  const {hasTTFD} = useTTFDConfigured([`transaction:"${transaction}"`]);
 
   const searchQuery = new MutableSearch([
     'transaction.op:ui.load',
@@ -83,7 +71,11 @@ export function ScreenLoadSpansTable({
           'span.op:[file.read,file.write,ui.load,http.client,db,db.sql.room,db.sql.query,db.sql.transaction]',
         ]),
   ]);
-  const queryStringPrimary = appendReleaseFilters(searchQuery, primaryRelease);
+  const queryStringPrimary = appendReleaseFilters(
+    searchQuery,
+    primaryRelease,
+    secondaryRelease
+  );
 
   const sort = fromSorts(
     decodeScalar(location.query[QueryParameterNames.SPANS_SORT])
@@ -132,7 +124,7 @@ export function ScreenLoadSpansTable({
     [SPAN_OP]: t('Operation'),
     [SPAN_DESCRIPTION]: t('Span Description'),
     'count()': t('Total Count'),
-    'ttid_count()': t('Occurences'),
+    'ttid_count()': t('Affects'),
     'time_spent_percentage()': t('Total Time Spent'),
     [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t(
       'Duration (%s)',
@@ -171,40 +163,85 @@ export function ScreenLoadSpansTable({
       );
     }
 
-    if (column.key === 'ttid_count()') {
-      const total = row['count()'];
+    if (column.key === 'ttid_count()' && hasTTFD) {
       const ttid = row['ttid_count()'] ? parseInt(row['ttid_count()'], 10) : 0;
+      const ttid_contribution_rate = row['ttid_contribution_rate()']
+        ? parseFloat(row['ttid_contribution_rate()'])
+        : 0;
+      const ttfd_contribution_rate = row['ttfd_contribution_rate()']
+        ? parseFloat(row['ttfd_contribution_rate()'])
+        : 0;
       const ttfd = row['ttfd_count()'] ? parseInt(row['ttfd_count()'], 10) : ttid;
-      const ttfdOnly = ttfd - ttid;
-      const other = total - ttfd;
 
-      const orderedSpanContribution = [
-        {key: 'ttid', value: ttid},
-        {key: 'ttfd', value: ttfdOnly},
-        {key: 'other', value: other},
-      ];
+      if (!isNaN(ttid) && ttid > 0) {
+        const tooltipValue =
+          ttid === ttfd
+            ? tn(
+                '%s span (%s of spans) ended before TTID and TTFD and therefore may be affecting load times.',
+                '%s spans (%s of spans) ended before TTID and TTFD and therefore may be affecting load times.',
+                ttid,
+                formatPercentage(ttid_contribution_rate)
+              )
+            : ttid === 1
+            ? t(
+                '%s span (%s of spans) ended before TTID and %s spans (%s of spans) ended before TTFD and therefore may be affecting load times.',
+                ttid,
+                formatPercentage(ttid_contribution_rate),
+                ttfd,
+                formatPercentage(ttfd_contribution_rate)
+              )
+            : t(
+                '%s spans (%s of spans) ended before TTID and %s spans (%s of spans) ended before TTFD and therefore may be affecting load times.',
+                ttid,
+                formatPercentage(ttid_contribution_rate),
+                ttfd,
+                formatPercentage(ttfd_contribution_rate)
+              );
+        return (
+          <Tooltip isHoverable title={tooltipValue} showUnderline>
+            <Container>{t('TTID, TTFD')}</Container>
+          </Tooltip>
+        );
+      }
 
-      return (
-        <RelativeOpsBreakdown data-test-id="relative-ops-breakdown">
-          {orderedSpanContribution.map((contribution, index) => {
-            const widthPercentage = contribution.value / total;
-            if (widthPercentage === 0) {
-              return null;
-            }
-            return (
-              <div key={index} style={{width: toPercent(widthPercentage || 0)}}>
-                <Tooltip title={tooltips[contribution.key]} containerDisplayMode="block">
-                  <RectangleRelativeOpsBreakdown
-                    style={{
-                      backgroundColor: barColors[contribution.key],
-                    }}
-                  />
-                </Tooltip>
-              </div>
-            );
-          })}
-        </RelativeOpsBreakdown>
-      );
+      if (!isNaN(ttfd) && ttfd > 0) {
+        const tooltipValue = tn(
+          '%s span (%s of spans) ended before TTFD and therefore may be affecting final display.',
+          '%s spans (%s of spans) ended before TTFD and therefore may be affecting final display.',
+          ttfd,
+          formatPercentage(ttfd_contribution_rate)
+        );
+        return (
+          <Tooltip isHoverable title={tooltipValue} showUnderline>
+            <Container>{t('TTFD')}</Container>
+          </Tooltip>
+        );
+      }
+
+      return <Container>{'--'}</Container>;
+    }
+
+    if (column.key === 'ttid_count()') {
+      const ttid = row['ttid_count()'] ? parseInt(row['ttid_count()'], 10) : 0;
+      const ttid_contribution_rate = row['ttid_contribution_rate()']
+        ? parseFloat(row['ttid_contribution_rate()'])
+        : 0;
+
+      if (!isNaN(ttid) && ttid > 0) {
+        const tooltipValue = tn(
+          '%s span (%s of spans) ended before TTID and therefore may be affecting load times.',
+          '%s spans (%s of spans) ended before TTID and therefore may be affecting load times.',
+          ttid,
+          formatPercentage(ttid_contribution_rate)
+        );
+        return (
+          <Tooltip isHoverable title={tooltipValue} showUnderline>
+            <Container>{t('Yes')}</Container>
+          </Tooltip>
+        );
+      }
+
+      return <Container>{t('No')}</Container>;
     }
 
     const renderer = getFieldRenderer(column.key, data?.meta.fields, false);
@@ -221,7 +258,10 @@ export function ScreenLoadSpansTable({
     tableMeta?: MetaType
   ): React.ReactNode {
     const fieldType = tableMeta?.fields?.[column.key];
-    const alignment = fieldAlignment(column.key as string, fieldType);
+    let alignment = fieldAlignment(column.key as string, fieldType);
+    if (column.key === 'ttid_count()') {
+      alignment = 'left';
+    }
     const field = {
       field: column.key as string,
       width: column.width,
@@ -300,12 +340,6 @@ export function ScreenLoadSpansTable({
   );
 }
 
-const RelativeOpsBreakdown = styled('div')`
-  position: relative;
-  display: flex;
-`;
-
-const RectangleRelativeOpsBreakdown = styled(RowRectangle)`
-  position: relative;
-  width: 100%;
+const Container = styled('div')`
+  ${p => p.theme.overflowEllipsis};
 `;
