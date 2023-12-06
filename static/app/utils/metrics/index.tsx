@@ -38,6 +38,7 @@ import {
   SECOND,
   WEEK,
 } from 'sentry/utils/formatters';
+import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {
   formatMRI,
   formatMRIField,
@@ -46,7 +47,6 @@ import {
   parseField,
   parseMRI,
 } from 'sentry/utils/metrics/mri';
-import {isCustomMeasurement as isCustomMeasurementName} from 'sentry/views/dashboards/utils';
 
 import {DateString, PageFilters} from '../../types/core';
 
@@ -498,8 +498,10 @@ export function isMeasurement({mri}: {mri: MRI}) {
 }
 
 export function isCustomMeasurement({mri}: {mri: MRI}) {
+  const DEFINED_MEASUREMENTS = new Set(Object.keys(getMeasurements()));
+
   const {name} = parseMRI(mri) ?? {name: ''};
-  return isCustomMeasurementName(name);
+  return !DEFINED_MEASUREMENTS.has(name) && isMeasurementName(name);
 }
 
 export function isStandardMeasurement({mri}: {mri: MRI}) {
