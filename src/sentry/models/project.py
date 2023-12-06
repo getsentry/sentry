@@ -260,12 +260,6 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         # This project has sent feedbacks
         has_feedbacks: bool
 
-        # spike_protection_error_currently_active
-        spike_protection_error_currently_active: bool
-
-        spike_protection_transaction_currently_active: bool
-        spike_protection_attachment_currently_active: bool
-
         # This Project has event with minified stack trace
         has_minified_stack_trace: bool
 
