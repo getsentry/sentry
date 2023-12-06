@@ -205,12 +205,11 @@ class Browser:
         Waits until ``selector`` is visible and enabled to be clicked, or until ``timeout``
         is hit, whichever happens first.
         """
+        wait = WebDriverWait(self.driver, timeout)
         if selector:
-            condition = expected_conditions.element_to_be_clickable((By.CSS_SELECTOR, selector))
+            wait.until(expected_conditions.element_to_be_clickable((By.CSS_SELECTOR, selector)))
         else:
             raise ValueError
-
-        WebDriverWait(self.driver, timeout).until(condition)
 
         return self
 
@@ -219,16 +218,15 @@ class Browser:
         Waits until ``selector`` is found in the browser, or until ``timeout``
         is hit, whichever happens first.
         """
+        wait = WebDriverWait(self.driver, timeout)
         if selector:
-            condition = expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector))
+            wait.until(expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector)))
         elif xpath:
-            condition = expected_conditions.presence_of_element_located((By.XPATH, xpath))
+            wait.until(expected_conditions.presence_of_element_located((By.XPATH, xpath)))
         elif title:
-            condition = expected_conditions.title_is(title)
+            wait.until(expected_conditions.title_is(title))
         else:
             raise ValueError
-
-        WebDriverWait(self.driver, timeout).until(condition)
 
         return self
 
@@ -240,14 +238,15 @@ class Browser:
         Waits until ``selector`` is NOT found in the browser, or until
         ``timeout`` is hit, whichever happens first.
         """
+        wait = WebDriverWait(self.driver, timeout)
         if selector:
-            condition = expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector))
+            wait.until_not(
+                expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector))
+            )
         elif title:
-            condition = expected_conditions.title_is(title)
+            wait.until_not(expected_conditions.title_is(title))
         else:
             raise
-
-        WebDriverWait(self.driver, timeout).until_not(condition)
 
         return self
 
