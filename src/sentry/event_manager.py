@@ -29,7 +29,7 @@ import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError, OperationalError, connection, router, transaction
+from django.db import OperationalError, connection, router, transaction
 from django.db.models import Func
 from django.db.models.signals import post_save
 from django.utils.encoding import force_str
@@ -84,7 +84,6 @@ from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.event import EventDict
 from sentry.models.eventattachment import CRASH_REPORT_TYPES, EventAttachment, get_crashreport_key
-from sentry.models.eventuser import EventUser
 from sentry.models.files.file import File
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
@@ -129,6 +128,7 @@ from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.event import has_event_minified_stack_trace, has_stacktrace, is_handled
+from sentry.utils.eventuser import EventUser
 from sentry.utils.metrics import MutableTags
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
@@ -1481,46 +1481,12 @@ def _get_event_user_impl(
 
     euser = EventUser(
         project_id=project.id,
-        ident=user_data.get("id"),
+        user_ident=user_data.get("id"),
         email=user_data.get("email"),
         username=user_data.get("username"),
         ip_address=ip_address,
         name=user_data.get("name"),
     )
-    euser.set_hash()
-    if not euser.hash:
-        return None
-
-    cache_key = f"euserid:1:{project.id}:{euser.hash}"
-    euser_id = cache.get(cache_key)
-    if euser_id is None:
-        metrics_tags["cache_hit"] = "false"
-
-        try:
-            euser, created = EventUser.objects.get_or_create(
-                project_id=euser.project_id,
-                hash=euser.hash,
-                defaults={
-                    "ident": euser.ident,
-                    "email": euser.email,
-                    "username": euser.username,
-                    "ip_address": euser.ip_address,
-                    "name": euser.name,
-                },
-            )
-        except IntegrityError:
-            # TODO(michal): This is result of project_id, ident duplicate and
-            # should not be possible since we prioritize ident for hash
-            created = False
-            cache.set(cache_key, -1, 3600)
-        else:
-            if not created and user_data.get("name") and euser.name != user_data.get("name"):
-                euser.update(name=user_data["name"])
-            cache.set(cache_key, euser.id, 3600)
-
-        metrics_tags["created"] = str(created).lower()
-    else:
-        metrics_tags["cache_hit"] = "true"
 
     return euser
 
