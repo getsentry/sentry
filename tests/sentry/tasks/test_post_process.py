@@ -2470,6 +2470,44 @@ class PostProcessGroupGenericTest(
         # Make sure we haven't called this again, since we should exit early.
         assert mock_processor.call_count == 1
 
+    @patch("sentry.tasks.post_process.handle_owner_assignment")
+    @patch("sentry.tasks.post_process.handle_auto_assignment")
+    @patch("sentry.tasks.post_process.process_rules")
+    @patch("sentry.tasks.post_process.run_post_process_job")
+    @patch("sentry.rules.processor.RuleProcessor")
+    @patch("sentry.signals.event_processed.send_robust")
+    @patch("sentry.utils.snuba.raw_query")
+    def test_full_pipeline_with_group_states(
+        self,
+        snuba_raw_query_mock,
+        event_processed_signal_mock,
+        mock_processor,
+        run_post_process_job_mock,
+        mock_process_rules,
+        mock_handle_auto_assignment,
+        mock_handle_owner_assignment,
+    ):
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        call_order = [mock_handle_owner_assignment, mock_handle_auto_assignment, mock_process_rules]
+        mock_handle_owner_assignment.side_effect = None
+        mock_handle_auto_assignment.side_effect = None
+        mock_process_rules.side_effect = None
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=True,
+            is_new_group_environment=False,
+            event=event,
+        )
+        assert event_processed_signal_mock.call_count == 0
+        assert mock_processor.call_count == 0
+        assert run_post_process_job_mock.call_count == 1
+        assert call_order == [
+            mock_handle_owner_assignment,
+            mock_handle_auto_assignment,
+            mock_process_rules,
+        ]
+        assert snuba_raw_query_mock.call_count == 0
+
     @pytest.mark.skip(reason="those tests do not work with the given call_post_process_group impl")
     def test_processing_cache_cleared(self):
         pass

@@ -34,7 +34,6 @@ from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.types import (
-    NOTIFICATION_SETTING_TYPES,
     ActionTargetType,
     FallthroughChoiceType,
     GroupSubscriptionReason,
@@ -393,7 +392,7 @@ def get_send_to(
     target_type: ActionTargetType,
     target_identifier: int | None = None,
     event: Event | None = None,
-    notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
+    notification_type_enum: NotificationSettingEnum = NotificationSettingEnum.ISSUE_ALERTS,
     fallthrough_choice: FallthroughChoiceType | None = None,
     rules: Iterable[Rule] | None = None,
     notification_uuid: str | None = None,
@@ -416,7 +415,12 @@ def get_send_to(
                 lambda x: x.actor_type != ActorType.USER or x.id not in muted_user_ids, recipients
             )
     return get_recipients_by_provider(
-        project, recipients, notification_type, target_type, target_identifier, notification_uuid
+        project,
+        recipients,
+        notification_type_enum,
+        target_type,
+        target_identifier,
+        notification_uuid,
     )
 
 
@@ -578,7 +582,7 @@ def get_notification_recipients_v2(
 def get_recipients_by_provider(
     project: Project,
     recipients: Iterable[RpcActor],
-    notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
+    notification_type_enum: NotificationSettingEnum = NotificationSettingEnum.ISSUE_ALERTS,
     target_type: ActionTargetType | None = None,
     target_identifier: int | None = None,
     notification_uuid: str | None = None,
@@ -589,7 +593,7 @@ def get_recipients_by_provider(
     users = recipients_by_type[ActorType.USER]
 
     # First evaluate the teams.
-    setting_type = NotificationSettingEnum(NOTIFICATION_SETTING_TYPES[notification_type])
+    setting_type = notification_type_enum
     teams_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]] = {}
 
     # get by team
