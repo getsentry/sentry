@@ -149,7 +149,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             id=self.org_integration.organization_id, user_id=None
         )
         if not organization_context:
-            logger.exception(
+            logger.error(
                 "No organization information was found. Continuing execution.", extra=extra
             )
         else:
