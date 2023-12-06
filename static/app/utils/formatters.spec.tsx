@@ -404,7 +404,7 @@ describe('parseLargestSuffix', () => {
     expect(parseLargestSuffix(SEC_IN_MIN * 2, 'weeks', true)).toEqual([2, 'm']);
     expect(parseLargestSuffix(SEC_IN_HR, 'weeks', true)).toEqual([1, 'h']);
     expect(parseLargestSuffix(SEC_IN_DAY, 'weeks', true)).toEqual([1, 'd']);
-    expect(parseLargestSuffix(SEC_IN_WK, 'weeks', true)).toEqual([1, 'wk']);
+    expect(parseLargestSuffix(SEC_IN_WK, 'weeks', true)).toEqual([1, 'w']);
   });
 });
 
