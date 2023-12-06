@@ -99,8 +99,8 @@ describe('withIssueTags HoC', function () {
   it('groups assignees and puts suggestions first', function () {
     const Container = withIssueTags(MyComponent);
     TeamStore.loadInitialData([
-      Team({id: 1, slug: 'best-team', name: 'Best Team', isMember: true}),
-      Team({id: 2, slug: 'worst-team', name: 'Worst Team', isMember: false}),
+      Team({id: '1', slug: 'best-team', name: 'Best Team', isMember: true}),
+      Team({id: '2', slug: 'worst-team', name: 'Worst Team', isMember: false}),
     ]);
     MemberListStore.loadInitialData([
       TestStubs.User(),

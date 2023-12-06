@@ -107,7 +107,7 @@ describe('CreateProject', function () {
     });
 
     renderFrameworkModalMockRequests({organization, teamSlug: 'team-two'});
-    TeamStore.loadUserTeams([Team({id: 2, slug: 'team-two', access: []})]);
+    TeamStore.loadUserTeams([Team({id: '2', slug: 'team-two', access: []})]);
 
     render(<CreateProject />, {
       context: TestStubs.routerContext([
@@ -139,9 +139,9 @@ describe('CreateProject', function () {
 
     OrganizationStore.onUpdate(organization);
     TeamStore.loadUserTeams([
-      Team({id: 1, slug: 'team-one', access: []}),
-      Team({id: 2, slug: 'team-two', access: ['team:admin']}),
-      Team({id: 3, slug: 'team-three', access: ['team:admin']}),
+      Team({id: '1', slug: 'team-one', access: []}),
+      Team({id: '2', slug: 'team-two', access: ['team:admin']}),
+      Team({id: '3', slug: 'team-three', access: ['team:admin']}),
     ]);
     render(<CreateProject />, {
       context: TestStubs.routerContext([{organization}]),
