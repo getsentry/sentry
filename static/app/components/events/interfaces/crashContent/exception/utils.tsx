@@ -57,7 +57,7 @@ export function Linkify({exceptionText}: {exceptionText?: string}): ReactElement
           rel="noopener noreferrer"
           onClick={() => RedirectExternalLink(part)}
         >
-          {urls[index]}{' '}
+          {urls[index]}
         </a>
       ) : null;
 
