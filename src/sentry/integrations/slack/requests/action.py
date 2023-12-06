@@ -40,6 +40,16 @@ class SlackActionRequest(SlackRequest):
             return json.loads(self.data["callback_id"])
 
         # XXX(CEO): can't really feature flag this but the data is very different
+
+        # modal dropdown seems to try to submit when an option is selected - I don't think we want that
+        # but just handling it for now
+        if self.data["type"] == "block_actions":
+            return {"issue": 520}
+            # return json.loads(self.data["view"]["blocks"][0]["block_id"])
+
+        if self.data["type"] == "view_submission":
+            return json.loads(self.data["view"]["callback_id"])
+
         for data in self.data["message"]["blocks"]:
             if data["type"] == "section" and len(data["block_id"]) > 5:
                 return json.loads(data["block_id"])

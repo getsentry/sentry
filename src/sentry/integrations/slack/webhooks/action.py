@@ -281,11 +281,68 @@ class SlackActionEndpoint(Endpoint):
             "dialog": json.dumps(dialog),
             "trigger_id": slack_request.data["trigger_id"],
         }
+        use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
+        # TODO add a "private_metadata" field that includes the response URL - this is not added by default
+        # see https://api.slack.com/block-kit/dialogs-to-modals#state
+        # "private_metadata" : callback_id, # I dont think we need is_message here
+
+        block_kit_payload = {
+            "type": "modal",
+            "submit": {"type": "plain_text", "text": "Submit"},
+            "close": {"type": "plain_text", "text": "Cancel"},
+            "title": {"type": "plain_text", "text": "Resolve Issue"},
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": " Resolved in"},
+                    "accessory": {
+                        "type": "static_select",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Choose target",
+                            "emoji": True,
+                        },
+                        "options": [
+                            {
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "Immediately",
+                                    "emoji": True,
+                                },
+                                "value": "resolved",
+                            },
+                            {
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "In the next release",
+                                    "emoji": True,
+                                },
+                                "value": "resolved:inNextRelease",
+                            },
+                        ],
+                    },
+                }
+            ],
+            "private_metadata": callback_id,
+            "callback_id": callback_id,
+        }
+
         slack_client = SlackClient(integration_id=slack_request.integration.id)
-        try:
-            slack_client.post("/dialog.open", data=payload)
-        except ApiError as e:
-            logger.error("slack.action.response-error", extra={"error": str(e)})
+        if use_block_kit:
+            try:
+                payload = {
+                    "view": json.dumps(block_kit_payload),
+                    "trigger_id": slack_request.data["trigger_id"],
+                }
+                headers = {"content-type": "application/json; charset=utf-8"}
+                slack_client.post("/views.open", data=json.dumps(payload), headers=headers)
+            except ApiError as e:
+                logger.error("slack.action.response-error", extra={"error": str(e)})
+        else:
+            try:
+                slack_client.post("/dialog.open", data=payload)
+            except ApiError as e:
+                logger.error("slack.action.response-error", extra={"error": str(e)})
 
     def construct_reply(self, attachment: SlackBody, is_message: bool = False) -> SlackBody:
         # XXX(epurkhiser): Slack is inconsistent about it's expected responses
@@ -328,6 +385,42 @@ class SlackActionEndpoint(Endpoint):
 
         original_tags_from_request = slack_request.get_tags()
         # Handle status dialog submission
+        use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
+        if use_block_kit and slack_request.type == "view_submission":
+            # Masquerade a status action
+            selection = None
+            values = slack_request.data["view"]["state"]["values"]
+            for value in values:
+                for val in values[value]:
+                    selection = values[value][val]["selected_option"]["value"]
+                    if selection:
+                        break
+                if selection:
+                    break
+
+            action = MessageAction(name="status", value=selection)
+
+            try:
+                self.on_status(request, identity_user, group, action)
+            except client.ApiError as error:
+                return self.api_error(slack_request, group, identity_user, error, "status_dialog")
+
+            attachment = SlackIssueAlertMessageBuilder(
+                group, identity=identity, actions=[action], tags=original_tags_from_request
+            ).build()
+            body = self.construct_reply(
+                attachment, is_message=slack_request.callback_data["is_message"]
+            )
+
+            # use the original response_url to update the link attachment
+            slack_client = SlackClient(integration_id=slack_request.integration.id)
+            try:
+                private_metadata = json.loads(slack_request.data["view"]["private_metadata"])
+                slack_client.post(private_metadata["orig_response_url"], data=body, json=True)
+            except ApiError as e:
+                logger.error("slack.action.response-error", extra={"error": str(e)})
+            return self.respond()
+
         if (
             slack_request.type == "dialog_submission"
             and "resolve_type" in slack_request.data["submission"]
@@ -349,6 +442,8 @@ class SlackActionEndpoint(Endpoint):
             body = self.construct_reply(
                 attachment, is_message=slack_request.callback_data["is_message"]
             )
+
+            # TODO: seems that the message body isn't changing, not sure why
 
             # use the original response_url to update the link attachment
             slack_client = SlackClient(integration_id=slack_request.integration.id)

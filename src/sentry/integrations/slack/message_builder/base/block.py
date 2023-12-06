@@ -73,7 +73,8 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
     def get_button_action(action):
         button = {
             "type": "button",
-            "action_id": action.label,  # hard coded for now, needs to be dynamic
+            "action_id": action.value,  # hard coded for now, needs to be dynamic
+            # ^ changed this from action.label for the resolve dialog, might need to change it back to work for ignore
             "text": {"type": "plain_text", "text": action.label},
             "value": action.value,
         }

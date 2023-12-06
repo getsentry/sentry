@@ -218,16 +218,21 @@ def build_actions(
     def _resolve_button(use_block_kit) -> MessageAction:
 
         if use_block_kit:
-            resolve_options = [
-                {"label": "Immediately", "value": "resolved"},
-                {"label": "In the next release", "value": "resolved:inNextRelease"},
-                {"label": "In the current release", "value": "resolved:inCurrentRelease"},
-            ]
+            # resolve_options = [
+            #     {"label": "Immediately", "value": "resolved"},
+            #     {"label": "In the next release", "value": "resolved:inNextRelease"},
+            #     {"label": "In the current release", "value": "resolved:inCurrentRelease"},
+            # ]
+            # return MessageAction(
+            #     name="status",
+            #     label="Resolve...",
+            #     type="select",
+            #     option_groups=resolve_options,
+            # )
             return MessageAction(
                 name="status",
-                label="Resolve...",
-                type="select",
-                option_groups=resolve_options,
+                label="Resolve",
+                value="resolve_dialog",
             )
 
         if status == GroupStatus.RESOLVED:
@@ -492,7 +497,8 @@ class SlackIssueAlertMessageBuilder(BlockSlackMessageBuilder):
             elif action.label in ("Resolve", "Unresolve", "Resolve..."):
                 # TODO: to get parity with the existing alerts, this should open up a modal
                 # design is TBD though so unclear if we'll use it. maybe just build it out in case?
-                actions.append(self.get_static_action(action))
+                # actions.append(self.get_static_action(action))
+                actions.append(self.get_button_action(action))
             elif action.name == "assign":
                 actions.append(self.get_static_action(action))
 
