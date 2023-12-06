@@ -28,19 +28,16 @@ function filterAndSortOperations(operations: string[]) {
 }
 
 function MriField({aggregate, project, onChange}: Props) {
-  const {data: meta, isLoading} = useMetricsMeta([parseInt(project.id, 10)], {
-    useCases: ['custom'],
-  });
+  const {data: meta, isLoading} = useMetricsMeta([parseInt(project.id, 10)], ['custom']);
+
   const metaArr = useMemo(() => {
-    return Object.values(meta)
-      .map(
-        metric =>
-          ({
-            ...metric,
-            ...parseMRI(metric.mri),
-          }) as ParsedMRI & MetricMeta
-      )
-      .sort((a, b) => a.name.localeCompare(b.name));
+    return Object.values(meta).map(
+      metric =>
+        ({
+          ...metric,
+          ...parseMRI(metric.mri),
+        }) as ParsedMRI & MetricMeta
+    );
   }, [meta]);
 
   const selectedValues = parseField(aggregate) ?? {mri: '' as MRI, op: ''};
