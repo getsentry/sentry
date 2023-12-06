@@ -352,6 +352,39 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 referrer="metrics.data.api",
             )
 
+    def test_query_with_custom_set(self):
+        mri = "s:custom/user_click@none"
+        for user in ("marco", "marco", "john"):
+            self.store_metric(
+                self.project.organization.id,
+                self.project.id,
+                "set",
+                mri,
+                {},
+                self.ts(self.now()),
+                user,
+                UseCaseID.CUSTOM,
+            )
+
+        field = f"count_unique({mri})"
+        results = run_metrics_query(
+            fields=[field],
+            query=None,
+            group_bys=None,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        groups = results["groups"]
+        assert len(groups) == 1
+        assert groups[0]["by"] == {}
+        assert groups[0]["series"] == {field: [0, 2, 0]}
+        assert groups[0]["totals"] == {field: 2}
+
     @pytest.mark.skip(reason="sessions are not supported in the new metrics layer")
     def test_with_sessions(self) -> None:
         self.store_session(
