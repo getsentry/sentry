@@ -33,10 +33,6 @@ steps:
       ]
     timeout: 300s
 timeout: 2640s
-artifacts:
-  objects:
-    location: 'gs://sentryio-cloudbuild-opensource/getsentry/sentry/$COMMIT_SHA/'
-    paths: ['dist/*.whl']
 options:
   # We need more memory for Webpack builds & e2e self-hosted tests
   machineType: 'E2_HIGHCPU_8'
