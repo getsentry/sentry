@@ -1,5 +1,3 @@
-import isArray from 'lodash/isArray';
-
 import {getDateTimeParams, MetricMetaCodeLocation} from 'sentry/utils/metrics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -28,7 +26,11 @@ export function useMetricsCodeLocations(mri: string | undefined) {
     }
   );
 
-  if (!data || !isArray(data?.codeLocations) || !isArray(data?.codeLocations[0].frames)) {
+  if (
+    !data ||
+    !Array.isArray(data?.codeLocations) ||
+    !Array.isArray(data?.codeLocations[0]?.frames)
+  ) {
     return {data, isLoading};
   }
 

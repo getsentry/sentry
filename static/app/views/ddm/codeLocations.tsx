@@ -1,6 +1,5 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import isArray from 'lodash/isArray';
 
 import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
@@ -39,11 +38,12 @@ export function CodeLocations({mri}: {mri: string}) {
   if (!hasDDMExperimentalFeature(organization)) {
     return null;
   }
-  const codeLocations = data?.codeLocations;
 
-  if (!codeLocations || !isArray(codeLocations) || codeLocations.length === 0) {
+  if (!Array.isArray(data?.codeLocations) || data?.codeLocations.length === 0) {
     return null;
   }
+
+  const codeLocations = data?.codeLocations ?? [];
 
   // We only want to show the first 5 code locations
   const reversedCodeLocations = codeLocations.slice(0, 5);
