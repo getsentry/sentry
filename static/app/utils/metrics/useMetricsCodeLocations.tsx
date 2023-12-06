@@ -29,7 +29,7 @@ export function useMetricsCodeLocations(mri: string | undefined) {
   if (
     !data ||
     !Array.isArray(data?.codeLocations) ||
-    !Array.isArray(data?.codeLocations[0].frames)
+    !Array.isArray(data?.codeLocations[0]?.frames)
   ) {
     return {data, isLoading};
   }
