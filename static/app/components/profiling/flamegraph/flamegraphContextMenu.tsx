@@ -54,6 +54,8 @@ const DIFFERENTIAL_FLAMEGRAPH_SORTING_OPTIONS: FlamegraphSorting[] = [
   'left heavy',
 ];
 
+const DIFFERENTIAL_FLAMEGRAPH_FRAME_OPTIONS = ['all', 'application', 'system'] as const;
+
 interface FlamegraphContextMenuProps {
   contextMenu: ReturnType<typeof useContextMenu>;
   hoveredNode: FlamegraphFrame | null;
@@ -259,7 +261,9 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
 
 interface DifferentialFlamegraphMenuProps {
   contextMenu: ReturnType<typeof useContextMenu>;
+  frameFilter: 'application' | 'system' | 'all';
   onClose: () => void;
+  onFrameFilterChange: (type: 'application' | 'system' | 'all') => void;
 }
 export function DifferentialFlamegraphMenu(props: DifferentialFlamegraphMenuProps) {
   const preferences = useFlamegraphPreferences();
@@ -267,6 +271,20 @@ export function DifferentialFlamegraphMenu(props: DifferentialFlamegraphMenuProp
 
   return (
     <ProfilingContextMenu>
+      <ProfilingContextMenuGroup>
+        <ProfilingContextMenuHeading>{t('Functions')}</ProfilingContextMenuHeading>
+        {DIFFERENTIAL_FLAMEGRAPH_FRAME_OPTIONS.map((filter, idx) => (
+          <ProfilingContextMenuItemCheckbox
+            key={idx}
+            {...props.contextMenu.getMenuItemProps({
+              onClick: () => props.onFrameFilterChange(filter),
+            })}
+            checked={props.frameFilter === filter}
+          >
+            {filter}
+          </ProfilingContextMenuItemCheckbox>
+        ))}
+      </ProfilingContextMenuGroup>
       <ProfilingContextMenuGroup>
         <ProfilingContextMenuHeading>{t('View')}</ProfilingContextMenuHeading>
         {FLAMEGRAPH_VIEW_OPTIONS.map((view, idx) => (
