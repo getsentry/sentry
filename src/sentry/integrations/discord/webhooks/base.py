@@ -72,6 +72,8 @@ class DiscordInteractionsEndpoint(Endpoint):
                 return DiscordMessageComponentHandler(discord_request).handle()
 
         except DiscordRequestError as e:
+            if SiloMode.get_current_mode() != SiloMode.MONOLITH:
+                sentry_sdk.capture_exception(e)
             logger.exception(
                 "discord.request.error",
                 extra={
