@@ -34,7 +34,7 @@ export const errorTypeConfigMap: Record<ErrorType, Partial<IssueTypeConfig>> = {
       links: [
         {
           text: t('How to fix ChunkLoadErrors'),
-          link: 'https://sentry.io',
+          link: 'https://sentry.io/answers/chunk-load-errors-javascript/',
         },
       ],
       linksByPlatform: {},
