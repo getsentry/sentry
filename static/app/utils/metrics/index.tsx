@@ -28,6 +28,7 @@ import {
   UseCase,
 } from 'sentry/types/metrics';
 import {defined, formatBytesBase2, formatBytesBase10} from 'sentry/utils';
+import {isMeasurement as isMeasurementString} from 'sentry/utils/discover/fields';
 import {
   DAY,
   formatNumberWithDynamicDecimalPoints,
@@ -37,7 +38,13 @@ import {
   SECOND,
   WEEK,
 } from 'sentry/utils/formatters';
-import {formatMRI, getUseCaseFromMRI, parseField} from 'sentry/utils/metrics/mri';
+import {
+  formatMRI,
+  getUseCaseFromMRI,
+  parseField,
+  parseMRI,
+} from 'sentry/utils/metrics/mri';
+import {isCustomMeasurement as isCustomMeasurementString} from 'sentry/views/dashboards/utils';
 
 import {DateString, PageFilters} from '../../types/core';
 
@@ -485,8 +492,19 @@ export function groupByOp(metrics: MetricMeta[]): Record<string, MetricMeta[]> {
 }
 
 export function isMeasurement({mri}: {mri: MRI}) {
-  return mri.includes(':transactions/measurements');
+  const {name} = parseMRI(mri) ?? {name: ''};
+  return isMeasurementString(name);
 }
+
+export function isCustomMeasurement({mri}: {mri: MRI}) {
+  const {name} = parseMRI(mri) ?? {name: ''};
+  return isCustomMeasurementString(name);
+}
+
+export function isStandardMeasurement({mri}: {mri: MRI}) {
+  return isMeasurement({mri}) && !isCustomMeasurement({mri});
+}
+
 export function isTransactionDuration({mri}: {mri: MRI}) {
   return mri === 'd:transactions/duration@millisecond';
 }
