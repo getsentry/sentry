@@ -1502,8 +1502,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:higher-ownership-limit": False,
     # Enable Monitors (Crons) view
     "organizations:monitors": False,
-    # Enable rate-limiting via relay for Monitors (crons)
-    "organizations:monitors-quota-rate-limit": False,
     # Enable Performance view
     "organizations:performance-view": True,
     # Enable profiling
