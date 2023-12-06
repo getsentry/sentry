@@ -35,11 +35,13 @@ import {
   getAggregateArg,
   getColumnsAndAggregates,
   isEquation,
+  isMeasurement,
   RATE_UNIT_MULTIPLIERS,
   RateUnits,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets, DisplayModes} from 'sentry/utils/discover/types';
+import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {
   getDdmUrl,
   getMetricDisplayType,
@@ -471,6 +473,11 @@ export function getDashboardsMEPQueryParams(isMEPEnabled: boolean) {
 
 export function getNumEquations(possibleEquations: string[]) {
   return possibleEquations.filter(isEquation).length;
+}
+
+const DEFINED_MEASUREMENTS = new Set(Object.keys(getMeasurements()));
+export function isCustomMeasurement(field: string) {
+  return !DEFINED_MEASUREMENTS.has(field) && isMeasurement(field);
 }
 
 export function isCustomMeasurementWidget(widget: Widget) {
