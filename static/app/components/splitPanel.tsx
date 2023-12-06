@@ -10,12 +10,11 @@ export type DividerProps = {
   'data-slide-direction': 'leftright' | 'updown';
   onDoubleClick: React.MouseEventHandler<HTMLElement>;
   onMouseDown: React.MouseEventHandler<HTMLElement>;
+  icon?: React.ReactNode;
 } & React.DOMAttributes<HTMLDivElement>;
 
-const DefaultSplitDivider = styled((props: DividerProps) => (
-  <div {...props}>
-    <IconGrabbable size="sm" />
-  </div>
+export const BaseSplitDivider = styled(({icon, ...props}: DividerProps) => (
+  <div {...props}>{icon || <IconGrabbable size="sm" />}</div>
 ))<DividerProps>`
   display: grid;
   place-items: center;
@@ -97,12 +96,7 @@ export type SplitPanelProps = CommonProps &
   );
 
 function SplitPanel(props: SplitPanelProps) {
-  const {
-    availableSize,
-    SplitDivider = DefaultSplitDivider,
-    onMouseDown,
-    onResize,
-  } = props;
+  const {availableSize, SplitDivider = BaseSplitDivider, onMouseDown, onResize} = props;
   const isLeftRight = 'left' in props;
   const initialSize = isLeftRight ? props.left.default : props.top.default;
   const min = isLeftRight ? props.left.min : props.top.min;

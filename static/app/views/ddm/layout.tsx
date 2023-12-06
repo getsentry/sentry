@@ -12,7 +12,7 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import SplitPanel, {DividerProps} from 'sentry/components/splitPanel';
+import SplitPanel, {BaseSplitDivider, DividerProps} from 'sentry/components/splitPanel';
 import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -113,26 +113,10 @@ export const DDMLayout = memo(() => {
 });
 
 const SplitDivider = styled((props: DividerProps) => (
-  <div {...props}>
-    <IconGrabbable size="xs" />
-  </div>
+  <BaseSplitDivider {...props} icon={<IconGrabbable size="xs" />} />
 ))<DividerProps>`
-  display: grid;
-  place-items: center;
-  width: 100%;
   height: 16px;
-  user-select: none;
-  cursor: ns-resize;
   border-top: 1px solid ${$p => $p.theme.border};
-
-  & > svg {
-    transform: rotate(90deg);
-  }
-
-  &:hover,
-  &[data-is-held='true'] {
-    background: ${p => p.theme.hover};
-  }
 `;
 
 const ScrollingPage = styled(Layout.Page)`
