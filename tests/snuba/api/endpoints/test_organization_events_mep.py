@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Optional
 from unittest import mock
 
 import pytest
@@ -2954,14 +2954,20 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         with self.feature({"organizations:on-demand-metrics-extraction-widgets": True}):
             return self.client.get(url, query, format="json")
 
-    def _on_demand_query_and_assert(
-        self, params: dict[str, Any], expected_on_demand_query: bool, expected_dataset: str
+    def _on_demand_query_check(
+        self,
+        params: dict[str, Any],
+        groupbys: Optional[list[str]] = None,
+        expected_on_demand_query: Optional[bool] = True,
+        expected_dataset: Optional[str] = "metricsEnhanced",
     ) -> None:
         for field in params.get("field"):
-            if field == "transaction":
-                continue
             spec = OnDemandMetricSpec(
-                field=field, query=params["query"], spec_type=MetricSpecType.DYNAMIC_QUERY
+                field=field,
+                query=params["query"],
+                environment=params.get("environment"),
+                groupbys=groupbys,
+                spec_type=MetricSpecType.DYNAMIC_QUERY,
             )
         # Expected parameters for this helper function
         params["dataset"] = "metricsEnhanced"
@@ -2977,27 +2983,20 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         assert meta["dataset"] == expected_dataset
 
     def test_is_metrics_extracted_data_is_included(self) -> None:
-        self._on_demand_query_and_assert(
-            {
-                "field": ["count()"],
-                "query": "transaction.duration:>=91",
-                "yAxis": "count()",
-            },
-            expected_on_demand_query=True,
-            expected_dataset="metricsEnhanced",
+        self._on_demand_query_check(
+            {"field": ["count()"], "query": "transaction.duration:>=91", "yAxis": "count()"}
         )
 
     def test_transaction_user_misery(self) -> None:
-        self._on_demand_query_and_assert(
+        self._on_demand_query_check(
             {
                 "field": ["user_misery(300)"],
                 "query": "transaction.duration:>=91",
                 "yAxis": "user_misery(300)",
             },
-            expected_on_demand_query=True,
-            expected_dataset="metricsEnhanced",
+            groupbys=["transaction"],
         )
-        # self._on_demand_query_and_assert(
+        # self._on_demand_query_check(
         #     {
         #         "environment": "production",
         #         "field": ["transaction", "user_misery(300)"],
