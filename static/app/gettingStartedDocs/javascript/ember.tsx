@@ -60,7 +60,6 @@ const getVerifyEmberSnippet = () => `
 myUndefinedFunction();`;
 
 const onboarding: OnboardingConfig = {
-  introduction: () => [],
   install: () => [
     {
       type: StepType.INSTALL,

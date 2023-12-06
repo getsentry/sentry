@@ -59,7 +59,6 @@ const getVerifySvelteSnippet = () => `
 <button type="button" on:click="{unknownFunction}">Break the world</button>`;
 
 const onboarding: OnboardingConfig = {
-  introduction: () => [],
   install: () => [
     {
       type: StepType.INSTALL,

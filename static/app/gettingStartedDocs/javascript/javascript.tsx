@@ -49,7 +49,6 @@ const getVerifyJSSnippet = () => `
 myUndefinedFunction();`;
 
 const onboarding: OnboardingConfig = {
-  introduction: () => [],
   install: () => [
     {
       type: StepType.INSTALL,

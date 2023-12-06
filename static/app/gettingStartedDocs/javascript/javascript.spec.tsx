@@ -53,7 +53,7 @@ describe('javascript onboarding docs', function () {
     });
 
     expect(
-      screen.getByText(textWithMarkupMatcher(/tracesSampleRate: 1.0/))
+      screen.getByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0/))
     ).toBeInTheDocument();
   });
 
@@ -66,10 +66,10 @@ describe('javascript onboarding docs', function () {
     });
 
     expect(
-      screen.getByText(textWithMarkupMatcher(/replaysSessionSampleRate: 0.1/))
+      screen.getByText(textWithMarkupMatcher(/replaysSessionSampleRate: 0\.1/))
     ).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher(/replaysOnErrorSampleRate: 1.0/))
+      screen.getByText(textWithMarkupMatcher(/replaysOnErrorSampleRate: 1\.0/))
     ).toBeInTheDocument();
   });
 });

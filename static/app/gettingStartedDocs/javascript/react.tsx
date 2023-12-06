@@ -55,7 +55,6 @@ return <button onClick={() => methodDoesNotExist()}>Break the world</button>;
         `;
 
 const onboarding: OnboardingConfig = {
-  introduction: () => [],
   install: () => [
     {
       type: StepType.INSTALL,
