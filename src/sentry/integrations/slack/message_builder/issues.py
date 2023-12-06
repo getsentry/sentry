@@ -84,7 +84,9 @@ def build_action_text(
 
 
 def build_tag_fields(
-    event_for_tags: Any, tags: set[str] | None = None
+    event_for_tags: Any,
+    tags: set[str] | None = None,
+    use_block_kit: bool = False,
 ) -> Sequence[Mapping[str, str | bool]]:
     fields = []
     if tags:
@@ -97,10 +99,8 @@ def build_tag_fields(
             labeled_value = tagstore.get_tag_value_label(key, value)
             fields.append(
                 {
-                    # "title": std_key.encode("utf-8"),
-                    # "value": labeled_value.encode("utf-8"),
-                    "title": std_key,
-                    "value": labeled_value,
+                    "title": std_key if use_block_kit else std_key.encode("utf-8"),
+                    "value": labeled_value if use_block_kit else labeled_value.encode("utf-8"),
                     "short": True,
                 }
             )
@@ -134,8 +134,7 @@ def get_group_assignees(group: Group) -> Sequence[Mapping[str, Any]]:
 
     if members:
         for member in members:
-            # TODO get user name reliably
-            option_groups.append({"label": member.name or "idk man", "value": f"user:{member.id}"})
+            option_groups.append({"label": member.email, "value": f"user:{member.id}"})
 
     return option_groups
 
@@ -168,6 +167,7 @@ def build_actions(
 ) -> tuple[Sequence[MessageAction], str, str]:
     """Having actions means a button will be shown on the Slack message e.g. ignore, resolve, assign."""
     has_escalating = features.has("organizations:escalating-issues", project.organization)
+    use_block_kit = features.has("organizations:slack-block-kit", project.organization)
 
     if actions and identity:
         text = get_action_text(text, actions, identity, has_escalating)
@@ -192,19 +192,20 @@ def build_actions(
             value="ignored:until_escalating" if has_escalating else "ignored:forever",
         )
 
-    def _resolve_button() -> MessageAction:
-        # TODO feature flag this
-        resolve_options = [
-            {"label": "Immediately", "value": "resolved"},
-            {"label": "In the next release", "value": "resolved:inNextRelease"},
-            {"label": "In the current release", "value": "resolved:inCurrentRelease"},
-        ]
-        return MessageAction(
-            name="status",
-            label="Resolve...",
-            type="select",
-            option_groups=resolve_options,
-        )
+    def _resolve_button(use_block_kit) -> MessageAction:
+
+        if use_block_kit:
+            resolve_options = [
+                {"label": "Immediately", "value": "resolved"},
+                {"label": "In the next release", "value": "resolved:inNextRelease"},
+                {"label": "In the current release", "value": "resolved:inCurrentRelease"},
+            ]
+            return MessageAction(
+                name="status",
+                label="Resolve...",
+                type="select",
+                option_groups=resolve_options,
+            )
 
         if status == GroupStatus.RESOLVED:
             return MessageAction(
@@ -225,16 +226,15 @@ def build_actions(
             value="resolve_dialog",
         )
 
-    def _assign_button() -> MessageAction:
-        # TODO feature flag this
-        assign_button = MessageAction(
-            name="assign",
-            label="Select Assignee...",
-            type="select",
-            # selected_options=format_actor_options([assignee]) if assignee else [],
-            option_groups=get_group_assignees(group),
-        )
-        return assign_button
+    def _assign_button(use_block_kit) -> MessageAction:
+        if use_block_kit:
+            assign_button = MessageAction(
+                name="assign",
+                label="Select Assignee...",
+                type="select",
+                option_groups=get_group_assignees(group),
+            )
+            return assign_button
 
         assignee = group.get_assignee()
         assign_button = MessageAction(
@@ -247,7 +247,13 @@ def build_actions(
         return assign_button
 
     action_list = [
-        a for a in [_resolve_button(), _ignore_button(), _assign_button()] if a is not None
+        a
+        for a in [
+            _resolve_button(use_block_kit),
+            _ignore_button(use_block_kit),
+            _assign_button(use_block_kit),
+        ]
+        if a is not None
     ]
 
     return action_list, text, color
@@ -392,6 +398,9 @@ class SlackIssueAlertMessageBuilder(BlockSlackMessageBuilder):
 
     def build(self, notification_uuid: str | None = None) -> SlackBody:
         # XXX(dcramer): options are limited to 100 choices, even when nested
+        use_block_kit = features.has(
+            "organizations:slack-block-kit", self.group.project.organization
+        )
         text = build_attachment_text(self.group, self.event) or ""
 
         if self.escape_text:
@@ -408,7 +417,7 @@ class SlackIssueAlertMessageBuilder(BlockSlackMessageBuilder):
 
         # If an event is unspecified, use the tags of the latest event (if one exists).
         event_for_tags = self.event or self.group.get_latest_event()
-        fields = build_tag_fields(event_for_tags, self.tags)
+        fields = build_tag_fields(event_for_tags, self.tags, use_block_kit)
         color = get_color(event_for_tags, self.notification, self.group)
         obj = self.event if self.event is not None else self.group
         if not self.issue_details or (
