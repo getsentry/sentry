@@ -9,11 +9,14 @@ import Tag from 'sentry/components/tag';
 import {IconLightning, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MRI, SavedSearchType, TagCollection} from 'sentry/types';
+import {MetricMeta, MRI, SavedSearchType, TagCollection} from 'sentry/types';
 import {
   defaultMetricDisplayType,
   getReadableMetricType,
   isAllowedOp,
+  isCustomMetric,
+  isMeasurement,
+  isTransactionDuration,
   MetricDisplayType,
   MetricsQuery,
   MetricWidgetQueryParams,
@@ -33,6 +36,9 @@ type QueryBuilderProps = {
   projects: number[];
   powerUserMode?: boolean;
 };
+
+const isShownByDefault = (metric: MetricMeta) =>
+  isMeasurement(metric) || isCustomMetric(metric) || isTransactionDuration(metric);
 
 export function QueryBuilder({
   metricsQuery,
@@ -59,8 +65,10 @@ export function QueryBuilder({
       return Object.values(meta);
     }
 
+    const isSelected = (metric: MetricMeta) => metric.mri === metricsQuery.mri;
+
     return Object.values(meta).filter(
-      metric => metric.mri.includes(':custom/') || metric.mri === metricsQuery.mri
+      metric => isShownByDefault(metric) || isSelected(metric)
     );
   }, [meta, metricsQuery.mri, mriMode]);
 

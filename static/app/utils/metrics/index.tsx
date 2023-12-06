@@ -484,6 +484,17 @@ export function groupByOp(metrics: MetricMeta[]): Record<string, MetricMeta[]> {
   return groupedByOp;
 }
 
+export function isMeasurement({mri}: {mri: MRI}) {
+  return mri.includes(':transactions/measurements');
+}
+export function isTransactionDuration({mri}: {mri: MRI}) {
+  return mri === 'd:transactions/duration@millisecond';
+}
+
+export function isCustomMetric({mri}: {mri: MRI}) {
+  return mri.includes(':custom/');
+}
+
 // TODO(ddm): remove this and all of its usages once backend sends mri fields
 export function mapToMRIFields(
   data: MetricsApiResponse | undefined,

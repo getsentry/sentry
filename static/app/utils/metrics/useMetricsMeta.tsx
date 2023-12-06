@@ -1,83 +1,70 @@
 import {useMemo} from 'react';
+import isArray from 'lodash/isArray';
 
 import {PageFilters} from 'sentry/types';
-import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {MetricMeta, UseCase} from '../../types/metrics';
 
-interface Options {
-  useCases?: UseCase[];
-}
-
 const DEFAULT_USE_CASES = ['sessions', 'transactions', 'custom', 'spans'];
+
+function useMetaUseCase(
+  useCase: UseCase,
+  projects: PageFilters['projects'],
+  options: Omit<UseApiQueryOptions<MetricMeta[]>, 'staleTime'>
+) {
+  const {slug} = useOrganization();
+
+  const apiQueryResult = useApiQuery<MetricMeta[]>(
+    [`/organizations/${slug}/metrics/meta/`, {query: {useCase, project: projects}}],
+    {
+      ...options,
+      staleTime: Infinity,
+    }
+  );
+
+  if (apiQueryResult.data && isArray(apiQueryResult.data)) {
+    apiQueryResult.data = apiQueryResult.data.sort((a, b) => a.mri.localeCompare(b.mri));
+  }
+
+  return apiQueryResult;
+}
 
 export function useMetricsMeta(
   projects: PageFilters['projects'],
-  options?: Options
+  useCases?: UseCase[]
 ): {data: Record<string, MetricMeta>; isLoading: boolean} {
-  const {slug} = useOrganization();
-  const enabledUseCases = options?.useCases ?? DEFAULT_USE_CASES;
+  const enabledUseCases = useCases ?? DEFAULT_USE_CASES;
 
-  const getKey = (useCase: UseCase): ApiQueryKey => {
-    return [
-      `/organizations/${slug}/metrics/meta/`,
-      {query: {useCase, project: projects}},
-    ];
-  };
-
-  const hasSessions = enabledUseCases.includes('sessions');
-  const hasTransactions = enabledUseCases.includes('transactions');
-  const hasCustom = enabledUseCases.includes('custom');
-  const hasSpans = enabledUseCases.includes('spans');
-
-  const commonOptions = {
-    staleTime: Infinity,
-  };
-
-  const sessionsMeta = useApiQuery<MetricMeta[]>(getKey('sessions'), {
-    ...commonOptions,
-    enabled: hasSessions,
+  const {data: sessionMeta = [], ...sessionsReq} = useMetaUseCase('sessions', projects, {
+    enabled: enabledUseCases.includes('sessions'),
   });
-  const txnsMeta = useApiQuery<MetricMeta[]>(getKey('transactions'), {
-    ...commonOptions,
-    enabled: hasTransactions,
+  const {data: txnsMeta = [], ...txnsReq} = useMetaUseCase('transactions', projects, {
+    enabled: enabledUseCases.includes('transactions'),
   });
-  const customMeta = useApiQuery<MetricMeta[]>(getKey('custom'), {
-    ...commonOptions,
-    enabled: hasCustom,
+  const {data: customMeta = [], ...customReq} = useMetaUseCase('custom', projects, {
+    enabled: enabledUseCases.includes('custom'),
   });
-  const spansMeta = useApiQuery<MetricMeta[]>(getKey('spans'), {
-    ...commonOptions,
-    enabled: hasSpans,
+  const {data: spansMeta = [], ...spansReq} = useMetaUseCase('spans', projects, {
+    enabled: enabledUseCases.includes('spans'),
   });
 
   const combinedMeta = useMemo<Record<string, MetricMeta>>(() => {
-    return [
-      ...(hasSessions ? sessionsMeta.data ?? [] : []),
-      ...(hasTransactions ? txnsMeta.data ?? [] : []),
-      ...(hasCustom ? customMeta.data ?? [] : []),
-      ...(hasSpans ? spansMeta.data ?? [] : []),
-    ].reduce((acc, metricMeta) => {
-      return {...acc, [metricMeta.mri]: metricMeta};
-    }, {});
-  }, [
-    hasSessions,
-    sessionsMeta.data,
-    hasTransactions,
-    txnsMeta.data,
-    hasCustom,
-    customMeta.data,
-    hasSpans,
-    spansMeta.data,
-  ]);
+    return [...sessionMeta, ...txnsMeta, ...customMeta, ...spansMeta].reduce(
+      (acc, metricMeta) => {
+        return {...acc, [metricMeta.mri]: metricMeta};
+      },
+      {}
+    );
+  }, [sessionMeta, txnsMeta, customMeta, spansMeta]);
 
   return {
     data: combinedMeta,
     isLoading:
-      (sessionsMeta.isLoading && sessionsMeta.fetchStatus !== 'idle') ||
-      (txnsMeta.isLoading && txnsMeta.fetchStatus !== 'idle') ||
-      (customMeta.isLoading && customMeta.fetchStatus !== 'idle') ||
-      (spansMeta.isLoading && spansMeta.fetchStatus !== 'idle'),
+      (sessionsReq.isLoading && sessionsReq.fetchStatus !== 'idle') ||
+      (txnsReq.isLoading && txnsReq.fetchStatus !== 'idle') ||
+      (customReq.isLoading && customReq.fetchStatus !== 'idle') ||
+      (spansReq.isLoading && spansReq.fetchStatus !== 'idle'),
   };
 }

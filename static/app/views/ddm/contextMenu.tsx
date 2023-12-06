@@ -8,9 +8,9 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics';
+import {isCustomMetric, MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics';
 import {hasDDMFeature} from 'sentry/utils/metrics/features';
-import {MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
+import {MRIToField} from 'sentry/utils/metrics/mri';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {DashboardWidgetSource, WidgetType} from 'sentry/views/dashboards/types';
@@ -72,7 +72,12 @@ function useHandleAddQueryToDashboard(
   const {start, end, period} = datetime;
 
   return useMemo(() => {
-    if (!mri || !op) {
+    if (
+      !mri ||
+      !op ||
+      !isCustomMetric({mri}) ||
+      !organization.access.includes('member:write')
+    ) {
       return undefined;
     }
 
@@ -149,7 +154,7 @@ function useCreateAlert(organization: Organization, metricsQuery: MetricsQuery) 
     if (
       !metricsQuery.mri ||
       !metricsQuery.op ||
-      parseMRI(metricsQuery.mri)?.useCase !== 'custom' ||
+      !isCustomMetric(metricsQuery) ||
       !organization.access.includes('alerts:write')
     ) {
       return undefined;
