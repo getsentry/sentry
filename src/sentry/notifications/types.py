@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from sentry.services.hybrid_cloud import ValueEqualityEnum
 
@@ -16,10 +16,6 @@ communication with the API and plan to do so as soon as we use native enums in
 Postgres. In the meantime each enum has an adjacent object that maps the
 integers to their string values.
 """
-
-
-def get_notification_setting_type_name(value: int | NotificationSettingTypes) -> Optional[str]:
-    return NOTIFICATION_SETTING_TYPES.get(NotificationSettingTypes(value))
 
 
 class NotificationSettingTypes(ValueEqualityEnum):
