@@ -14,8 +14,16 @@ export type GapSpanType = {
   description?: string;
 };
 
+interface SpanSourceCodeAttributes {
+  'code.column'?: number;
+  'code.filepath'?: string;
+  'code.function'?: string;
+  'code.lineno'?: number;
+  'code.namespace'?: string;
+}
+
 export type RawSpanType = {
-  data: Record<string, any>;
+  data: SpanSourceCodeAttributes & Record<string, any>;
   span_id: string;
   start_timestamp: number;
   // this is essentially end_timestamp
