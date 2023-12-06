@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
-import {hasDdmAlertsSupport} from 'sentry/utils/metrics/features';
+import {hasDDMFeature} from 'sentry/utils/metrics/features';
 import MriField from 'sentry/views/alerts/rules/metric/mriField';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {
@@ -105,10 +105,10 @@ export default function WizardField({
           label: AlertWizardAlertNames.cls,
           value: 'cls',
         },
-        ...(hasDdmAlertsSupport(organization)
+        ...(hasDDMFeature(organization)
           ? [
               {
-                label: AlertWizardAlertNames.custom_metrics,
+                label: AlertWizardAlertNames.custom_transactions,
                 value: 'custom_transactions' as const,
               },
             ]
@@ -116,14 +116,17 @@ export default function WizardField({
       ],
     },
     {
-      label: hasDdmAlertsSupport(organization) ? t('METRICS') : t('CUSTOM'),
+      label: hasDDMFeature(organization) ? t('METRICS') : t('CUSTOM'),
       options: [
-        {
-          label: AlertWizardAlertNames.custom_metrics,
-          value: hasDdmAlertsSupport(organization)
-            ? 'custom_metrics'
-            : 'custom_transactions',
-        },
+        hasDDMFeature(organization)
+          ? {
+              label: AlertWizardAlertNames.custom_metrics,
+              value: 'custom_metrics',
+            }
+          : {
+              label: AlertWizardAlertNames.custom_transactions,
+              value: 'custom_transactions',
+            },
       ],
     },
   ];
@@ -176,7 +179,7 @@ export default function WizardField({
                 model.setValue('alertType', option.value);
               }}
             />
-            {hasDdmAlertsSupport(organization) && alertType === 'custom_metrics' ? (
+            {hasDDMFeature(organization) && alertType === 'custom_metrics' ? (
               <MriField
                 project={project}
                 aggregate={aggregate}

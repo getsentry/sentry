@@ -170,7 +170,8 @@ export default class ReplayReader {
     // few seconds later.
     this._sortedBreadcrumbFrames = hydrateBreadcrumbs(
       replayRecord,
-      breadcrumbFrames
+      breadcrumbFrames,
+      this._sortedRRWebEvents
     ).sort(sortFrames);
     // Spans must be sorted so components like the Timeline and Network Chart
     // can have an easier time to render.
@@ -265,7 +266,7 @@ export default class ReplayReader {
     [
       ...this.getPerfFrames(),
       ...this._sortedBreadcrumbFrames.filter(frame =>
-        ['replay.init', 'replay.mutations'].includes(frame.category)
+        ['replay.init', 'replay.mutations', 'replay.hydrate'].includes(frame.category)
       ),
       ...this._errors,
     ].sort(sortFrames)

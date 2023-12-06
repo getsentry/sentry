@@ -1,3 +1,4 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
 import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -40,7 +41,7 @@ describe('Breadcrumbs', () => {
 
     props = {
       organization: Organization(),
-      event: TestStubs.Event({entries: [], projectID: project.id}),
+      event: EventFixture({entries: [], projectID: project.id}),
       data: {
         values: [
           {

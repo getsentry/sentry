@@ -11,7 +11,7 @@ from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderB
 from snuba_sdk import Request as SnubaRequest
 
 from sentry.integrations.github.client import GitHubAppsClient
-from sentry.models.group import Group
+from sentry.models.group import Group, GroupStatus
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
@@ -31,6 +31,7 @@ from sentry.tasks.integrations.github.pr_comment import (
     PullRequestIssue,
     create_or_update_comment,
     format_comment_url,
+    get_pr_comment,
 )
 from sentry.templatetags.sentry_helpers import small_count
 from sentry.types.referrer_ids import GITHUB_OPEN_PR_BOT_REFERRER
@@ -119,7 +120,7 @@ def get_issue_table_contents(issue_list: List[Dict[str, int]]) -> List[PullReque
             title=issue.title,
             subtitle=issue.culprit,
             url=issue.get_absolute_url(),
-            affected_users=group_id_to_info[issue.id]["affected_users"],
+            affected_users=issue.count_users_seen(),
             event_count=group_id_to_info[issue.id]["event_count"],
             is_handled=bool(group_id_to_info[issue.id]["is_handled"]),
         )
@@ -134,11 +135,13 @@ def get_issue_table_contents(issue_list: List[Dict[str, int]]) -> List[PullReque
 def safe_for_comment(
     gh_client: GitHubAppsClient, repository: Repository, pull_request: PullRequest
 ) -> bool:
+    logger.info("github.open_pr_comment.check_safe_for_comment")
     try:
         pullrequest_resp = gh_client.get_pullrequest(
             repo=repository.name, pull_number=pull_request.key
         )
     except ApiError as e:
+        logger.info("github.open_pr_comment.api_error")
         if e.json and RATE_LIMITED_MESSAGE in e.json.get("message", ""):
             metrics.incr(
                 OPEN_PR_METRICS_BASE.format(key="api_error"),
@@ -183,6 +186,8 @@ def get_pr_filenames(
 
     # new files will not have sentry issues associated with them
     pr_filenames: List[str] = [file["filename"] for file in pr_files if file["status"] != "added"]
+
+    logger.info("github.open_pr_comment.pr_filenames", extra={"count": len(pr_filenames)})
     return pr_filenames
 
 
@@ -204,7 +209,7 @@ def get_projects_and_filenames_from_source_file(
         for code_mapping in code_mappings:
             project_list.add(code_mapping.project)
             sentry_filenames.add(
-                pr_filename.replace(code_mapping.source_root, code_mapping.stack_root)
+                pr_filename.replace(code_mapping.source_root, code_mapping.stack_root, 1)
             )
     return project_list, sentry_filenames
 
@@ -216,6 +221,7 @@ def get_top_5_issues_by_count_for_file(
     group_ids = list(
         Group.objects.filter(
             last_seen__gte=datetime.now() - timedelta(days=14),
+            status=GroupStatus.UNRESOLVED,
             project__in=projects,
         ).values_list("id", flat=True)
     )
@@ -231,7 +237,6 @@ def get_top_5_issues_by_count_for_file(
                 [
                     Column("group_id"),
                     Function("count", [], "event_count"),
-                    Function("uniq", [Column("user_hash")], "affected_users"),
                     Function("isHandled", [], "is_handled"),
                 ]
             )
@@ -261,11 +266,14 @@ def get_top_5_issues_by_count_for_file(
     name="sentry.tasks.integrations.open_pr_comment_workflow", silo_mode=SiloMode.REGION
 )
 def open_pr_comment_workflow(pr_id: int) -> None:
+    logger.info("github.open_pr_comment.start_workflow")
+
     # CHECKS
     # check PR exists to get PR key
     try:
         pull_request = PullRequest.objects.get(id=pr_id)
     except PullRequest.DoesNotExist:
+        logger.info("github.open_pr_comment.pr_missing")
         metrics.incr(OPEN_PR_METRICS_BASE.format(key="error"), tags={"type": "missing_pr"})
         return
 
@@ -307,6 +315,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
 
     # CREATING THE COMMENT
     if not safe_for_comment(gh_client=client, repository=repo, pull_request=pull_request):
+        logger.info("github.open_pr_comment.not_safe_for_comment")
         metrics.incr(
             OPEN_PR_METRICS_BASE.format(key="error"),
             tags={"type": "unsafe_for_comment"},
@@ -335,6 +344,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         issue_table_contents[pr_filename] = get_issue_table_contents(top_issues)
 
     if not len(issue_table_contents):
+        logger.info("github.open_pr_comment.no_issues")
         # don't leave a comment if no issues for files in PR
         metrics.incr(OPEN_PR_METRICS_BASE.format(key="no_issues"))
         return
@@ -363,9 +373,11 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     issue_list: List[Dict[str, Any]] = list(itertools.chain.from_iterable(top_issues_per_file))
     issue_id_list: List[int] = [issue["group_id"] for issue in issue_list]
 
+    pr_comment = get_pr_comment(pr_id, comment_type=CommentType.OPEN_PR)
+
     try:
         create_or_update_comment(
-            pr_comment=None,
+            pr_comment=pr_comment,
             client=client,
             repo=repo,
             pr_key=pull_request.key,

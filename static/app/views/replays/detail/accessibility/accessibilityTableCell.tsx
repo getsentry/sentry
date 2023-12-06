@@ -31,7 +31,6 @@ interface Props extends ReturnType<typeof useCrumbHandlers> {
   onClickCell: (props: {dataIndex: number; rowIndex: number}) => void;
   rowIndex: number;
   sortConfig: ReturnType<typeof useSortAccessibility>['sortConfig'];
-  // startTimestampMs: number;
   style: CSSProperties;
 }
 
@@ -118,7 +117,7 @@ const AccessibilityTableCell = forwardRef<HTMLDivElement, Props>(
       ),
       () => (
         <Cell {...columnProps}>
-          <CodeHighlightCell language="html" hideCopyButton>
+          <CodeHighlightCell language="html" hideCopyButton data-render-inline>
             {a11yIssue.element.element ?? EMPTY_CELL}
           </CodeHighlightCell>
         </Cell>

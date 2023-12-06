@@ -52,7 +52,7 @@ export const useProjectWebVitalsScoresQuery = ({
     orgSlug: organization.slug,
     cursor: '',
     options: {
-      enabled: pageFilters.isReady && enabled,
+      enabled,
       refetchOnWindowFocus: false,
     },
     skipAbort: true,

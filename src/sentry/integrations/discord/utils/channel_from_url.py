@@ -3,24 +3,32 @@ from venv import logger
 from django.core.exceptions import ValidationError
 
 
-def get_channel_id_from_url(channel_url: str) -> str:
-    # https://discord.com/channels/1146873646112059423/1157018214425956502
+def get_channel_id_from_url(channel: str) -> str:
     prefix = "https://discord.com/channels/"
 
-    if channel_url.isdigit():
-        return channel_url
+    if not channel:
+        logger.info(
+            "rule.discord.missing_channel_id",
+            extra={
+                "reason": "channel ID missing",
+            },
+        )
+        raise ValidationError("Discord channel id is missing")
 
-    if not channel_url.startswith(prefix):
+    if channel.isdigit():
+        return channel
+
+    if not channel.startswith(prefix):
         logger.info(
             "rule.discord.bad_channel_url",
             extra={
-                "channel_url": channel_url,
+                "channel_url": channel,
                 "reason": "channel URL missing or malformed",
             },
         )
         raise ValidationError("Discord channel URL is missing or formatted incorrectly")
 
-    id_string = channel_url[len(prefix) :]
+    id_string = channel[len(prefix) :]
     if "/" in id_string:
         channel_id = id_string.split("/")[1]
         if channel_id:
@@ -29,7 +37,7 @@ def get_channel_id_from_url(channel_url: str) -> str:
     logger.info(
         "rule.discord.bad_channel_url.missing_id",
         extra={
-            "channel_url": channel_url,
+            "channel_url": channel,
             "reason": "channel ID missing from URL",
         },
     )

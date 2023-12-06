@@ -15,7 +15,7 @@ from sentry.shared_integrations.exceptions import ApiTimeoutError, IntegrationEr
 class DiscordNotifyServiceForm(forms.Form):
     # NOTE: server (guild id) maps directly to the integration ID
     server = forms.ChoiceField(choices=(), widget=forms.Select())
-    channel_url = forms.CharField(widget=forms.TextInput())
+    channel_id = forms.CharField(widget=forms.TextInput())
     tags = forms.CharField(required=False, widget=forms.TextInput())
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -34,7 +34,7 @@ class DiscordNotifyServiceForm(forms.Form):
 
     def clean(self) -> dict[str, object] | None:
         cleaned_data: dict[str, object] = super().clean() or {}
-        channel_url = cleaned_data.get("channel_url")
+        channel_id = cleaned_data.get("channel_id")
         server = cleaned_data.get("server")
         integration = integration_service.get_integration(integration_id=server)
 
@@ -44,14 +44,16 @@ class DiscordNotifyServiceForm(forms.Form):
                 code="invalid",
             )
 
-        if channel_url and isinstance(channel_url, str):
+        if channel_id and isinstance(channel_id, str):
             try:
+                channel = get_channel_id_from_url(channel_id)
                 validate_channel_id(
-                    channel_id=get_channel_id_from_url(channel_url),
+                    channel_id=channel,
                     guild_id=integration.external_id,
                     integration_id=integration.id,
                     guild_name=integration.name,
                 )
+                cleaned_data["channel_id"] = channel
             except ValidationError as e:
                 raise forms.ValidationError(
                     self._format_discord_error_message("; ".join(e.messages)),

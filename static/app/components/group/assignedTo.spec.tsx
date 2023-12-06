@@ -1,6 +1,8 @@
 import {Commit} from 'sentry-fixture/commit';
 import {CommitAuthor} from 'sentry-fixture/commitAuthor';
+import {Event as EventFixture} from 'sentry-fixture/event';
 import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -14,14 +16,14 @@ import type {
   Group,
   Organization as TOrganization,
   Project,
-  Team,
+  Team as TeamType,
   User,
 } from 'sentry/types';
 
 describe('Group > AssignedTo', () => {
   let USER_1!: User;
   let USER_2!: User;
-  let TEAM_1!: Team;
+  let TEAM_1!: TeamType;
   let PROJECT_1!: Project;
   let GROUP_1!: Group;
   let event!: Event;
@@ -41,7 +43,7 @@ describe('Group > AssignedTo', () => {
       email: 'johnsmith@example.com',
     });
 
-    TEAM_1 = TestStubs.Team({
+    TEAM_1 = Team({
       id: '3',
       name: 'COOL TEAM',
       slug: 'cool-team',
@@ -58,7 +60,7 @@ describe('Group > AssignedTo', () => {
         slug: PROJECT_1.slug,
       },
     });
-    event = TestStubs.Event();
+    event = EventFixture();
 
     TeamStore.loadInitialData([TEAM_1]);
     ProjectsStore.loadInitialData([PROJECT_1]);

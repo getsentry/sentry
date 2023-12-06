@@ -24,6 +24,7 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import get_sdk_name
@@ -59,6 +60,7 @@ class PostProcessJob(TypedDict, total=False):
     is_reprocessed: bool
     has_reappeared: bool
     has_alert: bool
+    has_escalated: bool
 
 
 def _get_service_hooks(project_id):
@@ -462,7 +464,7 @@ def fetch_buffered_group_stats(group):
     from sentry import buffer
     from sentry.models.group import Group
 
-    result = buffer.backend.get(Group, ["times_seen"], {"pk": group.id})
+    result = buffer.backend.get(Group, ["times_seen"], {"id": group.id})
     group.times_seen_pending = result["times_seen"]
 
 
@@ -581,6 +583,7 @@ def post_process_group(
                     occurrence.event_id,
                     group_id=group_id,
                     skip_transaction_groupevent=True,
+                    occurrence_id=occurrence_id,
                 )
                 if retrieved is None:
                     raise EventLookupError(
@@ -665,6 +668,7 @@ def post_process_group(
                 "is_reprocessed": is_reprocessed,
                 "has_reappeared": bool(not gs["is_new"]),
                 "has_alert": False,
+                "has_escalated": False,
             }
             for ge, gs in multi_groups
         ]
@@ -699,7 +703,14 @@ def run_post_process_job(job: PostProcessJob):
 
     for pipeline_step in pipeline:
         try:
-            with sentry_sdk.start_span(op=f"tasks.post_process_group.{pipeline_step.__name__}"):
+            with metrics.timer(
+                "tasks.post_process.run_post_process_job.pipeline.duration",
+                tags={
+                    "pipeline": pipeline_step.__name__,
+                    "issue_category": issue_category_metric,
+                    "is_reprocessed": job["is_reprocessed"],
+                },
+            ), sentry_sdk.start_span(op=f"tasks.post_process_group.{pipeline_step.__name__}"):
                 pipeline_step(job)
         except Exception:
             metrics.incr(
@@ -1008,12 +1019,18 @@ def process_rules(job: PostProcessJob) -> None:
     is_regression = job["group_state"]["is_regression"]
     is_new_group_environment = job["group_state"]["is_new_group_environment"]
     has_reappeared = job["has_reappeared"]
+    has_escalated = job["has_escalated"]
 
     has_alert = False
 
     with metrics.timer("post_process.process_rules.duration"):
         rp = RuleProcessor(
-            group_event, is_new, is_regression, is_new_group_environment, has_reappeared
+            group_event,
+            is_new,
+            is_regression,
+            is_new_group_environment,
+            has_reappeared,
+            has_escalated,
         )
         with sentry_sdk.start_span(op="tasks.post_process_group.rule_processor_callbacks"):
             # TODO(dcramer): ideally this would fanout, but serializing giant
@@ -1315,11 +1332,52 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
         and event.occurrence.evidence_data.get("source")
         in [
             FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE.value,
-            FeedbackCreationSource.USER_REPORT_DJANGO_ENDPOINT.value,
+            FeedbackCreationSource.NEW_FEEDBACK_DJANGO_ENDPOINT.value,
         ]
     ):
         return True
     return False
+
+
+def get_project_counts(project: Project) -> int:
+    # Dummy function, we'll replace this in a later pr.
+    return 1000
+
+
+MAX_NEW_ESCALATION_AGE_HOURS = 24
+
+
+def detect_new_escalation(job: PostProcessJob):
+    """
+    Detects whether a new issue is escalating. New issues are issues less than
+    MAX_NEW_ESCALATION_AGE_HOURS hours old.
+
+    If we detect that the group has escalated, set has_escalated to True in the
+    job.
+    """
+    from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
+
+    group = job["event"].group
+    if not group or not features.has(
+        "projects:first-event-severity-new-escalation", job["event"].project
+    ):
+        return
+    group_age_hours = (datetime.now() - group.first_seen).total_seconds() / 3600
+    if group_age_hours >= MAX_NEW_ESCALATION_AGE_HOURS or group.substatus != GroupSubStatus.NEW:
+        return
+    # Get escalation lock for this group. If we're unable to acquire this lock, another process is handling
+    # this group at the same time. In that case, just exit early, no need to retry.
+    lock = locks.get(f"detect_escalation:{group.id}", duration=10, name="detect_escalation")
+    try:
+        with lock.acquire():
+            project_escalation_rate = get_project_counts(group.project)
+            group_hourly_event_rate = group.times_seen_with_pending / group_age_hours
+            if group_hourly_event_rate > project_escalation_rate:
+                job["has_escalated"] = True
+                group.update(substatus=GroupSubStatus.ESCALATING)
+                add_group_to_inbox(group, GroupInboxReason.ESCALATING)
+    except UnableToAcquireLock:
+        return
 
 
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
@@ -1327,6 +1385,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         _capture_group_stats,
         process_snoozes,
         process_inbox_adds,
+        detect_new_escalation,
         process_commits,
         handle_owner_assignment,
         handle_auto_assignment,

@@ -7,6 +7,8 @@ import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {formatMetricUsingFixedUnit} from 'sentry/utils/metrics';
+import {parseField, parseMRI} from 'sentry/utils/metrics/mri';
 import toArray from 'sentry/utils/toArray';
 import {
   Dataset,
@@ -16,6 +18,7 @@ import {
   SavedMetricRule,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
+import {isCustomMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isCustomMetricAlert';
 
 import {AlertRuleStatus, Incident, IncidentStats} from '../types';
 
@@ -143,6 +146,12 @@ export function alertAxisFormatter(value: number, seriesName: string, aggregate:
     return defined(value) ? `${round(value, 2)}%` : '\u2015';
   }
 
+  if (isCustomMetricAlert(aggregate)) {
+    const {mri, op} = parseField(aggregate)!;
+    const {unit} = parseMRI(mri)!;
+    return formatMetricUsingFixedUnit(value, unit, op);
+  }
+
   return axisLabelFormatter(value, aggregateOutputType(seriesName));
 }
 
@@ -153,6 +162,12 @@ export function alertTooltipValueFormatter(
 ) {
   if (isSessionAggregate(aggregate)) {
     return defined(value) ? `${value}%` : '\u2015';
+  }
+
+  if (isCustomMetricAlert(aggregate)) {
+    const {mri, op} = parseField(aggregate)!;
+    const {unit} = parseMRI(mri)!;
+    return formatMetricUsingFixedUnit(value, unit, op);
   }
 
   return tooltipFormatter(value, aggregateOutputType(seriesName));
