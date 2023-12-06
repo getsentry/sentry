@@ -116,18 +116,10 @@ class TwoFactorAuthView(BaseView):
         context = {
             "datetime": timezone.now(),
             "email": email,
+            "geo": geo_by_addr(ip_address),
             "ip_address": ip_address,
             "url": absolute_uri(reverse("sentry-account-settings-security")),
         }
-
-        geo = geo_by_addr(ip_address)
-        if geo:
-            context.update(
-                {
-                    "city": geo["city"],
-                    "country_code": geo["country_code"],
-                }
-            )
 
         subject = "Suspicious Activity Detected"
         template = "mfa-too-many-attempts"
