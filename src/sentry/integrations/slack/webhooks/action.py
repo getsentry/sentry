@@ -254,6 +254,10 @@ class SlackActionEndpoint(Endpoint):
         )
 
     def open_resolve_dialog(self, slack_request: SlackActionRequest, group: Group) -> None:
+        """
+        @deprecated: Used for historic slack messages with dialog triggers, but no more dialogs
+        should be issued.
+        """
         # XXX(epurkhiser): In order to update the original message we have to
         # keep track of the response_url in the callback_id. Definitely hacky,
         # but seems like there's no other solutions [1]:
@@ -324,7 +328,137 @@ class SlackActionEndpoint(Endpoint):
             return self.respond_ephemeral(LINK_IDENTITY_MESSAGE.format(associate_url=associate_url))
 
         original_tags_from_request = slack_request.get_tags()
-        # Handle status dialog submission
+        # Handle historic status dialog submission (no more are being issued)
+        # inline_slack_data = {
+        #     "type": "interactive_message",
+        #     "actions": [
+        #         {
+        #             "name": "resolve_type",
+        #             "type": "select",
+        #             "selected_options": [{"value": "resolved"}],
+        #         }
+        #     ],
+        #     "callback_id": '{"issue":142}',
+        #     "team": {"id": "T023QCMBQG3", "domain": "sentry-ecosystem"},
+        #     "channel": {"id": "C02LTLJMYLQ", "name": "leander-team5"},
+        #     "user": {"id": "U02KZ27QMAP", "name": "leander.rodrigues"},
+        #     "action_ts": "1701880112.304892",
+        #     "message_ts": "1701880088.778939",
+        #     "attachment_id": "1",
+        #     "token": "xS6Mc4OEpd9aayZI8DW8CXFW",
+        #     "is_app_unfurl": False,
+        #     "enterprise": None,
+        #     "is_enterprise_install": False,
+        #     "original_message": {
+        #         "bot_id": "B050QMQJZNW",
+        #         "type": "message",
+        #         "text": "",
+        #         "user": "U050MP2384V",
+        #         "ts": "1701880088.778939",
+        #         "app_id": "A05138R1A7K",
+        #         "team": "T023QCMBQG3",
+        #         "bot_profile": {
+        #             "id": "B050QMQJZNW",
+        #             "deleted": False,
+        #             "name": "leander-sentry",
+        #             "updated": 1680040798,
+        #             "app_id": "A05138R1A7K",
+        #             "icons": {
+        #                 "image_36": "https://a.slack-edge.com/80588/img/plugins/app/bot_36.png",
+        #                 "image_48": "https://a.slack-edge.com/80588/img/plugins/app/bot_48.png",
+        #                 "image_72": "https://a.slack-edge.com/80588/img/plugins/app/service_72.png",
+        #             },
+        #             "team_id": "T023QCMBQG3",
+        #         },
+        #         "attachments": [
+        #             {
+        #                 "id": 1,
+        #                 "footer_icon": "https://leeandher.ngrok.io/_static/1701879654/sentry/images/sentry-email-avatar.png",
+        #                 "ts": 1701880087,
+        #                 "color": "E03E2F",
+        #                 "fallback": "[daffy] NameError: name 'test21' is not defined",
+        #                 "text": "name 'test21' is not defined",
+        #                 "title": "NameError",
+        #                 "title_link": "https://leeandher.ngrok.io/organizations/acme/issues/142/?referrer=slack&notification_uuid=cc869fcc-a437-453e-8497-6fcca34711b7&alert_rule_id=32&alert_type=issue",
+        #                 "callback_id": '{"issue":142}',
+        #                 "footer": "DAFFY-5 via <https://leeandher.ngrok.io/organizations/acme/alerts/rules/daffy/32/details/|Slack Tester (#leander-team5)>",
+        #                 "mrkdwn_in": ["text"],
+        #                 "actions": [
+        #                     {
+        #                         "id": "1",
+        #                         "name": "resolve_type",
+        #                         "text": "Resolve...",
+        #                         "type": "select",
+        #                         "data_source": "static",
+        #                         "option_groups": [
+        #                             {
+        #                                 "text": "Select a resolution target",
+        #                                 "options": [
+        #                                     {"text": "Immediately", "value": "resolved"},
+        #                                     {
+        #                                         "text": "In the next release",
+        #                                         "value": "resolved:inNextRelease",
+        #                                     },
+        #                                     {
+        #                                         "text": "In the current release",
+        #                                         "value": "resolved:inCurrentRelease",
+        #                                     },
+        #                                 ],
+        #                             }
+        #                         ],
+        #                     },
+        #                     {
+        #                         "id": "2",
+        #                         "name": "status",
+        #                         "text": "Ignore",
+        #                         "type": "button",
+        #                         "value": "ignored:forever",
+        #                         "style": "",
+        #                     },
+        #                     {
+        #                         "id": "3",
+        #                         "name": "assign",
+        #                         "text": "Select Assignee...",
+        #                         "type": "select",
+        #                         "data_source": "static",
+        #                         "option_groups": [
+        #                             {
+        #                                 "text": "Teams",
+        #                                 "options": [{"text": "#product", "value": "team:21"}],
+        #                             },
+        #                             {
+        #                                 "text": "People",
+        #                                 "options": [
+        #                                     {
+        #                                         "text": "leander.rodrigues+main@sentry.io",
+        #                                         "value": "user:1",
+        #                                     }
+        #                                 ],
+        #                             },
+        #                         ],
+        #                     },
+        #                 ],
+        #             }
+        #         ],
+        #     },
+        #     "response_url": "https://hooks.slack.com/actions/T023QCMBQG3/6301165511125/ERA5id1jjOhfz51OGbngyLXQ",
+        #     "trigger_id": "6316726973185.2126429398547.5932cf0ebd24a501874e532717b57ebc",
+        # }
+        # dialog_slack_data = {
+        #     "type": "dialog_submission",
+        #     "token": "xS6Mc4OEpd9aayZI8DW8CXFW",
+        #     "action_ts": "1701880517.189955",
+        #     "team": {"id": "T023QCMBQG3", "domain": "sentry-ecosystem"},
+        #     "user": {"id": "U02KZ27QMAP", "name": "leander.rodrigues"},
+        #     "channel": {"id": "C02L10ZF6DB", "name": "leander-team2"},
+        #     "is_enterprise_install": False,
+        #     "enterprise": None,
+        #     "submission": {"resolve_type": "resolved"},
+        #     "callback_id": '{"issue":116,"orig_response_url":"https://hooks.slack.com/actions/T023QCMBQG3/6316778272961/cJjhMw6S5Q3zCuR6smBV8iei","is_message":true}',
+        #     "response_url": "https://hooks.slack.com/app/T023QCMBQG3/6306599519636/eOhoJGmLVPF3EGFY4R7bSgey",
+        #     "state": "",
+        # }
+        # print(slack_request.data)
         if (
             slack_request.type == "dialog_submission"
             and "resolve_type" in slack_request.data["submission"]
@@ -341,7 +475,10 @@ class SlackActionEndpoint(Endpoint):
                 return self.api_error(slack_request, group, identity_user, error, "status_dialog")
 
             attachment = SlackIssuesMessageBuilder(
-                group, identity=identity, actions=[action], tags=original_tags_from_request
+                group,
+                identity=identity,
+                actions=[action],
+                tags=original_tags_from_request,
             ).build()
             body = self.construct_reply(
                 attachment, is_message=slack_request.callback_data["is_message"]
@@ -369,8 +506,15 @@ class SlackActionEndpoint(Endpoint):
             try:
                 if action.name == "status":
                     self.on_status(request, identity_user, group, action)
+                elif action.name == "resolve_type":
+                    # Convert selected option to static value
+                    action.value = action.selected_options[0]["value"]
+                    self.on_status(request, identity_user, group, action)
                 elif action.name == "assign":
                     self.on_assign(request, identity_user, group, action)
+                # TODO: Since historic messages might still send these actions, we cannot remove
+                # this code, though we do not issue any new modals/dialogs to Slack. Hybrid Cloud
+                # changes cannot ensure the 3s response times mandated by Slack.
                 elif action.name == "resolve_dialog":
                     self.open_resolve_dialog(slack_request, group)
                     defer_attachment_update = True
@@ -386,7 +530,10 @@ class SlackActionEndpoint(Endpoint):
         group = Group.objects.get(id=group.id)
 
         attachment = SlackIssuesMessageBuilder(
-            group, identity=identity, actions=action_list, tags=original_tags_from_request
+            group,
+            identity=identity,
+            actions=action_list,
+            tags=original_tags_from_request,
         ).build()
         body = self.construct_reply(attachment, is_message=_is_message(slack_request.data))
 

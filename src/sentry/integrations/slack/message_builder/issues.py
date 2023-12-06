@@ -186,9 +186,20 @@ def build_actions(
                 value="resolved",
             )
         return MessageAction(
-            name="resolve_dialog",
+            name="resolve_type",
             label="Resolve...",
-            value="resolve_dialog",
+            type="select",
+            value="resolved",
+            option_groups=[
+                {
+                    "text": "Select a resolution target",
+                    "options": [
+                        {"text": "Immediately", "value": "resolved"},
+                        {"text": "In the next release", "value": "resolved:inNextRelease"},
+                        {"text": "In the current release", "value": "resolved:inCurrentRelease"},
+                    ],
+                }
+            ],
         )
 
     def _assign_button() -> MessageAction:
