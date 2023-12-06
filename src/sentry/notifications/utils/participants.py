@@ -38,9 +38,7 @@ from sentry.notifications.types import (
     FallthroughChoiceType,
     GroupSubscriptionReason,
     NotificationSettingEnum,
-    NotificationSettingOptionValues,
     NotificationSettingsOptionEnum,
-    NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
@@ -162,22 +160,15 @@ def get_participants_for_group(group: Group, user_id: int | None = None) -> Part
 
 def get_reason(
     user: Union[User, RpcActor],
-    value: NotificationSettingOptionValues | NotificationSettingsOptionEnum,
+    value: NotificationSettingsOptionEnum,
     user_ids: set[int],
 ) -> int | None:
     # Members who opt into all deploy emails.
-    if value in [NotificationSettingOptionValues.ALWAYS, NotificationSettingsOptionEnum.ALWAYS]:
+    if value == NotificationSettingsOptionEnum.ALWAYS:
         return GroupSubscriptionReason.deploy_setting
 
     # Members which have been seen in the commit log.
-    elif (
-        value
-        in [
-            NotificationSettingOptionValues.COMMITTED_ONLY,
-            NotificationSettingsOptionEnum.COMMITTED_ONLY,
-        ]
-        and user.id in user_ids
-    ):
+    elif value == NotificationSettingsOptionEnum.COMMITTED_ONLY and user.id in user_ids:
         return GroupSubscriptionReason.committed
     return None
 
@@ -267,7 +258,6 @@ def get_owner_reason(
     project: Project,
     target_type: ActionTargetType,
     event: Event | None = None,
-    notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
     fallthrough_choice: FallthroughChoiceType | None = None,
 ) -> str | None:
     """
@@ -279,7 +269,7 @@ def get_owner_reason(
         return None
 
     # Not an issue alert
-    if event is None or notification_type != NotificationSettingTypes.ISSUE_ALERTS:
+    if event is None:
         return None
 
     # Describe why an issue owner was notified

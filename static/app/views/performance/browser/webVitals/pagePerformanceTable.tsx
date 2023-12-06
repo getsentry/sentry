@@ -45,11 +45,11 @@ type Column = GridColumnHeader<keyof RowWithScoreAndOpportunity>;
 const columnOrder: GridColumnOrder<keyof RowWithScoreAndOpportunity>[] = [
   {key: 'transaction', width: COL_WIDTH_UNDEFINED, name: 'Pages'},
   {key: 'count()', width: COL_WIDTH_UNDEFINED, name: 'Pageloads'},
-  {key: 'p75(measurements.lcp)', width: COL_WIDTH_UNDEFINED, name: 'LCP'},
-  {key: 'p75(measurements.fcp)', width: COL_WIDTH_UNDEFINED, name: 'FCP'},
-  {key: 'p75(measurements.fid)', width: COL_WIDTH_UNDEFINED, name: 'FID'},
-  {key: 'p75(measurements.cls)', width: COL_WIDTH_UNDEFINED, name: 'CLS'},
-  {key: 'p75(measurements.ttfb)', width: COL_WIDTH_UNDEFINED, name: 'TTFB'},
+  {key: 'avg(measurements.lcp)', width: COL_WIDTH_UNDEFINED, name: 'LCP'},
+  {key: 'avg(measurements.fcp)', width: COL_WIDTH_UNDEFINED, name: 'FCP'},
+  {key: 'avg(measurements.fid)', width: COL_WIDTH_UNDEFINED, name: 'FID'},
+  {key: 'avg(measurements.cls)', width: COL_WIDTH_UNDEFINED, name: 'CLS'},
+  {key: 'avg(measurements.ttfb)', width: COL_WIDTH_UNDEFINED, name: 'TTFB'},
   {key: 'score', width: COL_WIDTH_UNDEFINED, name: 'Score'},
   {key: 'opportunity', width: COL_WIDTH_UNDEFINED, name: 'Opportunity'},
 ];
@@ -228,15 +228,15 @@ export function PagePerformanceTable() {
     }
     if (
       [
-        'p75(measurements.fcp)',
-        'p75(measurements.lcp)',
-        'p75(measurements.ttfb)',
-        'p75(measurements.fid)',
+        'avg(measurements.fcp)',
+        'avg(measurements.lcp)',
+        'avg(measurements.ttfb)',
+        'avg(measurements.fid)',
       ].includes(key)
     ) {
       return <AlignRight>{getFormattedDuration((row[key] as number) / 1000)}</AlignRight>;
     }
-    if (key === 'p75(measurements.cls)') {
+    if (key === 'avg(measurements.cls)') {
       return <AlignRight>{Math.round((row[key] as number) * 100) / 100}</AlignRight>;
     }
     if (key === 'opportunity') {

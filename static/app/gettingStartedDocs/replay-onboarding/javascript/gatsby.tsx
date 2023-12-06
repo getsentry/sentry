@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
@@ -108,6 +106,15 @@ export const steps = ({
         `,
       },
     ],
+    additionalInfo: tct(
+      'Note: If [codeGatsby:gatsby-config.js] has any settings for the [codeSentry:@sentry/gatsby plugin], they need to be moved into [codeConfig:sentry.config.js]. The [codeGatsby:gatsby-config.js] file does not support non-serializable options, like [codeNew:new Replay()].',
+      {
+        codeGatsby: <code />,
+        codeSentry: <code />,
+        codeConfig: <code />,
+        codeNew: <code />,
+      }
+    ),
   },
 ];
 
@@ -128,33 +135,19 @@ export function GettingStartedWithGatsbyReplay({
   sentryInitContent = sentryInitContent.concat(otherConfigs);
 
   return (
-    <Fragment>
-      <Layout
-        steps={steps({
-          sentryInitContent: sentryInitContent.join('\n'),
-          organization,
-          newOrg,
-          platformKey,
-          projectId,
-        })}
-        platformKey={platformKey}
-        newOrg={newOrg}
-        hideHeader
-        {...props}
-      />
-      <div>
-        <br />
-        {tct(
-          'Note: If [codeGatsby:gatsby-config.js] has any settings for the [codeSentry:@sentry/gatsby plugin], they need to be moved into [codeConfig:sentry.config.js]. The [codeGatsby:gatsby-config.js] file does not support non-serializable options, like [codeNew:new Replay()].',
-          {
-            codeGatsby: <code />,
-            codeSentry: <code />,
-            codeConfig: <code />,
-            codeNew: <code />,
-          }
-        )}
-      </div>
-    </Fragment>
+    <Layout
+      steps={steps({
+        sentryInitContent: sentryInitContent.join('\n'),
+        organization,
+        newOrg,
+        platformKey,
+        projectId,
+      })}
+      platformKey={platformKey}
+      newOrg={newOrg}
+      hideHeader
+      {...props}
+    />
   );
 }
 

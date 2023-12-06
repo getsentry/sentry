@@ -15,7 +15,6 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingTypes,
     UnsubscribeContext,
-    get_notification_setting_type_name,
 )
 from sentry.notifications.utils.actions import MessageAction
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
@@ -218,8 +217,8 @@ class BaseNotification(abc.ABC):
             url_str = f"/settings/{self.organization.slug}/teams/{recipient.slug}/notifications/"
         else:
             url_str = "/settings/account/notifications/"
-            if self.notification_setting_type:
-                fine_tuning_key = get_notification_setting_type_name(self.notification_setting_type)
+            if self.notification_setting_type_enum:
+                fine_tuning_key = self.notification_setting_type_enum.value
                 if fine_tuning_key:
                     url_str += f"{fine_tuning_key}/"
 

@@ -4,13 +4,18 @@ import {urlEncode} from '@sentry/utils';
 
 import {openAddToDashboardModal, openModal} from 'sentry/actionCreators/modal';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {IconEllipsis} from 'sentry/icons';
+import {IconDashboard, IconEllipsis, IconSiren} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics';
+import {
+  getFieldFromMetricsQuery,
+  isCustomMeasurement,
+  isCustomMetric,
+  MetricDisplayType,
+  MetricsQuery,
+} from 'sentry/utils/metrics';
 import {hasDDMFeature} from 'sentry/utils/metrics/features';
-import {MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {DashboardWidgetSource, WidgetType} from 'sentry/views/dashboards/types';
@@ -25,7 +30,7 @@ type ContextMenuProps = {
 export function MetricWidgetContextMenu({metricsQuery, displayType}: ContextMenuProps) {
   const organization = useOrganization();
   const createAlert = useCreateAlert(organization, metricsQuery);
-  const handleAddQueryToDashboard = useHandleAddQueryToDashboard(
+  const createDashboardWidget = useCreateDashboardWidget(
     organization,
     metricsQuery,
     displayType
@@ -39,16 +44,18 @@ export function MetricWidgetContextMenu({metricsQuery, displayType}: ContextMenu
     <StyledDropdownMenuControl
       items={[
         {
+          leadingItems: [<IconSiren key="icon" />],
           key: 'add-alert',
           label: t('Create Alert'),
           disabled: !createAlert,
           onAction: createAlert,
         },
         {
+          leadingItems: [<IconDashboard key="icon" />],
           key: 'add-dashoard',
           label: t('Add to Dashboard'),
-          disabled: !handleAddQueryToDashboard,
-          onAction: handleAddQueryToDashboard,
+          disabled: !createDashboardWidget,
+          onAction: createDashboardWidget,
         },
       ]}
       triggerProps={{
@@ -63,50 +70,51 @@ export function MetricWidgetContextMenu({metricsQuery, displayType}: ContextMenu
   );
 }
 
-function useHandleAddQueryToDashboard(
+const StyledDropdownMenuControl = styled(DropdownMenu)`
+  margin: ${space(1)};
+`;
+
+export function useCreateAlert(organization: Organization, metricsQuery: MetricsQuery) {
+  return useMemo(() => {
+    if (
+      !metricsQuery.mri ||
+      !metricsQuery.op ||
+      isCustomMeasurement(metricsQuery) ||
+      !organization.access.includes('alerts:write')
+    ) {
+      return undefined;
+    }
+    return function () {
+      return openModal(deps => (
+        <OrganizationContext.Provider value={organization}>
+          <CreateAlertModal metricsQuery={metricsQuery} {...deps} />
+        </OrganizationContext.Provider>
+      ));
+    };
+  }, [metricsQuery, organization]);
+}
+
+export function useCreateDashboardWidget(
   organization: Organization,
-  {projects, environments, datetime, op, mri, groupBy, query}: MetricsQuery,
+  metricsQuery: MetricsQuery,
   displayType?: MetricDisplayType
 ) {
   const router = useRouter();
-  const {start, end, period} = datetime;
+  const {projects, environments, datetime} = metricsQuery;
+  const isCustomMetricQuery = isCustomMetric(metricsQuery);
 
   return useMemo(() => {
-    if (!mri || !op) {
+    if (!metricsQuery.mri || !metricsQuery.op || isCustomMeasurement(metricsQuery)) {
       return undefined;
     }
 
-    const field = MRIToField(mri, op);
-    const limit = !groupBy?.length ? 1 : 10;
-
-    const widgetQuery = {
-      name: '',
-      aggregates: [field],
-      columns: groupBy ?? [],
-      fields: [field],
-      conditions: query ?? '',
-      orderby: '',
-    };
-
-    const urlWidgetQuery = urlEncode({
-      ...widgetQuery,
-      aggregates: field,
-      fields: field,
-      columns: groupBy?.join(',') ?? '',
-    });
-
-    const widgetAsQueryParams = {
-      source: DashboardWidgetSource.DDM,
-      start,
-      end,
-      statsPeriod: period,
-      defaultWidgetQuery: urlWidgetQuery,
-      defaultTableColumns: [],
-      defaultTitle: 'DDM Widget',
-      environment: environments,
-      displayType,
-      project: projects,
-    };
+    const widgetQuery = getWidgetQuery(metricsQuery);
+    const urlWidgetQuery = encodeWidgetQuery(widgetQuery);
+    const widgetAsQueryParams = getWidgetAsQueryParams(
+      metricsQuery,
+      urlWidgetQuery,
+      displayType
+    );
 
     return () =>
       openAddToDashboardModal({
@@ -119,8 +127,8 @@ function useHandleAddQueryToDashboard(
         widget: {
           title: 'DDM Widget',
           displayType,
-          widgetType: WidgetType.METRICS,
-          limit,
+          widgetType: isCustomMetricQuery ? WidgetType.METRICS : WidgetType.DISCOVER,
+          limit: !metricsQuery.groupBy?.length ? 1 : 10,
           queries: [widgetQuery],
         },
         router,
@@ -128,41 +136,57 @@ function useHandleAddQueryToDashboard(
         location: router.location,
       });
   }, [
+    isCustomMetricQuery,
+    metricsQuery,
     datetime,
     displayType,
-    end,
     environments,
-    groupBy,
-    mri,
-    op,
     organization,
-    period,
     projects,
-    query,
     router,
-    start,
   ]);
 }
 
-function useCreateAlert(organization: Organization, metricsQuery: MetricsQuery) {
-  return useMemo(() => {
-    if (
-      !metricsQuery.mri ||
-      !metricsQuery.op ||
-      parseMRI(metricsQuery.mri)?.useCase !== 'custom' ||
-      !organization.access.includes('alerts:write')
-    ) {
-      return undefined;
-    }
-    return () =>
-      openModal(deps => (
-        <OrganizationContext.Provider value={organization}>
-          <CreateAlertModal metricsQuery={metricsQuery} {...deps} />
-        </OrganizationContext.Provider>
-      ));
-  }, [metricsQuery, organization]);
+function getWidgetQuery(metricsQuery: MetricsQuery) {
+  const field = getFieldFromMetricsQuery(metricsQuery);
+
+  return {
+    name: '',
+    aggregates: [field],
+    columns: metricsQuery.groupBy ?? [],
+    fields: [field],
+    conditions: metricsQuery.query ?? '',
+    orderby: '',
+  };
 }
 
-const StyledDropdownMenuControl = styled(DropdownMenu)`
-  margin: ${space(1)};
-`;
+function encodeWidgetQuery(query) {
+  return urlEncode({
+    ...query,
+    aggregates: query.aggregates.join(','),
+    fields: query.fields?.join(','),
+    columns: query.columns.join(','),
+  });
+}
+
+function getWidgetAsQueryParams(
+  metricsQuery: MetricsQuery,
+  urlWidgetQuery: string,
+  displayType?: MetricDisplayType
+) {
+  const {start, end, period} = metricsQuery.datetime;
+  const {projects} = metricsQuery;
+
+  return {
+    source: DashboardWidgetSource.DDM,
+    start,
+    end,
+    statsPeriod: period,
+    defaultWidgetQuery: urlWidgetQuery,
+    defaultTableColumns: [],
+    defaultTitle: 'DDM Widget',
+    environment: metricsQuery.environments,
+    displayType,
+    project: projects,
+  };
+}
