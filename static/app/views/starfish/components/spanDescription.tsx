@@ -4,39 +4,48 @@ import styled from '@emotion/styled';
 import Feature from 'sentry/components/acl/feature';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {StackTraceMiniFrame} from 'sentry/views/starfish/components/stackTraceMiniFrame';
-import {MetricsResponse, SpanMetricsField} from 'sentry/views/starfish/types';
+import {useFullSpanFromTrace} from 'sentry/views/starfish/queries/useFullSpanFromTrace';
+import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
+import {SpanIndexedField, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
 import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 
-type Props = {
-  span: Pick<
-    MetricsResponse,
-    SpanMetricsField.SPAN_OP | SpanMetricsField.SPAN_DESCRIPTION
-  > & {
-    project_id?: number;
-    'transaction.id'?: string;
-  } & {
-    data?: {
-      'code.filepath'?: string;
-      'code.function'?: string;
-      'code.lineno'?: number;
-    };
-  };
-};
+interface Props {
+  groupId: SpanIndexedFieldTypes[SpanIndexedField.SPAN_GROUP];
+  op: SpanIndexedFieldTypes[SpanIndexedField.SPAN_OP];
+  preliminaryDescription?: string;
+}
 
-export function SpanDescription({span}: Props) {
-  if (span[SpanMetricsField.SPAN_OP]?.startsWith('db')) {
-    return <DatabaseSpanDescription span={span} />;
+export function SpanDescription(props: Props) {
+  const {op, preliminaryDescription} = props;
+
+  if (op.startsWith('db')) {
+    return <DatabaseSpanDescription {...props} />;
   }
 
-  return <WordBreak>{span[SpanMetricsField.SPAN_DESCRIPTION]}</WordBreak>;
+  return <WordBreak>{preliminaryDescription ?? ''}</WordBreak>;
 }
 
 const formatter = new SQLishFormatter();
 
-function DatabaseSpanDescription({span}: Props) {
-  const rawDescription = span[SpanMetricsField.SPAN_DESCRIPTION];
+export function DatabaseSpanDescription({
+  groupId,
+  preliminaryDescription,
+}: Omit<Props, 'op'>) {
+  const {data: indexedSpans, isLoading: areIndexedSpansLoading} = useIndexedSpans(
+    {'span.group': groupId},
+    [INDEXED_SPAN_SORT],
+    1
+  );
+  const indexedSpan = indexedSpans?.[0];
+
+  // NOTE: We only need this for `span.data`! If this info existed in indexed spans, we could skip it
+  const {data: rawSpan} = useFullSpanFromTrace(groupId, [INDEXED_SPAN_SORT]);
+
+  const rawDescription =
+    rawSpan?.description || indexedSpan?.['span.description'] || preliminaryDescription;
+
   const formatterDescription = useMemo(() => {
-    return formatter.toString(rawDescription);
+    return formatter.toString(rawDescription ?? '');
   }, [rawDescription]);
 
   return (
@@ -46,14 +55,14 @@ function DatabaseSpanDescription({span}: Props) {
       </CodeSnippet>
 
       <Feature features={['organizations:performance-database-view-query-source']}>
-        {span?.data?.['code.filepath'] && (
+        {rawSpan?.data?.['code.filepath'] && (
           <StackTraceMiniFrame
-            projectId={span.project_id?.toString()}
-            eventId={span['transaction.id']}
+            projectId={indexedSpan?.project_id?.toString()}
+            eventId={indexedSpan?.['transaction.id']}
             frame={{
-              filename: span?.data?.['code.filepath'],
-              lineNo: span?.data?.['code.lineno'],
-              function: span?.data?.['code.function'],
+              filename: rawSpan?.data?.['code.filepath'],
+              lineNo: rawSpan?.data?.['code.lineno'],
+              function: rawSpan?.data?.['code.function'],
             }}
           />
         )}
@@ -61,6 +70,11 @@ function DatabaseSpanDescription({span}: Props) {
     </Frame>
   );
 }
+
+const INDEXED_SPAN_SORT = {
+  field: 'span.self_time',
+  kind: 'desc' as const,
+};
 
 const Frame = styled('div')`
   border: solid 1px ${p => p.theme.border};
