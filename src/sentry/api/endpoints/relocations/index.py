@@ -1,4 +1,5 @@
 import logging
+import re
 from datetime import timedelta
 from functools import reduce
 
@@ -107,7 +108,7 @@ class RelocationIndexEndpoint(Endpoint):
         validated = serializer.validated_data
         fileobj = validated.get("file")
         owner_username = validated.get("owner")
-        org_slugs = validated.get("orgs").split(",")
+        org_slugs = [re.sub(r"[ \n\t\r\0]*", "", org) for org in validated.get("orgs").split(",")]
         try:
             owner = user_service.get_by_username(username=owner_username)[0]
         except IndexError:

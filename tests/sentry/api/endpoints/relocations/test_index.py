@@ -77,8 +77,56 @@ class RelocationCreateTest(APITestCase):
         assert response.status_code == 201
         assert Relocation.objects.count() == relocation_count + 1
         assert RelocationFile.objects.count() == relocation_file_count + 1
-        assert Relocation.objects.get(owner_id=self.owner.id).want_org_slugs == ["testing", " foo"]
+        assert Relocation.objects.get(owner_id=self.owner.id).want_org_slugs == ["testing", "foo"]
         assert uploading_complete_mock.call_count == 1
+
+    # pytest parametrize does not work in TestCase subclasses, so hack around this
+    for org_slugs, expected in [
+        ("testing,foo,", ["testing", "foo"]),
+        ("testing,,foo", ["testing", "", "foo"]),
+        (",,", ["", ""]),
+        ("testing, foo", ["testing", "foo"]),
+        ("testing,\tfoo", ["testing", "foo"]),
+        ("testing,\nfoo", ["testing", "foo"]),
+        ("testing\nfoo", ["testingfoo"]),
+        ("testing\nfoo", ["testingfoo"]),
+    ]:
+
+        @patch("sentry.tasks.relocation.uploading_complete.delay")
+        def test_parse_org_slugs(
+            self, uploading_complete_mock, org_slugs=org_slugs, expected=expected
+        ):
+            relocation_count = Relocation.objects.count()
+            relocation_file_count = RelocationFile.objects.count()
+
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
+                with self.feature("relocation:enabled"), self.options(
+                    {"relocation.daily-limit-small": 1}
+                ), open(FRESH_INSTALL_PATH) as f:
+                    data = json.load(f)
+                    with open(tmp_pub_key_path, "rb") as p:
+                        response = self.client.post(
+                            reverse(self.endpoint),
+                            {
+                                "owner": self.owner.username,
+                                "file": SimpleUploadedFile(
+                                    "export.tar",
+                                    create_encrypted_export_tarball(
+                                        data, LocalFileEncryptor(p)
+                                    ).getvalue(),
+                                    content_type="application/tar",
+                                ),
+                                "orgs": org_slugs,
+                            },
+                            format="multipart",
+                        )
+
+            assert response.status_code == 201
+            assert Relocation.objects.count() == relocation_count + 1
+            assert RelocationFile.objects.count() == relocation_file_count + 1
+            assert Relocation.objects.get(owner_id=self.owner.id).want_org_slugs == expected
+            assert uploading_complete_mock.call_count == 1
 
     def test_success_relocation_for_same_owner_already_completed(self):
         Relocation.objects.create(
