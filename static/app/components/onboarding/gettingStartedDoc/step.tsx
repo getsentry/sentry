@@ -97,6 +97,10 @@ type ConfigurationType = {
    */
   description?: React.ReactNode;
   /**
+   * Header to be placed above the configuration
+   */
+  header?: React.ReactNode;
+  /**
    * The language of the code to be rendered (python, javascript, etc)
    */
   language?: string;
@@ -142,6 +146,7 @@ function getConfiguration({
   description,
   code,
   language,
+  header,
   additionalInfo,
   onCopy,
   onSelectAndCopy,
@@ -150,6 +155,7 @@ function getConfiguration({
   return (
     <Configuration>
       {description && <Description>{description}</Description>}
+      {header && <Header>{header}</Header>}
       {Array.isArray(code) ? (
         <TabbedCodeSnippet
           tabs={code}
@@ -235,6 +241,8 @@ const Description = styled('div')`
     color: ${p => p.theme.pink400};
   }
 `;
+
+const Header = styled(Description)``;
 
 const AdditionalInfo = styled(Description)``;
 
