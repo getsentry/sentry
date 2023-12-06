@@ -449,6 +449,7 @@ module:org.glassfish.* -app
 module:org.jboss.* -app
 module:feign.* -app
 module:io.opentelemetry.* -app
+module:io.sentry.* -app -group
 
 ## kotlin
 module:kotlin.* -app

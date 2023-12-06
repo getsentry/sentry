@@ -3,7 +3,11 @@ from datetime import datetime, timedelta
 import pytest
 from django.utils import timezone as django_timezone
 
-from sentry.sentry_metrics.querying.api import InvalidMetricsQueryError, run_metrics_query
+from sentry.sentry_metrics.querying.api import (
+    InvalidMetricsQueryError,
+    MetricsQueryExecutionError,
+    run_metrics_query,
+)
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
@@ -138,6 +142,43 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert groups[0]["by"] == {}
         assert groups[0]["series"] == {field: [0.0, 4.6, 3.0]}
         assert groups[0]["totals"] == {field: 4.0}
+
+    def test_query_with_valid_percentiles(self) -> None:
+        # We only want to check if these percentiles return results.
+        for percentile in ("p50", "p75", "p90", "p95", "p99"):
+            field = f"{percentile}({TransactionMRI.DURATION.value})"
+            results = run_metrics_query(
+                fields=[field],
+                query=None,
+                group_bys=None,
+                start=self.now() - timedelta(minutes=30),
+                end=self.now() + timedelta(hours=1, minutes=30),
+                interval=3600,
+                organization=self.project.organization,
+                projects=[self.project],
+                environments=[],
+                referrer="metrics.data.api",
+            )
+            groups = results["groups"]
+            assert len(groups) == 1
+
+    def test_query_with_invalid_percentiles(self) -> None:
+        # We only want to check if these percentiles result in a error.
+        for percentile in ("p30", "p45"):
+            field = f"{percentile}({TransactionMRI.DURATION.value})"
+            with pytest.raises(MetricsQueryExecutionError):
+                run_metrics_query(
+                    fields=[field],
+                    query=None,
+                    group_bys=None,
+                    start=self.now() - timedelta(minutes=30),
+                    end=self.now() + timedelta(hours=1, minutes=30),
+                    interval=3600,
+                    organization=self.project.organization,
+                    projects=[self.project],
+                    environments=[],
+                    referrer="metrics.data.api",
+                )
 
     def test_query_with_group_by(self) -> None:
         # Query with one aggregation and two group by.
@@ -310,6 +351,39 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 environments=[],
                 referrer="metrics.data.api",
             )
+
+    def test_query_with_custom_set(self):
+        mri = "s:custom/user_click@none"
+        for user in ("marco", "marco", "john"):
+            self.store_metric(
+                self.project.organization.id,
+                self.project.id,
+                "set",
+                mri,
+                {},
+                self.ts(self.now()),
+                user,
+                UseCaseID.CUSTOM,
+            )
+
+        field = f"count_unique({mri})"
+        results = run_metrics_query(
+            fields=[field],
+            query=None,
+            group_bys=None,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        groups = results["groups"]
+        assert len(groups) == 1
+        assert groups[0]["by"] == {}
+        assert groups[0]["series"] == {field: [0, 2, 0]}
+        assert groups[0]["totals"] == {field: 2}
 
     @pytest.mark.skip(reason="sessions are not supported in the new metrics layer")
     def test_with_sessions(self) -> None:

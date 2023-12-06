@@ -768,6 +768,33 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 == "Performance alerts must use the `generic_metrics` dataset"
             )
 
+    def test_alert_with_metrics_layer(self):
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:mep-rollout-flag",
+                "organizations:dynamic-sampling",
+                "organizations:use-metrics-layer-in-alerts",
+            ]
+        ):
+            for mri in ("apdex()", "failure_rate()"):
+                test_params = {
+                    **self.alert_rule_dict,
+                    "aggregate": mri,
+                    "dataset": "generic_metrics",
+                }
+
+                resp = self.get_success_response(
+                    self.organization.slug,
+                    status_code=201,
+                    **test_params,
+                )
+
+                assert "id" in resp.data
+                alert_rule = AlertRule.objects.get(id=resp.data["id"])
+                assert resp.data == serialize(alert_rule, self.user)
+
     def test_alert_with_metric_mri(self):
         with self.feature(
             [
@@ -781,6 +808,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         ):
             for mri in (
                 "sum(c:transactions/count_per_root_project@none)",
+                "p90(d:transactions/duration@millisecond)",
                 "p95(d:transactions/duration@millisecond)",
                 "count_unique(s:transactions/user@none)",
                 "avg(d:custom/sentry.process_profile.symbolicate.process@second)",

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from datetime import datetime
-from typing import Any, Mapping, Union
+from typing import Any, List, Mapping, Union, cast
 
 from snuba_sdk import (
     AliasedExpression,
@@ -15,6 +15,7 @@ from snuba_sdk import (
     Request,
     Timeseries,
 )
+from snuba_sdk.formula import FormulaParameterGroup
 
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -37,8 +38,10 @@ ALLOWED_GRANULARITIES = sorted(ALLOWED_GRANULARITIES)  # Ensure it's ordered
 AGGREGATE_ALIASES = {
     "p50": ("quantiles", [0.5]),
     "p75": ("quantiles", [0.75]),
+    "p90": ("quantiles", [0.9]),
     "p95": ("quantiles", [0.95]),
     "p99": ("quantiles", [0.99]),
+    "count_unique": ("uniq", None),
 }
 
 
@@ -411,15 +414,17 @@ def _resolve_aggregate_aliases(metrics_query: MetricsQuery) -> MetricsQuery:
             aggregate, parameters = AGGREGATE_ALIASES[series.aggregate]
             series = series.set_aggregate(aggregate, parameters)
             return metrics_query.set_query(series)
-
     elif isinstance(metrics_query.query, Formula):
-        parameters = metrics_query.query.parameters
-        for i, p in enumerate(parameters):
+        if not metrics_query.query.parameters:
+            return metrics_query
+
+        aliased_parameters = cast(List[FormulaParameterGroup], metrics_query.query.parameters)
+        for i, p in enumerate(aliased_parameters):
             if isinstance(p, Timeseries):
                 if p.aggregate in AGGREGATE_ALIASES:
-                    aggregate, parameters = AGGREGATE_ALIASES[p.aggregate]
-                    parameters[i] = p.set_aggregate(aggregate, parameters)
+                    new_aggregate, new_parameters = AGGREGATE_ALIASES[p.aggregate]
+                    aliased_parameters[i] = p.set_aggregate(new_aggregate, new_parameters)
 
-        return metrics_query.set_query(metrics_query.query.set_parameters(parameters))
+        return metrics_query.set_query(metrics_query.query.set_parameters(aliased_parameters))
 
     return metrics_query

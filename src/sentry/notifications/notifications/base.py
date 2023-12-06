@@ -15,7 +15,6 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingTypes,
     UnsubscribeContext,
-    get_notification_setting_type_name,
 )
 from sentry.notifications.utils.actions import MessageAction
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
@@ -35,13 +34,23 @@ class BaseNotification(abc.ABC):
         ExternalProviders.DISCORD: "[{text}]({url})",
     }
     message_builder = "SlackNotificationsMessageBuilder"
-    # some notifications have no settings for it
-    notification_setting_type: NotificationSettingTypes | None = None
+    # some notifications have no settings for it which is why it is optional
+    notification_setting_type_enum: NotificationSettingEnum | None = None
     analytics_event: str = ""
 
     def __init__(self, organization: Organization, notification_uuid: str | None = None):
         self.organization = organization
         self.notification_uuid = notification_uuid if notification_uuid else str(uuid.uuid4())
+
+    # TODO(Steve): Remove notification_setting_type
+    @property
+    def notification_setting_type(self) -> NotificationSettingTypes | None:
+        if self.notification_setting_type_enum is not None:
+            # find the matching NotificationSettingTypes
+            for key, value in NOTIFICATION_SETTING_TYPES.items():
+                if value == self.notification_setting_type_enum.value:
+                    return key
+        return None
 
     @property
     def from_email(self) -> str | None:
@@ -208,8 +217,8 @@ class BaseNotification(abc.ABC):
             url_str = f"/settings/{self.organization.slug}/teams/{recipient.slug}/notifications/"
         else:
             url_str = "/settings/account/notifications/"
-            if self.notification_setting_type:
-                fine_tuning_key = get_notification_setting_type_name(self.notification_setting_type)
+            if self.notification_setting_type_enum:
+                fine_tuning_key = self.notification_setting_type_enum.value
                 if fine_tuning_key:
                     url_str += f"{fine_tuning_key}/"
 
@@ -231,14 +240,14 @@ class BaseNotification(abc.ABC):
     def filter_to_accepting_recipients(
         self, recipients: Iterable[RpcActor]
     ) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
-        from sentry.notifications.utils.participants import get_notification_recipients_v2
+        from sentry.notifications.utils.participants import get_notification_recipients
 
         setting_type = (
-            NotificationSettingEnum(NOTIFICATION_SETTING_TYPES[self.notification_setting_type])
-            if self.notification_setting_type
+            self.notification_setting_type_enum
+            if self.notification_setting_type_enum
             else NotificationSettingEnum.ISSUE_ALERTS
         )
-        return get_notification_recipients_v2(
+        return get_notification_recipients(
             recipients=recipients,
             type=setting_type,
             organization_id=self.organization.id,

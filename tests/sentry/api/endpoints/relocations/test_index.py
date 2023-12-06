@@ -1,4 +1,5 @@
 import tempfile
+from datetime import timedelta
 from pathlib import Path
 from typing import Tuple
 from unittest.mock import patch
@@ -12,6 +13,7 @@ from sentry.models.relocation import Relocation, RelocationFile
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.backups import generate_rsa_key_pair
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
@@ -51,7 +53,12 @@ class RelocationCreateTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with self.feature("relocation:enabled"), open(FRESH_INSTALL_PATH) as f:
+            with self.options(
+                {
+                    "relocation.enabled": True,
+                    "relocation.daily-limit-small": 1,
+                }
+            ), open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.client.post(
@@ -95,7 +102,12 @@ class RelocationCreateTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with self.feature("relocation:enabled"), open(FRESH_INSTALL_PATH) as f:
+            with self.options(
+                {
+                    "relocation.enabled": True,
+                    "relocation.daily-limit-small": 1,
+                }
+            ), open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.client.post(
@@ -147,7 +159,12 @@ class RelocationCreateTest(APITestCase):
     def test_fail_missing_file(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with self.feature("relocation:enabled"):
+            with self.options(
+                {
+                    "relocation.enabled": True,
+                    "relocation.daily-limit-small": 1,
+                }
+            ):
                 response = self.client.post(
                     reverse(self.endpoint),
                     {
@@ -164,7 +181,12 @@ class RelocationCreateTest(APITestCase):
     def test_fail_missing_orgs(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with self.feature("relocation:enabled"), open(FRESH_INSTALL_PATH) as f:
+            with self.options(
+                {
+                    "relocation.enabled": True,
+                    "relocation.daily-limit-small": 1,
+                }
+            ), open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.client.post(
@@ -189,7 +211,12 @@ class RelocationCreateTest(APITestCase):
     def test_fail_missing_owner(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with self.feature("relocation:enabled"), open(FRESH_INSTALL_PATH) as f:
+            with self.options(
+                {
+                    "relocation.enabled": True,
+                    "relocation.daily-limit-small": 1,
+                }
+            ), open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.client.post(
@@ -214,7 +241,12 @@ class RelocationCreateTest(APITestCase):
     def test_fail_nonexistent_owner(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with self.feature("relocation:enabled"), open(FRESH_INSTALL_PATH) as f:
+            with self.options(
+                {
+                    "relocation.enabled": True,
+                    "relocation.daily-limit-small": 1,
+                }
+            ), open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.client.post(
@@ -247,7 +279,12 @@ class RelocationCreateTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with self.feature("relocation:enabled"), open(FRESH_INSTALL_PATH) as f:
+            with self.options(
+                {
+                    "relocation.enabled": True,
+                    "relocation.daily-limit-small": 1,
+                }
+            ), open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
                 with open(tmp_pub_key_path, "rb") as p:
                     simple_file = SimpleUploadedFile(
@@ -267,3 +304,188 @@ class RelocationCreateTest(APITestCase):
                     )
 
         assert response.status_code == 409
+
+    def test_fail_throttle_if_daily_limit_reached(self):
+        relocation_count = Relocation.objects.count()
+        relocation_file_count = RelocationFile.objects.count()
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
+            with self.options(
+                {
+                    "relocation.enabled": True,
+                    "relocation.daily-limit-small": 1,
+                }
+            ), open(FRESH_INSTALL_PATH) as f:
+                data = json.load(f)
+                with open(tmp_pub_key_path, "rb") as p:
+                    initial_response = self.client.post(
+                        reverse(self.endpoint),
+                        {
+                            "owner": self.owner.username,
+                            "file": SimpleUploadedFile(
+                                "export.tar",
+                                create_encrypted_export_tarball(
+                                    data, LocalFileEncryptor(p)
+                                ).getvalue(),
+                                content_type="application/tar",
+                            ),
+                            "orgs": ["testing", "foo"],
+                        },
+                        format="multipart",
+                    )
+
+                    # Simulate completion of relocation job
+                    relocation = Relocation.objects.all()[0]
+                    relocation.status = Relocation.Status.SUCCESS.value
+                    relocation.save()
+                    relocation.refresh_from_db()
+
+                with open(tmp_pub_key_path, "rb") as p:
+                    throttled_response = self.client.post(
+                        reverse(self.endpoint),
+                        {
+                            "owner": self.owner.username,
+                            "file": SimpleUploadedFile(
+                                "export.tar",
+                                create_encrypted_export_tarball(
+                                    data, LocalFileEncryptor(p)
+                                ).getvalue(),
+                                content_type="application/tar",
+                            ),
+                            "orgs": ["testing", "foo"],
+                        },
+                        format="multipart",
+                    )
+
+        assert initial_response.status_code == 201
+        assert throttled_response.status_code == 429
+        assert throttled_response.data.get("detail") is not None
+        assert (
+            throttled_response.data.get("detail")
+            == "We've reached our daily limit of relocations - please try again tomorrow or contact support."
+        )
+        assert Relocation.objects.count() == relocation_count + 1
+        assert RelocationFile.objects.count() == relocation_file_count + 1
+
+    def test_success_no_throttle_different_bucket_relocations(self):
+        relocation_count = Relocation.objects.count()
+        relocation_file_count = RelocationFile.objects.count()
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
+            with self.options(
+                {
+                    "relocation.enabled": True,
+                    "relocation.daily-limit-small": 1,
+                    "relocation.daily-limit-medium": 1,
+                }
+            ), open(FRESH_INSTALL_PATH) as f:
+                data = json.load(f)
+                with open(tmp_pub_key_path, "rb") as p:
+                    initial_response = self.client.post(
+                        reverse(self.endpoint),
+                        {
+                            "owner": self.owner.username,
+                            "file": SimpleUploadedFile(
+                                "export.tar",
+                                create_encrypted_export_tarball(
+                                    data, LocalFileEncryptor(p)
+                                ).getvalue(),
+                                content_type="application/tar",
+                            ),
+                            "orgs": ["testing", "foo"],
+                        },
+                        format="multipart",
+                    )
+
+                    # Simulate completion of relocation job
+                    relocation = Relocation.objects.all()[0]
+                    relocation.status = Relocation.Status.SUCCESS.value
+                    relocation.save()
+                    relocation.refresh_from_db()
+
+                with open(tmp_pub_key_path, "rb") as p:
+                    throttled_response = self.client.post(
+                        reverse(self.endpoint),
+                        {
+                            "owner": self.owner.username,
+                            "file": SimpleUploadedFile(
+                                "export.tar",
+                                create_encrypted_export_tarball(
+                                    data, LocalFileEncryptor(p)
+                                ).getvalue()
+                                * 1000,
+                                content_type="application/tar",
+                            ),
+                            "orgs": ["testing", "foo"],
+                        },
+                        format="multipart",
+                    )
+
+        assert initial_response.status_code == 201
+        assert throttled_response.status_code == 201
+        assert Relocation.objects.count() == relocation_count + 2
+        assert RelocationFile.objects.count() == relocation_file_count + 2
+
+    def test_success_no_throttle_relocation_over_multiple_days(self):
+        relocation_count = Relocation.objects.count()
+        relocation_file_count = RelocationFile.objects.count()
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
+            with self.options(
+                {
+                    "relocation.enabled": True,
+                    "relocation.daily-limit-small": 1,
+                }
+            ), open(FRESH_INSTALL_PATH) as f, freeze_time("2023-11-28 00:00:00") as frozen_time:
+                data = json.load(f)
+                with open(tmp_pub_key_path, "rb") as p:
+                    initial_response = self.client.post(
+                        reverse(self.endpoint),
+                        {
+                            "owner": self.owner.username,
+                            "file": SimpleUploadedFile(
+                                "export.tar",
+                                create_encrypted_export_tarball(
+                                    data, LocalFileEncryptor(p)
+                                ).getvalue(),
+                                content_type="application/tar",
+                            ),
+                            "orgs": ["testing", "foo"],
+                        },
+                        format="multipart",
+                    )
+
+                    # Simulate completion of relocation job
+                    relocation = Relocation.objects.all()[0]
+                    relocation.status = Relocation.Status.SUCCESS.value
+                    relocation.save()
+                    relocation.refresh_from_db()
+
+                frozen_time.shift(timedelta(days=1, minutes=1))
+
+                # Relogin since session has expired
+                self.login_as(user=self.superuser, superuser=True)
+                with open(tmp_pub_key_path, "rb") as p:
+                    throttled_response = self.client.post(
+                        reverse(self.endpoint),
+                        {
+                            "owner": self.owner.username,
+                            "file": SimpleUploadedFile(
+                                "export.tar",
+                                create_encrypted_export_tarball(
+                                    data, LocalFileEncryptor(p)
+                                ).getvalue(),
+                                content_type="application/tar",
+                            ),
+                            "orgs": ["testing", "foo"],
+                        },
+                        format="multipart",
+                    )
+
+        assert initial_response.status_code == 201
+        assert throttled_response.status_code == 201
+        assert Relocation.objects.count() == relocation_count + 2
+        assert RelocationFile.objects.count() == relocation_file_count + 2

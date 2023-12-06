@@ -136,6 +136,7 @@ SENTRY_DEBUG_FILES_REDIS_CLUSTER = "default"
 SENTRY_MONITORS_REDIS_CLUSTER = "default"
 SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER = "default"
 SENTRY_METRIC_META_REDIS_CLUSTER = "default"
+SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -208,9 +209,6 @@ DATABASES = {
 if "DATABASE_URL" in os.environ:
     url = urlparse(os.environ["DATABASE_URL"])
 
-    # Ensure default database exists.
-    DATABASES["default"] = DATABASES.get("default", {})
-
     # Update with environment configuration.
     DATABASES["default"].update(
         {
@@ -221,8 +219,6 @@ if "DATABASE_URL" in os.environ:
             "PORT": url.port,
         }
     )
-    if url.scheme == "postgres":
-        DATABASES["default"]["ENGINE"] = "sentry.db.postgres"
 
 
 # This should always be UTC.
@@ -657,9 +653,6 @@ SOCIAL_AUTH_FORCE_POST_DISCONNECT = True
 
 # Hybrid cloud multi-silo configuration #
 
-# Unused - compatibility shim for getsentry
-USE_SILOS = os.environ.get("SENTRY_USE_SILOS", None)
-
 # Defined by `sentry devserver` to enable siloed local development
 SILO_DEVSERVER = os.environ.get("SENTRY_SILO_DEVSERVER", False)
 
@@ -898,6 +891,7 @@ CELERY_QUEUES_REGION = [
     Queue("merge", routing_key="merge"),
     Queue("notifications", routing_key="notifications"),
     Queue("options", routing_key="options"),
+    Queue("outbox", routing_key="outbox"),
     Queue("post_process_errors", routing_key="post_process_errors"),
     Queue("post_process_issue_platform", routing_key="post_process_issue_platform"),
     Queue("post_process_transactions", routing_key="post_process_transactions"),
@@ -955,9 +949,9 @@ CELERYBEAT_SCHEDULE_CONTROL = {
     },
     "deliver-from-outbox-control": {
         "task": "sentry.tasks.enqueue_outbox_jobs_control",
-        # Run every 1 minute
-        "schedule": crontab(minute="*/1"),
-        "options": {"expires": 30, "queue": "outbox.control"},
+        # Run every 10 seconds as integration webhooks are delivered by this task
+        "schedule": timedelta(seconds=10),
+        "options": {"expires": 60, "queue": "outbox.control"},
     },
     "schedule-deletions-control": {
         "task": "sentry.tasks.deletion.run_scheduled_deletions_control",
@@ -1256,6 +1250,7 @@ PROCESSING_QUEUES = [
 
 # We prefer using crontab, as the time for timedelta will reset on each deployment. More information:  https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html#periodic-tasks
 TIMEDELTA_ALLOW_LIST = {
+    "deliver-from-outbox-control",
     "flush-buffers",
     "sync-options",
     "sync-options-control",
@@ -1379,6 +1374,7 @@ if os.environ.get("OPENAPIGENERATE", False):
     from sentry.apidocs.build import OPENAPI_TAGS, get_old_json_components, get_old_json_paths
 
     SPECTACULAR_SETTINGS = {
+        "DEFAULT_GENERATOR_CLASS": "sentry.apidocs.hooks.CustomGenerator",
         "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
         "POSTPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_postprocessing_hook"],
         "DISABLE_ERRORS_AND_WARNINGS": False,
@@ -1436,8 +1432,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:alert-migration-ui": False,
     # Enables the migration of alerts (checked in a migration script).
     "organizations:alerts-migration-enabled": False,
-    # Enables tagging javascript errors from the browser console.
-    "organizations:javascript-console-error-tag": False,
     # Enables the cron job to auto-enable codecov integrations.
     "organizations:auto-enable-codecov": False,
     # The overall flag for codecov integration, gated by plans.
@@ -1770,6 +1764,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-sdk-errors-only": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
+    # Enable View Sample Replay button on the Replay-List empty-state page
+    "organizations:session-replay-onboarding-cta-button": False,
     # Enable the Replay Details > Accessibility tab
     "organizations:session-replay-a11y-tab": False,
     # Enable linking from 'new issue' slack notifs to the issue replay list
@@ -1790,6 +1786,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-accessibility-issues": False,
     # Enable the new zero state UI
     "organizations:session-replay-new-zero-state": False,
+    # Enable canvas recording
+    "organizations:session-replay-enable-canvas": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
@@ -1819,15 +1817,17 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable feature to load more than 100 rows in performance trace view.
     "organizations:trace-view-load-more": False,
     # Enable dashboard widget indicators.
-    "organizations:dashboard-widget-indicators": False,
+    "organizations:dashboard-widget-indicators": True,
     # Enables updated all events tab in a performance issue
     "organizations:performance-issues-all-events-tab": False,
     # Temporary flag to test search performance that's running slow in S4S
     "organizations:performance-issues-search": True,
-    # Enable profiling statistical detectors ema detection
+    # Enable performance statistical detectors ema detection
     "organizations:performance-statistical-detectors-ema": False,
-    # Enable profiling statistical detectors breakpoint detection
+    # Enable performance statistical detectors breakpoint detection
     "organizations:performance-statistical-detectors-breakpoint": False,
+    # Enable performance statistical detectors breakpoint lifecycles
+    "organizations:performance-statistical-detectors-lifecycles": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable the UI for the overage alert settings
@@ -1905,8 +1905,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:source-maps-debugger-blue-thunder-edition": False,
     # Enable the new suspect commits calculation that uses all frames in the stack trace
     "organizations:suspect-commits-all-frames": False,
-    # Enable logs for debugging weekly reports
-    "organizations:weekly-report-logs": False,
     # Enables region provisioning for individual users
     "organizations:multi-region-selector": False,
     # Enable data forwarding functionality for projects.
@@ -1941,7 +1939,9 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:span-metrics-extraction-resource": False,
     # Enable standalone span ingestion
     "organizations:standalone-span-ingestion": False,
-    # Metrics: Enable ingestion, storage, and rendering of custom metrics
+    # Metrics cardinality limiter in Relay
+    "organizations:relay-cardinality-limiter": False,
+    # Metrics: Enable ingestion and storage of custom metrics. See ddm-ui for UI.
     "organizations:custom-metrics": False,
     # Metrics: Enable creation of investigation dynamic sampling rules (rules that
     # temporary boost the sample rate of particular transactions)
@@ -3030,7 +3030,6 @@ SENTRY_SDK_CONFIG: ServerSdkConfig = {
     "send_default_pii": True,
     "auto_enabling_integrations": False,
     "enable_db_query_source": True,
-    "db_query_source_threshold_ms": 500,
 }
 
 SENTRY_DEV_DSN = os.environ.get("SENTRY_DEV_DSN")
@@ -3960,6 +3959,8 @@ REGION_PINNED_URL_NAMES = {
 
 # Shared resource ids for accounting
 EVENT_PROCESSING_STORE = "rc_processing_redis"
+COGS_EVENT_STORE_LABEL = "bigtable_nodestore"
+
 
 if SILO_DEVSERVER:
     # Add connections for the region & control silo databases.
@@ -3998,3 +3999,5 @@ if SILO_DEVSERVER:
 
     control_port = os.environ.get("SENTRY_CONTROL_SILO_PORT", "8000")
     SENTRY_CONTROL_ADDRESS = f"http://127.0.0.1:{control_port}"
+
+    CELERYBEAT_SCHEDULE_FILENAME = f"celerybeat-schedule-{SILO_MODE}"

@@ -583,6 +583,7 @@ def post_process_group(
                     occurrence.event_id,
                     group_id=group_id,
                     skip_transaction_groupevent=True,
+                    occurrence_id=occurrence_id,
                 )
                 if retrieved is None:
                     raise EventLookupError(
@@ -720,7 +721,8 @@ def run_post_process_job(job: PostProcessJob):
                 },
             )
             logger.exception(
-                f"Failed to process pipeline step {pipeline_step.__name__}",
+                "Failed to process pipeline step %s",
+                pipeline_step.__name__,
                 extra={"event": group_event, "group": group_event.group},
             )
         else:
@@ -1018,12 +1020,18 @@ def process_rules(job: PostProcessJob) -> None:
     is_regression = job["group_state"]["is_regression"]
     is_new_group_environment = job["group_state"]["is_new_group_environment"]
     has_reappeared = job["has_reappeared"]
+    has_escalated = job["has_escalated"]
 
     has_alert = False
 
     with metrics.timer("post_process.process_rules.duration"):
         rp = RuleProcessor(
-            group_event, is_new, is_regression, is_new_group_environment, has_reappeared
+            group_event,
+            is_new,
+            is_regression,
+            is_new_group_environment,
+            has_reappeared,
+            has_escalated,
         )
         with sentry_sdk.start_span(op="tasks.post_process_group.rule_processor_callbacks"):
             # TODO(dcramer): ideally this would fanout, but serializing giant
@@ -1069,8 +1077,12 @@ def process_code_mappings(job: PostProcessJob) -> None:
 
             if features.has("organizations:derive-code-mappings", org):
                 logger.info(
-                    f"derive_code_mappings: Queuing code mapping derivation for {project.slug=} {group_id=}."
-                    + f" Future events in {org_slug=} will not have not have code mapping derivation until {next_time}"
+                    "derive_code_mappings: Queuing code mapping derivation for project.slug=%s group_id=%s."
+                    " Future events in org_slug=%s will not have not have code mapping derivation until %s",
+                    project.slug,
+                    group_id,
+                    org_slug,
+                    next_time,
                 )
                 derive_code_mappings.delay(project.id, event.data)
 
@@ -1325,16 +1337,11 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
         and event.occurrence.evidence_data.get("source")
         in [
             FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE.value,
-            FeedbackCreationSource.USER_REPORT_DJANGO_ENDPOINT.value,
+            FeedbackCreationSource.NEW_FEEDBACK_DJANGO_ENDPOINT.value,
         ]
     ):
         return True
     return False
-
-
-def get_project_counts(project: Project) -> int:
-    # Dummy function, we'll replace this in a later pr.
-    return 1000
 
 
 MAX_NEW_ESCALATION_AGE_HOURS = 24
@@ -1348,6 +1355,7 @@ def detect_new_escalation(job: PostProcessJob):
     If we detect that the group has escalated, set has_escalated to True in the
     job.
     """
+    from sentry.issues.issue_velocity import get_latest_threshold
     from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 
     group = job["event"].group
@@ -1361,15 +1369,32 @@ def detect_new_escalation(job: PostProcessJob):
     # Get escalation lock for this group. If we're unable to acquire this lock, another process is handling
     # this group at the same time. In that case, just exit early, no need to retry.
     lock = locks.get(f"detect_escalation:{group.id}", duration=10, name="detect_escalation")
+    extra = {
+        "org_id": group.organization.id,
+        "project_Id": job["event"].project.id,
+        "group_id": group.id,
+    }
     try:
         with lock.acquire():
-            project_escalation_rate = get_project_counts(group.project)
+            project_escalation_rate = get_latest_threshold(job["event"].project)
             group_hourly_event_rate = group.times_seen_with_pending / group_age_hours
-            if group_hourly_event_rate > project_escalation_rate:
+            # a rate of 0 means there was no threshold that could be calculated
+            if project_escalation_rate > 0 and group_hourly_event_rate > project_escalation_rate:
                 job["has_escalated"] = True
                 group.update(substatus=GroupSubStatus.ESCALATING)
                 add_group_to_inbox(group, GroupInboxReason.ESCALATING)
-    except UnableToAcquireLock:
+    except UnableToAcquireLock as error:
+        extra["error"] = error
+        logger.warning(
+            "tasks.post_process.detect_new_escalation.unable_to_acquire_lock", extra=extra
+        )
+        return
+    except Exception as error:
+        metrics.incr("tasks.post_process.detect_new_escalation.failed")
+        extra["error"] = error
+        logger.exception(
+            "Unexpected error type while calling `get_latest_threshold()`", extra=extra
+        )
         return
 
 
