@@ -111,7 +111,8 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
     fingerprint = None
 
     # check to see if we need to update the status
-    if monitor_env.status == MonitorStatus.OK:
+    if monitor_env.status in [MonitorStatus.OK, MonitorStatus.ACTIVE]:
+        # evaluation logic for multiple check-ins
         if failure_issue_threshold > 1:
             # reverse the list after slicing in order to start with oldest check-in
             # use .values() to speed up query
@@ -137,6 +138,8 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
             for index, checkin in enumerate(evaluated_checkins):
                 if checkin["status"] not in [CheckInStatus.OK, CheckInStatus.IN_PROGRESS]:
                     consecutive_failed_checkins += 1
+                    # TODO(rjo100): this might ignore future failed check-ins
+                    # only applicable for one-off timeouts
                     if consecutive_failed_checkins == failure_issue_threshold:
                         failure_index = index
                         break
@@ -149,14 +152,16 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
 
             failure_index = failure_index - failure_issue_threshold + 1
             num_occurrences = failure_issue_threshold
+        # if threshold is 1, just use the most recent check-in
         else:
             failure_index = 0
             num_occurrences = 1
             evaluated_checkins = [
-                MonitorCheckIn.objects.filter(monitor_environment=monitor_env)
-                .order_by("-date_added")
-                .values("id", "date_added", "status")
-                .first()
+                {
+                    "id": failed_checkin.id,
+                    "date_added": failed_checkin.date_added,
+                    "status": failed_checkin.status,
+                }
             ]
 
         # change monitor status + update fingerprint timestamp
@@ -183,15 +188,16 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
         MonitorStatus.MISSED_CHECKIN,
         MonitorStatus.TIMEOUT,
     ]:
-        # if monitor environment has a failed status, get the most recent
+        # if monitor environment has a failed status, use the failed
         # check-in and send occurrence
         failure_index = 0
         num_occurrences = 1
         evaluated_checkins = [
-            MonitorCheckIn.objects.filter(monitor_environment=monitor_env)
-            .order_by("-date_added")
-            .values("id", "date_added", "status")
-            .first()
+            {
+                "id": failed_checkin.id,
+                "date_added": failed_checkin.date_added,
+                "status": failed_checkin.status,
+            }
         ]
 
         # get the existing grouphash from the monitor environment
@@ -218,6 +224,13 @@ def mark_failed_no_threshold(failed_checkin: MonitorCheckIn):
     from sentry.signals import monitor_environment_failed
 
     monitor_env = failed_checkin.monitor_environment
+
+    # update monitor environment status
+    failed_status_map = {
+        CheckInStatus.MISSED: MonitorStatus.MISSED_CHECKIN,
+        CheckInStatus.TIMEOUT: MonitorStatus.TIMEOUT,
+    }
+    monitor_env.update(status=failed_status_map.get(failed_checkin.status, MonitorStatus.ERROR))
 
     # Do not create event if monitor is disabled
     if monitor_env.monitor.status == MonitorObjectStatus.DISABLED:
