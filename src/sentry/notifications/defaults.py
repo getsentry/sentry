@@ -26,7 +26,7 @@ NOTIFICATION_SETTINGS_TYPE_DEFAULTS = {
 
 
 # email and slack are defaulted to being on
-DEFAULT_ON_PROVIDERS = [
+DEFAULT_ENABLED_PROVIDERS = [
     ExternalProviderEnum.EMAIL,
     ExternalProviderEnum.SLACK,
 ]
