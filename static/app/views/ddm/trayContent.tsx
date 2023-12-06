@@ -7,11 +7,9 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useDDMContext} from 'sentry/views/ddm/context';
 import {TraceTable} from 'sentry/views/ddm/traceTable';
-import {useMetricWidgets} from 'sentry/views/ddm/widget';
 
 export function TrayContent() {
-  const {selectedWidgetIndex} = useDDMContext();
-  const widgets = useMetricWidgets().widgets;
+  const {selectedWidgetIndex, widgets} = useDDMContext();
   const selectedWidget = widgets[selectedWidgetIndex];
 
   return (

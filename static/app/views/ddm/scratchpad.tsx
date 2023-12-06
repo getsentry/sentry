@@ -1,3 +1,4 @@
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import * as echarts from 'echarts/core';
 
@@ -13,18 +14,20 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {DDM_CHART_GROUP, MIN_WIDGET_WIDTH} from 'sentry/views/ddm/constants';
 import {useDDMContext} from 'sentry/views/ddm/context';
 
-import {MetricWidget, useMetricWidgets} from './widget';
+import {MetricWidget} from './widget';
 
 export function MetricScratchpad() {
-  const {widgets, onChange, addWidget} = useMetricWidgets();
-  const {setSelectedWidgetIndex, selectedWidgetIndex} = useDDMContext();
+  const {setSelectedWidgetIndex, selectedWidgetIndex, widgets, updateWidget, addWidget} =
+    useDDMContext();
   const {selection} = usePageFilters();
   const organization = useOrganization();
 
-  const handleChange = (index: number, widget: Partial<MetricWidgetQueryParams>) => {
-    setSelectedWidgetIndex(index);
-    onChange(index, widget);
-  };
+  const handleChange = useCallback(
+    (index: number, widget: Partial<MetricWidgetQueryParams>) => {
+      updateWidget(index, widget);
+    },
+    [updateWidget]
+  );
 
   const Wrapper =
     widgets.length === 1 ? StyledSingleWidgetWrapper : StyledMetricDashboard;
@@ -55,7 +58,6 @@ export function MetricScratchpad() {
           });
 
           addWidget();
-          setSelectedWidgetIndex(widgets.length);
         }}
       >
         <Button icon={<IconAdd isCircled />}>Add widget</Button>

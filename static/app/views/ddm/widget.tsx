@@ -14,86 +14,22 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MetricsApiResponse, MRI, PageFilters} from 'sentry/types';
+import {MetricsApiResponse, PageFilters} from 'sentry/types';
 import {
-  defaultMetricDisplayType,
   getSeriesName,
   MetricDisplayType,
   MetricWidgetQueryParams,
-  updateQuery,
 } from 'sentry/utils/metrics';
 import {getMRI, parseMRI} from 'sentry/utils/metrics/mri';
 import {useMetricsDataZoom} from 'sentry/utils/metrics/useMetricsData';
-import {decodeList} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
-import useRouter from 'sentry/utils/useRouter';
 import {MetricChart} from 'sentry/views/ddm/chart';
 import {CodeLocations} from 'sentry/views/ddm/codeLocations';
 import {MetricWidgetContextMenu} from 'sentry/views/ddm/contextMenu';
 import {QueryBuilder} from 'sentry/views/ddm/queryBuilder';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
 
-import {DEFAULT_SORT_STATE, MIN_WIDGET_WIDTH} from './constants';
-
-const emptyWidget: MetricWidgetQueryParams = {
-  mri: '' as MRI,
-  op: undefined,
-  query: '',
-  groupBy: [],
-  sort: DEFAULT_SORT_STATE,
-  displayType: MetricDisplayType.LINE,
-};
-
-export function useMetricWidgets() {
-  const router = useRouter();
-
-  const widgets = useMemo<MetricWidgetQueryParams[]>(() => {
-    const currentWidgets = JSON.parse(
-      router.location.query.widgets ?? JSON.stringify([emptyWidget])
-    );
-
-    return currentWidgets.map((widget: MetricWidgetQueryParams) => {
-      return {
-        mri: widget.mri,
-        op: widget.op,
-        query: widget.query,
-        groupBy: decodeList(widget.groupBy),
-        displayType: widget.displayType ?? defaultMetricDisplayType,
-        focusedSeries: widget.focusedSeries,
-        showSummaryTable: widget.showSummaryTable ?? true, // temporary default
-        powerUserMode: widget.powerUserMode,
-        sort: widget.sort ?? DEFAULT_SORT_STATE,
-      };
-    });
-  }, [router.location.query.widgets]);
-
-  const onChange = useCallback(
-    (position: number, data: Partial<MetricWidgetQueryParams>) => {
-      const widgetsCopy = [...widgets];
-      widgetsCopy[position] = {...widgets[position], ...data};
-
-      updateQuery(router, {
-        widgets: JSON.stringify(widgetsCopy),
-      });
-    },
-    [widgets, router]
-  );
-
-  const addWidget = useCallback(() => {
-    const widgetsCopy = [...widgets];
-    widgetsCopy.push(emptyWidget);
-
-    updateQuery(router, {
-      widgets: JSON.stringify(widgetsCopy),
-    });
-  }, [widgets, router]);
-
-  return {
-    widgets,
-    onChange,
-    addWidget,
-  };
-}
+import {MIN_WIDGET_WIDTH} from './constants';
 
 export const MetricWidget = memo(
   ({
