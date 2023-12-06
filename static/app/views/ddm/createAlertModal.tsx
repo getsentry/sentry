@@ -164,6 +164,20 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
     [metricsQuery, alertPeriod]
   );
 
+  const aggregate = useMemo(() => {
+    if (isCustomMetric(metricsQuery)) {
+      return MRIToField(metricsQuery.mri, metricsQuery.op!);
+    }
+    if (isTransactionDuration(metricsQuery)) {
+      return `${metricsQuery.op!}(transaction.duration)`;
+    }
+    if (isStandardMeasurement(metricsQuery)) {
+      return formatMRIField(MRIToField(metricsQuery.mri, metricsQuery.op!));
+    }
+
+    return '';
+  }, [metricsQuery]);
+
   const {data, isLoading, refetch, isError} = useMetricsData(
     {
       mri: metricsQuery.mri,
@@ -238,53 +252,31 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
   );
 
   const handleSubmit = useCallback(() => {
-    if (isCustomMetric(metricsQuery)) {
-      router.push(
-        getAlertFormPath({
-          organizationSlug: organization.slug,
-          aggregate: MRIToField(metricsQuery.mri, metricsQuery.op!),
-          query: `${metricsQuery.query} event.type:transaction`.trim(),
-          interval: alertInterval,
-          statsPeriod: alertPeriod,
-          environment: formState.environment ?? undefined,
-          project: selectedProject!.slug,
-        })
-      );
-    }
-    if (isTransactionDuration(metricsQuery)) {
-      return router.push(
-        getAlertFormPath({
-          organizationSlug: organization.slug,
-          aggregate: `${metricsQuery.op!}(transaction.duration)`,
-          query: `${metricsQuery.query} event.type:transaction`.trim(),
-          interval: alertInterval,
-          statsPeriod: alertPeriod,
-          environment: formState.environment ?? undefined,
-          project: selectedProject!.slug,
-        })
-      );
-    }
-    if (isStandardMeasurement(metricsQuery)) {
-      return router.push(
-        getAlertFormPath({
-          organizationSlug: organization.slug,
-          aggregate: formatMRIField(MRIToField(metricsQuery.mri, metricsQuery.op!)),
-          query: `${metricsQuery.query} event.type:transaction`.trim(),
-          interval: alertInterval,
-          statsPeriod: alertPeriod,
-          environment: formState.environment ?? undefined,
-          project: selectedProject!.slug,
-        })
-      );
-    }
-    return null;
+    router.push(
+      `/organizations/${organization.slug}/alerts/new/metric/?${qs.stringify({
+        // Needed, so alerts-create also collects environment via event view
+
+        aggregate,
+        query: `${metricsQuery.query} event.type:transaction`.trim(),
+        createFromDiscover: true,
+        dataset: Dataset.GENERIC_METRICS,
+        interval: alertInterval,
+        statsPeriod: alertPeriod,
+        environment: formState.environment ?? undefined,
+        project: selectedProject!.slug,
+        referrer: 'ddm',
+        // Event type also needs to be added to the query
+        eventTypes: EventTypes.TRANSACTION,
+      })}`
+    );
   }, [
+    router,
+    aggregate,
+    metricsQuery.query,
     organization.slug,
-    metricsQuery,
     alertInterval,
     alertPeriod,
     formState.environment,
-    router,
     selectedProject,
   ]);
 
@@ -363,9 +355,7 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
                 <Tooltip
                   title={
                     <Fragment>
-                      <Filters>
-                        {formatMRIField(MRIToField(metricsQuery.mri, metricsQuery.op!))}
-                      </Filters>
+                      <Filters>{formatMRIField(aggregate)}</Filters>
                       {metricsQuery.query}
                     </Fragment>
                   }
@@ -379,9 +369,7 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
                   showOnlyOnOverflow
                 >
                   <QueryFilters>
-                    <Filters>
-                      {formatMRIField(MRIToField(metricsQuery.mri, metricsQuery.op!))}
-                    </Filters>
+                    <Filters>{formatMRIField(aggregate)}</Filters>
                     {metricsQuery.query}
                   </QueryFilters>
                 </Tooltip>

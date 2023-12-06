@@ -9,13 +9,13 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {
+  getFieldFromMetricsQuery,
   isCustomMeasurement,
   isCustomMetric,
   MetricDisplayType,
   MetricsQuery,
 } from 'sentry/utils/metrics';
 import {hasDDMFeature} from 'sentry/utils/metrics/features';
-import {MRIToField} from 'sentry/utils/metrics/mri';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {DashboardWidgetSource, WidgetType} from 'sentry/views/dashboards/types';
@@ -96,53 +96,25 @@ export function useCreateAlert(organization: Organization, metricsQuery: Metrics
 
 export function useCreateDashboardWidget(
   organization: Organization,
-  {projects, environments, datetime, op, mri, groupBy, query}: MetricsQuery,
+  metricsQuery: MetricsQuery,
   displayType?: MetricDisplayType
 ) {
   const router = useRouter();
-  const {start, end, period} = datetime;
+  const {projects, environments, datetime} = metricsQuery;
+  const isCustomMetricQuery = isCustomMetric(metricsQuery);
 
   return useMemo(() => {
-    if (
-      !mri ||
-      !op ||
-      !isCustomMetric({mri}) ||
-      !organization.access.includes('member:write')
-    ) {
+    if (!metricsQuery.mri || !metricsQuery.op || isCustomMeasurement(metricsQuery)) {
       return undefined;
     }
 
-    const field = MRIToField(mri, op);
-    const limit = !groupBy?.length ? 1 : 10;
-
-    const widgetQuery = {
-      name: '',
-      aggregates: [field],
-      columns: groupBy ?? [],
-      fields: [field],
-      conditions: query ?? '',
-      orderby: '',
-    };
-
-    const urlWidgetQuery = urlEncode({
-      ...widgetQuery,
-      aggregates: field,
-      fields: field,
-      columns: groupBy?.join(',') ?? '',
-    });
-
-    const widgetAsQueryParams = {
-      source: DashboardWidgetSource.DDM,
-      start,
-      end,
-      statsPeriod: period,
-      defaultWidgetQuery: urlWidgetQuery,
-      defaultTableColumns: [],
-      defaultTitle: 'DDM Widget',
-      environment: environments,
-      displayType,
-      project: projects,
-    };
+    const widgetQuery = getWidgetQuery(metricsQuery);
+    const urlWidgetQuery = encodeWidgetQuery(widgetQuery);
+    const widgetAsQueryParams = getWidgetAsQueryParams(
+      metricsQuery,
+      urlWidgetQuery,
+      displayType
+    );
 
     return () =>
       openAddToDashboardModal({
@@ -155,8 +127,8 @@ export function useCreateDashboardWidget(
         widget: {
           title: 'DDM Widget',
           displayType,
-          widgetType: WidgetType.METRICS,
-          limit,
+          widgetType: isCustomMetricQuery ? WidgetType.METRICS : WidgetType.DISCOVER,
+          limit: !metricsQuery.groupBy?.length ? 1 : 10,
           queries: [widgetQuery],
         },
         router,
@@ -164,18 +136,57 @@ export function useCreateDashboardWidget(
         location: router.location,
       });
   }, [
+    isCustomMetricQuery,
+    metricsQuery,
     datetime,
     displayType,
-    end,
     environments,
-    groupBy,
-    mri,
-    op,
     organization,
-    period,
     projects,
-    query,
     router,
-    start,
   ]);
+}
+
+function getWidgetQuery(metricsQuery: MetricsQuery) {
+  const field = getFieldFromMetricsQuery(metricsQuery);
+
+  return {
+    name: '',
+    aggregates: [field],
+    columns: metricsQuery.groupBy ?? [],
+    fields: [field],
+    conditions: metricsQuery.query ?? '',
+    orderby: '',
+  };
+}
+
+function encodeWidgetQuery(query) {
+  return urlEncode({
+    ...query,
+    aggregates: query.aggregates.join(','),
+    fields: query.fields?.join(','),
+    columns: query.columns.join(','),
+  });
+}
+
+function getWidgetAsQueryParams(
+  metricsQuery: MetricsQuery,
+  urlWidgetQuery: string,
+  displayType?: MetricDisplayType
+) {
+  const {start, end, period} = metricsQuery.datetime;
+  const {projects} = metricsQuery;
+
+  return {
+    source: DashboardWidgetSource.DDM,
+    start,
+    end,
+    statsPeriod: period,
+    defaultWidgetQuery: urlWidgetQuery,
+    defaultTableColumns: [],
+    defaultTitle: 'DDM Widget',
+    environment: metricsQuery.environments,
+    displayType,
+    project: projects,
+  };
 }

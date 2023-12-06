@@ -1,6 +1,11 @@
+<<<<<<< HEAD
 import isArray from 'lodash/isArray';
 
 import {getDateTimeParams, MetricMetaCodeLocation} from 'sentry/utils/metrics';
+=======
+import {PageFilters} from 'sentry/types';
+import {MetricMetaCodeLocation} from 'sentry/utils/metrics';
+>>>>>>> 7fb25444a20 (add dashboards)
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -28,7 +33,7 @@ export function useMetricsCodeLocations(mri: string | undefined) {
     }
   );
 
-  if (!data || !isArray(data?.codeLocations) || !isArray(data?.codeLocations[0].frames)) {
+  if (!data || !Array.isArray(data?.codeLocations) || !Array.isArray(data?.codeLocations[0].frames)) {
     return {data, isLoading};
   }
 

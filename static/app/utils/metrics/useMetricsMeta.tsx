@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import isArray from 'lodash/isArray';
 
 import {PageFilters} from 'sentry/types';
 import {useApiQuery, UseApiQueryOptions} from 'sentry/utils/queryClient';
@@ -24,7 +23,7 @@ function useMetaUseCase(
     }
   );
 
-  if (apiQueryResult.data && isArray(apiQueryResult.data)) {
+  if (apiQueryResult.data && Array.isArray(apiQueryResult.data)) {
     apiQueryResult.data = apiQueryResult.data.sort((a, b) => a.mri.localeCompare(b.mri));
   }
 
