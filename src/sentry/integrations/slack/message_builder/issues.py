@@ -184,9 +184,10 @@ def build_actions(
     group: Group,
     project: Project,
     text: str,
+    color: str,
     actions: Sequence[MessageAction] | None = None,
     identity: RpcIdentity | None = None,
-) -> tuple[Sequence[MessageAction], str, str]:
+) -> tuple[Sequence[MessageAction], str]:
     """Having actions means a button will be shown on the Slack message e.g. ignore, resolve, assign."""
     has_escalating = features.has("organizations:escalating-issues", project.organization)
     use_block_kit = features.has("organizations:slack-block-kit", project.organization)
@@ -278,7 +279,7 @@ def build_actions(
         if a is not None
     ]
 
-    return action_list, text
+    return action_list, text, color
 
 
 class SlackIssuesMessageBuilder(SlackMessageBuilder):
@@ -347,8 +348,8 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         if not self.issue_details or (
             self.recipient and self.recipient.actor_type == ActorType.TEAM
         ):
-            payload_actions, text = build_actions(
-                self.group, project, text, self.actions, self.identity
+            payload_actions, text, color = build_actions(
+                self.group, project, text, color, self.actions, self.identity
             )
         else:
             payload_actions = []
@@ -441,7 +442,7 @@ class SlackIssueAlertMessageBuilder(BlockSlackMessageBuilder):
         if not self.issue_details or (
             self.recipient and self.recipient.actor_type == ActorType.TEAM
         ):
-            payload_actions, text = build_actions(
+            payload_actions, text, _ = build_actions(
                 self.group, project, text, self.actions, self.identity
             )
         else:

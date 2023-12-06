@@ -31,7 +31,6 @@ from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 from sentry.integrations.utils.scope import bind_org_context_from_integration
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -509,8 +508,20 @@ class SlackActionEndpoint(Endpoint):
         if action_option in NOTIFICATION_SETTINGS_ACTION_OPTIONS:
             return self.handle_enable_notifications(slack_request)
 
-        oi = OrganizationIntegration.objects.get(integration_id=slack_request.integration.id)
-        use_block_kit = features.has("organizations:slack-block-kit", oi.organization_id)
+        _, org_integrations = integration_service.get_organization_contexts(
+            integration_id=slack_request.integration.id
+        )
+        use_block_kit = False
+        if len(org_integrations):
+            use_block_kit = any(
+                [
+                    True
+                    if features.has("organizations:slack-block-kit", oi.organization_id)
+                    else False
+                    for oi in org_integrations
+                ]
+            )
+
         action_list = self.get_action_list(slack_request=slack_request, use_block_kit=use_block_kit)
         return self._handle_group_actions(slack_request, request, action_list)
 
