@@ -36,7 +36,7 @@ from sentry.signals import project_created
 from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of, create_test_regions, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 
@@ -78,15 +78,22 @@ class MockAccess:
         return False
 
 
-@region_silo_test
+@region_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
 class OrganizationDetailsTest(OrganizationDetailsTestBase):
+    def _get_expected_region_url(self) -> str:
+        return (
+            "http://testserver"
+            if SiloMode.get_current_mode() == SiloMode.MONOLITH
+            else "http://us.testserver"
+        )
+
     def test_simple(self):
         response = self.get_success_response(self.organization.slug)
 
         assert response.data["slug"] == self.organization.slug
         assert response.data["links"] == {
             "organizationUrl": f"http://{self.organization.slug}.testserver",
-            "regionUrl": "http://us.testserver",
+            "regionUrl": self._get_expected_region_url(),
         }
         assert response.data["id"] == str(self.organization.id)
         assert response.data["role"] == "owner"
@@ -104,7 +111,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert response.data["slug"] == self.organization.slug
         assert response.data["links"] == {
             "organizationUrl": f"http://{self.organization.slug}.testserver",
-            "regionUrl": "http://us.testserver",
+            "regionUrl": self._get_expected_region_url(),
         }
         assert response.data["id"] == str(self.organization.id)
         assert response.data["role"] == "owner"
