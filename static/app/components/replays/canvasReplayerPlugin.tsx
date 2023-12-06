@@ -125,7 +125,7 @@ export function CanvasReplayerPlugin(events: eventWithTime[]) {
           const source = replayer.getMirror().getNode(e.data.id);
           const target =
             canvases.get(e.data.id) ||
-            source && cloneCanvas(e.data.id, source as HTMLCanvasElement);
+            (source && cloneCanvas(e.data.id, source as HTMLCanvasElement));
 
           if (!target) {
             Sentry.captureException(new Error('No canvas found for id'));
