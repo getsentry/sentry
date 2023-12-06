@@ -5,7 +5,6 @@ import {Project} from 'sentry/types';
 import {PageFilters} from 'sentry/types/core';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import useUrlParams from 'sentry/utils/useUrlParams';
 
 function getSelectedProjectList(
   selectedProjects: PageFilters['projects'],
@@ -22,16 +21,7 @@ function getSelectedProjectList(
   return selectedProjects.map(id => projectsByProjectId[id]).filter(Boolean);
 }
 
-export function useHasOrganizationSetupFeedback() {
-  const {projects, fetching} = useProjects();
-  const hasOrgSetupFeedback = useMemo(
-    () => projects.some(p => p.hasFeedbacks),
-    [projects]
-  );
-  return {hasOrgSetupFeedback, fetching};
-}
-
-export function useHaveSelectedProjectsSetupFeedback() {
+export default function useHaveSelectedProjectsSetupFeedback() {
   const {projects, fetching} = useProjects();
   const {selection} = usePageFilters();
 
@@ -45,11 +35,4 @@ export function useHaveSelectedProjectsSetupFeedback() {
     hasSetupOneFeedback: orgSetupOneOrMoreFeedback,
     fetching,
   };
-}
-
-export function useFeedbackHasSlug() {
-  const {getParamValue: getSlug} = useUrlParams('feedbackSlug', '');
-  const hasSlug = getSlug().length > 0;
-
-  return {hasSlug};
 }

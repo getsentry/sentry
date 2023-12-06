@@ -14,22 +14,24 @@ interface Props {
   image: any;
   title: ReactNode;
   button?: ReactNode;
+  className?: string;
   onDismiss?: () => void;
   style?: CSSProperties;
 }
 
 export default function PageBanner({
   button,
+  className,
   description,
   heading,
   icon,
   image,
   onDismiss,
-  title,
   style,
+  title,
 }: Props) {
   return (
-    <Wrapper style={style}>
+    <Wrapper className={className} style={style}>
       {onDismiss && (
         <CloseButton
           onClick={onDismiss}

@@ -2,18 +2,16 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackFilters from 'sentry/components/feedback/feedbackFilters';
 import FeedbackItemLoader from 'sentry/components/feedback/feedbackItem/feedbackItemLoader';
 import FeedbackSearch from 'sentry/components/feedback/feedbackSearch';
 import FeedbackSetupPanel from 'sentry/components/feedback/feedbackSetupPanel';
 import FeedbackList from 'sentry/components/feedback/list/feedbackList';
-import {
-  useFeedbackHasSlug,
-  useHaveSelectedProjectsSetupFeedback,
-} from 'sentry/components/feedback/useFeedbackOnboarding';
+import OldFeedbackButton from 'sentry/components/feedback/oldFeedbackButton';
+import useCurrentFeedbackId from 'sentry/components/feedback/useCurrentFeedbackId';
 import {FeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
+import useHaveSelectedProjectsSetupFeedback from 'sentry/components/feedback/useHaveSelectedProjectsSetupFeedback';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -22,10 +20,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 interface Props extends RouteComponentProps<{}, {}, {}> {}
@@ -33,8 +28,9 @@ interface Props extends RouteComponentProps<{}, {}, {}> {}
 export default function FeedbackListPage({}: Props) {
   const organization = useOrganization();
   const {hasSetupOneFeedback} = useHaveSelectedProjectsSetupFeedback();
-  const {hasSlug} = useFeedbackHasSlug();
-  const location = useLocation();
+
+  const feedbackSlug = useCurrentFeedbackId();
+  const hasSlug = Boolean(feedbackSlug);
 
   return (
     <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>
@@ -54,27 +50,7 @@ export default function FeedbackListPage({}: Props) {
                 position="left"
                 isHoverable
               >
-                <Button
-                  size="sm"
-                  priority="default"
-                  to={{
-                    pathname: normalizeUrl(
-                      `/organizations/${organization.slug}/user-feedback/`
-                    ),
-                    query: {
-                      ...location.query,
-                      query: undefined,
-                      cursor: undefined,
-                    },
-                  }}
-                  onClick={() => {
-                    trackAnalytics('feedback.index-old-ui-clicked', {
-                      organization,
-                    });
-                  }}
-                >
-                  {t('Go to Old User Feedback')}
-                </Button>
+                <OldFeedbackButton />
               </Tooltip>
             </Layout.HeaderActions>
           </Layout.Header>
@@ -108,20 +84,20 @@ export default function FeedbackListPage({}: Props) {
 
 const LayoutGrid = styled('div')`
   background: ${p => p.theme.background};
-
-  height: 100%;
-  width: 100%;
   padding: ${space(2)} ${space(4)} ${space(2)} ${space(4)};
   overflow: hidden;
 
+  flex-grow: 1;
+
   display: grid;
+  gap: ${space(2)};
+  place-items: stretch;
+
   grid-template-columns: minmax(390px, 1fr) 2fr;
   grid-template-rows: max-content 1fr;
   grid-template-areas:
     'filters search'
     'list details';
-  gap: ${space(2)};
-  place-items: stretch;
 `;
 
 const Container = styled(FluidHeight)`
@@ -130,5 +106,6 @@ const Container = styled(FluidHeight)`
 `;
 
 const SetupContainer = styled('div')`
-  grid-column: 1 / 3;
+  overflow: hidden;
+  grid-column: 1 / -1;
 `;
