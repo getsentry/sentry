@@ -51,7 +51,7 @@ const onboarding: OnboardingConfig = {
     tct("Sentry's integration with [astroLink:Astro] supports Astro 3.0.0 and above.", {
       astroLink: <ExternalLink href="https://astro.build/" />,
     }),
-  install: (_params: Params) => [
+  install: () => [
     {
       type: StepType.INSTALL,
       configurations: [
