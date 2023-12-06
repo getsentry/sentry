@@ -82,6 +82,7 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "http.method": "request.method",
     "http.url": "request.url",
     "http.referer": "request.headers.Referer",
+    "transaction.source": "transaction.source",
     # url is a tag extracted by Sentry itself, on Relay it's received as `request.url`
     "url": "request.url",
     "sdk.name": "sdk.name",
@@ -367,7 +368,7 @@ def _parse_search_query(
     # As first step, we transform the search query by applying basic transformations.
     tokens = _transform_search_query(tokens)
     if removed_blacklisted:
-        # As second step, if enabled, we remove elements from the query which are redundant.
+        # As second step, if enabled, we remove elements from the query which are blacklisted.
         tokens = _cleanup_query(_remove_blacklisted_search_filters(tokens))
 
     return tokens
@@ -628,6 +629,7 @@ def _is_standard_metrics_search_term(field: str) -> bool:
 
 
 def _is_on_demand_supported_field(field: str) -> bool:
+    # If it's a black listed field, we consider it as compatible with on demand.
     if field in _BLACKLISTED_METRIC_FIELDS:
         return True
 
