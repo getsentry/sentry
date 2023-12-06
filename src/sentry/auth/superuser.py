@@ -283,7 +283,8 @@ class Superuser:
             if not self.is_active:
                 if self._inactive_reason:
                     logger.warning(
-                        f"superuser.{self._inactive_reason}",
+                        "superuser.%s",
+                        self._inactive_reason,
                         extra={
                             "ip_address": request.META["REMOTE_ADDR"],
                             "user_id": request.user.id,
@@ -402,7 +403,7 @@ class Superuser:
             enable_and_log_superuser_access()
         except AttributeError:
             metrics.incr("superuser.failure", sample_rate=1.0, tags={"reason": "missing-user-info"})
-            logger.error("superuser.superuser_access.missing_user_info")
+            logger.exception("superuser.superuser_access.missing_user_info")
 
     def set_logged_out(self):
         """

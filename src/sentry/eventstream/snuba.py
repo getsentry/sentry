@@ -80,7 +80,6 @@ if TYPE_CHECKING:
 
 
 class SnubaProtocolEventStream(EventStream):
-
     # Beware! Changing this protocol (introducing a new version, or the message
     # format/fields themselves) requires consideration of all downstream
     # consumers. This includes the post-processing forwarder code!
@@ -132,7 +131,6 @@ class SnubaProtocolEventStream(EventStream):
             logger.error(
                 "`GroupEvent` passed to `EventStream.insert`. `GroupEvent` may only be passed when "
                 "associated with an `IssueOccurrence`",
-                exc_info=True,
             )
             return
         project = event.project
@@ -328,7 +326,6 @@ class SnubaProtocolEventStream(EventStream):
         from_timestamp: Optional[datetime] = None,
         to_timestamp: Optional[datetime] = None,
     ) -> None:
-
         """
         Tell Snuba to eventually delete these events.
 

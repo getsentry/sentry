@@ -229,7 +229,7 @@ def fetch_file(
                         "value": f"{type(exc)}",
                     }
                 else:
-                    logger.exception(f"{exc}")
+                    logger.exception(str(exc))
                     error = {"type": EventError.UNKNOWN_ERROR}
 
                 # TODO(dcramer): we want to be less aggressive on disabling domains

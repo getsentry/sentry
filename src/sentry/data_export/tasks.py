@@ -79,7 +79,7 @@ def assemble_download(
         except ExportedData.DoesNotExist as error:
             if first_page:
                 metrics.incr("dataexport.start", tags={"success": False}, sample_rate=1.0)
-            logger.exception(error)
+            logger.exception(str(error))
             return
 
         with sentry_sdk.configure_scope() as scope:
@@ -165,7 +165,7 @@ def assemble_download(
                 return data_export.email_failure(message=str(error))
         except Exception as error:
             metrics.incr("dataexport.error", tags={"error": str(error)}, sample_rate=1.0)
-            logger.error(
+            logger.exception(
                 "dataexport.error: %s",
                 str(error),
                 extra={"query": data_export.payload, "org": data_export.organization_id},
@@ -229,7 +229,7 @@ def get_processor(data_export, environment_id):
     except ExportError as error:
         error_str = str(error)
         metrics.incr("dataexport.error", tags={"error": error_str}, sample_rate=1.0)
-        logger.info(f"dataexport.error: {error_str}")
+        logger.info("dataexport.error: %s", error_str)
         capture_exception(error)
         raise
 
@@ -246,7 +246,7 @@ def process_rows(processor, data_export, batch_size, offset):
     except ExportError as error:
         error_str = str(error)
         metrics.incr("dataexport.error", tags={"error": error_str}, sample_rate=1.0)
-        logger.info(f"dataexport.error: {error_str}")
+        logger.info("dataexport.error: %s", error_str)
         capture_exception(error)
         raise
 
@@ -309,7 +309,7 @@ def merge_export_blobs(data_export_id, **kwargs):
         try:
             data_export = ExportedData.objects.get(id=data_export_id)
         except ExportedData.DoesNotExist as error:
-            logger.exception(error)
+            logger.exception(str(error))
             return
 
         with sentry_sdk.configure_scope() as scope:
@@ -376,7 +376,7 @@ def merge_export_blobs(data_export_id, **kwargs):
                 tags={"success": False, "error": str(error)},
                 sample_rate=1.0,
             )
-            logger.error(
+            logger.exception(
                 "dataexport.error: %s",
                 str(error),
                 extra={"query": data_export.payload, "org": data_export.organization_id},

@@ -76,7 +76,9 @@ class TestGetEventSeverity(TestCase):
             headers={"content-type": "application/json;charset=utf-8"},
         )
         mock_logger_info.assert_called_with(
-            f"Got severity score of 0.1231 for event {event.event_id}",
+            "Got severity score of %s for event %s",
+            severity,
+            event.event_id,
             extra={
                 "event_id": event.event_id,
                 "op": "event_manager._get_severity_score",
@@ -119,7 +121,9 @@ class TestGetEventSeverity(TestCase):
                 headers={"content-type": "application/json;charset=utf-8"},
             )
             mock_logger_info.assert_called_with(
-                f"Got severity score of 0.1231 for event {event.event_id}",
+                "Got severity score of %s for event %s",
+                severity,
+                event.event_id,
                 extra={
                     "event_id": event.event_id,
                     "op": "event_manager._get_severity_score",
@@ -201,7 +205,8 @@ class TestGetEventSeverity(TestCase):
 
             mock_urlopen.assert_not_called()
             mock_logger_warning.assert_called_with(
-                "Unable to get severity score because of unusable `message` value '<unlabeled event>'",
+                "Unable to get severity score because of unusable `message` value '%s'",
+                "<unlabeled event>",
                 extra={
                     "event_id": event.event_id,
                     "op": "event_manager._get_severity_score",
@@ -242,7 +247,10 @@ class TestGetEventSeverity(TestCase):
         severity = _get_severity_score(event)
 
         mock_logger_warning.assert_called_with(
-            "Unable to get severity score from microservice after 1 retry. Got MaxRetryError caused by: Exception('It broke').",
+            "Unable to get severity score from microservice after %s retr%s. Got MaxRetryError caused by: %s.",
+            1,
+            "y",
+            "Exception('It broke')",
             extra={
                 "event_id": event.event_id,
                 "op": "event_manager._get_severity_score",
@@ -283,7 +291,8 @@ class TestGetEventSeverity(TestCase):
         severity = _get_severity_score(event)
 
         mock_logger_warning.assert_called_with(
-            "Unable to get severity score from microservice. Got: Exception('It broke').",
+            "Unable to get severity score from microservice. Got: %s.",
+            "Exception('It broke')",
             extra={
                 "event_id": event.event_id,
                 "op": "event_manager._get_severity_score",

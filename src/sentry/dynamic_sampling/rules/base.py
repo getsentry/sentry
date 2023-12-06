@@ -101,7 +101,7 @@ def _get_rules_of_enabled_biases(
 ) -> List[PolymorphicRule]:
     rules = []
 
-    for (rule_type, bias) in combined_biases.items():
+    for rule_type, bias in combined_biases.items():
         # All biases besides ALWAYS_ALLOWED_RULE_TYPES won't be enabled in case we have 100% base sample rate. This
         # has been done because if we don't have a sample rate < 100%, it doesn't make sense to enable dynamic
         # sampling in the first place. Technically dynamic sampling it is still enabled but for our customers this
@@ -112,7 +112,7 @@ def _get_rules_of_enabled_biases(
             try:
                 rules += bias.generate_rules(project, base_sample_rate)
             except Exception:
-                logger.exception(f"Rule generator {rule_type} failed.")
+                logger.exception("Rule generator %s failed.", rule_type)
 
     log_rules(project.organization.id, project.id, rules)
 

@@ -201,7 +201,7 @@ class NodeField(GzippedDictField):
                     # empty value under a new key, potentially orphaning an
                     # original value in nodestore. OTOH if we can't decode the info
                     # here, the node was already effectively orphaned.
-                    logger.exception(e)
+                    logger.exception(str(e))
                     value = None
 
         if value:

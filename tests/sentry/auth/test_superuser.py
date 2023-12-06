@@ -256,7 +256,7 @@ class SuperuserTestCase(TestCase):
             SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True
         ):
             superuser.set_logged_in(request.user)
-            logger.error.assert_any_call("superuser.superuser_access.missing_user_info")
+            logger.exception.assert_any_call("superuser.superuser_access.missing_user_info")
 
     def test_su_access_invalid_request_body(
         self,

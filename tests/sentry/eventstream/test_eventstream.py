@@ -52,7 +52,6 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         return manager.save(self.project.id)
 
     def __produce_event(self, *insert_args, **insert_kwargs):
-
         event_type = self.kafka_eventstream._get_event_type(insert_kwargs["event"])
 
         # pass arguments on to Kafka EventManager
@@ -87,7 +86,6 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         )
 
     def __produce_payload(self, *insert_args, **insert_kwargs):
-
         # pass arguments on to Kafka EventManager
         self.kafka_eventstream.insert(*insert_args, **insert_kwargs)
 
@@ -220,12 +218,10 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         logger.error.assert_called_with(
             "`GroupEvent` passed to `EventStream.insert`. `GroupEvent` may only be passed when "
             "associated with an `IssueOccurrence`",
-            exc_info=True,
         )
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
     def test_groupevent_occurrence_passed(self, mock_eventstream_insert):
-
         now = datetime.utcnow()
         event = self.__build_transaction_event()
         event.group_id = self.group.id
