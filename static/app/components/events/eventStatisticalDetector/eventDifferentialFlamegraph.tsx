@@ -579,8 +579,8 @@ function DifferentialFlamegraphExplanationBar(
     <DifferentialFlamegraphExplanationBarContainer>
       <div>
         {props.negated
-          ? `Flamegraph is showing how the stack population will change.`
-          : `Flamegraph is showing how the stack population has changed.`}
+          ? `Flamegraph is showing how stack frequency will change.`
+          : `Flamegraph is showing how stack frequency has changed.`}
       </div>
       <DifferentialFlamegraphLegend />
     </DifferentialFlamegraphExplanationBarContainer>
