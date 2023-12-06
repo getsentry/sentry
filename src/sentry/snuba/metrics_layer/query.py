@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from datetime import datetime
-from typing import Any, Mapping, Union
+from typing import Any, List, Mapping, Union, cast
 
 from snuba_sdk import (
     AliasedExpression,
@@ -15,6 +15,7 @@ from snuba_sdk import (
     Request,
     Timeseries,
 )
+from snuba_sdk.formula import FormulaParameterGroup
 
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -417,12 +418,12 @@ def _resolve_aggregate_aliases(metrics_query: MetricsQuery) -> MetricsQuery:
         if not metrics_query.query.parameters:
             return metrics_query
 
-        aliased_parameters = []
-        for i, p in enumerate(metrics_query.query.parameters):
+        aliased_parameters = cast(List[FormulaParameterGroup], metrics_query.query.parameters)
+        for i, p in enumerate(aliased_parameters):
             if isinstance(p, Timeseries):
                 if p.aggregate in AGGREGATE_ALIASES:
                     new_aggregate, new_parameters = AGGREGATE_ALIASES[p.aggregate]
-                    aliased_parameters.append(p.set_aggregate(new_aggregate, new_parameters))
+                    aliased_parameters[i] = p.set_aggregate(new_aggregate, new_parameters)
 
         return metrics_query.set_query(metrics_query.query.set_parameters(aliased_parameters))
 
