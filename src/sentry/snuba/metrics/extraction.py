@@ -10,7 +10,6 @@ from typing import (
     Dict,
     List,
     Literal,
-    Match,
     Optional,
     Sequence,
     Tuple,
@@ -366,12 +365,17 @@ def _parse_search_query(query: Optional[str]) -> Sequence[QueryToken]:
     return _transform_search_query(event_search.parse_search_query(query))
 
 
-def _parse_function(match: Match[str]) -> Tuple[str, List[str], str]:
+def _parse_function(aggregate: str) -> Tuple[str, List[str], str]:
     """
-    Extracts all the function components and parses them given an input regex.
-    """
-    function = match.group("function")
+    Parses an aggregate and returns its components.
 
+    This function is a slightly modified version of the `parse_function` method of the query builders.
+    """
+    match = fields.is_function(aggregate)
+    if not match:
+        raise InvalidSearchQuery(f"Invalid characters in field {aggregate}")
+
+    function = match.group("function")
     arguments = fields.parse_arguments(function, match.group("columns"))
     alias = match.group("alias")
 
@@ -448,11 +452,7 @@ def _extract_aggregate_components(aggregate: str) -> Optional[Tuple[str, List[st
         if is_equation(aggregate):
             return None
 
-        match = fields.is_function(aggregate)
-        if not match:
-            raise InvalidSearchQuery(f"Invalid characters in field {aggregate}")
-
-        function, args, _ = _parse_function(match)
+        function, args, _ = _parse_function(aggregate)
         return function, args
     except InvalidSearchQuery:
         logger.error(f"Failed to parse aggregate: {aggregate}", exc_info=True)
@@ -1245,11 +1245,7 @@ class OnDemandMetricSpec:
     @staticmethod
     def _parse_field(value: str) -> FieldParsingResult:
         try:
-            match = fields.is_function(value)
-            if not match:
-                raise InvalidSearchQuery(f"Invalid characters in field {value}")
-
-            function, arguments, alias = _parse_function(match)
+            function, arguments, alias = _parse_function(value)
             if function:
                 return FieldParsingResult(function=function, arguments=arguments, alias=alias)
 
