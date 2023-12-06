@@ -150,9 +150,13 @@ class TwoFactorAuthView(BaseView):
         if request.method == "POST" and ratelimiter.is_limited(
             f"auth-2fa:user:{user.id}", limit=5, window=60
         ):
-            self.send_notification_email(
-                email=user.username, ip_address=request.META["REMOTE_ADDR"]
-            )
+            # prevent spamming due to failed 2FA attempts
+            if not ratelimiter.is_limited(
+                f"auth-2fa-failed-notification:user:{user.id}", limit=1, window=30 * 60
+            ):
+                self.send_notification_email(
+                    email=user.username, ip_address=request.META["REMOTE_ADDR"]
+                )
 
             return HttpResponse(
                 "You have made too many 2FA attempts. Please try again later.",

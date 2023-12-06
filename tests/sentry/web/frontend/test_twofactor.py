@@ -90,12 +90,13 @@ class TwoFactorTest(TestCase):
         self.session["_pending_2fa"] = [user.id, time() - 2]
         self.save_session()
         with freeze_time("2000-01-01"):
-            for _ in range(5 + 1):
+            for _ in range(5 + 2):
                 with self.tasks(), outbox_runner():
                     resp = self.client.post("/auth/2fa/", data={"otp": "123456"}, follow=False)
         assert resp.status_code == 429
         assert mock_validate.called
 
+        # make sure that we sent 1 and only 1 email
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
 
@@ -103,3 +104,4 @@ class TwoFactorTest(TestCase):
         assert msg.subject == "[Sentry]Suspicious Activity Detected"
         url = absolute_uri(reverse("sentry-account-settings-security"))
         assert url in msg.body
+        assert "IP address: 127.0.0.1" in msg.body
