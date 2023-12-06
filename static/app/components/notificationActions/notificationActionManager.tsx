@@ -213,13 +213,24 @@ function NotificationActionManager({
     return menuItems;
   };
 
+  const menuItems = getMenuItems();
+
+  const toolTipText = () => {
+    if (disabled) {
+      return t('You do not have permission to add notification actions for this project');
+    }
+    if (menuItems.length === 0) {
+      return t('You do not any notification actions to add');
+    }
+    return undefined;
+  };
+
+  const isAddAlertDisabled = disabled || menuItems.length === 0;
+
   const addAlertButton = (
-    <Tooltip
-      disabled={!disabled}
-      title={t('You do not have permission to add notification actions for this project')}
-    >
+    <Tooltip disabled={!isAddAlertDisabled} title={toolTipText()}>
       <DropdownMenu
-        items={getMenuItems()}
+        items={menuItems}
         trigger={(triggerProps, isOpen) => (
           <DropdownButton
             {...triggerProps}
@@ -227,12 +238,12 @@ function NotificationActionManager({
             aria-label={t('Add Action')}
             size="xs"
             icon={<IconAdd isCircled color="gray300" />}
-            disabled={disabled}
+            disabled={isAddAlertDisabled}
           >
             {t('Add Action')}
           </DropdownButton>
         )}
-        isDisabled={disabled}
+        isDisabled={isAddAlertDisabled}
         data-test-id="add-action-button"
       />
     </Tooltip>
