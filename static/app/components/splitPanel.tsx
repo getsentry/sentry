@@ -74,11 +74,11 @@ export type SplitPanelProps = CommonProps &
     | {
         availableSize: number;
         /**
-         * Content on the right side of the split
+         * Content on the left side of the split
          */
         left: Side;
         /**
-         * Content on the left side of the split
+         * Content on the right side of the split
          */
         right: React.ReactNode;
       }
