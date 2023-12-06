@@ -20,57 +20,72 @@ from sentry.testutils.pytest.fixtures import django_db_all
 @pytest.mark.parametrize(
     "agg, query, result",
     [
-        # ("count()", "release:a", False),  # supported by standard metrics
-        # ("failure_rate()", "release:a", False),  # supported by standard metrics
-        # ("count_unique(geo.city)", "release:a", False),
-        # # geo.city not supported by standard metrics, but also not by on demand
-        # (
-        #     "count()",
-        #     "transaction.duration:>1",
-        #     True,
-        # ),  # transaction.duration not supported by standard metrics
-        # ("failure_count()", "transaction.duration:>1", True),  # supported by on demand
-        # ("failure_rate()", "transaction.duration:>1", True),  # supported by on demand
-        # ("apdex(10)", "", True),  # every apdex query is on-demand
-        # ("apdex(10)", "transaction.duration:>10", True),  # supported by on demand
-        # (
-        #     "count_if(transaction.duration,equals,0)",
-        #     "release:a",
-        #     False,
-        # ),  # count_if supported by standard metrics
-        # ("p75(transaction.duration)", "release:a", False),  # supported by standard metrics
-        # (
-        #     "p75(transaction.duration)",
-        #     "transaction.duration:>1",
-        #     True,
-        # ),  # transaction.duration query is on-demand
-        # ("p90(transaction.duration)", "release:a", False),  # supported by standard metrics
-        # (
-        #     "p90(transaction.duration)",
-        #     "transaction.duration:>1",
-        #     True,
-        # ),  # transaction.duration query is on-demand
-        # ("count()", "", False),  # Malformed aggregate should return false
-        # (
-        #     "count()",
-        #     "event.type:error transaction.duration:>0",
-        #     False,
-        # ),  # event.type:error not supported by metrics
-        # (
-        #     "count()",
-        #     "event.type:default transaction.duration:>0",
-        #     False,
-        # ),  # event.type:error not supported by metrics
-        # (
-        #     "count()",
-        #     "error.handled:true transaction.duration:>0",
-        #     False,
-        # ),  # error.handled is an error search term
+        ("count()", "release:a", False),  # supported by standard metrics
+        ("failure_rate()", "release:a", False),  # supported by standard metrics
+        ("count_unique(geo.city)", "release:a", False),
+        # geo.city not supported by standard metrics, but also not by on demand
+        (
+            "count()",
+            "transaction.duration:>1",
+            True,
+        ),  # transaction.duration not supported by standard metrics
+        ("failure_count()", "transaction.duration:>1", True),  # supported by on demand
+        ("failure_rate()", "transaction.duration:>1", True),  # supported by on demand
+        ("apdex(10)", "", True),  # every apdex query is on-demand
+        ("apdex(10)", "transaction.duration:>10", True),  # supported by on demand
+        (
+            "count_if(transaction.duration,equals,0)",
+            "release:a",
+            False,
+        ),  # count_if supported by standard metrics
+        ("p75(transaction.duration)", "release:a", False),  # supported by standard metrics
+        (
+            "p75(transaction.duration)",
+            "transaction.duration:>1",
+            True,
+        ),  # transaction.duration query is on-demand
+        ("p90(transaction.duration)", "release:a", False),  # supported by standard metrics
         (
             "p90(transaction.duration)",
             "transaction.duration:>1",
             True,
         ),  # transaction.duration query is on-demand
+        (
+            "percentile(transaction.duration, 0.9)",
+            "release:a",
+            False,
+        ),  # supported by standard metrics
+        (
+            "percentile(transaction.duration, 0.9)",
+            "transaction.duration:>1",
+            True,
+        ),  # transaction.duration query is on-demand
+        (
+            "percentile(transaction.duration, 0.90)",
+            "release:a",
+            False,
+        ),  # supported by standard metrics
+        (
+            "percentile(transaction.duration, 0.90)",
+            "transaction.duration:>1",
+            True,
+        ),
+        ("count()", "", False),  # Malformed aggregate should return false
+        (
+            "count()",
+            "event.type:error transaction.duration:>0",
+            False,
+        ),  # event.type:error not supported by metrics
+        (
+            "count()",
+            "event.type:default transaction.duration:>0",
+            False,
+        ),  # event.type:error not supported by metrics
+        (
+            "count()",
+            "error.handled:true transaction.duration:>0",
+            False,
+        ),  # error.handled is an error search term
     ],
 )
 def test_should_use_on_demand(agg, query, result):

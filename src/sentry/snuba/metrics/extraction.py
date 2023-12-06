@@ -202,6 +202,7 @@ _AGGREGATE_TO_METRIC_TYPE = {
     "max": "d",
     "p50": "d",
     "p75": "d",
+    "p90": "d",
     "p95": "d",
     "p99": "d",
     "p100": "d",
@@ -365,6 +366,21 @@ def _parse_search_query(query: Optional[str]) -> Sequence[QueryToken]:
     return _transform_search_query(event_search.parse_search_query(query))
 
 
+def _parse_function(match: Match[str]) -> Tuple[str, List[str], str]:
+    """
+    Extracts all the function components and parses them given an input regex.
+    """
+    function = match.group("function")
+
+    arguments = fields.parse_arguments(function, match.group("columns"))
+    alias = match.group("alias")
+
+    if alias is None:
+        alias = fields.get_function_alias_with_columns(function, arguments)
+
+    return function, arguments, alias
+
+
 @dataclass(frozen=True)
 class SupportedBy:
     """Result of a check for standard and on-demand metric support."""
@@ -425,19 +441,6 @@ def should_use_on_demand_metrics(
     )
 
     return not supported_by.standard_metrics and supported_by.on_demand_metrics
-
-
-def _parse_function(match: Match[str]) -> Tuple[str, List[str], str]:
-    raw_function = match.group("function")
-    function, combinator = fields.parse_combinator(raw_function)
-
-    arguments = fields.parse_arguments(function, match.group("columns"))
-    alias: Union[str, Any, None] = match.group("alias")
-
-    if alias is None:
-        alias = fields.get_function_alias_with_columns(raw_function, arguments)
-
-    return function, arguments, alias
 
 
 def _extract_aggregate_components(aggregate: str) -> Optional[Tuple[str, List[str]]]:
@@ -581,7 +584,6 @@ def _is_on_demand_supported_query(tokens: Sequence[QueryToken]) -> bool:
     """
     Recursively checks if any of the supplied token contain search filters that can't be handled by standard metrics.
     """
-
     for token in tokens:
         if not _is_on_demand_supported_search_filter(token):
             return False
