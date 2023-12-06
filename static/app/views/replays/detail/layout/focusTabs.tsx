@@ -32,7 +32,12 @@ function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
         <Tooltip
           isHoverable
           title={
-            <ExternalLink href="https://developer.mozilla.org/en-US/docs/Learn/Accessibility/What_is_accessibility">
+            <ExternalLink
+              href="https://developer.mozilla.org/en-US/docs/Learn/Accessibility/What_is_accessibility"
+              onClick={e => {
+                e.stopPropagation();
+              }}
+            >
               {t('What is accessibility?')}
             </ExternalLink>
           }

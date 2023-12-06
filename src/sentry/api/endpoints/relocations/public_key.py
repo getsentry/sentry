@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
@@ -35,7 +35,7 @@ class RelocationPublicKeyEndpoint(Endpoint):
         """
 
         logger.info("get.start", extra={"caller": request.user.id})
-        if not features.has("relocation:enabled"):
+        if not options.get("relocation.enabled"):
             return Response({"detail": ERR_FEATURE_DISABLED}, status=400)
 
         # TODO(getsentry/team-ospo#190): We should support per-user keys in the future.

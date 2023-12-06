@@ -47,7 +47,7 @@ class HighPriorityIssueCondition(EventCondition):
                 project=self.project,
                 datetime__gte=start,
                 datetime__lt=end,
-                type=ActivityType.SET_UNRESOLVED.value,
+                type__in=[ActivityType.SET_UNRESOLVED.value, ActivityType.SET_ESCALATING.value],
                 user_id=None,
             )
             .order_by("-datetime")[:limit]

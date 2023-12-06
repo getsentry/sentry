@@ -6,6 +6,7 @@ import uuid
 from typing import Any
 from unittest.mock import patch
 
+from arroyo.processing import StreamProcessor
 from arroyo.utils import metrics
 from confluent_kafka import Producer
 from confluent_kafka.admin import AdminClient
@@ -82,25 +83,12 @@ class PostProcessForwarderTest(TestCase):
         self.admin_client.delete_topics([self.events_topic, self.commit_log_topic])
         metrics._metrics_backend = None
 
-    @patch("sentry.eventstream.kafka.dispatch.dispatch_post_process_group_task", autospec=True)
-    def test_post_process_forwarder_streaming_consumer(
-        self, dispatch_post_process_group_task: Any
-    ) -> None:
-        consumer_group = f"consumer-{self.consumer_and_topic_suffix}"
-        logger.info(f"consumer_group: {consumer_group}")
-        synchronize_commit_group = f"sync-consumer-{self.consumer_and_topic_suffix}"
-        logger.info(f"synchronize_commit_group: {synchronize_commit_group}")
-
-        events_producer = self._get_producer("default")
-        commit_log_producer = self._get_producer("default")
-        message = json.dumps(kafka_message_payload()).encode()
-
-        import sentry.consumers
-
-        importlib.reload(sentry.consumers)
-        processor = get_stream_processor(
+    def get_test_stream_processor(
+        self, mode: str, consumer_group: str, synchronize_commit_group: str
+    ) -> StreamProcessor:
+        return get_stream_processor(
             consumer_name="post-process-forwarder-errors",
-            consumer_args=[],
+            consumer_args=[f"--mode={mode}"],
             topic=self.events_topic,
             synchronize_commit_log_topic=self.commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
@@ -113,6 +101,25 @@ class PostProcessForwarderTest(TestCase):
             enable_dlq=False,
             healthcheck_file_path=None,
             validate_schema=False,
+        )
+
+    def run_post_process_forwarder_streaming_consumer(self, ppf_mode: str) -> None:
+        consumer_group = f"consumer-{self.consumer_and_topic_suffix}"
+        logger.info(f"consumer_group: {consumer_group}")
+        synchronize_commit_group = f"sync-consumer-{self.consumer_and_topic_suffix}"
+        logger.info(f"synchronize_commit_group: {synchronize_commit_group}")
+
+        events_producer = self._get_producer("default")
+        commit_log_producer = self._get_producer("default")
+        message = json.dumps(kafka_message_payload()).encode()
+
+        import sentry.consumers
+
+        importlib.reload(sentry.consumers)
+        processor = self.get_test_stream_processor(
+            mode=ppf_mode,
+            consumer_group=consumer_group,
+            synchronize_commit_group=synchronize_commit_group,
         )
 
         # produce message to the events topic
@@ -129,24 +136,31 @@ class PostProcessForwarderTest(TestCase):
             commit_log_producer.flush(5) == 0
         ), "snuba-commit-log producer did not successfully flush queue"
 
-        # Run the loop for sometime
-        for _ in range(3):
-            processor._run_once()
-            time.sleep(1)
+        with patch("sentry.eventstream.kafka.dispatch.dispatch_post_process_group_task") as mock:
+            # Run the loop for sometime
+            for _ in range(3):
+                processor._run_once()
+                time.sleep(1)
 
-        # Verify that the task gets called once
-        dispatch_post_process_group_task.assert_called_once_with(
-            event_id="fe0ee9a2bc3b415497bad68aaf70dc7f",
-            project_id=1,
-            group_id=43,
-            primary_hash="311ee66a5b8e697929804ceb1c456ffe",
-            is_new=False,
-            is_regression=None,
-            queue="post_process_errors",
-            is_new_group_environment=False,
-            group_states=None,
-            occurrence_id=None,
-        )
+            # Verify that the task gets called once
+            mock.assert_called_once_with(
+                event_id="fe0ee9a2bc3b415497bad68aaf70dc7f",
+                project_id=1,
+                group_id=43,
+                primary_hash="311ee66a5b8e697929804ceb1c456ffe",
+                is_new=False,
+                is_regression=None,
+                queue="post_process_errors",
+                is_new_group_environment=False,
+                group_states=None,
+                occurrence_id=None,
+            )
 
         processor.signal_shutdown()
         processor.run()
+
+    def test_multithreaded_post_process_forwarder(self) -> None:
+        self.run_post_process_forwarder_streaming_consumer(ppf_mode="multithreaded")
+
+    def test_multiprocess_post_process_forwarder(self) -> None:
+        self.run_post_process_forwarder_streaming_consumer(ppf_mode="multiprocess")

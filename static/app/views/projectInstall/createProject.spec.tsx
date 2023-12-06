@@ -1,5 +1,6 @@
 import {Organization} from 'sentry-fixture/organization';
 import {MOCK_RESP_VERBOSE} from 'sentry-fixture/ruleConditions';
+import {Team} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -33,7 +34,7 @@ function renderFrameworkModalMockRequests({
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/teams/`,
-    body: [TestStubs.Team({slug: teamSlug})],
+    body: [Team({slug: teamSlug})],
   });
 
   MockApiClient.addMockResponse({
@@ -62,14 +63,14 @@ function renderFrameworkModalMockRequests({
 }
 
 describe('CreateProject', function () {
-  const teamNoAccess = TestStubs.Team({
+  const teamNoAccess = Team({
     slug: 'test',
     id: '1',
     name: 'test',
     access: ['team:read'],
   });
 
-  const teamWithAccess = TestStubs.Team({
+  const teamWithAccess = Team({
     access: ['team:admin', 'team:write', 'team:read'],
   });
 
@@ -113,7 +114,7 @@ describe('CreateProject', function () {
     });
 
     renderFrameworkModalMockRequests({organization, teamSlug: 'team-two'});
-    TeamStore.loadUserTeams([TestStubs.Team({id: 2, slug: 'team-two', access: []})]);
+    TeamStore.loadUserTeams([Team({id: '2', slug: 'team-two', access: []})]);
 
     render(<CreateProject />, {
       context: TestStubs.routerContext([
@@ -146,9 +147,9 @@ describe('CreateProject', function () {
 
     OrganizationStore.onUpdate(organization);
     TeamStore.loadUserTeams([
-      TestStubs.Team({id: 1, slug: 'team-one', access: []}),
-      TestStubs.Team({id: 2, slug: 'team-two', access: ['team:admin']}),
-      TestStubs.Team({id: 3, slug: 'team-three', access: ['team:admin']}),
+      Team({id: '1', slug: 'team-one', access: []}),
+      Team({id: '2', slug: 'team-two', access: ['team:admin']}),
+      Team({id: '3', slug: 'team-three', access: ['team:admin']}),
     ]);
     render(<CreateProject />, {
       context: TestStubs.routerContext([{organization}]),

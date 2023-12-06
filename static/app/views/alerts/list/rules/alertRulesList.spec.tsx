@@ -2,6 +2,7 @@ import {Incident} from 'sentry-fixture/incident';
 import {MetricRule} from 'sentry-fixture/metricRule';
 import {Organization} from 'sentry-fixture/organization';
 import {ProjectAlertRule} from 'sentry-fixture/projectAlertRule';
+import {Team} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -27,7 +28,7 @@ describe('AlertRulesList', () => {
   const defaultOrg = Organization({
     access: ['alerts:write'],
   });
-  TeamStore.loadInitialData([TestStubs.Team()], false, null);
+  TeamStore.loadInitialData([Team()], false, null);
   let rulesMock!: jest.Mock;
   let projectMock!: jest.Mock;
   const pageLinks =
@@ -65,7 +66,7 @@ describe('AlertRulesList', () => {
         TestStubs.Project({
           slug: 'earth',
           platform: 'javascript',
-          teams: [TestStubs.Team()],
+          teams: [Team()],
         }),
       ],
     });
