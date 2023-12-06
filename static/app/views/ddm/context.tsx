@@ -28,11 +28,7 @@ export const DDMContext = createContext<DDMContextValue>({
 });
 
 export function useDDMContext() {
-  const context = useContext(DDMContext);
-  if (!context) {
-    throw new Error('useDDMContext must be used within a DDMContextProvider');
-  }
-  return context;
+  return useContext(DDMContext);
 }
 
 const emptyWidget: MetricWidgetQueryParams = {
