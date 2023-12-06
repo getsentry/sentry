@@ -55,6 +55,7 @@ export function MetricScratchpad() {
           });
 
           addWidget();
+          setSelectedWidgetIndex(widgets.length);
         }}
       >
         <Button icon={<IconAdd isCircled />}>Add widget</Button>
