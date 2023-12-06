@@ -62,7 +62,7 @@ register_permanent_features(default_manager)
 # Features that don't use resource scoping
 default_manager.add("auth:register", SystemFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:create", SystemFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("relocation:enabled", SystemFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("relocation:enabled", SystemFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:multi-region-selector", SystemFeature, FeatureHandlerStrategy.INTERNAL)
 
 # Organization scoped features that are in development or in customer trials.
