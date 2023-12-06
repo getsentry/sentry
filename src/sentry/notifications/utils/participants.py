@@ -268,7 +268,6 @@ def get_owner_reason(
     project: Project,
     target_type: ActionTargetType,
     event: Event | None = None,
-    notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
     fallthrough_choice: FallthroughChoiceType | None = None,
 ) -> str | None:
     """
@@ -280,7 +279,7 @@ def get_owner_reason(
         return None
 
     # Not an issue alert
-    if event is None or notification_type != NotificationSettingTypes.ISSUE_ALERTS:
+    if event is None:
         return None
 
     # Describe why an issue owner was notified
