@@ -4,7 +4,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {t, tct} from 'sentry/locale';
+import {tct} from 'sentry/locale';
 import type {Organization, PlatformKey} from 'sentry/types';
 
 type StepProps = {
@@ -34,18 +34,54 @@ export const steps = ({
 }: Partial<StepProps> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
-    description: t('Configure your app automatically with the Sentry wizard.'),
+    description: tct(
+      'To use Sentry with your Gatsby application, you will need to use [code:@sentry/gatsby] (Sentry’s Gatsby SDK):',
+      {code: <code />}
+    ),
     configurations: [
       {
         language: 'bash',
         code: [
           {
-            label: 'Bash',
-            value: 'bash',
+            label: 'npm',
+            value: 'npm',
             language: 'bash',
-            code: 'npx @sentry/wizard@latest -i remix',
+            code: 'npm install --save @sentry/gatsby',
+          },
+          {
+            label: 'yarn',
+            value: 'yarn',
+            language: 'bash',
+            code: 'yarn add @sentry/gatsby',
           },
         ],
+      },
+    ],
+  },
+  {
+    type: StepType.REGISTER,
+    description: tct(
+      'Register the [codeSentry:@sentry/gatsby] plugin in your Gatsby configuration file (typically [codeGatsby:gatsby-config.js]).',
+      {
+        codeSentry: <code />,
+        codeGatsby: <code />,
+        link: (
+          <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/" />
+        ),
+      }
+    ),
+    configurations: [
+      {
+        language: 'javascript',
+        code: `
+        module.exports = {
+          plugins: [
+            {
+              resolve: "@sentry/gatsby",
+            },
+          ],
+        };
+        `,
       },
     ],
   },
@@ -64,7 +100,7 @@ export const steps = ({
       {
         language: 'javascript',
         code: `
-        import * as Sentry from "@sentry/remix";
+        import * as Sentry from "@sentry/gatsby";
 
         Sentry.init({
           ${sentryInitContent}
@@ -77,7 +113,7 @@ export const steps = ({
 
 // Configuration End
 
-export function GettingStartedWithRemixReplay({
+export function GettingStartedWithGatsbyReplay({
   dsn,
   organization,
   newOrg,
@@ -109,12 +145,17 @@ export function GettingStartedWithRemixReplay({
       <div>
         <br />
         {tct(
-          'Note: The Replay integration only needs to be added to your [codeEntry:entry.client.tsx] file. It will not run if it is added into [codeSentry:sentry.server.config.js].',
-          {codeEntry: <code />, codeSentry: <code />}
+          'Note: If [codeGatsby:gatsby-config.js] has any settings for the [codeSentry:@sentry/gatsby plugin], they need to be moved into [codeConfig:sentry.config.js]. The [codeGatsby:gatsby-config.js] file does not support non-serializable options, like [codeNew:new Replay()].',
+          {
+            codeGatsby: <code />,
+            codeSentry: <code />,
+            codeConfig: <code />,
+            codeNew: <code />,
+          }
         )}
       </div>
     </Fragment>
   );
 }
 
-export default GettingStartedWithRemixReplay;
+export default GettingStartedWithGatsbyReplay;
