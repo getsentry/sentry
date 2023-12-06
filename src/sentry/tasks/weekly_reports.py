@@ -179,7 +179,7 @@ def prepare_organization_report(
     timestamp, duration, organization_id, dry_run=False, target_user=None, email_override=None
 ):
     if target_user and not hasattr(target_user, "id"):
-        logger.exception(
+        logger.error(
             "Target user must have an ID",
             extra={
                 "organization": organization_id,
@@ -1050,7 +1050,9 @@ def send_email(ctx, user_id, dry_run=False, email_override=None):
     template_ctx = render_template_context(ctx, user_id)
     if not template_ctx:
         logger.debug(
-            f"Skipping report for {ctx.organization.id} to <User: {user_id}>, no qualifying reports to deliver."
+            "Skipping report for %s to <User: %s>, no qualifying reports to deliver.",
+            ctx.organization.id,
+            user_id,
         )
         return
 
