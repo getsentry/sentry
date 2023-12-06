@@ -1,5 +1,5 @@
 import {getInterval} from 'sentry/components/charts/utils';
-import {PageFilters} from 'sentry/types';
+import {Tag} from 'sentry/types';
 import {SeriesDataUnit} from 'sentry/types/echarts';
 import EventView, {MetaType} from 'sentry/utils/discover/eventView';
 import {
@@ -12,13 +12,24 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 type Props = {
-  datetime?: PageFilters['datetime'];
+  enabled?: boolean;
+  tag?: Tag;
   transaction?: string | null;
 };
 
-export const useProjectWebVitalsValuesTimeseriesQuery = ({
+export type WebVitalsScoreBreakdown = {
+  cls: SeriesDataUnit[];
+  fcp: SeriesDataUnit[];
+  fid: SeriesDataUnit[];
+  lcp: SeriesDataUnit[];
+  total: SeriesDataUnit[];
+  ttfb: SeriesDataUnit[];
+};
+
+export const useProjectWebVitalsScoresTimeseriesQuery = ({
   transaction,
-  datetime,
+  tag,
+  enabled = true,
 }: Props) => {
   const pageFilters = usePageFilters();
   const location = useLocation();
@@ -26,28 +37,24 @@ export const useProjectWebVitalsValuesTimeseriesQuery = ({
   const projectTimeSeriesEventView = EventView.fromNewQueryWithPageFilters(
     {
       yAxis: [
-        'p75(measurements.lcp)',
-        'p75(measurements.fcp)',
-        'p75(measurements.cls)',
-        'p75(measurements.ttfb)',
-        'p75(measurements.fid)',
+        'weighted_performance_score(measurements.score.lcp)',
+        'weighted_performance_score(measurements.score.fcp)',
+        'weighted_performance_score(measurements.score.cls)',
+        'weighted_performance_score(measurements.score.fid)',
+        'weighted_performance_score(measurements.score.ttfb)',
         'count()',
-        'p75(transaction.duration)',
-        'failure_count()',
-        'eps()',
       ],
       name: 'Web Vitals',
       query:
-        'transaction.op:pageload' + (transaction ? ` transaction:"${transaction}"` : ''),
+        'transaction.op:pageload has:measurements.score.total' +
+        (transaction ? ` transaction:"${transaction}"` : '') +
+        (tag ? ` ${tag.key}:"${tag.name}"` : ''),
       version: 2,
       fields: [],
       interval: getInterval(pageFilters.selection.datetime, 'low'),
       dataset: DiscoverDatasets.METRICS,
     },
-    {
-      ...pageFilters.selection,
-      datetime: datetime ?? pageFilters.selection.datetime,
-    }
+    pageFilters.selection
   );
 
   const result = useGenericDiscoverQuery<
@@ -71,54 +78,33 @@ export const useProjectWebVitalsValuesTimeseriesQuery = ({
       interval: projectTimeSeriesEventView.interval,
     }),
     options: {
+      enabled: pageFilters.isReady && enabled,
       refetchOnWindowFocus: false,
     },
-    referrer: 'api.performance.browser.web-vitals.timeseries',
+    referrer: 'api.performance.browser.web-vitals.timeseries-scores',
   });
 
-  const data: {
-    cls: SeriesDataUnit[];
-    count: SeriesDataUnit[];
-    duration: SeriesDataUnit[];
-    eps: SeriesDataUnit[];
-    errors: SeriesDataUnit[];
-    fcp: SeriesDataUnit[];
-    fid: SeriesDataUnit[];
-    lcp: SeriesDataUnit[];
-    ttfb: SeriesDataUnit[];
-  } = {
+  const data: WebVitalsScoreBreakdown = {
     lcp: [],
     fcp: [],
     cls: [],
     ttfb: [],
     fid: [],
-    count: [],
-    duration: [],
-    errors: [],
-    eps: [],
+    total: [],
   };
 
-  result?.data?.['p75(measurements.lcp)']?.data.forEach((interval, index) => {
-    const map: {key: string; series: SeriesDataUnit[]}[] = [
-      {key: 'p75(measurements.cls)', series: data.cls},
-      {key: 'p75(measurements.lcp)', series: data.lcp},
-      {key: 'p75(measurements.fcp)', series: data.fcp},
-      {key: 'p75(measurements.ttfb)', series: data.ttfb},
-      {key: 'p75(measurements.fid)', series: data.fid},
-      {key: 'count()', series: data.count},
-      {key: 'p75(transaction.duration)', series: data.duration},
-      {key: 'failure_count()', series: data.errors},
-      {key: 'eps()', series: data.eps},
-    ];
-    map.forEach(({key, series}) => {
-      if (result?.data?.[key].data[index][1][0].count !== null) {
-        series.push({
-          value: result?.data?.[key].data[index][1][0].count,
+  result?.data?.['weighted_performance_score(measurements.score.lcp)']?.data.forEach(
+    (interval, index) => {
+      ['lcp', 'fcp', 'cls', 'ttfb', 'fid'].forEach(webVital => {
+        data[webVital].push({
+          value:
+            result?.data?.[`weighted_performance_score(measurements.score.${webVital})`]
+              ?.data[index][1][0].count * 100 ?? 0,
           name: interval[0] * 1000,
         });
-      }
-    });
-  });
+      });
+    }
+  );
 
   return {data, isLoading: result.isLoading};
 };

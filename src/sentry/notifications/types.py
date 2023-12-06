@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from sentry.services.hybrid_cloud import ValueEqualityEnum
 
@@ -16,10 +16,6 @@ communication with the API and plan to do so as soon as we use native enums in
 Postgres. In the meantime each enum has an adjacent object that maps the
 integers to their string values.
 """
-
-
-def get_notification_setting_type_name(value: int | NotificationSettingTypes) -> Optional[str]:
-    return NOTIFICATION_SETTING_TYPES.get(NotificationSettingTypes(value))
 
 
 class NotificationSettingTypes(ValueEqualityEnum):
@@ -112,30 +108,6 @@ NOTIFICATION_SETTING_TYPES = {
 }
 
 
-class NotificationSettingOptionValues(ValueEqualityEnum):
-    """
-    An empty row in the DB should be represented as
-    NotificationSettingOptionValues.DEFAULT.
-    """
-
-    # Defer to a setting one level up.
-    DEFAULT = 0
-
-    # Mute this kind of notification.
-    NEVER = 10
-
-    # Un-mute this kind of notification.
-    ALWAYS = 20
-
-    # Workflow only. Only send notifications about Issues that the target has
-    # explicitly or implicitly opted-into.
-    SUBSCRIBE_ONLY = 30
-
-    # Deploy only. Only send notifications when the set of changes in the deploy
-    # included a commit authored by the target.
-    COMMITTED_ONLY = 40
-
-
 class NotificationSettingsOptionEnum(ValueEqualityEnum):
     DEFAULT = "default"
     NEVER = "never"
@@ -143,15 +115,6 @@ class NotificationSettingsOptionEnum(ValueEqualityEnum):
     SUBSCRIBE_ONLY = "subscribe_only"
     COMMITTED_ONLY = "committed_only"
 
-
-# TODO(Steve): clean up after we finish migrating to settings 2.0
-NOTIFICATION_SETTING_OPTION_VALUES = {
-    NotificationSettingOptionValues.DEFAULT: NotificationSettingsOptionEnum.DEFAULT.value,
-    NotificationSettingOptionValues.NEVER: NotificationSettingsOptionEnum.NEVER.value,
-    NotificationSettingOptionValues.ALWAYS: NotificationSettingsOptionEnum.ALWAYS.value,
-    NotificationSettingOptionValues.SUBSCRIBE_ONLY: NotificationSettingsOptionEnum.SUBSCRIBE_ONLY.value,
-    NotificationSettingOptionValues.COMMITTED_ONLY: NotificationSettingsOptionEnum.COMMITTED_ONLY.value,
-}
 
 # default is not a choice anymore, we just delete the row if we want to the default
 NOTIFICATION_SETTING_CHOICES = [

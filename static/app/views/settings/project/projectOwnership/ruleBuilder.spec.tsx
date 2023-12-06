@@ -1,4 +1,5 @@
 import selectEvent from 'react-select-event';
+import {Team} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -41,13 +42,13 @@ describe('RuleBuilder', function () {
     },
   });
 
-  const TEAM_1 = TestStubs.Team({
+  const TEAM_1 = Team({
     id: '3',
     slug: 'cool-team',
   });
 
   // This team is in project
-  const TEAM_2 = TestStubs.Team({
+  const TEAM_2 = Team({
     id: '4',
     slug: 'team-not-in-project',
   });

@@ -34,14 +34,11 @@ from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.types import (
-    NOTIFICATION_SETTING_TYPES,
     ActionTargetType,
     FallthroughChoiceType,
     GroupSubscriptionReason,
     NotificationSettingEnum,
-    NotificationSettingOptionValues,
     NotificationSettingsOptionEnum,
-    NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
@@ -163,22 +160,15 @@ def get_participants_for_group(group: Group, user_id: int | None = None) -> Part
 
 def get_reason(
     user: Union[User, RpcActor],
-    value: NotificationSettingOptionValues | NotificationSettingsOptionEnum,
+    value: NotificationSettingsOptionEnum,
     user_ids: set[int],
 ) -> int | None:
     # Members who opt into all deploy emails.
-    if value in [NotificationSettingOptionValues.ALWAYS, NotificationSettingsOptionEnum.ALWAYS]:
+    if value == NotificationSettingsOptionEnum.ALWAYS:
         return GroupSubscriptionReason.deploy_setting
 
     # Members which have been seen in the commit log.
-    elif (
-        value
-        in [
-            NotificationSettingOptionValues.COMMITTED_ONLY,
-            NotificationSettingsOptionEnum.COMMITTED_ONLY,
-        ]
-        and user.id in user_ids
-    ):
+    elif value == NotificationSettingsOptionEnum.COMMITTED_ONLY and user.id in user_ids:
         return GroupSubscriptionReason.committed
     return None
 
@@ -268,7 +258,6 @@ def get_owner_reason(
     project: Project,
     target_type: ActionTargetType,
     event: Event | None = None,
-    notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
     fallthrough_choice: FallthroughChoiceType | None = None,
 ) -> str | None:
     """
@@ -280,7 +269,7 @@ def get_owner_reason(
         return None
 
     # Not an issue alert
-    if event is None or notification_type != NotificationSettingTypes.ISSUE_ALERTS:
+    if event is None:
         return None
 
     # Describe why an issue owner was notified
@@ -394,7 +383,7 @@ def get_send_to(
     target_type: ActionTargetType,
     target_identifier: int | None = None,
     event: Event | None = None,
-    notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
+    notification_type_enum: NotificationSettingEnum = NotificationSettingEnum.ISSUE_ALERTS,
     fallthrough_choice: FallthroughChoiceType | None = None,
     rules: Iterable[Rule] | None = None,
     notification_uuid: str | None = None,
@@ -417,7 +406,12 @@ def get_send_to(
                 lambda x: x.actor_type != ActorType.USER or x.id not in muted_user_ids, recipients
             )
     return get_recipients_by_provider(
-        project, recipients, notification_type, target_type, target_identifier, notification_uuid
+        project,
+        recipients,
+        notification_type_enum,
+        target_type,
+        target_identifier,
+        notification_uuid,
     )
 
 
@@ -579,7 +573,7 @@ def get_notification_recipients_v2(
 def get_recipients_by_provider(
     project: Project,
     recipients: Iterable[RpcActor],
-    notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
+    notification_type_enum: NotificationSettingEnum = NotificationSettingEnum.ISSUE_ALERTS,
     target_type: ActionTargetType | None = None,
     target_identifier: int | None = None,
     notification_uuid: str | None = None,
@@ -590,7 +584,7 @@ def get_recipients_by_provider(
     users = recipients_by_type[ActorType.USER]
 
     # First evaluate the teams.
-    setting_type = NotificationSettingEnum(NOTIFICATION_SETTING_TYPES[notification_type])
+    setting_type = notification_type_enum
     teams_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]] = {}
 
     # get by team

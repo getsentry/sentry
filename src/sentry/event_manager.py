@@ -134,7 +134,7 @@ from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
-from sentry.utils.tag_normalization import normalize_sdk_tag
+from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import BaseEvent, Event
@@ -180,26 +180,6 @@ def get_tag(data: dict[str, Any], key: str) -> Optional[Any]:
 
 def is_sample_event(job):
     return get_tag(job["data"], "sample_event") == "yes"
-
-
-def normalized_sdk_tag_from_event(event: Event) -> str:
-    """
-     Normalize tags coming from SDKs to more manageable canonical form, by:
-
-     - combining synonymous tags (`sentry.react` -> `sentry.javascript.react`),
-     - ignoring framework differences (`sentry.python.flask` and `sentry.python.django` -> `sentry.python`)
-     - collapsing all community/third-party SDKs into a single `other` category
-
-    Note: Some platforms may keep their framework-specific values, as needed for analytics.
-
-    This is done to reduce the cardinality of the `sdk.name` tag, while keeping
-    the ones interesinting to us as granual as possible.
-    """
-    try:
-        return normalize_sdk_tag((event.data.get("sdk") or {}).get("name") or "other")
-    except Exception:
-        logger.warning("failed to get SDK name", exc_info=True)
-        return "other"
 
 
 def sdk_metadata_from_event(event: Event) -> Mapping[str, Any]:
@@ -2179,7 +2159,8 @@ def _get_severity_score(event: Event) -> float | None:
             {"event_type": event_type.key, "event_title": event.title, "computed_title": title}
         )
         logger.warning(
-            f"Unable to get severity score because of unusable `message` value '{title}'",
+            "Unable to get severity score because of unusable `message` value '%s'",
+            title,
             extra=logger_data,
         )
         return None
@@ -2209,17 +2190,23 @@ def _get_severity_score(event: Event) -> float | None:
                 severity = json.loads(response.data).get("severity")
             except MaxRetryError as e:
                 logger.warning(
-                    f"Unable to get severity score from microservice after {SEVERITY_DETECTION_RETRIES} retr{'ies' if SEVERITY_DETECTION_RETRIES >1 else 'y'}. Got MaxRetryError caused by: {repr(e.reason)}.",
+                    "Unable to get severity score from microservice after %s retr%s. Got MaxRetryError caused by: %s.",
+                    SEVERITY_DETECTION_RETRIES,
+                    "ies" if SEVERITY_DETECTION_RETRIES > 1 else "y",
+                    repr(e.reason),
                     extra=logger_data,
                 )
             except Exception as e:
                 logger.warning(
-                    f"Unable to get severity score from microservice. Got: {repr(e)}.",
+                    "Unable to get severity score from microservice. Got: %s.",
+                    repr(e),
                     extra=logger_data,
                 )
             else:
                 logger.info(
-                    f"Got severity score of {severity} for event {event.data['event_id']}",
+                    "Got severity score of %s for event %s",
+                    severity,
+                    event.data["event_id"],
                     extra=logger_data,
                 )
 
@@ -2698,7 +2685,8 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
         if features.has("organizations:issue-platform-extra-logging", project.organization):
             if performance_problems and len(performance_problems) > 0:
                 logger.warning(
-                    f"Detected {len(performance_problems)} performance problems",
+                    "Detected %s performance problems",
+                    len(performance_problems),
                     extra={
                         "performance_problems": performance_problems,
                         "project_id": project.id,

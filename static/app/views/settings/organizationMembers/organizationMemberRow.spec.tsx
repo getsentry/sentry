@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -23,7 +24,7 @@ describe('OrganizationMemberRow', function () {
     groupOrgRoles: [],
   });
 
-  const managerTeam = TestStubs.Team({
+  const managerTeam = Team({
     orgRole: 'manager',
   });
 
