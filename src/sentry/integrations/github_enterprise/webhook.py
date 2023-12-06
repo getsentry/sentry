@@ -122,7 +122,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
             host = get_host(request=request)
             if not host:
                 logger.warning("github_enterprise.webhook.missing-enterprise-host")
-                logger.error("Missing enterprise host.")
+                logger.exception("Missing enterprise host.")
                 return HttpResponse(status=400)
 
             extra = {"host": host}

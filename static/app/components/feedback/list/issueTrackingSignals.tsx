@@ -1,6 +1,12 @@
-import {FeedbackIcon} from 'sentry/components/feedback/list/feedbackListItem';
-import {ExternalIssueComponent} from 'sentry/components/group/externalIssuesList/types';
+import {
+  ExternalIssueComponent,
+  IntegrationComponent,
+  PluginActionComponent,
+  PluginIssueComponent,
+  SentryAppIssueComponent,
+} from 'sentry/components/group/externalIssuesList/types';
 import useExternalIssueData from 'sentry/components/group/externalIssuesList/useExternalIssueData';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Event, Group} from 'sentry/types';
@@ -27,20 +33,27 @@ function filterLinkedPlugins(actions: ExternalIssueComponent[]) {
   return plugins.concat(nonPlugins);
 }
 
-function getPluginNames(pluginIssue) {
+function getPluginNames(pluginIssue: PluginIssueComponent | PluginActionComponent) {
   return {
     name: pluginIssue.props.plugin.name ?? '',
     icon: pluginIssue.props.plugin.slug ?? '',
   };
 }
 
-function getIntegrationNames(integrationIssue) {
+function getIntegrationNames(integrationIssue: IntegrationComponent) {
   if (!integrationIssue.props.configurations.length) {
     return {name: '', icon: ''};
   }
 
   return {
     name: integrationIssue.props.configurations[0].provider.name ?? '',
+    icon: integrationIssue.key ?? '',
+  };
+}
+
+function getAppIntegrationNames(integrationIssue: SentryAppIssueComponent) {
+  return {
+    name: integrationIssue.props.sentryApp.name,
     icon: integrationIssue.key ?? '',
   };
 }
@@ -60,24 +73,26 @@ export default function IssueTrackingSignals({group}: Props) {
 
   if (linkedIssues.length > 1) {
     return (
-      <FeedbackIcon
-        tooltipText={t('Linked Tickets: %d', linkedIssues.length)}
-        icon={<IconLink size="xs" />}
-      />
+      <Tooltip
+        title={t('Linked Tickets: %d', linkedIssues.length)}
+        containerDisplayMode="flex"
+      >
+        <IconLink size="xs" />
+      </Tooltip>
     );
   }
 
   const issue = linkedIssues[0];
-
-  const {name, icon} =
-    issue.type === 'plugin-issue' || issue.type === 'plugin-action'
-      ? getPluginNames(issue)
-      : getIntegrationNames(issue);
+  const {name, icon} = {
+    'plugin-issue': getPluginNames,
+    'plugin-actions': getPluginNames,
+    'integration-issue': getIntegrationNames,
+    'sentry-app-issue': getAppIntegrationNames,
+  }[issue.type](issue) ?? {name: '', icon: undefined};
 
   return (
-    <FeedbackIcon
-      tooltipText={t('Linked %s Issue', name)}
-      icon={getIntegrationIcon(icon, 'xs')}
-    />
+    <Tooltip title={t('Linked %s Issue', name)} containerDisplayMode="flex">
+      {getIntegrationIcon(icon, 'xs')}
+    </Tooltip>
   );
 }

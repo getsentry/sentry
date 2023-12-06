@@ -83,7 +83,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
         try:
             client.post("/chat.postEphemeral", data=payload)
         except ApiError as e:
-            logger.exception("slack.event.unfurl-error", extra={"error": str(e)})
+            logger.error("slack.event.unfurl-error", extra={"error": str(e)}, exc_info=True)
 
     def on_message(self, request: Request, slack_request: SlackDMRequest) -> Response:
         command = request.data.get("event", {}).get("text", "").lower()
@@ -189,7 +189,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
         try:
             client.post("/chat.unfurl", data=payload)
         except ApiError as e:
-            logger.exception("slack.event.unfurl-error", extra={"error": str(e)})
+            logger.error("slack.event.unfurl-error", extra={"error": str(e)}, exc_info=True)
 
         return True
 

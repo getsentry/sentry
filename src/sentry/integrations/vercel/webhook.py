@@ -330,8 +330,7 @@ class VercelWebhookEndpoint(Endpoint):
         # Only create releases for production deploys for now
         if payload["target"] != "production":
             logger.info(
-                "Ignoring deployment for environment: %s",
-                payload["target"],
+                f"Ignoring deployment for environment: {payload['target']}",
                 extra={"external_id": external_id, "vercel_project_id": vercel_project_id},
             )
             return self.respond(status=204)
@@ -417,11 +416,10 @@ class VercelWebhookEndpoint(Endpoint):
                         resp.raise_for_status()
                     except RequestException as e:
                         # errors here should be uncommon but we should be aware of them
-                        logger.exception(
-                            "Error creating release: %s - %s",
-                            e,
-                            json_error,
+                        logger.error(
+                            f"Error creating release: {e} - {json_error}",
                             extra=logging_params,
+                            exc_info=True,
                         )
                         # 400 probably isn't the right status code but oh well
                         return self.respond({"detail": f"Error creating release: {e}"}, status=400)
@@ -438,9 +436,7 @@ class VercelWebhookEndpoint(Endpoint):
                     except RequestException as e:
                         # errors will probably be common if the user doesn't have repos set up
                         logger.info(
-                            "Error setting refs: %s - %s",
-                            e,
-                            json_error,
+                            f"Error setting refs: {e} - {json_error}",
                             extra=logging_params,
                             exc_info=True,
                         )

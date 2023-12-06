@@ -235,6 +235,10 @@ class ReleasesDetail extends DeprecatedAsyncView<Props, State> {
   }
 }
 
+// ========================================================================
+// RELEASE DETAIL CONTAINER
+// ========================================================================
+
 type ReleasesDetailContainerProps = Omit<Props, 'releaseMeta'>;
 type ReleasesDetailContainerState = {
   releaseMeta: ReleaseMeta | null;
