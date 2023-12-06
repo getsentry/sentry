@@ -45,18 +45,17 @@ class UserRegionsEndpoint(UserEndpoint):
 
     permission_classes = (UserRegionEndpointPermissions,)
 
-    def get(self, request: Request, **kwargs) -> Response:
+    def get(self, request: Request, user: RpcUser, **kwargs) -> Response:
         """
         Retrieve the Regions a User has membership in
         `````````````````````````````````````````````
 
         Returns a list of regions that the current user has membership in.
-
         :auth: required
         """
-        organization_ids = OrganizationMemberMapping.objects.filter(
-            user_id=request.user.id
-        ).values_list("organization_id", flat=True)
+        organization_ids = OrganizationMemberMapping.objects.filter(user_id=user.id).values_list(
+            "organization_id", flat=True
+        )
         org_mappings = (
             OrganizationMapping.objects.filter(organization_id__in=organization_ids)
             .distinct("region_name")
