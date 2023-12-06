@@ -98,7 +98,7 @@ function ThresholdStatuses({project, release, organization, selectedEnvs}: Props
       </SidebarSection.Wrap>
     );
   }
-  return <div />;
+  return null;
 }
 
 const AlignRight = styled('div')`
