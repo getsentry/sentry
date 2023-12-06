@@ -34,11 +34,11 @@ export const useTransactionWebVitalsScoresQuery = ({
     {
       fields: [
         'transaction',
-        'p75(measurements.lcp)',
-        'p75(measurements.fcp)',
-        'p75(measurements.cls)',
-        'p75(measurements.ttfb)',
-        'p75(measurements.fid)',
+        'avg(measurements.lcp)',
+        'avg(measurements.fcp)',
+        'avg(measurements.cls)',
+        'avg(measurements.ttfb)',
+        'avg(measurements.fid)',
         'performance_score(measurements.score.lcp)',
         'performance_score(measurements.score.fcp)',
         'performance_score(measurements.score.cls)',
@@ -78,11 +78,11 @@ export const useTransactionWebVitalsScoresQuery = ({
             calculatePerformanceScoreFromStoredTableDataRow(row);
           return {
             transaction: row.transaction?.toString(),
-            'p75(measurements.lcp)': row['p75(measurements.lcp)'] as number,
-            'p75(measurements.fcp)': row['p75(measurements.fcp)'] as number,
-            'p75(measurements.cls)': row['p75(measurements.cls)'] as number,
-            'p75(measurements.ttfb)': row['p75(measurements.ttfb)'] as number,
-            'p75(measurements.fid)': row['p75(measurements.fid)'] as number,
+            'avg(measurements.lcp)': row['avg(measurements.lcp)'] as number,
+            'avg(measurements.fcp)': row['avg(measurements.fcp)'] as number,
+            'avg(measurements.cls)': row['avg(measurements.cls)'] as number,
+            'avg(measurements.ttfb)': row['avg(measurements.ttfb)'] as number,
+            'avg(measurements.fid)': row['avg(measurements.fid)'] as number,
             'count()': row['count()'] as number,
             score: totalScore ?? 0,
             clsScore: clsScore ?? 0,
