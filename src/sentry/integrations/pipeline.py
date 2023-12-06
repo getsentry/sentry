@@ -72,7 +72,7 @@ def is_violating_region_restriction(organization_id: int, integration_id: int):
     try:
         mapping = OrganizationMapping.objects.get(organization_id=organization_id)
     except OrganizationMapping.DoesNotExist:
-        logger.exception("mapping_missing", extra=logger_extra)
+        logger.error("mapping_missing", extra=logger_extra)
         return True
 
     return mapping.region_name not in region_names

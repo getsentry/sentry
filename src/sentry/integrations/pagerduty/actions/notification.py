@@ -42,13 +42,13 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
     def after(self, event, state, notification_uuid: Optional[str] = None):
         integration = self.get_integration()
         if not integration:
-            logger.error("Integration removed, however, the rule still refers to it.")
+            logger.exception("Integration removed, however, the rule still refers to it.")
             # integration removed but rule still exists
             return
 
         service = self._get_service()
         if not service:
-            logger.error("The PagerDuty does not exist anymore while integration does.")
+            logger.exception("The PagerDuty does not exist anymore while integration does.")
             return
 
         def send_notification(event, futures):

@@ -221,7 +221,7 @@ class InstallationEventWebhook(Webhook):
                         "external_id": str(external_id),
                     },
                 )
-                logger.error("Installation is missing.")
+                logger.exception("Installation is missing.")
 
     def _handle_delete(
         self,
@@ -587,7 +587,7 @@ class GitHubWebhookBase(Endpoint):
         try:
             handler = self.get_handler(request.META["HTTP_X_GITHUB_EVENT"])
         except KeyError:
-            logger.exception("github.webhook.missing-event", extra=self.get_logging_data())
+            logger.error("github.webhook.missing-event", extra=self.get_logging_data())
             logger.exception("Missing Github event in webhook.")
             return HttpResponse(status=400)
 
@@ -601,7 +601,7 @@ class GitHubWebhookBase(Endpoint):
         try:
             method, signature = request.META["HTTP_X_HUB_SIGNATURE"].split("=", 1)
         except (KeyError, IndexError):
-            logger.exception("github.webhook.missing-signature", extra=self.get_logging_data())
+            logger.error("github.webhook.missing-signature", extra=self.get_logging_data())
             logger.exception("Missing webhook secret.")
             return HttpResponse(status=400)
 
@@ -612,7 +612,9 @@ class GitHubWebhookBase(Endpoint):
         try:
             event = json.loads(body.decode("utf-8"))
         except json.JSONDecodeError:
-            logger.exception("github.webhook.invalid-json", extra=self.get_logging_data())
+            logger.error(
+                "github.webhook.invalid-json", extra=self.get_logging_data(), exc_info=True
+            )
             logger.exception("Invalid JSON.")
             return HttpResponse(status=400)
 

@@ -74,8 +74,7 @@ def bind_org_context_from_integration(
 
     if len(org_integrations) == 0:
         logger.warning(
-            "Can't bind org context - no orgs are associated with integration id=%s.",
-            integration_id,
+            f"Can't bind org context - no orgs are associated with integration id={integration_id}.",
             extra=extra,
         )
 
@@ -92,9 +91,8 @@ def bind_org_context_from_integration(
         if org is not None:
             bind_organization_context(org.organization)
         else:
-            logger.error(
-                "Unable to call organization_service.get_organization_by_id with organization id=%s.",
-                org_integration.organization_id,
+            logger.exception(
+                f"Unable to call organization_service.get_organization_by_id with organization id={org_integration.organization_id}.",
                 extra=extra,
             )
     else:

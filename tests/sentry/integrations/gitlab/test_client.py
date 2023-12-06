@@ -446,15 +446,15 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         )
 
     @mock.patch(
-        "sentry.integrations.gitlab.blame.logger.error",
+        "sentry.integrations.gitlab.blame.logger.exception",
     )
     @responses.activate
-    def test_failure_404(self, mock_logger_error):
+    def test_failure_404(self, mock_logger_exception):
         responses.add(responses.GET, self.make_blame_request(self.file_1), status=404)
         resp = self.gitlab_client.get_blame_for_files(files=[self.file_1], extra={})
 
         assert resp == []
-        mock_logger_error.assert_called_with(
+        mock_logger_exception.assert_called_with(
             "get_blame_for_files.api_error",
             extra={
                 "provider": "gitlab",
@@ -467,15 +467,15 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         )
 
     @mock.patch(
-        "sentry.integrations.gitlab.blame.logger.error",
+        "sentry.integrations.gitlab.blame.logger.exception",
     )
     @responses.activate
-    def test_failure_response_type(self, mock_logger_error):
+    def test_failure_response_type(self, mock_logger_exception):
         responses.add(responses.GET, self.make_blame_request(self.file_1), json={}, status=200)
         resp = self.gitlab_client.get_blame_for_files(files=[self.file_1], extra={})
 
         assert resp == []
-        mock_logger_error.assert_called_with(
+        mock_logger_exception.assert_called_with(
             "get_blame_for_files.api_error",
             extra={
                 "provider": "gitlab",
@@ -488,10 +488,10 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         )
 
     @mock.patch(
-        "sentry.integrations.gitlab.blame.logger.error",
+        "sentry.integrations.gitlab.blame.logger.exception",
     )
     @responses.activate
-    def test_failure_approaching_rate_limit(self, mock_logger_error):
+    def test_failure_approaching_rate_limit(self, mock_logger_exception):
         """
         If there aren't enough requests left to stay above the minimum request
         limit, should raise a ApiRateLimitedError.
@@ -513,7 +513,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
             self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2], extra={})
 
         assert excinfo.value.text == "Approaching GitLab API rate limit"
-        mock_logger_error.assert_called_with(
+        mock_logger_exception.assert_called_with(
             "get_blame_for_files.rate_limit_too_low",
             extra={
                 "provider": "gitlab",
@@ -526,10 +526,10 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         )
 
     @mock.patch(
-        "sentry.integrations.gitlab.blame.logger.error",
+        "sentry.integrations.gitlab.blame.logger.exception",
     )
     @responses.activate
-    def test_failure_partial(self, mock_logger_error):
+    def test_failure_partial(self, mock_logger_exception):
         """
         Tests that blames are still returned when some succeed
         and others fail.
@@ -548,8 +548,8 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         assert resp == [self.blame_2]
 
         # Should log the unsuccessful one
-        mock_logger_error.assert_called_once()
-        mock_logger_error.assert_called_with(
+        mock_logger_exception.assert_called_once()
+        mock_logger_exception.assert_called_with(
             "get_blame_for_files.api_error",
             extra={
                 "provider": "gitlab",

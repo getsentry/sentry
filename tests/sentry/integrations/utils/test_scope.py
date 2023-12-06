@@ -96,8 +96,7 @@ class BindOrgContextFromIntegrationTest(TestCase):
 
         bind_org_context_from_integration(integration.id, {"webhook": "issue_updated"})
         mock_logger_warning.assert_called_with(
-            "Can't bind org context - no orgs are associated with integration id=%s.",
-            integration.id,
+            f"Can't bind org context - no orgs are associated with integration id={integration.id}.",
             extra={"webhook": "issue_updated"},
         )
         mock_check_tag_for_scope_bleed.assert_called_with(

@@ -139,8 +139,7 @@ def unfurl_discover(
 
             except Exception as exc:
                 logger.error(
-                    "Failed to load saved query for unfurl: %s",
-                    exc,
+                    f"Failed to load saved query for unfurl: {exc}",
                     exc_info=True,
                 )
             else:
@@ -257,8 +256,7 @@ def unfurl_discover(
             url = charts.generate_chart(style, chart_data)
         except RuntimeError as exc:
             logger.error(
-                "Failed to generate chart for discover unfurl: %s",
-                exc,
+                f"Failed to generate chart for discover unfurl: {exc}",
                 exc_info=True,
             )
             continue

@@ -224,13 +224,12 @@ class BitbucketServerClient(IntegrationProxyClient):
             new_params = dict.copy(params)
             new_params["start"] = start
             logger.debug(
-                "Loading values for paginated uri starting from %s",
-                start,
+                f"Loading values for paginated uri starting from {start}",
                 extra={"uri": uri, "params": new_params},
             )
             data = self.get(uri, params=new_params)
             logger.debug(
-                "%s values loaded", len(data["values"]), extra={"uri": uri, "params": new_params}
+                f'{len(data["values"])} values loaded', extra={"uri": uri, "params": new_params}
             )
 
             values += data["values"]

@@ -95,7 +95,7 @@ def verify_signature(request):
     try:
         jwt.peek_claims(token)
     except jwt.DecodeError:
-        logger.exception("msteams.webhook.invalid-token-no-verify")
+        logger.error("msteams.webhook.invalid-token-no-verify")
         raise AuthenticationFailed("Could not decode JWT token")
 
     # get the open id config and jwks
@@ -121,7 +121,7 @@ def verify_signature(request):
             algorithms=open_id_config["id_token_signing_alg_values_supported"],
         )
     except Exception as err:
-        logger.exception("msteams.webhook.invalid-token-with-verify")
+        logger.error("msteams.webhook.invalid-token-with-verify")
         raise AuthenticationFailed(f"Could not validate JWT. Got {err}")
 
     # now validate iss, service url, and expiration

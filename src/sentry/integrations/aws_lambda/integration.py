@@ -331,7 +331,7 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
                 # if we have a configuration error, we should blow up the pipeline
                 raise
             except Exception as e:
-                logger.exception(
+                logger.error(
                     "AwsLambdaCloudFormationPipelineView.unexpected_error",
                     extra={"error": str(e)},
                 )

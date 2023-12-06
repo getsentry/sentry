@@ -32,10 +32,7 @@ class SlackNotifyBasicMixin(NotifyBasicMixin):
         except ApiError as e:
             message = str(e)
             if message not in ["Expired url", "channel_not_found"]:
-                logger.exception(
-                    "slack.slash-notify.response-error",
-                    extra={"error": message},
-                )
+                logger.error("slack.slash-notify.response-error", extra={"error": message})
 
 
 def _get_attachments(
