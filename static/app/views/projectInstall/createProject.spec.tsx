@@ -1,5 +1,6 @@
 import {Organization} from 'sentry-fixture/organization';
 import {MOCK_RESP_VERBOSE} from 'sentry-fixture/ruleConditions';
+import {Team} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {

@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
 import {TeamResolutionTime as TeamResolutionTimeFixture} from 'sentry-fixture/teamResolutionTime';
 
 import {render} from 'sentry-test/reactTestingLibrary';

@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
 import {TeamIssuesBreakdown} from 'sentry-fixture/teamIssuesBreakdown';
 import {TeamResolutionTime} from 'sentry-fixture/teamResolutionTime';
 
@@ -7,7 +8,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {Project, Team} from 'sentry/types';
+import {Project, Team as TTeam} from 'sentry/types';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import localStorage from 'sentry/utils/localStorage';
 import TeamStatsIssues from 'sentry/views/organizationStats/teamInsights/issues';
@@ -129,7 +130,10 @@ describe('TeamStatsIssues', () => {
     jest.resetAllMocks();
   });
 
-  function createWrapper({projects, teams}: {projects?: Project[]; teams?: Team[]} = {}) {
+  function createWrapper({
+    projects,
+    teams,
+  }: {projects?: Project[]; teams?: TTeam[]} = {}) {
     teams = teams ?? [team1, team2, team3];
     projects = projects ?? [project1, project2];
     ProjectsStore.loadInitialData(projects);

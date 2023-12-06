@@ -1,3 +1,5 @@
+import {Team} from 'sentry-fixture/team';
+
 import getProjectsByTeams from 'sentry/utils/getProjectsByTeams';
 
 describe('getProjectsByTeams', function () {

@@ -1,3 +1,5 @@
+import {Team} from 'sentry-fixture/team';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import AvatarList from 'sentry/components/avatar/avatarList';

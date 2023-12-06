@@ -1,3 +1,5 @@
+import {Team} from 'sentry-fixture/team';
+
 import TeamStore from 'sentry/stores/teamStore';
 
 describe('TeamStore', function () {

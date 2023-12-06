@@ -4,6 +4,7 @@ import {EventIdQueryResult} from 'sentry-fixture/eventIdQueryResult';
 import {Members} from 'sentry-fixture/members';
 import {Organization} from 'sentry-fixture/organization';
 import {ShortIdQueryResult} from 'sentry-fixture/shortIdQueryResult';
+import {Team} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';

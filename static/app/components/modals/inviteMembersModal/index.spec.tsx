@@ -1,6 +1,7 @@
 import selectEvent from 'react-select-event';
 import styled from '@emotion/styled';
 import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';

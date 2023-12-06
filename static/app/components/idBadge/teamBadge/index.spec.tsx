@@ -1,3 +1,5 @@
+import {Team} from 'sentry-fixture/team';
+
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';

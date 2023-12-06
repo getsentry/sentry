@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
 import {TeamReleaseCounts} from 'sentry-fixture/teamReleaseCounts';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';

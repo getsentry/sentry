@@ -1,4 +1,5 @@
 import selectEvent from 'react-select-event';
+import {Team} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {

@@ -2,6 +2,7 @@ import {Commit} from 'sentry-fixture/commit';
 import {CommitAuthor} from 'sentry-fixture/commitAuthor';
 import {Event as EventFixture} from 'sentry-fixture/event';
 import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -15,14 +16,14 @@ import type {
   Group,
   Organization as TOrganization,
   Project,
-  Team,
+  Team as TTeam,
   User,
 } from 'sentry/types';
 
 describe('Group > AssignedTo', () => {
   let USER_1!: User;
   let USER_2!: User;
-  let TEAM_1!: Team;
+  let TEAM_1!: TTeam;
   let PROJECT_1!: Project;
   let GROUP_1!: Group;
   let event!: Event;

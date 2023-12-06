@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
 import {TeamIssuesBreakdown as TeamIssuesBreakdownFixture} from 'sentry-fixture/teamIssuesBreakdown';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';

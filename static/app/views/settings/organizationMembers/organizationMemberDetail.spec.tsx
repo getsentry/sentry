@@ -2,6 +2,7 @@ import selectEvent from 'react-select-event';
 import {Authenticators} from 'sentry-fixture/authenticators';
 import {Organization} from 'sentry-fixture/organization';
 import {OrgRoleList} from 'sentry-fixture/roleList';
+import {Team} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {

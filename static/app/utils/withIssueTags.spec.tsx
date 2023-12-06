@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
 
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 

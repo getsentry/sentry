@@ -1,3 +1,5 @@
+import {Team} from 'sentry-fixture/team';
+
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'sentry/stores/teamStore';
