@@ -33,7 +33,7 @@ export const steps = ({
   {
     type: StepType.INSTALL,
     description: tct(
-      'For the Session Replay to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/react]) installed, minimum version 7.27.0.',
+      'You need a minimum version 7.27.0 of [code:@sentry/svelte] in order to use Session Replay. You do not need to install any additional packages.',
       {code: <code />}
     ),
     configurations: [

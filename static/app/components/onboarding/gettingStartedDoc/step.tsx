@@ -8,12 +8,14 @@ import {space} from 'sentry/styles/space';
 
 export enum StepType {
   INSTALL = 'install',
+  REGISTER = 'register',
   CONFIGURE = 'configure',
   VERIFY = 'verify',
 }
 
 export const StepTitle = {
   [StepType.INSTALL]: t('Install'),
+  [StepType.REGISTER]: t('Register'),
   [StepType.CONFIGURE]: t('Configure SDK'),
   [StepType.VERIFY]: t('Verify'),
 };

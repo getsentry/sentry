@@ -34,7 +34,9 @@ export const steps = ({
 }: Partial<StepProps> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
-    description: t('Configure your app automatically with the Sentry wizard.'),
+    description: t(
+      'The Replay integration is already included with the Sentry Astro SDK.'
+    ),
     configurations: [
       {
         language: 'bash',
@@ -43,7 +45,7 @@ export const steps = ({
             label: 'Bash',
             value: 'bash',
             language: 'bash',
-            code: 'npx @sentry/wizard@latest -i remix',
+            code: 'npx astro add @sentry/astro',
           },
         ],
       },
@@ -64,7 +66,7 @@ export const steps = ({
       {
         language: 'javascript',
         code: `
-        import * as Sentry from "@sentry/remix";
+        import * as Sentry from "@sentry/astro";
 
         Sentry.init({
           ${sentryInitContent}
@@ -77,7 +79,7 @@ export const steps = ({
 
 // Configuration End
 
-export function GettingStartedWithRemixReplay({
+export function GettingStartedWithAstroReplay({
   dsn,
   organization,
   newOrg,
@@ -106,15 +108,8 @@ export function GettingStartedWithRemixReplay({
         hideHeader
         {...props}
       />
-      <div>
-        <br />
-        {tct(
-          'Note: The Replay integration only needs to be added to your [codeEntry:entry.client.tsx] file. It will not run if it is added into [codeSentry:sentry.server.config.js].',
-          {codeEntry: <code />, codeSentry: <code />}
-        )}
-      </div>
     </Fragment>
   );
 }
 
-export default GettingStartedWithRemixReplay;
+export default GettingStartedWithAstroReplay;

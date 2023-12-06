@@ -1,10 +1,8 @@
-import {Fragment} from 'react';
-
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {t, tct} from 'sentry/locale';
+import {tct} from 'sentry/locale';
 import type {Organization, PlatformKey} from 'sentry/types';
 
 type StepProps = {
@@ -34,16 +32,19 @@ export const steps = ({
 }: Partial<StepProps> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
-    description: t('Configure your app automatically with the Sentry wizard.'),
+    description: tct(
+      'You need a minimum version 7.27.0 of [code:@sentry/ember] in order to use Session Replay. You do not need to install any additional packages.',
+      {code: <code />}
+    ),
     configurations: [
       {
         language: 'bash',
         code: [
           {
-            label: 'Bash',
-            value: 'bash',
+            label: 'ember-cli',
+            value: 'ember-cli',
             language: 'bash',
-            code: 'npx @sentry/wizard@latest -i remix',
+            code: 'ember install @sentry/ember',
           },
         ],
       },
@@ -64,7 +65,7 @@ export const steps = ({
       {
         language: 'javascript',
         code: `
-        import * as Sentry from "@sentry/remix";
+        import * as Sentry from "@sentry/ember";
 
         Sentry.init({
           ${sentryInitContent}
@@ -77,7 +78,7 @@ export const steps = ({
 
 // Configuration End
 
-export function GettingStartedWithRemixReplay({
+export function GettingStartedWithEmberReplay({
   dsn,
   organization,
   newOrg,
@@ -92,29 +93,20 @@ export function GettingStartedWithRemixReplay({
   sentryInitContent = sentryInitContent.concat(otherConfigs);
 
   return (
-    <Fragment>
-      <Layout
-        steps={steps({
-          sentryInitContent: sentryInitContent.join('\n'),
-          organization,
-          newOrg,
-          platformKey,
-          projectId,
-        })}
-        platformKey={platformKey}
-        newOrg={newOrg}
-        hideHeader
-        {...props}
-      />
-      <div>
-        <br />
-        {tct(
-          'Note: The Replay integration only needs to be added to your [codeEntry:entry.client.tsx] file. It will not run if it is added into [codeSentry:sentry.server.config.js].',
-          {codeEntry: <code />, codeSentry: <code />}
-        )}
-      </div>
-    </Fragment>
+    <Layout
+      steps={steps({
+        sentryInitContent: sentryInitContent.join('\n'),
+        organization,
+        newOrg,
+        platformKey,
+        projectId,
+      })}
+      platformKey={platformKey}
+      newOrg={newOrg}
+      hideHeader
+      {...props}
+    />
   );
 }
 
-export default GettingStartedWithRemixReplay;
+export default GettingStartedWithEmberReplay;
