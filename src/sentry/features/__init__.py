@@ -149,6 +149,7 @@ default_manager.add("organizations:mobile-cpu-memory-in-transactions", Organizat
 default_manager.add("organizations:mobile-ttid-ttfd-contribution", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:mobile-vitals", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:monitors", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:monitors-quota-rate-limit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:more-slow-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:new-page-filter", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:new-weekly-report", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
