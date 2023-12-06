@@ -47,7 +47,7 @@ function parseName(name: string, useCase: UseCase): string {
   }
   if (useCase === 'transactions') {
     if (name === 'duration') {
-      return `transaction.${name}`;
+      return 'transaction.duration';
     }
     return name;
   }
