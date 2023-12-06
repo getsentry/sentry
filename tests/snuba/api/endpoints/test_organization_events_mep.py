@@ -5,6 +5,7 @@ from unittest import mock
 
 import pytest
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.api.bases.organization_events import DATASET_OPTIONS
 from sentry.discover.models import TeamKeyTransaction
@@ -2943,7 +2944,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
 
     def setUp(self) -> None:
         super().setUp()
-        self.features = {"organizations:on-demand-metrics-extraction-widgets": True}
 
     def do_request(self, query: Any) -> Any:
         self.login_as(user=self.user)
@@ -2960,7 +2960,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         groupbys: Optional[list[str]] = None,
         expected_on_demand_query: Optional[bool] = True,
         expected_dataset: Optional[str] = "metricsEnhanced",
-    ) -> None:
+    ) -> Response:
+        """Do a request to the events endpoint with metrics enhanced and on-demand enabled."""
         for field in params.get("field"):
             spec = OnDemandMetricSpec(
                 field=field,
@@ -2990,30 +2991,21 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
     def test_transaction_user_misery(self) -> None:
         self._on_demand_query_check(
             {
+                # TODO: Create environment for organization
+                # "environment": "production",  # Adding this gives a 404
                 "field": ["user_misery(300)"],
-                "query": "transaction.duration:>=91",
+                "query": "",
+                "project": self.project.id,
+                "sort": "-user_misery(300)",
                 "yAxis": "user_misery(300)",
+                "name": "",
+                "per_page": "20",
+                "query": "",
+                "referrer": "api.dashboards.tablewidget",
+                "sort": "-user_misery(300)",  # Is this orderby?
             },
             groupbys=["transaction"],
         )
-        # self._on_demand_query_check(
-        #     {
-        #         "environment": "production",
-        #         "field": ["transaction", "user_misery(300)"],
-        #         "name": "",
-        #         "onDemandType": "dynamic_query",
-        #         "per_page": "20",
-        #         "project": self.project.id,
-        #         "query": "",
-        #         "referrer": "api.dashboards.tablewidget",
-        #         "sort": "-user_misery(300)",  # Is this orderby?
-        #         "useOnDemandMetrics": "true",
-        #         "yAxis": "user_misery(300)",
-        #         "dataset": "metricsEnhanced",
-        #     },
-        #     expected_on_demand_query=True,
-        #     dataset="metricsEnhanced",
-        # )
 
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
