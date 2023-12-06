@@ -74,6 +74,7 @@ class NotificationSettingTypes(ValueEqualityEnum):
 
 
 class NotificationSettingEnum(ValueEqualityEnum):
+    DEFAULT = "default"
     DEPLOY = "deploy"
     ISSUE_ALERTS = "alerts"
     WORKFLOW = "workflow"
@@ -93,6 +94,7 @@ class NotificationSettingEnum(ValueEqualityEnum):
 
 # TODO(Steve): clean up after we finish migrating to settings 2.0
 NOTIFICATION_SETTING_TYPES = {
+    NotificationSettingTypes.DEFAULT: NotificationSettingEnum.DEFAULT.value,
     NotificationSettingTypes.DEPLOY: NotificationSettingEnum.DEPLOY.value,
     NotificationSettingTypes.ISSUE_ALERTS: NotificationSettingEnum.ISSUE_ALERTS.value,
     NotificationSettingTypes.WORKFLOW: NotificationSettingEnum.WORKFLOW.value,

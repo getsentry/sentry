@@ -37,6 +37,10 @@ def get_default_for_provider(
     if provider not in DEFAULT_ON_PROVIDERS or type not in NotificationSettingEnum:
         return NotificationSettingsOptionEnum.NEVER
 
+    # TODO(Steve): Make sure that all keys are present in NOTIFICATION_SETTINGS_TYPE_DEFAULTS
+    if type not in NOTIFICATION_SETTINGS_TYPE_DEFAULTS:
+        return NotificationSettingsOptionEnum.NEVER
+
     # special case to disable reports for non-email providers
     if type == NotificationSettingEnum.REPORTS and provider != ExternalProviderEnum.EMAIL:
         # Reports are only sent to email
