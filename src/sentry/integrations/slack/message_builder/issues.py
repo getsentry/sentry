@@ -184,7 +184,6 @@ def build_actions(
     group: Group,
     project: Project,
     text: str,
-    color: str,
     actions: Sequence[MessageAction] | None = None,
     identity: RpcIdentity | None = None,
 ) -> tuple[Sequence[MessageAction], str, str]:
@@ -279,7 +278,7 @@ def build_actions(
         if a is not None
     ]
 
-    return action_list, text, color
+    return action_list, text
 
 
 class SlackIssuesMessageBuilder(SlackMessageBuilder):
@@ -348,8 +347,8 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         if not self.issue_details or (
             self.recipient and self.recipient.actor_type == ActorType.TEAM
         ):
-            payload_actions, text, color = build_actions(
-                self.group, project, text, color, self.actions, self.identity
+            payload_actions, text = build_actions(
+                self.group, project, text, self.actions, self.identity
             )
         else:
             payload_actions = []
@@ -438,13 +437,12 @@ class SlackIssueAlertMessageBuilder(BlockSlackMessageBuilder):
         # If an event is unspecified, use the tags of the latest event (if one exists).
         event_for_tags = self.event or self.group.get_latest_event()
         tags = get_tags(event_for_tags, self.tags)
-        color = get_color(event_for_tags, self.notification, self.group)
         obj = self.event if self.event is not None else self.group
         if not self.issue_details or (
             self.recipient and self.recipient.actor_type == ActorType.TEAM
         ):
-            payload_actions, text, color = build_actions(
-                self.group, project, text, color, self.actions, self.identity
+            payload_actions, text = build_actions(
+                self.group, project, text, self.actions, self.identity
             )
         else:
             payload_actions = []

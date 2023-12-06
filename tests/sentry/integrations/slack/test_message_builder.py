@@ -588,7 +588,7 @@ class ActionsTest(TestCase):
         MOCKIDENTITY = Mock()
 
         assert build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], MOCKIDENTITY
+            group, self.project, "test txt", [MessageAction(name="TEST")], MOCKIDENTITY
         ) == ([], "test txt\n", "_actioned_issue")
 
     def _assert_message_actions_list(self, actions, expected):
@@ -602,9 +602,7 @@ class ActionsTest(TestCase):
         group.status = GroupStatus.IGNORED
         group.save()
 
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
 
         self._assert_message_actions_list(
             res[0],
@@ -622,9 +620,7 @@ class ActionsTest(TestCase):
         group.save()
 
         with self.feature({"organizations:escalating-issues": True}):
-            res = build_actions(
-                group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-            )
+            res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
 
         self._assert_message_actions_list(
             res[0],
@@ -641,9 +637,7 @@ class ActionsTest(TestCase):
         group.status = GroupStatus.UNRESOLVED
         group.save()
 
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
 
         self._assert_message_actions_list(
             res[0],
@@ -661,9 +655,7 @@ class ActionsTest(TestCase):
         group.save()
 
         with self.feature({"organizations:escalating-issues": True}):
-            res = build_actions(
-                group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-            )
+            res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
 
         self._assert_message_actions_list(
             res[0],
@@ -677,9 +669,7 @@ class ActionsTest(TestCase):
 
     def test_no_ignore_if_feedback(self):
         group = self.create_group(project=self.project, type=FeedbackGroup.type_id)
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
         # no ignore action if feedback issue, so only assign and resolve
         assert len(res[0]) == 2
 
@@ -688,9 +678,7 @@ class ActionsTest(TestCase):
         group.status = GroupStatus.RESOLVED
         group.save()
 
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
 
         self._assert_message_actions_list(
             res[0],
@@ -709,9 +697,7 @@ class ActionsTest(TestCase):
         self.project.flags.has_releases = False
         self.project.save()
 
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
 
         self._assert_message_actions_list(
             res[0],
@@ -730,9 +716,7 @@ class ActionsTest(TestCase):
         self.project.flags.has_releases = True
         self.project.save()
 
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
 
         self._assert_message_actions_list(
             res[0],
@@ -751,9 +735,7 @@ class ActionsTest(TestCase):
         self.project.flags.has_releases = True
         self.project.save()
 
-        res = build_actions(
-            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-        )
+        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
 
         self._assert_message_actions_list(
             res[0],
