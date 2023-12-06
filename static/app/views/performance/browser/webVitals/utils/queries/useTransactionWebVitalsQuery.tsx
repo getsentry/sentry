@@ -13,14 +13,12 @@ type Props = {
 };
 
 export const useTransactionWebVitalsQuery = ({
-  orderBy,
   limit,
   transaction,
   defaultSort,
   sortName = 'sort',
 }: Props) => {
   const storedScoresResult = useTransactionWebVitalsScoresQuery({
-    orderBy,
     limit,
     transaction,
     defaultSort,
@@ -28,7 +26,6 @@ export const useTransactionWebVitalsQuery = ({
     enabled: USE_STORED_SCORES,
   });
   const rawWebVitalsResult = useTransactionRawWebVitalsQuery({
-    orderBy,
     limit,
     transaction,
     defaultSort,

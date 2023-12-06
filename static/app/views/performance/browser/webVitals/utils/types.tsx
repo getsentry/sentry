@@ -1,12 +1,12 @@
 import {Sort} from 'sentry/utils/discover/fields';
 
 export type Row = {
+  'avg(measurements.cls)': number;
+  'avg(measurements.fcp)': number;
+  'avg(measurements.fid)': number;
+  'avg(measurements.lcp)': number;
+  'avg(measurements.ttfb)': number;
   'count()': number;
-  'p75(measurements.cls)': number;
-  'p75(measurements.fcp)': number;
-  'p75(measurements.fid)': number;
-  'p75(measurements.lcp)': number;
-  'p75(measurements.ttfb)': number;
   transaction: string;
 };
 
@@ -45,11 +45,12 @@ export type WebVitals = 'lcp' | 'fcp' | 'cls' | 'ttfb' | 'fid';
 
 export const SORTABLE_FIELDS = [
   'count()',
-  'p75(measurements.cls)',
-  'p75(measurements.fcp)',
-  'p75(measurements.fid)',
-  'p75(measurements.lcp)',
-  'p75(measurements.ttfb)',
+  'avg(measurements.cls)',
+  'avg(measurements.fcp)',
+  'avg(measurements.fid)',
+  'avg(measurements.lcp)',
+  'avg(measurements.ttfb)',
+  'avg(measurements.score.total)',
 ] as const;
 
 export const SORTABLE_INDEXED_FIELDS = [
