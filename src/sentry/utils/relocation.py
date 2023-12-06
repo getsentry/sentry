@@ -367,12 +367,16 @@ def start_relocation_task(
 
     logger_data = {"uuid": uuid}
     try:
-        relocation = Relocation.objects.get(uuid=uuid)
+        relocation: Relocation = Relocation.objects.get(uuid=uuid)
     except Relocation.DoesNotExist:
         logger.exception("Could not locate Relocation model by UUID: %s", uuid)
         return (None, 0)
-    if relocation.status != Relocation.Status.IN_PROGRESS.value:
-        logger.error(
+
+    if relocation.status not in {
+        Relocation.Status.IN_PROGRESS.value,
+        Relocation.Status.PAUSE.value,
+    }:
+        logger.warning(
             "Relocation has already completed as `%s`",
             Relocation.Status(relocation.status),
             extra=logger_data,
