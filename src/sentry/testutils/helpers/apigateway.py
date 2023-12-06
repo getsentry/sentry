@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import unittest.result
 from urllib.parse import parse_qs
 
 import responses
@@ -14,8 +13,7 @@ import sentry.api.urls as api_urls
 from sentry.api.base import Endpoint, control_silo_endpoint, region_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationEndpoint
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.region import override_regions
-from sentry.types.region import Region, RegionCategory, clear_global_regions
+from sentry.types.region import Region, RegionCategory
 from sentry.utils import json
 
 
@@ -118,7 +116,7 @@ def provision_middleware():
 
 @override_settings(ROOT_URLCONF=__name__)
 class ApiGatewayTestCase(APITestCase):
-    _REGION = Region(
+    REGION = Region(
         name="us",
         snowflake_id=1,
         address="http://us.internal.sentry.io",
@@ -127,24 +125,24 @@ class ApiGatewayTestCase(APITestCase):
 
     def setUp(self):
         super().setUp()
-        clear_global_regions()
+        # clear_global_regions()
         responses.add(
             responses.GET,
-            f"{self._REGION.address}/get",
+            f"{self.REGION.address}/get",
             body=json.dumps({"proxy": True}),
             content_type="application/json",
             adding_headers={"test": "header"},
         )
         responses.add(
             responses.GET,
-            f"{self._REGION.address}/error",
+            f"{self.REGION.address}/error",
             body=json.dumps({"proxy": True}),
             status=400,
             content_type="application/json",
             adding_headers={"test": "header"},
         )
 
-        self.organization = self.create_organization(region=self._REGION)
+        self.organization = self.create_organization(region=self.REGION)
 
         # Echos the request body and header back for verification
         def return_request_body(request):
@@ -155,13 +153,13 @@ class ApiGatewayTestCase(APITestCase):
             params = parse_qs(request.url.split("?")[1])
             return (200, request.headers, json.dumps(params).encode())
 
-        responses.add_callback(responses.GET, f"{self._REGION.address}/echo", return_request_params)
-        responses.add_callback(responses.POST, f"{self._REGION.address}/echo", return_request_body)
+        responses.add_callback(responses.GET, f"{self.REGION.address}/echo", return_request_params)
+        responses.add_callback(responses.POST, f"{self.REGION.address}/echo", return_request_body)
 
         self.middleware = provision_middleware()
 
-    def run(
-        self, result: unittest.result.TestResult | None = None
-    ) -> unittest.result.TestResult | None:
-        with override_regions([self._REGION]):
-            return super().run(result)
+    # def run(
+    #     self, result: unittest.result.TestResult | None = None
+    # ) -> unittest.result.TestResult | None:
+    #     with override_regions([self._REGION]):
+    #         return super().run(result)

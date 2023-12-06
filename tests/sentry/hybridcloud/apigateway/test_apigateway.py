@@ -9,9 +9,11 @@ from rest_framework.exceptions import NotFound
 from sentry.silo import SiloMode
 from sentry.testutils.helpers.apigateway import ApiGatewayTestCase, verify_request_params
 from sentry.testutils.helpers.response import close_streaming_response
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
+@control_silo_test(regions=[ApiGatewayTestCase.REGION], include_monolith_run=True)
 class ApiGatewayTest(ApiGatewayTestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @responses.activate
@@ -127,7 +129,7 @@ class ApiGatewayTest(ApiGatewayTestCase):
             assert resp_json["proxy"]
             assert resp_json["details"]
 
-    @override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_MONOLITH_REGION="us")
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
     @responses.activate
     def test_proxy_sentryapp_installation_path(self):
         sentry_app = self.create_sentry_app()
@@ -172,7 +174,7 @@ class ApiGatewayTest(ApiGatewayTestCase):
             assert resp_json["proxy"]
             assert resp_json["name"] == "external-issue-actions"
 
-    @override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_MONOLITH_REGION="us")
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
     @responses.activate
     def test_proxy_sentryapp_installation_path_invalid(self):
         # No responses configured so that requests will fail if they are made.
