@@ -82,7 +82,10 @@ class Unbatcher(ProcessingStep[Union[FilteredPayload, IndexerOutputMessageBatch]
 
     def join(self, timeout: Optional[float] = None) -> None:
         self.__next_step.close()
-        self.__next_step.join(timeout)
+        # XXX: This matches the previous produce step implementation.
+        # We wait up to 5 seconds for the producer to flush to avoid
+        # producing the same message more than once.
+        self.__next_step.join(5.0)
 
 
 class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
