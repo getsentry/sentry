@@ -125,6 +125,7 @@ class RelocationCreateTest(APITestCase):
             assert uploading_complete_mock.call_count == 1
 
     for org_slugs, expected in [
+        (",,", ["", ""]),
         ("testing,,foo", ["testing", "", "foo"]),
         ("testing\nfoo", ["testing\nfoo"]),
         ("testing\tfoo", ["testing\tfoo"]),
