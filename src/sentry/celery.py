@@ -1,20 +1,12 @@
-# XXX(mdtro): backwards compatible imports for celery 4.4.7, remove after upgrade to 5.2.7
 from datetime import datetime
 from itertools import chain
 
-import celery
+from celery import Celery, Task
+from celery.worker.request import Request
 from django.conf import settings
 from django.db import models
 
 from sentry.utils import metrics
-
-if celery.version_info >= (5, 2):
-    from celery import Celery, Task
-else:
-    from celery import Celery
-    from celery.app.task import Task
-
-from celery.worker.request import Request
 
 LEGACY_PICKLE_TASKS = frozenset(
     [

@@ -4,17 +4,8 @@ import logging
 import tempfile
 from hashlib import sha1
 
-import celery
 import sentry_sdk
-
-from sentry.silo import SiloMode
-
-# XXX(mdtro): backwards compatible imports for celery 4.4.7, remove after upgrade to 5.2.7
-if celery.version_info >= (5, 2):
-    from celery import current_task
-else:
-    from celery.task import current as current_task
-
+from celery import current_task
 from celery.exceptions import MaxRetriesExceededError
 from django.core.files.base import ContentFile
 from django.db import IntegrityError, router
@@ -24,6 +15,7 @@ from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.fileblobindex import FileBlobIndex
 from sentry.models.files.utils import DEFAULT_BLOB_SIZE, MAX_FILE_SIZE, AssembleChecksumMismatch
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
