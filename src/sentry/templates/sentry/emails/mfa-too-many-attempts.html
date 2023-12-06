@@ -1,0 +1,16 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+{% block main %}
+    <h3>Suspicious Activity Detected</h3>
+    <p>This is a notice that your Sentry account ({{ email }}) has failed multiple login attempts at the 2FA step from the following location:</p>
+    <p><pre>
+IP address: {{ ip_address }}
+{% if geo %}
+Geolocation: {{ geo.city }}, {{ geo.country_code }}
+{% endif %}
+Date: {{ datetime|date:"N j, Y, P e" }}</pre></p>
+    <p>If you have lost your 2FA credentials, you can follow our <a href="https://help.sentry.io/account/account-settings/how-do-i-recover-my-account-if-i-lost-my-2fa-credentials/">account recovery steps here</a>.</p>
+    <p>If these logins are not from you, we recommend you log in to your Sentry account and reset your password under <a href="{{ url }}">your account security settings</a>. On the same account security page, we also recommend you click the “Sign out of all devices” button to remove all currently logged-in sessions of your account.</p>
+{% endblock %}
