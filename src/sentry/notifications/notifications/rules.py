@@ -104,7 +104,7 @@ class AlertRuleNotification(ProjectNotification):
             target_type=self.target_type,
             target_identifier=self.target_identifier,
             event=self.event,
-            notification_type=self.notification_setting_type,
+            notification_type_enum=self.notification_setting_type_enum,
             fallthrough_choice=self.fallthrough_choice,
             rules=self.rules,
             notification_uuid=self.notification_uuid,

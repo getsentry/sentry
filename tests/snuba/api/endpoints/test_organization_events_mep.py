@@ -2935,6 +2935,60 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         assert meta["isMetricsData"]
 
+    def test_count_scores(self):
+        self.store_transaction_metric(
+            0.1,
+            metric="measurements.score.total",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.2,
+            metric="measurements.score.total",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.3,
+            metric="measurements.score.total",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.4,
+            metric="measurements.score.total",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.5,
+            metric="measurements.score.lcp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "count_scores(measurements.score.total)",
+                    "count_scores(measurements.score.lcp)",
+                ],
+                "query": "event.type:transaction",
+                "dataset": "metrics",
+                "per_page": 50,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert data[0]["count_scores(measurements.score.total)"] == 4
+        assert data[0]["count_scores(measurements.score.lcp)"] == 1
+
+        assert meta["isMetricsData"]
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetrics(
     MetricsEnhancedPerformanceTestCase
@@ -3049,3 +3103,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not implemented")
     def test_opportunity_score(self):
         super().test_opportunity_score()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_count_scores(self):
+        super().test_count_scores()

@@ -136,6 +136,14 @@ def trim_native_function_name(function, platform, normalize_lambdas=True):
     if function.startswith(("[", "+[", "-[")):
         return function
 
+    # Remove special `[clone .foo]` annotations for cloned/split functions
+    def process_brackets(value, start):
+        if value.startswith("clone ."):
+            return ""
+        return "[%s]" % value
+
+    function = replace_enclosed_string(function, "[", "]", process_brackets).rstrip()
+
     # Chop off C++ trailers
     while True:
         match = _cpp_trailer_re.search(function)
@@ -198,14 +206,6 @@ def trim_native_function_name(function, platform, normalize_lambdas=True):
         return value.split(" as ", 1)[0]
 
     function = replace_enclosed_string(function, "<", ">", process_generics)
-
-    # Remove special `[clone .foo]` annotations for cloned/split functions
-    def process_brackets(value, start):
-        if value.startswith("clone ."):
-            return ""
-        return "[%s]" % value
-
-    function = replace_enclosed_string(function, "[", "]", process_brackets)
 
     is_thunk = "thunk for " in function  # swift
 

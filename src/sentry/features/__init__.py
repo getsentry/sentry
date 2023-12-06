@@ -62,7 +62,7 @@ register_permanent_features(default_manager)
 # Features that don't use resource scoping
 default_manager.add("auth:register", SystemFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:create", SystemFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("relocation:enabled", SystemFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("relocation:enabled", SystemFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:multi-region-selector", SystemFeature, FeatureHandlerStrategy.INTERNAL)
 
 # Organization scoped features that are in development or in customer trials.
@@ -125,7 +125,6 @@ default_manager.add("organizations:anr-analyze-frames", OrganizationFeature, Fea
 default_manager.add("organizations:device-classification", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:device-class-synthesis", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:monitors", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:monitors-quota-rate-limit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:new-page-filter", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:new-weekly-report", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:noisy-alert-warning", OrganizationFeature, FeatureHandlerStrategy.REMOTE)

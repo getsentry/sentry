@@ -30,6 +30,7 @@ export type BaseEventAnalyticsParams = {
   has_trace: boolean;
   is_symbolicated: boolean;
   num_commits: number;
+  num_event_tags: number;
   num_in_app_stack_frames: number;
   num_stack_frames: number;
   num_threads_with_names: number;
