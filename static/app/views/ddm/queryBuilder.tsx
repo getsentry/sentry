@@ -60,32 +60,29 @@ export function QueryBuilder({
 
   const {data: tags = []} = useMetricsTags(metricsQuery.mri, projects);
 
-  const metaArr = useMemo(() => {
+  const displayedMetrics = useMemo(() => {
     if (mriMode) {
-      return Object.values(meta);
+      return meta;
     }
 
     const isSelected = (metric: MetricMeta) => metric.mri === metricsQuery.mri;
-
-    return Object.values(meta).filter(
-      metric => isShownByDefault(metric) || isSelected(metric)
-    );
+    return meta.filter(metric => isShownByDefault(metric) || isSelected(metric));
   }, [meta, metricsQuery.mri, mriMode]);
+
+  const selectedMeta = useMemo(() => {
+    return meta.find(metric => metric.mri === metricsQuery.mri);
+  }, [meta, metricsQuery.mri]);
 
   // Reset the query data if the selected metric is no longer available
   useEffect(() => {
     if (
       metricsQuery.mri &&
       !isMetaLoading &&
-      !metaArr.find(metric => metric.mri === metricsQuery.mri)
+      !displayedMetrics.find(metric => metric.mri === metricsQuery.mri)
     ) {
       onChange({mri: '' as MRI, op: '', groupBy: []});
     }
-  }, [isMetaLoading, metaArr, metricsQuery.mri, onChange]);
-
-  if (!meta) {
-    return null;
-  }
+  }, [isMetaLoading, displayedMetrics, metricsQuery.mri, onChange]);
 
   return (
     <QueryBuilderWrapper>
@@ -95,7 +92,7 @@ export function QueryBuilder({
             searchable
             sizeLimit={100}
             triggerProps={{prefix: t('Metric'), size: 'sm'}}
-            options={metaArr.map(metric => ({
+            options={displayedMetrics.map(metric => ({
               label: mriMode ? metric.mri : formatMRI(metric.mri),
               value: metric.mri,
               trailingItems: mriMode ? undefined : (
@@ -107,11 +104,15 @@ export function QueryBuilder({
             }))}
             value={metricsQuery.mri}
             onChange={option => {
-              const availableOps = meta[option.value]?.operations.filter(isAllowedOp);
+              const availableOps =
+                meta
+                  .find(metric => metric.mri === option.value)
+                  ?.operations.filter(isAllowedOp) ?? [];
+
               // @ts-expect-error .op is an operation
               const selectedOp = availableOps.includes(metricsQuery.op ?? '')
                 ? metricsQuery.op
-                : availableOps[0];
+                : availableOps?.[0];
               onChange({
                 mri: option.value,
                 op: selectedOp,
@@ -124,7 +125,7 @@ export function QueryBuilder({
           <CompactSelect
             triggerProps={{prefix: t('Op'), size: 'sm'}}
             options={
-              meta[metricsQuery.mri]?.operations.filter(isAllowedOp).map(op => ({
+              selectedMeta?.operations.filter(isAllowedOp).map(op => ({
                 label: op,
                 value: op,
               })) ?? []

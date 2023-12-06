@@ -1,5 +1,3 @@
-import {useMemo} from 'react';
-
 import {PageFilters} from 'sentry/types';
 import {useApiQuery, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -33,7 +31,7 @@ function useMetaUseCase(
 export function useMetricsMeta(
   projects: PageFilters['projects'],
   useCases?: UseCase[]
-): {data: Record<string, MetricMeta>; isLoading: boolean} {
+): {data: MetricMeta[]; isLoading: boolean} {
   const enabledUseCases = useCases ?? DEFAULT_USE_CASES;
 
   const {data: sessionMeta = [], ...sessionsReq} = useMetaUseCase('sessions', projects, {
@@ -49,17 +47,8 @@ export function useMetricsMeta(
     enabled: enabledUseCases.includes('spans'),
   });
 
-  const combinedMeta = useMemo<Record<string, MetricMeta>>(() => {
-    return [...sessionMeta, ...txnsMeta, ...customMeta, ...spansMeta].reduce(
-      (acc, metricMeta) => {
-        return {...acc, [metricMeta.mri]: metricMeta};
-      },
-      {}
-    );
-  }, [sessionMeta, txnsMeta, customMeta, spansMeta]);
-
   return {
-    data: combinedMeta,
+    data: [...sessionMeta, ...txnsMeta, ...customMeta, ...spansMeta],
     isLoading:
       (sessionsReq.isLoading && sessionsReq.fetchStatus !== 'idle') ||
       (txnsReq.isLoading && txnsReq.fetchStatus !== 'idle') ||

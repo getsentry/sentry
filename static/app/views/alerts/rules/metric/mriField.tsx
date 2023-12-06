@@ -31,7 +31,7 @@ function MriField({aggregate, project, onChange}: Props) {
   const {data: meta, isLoading} = useMetricsMeta([parseInt(project.id, 10)], ['custom']);
 
   const metaArr = useMemo(() => {
-    return Object.values(meta).map(
+    return meta.map(
       metric =>
         ({
           ...metric,
