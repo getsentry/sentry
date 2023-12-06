@@ -157,7 +157,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
         self.bot_token = options.get("discord.bot-token")
         self.client_secret = options.get("discord.client-secret")
         self.client = DiscordNonProxyClient()
-        self.setup_url = absolute_uri("extensions/discord/setup/")
+        self.setup_url = absolute_uri("extensions/discord/configure/")
         super().__init__()
 
     def get_pipeline_views(self) -> Sequence[PipelineView]:

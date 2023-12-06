@@ -49,7 +49,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
         params = parse_qs(redirect.query)
         assert params["client_id"] == [self.application_id]
         assert params["permissions"] == [str(self.provider.bot_permissions)]
-        assert params["redirect_uri"] == ["http://testserver/extensions/discord/setup/"]
+        assert params["redirect_uri"] == ["http://testserver/extensions/discord/configure/"]
         assert params["response_type"] == ["code"]
         scopes = self.provider.oauth_scopes
         assert params["scope"] == [" ".join(scopes)]
