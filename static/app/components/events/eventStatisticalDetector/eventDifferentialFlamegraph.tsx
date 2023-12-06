@@ -87,6 +87,7 @@ export function EventDifferentialFlamegraph(props: EventDifferentialFlamegraphPr
     projectID: parseInt(props.event.projectID, 10),
     breakpoint,
     environments: [],
+    fingerprint: props.event.occurrence?.evidenceData?.fingerprint,
     transaction: (transaction?.transaction as string) ?? '',
   });
 
