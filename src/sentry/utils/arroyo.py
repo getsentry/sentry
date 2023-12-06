@@ -150,7 +150,6 @@ class ReusableMultiprocessingPool(ArroyoMultiprocessingPool):
         num_processes: int,
         initializer: Optional[Callable[[], None]] = None,
     ) -> None:
-        # TODO: Does this even work?
         atexit.register(self._shutdown)
 
         super().__init__(
