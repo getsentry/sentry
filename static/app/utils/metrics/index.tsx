@@ -519,14 +519,8 @@ export function getFieldFromMetricsQuery(metricsQuery: MetricsQuery) {
   if (isCustomMetric(metricsQuery)) {
     return MRIToField(metricsQuery.mri, metricsQuery.op!);
   }
-  if (isTransactionDuration(metricsQuery)) {
-    return `${metricsQuery.op!}(transaction.duration)`;
-  }
-  if (isStandardMeasurement(metricsQuery)) {
-    return formatMRIField(MRIToField(metricsQuery.mri, metricsQuery.op!));
-  }
 
-  return '';
+  return formatMRIField(MRIToField(metricsQuery.mri, metricsQuery.op!));
 }
 
 // TODO(ddm): remove this and all of its usages once backend sends mri fields
