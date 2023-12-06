@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStacktraceLink';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {getIntegrationIcon, getIntegrationSourceUrl} from 'sentry/utils/integrationUtil';
@@ -50,6 +50,23 @@ export function StackTraceMiniFrame({frame, eventId, projectId}: Props) {
           <SourceCodeIntegrationLink event={event} project={project} frame={frame} />
         </PushRight>
       )}
+    </FrameContainer>
+  );
+}
+
+export function MissingFrame() {
+  return (
+    <FrameContainer>
+      <Deemphasize>
+        {tct(
+          'Could not find query location in selected date range. Learn more in our [documentation:documentation].',
+          {
+            documentation: (
+              <ExternalLink href="https://docs.sentry.io/product/performance/queries/#query-sources" />
+            ),
+          }
+        )}
+      </Deemphasize>
     </FrameContainer>
   );
 }
