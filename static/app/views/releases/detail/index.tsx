@@ -5,7 +5,6 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
-import {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -34,7 +33,6 @@ import withRouteAnalytics, {
 } from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import {getCount} from 'sentry/utils/sessions';
-import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
@@ -61,7 +59,6 @@ type RouteParams = {
 
 type Props = RouteComponentProps<RouteParams, {}> &
   WithRouteAnalyticsProps & {
-    api: Client;
     organization: Organization;
     releaseMeta: ReleaseMeta;
     selection: PageFilters;
@@ -389,5 +386,5 @@ const ProjectsFooterMessage = styled('div')`
 
 export {ReleaseContext, ReleasesDetailContainer};
 export default withRouteAnalytics(
-  withPageFilters(withOrganization(withApi(ReleasesDetailContainer)))
+  withPageFilters(withOrganization(ReleasesDetailContainer))
 );
