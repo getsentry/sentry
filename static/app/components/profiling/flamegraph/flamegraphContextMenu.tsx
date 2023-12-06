@@ -281,7 +281,11 @@ export function DifferentialFlamegraphMenu(props: DifferentialFlamegraphMenuProp
             })}
             checked={props.frameFilter === filter}
           >
-            {filter}
+            {filter === 'all'
+              ? t('All frames')
+              : filter === 'application'
+              ? t('Application frames')
+              : t('System frames')}
           </ProfilingContextMenuItemCheckbox>
         ))}
       </ProfilingContextMenuGroup>
