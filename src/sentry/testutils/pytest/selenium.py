@@ -335,7 +335,7 @@ class Browser:
             self.get("/")
 
         # TODO(dcramer): this should be escaped, but idgaf
-        logger.info(f"selenium.set-cookie.{name}", extra={"value": value})
+        logger.info("selenium.set-cookie.%s", name, extra={"value": value})
         # XXX(dcramer): chromedriver (of certain versions) is complaining about this being
         # an invalid kwarg
         del cookie["secure"]
@@ -363,7 +363,6 @@ def pytest_addoption(parser):
 
 
 def pytest_configure(config):
-
     if hasattr(config, "workerinput"):
         return  # xdist worker
 
