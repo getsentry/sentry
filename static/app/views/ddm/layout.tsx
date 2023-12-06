@@ -85,9 +85,9 @@ export const DDMLayout = memo(() => {
   return (
     <FullViewport ref={measureRef}>
       {
-        // FullViewport as a grid layout with `grid-template-rows: auto 1fr;`
-        // therefore we need the empty div so that SplitPanel can span the whole height */
-        // TODO(arthur): Check on the styles of FullViewport */
+        // FullViewport has a grid layout with `grid-template-rows: auto 1fr;`
+        // therefore we need the empty div so that SplitPanel can span the whole height
+        // TODO(arthur): Check on the styles of FullViewport
       }
       <div />
       {hasSize && (
