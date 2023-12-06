@@ -15,8 +15,7 @@ from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
-from sentry.types.region import Region, RegionCategory
+from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
 from sentry.utils import json
 
 
@@ -85,10 +84,7 @@ class RobotsTxtTest(TestCase):
 
 
 @region_silo_test(
-    regions=(
-        Region("reg1", 1, "http://reg1.testserver", RegionCategory.MULTI_TENANT),
-        Region("reg2", 2, "http://reg2.testserver", RegionCategory.MULTI_TENANT),
-    ),
+    regions=create_test_regions("reg1", "reg2"),
     include_monolith_run=True,
 )
 class ClientConfigViewTest(TestCase):
