@@ -27,7 +27,7 @@ const commonQueryConditions = {
   topEvents: '',
   yAxis: '',
   createdBy: TestStubs.User(),
-  team: Team(),
+  team: [parseInt(Team().id, 10)],
   statsPeriod: '14d',
 };
 
