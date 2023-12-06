@@ -25,6 +25,7 @@ import {DifferentialFlamegraph as DifferentialFlamegraphModel} from 'sentry/util
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
+import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
@@ -125,7 +126,7 @@ export function EventDifferentialFlamegraph(props: EventDifferentialFlamegraphPr
           initialState={{
             preferences: {
               sorting: 'alphabetical',
-              view: 'bottom up',
+              view: 'top down',
             },
           }}
         >
@@ -154,6 +155,7 @@ interface EventDifferentialFlamegraphViewProps {
 function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewProps) {
   const organization = useOrganization();
   const theme = useFlamegraphTheme();
+  const flamegraphPreferences = useFlamegraphPreferences();
 
   const beforeFlamegraph = useMemo(() => {
     if (!props.before.data) {
@@ -162,8 +164,11 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
 
     // @TODO pass frame filter
     const profile = importProfile(props.before.data, '', 'flamegraph');
-    return new Flamegraph(profile.profiles[0], {sort: 'alphabetical'});
-  }, [props.before]);
+    return new Flamegraph(profile.profiles[0], {
+      sort: flamegraphPreferences.sorting,
+      inverted: flamegraphPreferences.view === 'bottom up',
+    });
+  }, [props.before, flamegraphPreferences.sorting, flamegraphPreferences.view]);
 
   const afterProfileGroup = useMemo(() => {
     if (!props.after.data) {
@@ -179,8 +184,11 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
     }
 
     // @TODO pass frame filter
-    return new Flamegraph(afterProfileGroup.profiles[0], {sort: 'alphabetical'});
-  }, [afterProfileGroup]);
+    return new Flamegraph(afterProfileGroup.profiles[0], {
+      sort: flamegraphPreferences.sorting,
+      inverted: flamegraphPreferences.view === 'bottom up',
+    });
+  }, [afterProfileGroup, flamegraphPreferences.sorting, flamegraphPreferences.view]);
 
   const [negated, setNegated] = useState<boolean>(false);
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);

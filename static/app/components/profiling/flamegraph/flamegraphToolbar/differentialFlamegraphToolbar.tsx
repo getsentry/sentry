@@ -9,6 +9,8 @@ import {space} from 'sentry/styles/space';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 
+import {DifferentialFlamegraphSettingsButton} from './differentialFlamegraphSettingsButton';
+
 const EMPTY_SPANS = [];
 
 interface DifferentialFlamegraphProps {
@@ -36,6 +38,7 @@ export function DifferentialFlamegraphToolbar(props: DifferentialFlamegraphProps
       <Button size="xs" onClick={onResetZoom}>
         {t('Reset Zoom')}
       </Button>
+      <DifferentialFlamegraphSettingsButton />
     </DifferentialFlamegraphToolbarContainer>
   );
 }
