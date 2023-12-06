@@ -10,6 +10,7 @@ from typing import (
     Dict,
     List,
     Literal,
+    Match,
     Optional,
     Sequence,
     Tuple,
@@ -252,7 +253,7 @@ QueryToken = Union[SearchFilter, QueryOp, ParenExpression]
 Variables = Dict[str, Any]
 
 query_builder = UnresolvedQuery(
-    dataset=Dataset.Discover, params={}
+    dataset=Dataset.Transactions, params={}
 )  # Workaround to get all updated discover functions instead of using the deprecated events fields.
 
 
@@ -426,6 +427,19 @@ def should_use_on_demand_metrics(
     return not supported_by.standard_metrics and supported_by.on_demand_metrics
 
 
+def _parse_function(match: Match[str]) -> Tuple[str, List[str], str]:
+    raw_function = match.group("function")
+    function, combinator = fields.parse_combinator(raw_function)
+
+    arguments = fields.parse_arguments(function, match.group("columns"))
+    alias: Union[str, Any, None] = match.group("alias")
+
+    if alias is None:
+        alias = fields.get_function_alias_with_columns(raw_function, arguments)
+
+    return function, arguments, alias
+
+
 def _extract_aggregate_components(aggregate: str) -> Optional[Tuple[str, List[str]]]:
     try:
         if is_equation(aggregate):
@@ -435,7 +449,7 @@ def _extract_aggregate_components(aggregate: str) -> Optional[Tuple[str, List[st
         if not match:
             raise InvalidSearchQuery(f"Invalid characters in field {aggregate}")
 
-        function, _, args, _ = query_builder.parse_function(match)
+        function, args, _ = _parse_function(match)
         return function, args
     except InvalidSearchQuery:
         logger.error(f"Failed to parse aggregate: {aggregate}", exc_info=True)
@@ -1233,10 +1247,11 @@ class OnDemandMetricSpec:
             if not match:
                 raise InvalidSearchQuery(f"Invalid characters in field {value}")
 
-            function, _, arguments, alias = query_builder.parse_function(match)
-
+            function, arguments, alias = _parse_function(match)
             if function:
                 return FieldParsingResult(function=function, arguments=arguments, alias=alias)
+
+            # TODO: why is this here?
             column = query_builder.resolve_column(value)
             return column
         except InvalidSearchQuery as e:
