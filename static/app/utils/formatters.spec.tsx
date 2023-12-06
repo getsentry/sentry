@@ -401,7 +401,6 @@ describe('parseLargestSuffix', () => {
 
 describe('formatNumberWithDynamicDecimals', () => {
   it('rounds to two decimal points without forcing them', () => {
-    expect(formatNumberWithDynamicDecimalPoints(0)).toEqual('0');
     expect(formatNumberWithDynamicDecimalPoints(1)).toEqual('1');
     expect(formatNumberWithDynamicDecimalPoints(1.0)).toEqual('1');
     expect(formatNumberWithDynamicDecimalPoints(1.5)).toEqual('1.5');
@@ -416,5 +415,12 @@ describe('formatNumberWithDynamicDecimals', () => {
     expect(formatNumberWithDynamicDecimalPoints(0.001234)).toEqual('0.0012');
     expect(formatNumberWithDynamicDecimalPoints(0.000125)).toEqual('0.00013');
     expect(formatNumberWithDynamicDecimalPoints(0.0000123)).toEqual('0.000012');
+  });
+
+  it('handles zero, NaN and Infinity', () => {
+    expect(formatNumberWithDynamicDecimalPoints(0)).toEqual('0');
+    expect(formatNumberWithDynamicDecimalPoints(NaN)).toEqual('NaN');
+    expect(formatNumberWithDynamicDecimalPoints(Infinity)).toEqual('∞');
+    expect(formatNumberWithDynamicDecimalPoints(-Infinity)).toEqual('-∞');
   });
 });
