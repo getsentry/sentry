@@ -1,5 +1,6 @@
 import {Members} from 'sentry-fixture/members';
 import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -19,8 +20,8 @@ describe('TeamMembers', function () {
   let createMock;
 
   const organization = Organization();
-  const team = TestStubs.Team();
-  const managerTeam = TestStubs.Team({orgRole: 'manager'});
+  const team = Team();
+  const managerTeam = Team({orgRole: 'manager'});
   const members = Members();
   const member = TestStubs.Member({
     id: '9',
@@ -404,7 +405,7 @@ describe('TeamMembers', function () {
   });
 
   it('cannot add or remove members if team is idp:provisioned', function () {
-    const team2 = TestStubs.Team({
+    const team2 = Team({
       flags: {
         'idp:provisioned': true,
       },
@@ -452,7 +453,7 @@ describe('TeamMembers', function () {
   });
 
   it('cannot add or remove members or leave if team has org role and no access', function () {
-    const team2 = TestStubs.Team({orgRole: 'manager'});
+    const team2 = Team({orgRole: 'manager'});
 
     const me = TestStubs.Member({
       id: '123',

@@ -87,7 +87,6 @@ export interface MetricWidgetQueryParams
   extends Pick<MetricsQuery, 'mri' | 'op' | 'query' | 'groupBy'> {
   displayType: MetricDisplayType;
   focusedSeries?: string;
-  position?: number;
   powerUserMode?: boolean;
   showSummaryTable?: boolean;
   sort?: SortState;

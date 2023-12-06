@@ -40,6 +40,10 @@ type QueryBuilderProps = {
 const isShownByDefault = (metric: MetricMeta) =>
   isMeasurement(metric) || isCustomMetric(metric) || isTransactionDuration(metric);
 
+function stopPropagation(e: React.MouseEvent) {
+  e.stopPropagation();
+}
+
 export function QueryBuilder({
   metricsQuery,
   projects,
@@ -183,7 +187,8 @@ export function QueryBuilder({
           />
         </WrapPageFilterBar>
       </QueryBuilderRow>
-      <QueryBuilderRow>
+      {/* Stop propagation so widget does not get selected immediately */}
+      <QueryBuilderRow onClick={stopPropagation}>
         <MetricSearchBar
           // TODO(aknaus): clean up projectId type in ddm
           projectIds={projects.map(id => id.toString())}
