@@ -209,9 +209,6 @@ DATABASES = {
 if "DATABASE_URL" in os.environ:
     url = urlparse(os.environ["DATABASE_URL"])
 
-    # Ensure default database exists.
-    DATABASES["default"] = DATABASES.get("default", {})
-
     # Update with environment configuration.
     DATABASES["default"].update(
         {
@@ -222,8 +219,6 @@ if "DATABASE_URL" in os.environ:
             "PORT": url.port,
         }
     )
-    if url.scheme == "postgres":
-        DATABASES["default"]["ENGINE"] = "sentry.db.postgres"
 
 
 # This should always be UTC.
