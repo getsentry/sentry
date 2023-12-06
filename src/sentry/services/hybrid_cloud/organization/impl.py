@@ -109,14 +109,18 @@ class DatabaseBackedOrganizationService(OrganizationService):
         user_id: Optional[int] = None,
     ) -> Optional[RpcOrganizationSummary]:
         query = Organization.objects.filter(slug=slug)
+        print("Query: ", query)
         if user_id is not None:
+            print("user_id: ", user_id)
             query = query.filter(
                 status=OrganizationStatus.ACTIVE,
                 member_set__user_id=user_id,
             )
+            print("Query: ", query)
         try:
             return serialize_organization_summary(query.get())
         except Organization.DoesNotExist:
+            print("Org not found")
             return None
 
     def get_organizations_by_user_and_scope(
@@ -286,7 +290,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
     def update_flags(self, *, organization_id: int, flags: RpcOrganizationFlagsUpdate) -> None:
         updates: F | CombinedExpression = models.F("flags")
-        for (name, value) in flags.items():
+        for name, value in flags.items():
             if value is True:
                 updates = updates.bitor(getattr(Organization.flags, name))
             elif value is False:

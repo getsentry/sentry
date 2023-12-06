@@ -1,3 +1,5 @@
+from django.urls import reverse
+
 from sentry.api.fields.sentry_slug import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.testutils.cases import APITestCase
@@ -79,6 +81,46 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
         # Org the User is not a part of
         response = self.get_error_response(self.super_org.slug, status_code=404)
         assert response.status_code == 404
+
+    def test_user_token_only_sees_installs_on_their_org(self):
+        user_token = self.create_user_auth_token(user=self.user, scope_list=["org:read"])
+
+        response = self.get_success_response(
+            self.org.slug,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {user_token.token}"},
+            status_code=200,
+        )
+
+        assert response.data == [
+            {
+                "app": {"slug": self.unpublished_app.slug, "uuid": self.unpublished_app.uuid},
+                "organization": {"slug": self.org.slug},
+                "uuid": self.installation2.uuid,
+                "code": self.installation2.api_grant.code,
+                "status": "installed",
+            }
+        ]
+
+    def test_integration_token_works(self):
+        integration_token = self.create_org_auth_token(
+            organization=self.org, user=self.user, scopes=["org:read"]
+        )
+
+        response = self.get_success_response(
+            self.org.slug,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {integration_token.token}"},
+            status_code=200,
+        )
+
+        assert response.data == [
+            {
+                "app": {"slug": self.unpublished_app.slug, "uuid": self.unpublished_app.uuid},
+                "organization": {"slug": self.org.slug},
+                "uuid": self.installation2.uuid,
+                "code": self.installation2.api_grant.code,
+                "status": "installed",
+            }
+        ]
 
 
 @control_silo_test
