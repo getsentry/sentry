@@ -49,12 +49,8 @@ function ThresholdStatuses({project, release, organization, selectedEnvs}: Props
   useEffect(() => {
     fetchThresholdStatusCallback().then(thresholds => {
       const list = thresholds[`${project.slug}-${release.version}`];
-      const lastDeploy = release.lastDeploy;
-      const filtered = list?.filter(status => {
-        return status.environment?.name === lastDeploy?.environment;
-      });
       const sorted =
-        filtered?.sort((a, b) => {
+        list?.sort((a, b) => {
           const keyA: string = a.environment ? a.environment.name : '';
           const keyB: string = b.environment ? b.environment.name : '';
 
