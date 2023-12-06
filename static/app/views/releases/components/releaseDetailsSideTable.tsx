@@ -7,11 +7,11 @@ type Props = {
   type?: undefined | 'error' | 'warning';
 };
 
-export const Table = styled('dl')<{noMargin?: boolean}>`
+export const ReleaseDetailsTable = styled('dl')<{noMargin?: boolean}>`
   ${p => (p.noMargin ? 'margin-bottom: 0;' : null)}
 `;
 
-export function TableRow({type, children}: Props) {
+export function ReleaseDetailsTableRow({type, children}: Props) {
   return <Row type={type}>{children}</Row>;
 }
 

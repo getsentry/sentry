@@ -7,7 +7,10 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getExactDuration} from 'sentry/utils/formatters';
 
-import {Table, TableRow} from '../../../components/sideTable';
+import {
+  ReleaseDetailsTable,
+  ReleaseDetailsTableRow,
+} from '../../../components/releaseDetailsSideTable';
 import {ThresholdStatus} from '../../../utils/types';
 
 type Props = {
@@ -30,9 +33,12 @@ function ThresholdStatuses({thresholdStatuses}: Props) {
     <SidebarSection.Wrap>
       <SidebarSection.Title>{t('Threshold Statuses')}</SidebarSection.Title>
       <SidebarSection.Content>
-        <Table>
+        <ReleaseDetailsTable>
           {sortedThreshold?.map(status => (
-            <TableRow key={status.id} type={status.is_healthy ? undefined : 'error'}>
+            <ReleaseDetailsTableRow
+              key={status.id}
+              type={status.is_healthy ? undefined : 'error'}
+            >
               <RowGrid>
                 <div>{status.environment?.name}</div>
                 <div>{getExactDuration(status.window_in_seconds, true, 'seconds')}</div>
@@ -48,9 +54,9 @@ function ThresholdStatuses({thresholdStatuses}: Props) {
                   )}
                 </AlignRight>
               </RowGrid>
-            </TableRow>
+            </ReleaseDetailsTableRow>
           ))}
-        </Table>
+        </ReleaseDetailsTable>
       </SidebarSection.Content>
     </SidebarSection.Wrap>
   );
