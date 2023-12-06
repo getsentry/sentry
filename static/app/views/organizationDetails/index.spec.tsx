@@ -39,7 +39,7 @@ describe('OrganizationDetails', function () {
     });
     getTeamsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/teams/',
-      body: [TestStubs.Team()],
+      body: [Team()],
     });
     getProjectsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',

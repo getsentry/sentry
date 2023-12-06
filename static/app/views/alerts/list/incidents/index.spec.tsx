@@ -223,7 +223,7 @@ describe('IncidentsList', () => {
   });
 
   it('displays owner from alert rule', async () => {
-    const team = TestStubs.Team();
+    const team = Team();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [

@@ -7,7 +7,7 @@ import TeamResolutionTime from 'sentry/views/organizationStats/teamInsights/team
 
 describe('TeamResolutionTime', () => {
   it('should render graph of issue time to resolution', () => {
-    const team = TestStubs.Team();
+    const team = Team();
     const organization = Organization();
     const timeToResolutionApi = MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${team.slug}/time-to-resolution/`,

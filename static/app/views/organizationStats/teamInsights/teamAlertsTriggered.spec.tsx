@@ -7,7 +7,7 @@ import TeamAlertsTriggered from 'sentry/views/organizationStats/teamInsights/tea
 
 describe('TeamAlertsTriggered', () => {
   it('should render graph of alerts triggered', () => {
-    const team = TestStubs.Team();
+    const team = Team();
     const organization = Organization();
     const project = TestStubs.Project();
 

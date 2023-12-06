@@ -22,8 +22,8 @@ jest.mock('sentry/actionCreators/members', () => ({
 }));
 
 describe('OrganizationMemberDetail', function () {
-  const team = TestStubs.Team();
-  const idpTeam = TestStubs.Team({
+  const team = Team();
+  const idpTeam = Team({
     id: '3',
     slug: 'idp-member-team',
     name: 'Idp Member Team',
@@ -32,8 +32,8 @@ describe('OrganizationMemberDetail', function () {
       'idp:provisioned': true,
     },
   });
-  const managerTeam = TestStubs.Team({id: '5', orgRole: 'manager', slug: 'manager-team'});
-  const otherManagerTeam = TestStubs.Team({
+  const managerTeam = Team({id: '5', orgRole: 'manager', slug: 'manager-team'});
+  const otherManagerTeam = Team({
     id: '4',
     slug: 'org-role-team',
     name: 'Org Role Team',
@@ -42,7 +42,7 @@ describe('OrganizationMemberDetail', function () {
   });
   const teams = [
     team,
-    TestStubs.Team({
+    Team({
       id: '2',
       slug: 'new-team',
       name: 'New Team',

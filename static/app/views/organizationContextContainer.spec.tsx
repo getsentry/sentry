@@ -18,7 +18,7 @@ jest.mock('sentry/stores/configStore', () => ({
 
 describe('OrganizationContextContainer', function () {
   const {organization, projects, routerProps} = initializeOrg();
-  const teams = [TestStubs.Team()];
+  const teams = [Team()];
 
   const api = new MockApiClient();
   let getOrgMock: jest.Mock;

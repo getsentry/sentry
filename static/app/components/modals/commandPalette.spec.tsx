@@ -31,7 +31,7 @@ function renderMockRequests() {
 
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/teams/',
-    body: [TestStubs.Team({slug: 'foo-team'})],
+    body: [Team({slug: 'foo-team'})],
   });
 
   MockApiClient.addMockResponse({

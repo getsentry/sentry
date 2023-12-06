@@ -23,7 +23,7 @@ describe('OrganizationMemberRow', function () {
     groupOrgRoles: [],
   });
 
-  const managerTeam = TestStubs.Team({
+  const managerTeam = Team({
     orgRole: 'manager',
   });
 

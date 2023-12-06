@@ -14,7 +14,7 @@ describe('TeamAccessRequestModal', function () {
   const closeModal = jest.fn();
   const orgId = Organization().slug;
   const memberId = TestStubs.Member().id;
-  const teamId = TestStubs.Team().slug;
+  const teamId = Team().slug;
 
   const styledWrapper = styled(c => c.children);
   const modalRenderProps: CreateTeamAccessRequestModalProps = {

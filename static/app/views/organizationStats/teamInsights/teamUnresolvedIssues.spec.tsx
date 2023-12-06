@@ -6,7 +6,7 @@ import {TeamUnresolvedIssues} from './teamUnresolvedIssues';
 
 describe('TeamUnresolvedIssues', () => {
   it('should render graph with table with % change', async () => {
-    const team = TestStubs.Team();
+    const team = Team();
     const project = TestStubs.Project();
     const organization = Organization({projects: [project]});
     const issuesApi = MockApiClient.addMockResponse({

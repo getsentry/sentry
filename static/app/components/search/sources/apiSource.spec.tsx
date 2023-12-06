@@ -48,7 +48,7 @@ describe('ApiSource', function () {
     });
     teamsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/teams/',
-      body: [TestStubs.Team({slug: 'foo-team'})],
+      body: [Team({slug: 'foo-team'})],
     });
     membersMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',

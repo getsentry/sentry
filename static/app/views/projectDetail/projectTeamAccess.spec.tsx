@@ -10,7 +10,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     render(
       <ProjectTeamAccess
         organization={organization}
-        project={TestStubs.Project({teams: [TestStubs.Team()]})}
+        project={TestStubs.Project({teams: [Team()]})}
       />,
       {context: routerContext}
     );
@@ -23,7 +23,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     render(
       <ProjectTeamAccess
         organization={organization}
-        project={TestStubs.Project({teams: [TestStubs.Team()]})}
+        project={TestStubs.Project({teams: [Team()]})}
       />,
       {context: routerContext}
     );
@@ -63,13 +63,13 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
         organization={organization}
         project={TestStubs.Project({
           teams: [
-            TestStubs.Team({slug: 'team1'}),
-            TestStubs.Team({slug: 'team2'}),
-            TestStubs.Team({slug: 'team3'}),
-            TestStubs.Team({slug: 'team4'}),
-            TestStubs.Team({slug: 'team5'}),
-            TestStubs.Team({slug: 'team6'}),
-            TestStubs.Team({slug: 'team7'}),
+            Team({slug: 'team1'}),
+            Team({slug: 'team2'}),
+            Team({slug: 'team3'}),
+            Team({slug: 'team4'}),
+            Team({slug: 'team5'}),
+            Team({slug: 'team6'}),
+            Team({slug: 'team7'}),
           ],
         })}
       />,
@@ -90,11 +90,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
       <ProjectTeamAccess
         organization={organization}
         project={TestStubs.Project({
-          teams: [
-            TestStubs.Team({slug: 'c'}),
-            TestStubs.Team({slug: 'z'}),
-            TestStubs.Team({slug: 'a'}),
-          ],
+          teams: [Team({slug: 'c'}), Team({slug: 'z'}), Team({slug: 'a'})],
         })}
       />,
       {context: routerContext}

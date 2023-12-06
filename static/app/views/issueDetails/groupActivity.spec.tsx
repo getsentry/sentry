@@ -54,7 +54,7 @@ describe('GroupActivity', function () {
       organization: additionalOrg,
     });
     GroupStore.add([group]);
-    TeamStore.loadInitialData([TestStubs.Team({id: '999', slug: 'no-team'})]);
+    TeamStore.loadInitialData([Team({id: '999', slug: 'no-team'})]);
     OrganizationStore.onUpdate(organization, {replace: true});
     return render(
       <GroupActivity
@@ -298,7 +298,7 @@ describe('GroupActivity', function () {
   });
 
   it('requests assignees that are not in the team store', async function () {
-    const team = TestStubs.Team({id: '123', name: 'workflow'});
+    const team = Team({id: '123', name: 'workflow'});
     const teamRequest = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/teams/`,
       body: [team],

@@ -134,7 +134,7 @@ describe('Avatar', function () {
     });
 
     it('can display a team Avatar', function () {
-      const team = TestStubs.Team({slug: 'test-team_test'});
+      const team = Team({slug: 'test-team_test'});
 
       render(<AvatarComponent team={team} />);
 

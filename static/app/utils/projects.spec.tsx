@@ -205,7 +205,7 @@ describe('utils.projects', function () {
         )
       );
 
-      const newTeam = TestStubs.Team();
+      const newTeam = Team();
       act(() => ProjectsStore.onAddTeam(newTeam, 'foo'));
 
       await waitFor(() =>
@@ -650,7 +650,7 @@ describe('utils.projects', function () {
         )
       );
 
-      const newTeam = TestStubs.Team();
+      const newTeam = Team();
       act(() => ProjectsStore.onAddTeam(newTeam, 'a'));
 
       // Expect new team information to be available

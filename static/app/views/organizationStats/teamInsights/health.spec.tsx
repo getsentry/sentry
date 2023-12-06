@@ -20,21 +20,21 @@ jest.mock('sentry/utils/isActiveSuperuser', () => ({
 describe('TeamStatsHealth', () => {
   const project1 = TestStubs.Project({id: '2', name: 'js', slug: 'js'});
   const project2 = TestStubs.Project({id: '3', name: 'py', slug: 'py'});
-  const team1 = TestStubs.Team({
+  const team1 = Team({
     id: '2',
     slug: 'frontend',
     name: 'frontend',
     projects: [project1],
     isMember: true,
   });
-  const team2 = TestStubs.Team({
+  const team2 = Team({
     id: '3',
     slug: 'backend',
     name: 'backend',
     projects: [project2],
     isMember: true,
   });
-  const team3 = TestStubs.Team({
+  const team3 = Team({
     id: '4',
     slug: 'internal',
     name: 'internal',

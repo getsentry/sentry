@@ -11,7 +11,7 @@ describe('groupDetails', () => {
   const baseUrl = 'BASE_URL/';
   const organization = Organization();
   const project = TestStubs.Project({
-    teams: [TestStubs.Team()],
+    teams: [Team()],
   });
 
   describe('issue category: error, js project', () => {

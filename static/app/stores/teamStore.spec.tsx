@@ -1,11 +1,11 @@
 import TeamStore from 'sentry/stores/teamStore';
 
 describe('TeamStore', function () {
-  const teamFoo = TestStubs.Team({
+  const teamFoo = Team({
     id: '1',
     slug: 'team-foo',
   });
-  const teamBar = TestStubs.Team({
+  const teamBar = Team({
     id: '2',
     slug: 'team-bar',
   });

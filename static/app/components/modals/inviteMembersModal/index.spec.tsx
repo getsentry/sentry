@@ -12,7 +12,7 @@ import InviteMembersModal, {
 import TeamStore from 'sentry/stores/teamStore';
 
 describe('InviteMembersModal', function () {
-  const team = TestStubs.Team();
+  const team = Team();
   const org = Organization({access: ['member:write'], teams: [team]});
   TeamStore.loadInitialData([team]);
 

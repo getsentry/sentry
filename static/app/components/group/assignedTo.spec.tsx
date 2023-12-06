@@ -42,7 +42,7 @@ describe('Group > AssignedTo', () => {
       email: 'johnsmith@example.com',
     });
 
-    TEAM_1 = TestStubs.Team({
+    TEAM_1 = Team({
       id: '3',
       name: 'COOL TEAM',
       slug: 'cool-team',

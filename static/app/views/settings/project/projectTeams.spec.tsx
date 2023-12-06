@@ -16,17 +16,17 @@ describe('ProjectTeams', function () {
   let project: Project;
   let routerContext: Record<string, any>;
 
-  const team1WithAdmin = TestStubs.Team({
+  const team1WithAdmin = Team({
     access: ['team:read', 'team:write', 'team:admin'],
   });
-  const team2WithAdmin = TestStubs.Team({
+  const team2WithAdmin = Team({
     id: '2',
     slug: 'team-slug-2',
     name: 'Team Name 2',
     hasAccess: true,
     access: ['team:read', 'team:write', 'team:admin'],
   });
-  const team3NoAdmin = TestStubs.Team({
+  const team3NoAdmin = Team({
     id: '3',
     slug: 'team-slug-3',
     name: 'Team Name 3',

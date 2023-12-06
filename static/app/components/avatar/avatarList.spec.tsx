@@ -14,7 +14,7 @@ function renderComponent({
 
 describe('AvatarList', () => {
   const user = TestStubs.User();
-  const team = TestStubs.Team();
+  const team = Team();
 
   it('renders with user letter avatars', () => {
     const users = [

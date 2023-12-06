@@ -10,7 +10,7 @@ import TeamStore from 'sentry/stores/teamStore';
 describe('OrganizationActionCreator', function () {
   const org = Organization();
 
-  const teams = [TestStubs.Team()];
+  const teams = [Team()];
   const projects = [TestStubs.Project()];
 
   const api = new MockApiClient();

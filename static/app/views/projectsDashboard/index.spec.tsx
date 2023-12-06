@@ -39,7 +39,7 @@ jest.mock('lodash/debounce', () => {
 describe('ProjectsDashboard', function () {
   const api = new MockApiClient();
   const org = Organization();
-  const team = TestStubs.Team();
+  const team = Team();
   const teams = [team];
 
   beforeEach(function () {
@@ -57,7 +57,7 @@ describe('ProjectsDashboard', function () {
 
   describe('empty state', function () {
     it('renders with no projects', function () {
-      const noProjectTeams = [TestStubs.Team({isMember: false, projects: []})];
+      const noProjectTeams = [Team({isMember: false, projects: []})];
 
       render(
         <Dashboard
@@ -77,7 +77,7 @@ describe('ProjectsDashboard', function () {
       const projects = [TestStubs.Project({teams, firstEvent: false})];
       ProjectsStore.loadInitialData(projects);
 
-      const teamsWithOneProject = [TestStubs.Team({projects})];
+      const teamsWithOneProject = [Team({projects})];
 
       render(
         <Dashboard
@@ -103,7 +103,7 @@ describe('ProjectsDashboard', function () {
 
   describe('with projects', function () {
     it('renders with two projects', function () {
-      const teamA = TestStubs.Team({slug: 'team1', isMember: true});
+      const teamA = Team({slug: 'team1', isMember: true});
       const projects = [
         TestStubs.Project({
           id: '1',
@@ -121,7 +121,7 @@ describe('ProjectsDashboard', function () {
       ];
 
       ProjectsStore.loadInitialData(projects);
-      const teamsWithTwoProjects = [TestStubs.Team({projects})];
+      const teamsWithTwoProjects = [Team({projects})];
 
       render(
         <Dashboard
@@ -138,7 +138,7 @@ describe('ProjectsDashboard', function () {
     });
 
     it('renders correct project with selected team', function () {
-      const teamC = TestStubs.Team({
+      const teamC = Team({
         id: '1',
         slug: 'teamC',
         isMember: true,
@@ -153,7 +153,7 @@ describe('ProjectsDashboard', function () {
           }),
         ],
       });
-      const teamD = TestStubs.Team({
+      const teamD = Team({
         id: '2',
         slug: 'teamD',
         isMember: true,
@@ -229,7 +229,7 @@ describe('ProjectsDashboard', function () {
     });
 
     it('renders projects by search', async function () {
-      const teamA = TestStubs.Team({slug: 'team1', isMember: true});
+      const teamA = Team({slug: 'team1', isMember: true});
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/projects/`,
         body: [],
@@ -251,7 +251,7 @@ describe('ProjectsDashboard', function () {
       ];
 
       ProjectsStore.loadInitialData(projects);
-      const teamsWithTwoProjects = [TestStubs.Team({projects})];
+      const teamsWithTwoProjects = [Team({projects})];
 
       render(
         <Dashboard
@@ -274,7 +274,7 @@ describe('ProjectsDashboard', function () {
     });
 
     it('renders bookmarked projects first in team list', function () {
-      const teamA = TestStubs.Team({slug: 'team1', isMember: true});
+      const teamA = Team({slug: 'team1', isMember: true});
       const projects = [
         TestStubs.Project({
           id: '11',
@@ -321,7 +321,7 @@ describe('ProjectsDashboard', function () {
       ];
 
       ProjectsStore.loadInitialData(projects);
-      const teamsWithFavProjects = [TestStubs.Team({projects})];
+      const teamsWithFavProjects = [Team({projects})];
 
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/projects/`,
@@ -365,7 +365,7 @@ describe('ProjectsDashboard', function () {
   });
 
   describe('ProjectsStatsStore', function () {
-    const teamA = TestStubs.Team({slug: 'team1', isMember: true});
+    const teamA = Team({slug: 'team1', isMember: true});
     const projects = [
       TestStubs.Project({
         id: '1',
@@ -405,7 +405,7 @@ describe('ProjectsDashboard', function () {
       }),
     ];
 
-    const teamsWithStatTestProjects = [TestStubs.Team({projects})];
+    const teamsWithStatTestProjects = [Team({projects})];
 
     it('uses ProjectsStatsStore to load stats', async function () {
       ProjectsStore.loadInitialData(projects);

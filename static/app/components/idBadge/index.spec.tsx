@@ -13,7 +13,7 @@ describe('IdBadge', function () {
   });
 
   it('renders the correct component when `team` property is passed', function () {
-    render(<IdBadge team={TestStubs.Team()} />);
+    render(<IdBadge team={Team()} />);
     expect(screen.getByTestId('badge-styled-avatar')).toHaveTextContent('TS');
     expect(screen.getByTestId('badge-display-name')).toHaveTextContent('#team-slug');
   });

@@ -32,7 +32,7 @@ const mockRefObject = {
 };
 
 describe('InviteMissingMembersModal', function () {
-  const team = TestStubs.Team();
+  const team = Team();
   const org = Organization({access: ['member:write'], teams: [team]});
   TeamStore.loadInitialData([team]);
   const missingMembers = MissingMembers();

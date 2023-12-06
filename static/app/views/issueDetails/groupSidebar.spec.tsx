@@ -192,7 +192,7 @@ describe('GroupSidebar', function () {
     const org = {
       ...organization,
     };
-    const teams = [{...TestStubs.Team(), type: 'team'}];
+    const teams = [{...Team(), type: 'team'}];
     const users = [
       TestStubs.User({
         id: '2',

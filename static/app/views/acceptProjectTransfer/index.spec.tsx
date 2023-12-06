@@ -20,7 +20,7 @@ describe('AcceptProjectTransfer', function () {
       method: 'GET',
       body: {
         project: TestStubs.Project(),
-        organizations: [Organization({teams: [TestStubs.Team()]})],
+        organizations: [Organization({teams: [Team()]})],
       },
     });
 
@@ -51,7 +51,7 @@ describe('AcceptProjectTransfer', function () {
       method: 'GET',
       body: {
         project: TestStubs.Project(),
-        organizations: [Organization({teams: [TestStubs.Team()]})],
+        organizations: [Organization({teams: [Team()]})],
       },
       match: [(_url, options) => options.host === 'http://us.sentry.io'],
     });

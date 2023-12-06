@@ -24,7 +24,7 @@ const EXAMPLE_INTEGRATION = {
 
 describe('TeamNotificationSettings', () => {
   const {organization, routerContext, routerProps} = initializeOrg();
-  const team = TestStubs.Team();
+  const team = Team();
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();

@@ -46,7 +46,7 @@ describe('AssigneeSelector', () => {
       team_slug: 'cool-team2',
     });
 
-    TEAM_1 = TestStubs.Team({
+    TEAM_1 = Team({
       id: '3',
       name: 'COOL TEAM',
       slug: 'cool-team',
