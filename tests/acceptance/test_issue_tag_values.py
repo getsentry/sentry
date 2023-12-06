@@ -14,7 +14,9 @@ class IssueTagValuesTest(AcceptanceTestCase, SnubaTestCase):
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
-        self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
+        self.project = self.create_project(
+            organization=self.org, teams=[self.team], name="Bengal", date_added=before_now(hours=2)
+        )
         self.login_as(self.user)
         self.page = IssueDetailsPage(self.browser, self.client)
         self.dismiss_assistant()
