@@ -104,14 +104,20 @@ export type MetricsQuery = {
   query?: string;
 };
 
+export type MetricCodeLocationFrame = {
+  absPath?: string;
+  contextLine?: string;
+  filename?: string;
+  function?: string;
+  lineNo?: number;
+  module?: string;
+  platform?: string;
+  postContext?: string[];
+  preContext?: string[];
+};
+
 export type MetricMetaCodeLocation = {
-  frames: {
-    absPath?: string;
-    filename?: string;
-    function?: string;
-    lineNo?: number;
-    module?: string;
-  }[];
+  frames: MetricCodeLocationFrame[];
   mri: string;
   timestamp: number;
 };
