@@ -2962,7 +2962,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         expected_dataset: Optional[str] = "metricsEnhanced",
     ) -> Response:
         """Do a request to the events endpoint with metrics enhanced and on-demand enabled."""
-        for field in params.get("field"):
+        for field in params["field"]:
             spec = OnDemandMetricSpec(
                 field=field,
                 query=params["query"],
@@ -2983,13 +2983,15 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         assert meta.get("isMetricsExtractedData", False) is expected_on_demand_query
         assert meta["dataset"] == expected_dataset
 
+        return response
+
     def test_is_metrics_extracted_data_is_included(self) -> None:
         self._on_demand_query_check(
             {"field": ["count()"], "query": "transaction.duration:>=91", "yAxis": "count()"}
         )
 
     def test_transaction_user_misery(self) -> None:
-        self._on_demand_query_check(
+        resp = self._on_demand_query_check(
             {
                 # TODO: Create environment for organization
                 # "environment": "production",  # Adding this gives a 404
@@ -3006,6 +3008,18 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
             },
             groupbys=["transaction"],
         )
+        assert resp.data == {
+            "data": [{"user_misery_300": 0.05}],
+            "meta": {
+                "fields": {"user_misery_300": "number"},
+                "units": {"user_misery_300": None},
+                "isMetricsData": True,
+                "isMetricsExtractedData": True,
+                "tips": {},
+                "datasetReason": "unchanged",
+                "dataset": "metricsEnhanced",
+            },
+        }
 
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
