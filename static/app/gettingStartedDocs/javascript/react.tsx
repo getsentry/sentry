@@ -56,7 +56,7 @@ return <button onClick={() => methodDoesNotExist()}>Break the world</button>;
 
 const onboarding: OnboardingConfig = {
   introduction: () => [],
-  install: (_params: Params) => [
+  install: () => [
     {
       type: StepType.INSTALL,
       configurations: [
@@ -106,11 +106,11 @@ const onboarding: OnboardingConfig = {
         },
       ],
     },
-  ],
-  verify: () => [
     getUploadSourceMapsStep({
       guideLink: 'https://docs.sentry.io/platforms/javascript/guides/react/sourcemaps/',
     }),
+  ],
+  verify: () => [
     {
       type: StepType.VERIFY,
       description: t(
