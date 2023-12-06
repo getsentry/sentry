@@ -50,13 +50,9 @@ export const steps = ({
   {
     type: StepType.CONFIGURE,
     description: tct(
-      'Add the following to your SDK config. There are several privacy and sampling options available, all of which can be set using the [codeIntegrations:integrations] constructor. Learn more about configuring Session Replay by reading the [link:configuration docs]. [break] [break] Alert: The Replay integration must be added to your [codeClient:sentry.client.config.js] file. Adding it into [codeServer:sentry.server.config.js] or [codeEdge:sentry.edge.config.js] may break your build.',
+      'Add the following to your SDK config. There are several privacy and sampling options available, all of which can be set using the [codeIntegrations:integrations] constructor. Learn more about configuring Session Replay by reading the [link:configuration docs].',
       {
         codeIntegrations: <code />,
-        codeClient: <code />,
-        codeServer: <code />,
-        codeEdge: <code />,
-        break: <br />,
         link: (
           <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/" />
         ),
@@ -74,6 +70,10 @@ export const steps = ({
         `,
       },
     ],
+    additionalInfo: tct(
+      'Note: The Replay integration must be added to your [codeClient:sentry.client.config.js] file. Adding it into [codeServer:sentry.server.config.js] or [codeEdge:sentry.edge.config.js] may break your build.',
+      {codeClient: <code />, codeServer: <code />, codeEdge: <code />}
+    ),
   },
 ];
 

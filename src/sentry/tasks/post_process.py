@@ -1344,11 +1344,6 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
     return False
 
 
-def get_project_counts(project: Project) -> int:
-    # Dummy function, we'll replace this in a later pr.
-    return 1000
-
-
 MAX_NEW_ESCALATION_AGE_HOURS = 24
 
 
@@ -1360,6 +1355,7 @@ def detect_new_escalation(job: PostProcessJob):
     If we detect that the group has escalated, set has_escalated to True in the
     job.
     """
+    from sentry.issues.issue_velocity import get_latest_threshold
     from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 
     group = job["event"].group
@@ -1373,15 +1369,32 @@ def detect_new_escalation(job: PostProcessJob):
     # Get escalation lock for this group. If we're unable to acquire this lock, another process is handling
     # this group at the same time. In that case, just exit early, no need to retry.
     lock = locks.get(f"detect_escalation:{group.id}", duration=10, name="detect_escalation")
+    extra = {
+        "org_id": group.organization.id,
+        "project_Id": job["event"].project.id,
+        "group_id": group.id,
+    }
     try:
         with lock.acquire():
-            project_escalation_rate = get_project_counts(group.project)
+            project_escalation_rate = get_latest_threshold(job["event"].project)
             group_hourly_event_rate = group.times_seen_with_pending / group_age_hours
-            if group_hourly_event_rate > project_escalation_rate:
+            # a rate of 0 means there was no threshold that could be calculated
+            if project_escalation_rate > 0 and group_hourly_event_rate > project_escalation_rate:
                 job["has_escalated"] = True
                 group.update(substatus=GroupSubStatus.ESCALATING)
                 add_group_to_inbox(group, GroupInboxReason.ESCALATING)
-    except UnableToAcquireLock:
+    except UnableToAcquireLock as error:
+        extra["error"] = error
+        logger.warning(
+            "tasks.post_process.detect_new_escalation.unable_to_acquire_lock", extra=extra
+        )
+        return
+    except Exception as error:
+        metrics.incr("tasks.post_process.detect_new_escalation.failed")
+        extra["error"] = error
+        logger.exception(
+            "Unexpected error type while calling `get_latest_threshold()`", extra=extra
+        )
         return
 
 

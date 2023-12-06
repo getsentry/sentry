@@ -1982,19 +1982,21 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         event.group = Group.objects.get(id=group.id)
 
         with self.feature("projects:first-event-severity-new-escalation"):
-            self.call_post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=True,
-                event=event,
-            )
+            with patch("sentry.issues.issue_velocity.calculate_threshold", return_value=9999):
+                self.call_post_process_group(
+                    is_new=True,
+                    is_regression=False,
+                    is_new_group_environment=True,
+                    event=event,
+                )
         job = mock_run_post_process_job.call_args[0][0]
         assert job["has_escalated"]
         group.refresh_from_db()
         assert group.substatus == GroupSubStatus.ESCALATING
 
+    @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=1)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
-    def test_has_escalated_no_flag(self, mock_run_post_process_job):
+    def test_has_escalated_no_flag(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
         group.update(first_seen=datetime.now() - timedelta(hours=1), times_seen=10000)
@@ -2010,8 +2012,9 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         group.refresh_from_db()
         assert group.substatus == GroupSubStatus.NEW
 
+    @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=1)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
-    def test_has_escalated_old(self, mock_run_post_process_job):
+    def test_has_escalated_old(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
         group.update(first_seen=datetime.now() - timedelta(days=2), times_seen=10000)
@@ -2028,8 +2031,9 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         group.refresh_from_db()
         assert group.substatus == GroupSubStatus.NEW
 
+    @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=2)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
-    def test_has_escalated_low_rate(self, mock_run_post_process_job):
+    def test_has_not_escalated(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
         group.update(first_seen=datetime.now() - timedelta(hours=1), times_seen=1)
@@ -2046,8 +2050,9 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         group.refresh_from_db()
         assert group.substatus == GroupSubStatus.NEW
 
+    @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=1)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
-    def test_has_escalated_locked(self, mock_run_post_process_job):
+    def test_has_escalated_locked(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
         group.update(first_seen=datetime.now() - timedelta(hours=1), times_seen=10000)
@@ -2064,8 +2069,9 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         group.refresh_from_db()
         assert group.substatus == GroupSubStatus.NEW
 
+    @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=1)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
-    def test_has_escalated_already_escalated(self, mock_run_post_process_job):
+    def test_has_escalated_already_escalated(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
         self.call_post_process_group(
@@ -2090,6 +2096,49 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         assert not job["has_escalated"]
         group.refresh_from_db()
         assert group.substatus == GroupSubStatus.ESCALATING
+
+    @patch("sentry.utils.metrics.incr")
+    @patch(
+        "sentry.issues.issue_velocity.get_latest_threshold",
+        side_effect=Exception("mocked exception"),
+    )
+    @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
+    def test_has_escalated_exception(
+        self, mock_run_post_process_job, mock_threshold, metric_incr_mock
+    ):
+        event = self.create_event(data={}, project_id=self.project.id)
+        group = event.group
+        group.update(first_seen=datetime.now() - timedelta(hours=1), times_seen=10000)
+        with self.feature("projects:first-event-severity-new-escalation"):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
+        metric_incr_mock.assert_any_call("tasks.post_process.detect_new_escalation.failed")
+        job = mock_run_post_process_job.call_args[0][0]
+        assert not job["has_escalated"]
+        group.refresh_from_db()
+        assert group.substatus == GroupSubStatus.NEW
+
+    @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=0)
+    @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
+    def test_zero_escalation_rate(self, mock_run_post_process_job, mock_threshold):
+        event = self.create_event(data={}, project_id=self.project.id)
+        group = event.group
+        group.update(first_seen=datetime.now() - timedelta(hours=1), times_seen=10000)
+        with self.feature("projects:first-event-severity-new-escalation"):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
+        job = mock_run_post_process_job.call_args[0][0]
+        assert not job["has_escalated"]
+        group.refresh_from_db()
+        assert group.substatus == GroupSubStatus.NEW
 
 
 @region_silo_test

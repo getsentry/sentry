@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
@@ -72,6 +70,10 @@ export const steps = ({
         `,
       },
     ],
+    additionalInfo: tct(
+      'Note: The Replay integration only needs to be added to your [codeEntry:entry.client.tsx] file. It will not run if it is added into [codeSentry:sentry.server.config.js].',
+      {codeEntry: <code />, codeSentry: <code />}
+    ),
   },
 ];
 
@@ -92,28 +94,19 @@ export function GettingStartedWithRemixReplay({
   sentryInitContent = sentryInitContent.concat(otherConfigs);
 
   return (
-    <Fragment>
-      <Layout
-        steps={steps({
-          sentryInitContent: sentryInitContent.join('\n'),
-          organization,
-          newOrg,
-          platformKey,
-          projectId,
-        })}
-        platformKey={platformKey}
-        newOrg={newOrg}
-        hideHeader
-        {...props}
-      />
-      <div>
-        <br />
-        {tct(
-          'Note: The Replay integration only needs to be added to your [codeEntry:entry.client.tsx] file. It will not run if it is added into [codeSentry:sentry.server.config.js].',
-          {codeEntry: <code />, codeSentry: <code />}
-        )}
-      </div>
-    </Fragment>
+    <Layout
+      steps={steps({
+        sentryInitContent: sentryInitContent.join('\n'),
+        organization,
+        newOrg,
+        platformKey,
+        projectId,
+      })}
+      platformKey={platformKey}
+      newOrg={newOrg}
+      hideHeader
+      {...props}
+    />
   );
 }
 
