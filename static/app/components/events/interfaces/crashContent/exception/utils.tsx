@@ -59,7 +59,7 @@ export function Linkify({exceptionText}: {exceptionText?: string}): ReactElement
       urls && urls[index] ? (
         <Fragment>
           <a
-            href={window.location.origin}
+            href={window.location.href + '/redirect'}
             target="_blank"
             rel="noopener noreferrer"
             onClick={handleExternalLink}
