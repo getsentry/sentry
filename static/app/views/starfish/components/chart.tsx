@@ -86,7 +86,6 @@ type Props = {
   durationUnit?: number;
   errored?: boolean;
   forwardedRef?: RefObject<ReactEchartsRef>;
-  fullSeries?: boolean;
   grid?: AreaChartProps['grid'];
   height?: number;
   hideYAxis?: boolean;
@@ -106,6 +105,7 @@ type Props = {
   }>;
   onMouseOut?: EChartMouseOutHandler;
   onMouseOver?: EChartMouseOverHandler;
+  preserveIncompletePoints?: boolean;
   previousData?: Series[];
   rateUnit?: RateUnits;
   scatterPlot?: Series[];
@@ -188,7 +188,7 @@ function Chart({
   onLegendSelectChanged,
   onDataZoom,
   legendFormatter,
-  fullSeries,
+  preserveIncompletePoints,
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
@@ -354,7 +354,7 @@ function Chart({
 
   // Trims off the last data point because it's incomplete
   const trimmedSeries =
-    !fullSeries && period && !start && !end
+    !preserveIncompletePoints && period && !start && !end
       ? series.map(serie => {
           return {
             ...serie,

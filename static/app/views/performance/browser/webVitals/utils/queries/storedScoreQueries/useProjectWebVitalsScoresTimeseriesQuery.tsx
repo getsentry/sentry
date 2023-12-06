@@ -95,46 +95,13 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
 
   result?.data?.['weighted_performance_score(measurements.score.lcp)']?.data.forEach(
     (interval, index) => {
-      const lcp: number =
-        result?.data?.['weighted_performance_score(measurements.score.lcp)']?.data[
-          index
-        ][1][0].count * 100;
-      const fcp: number =
-        result?.data?.['weighted_performance_score(measurements.score.fcp)']?.data[
-          index
-        ][1][0].count * 100;
-      const cls: number =
-        result?.data?.['weighted_performance_score(measurements.score.cls)']?.data[
-          index
-        ][1][0].count * 100;
-      const ttfb: number =
-        result?.data?.['weighted_performance_score(measurements.score.ttfb)']?.data[
-          index
-        ][1][0].count * 100;
-      const fid: number =
-        result?.data?.['weighted_performance_score(measurements.score.fid)']?.data[
-          index
-        ][1][0].count * 100;
-
-      data.cls.push({
-        value: cls ?? 0,
-        name: interval[0] * 1000,
-      });
-      data.lcp.push({
-        value: lcp ?? 0,
-        name: interval[0] * 1000,
-      });
-      data.fcp.push({
-        value: fcp ?? 0,
-        name: interval[0] * 1000,
-      });
-      data.ttfb.push({
-        value: ttfb ?? 0,
-        name: interval[0] * 1000,
-      });
-      data.fid.push({
-        value: fid ?? 0,
-        name: interval[0] * 1000,
+      ['lcp', 'fcp', 'cls', 'ttfb', 'fid'].forEach(webVital => {
+        data[webVital].push({
+          value:
+            result?.data?.[`weighted_performance_score(measurements.score.${webVital})`]
+              ?.data[index][1][0].count * 100 ?? 0,
+          name: interval[0] * 1000,
+        });
       });
     }
   );
