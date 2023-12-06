@@ -982,6 +982,14 @@ class DiscoverDatasetConfig(DatasetConfig):
                     snql_aggregate=self._resolve_web_vital_opportunity_score_function,
                     default_result_type="number",
                 ),
+                SnQLFunction(
+                    "count_scores",
+                    required_args=[
+                        NumericColumn("column"),
+                    ],
+                    snql_aggregate=self._resolve_count_scores_function,
+                    default_result_type="integer",
+                ),
             ]
         }
 
@@ -1726,6 +1734,33 @@ class DiscoverDatasetConfig(DatasetConfig):
         return Function(
             "sum",
             [Function("minus", [weight_column, Function("least", [1, column])])],
+            alias,
+        )
+
+    def _resolve_count_scores_function(self, args: Mapping[str, Column], alias: str) -> SelectType:
+        column = args["column"]
+
+        if column.key not in [
+            "score.total",
+            "score.lcp",
+            "score.fcp",
+            "score.fid",
+            "score.cls",
+            "score.ttfb",
+        ]:
+            raise InvalidSearchQuery("count_scores only supports performance score measurements")
+
+        return Function(
+            "countIf",
+            [
+                Function(
+                    "greaterOrEquals",
+                    [
+                        column,
+                        0,
+                    ],
+                )
+            ],
             alias,
         )
 
