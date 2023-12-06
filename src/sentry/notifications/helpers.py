@@ -10,12 +10,10 @@ from sentry.hybridcloud.models.externalactorreplica import ExternalActorReplica
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
 from sentry.notifications.defaults import (
-    NOTIFICATION_SETTING_DEFAULTS,
-    NOTIFICATION_SETTINGS_ALL_SOMETIMES,
+    DEFAULT_ENABLED_PROVIDERS,
+    NOTIFICATION_SETTINGS_TYPE_DEFAULTS,
 )
 from sentry.notifications.types import (
-    NOTIFICATION_SETTING_OPTION_VALUES,
-    NOTIFICATION_SETTING_TYPES,
     SUBSCRIPTION_REASON_MAP,
     VALID_VALUES_FOR_KEY,
     GroupSubscriptionReason,
@@ -24,11 +22,7 @@ from sentry.notifications.types import (
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.user.model import RpcUser
-from sentry.types.integrations import (
-    EXTERNAL_PROVIDERS,
-    PERSONAL_NOTIFICATION_PROVIDERS_AS_INT,
-    ExternalProviderEnum,
-)
+from sentry.types.integrations import PERSONAL_NOTIFICATION_PROVIDERS_AS_INT, ExternalProviderEnum
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -38,55 +32,31 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def get_provider_defaults() -> list[ExternalProviderEnum]:
-    # create the data structure outside the endpoint
-    provider_defaults = []
-    for key, value in NOTIFICATION_SETTING_DEFAULTS.items():
-        provider = EXTERNAL_PROVIDERS[key]
-        # if the value is NOTIFICATION_SETTINGS_ALL_SOMETIMES then it means the provider
-        # is on by default
-        if value == NOTIFICATION_SETTINGS_ALL_SOMETIMES:
-            provider_defaults.append(ExternalProviderEnum(provider))
-    return provider_defaults
-
-
 def get_default_for_provider(
     type: NotificationSettingEnum,
     provider: ExternalProviderEnum,
 ) -> NotificationSettingsOptionEnum:
-    defaults = PROVIDER_DEFAULTS
-    if provider not in defaults:
+    # check if the provider is enable in our defaults and that the type exists as an enum
+    if provider not in DEFAULT_ENABLED_PROVIDERS or type not in NotificationSettingEnum:
         return NotificationSettingsOptionEnum.NEVER
 
-    # Defaults are defined for the old int enum
-    _type = [key for key, val in NOTIFICATION_SETTING_TYPES.items() if val == type.value]
-    if len(_type) != 1 or _type[0] not in NOTIFICATION_SETTINGS_ALL_SOMETIMES:
-        # some keys are missing that we should default to never
+    # TODO(Steve): Make sure that all keys are present in NOTIFICATION_SETTINGS_TYPE_DEFAULTS
+    if type not in NOTIFICATION_SETTINGS_TYPE_DEFAULTS:
         return NotificationSettingsOptionEnum.NEVER
 
-    try:
-        default_value = NOTIFICATION_SETTINGS_ALL_SOMETIMES[_type[0]]
-        default_enum = NotificationSettingsOptionEnum(
-            NOTIFICATION_SETTING_OPTION_VALUES[default_value]
-        )
-    except KeyError:
-        # If we don't have a default value for the type, then it's never
-        return NotificationSettingsOptionEnum.NEVER
-
+    # special case to disable reports for non-email providers
     if type == NotificationSettingEnum.REPORTS and provider != ExternalProviderEnum.EMAIL:
         # Reports are only sent to email
         return NotificationSettingsOptionEnum.NEVER
 
-    return default_enum or NotificationSettingsOptionEnum.NEVER
+    return NOTIFICATION_SETTINGS_TYPE_DEFAULTS[type]
 
 
 def get_type_defaults() -> Mapping[NotificationSettingEnum, NotificationSettingsOptionEnum]:
     # this tells us what the default value is for each notification type
     type_defaults = {}
-    for key, value in NOTIFICATION_SETTINGS_ALL_SOMETIMES.items():
+    for notification_type, default in NOTIFICATION_SETTINGS_TYPE_DEFAULTS.items():
         # for the given notification type, figure out what the default value is
-        notification_type = NotificationSettingEnum(NOTIFICATION_SETTING_TYPES[key])
-        default = NotificationSettingsOptionEnum(NOTIFICATION_SETTING_OPTION_VALUES[value])
         type_defaults[notification_type] = default
     return type_defaults
 
@@ -190,9 +160,3 @@ def get_team_members(team: Team | RpcActor) -> list[RpcActor]:
         for user_id in members.values_list("user_id", flat=True)
         if user_id
     ]
-
-
-PROVIDER_DEFAULTS: list[ExternalProviderEnum] = get_provider_defaults()
-TYPE_DEFAULTS: Mapping[
-    NotificationSettingEnum, NotificationSettingsOptionEnum
-] = get_type_defaults()
