@@ -1387,7 +1387,7 @@ def detect_new_escalation(job: PostProcessJob):
                 group.update(substatus=GroupSubStatus.ESCALATING)
 
                 # TODO(snigdha): reuse manage_issue_states when we allow escalating from other statuses
-                add_group_to_inbox(group, GroupInboxReason.ESCALATING)\
+                add_group_to_inbox(group, GroupInboxReason.ESCALATING)
                 record_group_history(group, GroupHistoryStatus.ESCALATING)
                 Activity.objects.create_group_activity(
                     group=group,
