@@ -84,13 +84,26 @@ def send_incident_alert_notification(
     )
     attachment = build_incident_attachment(incident, new_status, metric_value, notification_uuid)
     try:
-        client.send_notification(attachment)
+        resp = client.send_notification(attachment)
+        logger.info(
+            "rule.success.opsgenie_incident_alert",
+            extra={
+                "status_code": resp.status_code,
+                "organization_id": incident.organization_id,
+                "data": attachment,
+                "status": new_status.value,
+                "team_name": team["team"],
+                "team_id": team["id"],
+                "integration_id": action.integration_id,
+            },
+        )
         return True
     except ApiError as e:
         logger.info(
             "rule.fail.opsgenie_notification",
             extra={
                 "error": str(e),
+                "data": attachment,
                 "team_name": team["team"],
                 "team_id": team["id"],
                 "integration_id": action.integration_id,
