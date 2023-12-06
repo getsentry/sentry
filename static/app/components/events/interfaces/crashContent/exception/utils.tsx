@@ -1,8 +1,7 @@
-import {Fragment, ReactElement, ReactNode, useEffect, useState} from 'react';
+import {Fragment, ReactElement, useEffect, useState} from 'react';
 
 import type {Frame} from 'sentry/types';
 import {getFileExtension} from 'sentry/utils/fileExtension';
-import {useNavigate} from 'sentry/utils/useNavigate';
 
 const fileNameBlocklist = ['@webkit-masked-url'];
 export function isFrameFilenamePathlike(frame: Frame): boolean {
@@ -25,12 +24,6 @@ export function isFrameFilenamePathlike(frame: Frame): boolean {
 
 // Detects URLs in text and renders them with anchor tags
 export function Linkify({exceptionText}: {exceptionText?: string}): ReactElement {
-  const [isOpen, setIsOpen] = useState(false);
-
-  function handleExternalLink() {
-    setIsOpen(true);
-  }
-
   if (!exceptionText) {
     return <Fragment>{''}</Fragment>;
   }
@@ -52,64 +45,54 @@ export function Linkify({exceptionText}: {exceptionText?: string}): ReactElement
   //    i makes the regex match both upper and lower case characters
 
   const parts = exceptionText.split(urlRegex);
-  const urls = exceptionText.match(urlRegex);
 
-  const elements: ReactNode[] = parts.flatMap((part, index) => {
-    const link =
-      urls && urls[index] ? (
-        <Fragment>
-          <a
-            href={window.location.href + '/redirect'}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={handleExternalLink}
-          >
-            {urls[index]}
-          </a>
-          {isOpen && <RedirectExternalLink externalUrl={urls[index]} />}
-        </Fragment>
-      ) : null;
+  const elements: React.ReactNode[] = parts.map((part, index) => {
+    const isUrl = urlRegex.test(part);
 
-    // Combine the text part and its following URL into a React Fragment
-    // Each part of the text and each link is given a unique key for React's rendering optimization
-    return [<Fragment key={`text-${index}`}>{part}</Fragment>, link];
+    return isUrl ? (
+      <a
+        key={`url-${index}`}
+        href={window.location.href + '/redirect'}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={() => RedirectExternalLink(part)}
+      >
+        {part}
+      </a>
+    ) : (
+      <Fragment key={`text-${index}`}>{part}</Fragment>
+    );
   });
 
   return <Fragment>{elements}</Fragment>;
 }
 
-interface Props {
-  externalUrl: string;
-}
-
-function RedirectExternalLink({externalUrl}: Props) {
-  // State to control redirect
+function RedirectExternalLink(externalUrl: string) {
+  // State to control the countdown
   const [count, setCount] = useState(5);
-  const navigate = useNavigate();
 
-  // Redirect after timer
   useEffect(() => {
     const timer = setInterval(() => {
-      setCount(count - 1);
+      setCount(prevCount => prevCount - 1);
     }, 1000);
 
     if (count === 0) {
+      // When the countdown reaches zero, open the external URL in a new tab
       window.open(externalUrl, '_blank');
+      clearInterval(timer); // Stop the countdown
     }
 
     return () => clearInterval(timer);
   }, [count, externalUrl]);
 
   return (
-    <Fragment>
-      <title>See You Later</title>
-
+    <div>
+      <title>Redirecting...</title>
       <p>
-        You are leaving Sentry and will be automatically redirected to {externalUrl} in{' '}
-        {count} seconds. Changed your mind?{' '}
-        <a onClick={() => navigate(-1)}>Go back to Sentry</a>
+        You are being redirected to {externalUrl} in {count} seconds. Changed your mind?{' '}
+        <a href="/">Go back</a>
       </p>
-    </Fragment>
+    </div>
   );
 }
 
