@@ -32,16 +32,67 @@ export const steps = ({
 }: Partial<StepProps> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
-    description: t('Configure your app automatically with the Sentry wizard.'),
+    description: t(
+      'Install the Sentry Capacitor SDK alongside the corresponding Sentry SDK for the framework you are using.'
+    ),
     configurations: [
       {
         language: 'bash',
+        header: tct('Using [code:NPM:]', {code: <code />}),
         code: [
           {
-            label: 'Bash',
-            value: 'bash',
+            label: 'Angular',
+            value: 'angular',
             language: 'bash',
-            code: 'npx @sentry/wizard@latest -i remix',
+            code: `npm install --save @sentry/capacitor @sentry/angular-ivy`,
+          },
+          {
+            label: 'React',
+            value: 'react',
+            language: 'bash',
+            code: `npm install --save @sentry/capacitor @sentry/react`,
+          },
+          {
+            label: 'Vue',
+            value: 'vue',
+            language: 'bash',
+            code: `npm install --save @sentry/capacitor @sentry/vue`,
+          },
+          {
+            label: 'Other',
+            value: 'other',
+            language: 'bash',
+            code: `npm install --save @sentry/capacitor @sentry/browser`,
+          },
+        ],
+      },
+      {
+        language: 'bash',
+        header: tct('Using [code:Yarn:]', {code: <code />}),
+        code: [
+          {
+            label: 'Angular',
+            value: 'angular',
+            language: 'bash',
+            code: `yarn add @sentry/capacitor @sentry/angular-ivy`,
+          },
+          {
+            label: 'React',
+            value: 'react',
+            language: 'bash',
+            code: `yarn add @sentry/capacitor @sentry/react`,
+          },
+          {
+            label: 'Vue',
+            value: 'vue',
+            language: 'bash',
+            code: `yarn add @sentry/capacitor @sentry/vue`,
+          },
+          {
+            label: 'Other',
+            value: 'other',
+            language: 'bash',
+            code: `yarn add @sentry/capacitor @sentry/browser`,
           },
         ],
       },
@@ -62,7 +113,7 @@ export const steps = ({
       {
         language: 'javascript',
         code: `
-        import * as Sentry from "@sentry/remix";
+        import * as Sentry from "@sentry/capacitor";
 
         Sentry.init({
           ${sentryInitContent}
@@ -70,16 +121,12 @@ export const steps = ({
         `,
       },
     ],
-    additionalInfo: tct(
-      'Note: The Replay integration only needs to be added to your [codeEntry:entry.client.tsx] file. It will not run if it is added into [codeSentry:sentry.server.config.js].',
-      {codeEntry: <code />, codeSentry: <code />}
-    ),
   },
 ];
 
 // Configuration End
 
-export function GettingStartedWithRemixReplay({
+export function GettingStartedWithCapacitorReplay({
   dsn,
   organization,
   newOrg,
@@ -110,4 +157,4 @@ export function GettingStartedWithRemixReplay({
   );
 }
 
-export default GettingStartedWithRemixReplay;
+export default GettingStartedWithCapacitorReplay;

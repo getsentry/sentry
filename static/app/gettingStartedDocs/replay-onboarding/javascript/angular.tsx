@@ -2,7 +2,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {t, tct} from 'sentry/locale';
+import {tct} from 'sentry/locale';
 import type {Organization, PlatformKey} from 'sentry/types';
 
 type StepProps = {
@@ -32,16 +32,25 @@ export const steps = ({
 }: Partial<StepProps> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
-    description: t('Configure your app automatically with the Sentry wizard.'),
+    description: tct(
+      'In order to use Session Replay, you will need version 7.27.0 of [codeAngular:@sentry/angular] or [codeIvy:@sentry/angular-ivy] at minimum. You do not need to install any additional packages.',
+      {codeAngular: <code />, codeIvy: <code />}
+    ),
     configurations: [
       {
         language: 'bash',
         code: [
           {
-            label: 'Bash',
-            value: 'bash',
+            label: 'npm',
+            value: 'npm',
             language: 'bash',
-            code: 'npx @sentry/wizard@latest -i remix',
+            code: `# Angular 12 and newer: \nnpm install --save @sentry/angular-ivy \n\n# Angular 10 and 11: \nnpm install --save @sentry/angular`,
+          },
+          {
+            label: 'yarn',
+            value: 'yarn',
+            language: 'bash',
+            code: `# Angular 12 and newer:\nyarn add @sentry/angular-ivy\n\n# Angular 10 and 11:\nyarn add @sentry/angular`,
           },
         ],
       },
@@ -62,7 +71,7 @@ export const steps = ({
       {
         language: 'javascript',
         code: `
-        import * as Sentry from "@sentry/remix";
+        import * as Sentry from "@sentry/angular-ivy";
 
         Sentry.init({
           ${sentryInitContent}
@@ -70,16 +79,12 @@ export const steps = ({
         `,
       },
     ],
-    additionalInfo: tct(
-      'Note: The Replay integration only needs to be added to your [codeEntry:entry.client.tsx] file. It will not run if it is added into [codeSentry:sentry.server.config.js].',
-      {codeEntry: <code />, codeSentry: <code />}
-    ),
   },
 ];
 
 // Configuration End
 
-export function GettingStartedWithRemixReplay({
+export function GettingStartedWithAngularReplay({
   dsn,
   organization,
   newOrg,
@@ -110,4 +115,4 @@ export function GettingStartedWithRemixReplay({
   );
 }
 
-export default GettingStartedWithRemixReplay;
+export default GettingStartedWithAngularReplay;
