@@ -7,7 +7,7 @@ import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {prismStyles} from 'sentry/styles/prism';
 import {space} from 'sentry/styles/space';
-import {loadPrismLanguage} from 'sentry/utils/loadPrismLanguage';
+import {loadPrismLanguage} from 'sentry/utils/prism';
 
 interface CodeSnippetProps {
   children: string;
@@ -23,6 +23,10 @@ interface CodeSnippetProps {
   disableUserSelection?: boolean;
   filename?: string;
   hideCopyButton?: boolean;
+  /**
+   * Controls whether the snippet wrapper has rounded corners.
+   */
+  isRounded?: boolean;
   /**
    * Fires after the code snippet is highlighted and all DOM nodes are available
    * @param element The root element of the code snippet
@@ -50,6 +54,7 @@ export function CodeSnippet({
   filename,
   hideCopyButton,
   language,
+  isRounded = true,
   onAfterHighlight,
   onCopy,
   onSelectAndCopy,
@@ -102,6 +107,7 @@ export function CodeSnippet({
 
   return (
     <Wrapper
+      isRounded={isRounded}
       className={`${dark ? 'prism-dark ' : ''}${className ?? ''}`}
       data-render-inline={dataRenderInline}
     >
@@ -156,10 +162,10 @@ export function CodeSnippet({
   );
 }
 
-const Wrapper = styled('div')`
+const Wrapper = styled('div')<{isRounded: boolean}>`
   position: relative;
   background: var(--prism-block-background);
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => (p.isRounded ? p.theme.borderRadius : '0px')};
 
   ${p => prismStyles(p.theme)}
   pre {

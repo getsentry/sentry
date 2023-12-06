@@ -267,7 +267,7 @@ function VitalDetailContent(props: Props) {
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
             {renderVitalSwitcher()}
-            <Feature organization={organization} features={['incidents']}>
+            <Feature organization={organization} features="incidents">
               {({hasFeature}) => hasFeature && renderCreateAlertButton()}
             </Feature>
           </ButtonBar>

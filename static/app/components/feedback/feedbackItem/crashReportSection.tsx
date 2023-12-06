@@ -17,6 +17,10 @@ export default function CrashReportSection({
   const {data: crashReportData} = useApiQuery<Event>([eventEndpoint], {staleTime: 0});
 
   return crashReportData?.groupID ? (
-    <LinkedIssue organization={organization} groupID={crashReportData.groupID} />
+    <LinkedIssue
+      organization={organization}
+      groupID={crashReportData.groupID}
+      crashReportId={crashReportId}
+    />
   ) : null;
 }

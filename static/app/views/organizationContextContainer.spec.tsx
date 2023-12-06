@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -18,7 +19,7 @@ jest.mock('sentry/stores/configStore', () => ({
 
 describe('OrganizationContextContainer', function () {
   const {organization, projects, routerProps} = initializeOrg();
-  const teams = [TestStubs.Team()];
+  const teams = [Team()];
 
   const api = new MockApiClient();
   let getOrgMock: jest.Mock;

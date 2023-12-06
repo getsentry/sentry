@@ -8,6 +8,7 @@ from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
 
 from sentry import ratelimits
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
@@ -36,6 +37,7 @@ MAX_RELEASEFILES_QUERY = 10
 
 @region_silo_endpoint
 class ProjectArtifactLookupEndpoint(ProjectEndpoint):
+    owner = ApiOwner.WEB_FRONTEND_SDKS
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
@@ -163,7 +165,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         url_constructor = UrlConstructor(request, project)
 
         found_artifacts = []
-        for (download_id, resolved_with) in all_bundles.items():
+        for download_id, resolved_with in all_bundles.items():
             found_artifacts.append(
                 {
                     "id": download_id,
@@ -221,8 +223,8 @@ def try_resolve_release_dist(
             dist = Distribution.objects.get(release=release, name=dist_name)
     except (Release.DoesNotExist, Distribution.DoesNotExist):
         pass
-    except Exception as exc:
-        logger.error("Failed to read", exc_info=exc)
+    except Exception:
+        logger.exception("Failed to read")
 
     return release, dist
 

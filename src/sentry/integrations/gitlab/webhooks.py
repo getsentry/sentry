@@ -12,6 +12,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.integrations.utils.scope import clear_tags_and_context
@@ -237,6 +238,7 @@ class GitlabWebhookMixin:
 
 @region_silo_endpoint
 class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
+    owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,
     }

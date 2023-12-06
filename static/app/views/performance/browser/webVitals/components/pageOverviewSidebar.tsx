@@ -158,7 +158,7 @@ export function PageOverviewSidebar({
       <ChartValue>
         {currentCount ? formatAbbreviatedNumber(currentCount) : null}
       </ChartValue>
-      {initialCount && currentCount && countDiff && shouldDoublePeriod && (
+      {initialCount && currentCount && countDiff && shouldDoublePeriod ? (
         <ChartSubText color={diffToColor(countDiff)}>
           {getChartSubText(
             countDiff,
@@ -166,7 +166,7 @@ export function PageOverviewSidebar({
             formatAbbreviatedNumber(currentCount)
           )}
         </ChartSubText>
-      )}
+      ) : null}
       <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
         {zoomRenderProps => (
           <LineChart

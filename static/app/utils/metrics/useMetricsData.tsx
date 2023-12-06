@@ -2,9 +2,15 @@ import {useEffect, useState} from 'react';
 
 import {ApiResult} from 'sentry/api';
 import {DateString, MetricsApiResponse} from 'sentry/types';
-import {getMetricsApiRequestQuery, MetricsQuery} from 'sentry/utils/metrics';
+import {
+  getMetricsApiRequestQuery,
+  mapToMRIFields,
+  MetricsQuery,
+} from 'sentry/utils/metrics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+
+import {MetricsApiRequestQueryOptions} from '../../types/metrics';
 
 function getRefetchInterval(
   data: ApiResult | undefined,
@@ -22,15 +28,10 @@ function getRefetchInterval(
   return 60 * 1000;
 }
 
-export function useMetricsData({
-  mri,
-  op,
-  datetime,
-  projects,
-  environments,
-  query,
-  groupBy,
-}: MetricsQuery) {
+export function useMetricsData(
+  {mri, op, datetime, projects, environments, query, groupBy}: MetricsQuery,
+  overrides: Partial<MetricsApiRequestQueryOptions> = {}
+) {
   const organization = useOrganization();
 
   const useNewMetricsLayer = organization.features.includes(
@@ -46,10 +47,10 @@ export function useMetricsData({
       groupBy,
     },
     {datetime, projects, environments},
-    {useNewMetricsLayer}
+    {...overrides, useNewMetricsLayer}
   );
 
-  return useApiQuery<MetricsApiResponse>(
+  const metricsApiRepsonse = useApiQuery<MetricsApiResponse>(
     [`/organizations/${organization.slug}/metrics/data/`, {query: queryToSend}],
     {
       retry: 0,
@@ -59,14 +60,20 @@ export function useMetricsData({
       refetchInterval: data => getRefetchInterval(data, queryToSend.interval),
     }
   );
+  mapToMRIFields(metricsApiRepsonse.data, [field]);
+
+  return metricsApiRepsonse;
 }
 
 // Wraps useMetricsData and provides two additional features:
 // 1. return data is undefined only during the initial load
 // 2. provides a callback to trim the data to a specific time range when chart zoom is used
-export function useMetricsDataZoom(props: MetricsQuery) {
+export function useMetricsDataZoom(
+  props: MetricsQuery,
+  overrides: Partial<MetricsApiRequestQueryOptions> = {}
+) {
   const [metricsData, setMetricsData] = useState<MetricsApiResponse | undefined>();
-  const {data: rawData, isLoading, isError, error} = useMetricsData(props);
+  const {data: rawData, isLoading, isError, error} = useMetricsData(props, overrides);
 
   useEffect(() => {
     if (rawData) {

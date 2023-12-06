@@ -165,7 +165,7 @@ function renderInviteMembersButton({
       body={
         <FeatureDisabled
           featureName={t('Invite Members')}
-          features={['organizations:invite-members']}
+          features="organizations:invite-members"
           hideHelpToggle
         />
       }

@@ -8,10 +8,12 @@ import {
 export const errorConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
     actions: {
+      archiveUntilOccurrence: {enabled: true},
       delete: {enabled: true},
       deleteAndDiscard: {enabled: true},
       ignore: {enabled: true},
       merge: {enabled: true},
+      resolveInRelease: {enabled: true},
       share: {enabled: true},
     },
     attachments: {enabled: true},
