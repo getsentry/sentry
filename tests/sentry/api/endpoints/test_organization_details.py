@@ -18,6 +18,7 @@ from sentry import audit_log
 from sentry import options as sentry_options
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.api.serializers.models.organization import TrustedRelaySerializer
+from sentry.api.utils import generate_region_url
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS, ObjectStatus
 from sentry.models.auditlogentry import AuditLogEntry
@@ -33,7 +34,7 @@ from sentry.models.organizationslugreservation import OrganizationSlugReservatio
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.user import User
 from sentry.signals import project_created
-from sentry.silo import SiloMode, unguarded_write
+from sentry.silo import unguarded_write
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode_of, create_test_regions, region_silo_test
@@ -80,20 +81,13 @@ class MockAccess:
 
 @region_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
 class OrganizationDetailsTest(OrganizationDetailsTestBase):
-    def _get_expected_region_url(self) -> str:
-        return (
-            "http://testserver"
-            if SiloMode.get_current_mode() == SiloMode.MONOLITH
-            else "http://us.testserver"
-        )
-
     def test_simple(self):
         response = self.get_success_response(self.organization.slug)
 
         assert response.data["slug"] == self.organization.slug
         assert response.data["links"] == {
             "organizationUrl": f"http://{self.organization.slug}.testserver",
-            "regionUrl": self._get_expected_region_url(),
+            "regionUrl": generate_region_url(),
         }
         assert response.data["id"] == str(self.organization.id)
         assert response.data["role"] == "owner"
@@ -111,7 +105,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert response.data["slug"] == self.organization.slug
         assert response.data["links"] == {
             "organizationUrl": f"http://{self.organization.slug}.testserver",
-            "regionUrl": self._get_expected_region_url(),
+            "regionUrl": generate_region_url(),
         }
         assert response.data["id"] == str(self.organization.id)
         assert response.data["role"] == "owner"
@@ -334,15 +328,10 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert "avatar" in resp.data
         assert resp.data["avatar"]["avatarType"] == "upload"
         assert resp.data["avatar"]["avatarUuid"] == "abc123"
-        if SiloMode.get_current_mode() == SiloMode.REGION:
-            assert (
-                resp.data["avatar"]["avatarUrl"]
-                == "http://us.testserver/organization-avatar/abc123/"
-            )
-        else:
-            assert (
-                resp.data["avatar"]["avatarUrl"] == "http://testserver/organization-avatar/abc123/"
-            )
+        assert (
+            resp.data["avatar"]["avatarUrl"]
+            == generate_region_url() + "/organization-avatar/abc123/"
+        )
 
 
 @region_silo_test

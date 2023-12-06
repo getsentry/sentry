@@ -7,6 +7,8 @@ from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
 
+from sentry import options
+from sentry.api.utils import generate_region_url
 from sentry.auth import superuser
 from sentry.models.apitoken import ApiToken
 from sentry.models.organization import Organization, OrganizationStatus
@@ -270,13 +272,6 @@ class ClientConfigViewTest(TestCase):
             "sentryUrl": "http://testserver",
         }
 
-    def _get_expected_region_url(self, slug: str | None = None) -> str:
-        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-            return "http://testserver"
-        if slug is not None:
-            return f"http://{slug}.reg1.testserver"
-        return "http://reg1.testserver"
-
     def test_links_authenticated(self):
         self.login_as(self.user)
 
@@ -297,7 +292,7 @@ class ClientConfigViewTest(TestCase):
         assert data["lastOrganization"] == self.organization.slug
         assert data["links"] == {
             "organizationUrl": "http://baz.testserver",
-            "regionUrl": self._get_expected_region_url(),
+            "regionUrl": generate_region_url(),
             "sentryUrl": "http://testserver",
         }
 
@@ -347,7 +342,7 @@ class ClientConfigViewTest(TestCase):
             assert data["lastOrganization"] == self.organization.slug
             assert data["links"] == {
                 "organizationUrl": "http://testserver",
-                "regionUrl": self._get_expected_region_url(),
+                "regionUrl": generate_region_url(),
                 "sentryUrl": "http://testserver",
             }
 
@@ -362,7 +357,7 @@ class ClientConfigViewTest(TestCase):
             assert data["lastOrganization"] == self.organization.slug
             assert data["links"] == {
                 "organizationUrl": f"http://{self.organization.slug}.testserver",
-                "regionUrl": self._get_expected_region_url(),
+                "regionUrl": generate_region_url(),
                 "sentryUrl": "http://testserver",
             }
 
@@ -387,7 +382,7 @@ class ClientConfigViewTest(TestCase):
             assert data["lastOrganization"] == self.organization.slug
             assert data["links"] == {
                 "organizationUrl": "invalid",
-                "regionUrl": self._get_expected_region_url(),
+                "regionUrl": generate_region_url(),
                 "sentryUrl": "http://testserver",
             }
 
@@ -402,7 +397,7 @@ class ClientConfigViewTest(TestCase):
             assert data["lastOrganization"] == self.organization.slug
             assert data["links"] == {
                 "organizationUrl": "http://testserver",
-                "regionUrl": self._get_expected_region_url(),
+                "regionUrl": generate_region_url(),
                 "sentryUrl": "http://testserver",
             }
 
@@ -417,7 +412,7 @@ class ClientConfigViewTest(TestCase):
             assert data["lastOrganization"] == self.organization.slug
             assert data["links"] == {
                 "organizationUrl": f"ftp://{self.organization.slug}.testserver",
-                "regionUrl": self._get_expected_region_url(),
+                "regionUrl": generate_region_url(),
                 "sentryUrl": "http://testserver",
             }
 
@@ -578,11 +573,16 @@ class ClientConfigViewTest(TestCase):
 
             data = json.loads(resp.content)
 
+            expected_region_url = (
+                "http://foobar.reg1.testserver"
+                if SiloMode.get_current_mode() == SiloMode.REGION
+                else options.get("system.url-prefix")
+            )
             assert data["isAuthenticated"] is True
             assert data["lastOrganization"] == self.organization.slug
             assert data["links"] == {
                 "organizationUrl": f"http://{self.organization.slug}.testserver",
-                "regionUrl": self._get_expected_region_url("foobar"),
+                "regionUrl": expected_region_url,
                 "sentryUrl": "http://testserver",
             }
 
