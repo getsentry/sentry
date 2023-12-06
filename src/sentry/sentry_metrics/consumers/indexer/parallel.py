@@ -3,7 +3,7 @@ from __future__ import annotations
 import functools
 import logging
 from collections import deque
-from typing import Any, Deque, Mapping, Optional, Union
+from typing import Any, Deque, Mapping, Optional, Union, cast
 
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
@@ -64,7 +64,7 @@ class Unbatcher(ProcessingStep[Union[FilteredPayload, IndexerOutputMessageBatch]
             raise MessageRejected()
 
         if isinstance(message.payload, FilteredPayload):
-            self.__messages.append(message)
+            self.__messages.append(cast(Message[KafkaPayload], message))
             return
 
         self.__messages.extend(message.payload.data)
