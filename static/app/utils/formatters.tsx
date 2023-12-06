@@ -433,8 +433,8 @@ export function formatAbbreviatedNumber(
  * @param value number to format
  */
 export function formatNumberWithDynamicDecimalPoints(value: number): string {
-  if (value === 0) {
-    return '0';
+  if ([0, Infinity, -Infinity, NaN].includes(value)) {
+    return value.toLocaleString();
   }
 
   const exponent = Math.floor(Math.log10(value));

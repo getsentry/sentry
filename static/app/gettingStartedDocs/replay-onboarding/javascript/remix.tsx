@@ -2,7 +2,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Organization, PlatformKey} from 'sentry/types';
 
 type StepProps = {
@@ -32,9 +32,7 @@ export const steps = ({
 }: Partial<StepProps> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
-    description: tct('Configure your app automatically with the Sentry wizard.', {
-      code: <code />,
-    }),
+    description: t('Configure your app automatically with the Sentry wizard.'),
     configurations: [
       {
         language: 'bash',
@@ -72,6 +70,10 @@ export const steps = ({
         `,
       },
     ],
+    additionalInfo: tct(
+      'Note: The Replay integration only needs to be added to your [codeEntry:entry.client.tsx] file. It will not run if it is added into [codeSentry:sentry.server.config.js].',
+      {codeEntry: <code />, codeSentry: <code />}
+    ),
   },
 ];
 
