@@ -181,7 +181,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
     return new Flamegraph(afterProfileGroup.profiles[0], {sort: 'alphabetical'});
   }, [afterProfileGroup]);
 
-  const [source, setSource] = useState<'before' | 'after'>('after');
+  const [negated, setNegated] = useState<boolean>(false);
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useCanvasScheduler(canvasPoolManager);
 
@@ -190,7 +190,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
       return DifferentialFlamegraphModel.Empty();
     }
 
-    if (source === 'before') {
+    if (negated) {
       return DifferentialFlamegraphModel.FromDiff(
         {
           before: afterFlamegraph,
@@ -207,7 +207,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
       },
       theme
     );
-  }, [beforeFlamegraph, afterFlamegraph, theme, source]);
+  }, [beforeFlamegraph, afterFlamegraph, theme, negated]);
 
   const makeFunctionFlamechartLink = useMemo(() => {
     return (frame: FlamegraphFrame): LocationDescriptor => {
@@ -237,8 +237,8 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
         onPreviousTransactionClick={props.onPreviousTransactionClick}
       />
       <DifferentialFlamegraphToolbar
-        source={source}
-        onSourceChange={setSource}
+        negated={negated}
+        onNegatedChange={setNegated}
         flamegraph={differentialFlamegraph}
         canvasPoolManager={canvasPoolManager}
       />
@@ -267,6 +267,8 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
           scheduler={scheduler}
         />
       </DifferentialFlamegraphContainer>
+
+      <DifferentialFlamegraphExplanationBar negated={negated} />
 
       <DifferentialFlamegraphFunctionsContainer>
         <DifferentialFlamegraphChangedFunctions
@@ -565,6 +567,77 @@ const DifferentialFlamegraphChangedFunctionContainer = styled('div')`
   > *:first-child {
     flex: 1;
   }
+`;
+
+interface DifferentialFlamegraphExplanationBarProps {
+  negated: boolean;
+}
+function DifferentialFlamegraphExplanationBar(
+  props: DifferentialFlamegraphExplanationBarProps
+) {
+  return (
+    <DifferentialFlamegraphExplanationBarContainer>
+      <div>
+        {props.negated
+          ? `Flamegraph is showing how the stack population will change.`
+          : `Flamegraph is showing how the stack population has changed.`}
+      </div>
+      <DifferentialFlamegraphLegend />
+    </DifferentialFlamegraphExplanationBarContainer>
+  );
+}
+
+const DifferentialFlamegraphExplanationBarContainer = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  padding: ${space(0.5)} ${space(1)};
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  color: ${p => p.theme.subText};
+  border-top: 1px solid ${p => p.theme.border};
+  background: ${p => p.theme.backgroundSecondary};
+`;
+
+function DifferentialFlamegraphLegend() {
+  const theme = useFlamegraphTheme();
+
+  const {increaseColor, decreaseColor, neutralColor} = useMemo(() => {
+    return {
+      increaseColor: theme.COLORS.DIFFERENTIAL_INCREASE.map(n => n * 255)
+        .concat(0.8)
+        .join(','),
+      neutralColor: theme.COLORS.FRAME_FALLBACK_COLOR.slice(0, 3)
+        .map(n => n * 255)
+        .concat(0.2)
+        .join(','),
+      decreaseColor: theme.COLORS.DIFFERENTIAL_DECREASE.map(n => n * 255)
+        .concat(0.8)
+        .join(','),
+    };
+  }, [theme]);
+  return (
+    <DifferentialFlamegraphLegendContainer>
+      <div>+</div>
+      <DifferentialFlamegraphLegendBar
+        style={{
+          background: `linear-gradient(90deg, rgba(${increaseColor}) 0%, rgba(${neutralColor}) 50%, rgba(${decreaseColor}) 100%)`,
+        }}
+      />
+      <div>-</div>
+    </DifferentialFlamegraphLegendContainer>
+  );
+}
+
+const DifferentialFlamegraphLegendContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const DifferentialFlamegraphLegendBar = styled('div')`
+  width: 60px;
+  height: 14px;
+  margin: 0 ${space(0.5)};
 `;
 
 function DifferentialFlamegraphChangedFunctionsTitle(props: {

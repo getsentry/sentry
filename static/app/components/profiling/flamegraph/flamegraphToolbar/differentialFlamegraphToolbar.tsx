@@ -14,8 +14,8 @@ const EMPTY_SPANS = [];
 interface DifferentialFlamegraphProps {
   canvasPoolManager: CanvasPoolManager;
   flamegraph: DifferentialFlamegraph;
-  onSourceChange: (source: 'before' | 'after') => void;
-  source: 'before' | 'after';
+  negated: boolean;
+  onNegatedChange: (source: boolean) => void;
 }
 export function DifferentialFlamegraphToolbar(props: DifferentialFlamegraphProps) {
   const onResetZoom = useCallback(() => {
@@ -25,8 +25,8 @@ export function DifferentialFlamegraphToolbar(props: DifferentialFlamegraphProps
   return (
     <DifferentialFlamegraphToolbarContainer>
       <DifferentialFlamegraphNegationSwitch
-        onSourceChange={props.onSourceChange}
-        source={props.source}
+        onNegatedChange={props.onNegatedChange}
+        negated={props.negated}
       />
       <FlamegraphSearch
         spans={EMPTY_SPANS}
