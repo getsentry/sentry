@@ -8,6 +8,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
 from sentry.api.endpoints.relocations import ERR_FEATURE_DISABLED
+from sentry.api.endpoints.relocations.index import ERR_INVALID_ORG_SLUG, ERR_OWNER_NOT_FOUND
 from sentry.backup.helpers import LocalFileEncryptor, create_encrypted_export_tarball
 from sentry.models.relocation import Relocation, RelocationFile
 from sentry.testutils.cases import APITestCase
@@ -124,16 +125,16 @@ class RelocationCreateTest(APITestCase):
             assert Relocation.objects.get(owner_id=self.owner.id).want_org_slugs == expected
             assert uploading_complete_mock.call_count == 1
 
-    for org_slugs, expected in [
-        (",,", ["", ""]),
-        ("testing,,foo", ["testing", "", "foo"]),
-        ("testing\nfoo", ["testing\nfoo"]),
-        ("testing\tfoo", ["testing\tfoo"]),
+    for org_slugs, invalid_org_slug in [
+        (",,", ""),
+        ("testing,,foo", ""),
+        ("testing\nfoo", "testing\nfoo"),
+        ("testing\tfoo", "testing\tfoo"),
     ]:
 
         @patch("sentry.tasks.relocation.uploading_complete.delay")
         def test_fail_bad_org_slugs(
-            self, uploading_complete_mock, org_slugs=org_slugs, expected=expected
+            self, uploading_complete_mock, org_slugs=org_slugs, invalid_org_slug=invalid_org_slug
         ):
             relocation_count = Relocation.objects.count()
             relocation_file_count = RelocationFile.objects.count()
@@ -163,7 +164,9 @@ class RelocationCreateTest(APITestCase):
 
             assert response.status_code == 400
             assert response.data.get("detail") is not None
-            assert response.data.get("detail").startswith("Org slug is invalid:")
+            assert response.data.get("detail") == ERR_INVALID_ORG_SLUG.substitute(
+                org_slug=invalid_org_slug
+            )
             assert Relocation.objects.count() == relocation_count
             assert RelocationFile.objects.count() == relocation_file_count
 
@@ -337,7 +340,9 @@ class RelocationCreateTest(APITestCase):
 
         assert response.status_code == 400
         assert response.data.get("detail") is not None
-        assert "`doesnotexist`" in response.data.get("detail")
+        assert response.data.get("detail") == ERR_OWNER_NOT_FOUND.substitute(
+            owner_username="doesnotexist"
+        )
 
     def test_fail_relocation_for_same_owner_already_in_progress(self):
         Relocation.objects.create(

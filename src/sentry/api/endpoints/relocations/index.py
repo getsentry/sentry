@@ -2,6 +2,7 @@ import logging
 import re
 from datetime import timedelta
 from functools import reduce
+from string import Template
 
 from django.db import router
 from django.utils import timezone
@@ -29,6 +30,8 @@ ERR_DUPLICATE_RELOCATION = "An in-progress relocation already exists for this ow
 ERR_THROTTLED_RELOCATION = (
     "We've reached our daily limit of relocations - please try again tomorrow or contact support."
 )
+ERR_OWNER_NOT_FOUND = Template("Could not find user `$owner_username`.")
+ERR_INVALID_ORG_SLUG = Template("Org slug is invalid: `$org_slug`.")
 
 logger = logging.getLogger(__name__)
 
@@ -112,11 +115,16 @@ class RelocationIndexEndpoint(Endpoint):
         org_slugs = [org.strip() for org in validated.get("orgs").split(",")]
         for org_slug in org_slugs:
             if not re.match(ORG_SLUG_PATTERN, org_slug):
-                return Response({"detail": f"Org slug is invalid: {org_slug}"}, status=400)
+                return Response(
+                    {"detail": ERR_INVALID_ORG_SLUG.substitute(org_slug=org_slug)}, status=400
+                )
         try:
             owner = user_service.get_by_username(username=owner_username)[0]
         except IndexError:
-            return Response({"detail": f"Could not find user `{owner_username}`"}, status=400)
+            return Response(
+                {"detail": ERR_OWNER_NOT_FOUND.substitute(owner_username=owner_username)},
+                status=400,
+            )
 
         # Quickly check that this `owner` does not have more than one active `Relocation` in flight.
         if Relocation.objects.filter(
