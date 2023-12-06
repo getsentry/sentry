@@ -4,7 +4,6 @@ from unittest import SkipTest, mock
 from django.urls import reverse
 from django.utils import timezone
 
-from sentry.models.eventuser import EventUser as EventUser_model
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.silo import region_silo_test
@@ -122,26 +121,6 @@ class ProjectUsersBaseTest(APITestCase):
             assert response.data[0]["id"] is None
         else:
             assert response.data[0]["id"] == str(self.euser2.id)
-
-
-@region_silo_test
-class EventUserModelProjectUsersTest(ProjectUsersBaseTest):
-    def setUp(self):
-        super().setUp()
-        self.euser1 = EventUser_model.objects.create(
-            project_id=self.project.id,
-            ident="1",
-            email="foo@example.com",
-            username="foobar",
-            ip_address="127.0.0.1",
-        )
-        self.euser2 = EventUser_model.objects.create(
-            project_id=self.project.id,
-            ident="2",
-            email="bar@example.com",
-            username="baz",
-            ip_address="192.168.0.1",
-        )
 
 
 @region_silo_test
