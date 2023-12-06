@@ -260,8 +260,9 @@ class GroupSerializerBase(Serializer, ABC):
         if len(organization_id_list) > 1:
             # this should never happen but if it does we should know about it
             logger.warning(
-                "Found multiple organizations for groups: %s, with orgs: %s"
-                % ([item.id for item in item_list], organization_id_list)
+                "Found multiple organizations for groups: %s, with orgs: %s",
+                [item.id for item in item_list],
+                organization_id_list,
             )
 
         # should only have 1 org at this point

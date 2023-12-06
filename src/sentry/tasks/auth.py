@@ -116,12 +116,13 @@ class OrganizationComplianceTask(abc.ABC):
             )
             if removed_member is None:
                 logger.warning(
-                    f"Could not remove {self.log_label} noncompliant user from org",
+                    "Could not remove %s noncompliant user from org",
+                    self.log_label,
                     extra=logging_data,
                 )
             else:
                 logger.info(
-                    f"{self.log_label} noncompliant user removed from org", extra=logging_data
+                    "%s noncompliant user removed from org", self.log_label, extra=logging_data
                 )
                 create_audit_entry_from_user(
                     user=actor,

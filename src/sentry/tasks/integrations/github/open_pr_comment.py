@@ -282,7 +282,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     try:
         organization = Organization.objects.get_from_cache(id=org_id)
     except Organization.DoesNotExist:
-        logger.error("github.open_pr_comment.org_missing")
+        logger.exception("github.open_pr_comment.org_missing")
         metrics.incr(OPEN_PR_METRICS_BASE.format(key="error"), tags={"type": "missing_org"})
         return
 

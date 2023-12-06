@@ -721,7 +721,8 @@ def run_post_process_job(job: PostProcessJob):
                 },
             )
             logger.exception(
-                f"Failed to process pipeline step {pipeline_step.__name__}",
+                "Failed to process pipeline step %s",
+                pipeline_step.__name__,
                 extra={"event": group_event, "group": group_event.group},
             )
         else:
@@ -1076,8 +1077,12 @@ def process_code_mappings(job: PostProcessJob) -> None:
 
             if features.has("organizations:derive-code-mappings", org):
                 logger.info(
-                    f"derive_code_mappings: Queuing code mapping derivation for {project.slug=} {group_id=}."
-                    + f" Future events in {org_slug=} will not have not have code mapping derivation until {next_time}"
+                    "derive_code_mappings: Queuing code mapping derivation for project.slug=%s group_id=%s."
+                    " Future events in org_slug=%s will not have not have code mapping derivation until %s",
+                    project.slug,
+                    group_id,
+                    org_slug,
+                    next_time,
                 )
                 derive_code_mappings.delay(project.id, event.data)
 

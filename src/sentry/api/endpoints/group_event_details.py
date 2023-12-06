@@ -144,9 +144,8 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
                     except ValidationError:
                         return Response(status=400)
                     except Exception:
-                        logging.error(
+                        logging.exception(
                             "group_event_details:get_helpful",
-                            exc_info=True,
                         )
                         return Response(status=500)
             else:

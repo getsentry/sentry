@@ -163,7 +163,7 @@ def fetch_commits(release_id: int, user_id: int, refs, prev_release_id=None, **k
             if span is None:
                 raise TypeError("No span is currently active right now")
             span.set_status("unknown_error")
-            logger.exception(e)
+            logger.exception(str(e))
             if isinstance(e, InvalidIdentity) and getattr(e, "identity", None):
                 handle_invalid_identity(identity=e.identity, commit_failure=True)
             elif isinstance(e, (PluginError, InvalidIdentity, IntegrationError)):

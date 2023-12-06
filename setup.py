@@ -11,7 +11,7 @@ if python_version != (3, 8):
     import logging
 
     logger = logging.getLogger()
-    logger.warning(f"A Python version different than 3.8 is being used ({python_version})")
+    logger.warning("A Python version different than 3.8 is being used (%s)", python_version)
 
 
 from distutils.command.build import build as BuildCommand

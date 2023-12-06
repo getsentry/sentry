@@ -71,7 +71,7 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
                 side_effect=ApiError("foo"),
             ):
                 derive_code_mappings(self.project.id, self.event_data)
-                assert mock_logger.exception.call_count == 1
+                assert mock_logger.error.call_count == 1
 
     def test_unable_to_get_lock(self):
         with patch("sentry.tasks.derive_code_mappings.SUPPORTED_LANGUAGES", ["other"]):

@@ -280,7 +280,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
             ChunkFileState.ERROR,
             detail="internal server error",
         )
-        logger.error("failed to assemble dif", exc_info=True)
+        logger.exception("failed to assemble dif")
     else:
         set_assemble_status(
             AssembleTask.DIF, project_id, checksum, ChunkFileState.OK, detail=serialize(dif)
@@ -398,8 +398,8 @@ class ReleaseBundlePostAssembler(PostAssembler[ReleaseArchive]):
                 )
                 metrics.incr("sourcemaps.upload.release_bundle")
                 saved_as_archive = True
-            except Exception as exc:
-                logger.error("Unable to update artifact index", exc_info=exc)
+            except Exception:
+                logger.exception("Unable to update artifact index")
 
         if not saved_as_archive:
             meta = {
@@ -863,7 +863,7 @@ def assemble_artifacts(
     except AssembleArtifactsError as e:
         set_assemble_status(assemble_task, org_id, checksum, ChunkFileState.ERROR, detail=str(e))
     except Exception as e:
-        logger.error("failed to assemble bundle", exc_info=True)
+        logger.exception("failed to assemble bundle")
         sentry_sdk.capture_exception(e)
         set_assemble_status(
             assemble_task,

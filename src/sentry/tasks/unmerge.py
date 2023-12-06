@@ -529,7 +529,8 @@ def unmerge(*posargs, **kwargs):
         unlock_hashes(args.project_id, locked_primary_hashes)
         for unmerge_key, (group_id, eventstream_state) in args.destinations.items():
             logger.warning(
-                f"Unmerge complete (eventstream state: {eventstream_state})",
+                "Unmerge complete (eventstream state: %s)",
+                eventstream_state,
                 extra={"source_id": source.id},
             )
             if eventstream_state:

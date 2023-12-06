@@ -117,7 +117,7 @@ class ApiInviteHelper:
         )
         if invite_context is None:
             if logger:
-                logger.error("Invalid pending invite cookie", exc_info=True)
+                logger.exception("Invalid pending invite cookie")
             return None
 
         api_invite_helper = ApiInviteHelper(

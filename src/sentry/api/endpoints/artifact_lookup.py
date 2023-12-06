@@ -223,8 +223,8 @@ def try_resolve_release_dist(
             dist = Distribution.objects.get(release=release, name=dist_name)
     except (Release.DoesNotExist, Distribution.DoesNotExist):
         pass
-    except Exception as exc:
-        logger.error("Failed to read", exc_info=exc)
+    except Exception:
+        logger.exception("Failed to read")
 
     return release, dist
 
