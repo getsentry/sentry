@@ -1,4 +1,5 @@
-from sentry.models import Environment, Project
+from sentry.models.environment import Environment
+from sentry.models.project import Project
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -13,7 +14,7 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class DeleteMonitorTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
     def test_simple(self):
         project = self.create_project(name="test")

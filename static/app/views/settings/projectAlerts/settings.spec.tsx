@@ -1,10 +1,12 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import Settings from 'sentry/views/settings/projectAlerts/settings';
 
 describe('ProjectAlertSettings', () => {
   const router = TestStubs.router();
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   // 12 minutes
   const digestsMinDelay = 12 * 60;
   // 55 minutes

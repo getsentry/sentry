@@ -4,12 +4,10 @@ from rest_framework import status
 
 from sentry.api.endpoints.organization_member.team_details import ERR_INSUFFICIENT_ROLE
 from sentry.auth import access
-from sentry.models import (
-    Organization,
-    OrganizationAccessRequest,
-    OrganizationMember,
-    OrganizationMemberTeam,
-)
+from sentry.models.organization import Organization
+from sentry.models.organizationaccessrequest import OrganizationAccessRequest
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
@@ -84,7 +82,7 @@ class OrganizationMemberTeamTestBase(APITestCase):
         return member
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class CreateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     method = "post"
 
@@ -418,7 +416,7 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
         assert oar.requester_id == self.member.user_id
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     method = "delete"
 
@@ -695,7 +693,7 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         ).exists()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ReadOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     endpoint = "sentry-api-0-organization-member-team-details"
     method = "get"
@@ -724,7 +722,7 @@ class ReadOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     endpoint = "sentry-api-0-organization-member-team-details"
     method = "put"
@@ -762,6 +760,35 @@ class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     @with_feature("organizations:team-roles")
     def test_team_admin_can_promote_member(self):
         self.login_as(self.team_admin)
+
+        resp = self.get_response(
+            self.org.slug, self.member_on_team.id, self.team.slug, teamRole="admin"
+        )
+        assert resp.status_code == 200
+
+        updated_omt = OrganizationMemberTeam.objects.get(
+            team=self.team, organizationmember=self.member_on_team
+        )
+        assert updated_omt.role == "admin"
+
+    @with_feature("organizations:team-roles")
+    def test_superuser_can_promote_member(self):
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(superuser, superuser=True)
+
+        resp = self.get_response(
+            self.org.slug, self.member_on_team.id, self.team.slug, teamRole="admin"
+        )
+        assert resp.status_code == 200
+
+        updated_omt = OrganizationMemberTeam.objects.get(
+            team=self.team, organizationmember=self.member_on_team
+        )
+        assert updated_omt.role == "admin"
+
+    @with_feature("organizations:team-roles")
+    def test_admin_can_promote_member(self):
+        self.login_as(self.admin_on_team)
 
         resp = self.get_response(
             self.org.slug, self.member_on_team.id, self.team.slug, teamRole="admin"

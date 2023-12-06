@@ -4,7 +4,10 @@ from unittest.mock import patch
 from snuba_sdk import Limit
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
-from sentry.models import Environment, Group, GroupRelease, Release
+from sentry.models.environment import Environment
+from sentry.models.group import Group
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.release import Release
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.silo import region_silo_test

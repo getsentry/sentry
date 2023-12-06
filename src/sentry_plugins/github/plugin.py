@@ -9,7 +9,10 @@ from sentry import options
 from sentry.exceptions import PluginError
 from sentry.integrations import FeatureDescription, IntegrationFeatures
 from sentry.locks import locks
-from sentry.models import Integration, Organization, OrganizationOption, Repository
+from sentry.models.integrations.integration import Integration
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organization import Organization
+from sentry.models.repository import Repository
 from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2
 from sentry.plugins.providers import RepositoryProvider
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration

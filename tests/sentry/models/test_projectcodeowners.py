@@ -1,11 +1,11 @@
-from sentry.models import ProjectCodeOwners
+from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.cache import cache
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectCodeOwnersTestCase(TestCase):
     def tearDown(self):
         cache.delete(ProjectCodeOwners.get_cache_key(self.project.id))

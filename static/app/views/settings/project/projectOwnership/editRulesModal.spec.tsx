@@ -1,3 +1,6 @@
+import {Members} from 'sentry-fixture/members';
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
@@ -6,7 +9,7 @@ import {IssueOwnership} from 'sentry/types';
 import {EditOwnershipRules} from './editRulesModal';
 
 describe('Project Ownership Input', () => {
-  const org = TestStubs.Organization();
+  const org = Organization();
   const project = TestStubs.Project();
   const user = TestStubs.User();
 
@@ -15,7 +18,7 @@ describe('Project Ownership Input', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/members/`,
       method: 'GET',
-      body: TestStubs.Members(),
+      body: Members(),
     });
   });
   const ownership: IssueOwnership = {

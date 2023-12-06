@@ -55,12 +55,14 @@ class DerivedMetricSnQLTestCase(TestCase):
             TransactionMRI.MEASUREMENTS_LCP.value,
             TransactionMRI.DURATION.value,
         ]:
-            self.metric_ids += [indexer.record(UseCaseID.TRANSACTIONS, self.org_id, metric_name)]
+            metric_id = indexer.record(UseCaseID.TRANSACTIONS, self.org_id, metric_name)
+            assert metric_id is not None
+            self.metric_ids.append(metric_id)
 
         indexer.bulk_record(
             {
                 UseCaseID.SESSIONS: {
-                    self.org_id: [
+                    self.org_id: {
                         "abnormal",
                         "crashed",
                         "errored_preaggr",
@@ -68,14 +70,14 @@ class DerivedMetricSnQLTestCase(TestCase):
                         "exited",
                         "init",
                         "session.status",
-                    ]
+                    }
                 }
             }
         )
         indexer.bulk_record(
             {
                 UseCaseID.TRANSACTIONS: {
-                    self.org_id: [
+                    self.org_id: {
                         TransactionSatisfactionTagValue.FRUSTRATED.value,
                         TransactionSatisfactionTagValue.SATISFIED.value,
                         TransactionSatisfactionTagValue.TOLERATED.value,
@@ -84,7 +86,7 @@ class DerivedMetricSnQLTestCase(TestCase):
                         TransactionStatusTagValue.UNKNOWN.value,
                         TransactionTagsKey.TRANSACTION_SATISFACTION.value,
                         TransactionTagsKey.TRANSACTION_STATUS.value,
-                    ]
+                    }
                 }
             }
         )

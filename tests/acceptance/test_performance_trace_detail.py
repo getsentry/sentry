@@ -14,7 +14,7 @@ def make_span_id() -> str:
     return uuid4().hex[:16]
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class PerformanceTraceDetailTest(AcceptanceTestCase, SnubaTestCase):
     def create_error(self, platform, trace_id, span_id, project_id, timestamp):
         data = load_data(platform, timestamp=timestamp)
@@ -197,4 +197,3 @@ class PerformanceTraceDetailTest(AcceptanceTestCase, SnubaTestCase):
             row_title = self.browser.elements('[data-test-id="transaction-row-title"]')[1]
             # HACK: Use JavaScript to execute click to avoid click intercepted issues
             self.browser.driver.execute_script("arguments[0].click()", row_title)
-            self.browser.snapshot("performance trace view - with data")

@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 from urllib.parse import parse_qs, urlencode, urlparse
 
+import pytest
 import responses
 
 from sentry.integrations.vsts import VstsIntegrationProvider
@@ -12,9 +13,8 @@ from sentry.testutils.cases import IntegrationTestCase
 class VstsIntegrationTestCase(IntegrationTestCase):
     provider = VstsIntegrationProvider()
 
-    def setUp(self):
-        super().setUp()
-
+    @pytest.fixture(autouse=True)
+    def setup_data(self):
         self.access_token = "9d646e20-7a62-4bcc-abc0-cb2d4d075e36"
         self.refresh_token = "32004633-a3c0-4616-9aa0-a40632adac77"
 
@@ -34,11 +34,9 @@ class VstsIntegrationTestCase(IntegrationTestCase):
 
         self.project_b = {"id": "6ce954b1-ce1f-45d1-b94d-e6bf2464ba2c", "name": "ProjectB"}
 
-        responses.start()
-        self._stub_vsts()
-
-    def tearDown(self):
-        responses.stop()
+        with responses.mock:
+            self._stub_vsts()
+            yield
 
     def _stub_vsts(self):
         responses.reset()

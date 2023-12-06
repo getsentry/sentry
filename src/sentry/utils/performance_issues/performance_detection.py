@@ -3,13 +3,15 @@ from __future__ import annotations
 import hashlib
 import logging
 import random
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Type
 
 import sentry_sdk
 
 from sentry import nodestore, options, projectoptions
 from sentry.eventstore.models import Event
-from sentry.models import Organization, Project, ProjectOption
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.projectoptions.defaults import DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS
 from sentry.utils import metrics
 from sentry.utils.event import is_event_from_browser_javascript_sdk
@@ -17,21 +19,20 @@ from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.safe import get_path
 
 from .base import DetectorType, PerformanceDetector
-from .detectors import (
-    ConsecutiveDBSpanDetector,
-    ConsecutiveHTTPSpanDetector,
-    DBMainThreadDetector,
-    FileIOMainThreadDetector,
-    HTTPOverheadDetector,
-    LargeHTTPPayloadDetector,
-    MNPlusOneDBSpanDetector,
-    NPlusOneAPICallsDetector,
+from .detectors.consecutive_db_detector import ConsecutiveDBSpanDetector
+from .detectors.consecutive_http_detector import ConsecutiveHTTPSpanDetector
+from .detectors.http_overhead_detector import HTTPOverheadDetector
+from .detectors.io_main_thread_detector import DBMainThreadDetector, FileIOMainThreadDetector
+from .detectors.large_payload_detector import LargeHTTPPayloadDetector
+from .detectors.mn_plus_one_db_span_detector import MNPlusOneDBSpanDetector
+from .detectors.n_plus_one_api_calls_detector import NPlusOneAPICallsDetector
+from .detectors.n_plus_one_db_span_detector import (
     NPlusOneDBSpanDetector,
     NPlusOneDBSpanDetectorExtended,
-    RenderBlockingAssetSpanDetector,
-    SlowDBQueryDetector,
-    UncompressedAssetSpanDetector,
 )
+from .detectors.render_blocking_asset_span_detector import RenderBlockingAssetSpanDetector
+from .detectors.slow_db_query_detector import SlowDBQueryDetector
+from .detectors.uncompressed_asset_detector import UncompressedAssetSpanDetector
 from .performance_problem import PerformanceProblem
 
 PERFORMANCE_GROUP_COUNT_LIMIT = 10
@@ -305,6 +306,23 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
     }
 
 
+DETECTOR_CLASSES: List[Type[PerformanceDetector]] = [
+    ConsecutiveDBSpanDetector,
+    ConsecutiveHTTPSpanDetector,
+    DBMainThreadDetector,
+    SlowDBQueryDetector,
+    RenderBlockingAssetSpanDetector,
+    NPlusOneDBSpanDetector,
+    NPlusOneDBSpanDetectorExtended,
+    FileIOMainThreadDetector,
+    NPlusOneAPICallsDetector,
+    MNPlusOneDBSpanDetector,
+    UncompressedAssetSpanDetector,
+    LargeHTTPPayloadDetector,
+    HTTPOverheadDetector,
+]
+
+
 def _detect_performance_problems(
     data: dict[str, Any], sdk_span: Any, project: Project
 ) -> List[PerformanceProblem]:
@@ -312,19 +330,9 @@ def _detect_performance_problems(
 
     detection_settings = get_detection_settings(project.id)
     detectors: List[PerformanceDetector] = [
-        ConsecutiveDBSpanDetector(detection_settings, data),
-        ConsecutiveHTTPSpanDetector(detection_settings, data),
-        DBMainThreadDetector(detection_settings, data),
-        SlowDBQueryDetector(detection_settings, data),
-        RenderBlockingAssetSpanDetector(detection_settings, data),
-        NPlusOneDBSpanDetector(detection_settings, data),
-        NPlusOneDBSpanDetectorExtended(detection_settings, data),
-        FileIOMainThreadDetector(detection_settings, data),
-        NPlusOneAPICallsDetector(detection_settings, data),
-        MNPlusOneDBSpanDetector(detection_settings, data),
-        UncompressedAssetSpanDetector(detection_settings, data),
-        LargeHTTPPayloadDetector(detection_settings, data),
-        HTTPOverheadDetector(detection_settings, data),
+        detector_class(detection_settings, data)
+        for detector_class in DETECTOR_CLASSES
+        if detector_class.is_detector_enabled()
     ]
 
     for detector in detectors:

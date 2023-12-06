@@ -146,12 +146,12 @@ function ProjectKeyCredentials({
 
       {showUnreal && (
         <FieldGroup
-          label={t('Unreal Engine 4 Endpoint')}
-          help={t('Use this endpoint to configure your UE4 Crash Reporter.')}
+          label={t('Unreal Engine Endpoint')}
+          help={t('Use this endpoint to configure your UE Crash Reporter.')}
           inline={false}
           flexibleControlStateSize
         >
-          <TextCopyInput aria-label={t('Unreal Engine 4 Endpoint URL')}>
+          <TextCopyInput aria-label={t('Unreal Engine Endpoint URL')}>
             {getDynamicText({
               value: data.dsn.unreal || '',
               fixed: '__UNREAL_ENDPOINT__',

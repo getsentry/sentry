@@ -1,3 +1,6 @@
+import {Organization} from 'sentry-fixture/organization';
+import {SentryApp} from 'sentry-fixture/sentryApp';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -12,7 +15,7 @@ import OrganizationDeveloperSettings from 'sentry/views/settings/organizationDev
 
 describe('Organization Developer Settings', function () {
   const {organization: org, routerProps, router} = initializeOrg();
-  const sentryApp = TestStubs.SentryApp({
+  const sentryApp = SentryApp({
     scopes: [
       'team:read',
       'project:releases',
@@ -33,15 +36,12 @@ describe('Organization Developer Settings', function () {
         url: `/organizations/${org.slug}/sentry-apps/`,
         body: [],
       });
-      const {container} = render(
-        <OrganizationDeveloperSettings {...routerProps} organization={org} />
-      );
+      render(<OrganizationDeveloperSettings {...routerProps} organization={org} />);
       await waitFor(() => {
         expect(
           screen.getByText('No internal integrations have been created yet.')
         ).toBeInTheDocument();
       });
-      expect(container).toSnapshot();
     });
   });
 
@@ -150,9 +150,8 @@ describe('Organization Developer Settings', function () {
         await userEvent.type(element, answer);
       }
 
-      const requestPublishButton = await within(dialog).findByLabelText(
-        'Request Publication'
-      );
+      const requestPublishButton =
+        await within(dialog).findByLabelText('Request Publication');
       expect(requestPublishButton).toHaveAttribute('aria-disabled', 'false');
 
       await userEvent.click(requestPublishButton);
@@ -168,7 +167,7 @@ describe('Organization Developer Settings', function () {
 
   describe('with published apps', () => {
     beforeEach(() => {
-      const publishedSentryApp = TestStubs.SentryApp({status: 'published'});
+      const publishedSentryApp = SentryApp({status: 'published'});
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/sentry-apps/`,
         body: [publishedSentryApp],
@@ -212,7 +211,7 @@ describe('Organization Developer Settings', function () {
 
   describe('with Internal Integrations', () => {
     beforeEach(() => {
-      const internalIntegration = TestStubs.SentryApp({status: 'internal'});
+      const internalIntegration = SentryApp({status: 'internal'});
 
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/sentry-apps/`,
@@ -233,7 +232,7 @@ describe('Organization Developer Settings', function () {
   });
 
   describe('without Owner permissions', () => {
-    const newOrg = TestStubs.Organization({access: ['org:read']});
+    const newOrg = Organization({access: ['org:read']});
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/organizations/${newOrg.slug}/sentry-apps/`,

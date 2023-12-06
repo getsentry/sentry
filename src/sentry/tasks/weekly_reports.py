@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import heapq
 import logging
+import uuid
 from datetime import timedelta
 from functools import partial, reduce
 from typing import Tuple
@@ -22,18 +23,12 @@ from snuba_sdk.query import Limit, Query
 from sentry import analytics, features
 from sentry.api.serializers.snuba import zerofill
 from sentry.constants import DataCategory
-from sentry.models import (
-    Activity,
-    Group,
-    GroupHistory,
-    GroupHistoryStatus,
-    GroupStatus,
-    Organization,
-    OrganizationMember,
-    OrganizationStatus,
-)
-from sentry.notifications.utils import generate_notification_uuid
-from sentry.services.hybrid_cloud.user_option import user_option_service
+from sentry.models.activity import Activity
+from sentry.models.group import Group, GroupStatus
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
+from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organizationmember import OrganizationMember
+from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.base import instrumented_task, retry
@@ -183,6 +178,16 @@ def schedule_organizations(dry_run=False, timestamp=None, duration=None):
 def prepare_organization_report(
     timestamp, duration, organization_id, dry_run=False, target_user=None, email_override=None
 ):
+    if target_user and not hasattr(target_user, "id"):
+        logger.error(
+            "Target user must have an ID",
+            extra={
+                "organization": organization_id,
+                "target_user": target_user,
+                "email_override": email_override,
+            },
+        )
+        return
     organization = Organization.objects.get(id=organization_id)
     set_tag("org.slug", organization.slug)
     set_tag("org.id", organization_id)
@@ -234,10 +239,11 @@ def prepare_organization_report(
 
 # Organization Passes
 
+
 # Find the projects associated with an user.
 # Populates context.project_ownership which is { user_id: set<project_id> }
 def user_project_ownership(ctx):
-    for (project_id, user_id) in OrganizationMember.objects.filter(
+    for project_id, user_id in OrganizationMember.objects.filter(
         organization_id=ctx.organization.id, teams__projectteam__project__isnull=False
     ).values_list("teams__projectteam__project_id", "user_id"):
         ctx.project_ownership.setdefault(user_id, set()).add(project_id)
@@ -271,12 +277,16 @@ def project_event_counts_for_organization(ctx):
         groupby=[Column("outcome"), Column("category"), Column("project_id"), Column("time")],
         granularity=Granularity(ONE_DAY),
         orderby=[OrderBy(Column("time"), Direction.ASC)],
+        limit=Limit(10000),
     )
     request = Request(dataset=Dataset.Outcomes.value, app_id="reports", query=query)
     data = raw_snql_query(request, referrer="weekly_reports.outcomes")["data"]
 
     for dat in data:
         project_id = dat["project_id"]
+        # Project no longer in organization, but events still exist
+        if project_id not in ctx.projects:
+            continue
         project_ctx = ctx.projects[project_id]
         total = dat["total"]
         timestamp = int(to_timestamp(parse_snuba_datetime(dat["time"])))
@@ -637,11 +647,12 @@ def fetch_key_performance_issue_groups(ctx):
 def deliver_reports(ctx, dry_run=False, target_user=None, email_override=None):
     # Specify a sentry user to send this email.
     if email_override:
-        send_email(ctx, target_user, dry_run=dry_run, email_override=email_override)
+        target_user_id = (
+            target_user.id if target_user else None
+        )  # if None, generates report for a user with access to all projects
+        send_email(ctx, target_user_id, dry_run=dry_run, email_override=email_override)
     else:
-        # We save the subscription status of the user in a field in UserOptions.
-        # Here we do a raw query and LEFT JOIN on a subset of UserOption table where sentry_useroption.key = 'reports:disabled-organizations'
-        user_set = list(
+        user_list = list(
             OrganizationMember.objects.filter(
                 user_is_active=True,
                 organization_id=ctx.organization.id,
@@ -649,18 +660,12 @@ def deliver_reports(ctx, dry_run=False, target_user=None, email_override=None):
             .filter(flags=F("flags").bitand(~OrganizationMember.flags["member-limit:restricted"]))
             .values_list("user_id", flat=True)
         )
-        options_by_user_id = {
-            option.user_id: option.value
-            for option in user_option_service.get_many(
-                filter=dict(user_ids=user_set, keys=["reports:disabled-organizations"])
-            )
-        }
-
-        for user_id in user_set:
-            option = list(options_by_user_id.get(user_id, []))
-            user_subscribed_to_organization_reports = ctx.organization.id not in option
-            if user_subscribed_to_organization_reports:
-                send_email(ctx, user_id, dry_run=dry_run)
+        user_list = list(filter(lambda v: v is not None, user_list))
+        user_ids = notifications_service.get_users_for_weekly_reports(
+            organization_id=ctx.organization.id, user_ids=user_list
+        )
+        for user_id in user_ids:
+            send_email(ctx, user_id, dry_run=dry_run)
 
 
 project_breakdown_colors = ["#422C6E", "#895289", "#D6567F", "#F38150", "#F2B713"]
@@ -740,7 +745,7 @@ def render_template_context(ctx, user_id):
         "organizations:session-replay", ctx.organization
     ) and features.has("organizations:session-replay-weekly-email", ctx.organization)
 
-    notification_uuid = generate_notification_uuid()
+    notification_uuid = str(uuid.uuid4())
 
     # Render the first section of the email where we had the table showing the
     # number of accepted/dropped errors/transactions for each project.
@@ -976,7 +981,7 @@ def render_template_context(ctx, user_id):
     def key_performance_issues():
         def all_key_performance_issues():
             for project_ctx in user_projects:
-                for (group, group_history, count) in project_ctx.key_performance_issues:
+                for group, group_history, count in project_ctx.key_performance_issues:
                     yield {
                         "count": count,
                         "group": group,
@@ -1045,7 +1050,9 @@ def send_email(ctx, user_id, dry_run=False, email_override=None):
     template_ctx = render_template_context(ctx, user_id)
     if not template_ctx:
         logger.debug(
-            f"Skipping report for {ctx.organization.id} to <User: {user_id}>, no qualifying reports to deliver."
+            "Skipping report for %s to <User: %s>, no qualifying reports to deliver.",
+            ctx.organization.id,
+            user_id,
         )
         return
 
@@ -1059,6 +1066,8 @@ def send_email(ctx, user_id, dry_run=False, email_override=None):
     )
     if dry_run:
         return
+    if email_override:
+        message.send(to=(email_override,))
     else:
         analytics.record(
             "weekly_report.sent",
@@ -1067,8 +1076,5 @@ def send_email(ctx, user_id, dry_run=False, email_override=None):
             notification_uuid=template_ctx["notification_uuid"],
             user_project_count=template_ctx["user_project_count"],
         )
-    if email_override:
-        message.send(to=(email_override,))
-    else:
         message.add_users((user_id,))
         message.send_async()

@@ -13,7 +13,7 @@
 !jest.config.js
 !now.json
 !package.json
-!prettier.config.js
+!.prettierrc
 !stylelint.config.js
 !tsconfig.json
 !config

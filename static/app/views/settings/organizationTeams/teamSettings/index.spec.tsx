@@ -1,5 +1,7 @@
 import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
+import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -27,7 +29,7 @@ describe('TeamSettings', function () {
   });
 
   it('can change slug', async function () {
-    const team = TestStubs.Team();
+    const team = Team();
     const putMock = MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team.slug}/`,
       method: 'PUT',
@@ -62,7 +64,7 @@ describe('TeamSettings', function () {
   });
 
   it('can set team org-role', async function () {
-    const team = TestStubs.Team({orgRole: ''});
+    const team = Team({orgRole: ''});
     const putMock = MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team.slug}/`,
       method: 'PUT',
@@ -71,7 +73,7 @@ describe('TeamSettings', function () {
         orgRole: 'owner',
       },
     });
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       access: ['org:admin'],
       features: ['org-roles-for-teams'],
     });
@@ -111,8 +113,8 @@ describe('TeamSettings', function () {
   });
 
   it('needs team:admin in order to see an enabled Remove Team button', function () {
-    const team = TestStubs.Team();
-    const organization = TestStubs.Organization({access: []});
+    const team = Team();
+    const organization = Organization({access: []});
 
     render(<TeamSettings {...routerProps} team={team} params={{teamId: team.slug}} />, {
       organization,
@@ -122,8 +124,8 @@ describe('TeamSettings', function () {
   });
 
   it('needs org:admin in order to set team org-role', function () {
-    const team = TestStubs.Team();
-    const organization = TestStubs.Organization({
+    const team = Team();
+    const organization = Organization({
       access: [],
       features: ['org-roles-for-teams'],
     });
@@ -136,8 +138,8 @@ describe('TeamSettings', function () {
   });
 
   it('cannot set team org-role for idp:provisioned team', function () {
-    const team = TestStubs.Team({flags: {'idp:provisioned': true}});
-    const organization = TestStubs.Organization({
+    const team = Team({flags: {'idp:provisioned': true}});
+    const organization = Organization({
       access: ['org:admin'],
       features: ['org-roles-for-teams'],
     });
@@ -150,7 +152,7 @@ describe('TeamSettings', function () {
   });
 
   it('can remove team', async function () {
-    const team = TestStubs.Team({hasAccess: true});
+    const team = Team({hasAccess: true});
     const deleteMock = MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team.slug}/`,
       method: 'DELETE',

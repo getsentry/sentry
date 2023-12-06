@@ -12,16 +12,12 @@ from fixtures.vsts import (
     WORK_ITEM_UPDATED_STATUS,
 )
 from sentry.integrations.vsts.integration import VstsIntegration
-from sentry.models import (
-    Activity,
-    ExternalIssue,
-    Group,
-    GroupLink,
-    GroupStatus,
-    Identity,
-    IdentityProvider,
-    Integration,
-)
+from sentry.models.activity import Activity
+from sentry.models.group import Group, GroupStatus
+from sentry.models.grouplink import GroupLink
+from sentry.models.identity import Identity, IdentityProvider
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
 from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -29,7 +25,7 @@ from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils.http import absolute_uri
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class VstsWebhookWorkItemTest(APITestCase):
     def setUp(self):
         self.access_token = "1234567890"

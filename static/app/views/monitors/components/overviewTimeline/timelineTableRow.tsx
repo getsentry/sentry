@@ -1,9 +1,14 @@
 import {useState} from 'react';
 import {Link} from 'react-router';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {tct} from 'sentry/locale';
+import {openConfirmModal} from 'sentry/components/confirm';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconEllipsis} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -18,11 +23,23 @@ import {MonitorBucket} from './types';
 interface Props extends Omit<CheckInTimelineProps, 'bucketedData' | 'environment'> {
   monitor: Monitor;
   bucketedData?: MonitorBucket[];
+  onDeleteEnvironment?: (env: string) => void;
+  /**
+   * Whether only one monitor is being rendered in a larger view with this component
+   * turns off things like zebra striping, hover effect, and showing monitor name
+   */
+  singleMonitorView?: boolean;
 }
 
 const MAX_SHOWN_ENVIRONMENTS = 4;
 
-export function TimelineTableRow({monitor, bucketedData, ...timelineProps}: Props) {
+export function TimelineTableRow({
+  monitor,
+  bucketedData,
+  singleMonitorView,
+  onDeleteEnvironment,
+  ...timelineProps
+}: Props) {
   const [isExpanded, setExpanded] = useState(
     monitor.environments.length <= MAX_SHOWN_ENVIRONMENTS
   );
@@ -32,15 +49,53 @@ export function TimelineTableRow({monitor, bucketedData, ...timelineProps}: Prop
     : monitor.environments.slice(0, MAX_SHOWN_ENVIRONMENTS);
 
   return (
-    <TimelineRow key={monitor.id}>
-      <MonitorDetails monitor={monitor} />
+    <TimelineRow key={monitor.id} singleMonitorView={singleMonitorView}>
+      {!singleMonitorView && <MonitorDetails monitor={monitor} />}
       <MonitorEnvContainer>
-        {environments.map(({name, status}) => (
-          <EnvWithStatus key={name}>
-            <MonitorEnvLabel status={status}>{name}</MonitorEnvLabel>
-            {statusIconColorMap[status].icon}
-          </EnvWithStatus>
-        ))}
+        {environments.map(({name, status}) => {
+          const envStatus =
+            monitor.status === MonitorStatus.DISABLED ? MonitorStatus.DISABLED : status;
+          const {label, icon} = statusIconColorMap[envStatus];
+          return (
+            <EnvWithStatus key={name}>
+              {onDeleteEnvironment && (
+                <DropdownMenu
+                  size="sm"
+                  trigger={triggerProps => (
+                    <EnvActionButton
+                      {...triggerProps}
+                      aria-label={t('Monitor environment actions')}
+                      size="zero"
+                      icon={<IconEllipsis size="sm" />}
+                    />
+                  )}
+                  items={[
+                    {
+                      label: t('Delete Environment'),
+                      key: 'delete',
+                      onAction: () => {
+                        openConfirmModal({
+                          onConfirm: () => onDeleteEnvironment(name),
+                          header: t('Delete Environment?'),
+                          message: tct(
+                            'Are you sure you want to permanently delete the "[envName]" environment?',
+                            {envName: name}
+                          ),
+                          confirmText: t('Delete'),
+                          priority: 'danger',
+                        });
+                      },
+                    },
+                  ]}
+                />
+              )}
+              <MonitorEnvLabel status={envStatus}>{name}</MonitorEnvLabel>
+              <Tooltip title={label} skipWrapper>
+                {icon}
+              </Tooltip>
+            </EnvWithStatus>
+          );
+        })}
         {!isExpanded && (
           <Button size="xs" onClick={() => setExpanded(true)}>
             {tct('Show [num] More', {
@@ -87,15 +142,26 @@ function MonitorDetails({monitor}: {monitor: Monitor}) {
   );
 }
 
-const TimelineRow = styled('div')`
+const TimelineRow = styled('div')<{singleMonitorView?: boolean}>`
   display: contents;
 
-  &:nth-child(odd) > * {
-    background: ${p => p.theme.backgroundSecondary};
+  ${p =>
+    !p.singleMonitorView &&
+    css`
+      &:nth-child(odd) > * {
+        background: ${p.theme.backgroundSecondary};
+      }
+      &:hover > * {
+        background: ${p.theme.backgroundTertiary};
+      }
+    `}
+
+  &:last-child > *:first-child {
+    border-bottom-left-radius: ${p => p.theme.borderRadius};
   }
 
-  &:hover > * {
-    background: ${p => p.theme.backgroundTertiary};
+  &:last-child > *:last-child {
+    border-bottom-right-radius: ${p => p.theme.borderRadius};
   }
 
   > * {
@@ -123,16 +189,26 @@ const Schedule = styled('small')`
 const MonitorEnvContainer = styled('div')`
   display: flex;
   padding: ${space(3)} ${space(2)};
-  flex-direction: column;
   gap: ${space(4)};
+  flex-direction: column;
   border-right: 1px solid ${p => p.theme.innerBorder};
   text-align: right;
 `;
 
+const EnvActionButton = styled(Button)`
+  padding: ${space(0.5)} ${space(1)};
+  display: none;
+`;
+
 const EnvWithStatus = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${space(0.5)};
   align-items: center;
+  height: calc(${p => p.theme.fontSizeLarge} * ${p => p.theme.text.lineHeightHeading});
+
+  &:hover ${EnvActionButton} {
+    display: block;
+  }
 `;
 
 const MonitorEnvLabel = styled('div')<{status: MonitorStatus}>`
@@ -140,6 +216,7 @@ const MonitorEnvLabel = styled('div')<{status: MonitorStatus}>`
   overflow: hidden;
   white-space: nowrap;
   flex: 1;
+
   color: ${p => p.theme[statusIconColorMap[p.status].color]};
 `;
 

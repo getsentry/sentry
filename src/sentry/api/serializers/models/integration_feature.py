@@ -1,7 +1,7 @@
 from typing import Any, List, MutableMapping
 
 from sentry.api.serializers import Serializer, register
-from sentry.models import IntegrationFeature
+from sentry.models.integrations.integration_feature import IntegrationFeature
 from sentry.models.user import User
 
 

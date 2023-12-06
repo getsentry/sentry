@@ -200,9 +200,18 @@ default_manager.add(
         event_id=83, name="RULE_SNOOZE", api_name="rule.mute", template='muted rule "{label}"'
     )
 )
+default_manager.add(
+    AuditLogEvent(
+        event_id=84,
+        name="RULE_DISABLE",
+        api_name="rule.disable",
+        template='disabled rule "{label}"',
+    )
+)
 default_manager.add(events.ServiceHookAddAuditLogEvent())
 default_manager.add(events.ServiceHookEditAuditLogEvent())
 default_manager.add(events.ServiceHookRemoveAuditLogEvent())
+default_manager.add(events.IntegrationDisabledAuditLogEvent())
 default_manager.add(events.IntegrationUpgradeAuditLogEvent())
 default_manager.add(events.IntegrationAddAuditLogEvent())
 default_manager.add(events.IntegrationEditAuditLogEvent())
@@ -263,6 +272,7 @@ default_manager.add(
     )
 )
 default_manager.add(events.InternalIntegrationAddAuditLogEvent())
+default_manager.add(events.InternalIntegrationDisabledAuditLogEvent())
 default_manager.add(
     AuditLogEvent(
         event_id=135,
@@ -391,3 +401,4 @@ default_manager.add(
         template="removed org auth token {name}",
     )
 )
+default_manager.add(events.ProjectOwnershipRuleEditAuditLogEvent())

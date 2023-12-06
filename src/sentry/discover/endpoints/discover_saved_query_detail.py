@@ -5,6 +5,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -16,6 +18,12 @@ from sentry.discover.models import DiscoverSavedQuery
 
 @region_silo_endpoint
 class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.DISCOVER_N_DASHBOARDS
     permission_classes = (DiscoverSavedQueryPermission,)
 
     def has_feature(self, organization, request):
@@ -110,6 +118,10 @@ from rest_framework.response import Response
 
 @region_silo_endpoint
 class DiscoverSavedQueryVisitEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.DISCOVER_N_DASHBOARDS
     permission_classes = (DiscoverSavedQueryPermission,)
 
     def has_feature(self, organization, request):

@@ -1,18 +1,21 @@
 from __future__ import annotations
 
-import logging
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Mapping, MutableMapping, Optional, Tuple
+from typing import Any, Generator, Generic, Iterable, List, Mapping, Optional, Set, Tuple, TypeVar
 
-from sentry.utils.math import ExponentialMovingAverage
+import sentry_sdk
 
-logger = logging.getLogger("sentry.tasks.statistical_detectors")
-
-KEY_TTL = 24 * 60 * 60  # 1 day TTL
-MIN_DATA_POINTS = 6
-VERSION = 1
+from sentry import options
+from sentry.api.serializers.snuba import SnubaTSResultSerializer
+from sentry.models.project import Project
+from sentry.search.events.fields import get_function_alias
+from sentry.seer.utils import BreakpointData, detect_breakpoints
+from sentry.utils import metrics
+from sentry.utils.iterators import chunked
+from sentry.utils.snuba import SnubaTSResult
 
 
 class TrendType(Enum):
@@ -21,129 +24,244 @@ class TrendType(Enum):
     Unchanged = "unchanged"
 
 
-@dataclass
-class TrendState:
-    timestamp: Optional[datetime]
-    count: int
-    short_ma: float
-    long_ma: float
-
-    FIELD_TIMESTAMP = "T"
-    FIELD_COUNT = "N"
-    FIELD_SHORT_TERM = "S"
-    FIELD_LONG_TERM = "L"
-
-    def as_dict(self) -> Mapping[str | bytes, str | float | int]:
-        d: MutableMapping[str | bytes, str | float | int] = {
-            TrendState.FIELD_COUNT: self.count,
-            TrendState.FIELD_SHORT_TERM: self.short_ma,
-            TrendState.FIELD_LONG_TERM: self.long_ma,
-        }
-        if self.timestamp is not None:
-            d[TrendState.FIELD_TIMESTAMP] = self.timestamp.isoformat()
-        return d
-
-    @staticmethod
-    def from_dict(d: Any) -> TrendState:
-        try:
-            count = int(d.get(TrendState.FIELD_COUNT, 0))
-        except ValueError:
-            count = 0
-
-        try:
-            short_ma = float(d.get(TrendState.FIELD_SHORT_TERM, 0))
-        except ValueError:
-            short_ma = 0
-
-        try:
-            long_ma = float(d.get(TrendState.FIELD_LONG_TERM, 0))
-        except ValueError:
-            long_ma = 0
-
-        try:
-            timestamp = datetime.fromisoformat(d.get(TrendState.FIELD_TIMESTAMP, ""))
-        except ValueError:
-            timestamp = None
-
-        return TrendState(timestamp, count, short_ma, long_ma)
-
-
-@dataclass
-class TrendPayload:
+@dataclass(frozen=True)
+class DetectorPayload:
+    project_id: int
     group: str | int
+    fingerprint: str | int
     count: float
     value: float
     timestamp: datetime
 
 
-def compute_new_trend_states(
-    cur_state: TrendState,
-    payload: TrendPayload,
-) -> Optional[Tuple[TrendState, Tuple[TrendType, TrendPayload]]]:
-    if cur_state.timestamp is not None and cur_state.timestamp > payload.timestamp:
-        # In the event that the timestamp is before the payload's timestamps,
-        # we do not want to process this payload.
-        #
-        # This should not happen other than in some error state.
-        logger.warning(
-            "Trend detection out of order. Processing %s, but last processed was %s",
-            payload.timestamp.isoformat(),
-            cur_state.timestamp.isoformat(),
+@dataclass(frozen=True)
+class DetectorState(ABC):
+    @classmethod
+    @abstractmethod
+    def from_redis_dict(cls, data: Any) -> DetectorState:
+        ...
+
+    @abstractmethod
+    def to_redis_dict(self) -> Mapping[str | bytes, bytes | float | int | str]:
+        ...
+
+    @classmethod
+    @abstractmethod
+    def empty(cls) -> DetectorState:
+        ...
+
+
+@dataclass(frozen=True)
+class DetectorConfig(ABC):
+    ...
+
+
+C = TypeVar("C")
+T = TypeVar("T")
+
+
+class DetectorStore(ABC, Generic[T]):
+    @abstractmethod
+    def bulk_read_states(self, payloads: List[DetectorPayload]) -> List[T]:
+        ...
+
+    @abstractmethod
+    def bulk_write_states(self, payloads: List[DetectorPayload], states: List[T]):
+        ...
+
+
+class DetectorAlgorithm(ABC, Generic[T]):
+    @abstractmethod
+    def __init__(
+        self,
+        source: str,
+        kind: str,
+        state: DetectorState,
+        config: DetectorConfig,
+    ):
+        ...
+
+    @abstractmethod
+    def update(self, payload: DetectorPayload) -> Tuple[Optional[TrendType], float]:
+        ...
+
+    @property
+    @abstractmethod
+    def state(self) -> DetectorState:
+        ...
+
+
+@dataclass(frozen=True)
+class RegressionDetector(ABC):
+    source: str
+    kind: str
+    config: DetectorConfig
+    store: DetectorStore
+    state_cls: type[DetectorState]
+    detector_cls: type[DetectorAlgorithm]
+    min_change: int
+
+    @classmethod
+    def all_payloads(
+        cls,
+        projects: List[Project],
+        start: datetime,
+    ) -> Generator[DetectorPayload, None, None]:
+        projects_per_query = options.get("statistical_detectors.query.batch_size")
+        assert projects_per_query > 0
+
+        for projects in chunked(projects, projects_per_query):
+            try:
+                yield from cls.query_payloads(projects, start)
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+
+    @classmethod
+    @abstractmethod
+    def query_payloads(
+        cls,
+        projects: List[Project],
+        start: datetime,
+    ) -> Iterable[DetectorPayload]:
+        ...
+
+    @classmethod
+    def detect_trends(
+        cls, projects: List[Project], start: datetime
+    ) -> Generator[Tuple[Optional[TrendType], float, DetectorPayload, DetectorState], None, None]:
+        unique_project_ids: Set[int] = set()
+
+        total_count = 0
+        regressed_count = 0
+        improved_count = 0
+
+        for payloads in chunked(cls.all_payloads(projects, start), 100):
+            total_count += len(payloads)
+
+            raw_states = cls.store.bulk_read_states(payloads)
+
+            states = []
+
+            for raw_state, payload in zip(raw_states, payloads):
+                try:
+                    state = cls.state_cls.from_redis_dict(raw_state)
+                except Exception as e:
+                    state = cls.state_cls.empty()
+
+                    if raw_state:
+                        # empty raw state implies that there was no
+                        # previous state so no need to capture an exception
+                        sentry_sdk.capture_exception(e)
+
+                algorithm = cls.detector_cls(cls.source, cls.kind, state, cls.config)
+                trend_type, score = algorithm.update(payload)
+
+                # the trend type can be None if no update happened,
+                # pass None to indicate we do not need up update the state
+                states.append(None if trend_type is None else algorithm.state.to_redis_dict())
+
+                if trend_type == TrendType.Regressed:
+                    regressed_count += 1
+                elif trend_type == TrendType.Improved:
+                    improved_count += 1
+
+                unique_project_ids.add(payload.project_id)
+
+                yield (trend_type, score, payload, algorithm.state)
+
+            cls.store.bulk_write_states(payloads, states)
+
+        metrics.incr(
+            "statistical_detectors.projects.active",
+            amount=len(unique_project_ids),
+            tags={"source": cls.source, "kind": cls.kind},
+            sample_rate=1.0,
         )
-        return None
 
-    trend, new_state = detect_trend(cur_state, payload)
+        metrics.incr(
+            "statistical_detectors.objects.total",
+            amount=total_count,
+            tags={"source": cls.source, "kind": cls.kind},
+            sample_rate=1.0,
+        )
 
-    return new_state, (trend, payload)
+        metrics.incr(
+            "statistical_detectors.objects.regressed",
+            amount=regressed_count,
+            tags={"source": cls.source, "kind": cls.kind},
+            sample_rate=1.0,
+        )
 
+        metrics.incr(
+            "statistical_detectors.objects.improved",
+            amount=improved_count,
+            tags={"source": cls.source, "kind": cls.kind},
+            sample_rate=1.0,
+        )
 
-def detect_trend(state: TrendState, payload: TrendPayload) -> Tuple[TrendType, TrendState]:
-    """
-    Detect if a change has occurred using the moving average cross over.
-    See https://en.wikipedia.org/wiki/Moving_average_crossover.
+    @classmethod
+    def all_timeseries(
+        cls, objects: List[Tuple[Project, int | str]], start: datetime, function: str, chunk_size=25
+    ) -> Generator[Tuple[int, int | str, SnubaTSResult], None, None]:
+        # Snuba allows 10,000 data points per request. 14 days * 1hr * 24hr =
+        # 336 data points per transaction name, so we can safely get 25 transaction
+        # timeseries.
+        for chunk in chunked(objects, chunk_size):
+            try:
+                yield from cls.query_timeseries(chunk, start, function)
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
-    We keep track of 2 moving averages, one with a shorter period and one with
-    a longer period. The shorter period moving average is a faster moving average
-    that is more sensitive to immediate changes in the timeseries. The longer
-    period moving average is a slower moving average that smooths out more of the
-    noise that may be present in the fast moving average.
+    @classmethod
+    @abstractmethod
+    def query_timeseries(
+        cls,
+        objects: List[Tuple[Project, int | str]],
+        start: datetime,
+        function: str,
+    ) -> Iterable[Tuple[int, int | str, SnubaTSResult]]:
+        ...
 
-    By tracking both of these moving averages, we're looking for when the fast
-    moving average cross the slow moving average from below. Whenever this happens,
-    it is an indication that the timeseries is trending upwards.
+    @classmethod
+    def detect_regressions(
+        cls,
+        objects: List[Tuple[Project, int | str]],
+        start: datetime,
+        function: str,
+        timeseries_per_batch=10,
+    ) -> Generator[BreakpointData, None, None]:
+        serializer = SnubaTSResultSerializer(None, None, None)
 
-    Here, we choose to use the exponential moving average as it is less sensitive
-    to large variations in the data and allows us weigh the newly seen data more
-    heavily than old data that is no longer relevant.
-    """
+        for chunk in chunked(cls.all_timeseries(objects, start, function), timeseries_per_batch):
+            data = {}
+            for project_id, object_name, result in chunk:
+                serialized = serializer.serialize(result, get_function_alias(function))
+                data[f"{project_id},{object_name}"] = {
+                    "data": serialized["data"],
+                    "data_start": serialized["start"],
+                    "data_end": serialized["end"],
+                    # only look at the last 3 days of the request data
+                    "request_start": serialized["end"] - 3 * 24 * 60 * 60,
+                    "request_end": serialized["end"],
+                }
 
-    # This EMA uses a shorter period to follow the timeseries more closely.
-    ema_short = ExponentialMovingAverage(smoothing=2, period=20)
-    ema_short.set(state.short_ma, state.count)
-    ema_short.update(payload.value)
+            request = {
+                "data": data,
+                "sort": "-trend_percentage()",
+                "min_change()": cls.min_change,
+                # "trend_percentage()": 0.5,  # require a minimum 50% increase
+                # "validate_tail_hours": 6,
+                # Disable the fall back to use the midpoint as the breakpoint
+                # which was originally intended to detect a gradual regression
+                # for the trends use case. That does not apply here.
+                "allow_midpoint": "0",
+            }
 
-    # This EMA uses a longer period to follow the overal trend of the timeseries.
-    ema_long = ExponentialMovingAverage(smoothing=2, period=40)
-    ema_long.set(state.long_ma, state.count)
-    ema_long.update(payload.value)
-
-    # The heuristic isn't stable initially, so ensure we have a minimum
-    # number of data points before looking for a regression.
-    stablized = state.count > MIN_DATA_POINTS
-
-    if stablized and ema_short.value > ema_long.value and state.short_ma <= state.long_ma:
-        # The new fast moving average is above the new slow moving average.
-        # The old fast moving average is below the old slow moving average.
-        # This indicates an upwards trend.
-        trend = TrendType.Regressed
-    elif stablized and ema_short.value < ema_long.value and state.short_ma >= state.long_ma:
-        # The new fast moving average is below the new slow moving average
-        # The old fast moving average is above the old slow moving average
-        # This indicates an downwards trend.
-        trend = TrendType.Improved
-    else:
-        trend = TrendType.Unchanged
-
-    new_state = TrendState(payload.timestamp, state.count + 1, ema_short.value, ema_long.value)
-
-    return trend, new_state
+            try:
+                yield from detect_breakpoints(request)["data"]
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+                metrics.incr(
+                    "statistical_detectors.breakpoint.errors",
+                    tags={"source": cls.source, "kind": cls.kind},
+                )

@@ -41,13 +41,13 @@ class BitFieldFlags:
             yield Bit(self._flags.index(flag))
 
     def items(self):
-        return list(self.iteritems())  # NOQA
+        return list(self.iteritems())
 
     def keys(self):
-        return list(self.iterkeys())  # NOQA
+        return list(self.iterkeys())
 
     def values(self):
-        return list(self.itervalues())  # NOQA
+        return list(self.itervalues())
 
 
 class BitFieldCreator:
@@ -147,7 +147,7 @@ class BitField(BigIntegerField):
 
     def deconstruct(self):
         name, path, args, kwargs = super().deconstruct()
-        args.insert(0, self._arg_flags)
+        args = [self._arg_flags, *args]
         return name, path, args, kwargs
 
 

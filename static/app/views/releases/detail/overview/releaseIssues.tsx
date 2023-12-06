@@ -8,7 +8,7 @@ import * as qs from 'query-string';
 import {Client} from 'sentry/api';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
-import ButtonBar, {ButtonGrid} from 'sentry/components/buttonBar';
+import ButtonBar from 'sentry/components/buttonBar';
 import GroupList from 'sentry/components/issues/groupList';
 import Pagination from 'sentry/components/pagination';
 import QueryCount from 'sentry/components/queryCount';
@@ -424,9 +424,6 @@ const ControlsWrapper = styled('div')`
   justify-content: space-between;
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: block;
-    ${ButtonGrid} {
-      overflow: auto;
-    }
   }
 `;
 

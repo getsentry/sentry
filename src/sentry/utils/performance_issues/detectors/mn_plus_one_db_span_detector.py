@@ -12,7 +12,8 @@ from sentry.issues.grouptype import (
     PerformanceNPlusOneGroupType,
 )
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models import Organization, Project
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 
 from ..base import (
     DetectorType,

@@ -27,7 +27,7 @@ function ReleaseCardCommits({release, withHeading = true}: Props) {
     <div className="release-stats">
       {withHeading && <ReleaseSummaryHeading>{releaseSummary}</ReleaseSummaryHeading>}
       <span style={{display: 'inline-block'}}>
-        <AvatarList users={release.authors} avatarSize={25} typeMembers="authors" />
+        <AvatarList users={release.authors} avatarSize={25} typeAvatars="authors" />
       </span>
     </div>
   );

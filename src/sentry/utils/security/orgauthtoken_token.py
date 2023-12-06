@@ -2,15 +2,23 @@ import secrets
 from base64 import b64decode, b64encode
 from datetime import datetime
 
-from django.conf import settings
-
+from sentry import options
 from sentry.utils import hashlib, json
 
 SENTRY_ORG_AUTH_TOKEN_PREFIX = "sntrys_"
 
 
+class SystemUrlPrefixMissingException(Exception):
+    # system.url-prefix is not set. You need to set this to generate a token.
+    pass
+
+
 def generate_token(org_slug: str, region_url: str):
-    sentry_url = settings.SENTRY_OPTIONS.get("system.url-prefix")
+    sentry_url = options.get("system.url-prefix")
+
+    if sentry_url is None:
+        raise SystemUrlPrefixMissingException
+
     payload = {
         "iat": datetime.utcnow().timestamp(),
         "url": sentry_url,

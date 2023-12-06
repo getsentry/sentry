@@ -2,7 +2,7 @@ import pytest
 from django.db import IntegrityError, router, transaction
 
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
-from sentry.models import User
+from sentry.models.user import User
 from sentry.testutils.cases import TestCase
 
 

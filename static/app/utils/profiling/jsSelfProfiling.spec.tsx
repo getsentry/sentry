@@ -40,7 +40,11 @@ describe('jsSelfProfiling', () => {
       };
       expect(
         toStackNames(
-          resolveJSSelfProfilingStack(trace, 5, createFrameIndex('web', trace.frames))
+          resolveJSSelfProfilingStack(
+            trace,
+            5,
+            createFrameIndex('javascript', trace.frames)
+          )
         )
       ).toEqual(['baz', 'foobar', 'foobarbaz', 'foobarbazfoo']);
     });
@@ -75,7 +79,7 @@ describe('jsSelfProfiling', () => {
           resolveJSSelfProfilingStack(
             trace,
             5,
-            createFrameIndex('web', trace.frames),
+            createFrameIndex('javascript', trace.frames),
             'gc'
           )
         )
@@ -95,7 +99,7 @@ describe('jsSelfProfiling', () => {
           resolveJSSelfProfilingStack(
             trace,
             0,
-            createFrameIndex('web', trace.frames),
+            createFrameIndex('javascript', trace.frames),
             'paint'
           )
         )

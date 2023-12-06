@@ -4,7 +4,7 @@ from sentry.mail.forms.member_team import MemberTeamForm
 from sentry.notifications.types import ACTION_CHOICES, ActionTargetType
 
 
-class NotifyEmailForm(MemberTeamForm):
+class NotifyEmailForm(MemberTeamForm[ActionTargetType]):
     targetType = forms.ChoiceField(choices=ACTION_CHOICES)
 
     teamValue = ActionTargetType.TEAM

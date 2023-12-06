@@ -1,5 +1,5 @@
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import ApiToken
+from sentry.models.apitoken import ApiToken
 
 
 @register(ApiToken)

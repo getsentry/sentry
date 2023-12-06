@@ -2,6 +2,7 @@
 *
 
 !/self-hosted
+!/.volta.json
 !/package.json
 !/yarn.lock
 !/dist/requirements-frozen.txt

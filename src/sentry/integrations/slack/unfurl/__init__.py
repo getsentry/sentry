@@ -5,7 +5,8 @@ from typing import Any, Callable, Mapping, NamedTuple, Optional, Pattern, Protoc
 
 from django.http.request import HttpRequest
 
-from sentry.models import Integration, User
+from sentry.models.integrations.integration import Integration
+from sentry.models.user import User
 
 UnfurledUrl = Mapping[Any, Any]
 ArgsMapper = Callable[[str, Mapping[str, Optional[str]]], Mapping[str, Any]]

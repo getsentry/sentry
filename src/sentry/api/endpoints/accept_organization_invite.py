@@ -1,19 +1,24 @@
 from __future__ import annotations
 
+import logging
 from typing import Mapping, Optional
 
+from django.http import HttpRequest
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.invite_helper import (
     ApiInviteHelper,
     add_invite_details_to_session,
     remove_invite_details_from_session,
 )
-from sentry.models import AuthProvider, OrganizationMapping, OrganizationMemberMapping
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.services.hybrid_cloud.organization import (
     RpcUserInviteContext,
     RpcUserOrganizationContext,
@@ -22,11 +27,14 @@ from sentry.services.hybrid_cloud.organization import (
 from sentry.types.region import RegionResolutionError, get_region_by_name
 from sentry.utils import auth
 
+logger = logging.getLogger(__name__)
+
 
 def get_invite_state(
     member_id: int,
     organization_slug: Optional[str],
     user_id: int,
+    request: HttpRequest,
 ) -> Optional[RpcUserInviteContext]:
     if organization_slug is None:
         member_mapping: OrganizationMemberMapping | None = None
@@ -54,6 +62,16 @@ def get_invite_state(
             organization_member_id=member_id,
             user_id=user_id,
         )
+
+        logger.info(
+            "organization.member_invite.no_slug",
+            extra={
+                "member_id": member_id,
+                "org_id": member_mapping.organization_id,
+                "url": request.path,
+                "method": request.method,
+            },
+        )
     else:
         invite_context = organization_service.get_invite_by_slug(
             organization_member_id=member_id,
@@ -66,6 +84,10 @@ def get_invite_state(
 
 @control_silo_endpoint
 class AcceptOrganizationInvite(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     # Disable authentication and permission requirements.
     permission_classes = []
 
@@ -82,7 +104,10 @@ class AcceptOrganizationInvite(Endpoint):
         self, request: Request, member_id: int, token: str, organization_slug: Optional[str] = None
     ) -> Response:
         invite_context = get_invite_state(
-            member_id=int(member_id), organization_slug=organization_slug, user_id=request.user.id
+            member_id=int(member_id),
+            organization_slug=organization_slug,
+            user_id=request.user.id,
+            request=request,
         )
         if invite_context is None:
             return self.respond_invalid()
@@ -176,6 +201,7 @@ class AcceptOrganizationInvite(Endpoint):
             member_id=int(member_id),
             organization_slug=organization_slug,
             user_id=request.user.id,
+            request=request,
         )
         if invite_context is None:
             return self.respond_invalid()

@@ -56,7 +56,7 @@ function SimilarStackTrace({params, location, project}: Props) {
 
     if (hasSimilarityFeature) {
       reqs.push({
-        endpoint: `/issues/${groupId}/similar/?${qs.stringify({
+        endpoint: `/organizations/${orgId}/issues/${groupId}/similar/?${qs.stringify({
           ...location.query,
           limit: 50,
         })}`,
@@ -65,7 +65,7 @@ function SimilarStackTrace({params, location, project}: Props) {
     }
 
     GroupingStore.onFetch(reqs);
-  }, [location.query, groupId, hasSimilarityFeature]);
+  }, [location.query, groupId, orgId, hasSimilarityFeature]);
 
   const onGroupingChange = useCallback(
     ({

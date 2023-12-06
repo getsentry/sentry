@@ -5,12 +5,14 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.integrations.jira_server.utils import handle_assignee_change, handle_status_change
 from sentry.integrations.utils.scope import clear_tags_and_context
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils import jwt
+from sentry.utils import jwt, metrics
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +46,10 @@ def get_integration_from_token(token):
 
 @control_silo_endpoint
 class JiraServerIssueUpdatedWebhook(Endpoint):
+    owner = ApiOwner.INTEGRATIONS
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     authentication_classes = ()
     permission_classes = ()
 
@@ -59,8 +65,8 @@ class JiraServerIssueUpdatedWebhook(Endpoint):
             extra["integration_id"] = integration.id
         except ValueError as err:
             extra.update({"token": token, "error": str(err)})
-            logger.info("token-validation-error", extra=extra)
-            logger.exception("Invalid token.")
+            logger.warning("token-validation-error", extra=extra)
+            metrics.incr("jira_server.webhook.invalid_token")
             return self.respond(status=400)
 
         data = request.data

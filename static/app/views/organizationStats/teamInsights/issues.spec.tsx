@@ -1,9 +1,14 @@
+import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
+import {TeamIssuesBreakdown} from 'sentry-fixture/teamIssuesBreakdown';
+import {TeamResolutionTime} from 'sentry-fixture/teamResolutionTime';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {Project, Team} from 'sentry/types';
+import {Project, Team as TeamType} from 'sentry/types';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import localStorage from 'sentry/utils/localStorage';
 import TeamStatsIssues from 'sentry/views/organizationStats/teamInsights/issues';
@@ -28,21 +33,21 @@ describe('TeamStatsIssues', () => {
     slug: 'py',
     environments: [env1, env2],
   });
-  const team1 = TestStubs.Team({
+  const team1 = Team({
     id: '2',
     slug: 'frontend',
     name: 'frontend',
     projects: [project1],
     isMember: true,
   });
-  const team2 = TestStubs.Team({
+  const team2 = Team({
     id: '3',
     slug: 'backend',
     name: 'backend',
     projects: [project2],
     isMember: true,
   });
-  const team3 = TestStubs.Team({
+  const team3 = Team({
     id: '4',
     slug: 'internal',
     name: 'internal',
@@ -59,11 +64,11 @@ describe('TeamStatsIssues', () => {
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team1.slug}/time-to-resolution/`,
-      body: TestStubs.TeamResolutionTime(),
+      body: TeamResolutionTime(),
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team1.slug}/issue-breakdown/`,
-      body: TestStubs.TeamIssuesBreakdown(),
+      body: TeamIssuesBreakdown(),
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/alerts-triggered-index/`,
@@ -71,11 +76,11 @@ describe('TeamStatsIssues', () => {
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/time-to-resolution/`,
-      body: TestStubs.TeamResolutionTime(),
+      body: TeamResolutionTime(),
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/issue-breakdown/`,
-      body: TestStubs.TeamIssuesBreakdown(),
+      body: TeamIssuesBreakdown(),
     });
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -125,11 +130,14 @@ describe('TeamStatsIssues', () => {
     jest.resetAllMocks();
   });
 
-  function createWrapper({projects, teams}: {projects?: Project[]; teams?: Team[]} = {}) {
+  function createWrapper({
+    projects,
+    teams,
+  }: {projects?: Project[]; teams?: TeamType[]} = {}) {
     teams = teams ?? [team1, team2, team3];
     projects = projects ?? [project1, project2];
     ProjectsStore.loadInitialData(projects);
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       teams,
       projects,
     });

@@ -1,3 +1,6 @@
+import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -24,7 +27,7 @@ const commonQueryConditions = {
   topEvents: '',
   yAxis: '',
   createdBy: TestStubs.User(),
-  team: TestStubs.Team(),
+  team: [parseInt(Team().id, 10)],
   statsPeriod: '14d',
 };
 
@@ -33,7 +36,7 @@ describe('Tags', function () {
     return `/endpoint/${key}/${value}`;
   }
 
-  const org = TestStubs.Organization();
+  const org = Organization();
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/events-facets/`,

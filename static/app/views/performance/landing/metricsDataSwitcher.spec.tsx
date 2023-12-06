@@ -1,10 +1,11 @@
 import {addMetricsDataMock} from 'sentry-test/performance/addMetricsDataMock';
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'sentry/stores/teamStore';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
+import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
 import {PerformanceLanding} from 'sentry/views/performance/landing';
@@ -19,10 +20,8 @@ function WrappedComponent({data, withStaticFilters = true}) {
     data.organization
   );
 
-  const client = new QueryClient();
-
   return (
-    <QueryClientProvider client={client}>
+    <QueryClientProvider client={makeTestQueryClient()}>
       <OrganizationContext.Provider value={data.organization}>
         <MetricsCardinalityProvider
           location={data.router.location}

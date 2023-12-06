@@ -2,23 +2,23 @@ import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
 import {Button} from 'sentry/components/button';
-import DatePageFilter from 'sentry/components/datePageFilter';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Input from 'sentry/components/input';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import ProjectPageFilter from 'sentry/components/projectPageFilter';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconAdd, IconDelete, IconWarning} from 'sentry/icons';
+import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {
   createOnDemandFilterWarning,
-  hasOnDemandMetricWidgetFeature,
   isOnDemandQueryString,
 } from 'sentry/utils/onDemandMetrics';
+import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {decodeList} from 'sentry/utils/queryString';
 import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
@@ -113,6 +113,8 @@ export function FilterResultsStep({
       }
     )
   );
+  const shouldDisplayOnDemandWarning =
+    hasOnDemandMetricWidgetFeature(organization) && widgetType === WidgetType.DISCOVER;
 
   return (
     <BuildStep
@@ -127,7 +129,7 @@ export function FilterResultsStep({
       <StyledPageFilterBar>
         <ProjectPageFilter disabled />
         <EnvironmentPageFilter disabled />
-        <DatePageFilter alignDropdown="left" disabled />
+        <DatePageFilter disabled />
         <ReleasesProvider organization={organization} selection={selection}>
           <StyledReleasesSelectControl
             selectedReleases={
@@ -160,9 +162,7 @@ export function FilterResultsStep({
               <SearchConditionsWrapper>
                 <datasetConfig.SearchBar
                   getFilterWarning={
-                    hasOnDemandMetricWidgetFeature(organization)
-                      ? getOnDemandFilterWarning
-                      : undefined
+                    shouldDisplayOnDemandWarning ? getOnDemandFilterWarning : undefined
                   }
                   organization={organization}
                   pageFilters={selection}
@@ -170,8 +170,15 @@ export function FilterResultsStep({
                   onSearch={handleSearch(queryIndex)}
                   widgetQuery={query}
                 />
-                {hasOnDemandMetricWidgetFeature(organization) &&
-                  isOnDemandQueryString(query.conditions) && <OnDemandWarningIcon />}
+                {shouldDisplayOnDemandWarning &&
+                  isOnDemandQueryString(query.conditions) && (
+                    <OnDemandWarningIcon
+                      msg={tct(
+                        'We don’t routinely collect metrics from this property. However, we’ll do so [strong:once this widget has been saved.]',
+                        {strong: <strong />}
+                      )}
+                    />
+                  )}
                 {!hideLegendAlias && (
                   <LegendAliasInput
                     type="text"
@@ -208,19 +215,6 @@ export function FilterResultsStep({
         )}
       </div>
     </BuildStep>
-  );
-}
-
-function OnDemandWarningIcon() {
-  return (
-    <Tooltip
-      title={tct(
-        'We don’t routinely collect metrics from this property. However, we’ll do so [strong:once this widget has been saved.]',
-        {strong: <strong />}
-      )}
-    >
-      <IconWarning size="sm" />
-    </Tooltip>
   );
 }
 

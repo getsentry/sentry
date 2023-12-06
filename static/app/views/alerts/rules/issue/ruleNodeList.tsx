@@ -6,6 +6,10 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {IssueOwnership, Organization, Project} from 'sentry/types';
 import {
+  IssueAlertActionType,
+  IssueAlertConditionType,
+  IssueAlertConfiguration,
+  IssueAlertGenericConditionConfig,
   IssueAlertRuleAction,
   IssueAlertRuleActionTemplate,
   IssueAlertRuleCondition,
@@ -17,7 +21,6 @@ import {
   COMPARISON_TYPE_CHOICE_VALUES,
   COMPARISON_TYPE_CHOICES,
 } from 'sentry/views/alerts/utils/constants';
-import {REAPPEARED_EVENT_CONDITION} from 'sentry/views/projectInstall/issueAlertOptions';
 
 import {AlertRuleComparisonType} from '../metric/types';
 
@@ -33,7 +36,7 @@ type Props = {
   /**
    * All available actions or conditions
    */
-  nodes: IssueAlertRuleActionTemplate[] | IssueAlertRuleConditionTemplate[] | null;
+  nodes: IssueAlertConfiguration[keyof IssueAlertConfiguration] | null;
   onAddRow: (
     value: IssueAlertRuleActionTemplate | IssueAlertRuleConditionTemplate
   ) => void;
@@ -60,7 +63,7 @@ const createSelectOptions = (
   value: IssueAlertRuleActionTemplate;
 }> => {
   return actions.map(node => {
-    if (node.id.includes('NotifyEmailAction')) {
+    if (node.id === IssueAlertActionType.NOTIFY_EMAIL) {
       let label = t('Issue Owners, Team, or Member');
       if (hasStreamlineTargeting(organization)) {
         label = t('Suggested Assignees, Team, or Member');
@@ -72,7 +75,7 @@ const createSelectOptions = (
     }
 
     if (
-      node.id === REAPPEARED_EVENT_CONDITION &&
+      node.id === IssueAlertConditionType.REAPPEARED_EVENT &&
       organization.features.includes('escalating-issues')
     ) {
       const label = t('The issue changes state from archived to escalating');
@@ -158,14 +161,18 @@ class RuleNodeList extends Component<Props> {
   getNode = (
     template: IssueAlertRuleAction | IssueAlertRuleCondition,
     itemIdx: number
-  ): IssueAlertRuleActionTemplate | IssueAlertRuleConditionTemplate | null => {
+  ): IssueAlertConfiguration[keyof IssueAlertConfiguration][number] | null => {
     const {nodes, items, organization, onPropertyChange} = this.props;
     const node = nodes?.find(n => {
-      return (
-        n.id === template.id &&
+      if ('sentryAppInstallationUuid' in n) {
         // Match more than just the id for sentryApp actions, they share the same id
-        n.sentryAppInstallationUuid === template.sentryAppInstallationUuid
-      );
+        return (
+          n.id === template.id &&
+          n.sentryAppInstallationUuid === template.sentryAppInstallationUuid
+        );
+      }
+
+      return n.id === template.id;
     });
 
     if (!node) {
@@ -179,13 +186,13 @@ class RuleNodeList extends Component<Props> {
       return node;
     }
 
-    const item = items[itemIdx] as IssueAlertRuleCondition;
+    const item = items[itemIdx];
 
-    let changeAlertNode: IssueAlertRuleConditionTemplate = {
-      ...node,
+    let changeAlertNode: IssueAlertGenericConditionConfig = {
+      ...(node as IssueAlertGenericConditionConfig),
       label: node.label.replace('...', ' {comparisonType}'),
       formFields: {
-        ...node.formFields,
+        ...(node.formFields as IssueAlertGenericConditionConfig['formFields']),
         comparisonType: {
           type: 'choice',
           choices: COMPARISON_TYPE_CHOICES,

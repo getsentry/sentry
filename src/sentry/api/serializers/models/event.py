@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections import defaultdict
 from datetime import datetime, timezone
-from typing import Any, Dict, Sequence
+from typing import Any, Dict, List, Sequence
 
 import sentry_sdk
 import sqlparse
@@ -12,9 +12,14 @@ from sentry_relay.processing import meta_with_chunks
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.release import GroupEventReleaseSerializer
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.models import EventAttachment, EventError, Release, User, UserReport
+from sentry.models.eventattachment import EventAttachment
+from sentry.models.eventerror import EventError
+from sentry.models.release import Release
+from sentry.models.user import User
+from sentry.models.userreport import UserReport
 from sentry.sdk_updates import SdkSetupState, get_suggested_updates
 from sentry.search.utils import convert_user_tag_to_query, map_device_class_level
+from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import get_path
 
@@ -316,6 +321,9 @@ class SqlFormatEventSerializer(EventSerializer):
         super().__init__()
         self.formatted_sql_cache: Dict[str, str] = {}
 
+    def get_attrs(self, item_list, user, is_public=False, **kwargs):
+        return super().get_attrs(item_list, user, is_public=is_public)
+
     # Various checks to ensure that we don't spend too much time formatting
     def _should_skip_formatting(self, query: str):
         if (
@@ -369,6 +377,23 @@ class SqlFormatEventSerializer(EventSerializer):
             sentry_sdk.capture_exception(exc)
             return event_data
 
+    def _get_release_info(self, user, event, include_full_release_data: bool):
+        version = event.get_tag("sentry:release")
+        if not version:
+            return None
+        try:
+            release = Release.objects.get(
+                projects=event.project,
+                organization_id=event.project.organization_id,
+                version=version,
+            )
+        except Release.DoesNotExist:
+            return {"version": version}
+        if include_full_release_data:
+            return serialize(release, user)
+        else:
+            return serialize(release, user, GroupEventReleaseSerializer())
+
     def _format_db_spans(self, event_data: dict[str, Any], event: Event | GroupEvent, user: User):
         try:
             spans = next(
@@ -389,12 +414,13 @@ class SqlFormatEventSerializer(EventSerializer):
             sentry_sdk.capture_exception(exc)
             return event_data
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, include_full_release_data=False):
         result = super().serialize(obj, attrs, user)
 
         with sentry_sdk.start_span(op="serialize", description="Format SQL"):
             result = self._format_breadcrumb_messages(result, obj, user)
             result = self._format_db_spans(result, obj, user)
+            result["release"] = self._get_release_info(user, obj, include_full_release_data)
 
         return result
 
@@ -409,31 +435,26 @@ class IssueEventSerializer(SqlFormatEventSerializer):
     ):
         return super().get_attrs(item_list, user, is_public)
 
-    def _get_release_info(self, user, event, include_full_release_data: bool):
-        version = event.get_tag("sentry:release")
-        if not version:
-            return None
-        try:
-            release = Release.objects.get(
-                projects=event.project,
-                organization_id=event.project.organization_id,
-                version=version,
-            )
-        except Release.DoesNotExist:
-            return {"version": version}
-        if include_full_release_data:
-            return serialize(release, user)
-        else:
-            return serialize(release, user, GroupEventReleaseSerializer())
-
     def _get_sdk_updates(self, obj):
         return list(get_suggested_updates(SdkSetupState.from_event_json(obj.data)))
 
+    def _get_resolved_with(self, obj: Event) -> List[str]:
+        stacktraces = find_stacktraces_in_data(obj.data)
+
+        frame_lists = [stacktrace.get_frames() for stacktrace in stacktraces]
+        frame_data = [frame.get("data") for frame_list in frame_lists for frame in frame_list]
+
+        unique_resolution_methods = {
+            frame.get("resolved_with") for frame in frame_data if frame is not None
+        }
+
+        return list(unique_resolution_methods)
+
     def serialize(self, obj, attrs, user, include_full_release_data=False):
-        result = super().serialize(obj, attrs, user)
-        result["release"] = self._get_release_info(user, obj, include_full_release_data)
+        result = super().serialize(obj, attrs, user, include_full_release_data)
         result["userReport"] = self._get_user_report(user, obj)
         result["sdkUpdates"] = self._get_sdk_updates(obj)
+        result["resolvedWith"] = self._get_resolved_with(obj)
         return result
 
 

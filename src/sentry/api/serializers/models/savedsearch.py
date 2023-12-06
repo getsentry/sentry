@@ -1,5 +1,5 @@
 from sentry.api.serializers import Serializer, register
-from sentry.models import SavedSearch
+from sentry.models.savedsearch import SavedSearch
 
 
 @register(SavedSearch)

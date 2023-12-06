@@ -3,11 +3,11 @@ from functools import cached_property
 from unittest import mock
 
 import pytest
+from django.contrib.auth.models import AnonymousUser
 from django.contrib.sessions.backends.base import SessionBase
 from django.db.models import F
 from django.test import RequestFactory
 from django.utils import timezone
-from freezegun import freeze_time
 from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint, OrganizationPermission
@@ -22,13 +22,16 @@ from sentry.api.utils import MAX_STATS_PERIOD
 from sentry.auth.access import NoAccess, from_request
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.constants import ALL_ACCESS_PROJECTS, ALL_ACCESS_PROJECTS_SLUG
-from sentry.models import ApiKey, Organization, OrganizationMember
+from sentry.models.apikey import ApiKey
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
@@ -50,6 +53,7 @@ class OrganizationPermissionBase(TestCase):
             organization_context = organization_service.get_organization_by_id(
                 id=obj.id, user_id=user.id if user else None
             )
+            assert organization_context is not None
             result_with_org_context_rpc = self.has_object_perm(
                 method, organization_context, auth, user, is_superuser
             )
@@ -66,11 +70,11 @@ class OrganizationPermissionBase(TestCase):
             request=request, view=None
         ) and perm.has_object_permission(request=request, view=None, organization=obj)
         if result_with_org_rpc is not None:
-            return result_with_obj and result_with_org_rpc and result_with_org_context_rpc
+            return bool(result_with_obj and result_with_org_rpc and result_with_org_context_rpc)
         return result_with_obj
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationPermissionTest(OrganizationPermissionBase):
     def org_require_2fa(self):
         self.org.update(flags=F("flags").bitor(Organization.flags.require_2fa))
@@ -166,8 +170,7 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
             }
         }
 
-    @mock.patch("sentry.api.utils.get_cached_organization_member")
-    def test_member_limit_with_superuser(self, mock_get_org_member):
+    def test_member_limit_with_superuser(self):
         user = self.create_user(is_superuser=True)
         self.create_member(
             user=user,
@@ -176,15 +179,12 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
             flags=OrganizationMember.flags["member-limit:restricted"],
         )
         assert self.has_object_perm("GET", self.org, user=user, is_superuser=True)
-        assert mock_get_org_member.call_count == 0
 
-    @mock.patch("sentry.api.utils.get_cached_organization_member")
-    def test_member_limit_sentry_app(self, mock_get_org_member):
+    def test_member_limit_sentry_app(self):
         app = self.create_internal_integration(
             name="integration", organization=self.org, scopes=("org:admin",)
         )
         assert self.has_object_perm("GET", self.org, user=app.proxy_user)
-        assert mock_get_org_member.call_count == 0
 
     def test_sso_required(self):
         user = self.create_user()
@@ -237,7 +237,7 @@ class BaseOrganizationEndpointTest(TestCase):
         return request
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GetProjectIdsTest(BaseOrganizationEndpointTest):
     def setUp(self):
         self.team_1 = self.create_team(organization=self.org)
@@ -341,7 +341,7 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         result = self.endpoint.get_projects(request, self.org)
         assert [] == result
 
-        request.user = None
+        request.user = AnonymousUser()
         result = self.endpoint.get_projects(request, self.org)
         assert [] == result
 
@@ -368,8 +368,7 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
     ):
         project_slugs = [""]
         request = self.build_request(projectSlug=project_slugs)
-        mock_project_ids = set()
-        mock_get_project_ids_unchecked.return_value = mock_project_ids
+        mock_get_project_ids_unchecked.return_value = set()
 
         self.endpoint.get_projects(
             request,
@@ -378,7 +377,7 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
 
         mock_get_project_ids_unchecked.assert_called_with(request)
         mock__get_projects_by_id.assert_called_with(
-            mock_project_ids,
+            set(),
             request,
             self.org,
             False,
@@ -440,7 +439,7 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         assert not self.endpoint.get_projects(request, self.org)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GetEnvironmentsTest(BaseOrganizationEndpointTest):
     def setUp(self):
         self.project = self.create_project(organization=self.org)
@@ -468,7 +467,7 @@ class GetEnvironmentsTest(BaseOrganizationEndpointTest):
             self.run_test([self.env_1, self.env_2], ["fake", self.env_2.name])
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GetFilterParamsTest(BaseOrganizationEndpointTest):
     def setUp(self):
         self.team_1 = self.create_team(organization=self.org)

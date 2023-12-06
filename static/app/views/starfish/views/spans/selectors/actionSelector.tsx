@@ -8,15 +8,16 @@ import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {buildEventViewQuery} from 'sentry/views/starfish/utils/buildEventViewQuery';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {
   EMPTY_OPTION_VALUE,
   EmptyContainer,
 } from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 
-const {SPAN_ACTION} = SpanMetricsFields;
+const {SPAN_ACTION} = SpanMetricsField;
 
 type Props = {
   moduleName?: ModuleName;
@@ -76,6 +77,7 @@ export function ActionSelector({
           query: {
             ...location.query,
             [SPAN_ACTION]: newValue.value,
+            [QueryParameterNames.SPANS_CURSOR]: undefined,
           },
         });
       }}
@@ -94,6 +96,7 @@ const HTTP_ACTION_OPTIONS = [
 const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   http: t('HTTP Method'),
   db: t('SQL Command'),
+  resource: t('Resource'),
   other: t('Action'),
   '': t('Action'),
 };
@@ -101,7 +104,7 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
 function getEventView(location: Location, moduleName: ModuleName, spanCategory?: string) {
   const query = buildEventViewQuery({
     moduleName,
-    location: {...location, query: omit(location.query, SPAN_ACTION)},
+    location: {...location, query: omit(location.query, ['span.action', 'span.domain'])},
     spanCategory,
   }).join(' ');
   return EventView.fromNewQueryWithLocation(

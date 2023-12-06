@@ -8,7 +8,7 @@ from sentry.integrations.bitbucket_server.client import (
     BitbucketServerAPIPath,
     BitbucketServerClient,
 )
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import BaseTestCase, TestCase
@@ -23,7 +23,7 @@ secret = "hush-hush-im-invisible"
     SENTRY_SUBNET_SECRET=secret,
     SENTRY_CONTROL_ADDRESS=control_address,
 )
-@control_silo_test(stable=True)
+@control_silo_test
 class BitbucketServerClientTest(TestCase, BaseTestCase):
     def setUp(self):
         self.integration = Integration.objects.create(

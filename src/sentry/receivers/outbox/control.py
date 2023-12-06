@@ -12,73 +12,49 @@ from typing import Any, Mapping
 
 from django.dispatch import receiver
 
-from sentry.models import (
-    ApiApplication,
-    Integration,
-    OrganizationIntegration,
-    OutboxCategory,
-    OutboxScope,
-    SentryAppInstallation,
-    User,
-    process_control_outbox,
-)
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.outbox import OutboxCategory, process_control_outbox
 from sentry.receivers.outbox import maybe_process_tombstone
-from sentry.services.hybrid_cloud.organization import (
-    RpcOrganizationSignal,
-    RpcRegionUser,
-    organization_service,
-)
+from sentry.services.hybrid_cloud.issue import issue_service
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSignal, organization_service
 from sentry.silo.base import SiloMode
 
 logger = logging.getLogger(__name__)
 
 
-@receiver(process_control_outbox, sender=OutboxCategory.USER_UPDATE)
-def process_user_updates(object_identifier: int, region_name: str, **kwds: Any):
-    if (user := maybe_process_tombstone(User, object_identifier)) is None:
-        return
-    organization_service.update_region_user(
-        user=RpcRegionUser(
-            id=user.id,
-            is_active=user.is_active,
-            email=user.email,
-        ),
-        region_name=region_name,
-    )
-
-
 @receiver(process_control_outbox, sender=OutboxCategory.INTEGRATION_UPDATE)
-def process_integration_updates(object_identifier: int, **kwds: Any):
-    if (integration := maybe_process_tombstone(Integration, object_identifier)) is None:
+def process_integration_updates(object_identifier: int, region_name: str, **kwds: Any):
+    if (
+        integration := maybe_process_tombstone(
+            Integration, object_identifier, region_name=region_name
+        )
+    ) is None:
         return
     integration  # Currently we do not sync any other integration changes, but if we did, you can use this variable.
 
 
-@receiver(process_control_outbox, sender=OutboxCategory.API_APPLICATION_UPDATE)
-def process_api_application_updates(object_identifier: int, **kwds: Any):
-    if (api_application := maybe_process_tombstone(ApiApplication, object_identifier)) is None:
-        return
-    api_application  # Currently we do not sync any other api application changes, but if we did, you can use this variable.
-
-
-@receiver(process_control_outbox, sender=OutboxCategory.SENTRY_APP_INSTALLATION_UPDATE)
-def process_sentry_app_installation_updates(object_identifier: int, **kwds: Any):
+@receiver(process_control_outbox, sender=OutboxCategory.SENTRY_APP_UPDATE)
+def process_sentry_app_updates(object_identifier: int, region_name: str, **kwds: Any):
     if (
-        sentry_app_installation := maybe_process_tombstone(SentryAppInstallation, object_identifier)
-    ) is None:
-        return
-    sentry_app_installation  # Currently we do not sync any other api application changes, but if we did, you can use this variable.
-
-
-@receiver(process_control_outbox, sender=OutboxCategory.ORGANIZATION_INTEGRATION_UPDATE)
-def process_organization_integration_update(object_identifier: int, **kwds: Any):
-    if (
-        organization_integration := maybe_process_tombstone(
-            OrganizationIntegration, object_identifier
+        sentry_app := maybe_process_tombstone(
+            model=SentryApp, object_identifier=object_identifier, region_name=region_name
         )
     ) is None:
         return
-    organization_integration  # Currently we do not sync any other organization integration changes, but if we did, you can use this variable.
+    sentry_app  # Currently we do not sync any other sentry_app changes, but if we did, you can use this variable.
+
+
+@receiver(process_control_outbox, sender=OutboxCategory.API_APPLICATION_UPDATE)
+def process_api_application_updates(object_identifier: int, region_name: str, **kwds: Any):
+    if (
+        api_application := maybe_process_tombstone(
+            ApiApplication, object_identifier, region_name=region_name
+        )
+    ) is None:
+        return
+    api_application  # Currently we do not sync any other api application changes, but if we did, you can use this variable.
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.WEBHOOK_PROXY)
@@ -111,15 +87,12 @@ def process_async_webhooks(payload: Mapping[str, Any], region_name: str, **kwds:
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.SEND_SIGNAL)
-def process_send_signal(
-    payload: Mapping[str, Any], shard_identifier: int, shard_scope: OutboxScope, **kwds: Any
-):
-    if shard_scope == OutboxScope.ORGANIZATION_SCOPE:
-        organization_service.send_signal(
-            organization_id=shard_identifier,
-            args=payload["args"],
-            signal=RpcOrganizationSignal(payload["signal"]),
-        )
+def process_send_signal(payload: Mapping[str, Any], shard_identifier: int, **kwds: Any):
+    organization_service.send_signal(
+        organization_id=shard_identifier,
+        args=payload["args"],
+        signal=RpcOrganizationSignal(payload["signal"]),
+    )
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.RESET_IDP_FLAGS)
@@ -141,3 +114,13 @@ def process_mark_invalid_sso(object_identifier: int, shard_identifier: int, **kw
     other_member.flags.sso__invalid = True
     other_member.flags.sso__linked = False
     organization_service.update_membership_flags(organization_member=other_member)
+
+
+@receiver(process_control_outbox, sender=OutboxCategory.ISSUE_COMMENT_UPDATE)
+def process_issue_email_reply(shard_identifier: int, payload: Any, **kwds):
+    issue_service.upsert_issue_email_reply(
+        organization_id=shard_identifier,
+        group_id=payload["group_id"],
+        from_email=payload["from_email"],
+        text=payload["text"],
+    )

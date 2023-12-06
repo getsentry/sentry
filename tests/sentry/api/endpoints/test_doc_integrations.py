@@ -6,8 +6,8 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from sentry.api.serializers.base import serialize
-from sentry.models import DocIntegration, IntegrationFeature
-from sentry.models.integrations.integration_feature import IntegrationTypes
+from sentry.models.integrations.doc_integration import DocIntegration
+from sentry.models.integrations.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.json import JSONData
@@ -32,7 +32,7 @@ class DocIntegrationsTest(APITestCase):
         return [doc.get("avatar") for doc in response.data]
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class GetDocIntegrationsTest(DocIntegrationsTest):
     method = "GET"
 
@@ -79,7 +79,7 @@ class GetDocIntegrationsTest(DocIntegrationsTest):
             assert serialize(feature) in serialize(self.doc_3)["features"]
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class PostDocIntegrationsTest(DocIntegrationsTest):
     method = "POST"
     payload: dict[str, Any] = {
@@ -129,6 +129,18 @@ class PostDocIntegrationsTest(DocIntegrationsTest):
         payload = {**self.payload, "name": self.doc_1.name}
         response = self.get_error_response(status_code=status.HTTP_400_BAD_REQUEST, **payload)
         assert "name" in response.data.keys()
+
+    def test_generated_slug_not_entirely_numeric(self):
+        """
+        Tests that generated slug based on name is not entirely numeric
+        """
+        self.login_as(user=self.superuser, superuser=True)
+        payload = {**self.payload, "name": "1234"}
+        response = self.get_success_response(status_code=status.HTTP_201_CREATED, **payload)
+
+        slug = response.data["slug"]
+        assert slug.startswith("1234-")
+        assert not slug.isdecimal()
 
     def test_create_invalid_metadata(self):
         """

@@ -79,7 +79,7 @@
   },
   "put": {
     "tags": ["Teams"],
-    "description": "Update various attributes and configurable settings for the given team.",
+    "description": "Update various attributes settings for the given team.",
     "operationId": "Update a Team",
     "parameters": [
       {
@@ -105,16 +105,16 @@
       "content": {
         "application/json": {
           "schema": {
-            "required": ["name"],
             "type": "object",
             "properties": {
-              "name": {
-                "type": "string",
-                "description": "The new name for the team."
-              },
               "slug": {
                 "type": "string",
-                "description": "A new slug for the team. It has to be unique and available."
+                "description": "Uniquely identifies a team and is used for the interface. Must be available."
+              },
+              "name": {
+                "type": "string",
+                "description": "**`[DEPRECATED]`** The name for the team.",
+                "deprecated": true
               }
             }
           },

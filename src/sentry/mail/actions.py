@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 
 from sentry.mail import mail_adapter
 from sentry.mail.forms.notify_email import NotifyEmailForm
@@ -34,9 +35,13 @@ class NotifyEmailAction(EventAction):
             self.data = {**self.data, "fallthroughType": FallthroughChoiceType.ACTIVE_MEMBERS.value}
         return self.label.format(**self.data)
 
-    def after(self, event, state):
+    def after(self, event, state, notification_uuid: Optional[str] = None):
         group = event.group
-        extra = {"event_id": event.event_id, "group_id": group.id}
+        extra = {
+            "event_id": event.event_id,
+            "group_id": group.id,
+            "notification_uuid": notification_uuid,
+        }
         group = event.group
 
         target_type = ActionTargetType(self.data["targetType"])
@@ -65,6 +70,7 @@ class NotifyEmailAction(EventAction):
                 target_identifier,
                 fallthrough_type,
                 skip_digests,
+                notification_uuid,
             )
         )
 

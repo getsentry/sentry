@@ -1,7 +1,7 @@
 name: ❅ Flaky Test
 description: Report a flaky test in CI
-title: "[Flaky CI]: "
-labels: ["Type: CI Flakiness"]
+title: '[Flaky CI]: '
+labels: ['Type: CI Flakiness']
 body:
   - type: dropdown
     id: type
@@ -10,7 +10,6 @@ body:
       description: What are you observing
       options:
         - Timeout
-        - Visual Snapshot
         - Jest Snapshot
         - Insta Snapshot
         - Assertion failure

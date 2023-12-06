@@ -5,12 +5,13 @@ import {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
-import DatePageFilter from 'sentry/components/datePageFilter';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import {
@@ -19,7 +20,7 @@ import {
   ProfilingUpgradeButton,
 } from 'sentry/components/profiling/billing/alerts';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
-import ProjectPageFilter from 'sentry/components/projectPageFilter';
+import ProfilingFeedbackButton from 'sentry/components/profiling/profilingFeedbackButton';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
@@ -40,7 +41,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
 import {LandingWidgetSelector} from './landing/landingWidgetSelector';
-import {ProfileCharts} from './landing/profileCharts';
+import {ProfilesChart} from './landing/profileCharts';
 import {ProfilesChartWidget} from './landing/profilesChartWidget';
 import {ProfilingSlowestTransactionsPanel} from './landing/profilingSlowestTransactionsPanel';
 import {ProfilingOnboardingPanel} from './profilingOnboardingPanel';
@@ -66,7 +67,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
   const fields = profilingUsingTransactions ? ALL_FIELDS : BASE_FIELDS;
 
   const sort = formatSort<FieldType>(decodeScalar(location.query.sort), fields, {
-    key: 'p95()',
+    key: 'count()',
     order: 'desc',
   });
 
@@ -164,7 +165,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
         <Layout.Page>
           <ProfilingBetaAlertBanner organization={organization} />
           <Layout.Header>
-            <Layout.HeaderContent>
+            <StyledHeaderContent>
               <Layout.Title>
                 {t('Profiling')}
                 <PageHeadingQuestionTooltip
@@ -174,7 +175,8 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   )}
                 />
               </Layout.Title>
-            </Layout.HeaderContent>
+              <ProfilingFeedbackButton />
+            </StyledHeaderContent>
           </Layout.Header>
           <Layout.Body>
             <Layout.Main fullWidth>
@@ -187,10 +189,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                 <PageFilterBar condensed>
                   <ProjectPageFilter resetParamsOnChange={CURSOR_PARAMS} />
                   <EnvironmentPageFilter resetParamsOnChange={CURSOR_PARAMS} />
-                  <DatePageFilter
-                    alignDropdown="left"
-                    resetParamsOnChange={CURSOR_PARAMS}
-                  />
+                  <DatePageFilter resetParamsOnChange={CURSOR_PARAMS} />
                 </PageFilterBar>
                 {profilingUsingTransactions ? (
                   <SearchBar
@@ -235,13 +234,14 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   <ProfilingUpgradeButton
                     organization={organization}
                     priority="primary"
+                    onClick={onSetupProfilingClick}
                     fallback={
                       <Button onClick={onSetupProfilingClick} priority="primary">
                         {t('Set Up Profiling')}
                       </Button>
                     }
                   >
-                    {t('Update plan')}
+                    {t('Set Up Profiling')}
                   </ProfilingUpgradeButton>
                   <Button href="https://docs.sentry.io/product/profiling/" external>
                     {t('Read Docs')}
@@ -279,7 +279,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   ) : (
                     <PanelsGrid>
                       <ProfilingSlowestTransactionsPanel />
-                      <ProfileCharts
+                      <ProfilesChart
                         referrer="api.profiling.landing-chart"
                         query={query}
                         selection={selection}
@@ -330,6 +330,13 @@ const BASE_FIELDS = [
 const ALL_FIELDS = [...BASE_FIELDS, 'user_misery()'] as const;
 
 type FieldType = (typeof ALL_FIELDS)[number];
+
+const StyledHeaderContent = styled(Layout.HeaderContent)`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-direction: row;
+`;
 
 const ActionBar = styled('div')`
   display: grid;

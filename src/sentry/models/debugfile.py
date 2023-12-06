@@ -34,6 +34,7 @@ from symbolic.debuginfo import Archive, BcSymbolMap, Object, UuidMapping, normal
 from symbolic.exceptions import ObjectErrorUnsupportedObject, SymbolicError
 
 from sentry import options
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import KNOWN_DIF_FORMATS
 from sentry.db.models import (
     BaseManager,
@@ -51,7 +52,7 @@ from sentry.utils import json
 from sentry.utils.zip import safe_extract_zip
 
 if TYPE_CHECKING:
-    from sentry.models import Project
+    from sentry.models.project import Project
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +69,7 @@ class BadDif(Exception):
     pass
 
 
-class ProjectDebugFileManager(BaseManager):
+class ProjectDebugFileManager(BaseManager["ProjectDebugFile"]):
     def find_missing(self, checksums: Iterable[str], project: Project) -> List[str]:
         if not checksums:
             return []
@@ -134,7 +135,7 @@ class ProjectDebugFileManager(BaseManager):
 
 @region_silo_only_model
 class ProjectDebugFile(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     file = FlexibleForeignKey("sentry.File")
     checksum = models.CharField(max_length=40, null=True, db_index=True)
@@ -146,7 +147,7 @@ class ProjectDebugFile(Model):
     data = JSONField(null=True)
     date_accessed = models.DateTimeField(default=timezone.now)
 
-    objects = ProjectDebugFileManager()
+    objects: ClassVar[ProjectDebugFileManager] = ProjectDebugFileManager()
 
     difcache: ClassVar[DIFCache]
 
@@ -366,7 +367,7 @@ def _analyze_progard_filename(filename: str) -> Optional[str]:
 
 @region_silo_only_model
 class ProguardArtifactRelease(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField()
     project_id = BoundedBigIntegerField()

@@ -1,11 +1,14 @@
 from sentry.api.serializers import serialize
-from sentry.models import Activity, Commit, GroupStatus, PullRequest
+from sentry.models.activity import Activity
+from sentry.models.commit import Commit
+from sentry.models.group import GroupStatus
+from sentry.models.pullrequest import PullRequest
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupActivityTestCase(TestCase):
     def test_pr_activity(self):
         self.org = self.create_organization(name="Rowdy Tiger")

@@ -2,7 +2,6 @@ from datetime import timedelta
 
 import pytest
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.dynamic_sampling.tasks.common import (
     GetActiveOrgs,
@@ -16,6 +15,7 @@ from sentry.dynamic_sampling.tasks.common import (
 from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 
 MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
     hour=0, minute=0, second=0, microsecond=0
@@ -47,7 +47,7 @@ class FakeContextIterator:
     def __next__(self):
         if self.count < 2:
             self.count += 1
-            self.frozen_time.tick(delta=timedelta(seconds=self.tick_seconds))
+            self.frozen_time.shift(self.tick_seconds)
             return self.count
         raise StopIteration()
 
@@ -186,10 +186,10 @@ def test_timed_function_correctly_times_inner_function():
         @timed_function()
         def f1(state: DynamicSamplingLogState, x: int, y: str):
             state.num_iterations = 1
-            frozen_time.tick()
+            frozen_time.shift(1)
 
         f1(context, 1, "x")
-        frozen_time.tick()
+        frozen_time.shift(1)
         f1(context, 1, "x")
 
         # two seconds passed inside f1 ( one for each call)
@@ -204,12 +204,12 @@ def test_timed_function_correctly_raises_when_task_expires():
         @timed_function()
         def f1(state: DynamicSamplingLogState, x: int, y: str):
             state.num_iterations = 1
-            frozen_time.tick()
+            frozen_time.shift(1)
 
         f1(context, 1, "x")
         t = context.get_timer("f1")
         assert t.current() == 1.0
-        frozen_time.tick()
+        frozen_time.shift(1)
         assert t.current() == 1.0  # timer should not be moving ouside the function
         f1(context, 1, "x")
 

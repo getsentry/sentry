@@ -2,7 +2,7 @@ from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class GitHubTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -17,5 +17,4 @@ class GitHubTest(AcceptanceTestCase):
     def test_simple(self):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        self.browser.snapshot("github settings")
         assert self.browser.element_exists(".ref-plugin-config-github")

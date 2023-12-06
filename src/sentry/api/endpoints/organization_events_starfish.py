@@ -3,13 +3,18 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBase
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.grouprelease import GroupReleaseWithStatsSerializer
-from sentry.models import Group, GroupRelease, ReleaseEnvironment, ReleaseProject
 from sentry.models.environment import Environment
+from sentry.models.group import Group
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.release import ReleaseProject
+from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.snuba import metrics_enhanced_performance
 from sentry.snuba.referrer import Referrer
 
@@ -18,10 +23,15 @@ FEATURE = "organizations:starfish-test-endpoint"
 
 @region_silo_endpoint
 class OrganizationEventsStarfishEndpoint(OrganizationEventsV2EndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     """
     This is a test endpoint that's meant to only be used for starfish testing
     purposes.
     """
+
+    owner = ApiOwner.TEAM_STARFISH
 
     def get(self, request: Request, organization) -> Response:
         if not features.has(FEATURE, organization, actor=request.user):

@@ -13,7 +13,7 @@ describe('SimilarScoreCard', function () {
   });
 
   it('renders with score list', function () {
-    const {container} = render(
+    render(
       <SimilarScoreCard
         scoreList={[
           ['exception:message:character-shingles', null],
@@ -24,6 +24,5 @@ describe('SimilarScoreCard', function () {
         ]}
       />
     );
-    expect(container).toSnapshot();
   });
 });

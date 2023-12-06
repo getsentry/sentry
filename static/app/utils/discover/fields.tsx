@@ -1,7 +1,7 @@
 import isEqual from 'lodash/isEqual';
 
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
-import {MetricsType, Organization, SelectValue} from 'sentry/types';
+import {MetricType, Organization, SelectValue} from 'sentry/types';
 import {assert} from 'sentry/types/utils';
 import {
   SESSIONS_FIELDS,
@@ -53,7 +53,7 @@ type ValidateColumnValueFunction = (data: {
 
 export type ValidateColumnTypes =
   | ColumnType[]
-  | MetricsType[]
+  | MetricType[]
   | ValidateColumnValueFunction;
 
 export type AggregateParameter =
@@ -107,7 +107,7 @@ export type QueryFieldValue =
         AggregationKeyWithAlias,
         string,
         AggregationRefinement,
-        AggregationRefinement
+        AggregationRefinement,
       ];
       kind: 'function';
       alias?: string;
@@ -124,10 +124,23 @@ export enum RateUnits {
   PER_HOUR = '1/hour',
 }
 
+// Rates normalized to /second unit
+export const RATE_UNIT_MULTIPLIERS = {
+  [RateUnits.PER_SECOND]: 1,
+  [RateUnits.PER_MINUTE]: 1 / 60,
+  [RateUnits.PER_HOUR]: 1 / (60 * 60),
+};
+
 export const RATE_UNIT_LABELS = {
   [RateUnits.PER_SECOND]: '/s',
   [RateUnits.PER_MINUTE]: '/min',
   [RateUnits.PER_HOUR]: '/hr',
+};
+
+export const RATE_UNIT_TITLE = {
+  [RateUnits.PER_SECOND]: 'Per Second',
+  [RateUnits.PER_MINUTE]: 'Per Minute',
+  [RateUnits.PER_HOUR]: 'Per Hour',
 };
 
 const CONDITIONS_ARGUMENTS: SelectValue<string>[] = [
@@ -1184,7 +1197,15 @@ function validateAllowedColumns(validColumns: string[]): ValidateColumnValueFunc
   };
 }
 
-const alignedTypes: ColumnValueType[] = ['number', 'duration', 'integer', 'percentage'];
+const alignedTypes: ColumnValueType[] = [
+  'number',
+  'duration',
+  'integer',
+  'percentage',
+  'percent_change',
+  'rate',
+  'size',
+];
 
 export function fieldAlignment(
   columnName: string,
@@ -1209,7 +1230,7 @@ export function fieldAlignment(
 /**
  * Match on types that are legal to show on a timeseries chart.
  */
-export function isLegalYAxisType(match: ColumnType | MetricsType) {
+export function isLegalYAxisType(match: ColumnType | MetricType) {
   return ['number', 'integer', 'duration', 'percentage'].includes(match);
 }
 

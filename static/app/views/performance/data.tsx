@@ -69,6 +69,8 @@ export enum PerformanceTerm {
   SLOW_HTTP_SPANS = 'slowHTTPSpans',
   TIME_TO_FULL_DISPLAY = 'timeToFullDisplay',
   TIME_TO_INITIAL_DISPLAY = 'timeToInitialDisplay',
+  MOST_TIME_SPENT_DB_QUERIES = 'mostTimeSpentDbQueries',
+  MOST_TIME_CONSUMING_RESOURCES = 'mostTimeConsumingResources',
 }
 
 export type TooltipOption = SelectValue<string> & {
@@ -377,6 +379,10 @@ export const PERFORMANCE_TERMS: Record<PerformanceTerm, TermFormatter> = {
   frozenFrames: () => t('The count of the number of frozen frames in the transaction.'),
   mostErrors: () => t('Transactions with the most associated errors.'),
   mostIssues: () => t('The most instances of an issue for a related transaction.'),
+  mostTimeSpentDbQueries: () =>
+    t('Database spans on which the application spent most of its total time.'),
+  mostTimeConsumingResources: () =>
+    t('Render blocking resources on which the application spent most of its total time.'),
   slowHTTPSpans: () => t('The transactions with the slowest spans of a certain type.'),
   stallPercentage: () =>
     t(
@@ -400,7 +406,7 @@ export function getTermHelp(
   return PERFORMANCE_TERMS[term](organization);
 }
 
-function prepareQueryForLandingPage(searchQuery, withStaticFilters) {
+export function prepareQueryForLandingPage(searchQuery, withStaticFilters) {
   const conditions = new MutableSearch(searchQuery);
 
   // If there is a bare text search, we want to treat it as a search

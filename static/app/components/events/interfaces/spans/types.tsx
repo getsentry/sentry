@@ -28,8 +28,17 @@ export type RawSpanType = {
   origin?: string;
   parent_span_id?: string;
   same_process_as_parent?: boolean;
+  sentry_tags?: Record<string, string>;
   status?: string;
   tags?: {[key: string]: string};
+};
+
+export type AggregateSpanType = RawSpanType & {
+  count: number;
+  frequency: number;
+  samples: Array<[string, string]>;
+  total: number;
+  type: 'aggregate';
 };
 
 /**
@@ -60,7 +69,7 @@ export type OrphanSpanType = RawSpanType & {
   type: 'orphan';
 };
 
-export type SpanType = BaseSpanType | OrphanSpanType;
+export type SpanType = BaseSpanType | OrphanSpanType | AggregateSpanType;
 
 // this type includes natural spans which are part of the transaction event payload,
 // and as well as pseudo-spans (e.g. gap spans)
@@ -150,10 +159,13 @@ export type ParsedTraceType = {
   traceEndTimestamp: number;
   traceID: string;
   traceStartTimestamp: number;
+  count?: number;
   description?: string;
   exclusiveTime?: number;
+  frequency?: number;
   hash?: string;
   parentSpanID?: string;
+  total?: number;
 };
 
 export enum TickAlignment {
@@ -163,13 +175,16 @@ export enum TickAlignment {
 }
 
 export type TraceContextType = {
+  count?: number;
   description?: string;
   exclusive_time?: number;
+  frequency?: number;
   hash?: string;
   op?: string;
   parent_span_id?: string;
   span_id?: string;
   status?: string;
+  total?: number;
   trace_id?: string;
   type?: 'trace';
 };

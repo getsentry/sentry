@@ -1,12 +1,15 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {EventEntries} from 'sentry/components/events/eventEntries';
 
 describe('EventEntries', function () {
   const defaultProps = {
-    organization: TestStubs.Organization(),
+    organization: Organization(),
     project: TestStubs.Project(),
-    event: TestStubs.Event(),
+    event: EventFixture(),
     location: TestStubs.location(),
   };
 
@@ -30,14 +33,14 @@ describe('EventEntries', function () {
     render(
       <EventEntries
         {...defaultProps}
-        event={TestStubs.Event({
+        event={EventFixture({
           entries: [TestStubs.EventEntry(), TestStubs.EventEntryDebugMeta()],
           contexts: {
             replay_id: 1,
           },
         })}
       />,
-      {organization: TestStubs.Organization({features: ['session-replay']})}
+      {organization: Organization({features: ['session-replay']})}
     );
 
     await screen.findByText(/message/i);

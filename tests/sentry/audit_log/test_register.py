@@ -3,7 +3,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class AuditLogEventRegisterTest(TestCase):
     def test_get_api_names(self):
         audit_log_api_name_list = [
@@ -31,6 +31,7 @@ class AuditLogEventRegisterTest(TestCase):
             "project.accept-transfer",
             "project.enable",
             "project.disable",
+            "project.ownership-rule.edit",
             "tagkey.remove",
             "projectkey.create",
             "projectkey.edit",
@@ -47,6 +48,7 @@ class AuditLogEventRegisterTest(TestCase):
             "rule.edit",
             "rule.remove",
             "rule.mute",
+            "rule.disable",
             "servicehook.create",
             "servicehook.edit",
             "servicehook.remove",
@@ -54,6 +56,7 @@ class AuditLogEventRegisterTest(TestCase):
             "integration.add",
             "integration.edit",
             "integration.remove",
+            "integration.disable",
             "sentry-app.add",
             "sentry-app.remove",
             "sentry-app.install",
@@ -67,6 +70,7 @@ class AuditLogEventRegisterTest(TestCase):
             "internal-integration.create",
             "internal-integration.add-token",
             "internal-integration.remove-token",
+            "internal-integration.disable",
             "invite-request.create",
             "invite-request.remove",
             "alertrule.create",

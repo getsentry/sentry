@@ -1,3 +1,5 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -17,7 +19,7 @@ const group = TestStubs.Group({
   culprit: 'culprit',
 });
 
-const event = TestStubs.Event({
+const event = EventFixture({
   id: 'id',
   eventID: 'eventID',
   groupID: 'groupID',
@@ -36,15 +38,11 @@ describe('EventOrGroupHeader', function () {
 
   describe('Group', function () {
     it('renders with `type = error`', function () {
-      const {container} = render(
-        <EventOrGroupHeader organization={organization} data={group} {...router} />
-      );
-
-      expect(container).toSnapshot();
+      render(<EventOrGroupHeader organization={organization} data={group} {...router} />);
     });
 
     it('renders with `type = csp`', function () {
-      const {container} = render(
+      render(
         <EventOrGroupHeader
           organization={organization}
           data={{
@@ -54,12 +52,10 @@ describe('EventOrGroupHeader', function () {
           {...router}
         />
       );
-
-      expect(container).toSnapshot();
     });
 
     it('renders with `type = default`', function () {
-      const {container} = render(
+      render(
         <EventOrGroupHeader
           organization={organization}
           data={{
@@ -73,8 +69,6 @@ describe('EventOrGroupHeader', function () {
           {...router}
         />
       );
-
-      expect(container).toSnapshot();
     });
 
     it('renders metadata values in message for error events', function () {
@@ -116,21 +110,20 @@ describe('EventOrGroupHeader', function () {
 
   describe('Event', function () {
     it('renders with `type = error`', function () {
-      const {container} = render(
+      render(
         <EventOrGroupHeader
           organization={organization}
-          data={{
+          data={EventFixture({
             ...event,
             type: EventOrGroupType.ERROR,
-          }}
+          })}
           {...router}
         />
       );
-      expect(container).toSnapshot();
     });
 
     it('renders with `type = csp`', function () {
-      const {container} = render(
+      render(
         <EventOrGroupHeader
           organization={organization}
           data={{
@@ -140,11 +133,10 @@ describe('EventOrGroupHeader', function () {
           {...router}
         />
       );
-      expect(container).toSnapshot();
     });
 
     it('renders with `type = default`', function () {
-      const {container} = render(
+      render(
         <EventOrGroupHeader
           organization={organization}
           data={{
@@ -158,11 +150,10 @@ describe('EventOrGroupHeader', function () {
           {...router}
         />
       );
-      expect(container).toSnapshot();
     });
 
     it('hides level tag', function () {
-      const {container} = render(
+      render(
         <EventOrGroupHeader
           hideLevel
           organization={organization}
@@ -176,7 +167,6 @@ describe('EventOrGroupHeader', function () {
           }}
         />
       );
-      expect(container).toSnapshot();
     });
 
     it('keeps sort in link when query has sort', function () {
@@ -238,7 +228,7 @@ describe('EventOrGroupHeader', function () {
   });
 
   it('renders group tombstone without link to group', function () {
-    const {container} = render(
+    render(
       <EventOrGroupHeader
         organization={organization}
         data={{
@@ -262,7 +252,6 @@ describe('EventOrGroupHeader', function () {
       />
     );
 
-    expect(container).toSnapshot();
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 });

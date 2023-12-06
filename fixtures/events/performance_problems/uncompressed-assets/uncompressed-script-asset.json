@@ -56,7 +56,7 @@
       "data": {
         "http.decoded_response_content_length": 3,
         "http.response_content_length": 2,
-        "http.transfer_size": 3
+        "http.response_transfer_size": 3
       },
       "hash": "b2978b51d54d9078"
     },
@@ -72,7 +72,7 @@
       "data": {
         "http.decoded_response_content_length": 571733,
         "http.response_content_length": 571733,
-        "http.transfer_size": 571833
+        "http.response_transfer_size": 571833
       },
       "hash": "a2978b51d54d9079"
     }

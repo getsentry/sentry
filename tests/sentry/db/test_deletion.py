@@ -5,7 +5,8 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.db.deletion import BulkDeleteQuery
-from sentry.models import Group, Project
+from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.testutils.cases import TestCase, TransactionTestCase
 
 

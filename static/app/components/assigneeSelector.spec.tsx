@@ -1,3 +1,5 @@
+import {Team} from 'sentry-fixture/team';
+
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
@@ -46,7 +48,7 @@ describe('AssigneeSelector', () => {
       team_slug: 'cool-team2',
     });
 
-    TEAM_1 = TestStubs.Team({
+    TEAM_1 = Team({
       id: '3',
       name: 'COOL TEAM',
       slug: 'cool-team',
@@ -84,12 +86,11 @@ describe('AssigneeSelector', () => {
     GroupStore.loadInitialData([GROUP_1, GROUP_2]);
 
     jest.spyOn(MemberListStore, 'getAll').mockImplementation(() => []);
-    jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => [PROJECT_1]);
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_1);
 
     assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
-      url: `/issues/${GROUP_1.id}/`,
+      url: `/organizations/org-slug/issues/${GROUP_1.id}/`,
       body: {
         ...GROUP_1,
         assignedTo: {...USER_1, type: 'user'},
@@ -98,7 +99,7 @@ describe('AssigneeSelector', () => {
 
     assignGroup2Mock = MockApiClient.addMockResponse({
       method: 'PUT',
-      url: `/issues/${GROUP_2.id}/`,
+      url: `/organizations/org-slug/issues/${GROUP_2.id}/`,
       body: {
         ...GROUP_2,
         assignedTo: {...USER_1, type: 'user'},
@@ -113,7 +114,12 @@ describe('AssigneeSelector', () => {
     await userEvent.click(await screen.findByTestId('assignee-selector'), undefined);
   };
 
+  beforeEach(() => {
+    ProjectsStore.loadInitialData([PROJECT_1]);
+  });
+
   afterEach(() => {
+    ProjectsStore.reset();
     MockApiClient.clearMockResponses();
   });
 
@@ -204,7 +210,7 @@ describe('AssigneeSelector', () => {
     await userEvent.click(screen.getByText(`${USER_1.name} (You)`));
 
     expect(assignMock).toHaveBeenLastCalledWith(
-      '/issues/1337/',
+      '/organizations/org-slug/issues/1337/',
       expect.objectContaining({
         data: {assignedTo: 'user:1', assignedBy: 'assignee_selector'},
       })
@@ -219,7 +225,7 @@ describe('AssigneeSelector', () => {
     MockApiClient.clearMockResponses();
     assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
-      url: `/issues/${GROUP_1.id}/`,
+      url: `/organizations/org-slug/issues/${GROUP_1.id}/`,
       body: {
         ...GROUP_1,
         assignedTo: {...TEAM_1, type: 'team'},
@@ -234,7 +240,7 @@ describe('AssigneeSelector', () => {
 
     await waitFor(() =>
       expect(assignMock).toHaveBeenCalledWith(
-        '/issues/1337/',
+        '/organizations/org-slug/issues/1337/',
         expect.objectContaining({
           data: {assignedTo: 'team:3', assignedBy: 'assignee_selector'},
         })
@@ -256,7 +262,7 @@ describe('AssigneeSelector', () => {
 
     await waitFor(() =>
       expect(assignMock).toHaveBeenCalledWith(
-        '/issues/1337/',
+        '/organizations/org-slug/issues/1337/',
         expect.objectContaining({
           data: {assignedTo: 'team:3', assignedBy: 'assignee_selector'},
         })
@@ -269,7 +275,7 @@ describe('AssigneeSelector', () => {
     // api was called with empty string, clearing assignment
     await waitFor(() =>
       expect(assignMock).toHaveBeenLastCalledWith(
-        '/issues/1337/',
+        '/organizations/org-slug/issues/1337/',
         expect.objectContaining({
           data: {assignedTo: '', assignedBy: 'assignee_selector'},
         })
@@ -308,7 +314,7 @@ describe('AssigneeSelector', () => {
 
     await waitFor(() =>
       expect(assignGroup2Mock).toHaveBeenLastCalledWith(
-        '/issues/1338/',
+        '/organizations/org-slug/issues/1338/',
         expect.objectContaining({
           data: {assignedTo: `user:${USER_2.id}`, assignedBy: 'assignee_selector'},
         })
@@ -329,7 +335,7 @@ describe('AssigneeSelector', () => {
 
     assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
-      url: `/issues/${GROUP_2.id}/`,
+      url: `/organizations/org-slug/issues/${GROUP_2.id}/`,
       statusCode: 400,
       body: {detail: 'Cannot assign to non-team member'},
     });
@@ -377,7 +383,7 @@ describe('AssigneeSelector', () => {
 
     await waitFor(() =>
       expect(assignGroup2Mock).toHaveBeenCalledWith(
-        '/issues/1338/',
+        '/organizations/org-slug/issues/1338/',
         expect.objectContaining({
           data: {assignedTo: `user:${USER_1.id}`, assignedBy: 'assignee_selector'},
         })

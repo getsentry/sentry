@@ -8,7 +8,8 @@ from typing import Any, Dict
 from sentry import features, http, options
 from sentry.datascrubbing import scrub_data
 from sentry.event_manager import EventManager
-from sentry.models import Project, ProjectOption
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.project import Project
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
@@ -104,15 +105,14 @@ def poll_project_recap_server(project_id: int, **kwargs) -> None:
     try:
         crashes = json.loads(result.body)
         if not isinstance(crashes, dict):
-            logger.exception(
+            logger.error(
                 "Polled project endpoint did not responded with json object",
                 extra={"project": project},
             )
             return
-    except json.JSONDecodeError as exc:
+    except json.JSONDecodeError:
         logger.exception(
             "Polled project endpoint did not responded with valid json",
-            exc_info=exc,
             extra={"project": project, "url": url},
         )
         return
@@ -131,10 +131,9 @@ def poll_project_recap_server(project_id: int, **kwargs) -> None:
 def store_crash(crash, project: Project, url: str) -> None:
     try:
         event = translate_crash_to_event(crash, project, url)
-    except KeyError as exc:
+    except KeyError:
         logger.exception(
             "Crash dump data has invalid payload",
-            exc_info=exc,
             extra={"project": project, "url": url},
         )
         return

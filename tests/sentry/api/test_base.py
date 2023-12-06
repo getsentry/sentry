@@ -8,15 +8,16 @@ from rest_framework.response import Response
 from sentry_sdk import Scope
 from sentry_sdk.utils import exc_info_from_error
 
-from sentry.api.base import Endpoint, EndpointSiloLimit, resolve_region
+from sentry.api.base import Endpoint, EndpointSiloLimit
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.models import ApiKey
+from sentry.models.apikey import ApiKey
 from sentry.services.hybrid_cloud.util import FunctionSiloLimit
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.region import override_region_config
-from sentry.types.region import RegionCategory, clear_global_regions
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
+from sentry.types.region import RegionCategory, clear_global_regions, subdomain_is_region
 from sentry.utils.cursors import Cursor
 
 
@@ -38,7 +39,7 @@ class DummyErroringEndpoint(Endpoint):
     # `as_view` requires that any init args passed to it match attributes already on the
     # class, so even though they're really meant to be instance attributes, we have to
     # add them here as class attributes first
-    error = None
+    error = NotImplementedError()
     handler_context_arg = None
     scope_arg = None
 
@@ -107,10 +108,12 @@ class DummyPaginationStreamingEndpoint(Endpoint):
 _dummy_streaming_endpoint = DummyPaginationStreamingEndpoint.as_view()
 
 
+@all_silo_test
 class EndpointTest(APITestCase):
     def test_basic_cors(self):
         org = self.create_organization()
-        apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
 
         request = self.make_request(method="GET")
         request.META["HTTP_ORIGIN"] = "http://example.com"
@@ -127,16 +130,21 @@ class EndpointTest(APITestCase):
             "Content-Type, Authentication, Authorization, Content-Encoding, "
             "sentry-trace, baggage, X-CSRFToken"
         )
-        assert response["Access-Control-Expose-Headers"] == "X-Sentry-Error, Retry-After"
+        assert response["Access-Control-Expose-Headers"] == (
+            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
+            "Endpoint, Retry-After, Link"
+        )
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
         assert "Access-Control-Allow-Credentials" not in response
 
     @override_options({"system.base-hostname": "example.com"})
-    def test_allow_credentials(self):
+    def test_allow_credentials_subdomain(self):
         org = self.create_organization()
-        apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
 
         request = self.make_request(method="GET")
+        # Origin is a subdomain of base-hostname, and is cors allowed
         request.META["HTTP_ORIGIN"] = "http://acme.example.com"
         request.META["HTTP_AUTHORIZATION"] = self.create_basic_auth_header(apikey.key)
 
@@ -150,14 +158,75 @@ class EndpointTest(APITestCase):
             "Content-Type, Authentication, Authorization, Content-Encoding, "
             "sentry-trace, baggage, X-CSRFToken"
         )
-        assert response["Access-Control-Expose-Headers"] == "X-Sentry-Error, Retry-After"
+        assert response["Access-Control-Expose-Headers"] == (
+            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
+            "Endpoint, Retry-After, Link"
+        )
+        assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
+        assert response["Access-Control-Allow-Credentials"] == "true"
+
+    @override_options({"system.base-hostname": "example.com"})
+    def test_allow_credentials_root_domain(self):
+        org = self.create_organization()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
+
+        request = self.make_request(method="GET")
+        # Origin is base-hostname, and is cors allowed
+        request.META["HTTP_ORIGIN"] = "http://example.com"
+        request.META["HTTP_AUTHORIZATION"] = self.create_basic_auth_header(apikey.key)
+
+        response = _dummy_endpoint(request)
+        response.render()
+
+        assert response.status_code == 200, response.content
+        assert response["Access-Control-Allow-Origin"] == "http://example.com"
+        assert response["Access-Control-Allow-Headers"] == (
+            "X-Sentry-Auth, X-Requested-With, Origin, Accept, "
+            "Content-Type, Authentication, Authorization, Content-Encoding, "
+            "sentry-trace, baggage, X-CSRFToken"
+        )
+        assert response["Access-Control-Expose-Headers"] == (
+            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
+            "Endpoint, Retry-After, Link"
+        )
+        assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
+        assert response["Access-Control-Allow-Credentials"] == "true"
+
+    @override_options({"system.base-hostname": "example.com"})
+    @override_settings(ALLOWED_CREDENTIAL_ORIGINS=["http://docs.example.org"])
+    def test_allow_credentials_allowed_domain(self):
+        org = self.create_organization()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
+
+        request = self.make_request(method="GET")
+        # Origin is an allowed domain
+        request.META["HTTP_ORIGIN"] = "http://docs.example.org"
+        request.META["HTTP_AUTHORIZATION"] = self.create_basic_auth_header(apikey.key)
+
+        response = _dummy_endpoint(request)
+        response.render()
+
+        assert response.status_code == 200, response.content
+        assert response["Access-Control-Allow-Origin"] == "http://docs.example.org"
+        assert response["Access-Control-Allow-Headers"] == (
+            "X-Sentry-Auth, X-Requested-With, Origin, Accept, "
+            "Content-Type, Authentication, Authorization, Content-Encoding, "
+            "sentry-trace, baggage, X-CSRFToken"
+        )
+        assert response["Access-Control-Expose-Headers"] == (
+            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
+            "Endpoint, Retry-After, Link"
+        )
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
         assert response["Access-Control-Allow-Credentials"] == "true"
 
     @override_options({"system.base-hostname": "acme.com"})
     def test_allow_credentials_incorrect(self):
         org = self.create_organization()
-        apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
 
         for http_origin in ["http://acme.example.com", "http://fakeacme.com"]:
             request = self.make_request(method="GET")
@@ -205,14 +274,19 @@ class EndpointTest(APITestCase):
             "Content-Type, Authentication, Authorization, Content-Encoding, "
             "sentry-trace, baggage, X-CSRFToken"
         )
-        assert response["Access-Control-Expose-Headers"] == "X-Sentry-Error, Retry-After"
+        assert response["Access-Control-Expose-Headers"] == (
+            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
+            "Endpoint, Retry-After, Link"
+        )
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
 
     @mock.patch("sentry.api.base.Endpoint.convert_args")
     def test_method_not_allowed(self, mock_convert_args):
         request = self.make_request(method="POST")
-        response = _dummy_endpoint(request)
-        response.render()
+        # Run this particular test in monolith mode to prevent RPC interactions
+        with assume_test_silo_mode(SiloMode.MONOLITH):
+            response = _dummy_endpoint(request)
+            response.render()
 
         assert response.status_code == 405, response.content
 
@@ -385,7 +459,7 @@ class PaginateTest(APITestCase):
     def test_custom_response_type(self):
         response = _dummy_streaming_endpoint(self.request)
         assert response.status_code == 200
-        assert type(response) == StreamingHttpResponse
+        assert isinstance(response, StreamingHttpResponse)
         assert response.has_header("content-type")
 
 
@@ -398,21 +472,21 @@ class EndpointJSONBodyTest(APITestCase):
         self.request.META["CONTENT_TYPE"] = "application/json"
 
     def test_json(self):
-        self.request._body = '{"foo":"bar"}'
+        self.request._body = b'{"foo":"bar"}'
 
         Endpoint().load_json_body(self.request)
 
         assert self.request.json_body == {"foo": "bar"}
 
     def test_invalid_json(self):
-        self.request._body = "hello"
+        self.request._body = b"hello"
 
         Endpoint().load_json_body(self.request)
 
         assert not self.request.json_body
 
     def test_empty_request_body(self):
-        self.request._body = ""
+        self.request._body = b""
 
         Endpoint().load_json_body(self.request)
 
@@ -433,13 +507,13 @@ class CustomerDomainTest(APITestCase):
         def request_with_subdomain(subdomain):
             request = self.make_request(method="GET")
             request.subdomain = subdomain
-            return resolve_region(request)
+            return subdomain_is_region(request)
 
         region_config = [
             {
-                "name": "na",
+                "name": "us",
                 "snowflake_id": 1,
-                "address": "http://na.testserver",
+                "address": "http://us.testserver",
                 "category": RegionCategory.MULTI_TENANT.name,
             },
             {
@@ -450,9 +524,9 @@ class CustomerDomainTest(APITestCase):
             },
         ]
         with override_region_config(region_config):
-            assert request_with_subdomain("na") == "na"
-            assert request_with_subdomain("eu") == "eu"
-            assert request_with_subdomain("sentry") is None
+            assert request_with_subdomain("us")
+            assert request_with_subdomain("eu")
+            assert not request_with_subdomain("sentry")
 
 
 class EndpointSiloLimitTest(APITestCase):

@@ -19,7 +19,8 @@ from snuba_sdk import (
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Group, Project
+from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
     ProjectTransactionThreshold,
@@ -66,7 +67,7 @@ from sentry.search.events.constants import (
     USER_DISPLAY_ALIAS,
     VITAL_THRESHOLDS,
 )
-from sentry.search.events.datasets import field_aliases, filter_aliases
+from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import (
     ColumnArg,
@@ -957,6 +958,38 @@ class DiscoverDatasetConfig(DatasetConfig):
                     default_result_type="number",
                     private=True,
                 ),
+                SnQLFunction(
+                    "performance_score",
+                    required_args=[
+                        NumericColumn("column"),
+                    ],
+                    snql_aggregate=self._resolve_web_vital_score_function,
+                    default_result_type="number",
+                ),
+                SnQLFunction(
+                    "weighted_performance_score",
+                    required_args=[
+                        NumericColumn("column"),
+                    ],
+                    snql_aggregate=self._resolve_weighted_web_vital_score_function,
+                    default_result_type="number",
+                ),
+                SnQLFunction(
+                    "opportunity_score",
+                    required_args=[
+                        NumericColumn("column"),
+                    ],
+                    snql_aggregate=self._resolve_web_vital_opportunity_score_function,
+                    default_result_type="number",
+                ),
+                SnQLFunction(
+                    "count_scores",
+                    required_args=[
+                        NumericColumn("column"),
+                    ],
+                    snql_aggregate=self._resolve_count_scores_function,
+                    default_result_type="integer",
+                ),
             ]
         }
 
@@ -1235,7 +1268,7 @@ class DiscoverDatasetConfig(DatasetConfig):
 
     def _resolve_aliased_division(self, dividend: str, divisor: str, alias: str) -> SelectType:
         """Given public aliases resolve division"""
-        return self.builder.resolve_division(
+        return function_aliases.resolve_division(
             self.builder.column(dividend), self.builder.column(divisor), alias
         )
 
@@ -1361,7 +1394,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             "countIf", [Function("greaterOrEquals", [column, 0])]
         )
 
-        return self.builder.resolve_division(  # (satisfied + tolerable/2)/(total)
+        return function_aliases.resolve_division(  # (satisfied + tolerable/2)/(total)
             Function(
                 "plus",
                 [
@@ -1577,6 +1610,159 @@ class DiscoverDatasetConfig(DatasetConfig):
             )
         )
 
+    def _resolve_web_vital_score_function(
+        self,
+        args: Mapping[str, Column],
+        alias: str,
+    ) -> SelectType:
+        column = args["column"]
+        if column.key not in [
+            "score.lcp",
+            "score.fcp",
+            "score.fid",
+            "score.cls",
+            "score.ttfb",
+        ]:
+            raise InvalidSearchQuery(
+                "performance_score only supports performance score measurements"
+            )
+        weight_column = self.builder.column(
+            "measurements." + column.key.replace("score", "score.weight")
+        )
+        return Function(
+            "greatest",
+            [
+                Function(
+                    "least",
+                    [
+                        Function(
+                            "divide",
+                            [
+                                Function(
+                                    "sum",
+                                    [column],
+                                ),
+                                Function(
+                                    "sum",
+                                    [weight_column],
+                                ),
+                            ],
+                        ),
+                        1.0,
+                    ],
+                ),
+                0.0,
+            ],
+            alias,
+        )
+
+    def _resolve_weighted_web_vital_score_function(
+        self,
+        args: Mapping[str, Column],
+        alias: str,
+    ) -> SelectType:
+        column = args["column"]
+        if column.key not in [
+            "score.lcp",
+            "score.fcp",
+            "score.fid",
+            "score.cls",
+            "score.ttfb",
+        ]:
+            raise InvalidSearchQuery(
+                "weighted_performance_score only supports performance score measurements"
+            )
+        total_score_column = self.builder.column("measurements.score.total")
+        return Function(
+            "greatest",
+            [
+                Function(
+                    "least",
+                    [
+                        Function(
+                            "divide",
+                            [
+                                Function(
+                                    "sum",
+                                    [column],
+                                ),
+                                Function(
+                                    "countIf",
+                                    [
+                                        Function(
+                                            "greaterOrEquals",
+                                            [
+                                                total_score_column,
+                                                0,
+                                            ],
+                                        )
+                                    ],
+                                ),
+                            ],
+                        ),
+                        1.0,
+                    ],
+                ),
+                0.0,
+            ],
+            alias,
+        )
+
+    def _resolve_web_vital_opportunity_score_function(
+        self,
+        args: Mapping[str, Column],
+        alias: str,
+    ) -> SelectType:
+        column = args["column"]
+        if column.key not in [
+            "score.lcp",
+            "score.fcp",
+            "score.fid",
+            "score.cls",
+            "score.ttfb",
+            "score.total",
+        ]:
+            raise InvalidSearchQuery(
+                "weighted_performance_score only supports performance score measurements"
+            )
+
+        weight_column = (
+            1
+            if column.key == "score.total"
+            else self.builder.column("measurements." + column.key.replace("score", "score.weight"))
+        )
+        return Function(
+            "sum",
+            [Function("minus", [weight_column, Function("least", [1, column])])],
+            alias,
+        )
+
+    def _resolve_count_scores_function(self, args: Mapping[str, Column], alias: str) -> SelectType:
+        column = args["column"]
+
+        if column.key not in [
+            "score.total",
+            "score.lcp",
+            "score.fcp",
+            "score.fid",
+            "score.cls",
+            "score.ttfb",
+        ]:
+            raise InvalidSearchQuery("count_scores only supports performance score measurements")
+
+        return Function(
+            "countIf",
+            [
+                Function(
+                    "isNotNull",
+                    [
+                        column,
+                    ],
+                )
+            ],
+            alias,
+        )
+
     # Query Filters
     def _project_slug_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         return filter_aliases.project_slug_converter(self.builder, search_filter)
@@ -1597,7 +1783,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         return filter_aliases.semver_build_filter_converter(self.builder, search_filter)
 
     def _issue_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
-        if self.builder.skip_issue_validation:
+        if self.builder.builder_config.skip_field_validation_for_entity_subscription_deletion:
             return None
 
         operator = search_filter.operator
@@ -1672,7 +1858,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                 1,
             )
         else:
-            return self.builder.get_default_converter()(search_filter)
+            return self.builder.default_filter_converter(search_filter)
 
     def _transaction_status_filter_converter(
         self, search_filter: SearchFilter

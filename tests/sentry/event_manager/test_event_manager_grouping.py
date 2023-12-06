@@ -3,15 +3,17 @@ import uuid
 from time import time
 from unittest import mock
 
-from freezegun import freeze_time
-
 from sentry import tsdb
 from sentry.event_manager import EventManager
-from sentry.models import Group, GroupHash
+from sentry.models.group import Group
+from sentry.models.grouphash import GroupHash
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.tsdb.base import TSDBModel
+
+pytestmark = [requires_snuba]
 
 
 def make_event(**kwargs):
@@ -62,7 +64,7 @@ class EventManagerGroupingTest(TestCase):
         assert group.last_seen == event2.datetime
         assert group.message == event2.message
         assert group.data.get("type") == "default"
-        assert group.data.get("metadata") == {"title": "foo 123"}
+        assert group.data.get("metadata").get("title") == "foo 123"
 
         # After expiry, new events are still assigned to the same group:
         project.update_option("sentry:secondary_grouping_expiry", 0)
@@ -225,7 +227,6 @@ class EventManagerGroupingTest(TestCase):
 
     @mock.patch("sentry.event_manager._calculate_background_grouping")
     def test_background_grouping_sample_rate(self, mock_calc_grouping):
-
         timestamp = time() - 300
         manager = EventManager(
             make_event(message="foo 123", event_id="a" * 32, timestamp=timestamp)

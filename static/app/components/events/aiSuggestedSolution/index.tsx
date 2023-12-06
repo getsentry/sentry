@@ -18,10 +18,6 @@ export function AiSuggestedSolution({projectSlug, event}: Props) {
 
   const [openSuggestion, setOpenSuggestion] = useState(false);
 
-  if (!organization.features.includes('open-ai-suggestion')) {
-    return null;
-  }
-
   return (
     <div>
       {!openSuggestion ? (

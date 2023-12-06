@@ -2,6 +2,8 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPinnedSearchPermission
 from sentry.api.serializers import serialize
@@ -28,6 +30,11 @@ class OrganizationSearchSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.OWNERS_SNUBA
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (OrganizationPinnedSearchPermission,)
 
     def put(self, request: Request, organization) -> Response:

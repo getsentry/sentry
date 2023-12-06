@@ -76,36 +76,8 @@ const extensions = ['.js', '.ts', '.tsx', '.json'];
 // Some fixture files also contain more than one fixture so additional mappings are needed.
 // If you have added new fixtures and you are seeing an error being throw, please add the fixture
 const SPECIAL_MAPPING = {
-  AllAuthenticators: 'authenticators',
-  OrgRoleList: 'roleList',
-  MetricsField: 'metrics',
-  EventsStats: 'events',
-  DetailedEvents: 'events',
-  Events: 'events',
-  OutcomesWithReason: 'outcomes',
-  SentryAppComponentAsync: 'sentryAppComponent',
-  EventStacktraceMessage: 'eventStacktraceException',
-  MetricsTotalCountByReleaseIn24h: 'metrics',
-  MetricsSessionUserCountByStatusByRelease: 'metrics',
-  MOCK_RESP_VERBOSE: 'ruleConditions',
-  SessionStatusCountByProjectInPeriod: 'sessions',
-  SessionUserCountByStatusByRelease: 'sessions',
-  SessionUserCountByStatus: 'sessions',
-  SessionStatusCountByReleaseInPeriod: 'sessions',
-  SessionsField: 'sessions',
-  ProviderList: 'integrationListDirectory',
-  BitbucketIntegrationConfig: 'integrationListDirectory',
   GitHubIntegration: 'githubIntegration',
-  GitHubRepositoryProvider: 'githubRepositoryProvider',
-  GitHubIntegrationProvider: 'githubIntegrationProvider',
-  GitHubIntegrationConfig: 'integrationListDirectory',
-  OrgOwnedApps: 'integrationListDirectory',
-  PublishedApps: 'integrationListDirectory',
-  SentryAppInstalls: 'integrationListDirectory',
-  PluginListConfig: 'integrationListDirectory',
-  DiscoverSavedQuery: 'discover',
-  VercelProvider: 'vercelIntegration',
-  TagValues: 'tagvalues',
+  SentryAppComponentAsync: 'sentryAppComponent',
 };
 
 function tryRequire(dir: string, name: string): any {

@@ -1,11 +1,11 @@
 from selenium.webdriver.common.by import By
 
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -59,13 +59,7 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
             organization=self.organization, teams=[self.team, self.team2, self.team3], slug="bengal"
         )
 
-        with self.feature(
-            {
-                "organizations:integrations-codeowners": True,
-                "organizations:integrations-stacktrace-link": True,
-            }
-        ):
-
+        with self.feature("organizations:integrations-codeowners"):
             self.browser.get(
                 f"/settings/{self.organization.slug}/integrations/{self.provider}/{self.integration.id}/"
             )
@@ -74,7 +68,6 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
             # Empty state
-            self.browser.snapshot("integrations - empty external user mappings")
 
             # Create mapping
             self.browser.click('[data-test-id="add-mapping-button"]')
@@ -85,22 +78,14 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
             externalName.send_keys("@user2")
             self.browser.click("#userId:first-child div")
             self.browser.click('[id="react-select-2-option-1"]')
-            self.browser.snapshot("integrations - save new external user mapping")
 
             # List View
             self.browser.click('[aria-label="Save Changes"]')
             self.browser.wait_until_not('[aria-label="Save Changes"]')
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-            self.browser.snapshot("integrations - one external user mapping")
 
     def test_external_team_mappings(self):
-        with self.feature(
-            {
-                "organizations:integrations-codeowners": True,
-                "organizations:integrations-stacktrace-link": True,
-            }
-        ):
-
+        with self.feature("organizations:integrations-codeowners"):
             self.browser.get(
                 f"/settings/{self.organization.slug}/integrations/{self.provider}/{self.integration.id}/"
             )
@@ -109,7 +94,6 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
             # Empty state
-            self.browser.snapshot("integrations - empty external team mappings")
 
             # Create mapping
             self.browser.click('[data-test-id="add-mapping-button"]')
@@ -120,10 +104,8 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
             externalName.send_keys("@getsentry/ecosystem")
             self.browser.click("#teamId:first-child div")
             self.browser.click('[id="react-select-2-option-0"]')
-            self.browser.snapshot("integrations - save new external team mapping")
 
             # List View
             self.browser.click('[aria-label="Save Changes"]')
             self.browser.wait_until_not('[aria-label="Save Changes"]')
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-            self.browser.snapshot("integrations - one external team mapping")

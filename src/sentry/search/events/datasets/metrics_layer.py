@@ -8,7 +8,7 @@ from snuba_sdk import AliasedExpression, Column, Condition, Function, Op
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import builder, constants, fields
-from sentry.search.events.datasets import field_aliases, filter_aliases
+from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.metrics import MetricsDatasetConfig
 from sentry.search.events.types import SelectType, WhereType
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
@@ -52,7 +52,7 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
             # Maybe this is a custom measurment?
             for measurement in self.builder.custom_measurement_map:
                 if measurement["name"] == value and measurement["metric_id"] is not None:
-                    return Column(measurement["mri_string"])
+                    return Column(measurement["mri"])
         if metric_mri is None:
             metric_mri = value
         return Column(metric_mri)
@@ -120,8 +120,8 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                             ),
                         ),
                     ],
-                    snql_metric_layer=lambda args, alias: self._resolve_percentile(
-                        args, alias, 0.5
+                    snql_metric_layer=lambda args, alias: function_aliases.resolve_metrics_layer_percentile(
+                        args=args, alias=alias, resolve_mri=self.resolve_mri, fixed_percentile=0.5
                     ),
                     is_percentile=True,
                     result_type_fn=self.reflective_result_type(),
@@ -137,8 +137,8 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                             ),
                         ),
                     ],
-                    snql_metric_layer=lambda args, alias: self._resolve_percentile(
-                        args, alias, 0.75
+                    snql_metric_layer=lambda args, alias: function_aliases.resolve_metrics_layer_percentile(
+                        args=args, alias=alias, resolve_mri=self.resolve_mri, fixed_percentile=0.75
                     ),
                     is_percentile=True,
                     result_type_fn=self.reflective_result_type(),
@@ -154,8 +154,8 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                             ),
                         ),
                     ],
-                    snql_metric_layer=lambda args, alias: self._resolve_percentile(
-                        args, alias, 0.90
+                    snql_metric_layer=lambda args, alias: function_aliases.resolve_metrics_layer_percentile(
+                        args=args, alias=alias, resolve_mri=self.resolve_mri, fixed_percentile=0.90
                     ),
                     is_percentile=True,
                     result_type_fn=self.reflective_result_type(),
@@ -171,8 +171,8 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                             ),
                         ),
                     ],
-                    snql_metric_layer=lambda args, alias: self._resolve_percentile(
-                        args, alias, 0.95
+                    snql_metric_layer=lambda args, alias: function_aliases.resolve_metrics_layer_percentile(
+                        args=args, alias=alias, resolve_mri=self.resolve_mri, fixed_percentile=0.95
                     ),
                     is_percentile=True,
                     result_type_fn=self.reflective_result_type(),
@@ -188,8 +188,8 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                             ),
                         ),
                     ],
-                    snql_metric_layer=lambda args, alias: self._resolve_percentile(
-                        args, alias, 0.99
+                    snql_metric_layer=lambda args, alias: function_aliases.resolve_metrics_layer_percentile(
+                        args=args, alias=alias, resolve_mri=self.resolve_mri, fixed_percentile=0.99
                     ),
                     is_percentile=True,
                     result_type_fn=self.reflective_result_type(),
@@ -206,7 +206,9 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                         ),
                     ],
                     # Not marked as a percentile as this is equivalent to just `max`
-                    snql_metric_layer=lambda args, alias: self._resolve_percentile(args, alias, 1),
+                    snql_metric_layer=lambda args, alias: function_aliases.resolve_metrics_layer_percentile(
+                        args=args, alias=alias, resolve_mri=self.resolve_mri, fixed_percentile=1
+                    ),
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
@@ -231,6 +233,20 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                     ],
                     snql_metric_layer=lambda args, alias: Function(
                         "min",
+                        [
+                            self.resolve_mri(args["column"]),
+                        ],
+                        alias,
+                    ),
+                    result_type_fn=self.reflective_result_type(),
+                ),
+                fields.MetricsFunction(
+                    "last",
+                    required_args=[
+                        fields.MetricArg("column"),
+                    ],
+                    snql_metric_layer=lambda args, alias: Function(
+                        "last",
                         [
                             self.resolve_mri(args["column"]),
                         ],
@@ -264,7 +280,7 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                         "sum_if_column",
                         # We use the metric mri specified in
                         # sentry.snuba.entity_subscription.MetricsCountersEntitySubscription.metric_key.
-                        [Column(SessionMRI.SESSION.value), args["if_col"], args["if_val"]],
+                        [Column(SessionMRI.RAW_SESSION.value), args["if_col"], args["if_val"]],
                         alias,
                     ),
                     default_result_type="integer",
@@ -281,7 +297,12 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                         fields.NumberRange("percentile", 0, 1),
                     ],
                     is_percentile=True,
-                    snql_metric_layer=self._resolve_percentile,
+                    snql_metric_layer=lambda args, alias: function_aliases.resolve_metrics_layer_percentile(
+                        args=args,
+                        alias=alias,
+                        resolve_mri=self.resolve_mri,
+                        fixed_percentile=args["percentile"],
+                    ),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -294,7 +315,7 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                     snql_metric_layer=lambda args, alias: Function(
                         "count_unique",
                         [
-                            Column(TransactionMRI.USER.value),
+                            self.resolve_mri(args["column"]),
                         ],
                         alias,
                     ),
@@ -307,7 +328,7 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                         # We use the metric mri specified in
                         # sentry.snuba.entity_subscription.MetricsSetsEntitySubscription.metric_key.
                         [
-                            Column(SessionMRI.USER.value),
+                            Column(SessionMRI.RAW_USER.value),
                         ],
                         alias,
                     ),
@@ -324,17 +345,20 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                         "uniq_if_column",
                         # We use the metric mri specified in
                         # sentry.snuba.entity_subscription.MetricsSetsEntitySubscription.metric_key.
-                        [Column(SessionMRI.USER.value), args["if_col"], args["if_val"]],
+                        [Column(SessionMRI.RAW_USER.value), args["if_col"], args["if_val"]],
                         alias,
                     ),
                     default_result_type="integer",
                 ),
                 fields.MetricsFunction(
                     "count",
+                    optional_args=[
+                        fields.with_default("transaction.duration", fields.MetricArg("column")),
+                    ],
                     snql_metric_layer=lambda args, alias: Function(
                         "count",
                         [
-                            Column(TransactionMRI.DURATION.value),
+                            self.resolve_mri(args["column"]),
                         ],
                         alias,
                     ),
@@ -351,6 +375,7 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                                 "measurements.lcp",
                                 "measurements.fid",
                                 "measurements.cls",
+                                "measurements.ttfb",
                             ],
                             allow_custom_measurements=False,
                         ),
@@ -510,35 +535,6 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
         return Condition(self.builder.resolve_column("transaction"), Op(operator), value)
 
     # Query Functions
-    def _resolve_percentile(
-        self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
-        alias: str,
-        fixed_percentile: Optional[float] = None,
-    ) -> SelectType:
-        if fixed_percentile is None:
-            fixed_percentile = args["percentile"]
-        if fixed_percentile not in constants.METRIC_PERCENTILES:
-            raise IncompatibleMetricsQuery("Custom quantile incompatible with metrics")
-        column = self.resolve_mri(args["column"])
-        return (
-            Function(
-                "max",
-                [
-                    column,
-                ],
-                alias,
-            )
-            if fixed_percentile == 1
-            else Function(
-                f"p{int(fixed_percentile * 100)}",
-                [
-                    column,
-                ],
-                alias,
-            )
-        )
-
     def _resolve_apdex_function(
         self,
         args: Mapping[str, Union[str, Column, SelectType, int, float]],
@@ -599,19 +595,21 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
             "measurements.fp",
             "measurements.fid",
             "measurements.cls",
+            "measurements.ttfb",
         ]:
             raise InvalidSearchQuery("count_web_vitals only supports measurements")
 
+        column = Column(constants.METRICS_MAP.get(column, column))
         if quality == "any":
             return Function(
                 "count",
-                [],
+                [column],
                 alias,
             )
 
         return Function(
             "count_web_vitals",
-            [Column(constants.METRICS_MAP.get(column, column)), quality],
+            [column, quality],
             alias,
         )
 

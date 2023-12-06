@@ -17,7 +17,7 @@ import {
   getHumanDuration,
 } from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
-import {EventTransaction} from 'sentry/types/event';
+import {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
 import toPercent from 'sentry/utils/number/toPercent';
 
 import {SpanGroupBar} from './spanGroupBar';
@@ -37,7 +37,7 @@ export type SpanDescendantGroupBarProps = {
   addContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   continuingTreeDepths: Array<TreeDepthType>;
   didAnchoredSpanMount: () => boolean;
-  event: Readonly<EventTransaction>;
+  event: Readonly<EventTransaction | AggregateEventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   getCurrentLeftPos: () => number;
   onWheel: (deltaX: number) => void;

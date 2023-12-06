@@ -87,7 +87,7 @@ def assert_n_plus_one_db_problem(perf_problems):
     )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @pytest.mark.django_db
 class PerformanceDetectionTest(TestCase):
     def setUp(self):
@@ -183,7 +183,7 @@ class PerformanceDetectionTest(TestCase):
 
         default_settings = get_detection_settings(self.project)
 
-        assert default_settings[DetectorType.N_PLUS_ONE_DB_QUERIES]["duration_threshold"] == 90
+        assert default_settings[DetectorType.N_PLUS_ONE_DB_QUERIES]["duration_threshold"] == 50
         assert (
             default_settings[DetectorType.RENDER_BLOCKING_ASSET_SPAN]["fcp_ratio_threshold"] == 0.33
         )
@@ -197,7 +197,7 @@ class PerformanceDetectionTest(TestCase):
         assert default_settings[DetectorType.N_PLUS_ONE_API_CALLS]["total_duration"] == 300
         assert default_settings[DetectorType.LARGE_HTTP_PAYLOAD]["payload_size_threshold"] == 300000
         assert default_settings[DetectorType.CONSECUTIVE_HTTP_OP]["min_time_saved"] == 2000
-        assert default_settings[DetectorType.SLOW_DB_QUERY][0]["duration_threshold"] == 900
+        assert default_settings[DetectorType.SLOW_DB_QUERY][0]["duration_threshold"] == 500
 
         self.project_option_mock.return_value = {
             "n_plus_one_db_duration_threshold": 100000,
@@ -493,7 +493,7 @@ class PerformanceDetectionTest(TestCase):
         assert not any([v for k, v in tags.items() if k not in pre_checked_keys])
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class DetectorTypeToGroupTypeTest(unittest.TestCase):
     def test(self):
         # Make sure we don't forget to include a mapping to `GroupType`
@@ -503,7 +503,7 @@ class DetectorTypeToGroupTypeTest(unittest.TestCase):
             ), f"{detector_type} must have a corresponding entry in DETECTOR_TYPE_TO_GROUP_TYPE"
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class EventPerformanceProblemTest(TestCase):
     def test_save_and_fetch(self):
         event = Event(self.project.id, "something")

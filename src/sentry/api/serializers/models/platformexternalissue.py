@@ -1,5 +1,5 @@
 from sentry.api.serializers import Serializer, register
-from sentry.models import PlatformExternalIssue
+from sentry.models.platformexternalissue import PlatformExternalIssue
 
 
 @register(PlatformExternalIssue)

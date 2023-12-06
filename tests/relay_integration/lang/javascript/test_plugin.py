@@ -12,25 +12,25 @@ from django.conf import settings
 from django.core.files.base import ContentFile
 from django.utils import timezone
 
-from sentry.models import (
+from sentry.debug_files.artifact_bundles import refresh_artifact_bundles_in_use
+from sentry.models.artifactbundle import (
     ArtifactBundle,
     DebugIdArtifactBundle,
-    File,
     ProjectArtifactBundle,
-    Release,
     ReleaseArtifactBundle,
-    ReleaseFile,
     SourceFileType,
 )
+from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
-from sentry.models.releasefile import update_artifact_index
+from sentry.models.release import Release
+from sentry.models.releasefile import ReleaseFile, update_artifact_index
 from sentry.tasks.assemble import assemble_artifacts
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.relay import RelayStoreHelper
-from sentry.testutils.skips import requires_symbolicator
+from sentry.testutils.skips import requires_kafka, requires_symbolicator
 from sentry.utils import json
 
 # IMPORTANT:
@@ -41,6 +41,9 @@ from sentry.utils import json
 # If you are using a local instance of Symbolicator, you need to either change `system.url-prefix`
 # to `system.internal-url-prefix` inside `initialize` method below, or add `127.0.0.1 host.docker.internal`
 # entry to your `/etc/hosts`
+
+
+pytestmark = [requires_symbolicator, requires_kafka]
 
 BASE64_SOURCEMAP = "data:application/json;base64," + (
     b64encode(
@@ -369,6 +372,12 @@ class TestJavascriptIntegration(RelayStoreHelper):
             }
         ]
 
+        assert event.data["scraping_attempts"] == [
+            {"status": "not_attempted", "url": "http://example.com/file.min.js"},
+            {"status": "not_attempted", "url": "http://example.com/file.sourcemap.js"},
+            {"status": "not_attempted", "url": "http://example.com/file1.js"},
+        ]
+
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
 
@@ -463,6 +472,13 @@ class TestJavascriptIntegration(RelayStoreHelper):
         event = self.post_and_retrieve_event(data)
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
+
+        assert event.data["scraping_attempts"] == [
+            {"url": "http://example.com/webpack1.min.js", "status": "not_attempted"},
+            {"url": "http://example.com/webpack1.min.js.map", "status": "not_attempted"},
+            {"url": "http://example.com/webpack2.min.js", "status": "not_attempted"},
+            {"url": "http://example.com/webpack2.min.js.map", "status": "not_attempted"},
+        ]
 
         # The first frame should be in_app.
         first_frame = frame_list[0]
@@ -559,6 +575,11 @@ class TestJavascriptIntegration(RelayStoreHelper):
             }
         ]
 
+        assert event.data["scraping_attempts"] == [
+            {"status": "not_attempted", "url": "http://example.com/embedded.js"},
+            {"status": "not_attempted", "url": "http://example.com/embedded.js.map"},
+        ]
+
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
 
@@ -623,6 +644,11 @@ class TestJavascriptIntegration(RelayStoreHelper):
         event = self.post_and_retrieve_event(data)
 
         assert "errors" not in event.data
+
+        assert event.data["scraping_attempts"] == [
+            {"url": "app:///nofiles.js", "status": "not_attempted"},
+            {"url": "app:///nofiles.js.map", "status": "not_attempted"},
+        ]
 
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
@@ -694,6 +720,13 @@ class TestJavascriptIntegration(RelayStoreHelper):
         event = self.post_and_retrieve_event(data)
 
         assert "errors" not in event.data
+
+        assert event.data["scraping_attempts"] == [
+            {"status": "not_attempted", "url": "http://example.com/indexed.min.js"},
+            {"status": "not_attempted", "url": "http://example.com/indexed.sourcemap.js"},
+            {"status": "not_attempted", "url": "http://example.com/file1.js"},
+            {"status": "not_attempted", "url": "http://example.com/file2.js"},
+        ]
 
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
@@ -2511,6 +2544,10 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         assert frame.data["resolved_with"] == "index"
         assert frame.data["symbolicated"]
+
+        # explicitly trigger the task that is refreshing bundles, usually this
+        # happens on a schedule:
+        refresh_artifact_bundles_in_use()
 
         artifact_bundles = ArtifactBundle.objects.filter(
             organization_id=self.organization.id,

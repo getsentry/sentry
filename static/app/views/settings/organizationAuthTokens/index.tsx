@@ -163,7 +163,7 @@ export function OrganizationAuthTokensIndex({
 
           <TextBlock>
             {t(
-              "Authentication tokens allow you to perform actions against the Sentry API on behalf of your organization. They're the easiest way to get started using the API."
+              'Organization Auth Tokens can be used in many places to interact with Sentry programatically. For example, they can be used for sentry-cli, bundler plugins or similar uses cases.'
             )}
           </TextBlock>
           <TextBlock>
@@ -187,7 +187,7 @@ export function OrganizationAuthTokensIndex({
               ) : undefined
             }
             emptyMessage={t("You haven't created any authentication tokens yet.")}
-            headers={[t('Auth token'), t('Last access'), '']}
+            headers={[t('Auth token'), t('Created'), t('Last access'), '']}
           >
             {!isError && !isLoading && !!tokenList?.length && (
               <TokenList
@@ -214,7 +214,8 @@ const ResponsivePanelTable = styled(PanelTable)`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: 1fr 1fr;
 
-    > *:nth-child(3n + 2) {
+    > *:nth-child(4n + 2),
+    *:nth-child(4n + 3) {
       display: none;
     }
   }

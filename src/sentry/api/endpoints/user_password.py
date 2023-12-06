@@ -3,6 +3,8 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.auth import password_validation
@@ -22,8 +24,8 @@ class UserPasswordSerializer(serializers.Serializer):
 
     def validate_passwordNew(self, value):
         # this will raise a ValidationError if password is invalid
-        password_validation.validate_password(value)
         user = self.context["user"]
+        password_validation.validate_password(value, user=user)
 
         if user.is_managed:
             raise serializers.ValidationError(
@@ -44,6 +46,11 @@ class UserPasswordSerializer(serializers.Serializer):
 
 @control_silo_endpoint
 class UserPasswordEndpoint(UserEndpoint):
+    owner = ApiOwner.SECURITY
+    publish_status = {
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
+
     def put(self, request: Request, user) -> Response:
         # pass some context to serializer otherwise when we create a new serializer instance,
         # user.password gets set to new plaintext password from request and

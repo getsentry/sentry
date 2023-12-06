@@ -6,13 +6,16 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from typing_extensions import TypedDict
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.helpers.source_map_helper import source_map_debug
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import EventParams, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import Project, SourceMapProcessingIssue
+from sentry.models.project import Project
+from sentry.models.sourcemapprocessingissue import SourceMapProcessingIssue
 
 
 class SourceMapProcessingIssueResponse(TypedDict):
@@ -28,7 +31,10 @@ class SourceMapProcessingResponse(TypedDict):
 @region_silo_endpoint
 @extend_schema(tags=["Events"])
 class SourceMapDebugEndpoint(ProjectEndpoint):
-    public = {"GET"}
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+    }
+    owner = ApiOwner.ISSUES
 
     @extend_schema(
         operation_id="Debug Issues Related to Source Maps for a Given Event",

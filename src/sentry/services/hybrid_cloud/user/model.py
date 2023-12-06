@@ -68,6 +68,9 @@ class RpcUser(RpcModel):
         # TODO: Remove the need for this
         return hash((self.id, self.pk))
 
+    def __str__(self):  # API compatibility with ORM User
+        return self.get_username()
+
     def by_email(self, email: str) -> "RpcUser":
         if email == self.email:
             return self
@@ -138,3 +141,13 @@ class UserUpdateArgs(TypedDict, total=False):
     avatar_type: int
     actor_id: int  # TODO(hybrid-cloud): Remove this after the actor migration is complete
     is_active: bool
+
+
+class UserIdEmailArgs(TypedDict):
+    user_id: int
+    email: str
+
+
+class RpcVerifyUserEmail(RpcModel):
+    exists: bool = False
+    email: str = ""

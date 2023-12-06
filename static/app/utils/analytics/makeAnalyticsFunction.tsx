@@ -18,7 +18,7 @@ type Options = Parameters<Hooks['analytics:raw-track-event']>[1];
  */
 export default function makeAnalyticsFunction<
   EventParameters extends Record<string, Record<string, any>>,
-  OrgRequirement extends OptionalOrg = OptionalOrg
+  OrgRequirement extends OptionalOrg = OptionalOrg,
 >(
   eventKeyToNameMap: Record<keyof EventParameters, string | null>,
   defaultOptions?: Options

@@ -21,7 +21,7 @@ from sentry.utils.performance_issues.performance_detection import (
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @pytest.mark.django_db
 class SlowDBQueryDetectorTest(TestCase):
     def setUp(self):
@@ -34,7 +34,7 @@ class SlowDBQueryDetectorTest(TestCase):
         return list(detector.stored_problems.values())
 
     def test_calls_detect_slow_span(self):
-        no_slow_span_event = create_event([create_span("db", 899.0)] * 1)
+        no_slow_span_event = create_event([create_span("db", 499.0)] * 1)
         slow_not_allowed_op_span_event = create_event([create_span("random", 1001.0, "example")])
         slow_span_event = create_event([create_span("db", 1001.0)] * 1)
 

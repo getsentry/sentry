@@ -5,6 +5,8 @@ import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.endpoints.organization_events_facets_performance import (
@@ -23,6 +25,11 @@ SIX_HOURS = int(timedelta(hours=6).total_seconds())
 class OrganizationEventsFacetsStatsPerformanceEndpoint(
     OrganizationEventsFacetsPerformanceEndpointBase
 ):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.TEAM_STARFISH
+
     def get(self, request: Request, organization) -> Response:
         try:
             params, aggregate_column, filter_query = self._setup(request, organization)

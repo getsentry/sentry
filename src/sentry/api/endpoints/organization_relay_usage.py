@@ -2,14 +2,20 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint, OrganizationPermission
 from sentry.api.serializers import serialize
-from sentry.models import RelayUsage
+from sentry.models.relay import RelayUsage
 
 
 @region_silo_endpoint
 class OrganizationRelayUsage(OrganizationEndpoint):
+    owner = ApiOwner.OWNERS_INGEST
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (OrganizationPermission,)
 
     def get(self, request: Request, organization) -> Response:

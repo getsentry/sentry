@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {AllAuthenticators, Authenticators} from 'sentry-fixture/authenticators';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -7,7 +8,7 @@ import RecoveryOptionsModal from 'sentry/components/modals/recoveryOptionsModal'
 
 describe('RecoveryOptionsModal', function () {
   const closeModal = jest.fn();
-  const mockId = TestStubs.Authenticators().Recovery().authId;
+  const mockId = Authenticators().Recovery().authId;
   const routerContext = TestStubs.routerContext();
 
   beforeEach(function () {
@@ -15,7 +16,7 @@ describe('RecoveryOptionsModal', function () {
     MockApiClient.addMockResponse({
       url: '/users/me/authenticators/',
       method: 'GET',
-      body: TestStubs.AllAuthenticators(),
+      body: AllAuthenticators(),
     });
   });
 
@@ -76,7 +77,7 @@ describe('RecoveryOptionsModal', function () {
     MockApiClient.addMockResponse({
       url: '/users/me/authenticators/',
       method: 'GET',
-      body: [TestStubs.Authenticators().Totp(), TestStubs.Authenticators().Recovery()],
+      body: [Authenticators().Totp(), Authenticators().Recovery()],
     });
 
     renderComponent();

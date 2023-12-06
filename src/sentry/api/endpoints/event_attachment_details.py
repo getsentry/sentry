@@ -5,13 +5,17 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore, features, roles
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.serializers import serialize
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.constants import ATTACHMENTS_ROLE_DEFAULT
-from sentry.models import EventAttachment, File, OrganizationMember
+from sentry.models.eventattachment import EventAttachment
+from sentry.models.files.file import File
+from sentry.models.organizationmember import OrganizationMember
 
 
 class EventAttachmentDetailsPermission(ProjectPermission):
@@ -45,19 +49,30 @@ class EventAttachmentDetailsPermission(ProjectPermission):
 
 @region_silo_endpoint
 class EventAttachmentDetailsEndpoint(ProjectEndpoint):
+    owner = ApiOwner.OWNERS_PROCESSING
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (EventAttachmentDetailsPermission,)
 
     def download(self, attachment):
         file = File.objects.get(id=attachment.file_id)
+
+        content_type = attachment.content_type or file.headers.get(
+            "content-type", "application/octet-stream"
+        )
+        size = attachment.size or file.size
+
         fp = file.getfile()
         response = StreamingHttpResponse(
             iter(lambda: fp.read(4096), b""),
-            content_type=file.headers.get("content-type", "application/octet-stream"),
+            content_type=content_type,
         )
-        response["Content-Length"] = file.size
-        response["Content-Disposition"] = 'attachment; filename="%s"' % posixpath.basename(
-            " ".join(attachment.name.split())
-        )
+
+        response["Content-Length"] = size
+        name = posixpath.basename(" ".join(attachment.name.split()))
+        response["Content-Disposition"] = f'attachment; filename="{name}"'
         return response
 
     def get(self, request: Request, project, event_id, attachment_id) -> Response:

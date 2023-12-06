@@ -50,7 +50,7 @@ describe('useHotkeys', function () {
     const callback = jest.fn();
 
     reactHooks.renderHook(p => useHotkeys(p, []), {
-      initialProps: [{match: ['ctrl+s', 'cmd+m'], callback}],
+      initialProps: [{match: ['ctrl+s', 'command+m'], callback}],
     });
 
     expect(events.keydown).toBeDefined();
@@ -70,7 +70,7 @@ describe('useHotkeys', function () {
     const callback = jest.fn();
 
     reactHooks.renderHook(p => useHotkeys(p, []), {
-      initialProps: [{match: ['cmd+control+option+shift+x'], callback}],
+      initialProps: [{match: ['command+ctrl+alt+shift+x'], callback}],
     });
 
     expect(events.keydown).toBeDefined();
@@ -86,6 +86,28 @@ describe('useHotkeys', function () {
     );
 
     expect(callback).toHaveBeenCalled();
+  });
+
+  it('does not match when extra modifiers are pressed', function () {
+    const callback = jest.fn();
+
+    reactHooks.renderHook(p => useHotkeys(p, []), {
+      initialProps: [{match: ['command+shift+x'], callback}],
+    });
+
+    expect(events.keydown).toBeDefined();
+    expect(callback).not.toHaveBeenCalled();
+
+    events.keydown(
+      makeKeyEvent('x', {
+        altKey: true,
+        metaKey: true,
+        shiftKey: true,
+        ctrlKey: true,
+      })
+    );
+
+    expect(callback).not.toHaveBeenCalled();
   });
 
   it('updates with rerender', function () {
@@ -106,7 +128,7 @@ describe('useHotkeys', function () {
     expect(callback).toHaveBeenCalled();
     callback.mockClear();
 
-    rerender({match: 'cmd+m'});
+    rerender({match: 'command+m'});
 
     events.keydown(makeKeyEvent('s', {ctrlKey: true}));
     expect(callback).not.toHaveBeenCalled();

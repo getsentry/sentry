@@ -11,7 +11,7 @@ from rest_framework.test import APIRequestFactory
 
 from sentry.integrations.aws_lambda import AwsLambdaIntegrationProvider
 from sentry.integrations.aws_lambda.client import AwsLambdaProxyClient, gen_aws_client
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.shared_integrations.client.proxy import get_proxy_url
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
@@ -25,7 +25,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class AwsLambdaClientTest(TestCase):
     @patch.object(boto3, "Session")
     @patch.object(boto3, "client")
@@ -352,3 +352,26 @@ class AwsLambdaProxyApiClientTest(TestCase):
             with pytest.raises(client.client.exceptions.AWSOrganizationsNotInUseException):
                 client.get_function(FunctionName="lambdaE")
             assert mock_client.get_function.call_count == 0
+
+    @patch("sentry.integrations.aws_lambda.client.gen_aws_client")
+    def test_api_client_from_integration_installation(self, mock_gen_aws_client):
+        expected_get_function_return = {
+            "Configuration": {
+                "FunctionName": "lambdaE",
+                "Runtime": "python3.8",
+                "Handler": "lambda_handler.test_handler",
+                "FunctionArn": "arn:aws:lambda:us-east-2:599817902985:function:lambdaE",
+                "Layers": ["arn:aws:lambda:us-east-2:1234:layer:something-else:2"],
+            },
+        }
+
+        mock_client = mock_gen_aws_client.return_value
+        mock_client.get_function = MagicMock(return_value=expected_get_function_return)
+
+        installation = self.integration.get_installation(organization_id=self.organization.id)
+        client = installation.get_client()
+        assert isinstance(client, AwsLambdaProxyClient)
+
+        actual = client.get_function(FunctionName="lambdaE")
+        assert mock_client.get_function.call_count == 1
+        assert actual == expected_get_function_return

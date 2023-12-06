@@ -8,7 +8,8 @@ from django.urls import reverse
 from rb.clients import LocalClient
 
 from sentry import options
-from sentry.models import AuthProvider, User
+from sentry.models.authprovider import AuthProvider
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.utils import json, metrics, redis
 from sentry.utils.email import MessageBuilder

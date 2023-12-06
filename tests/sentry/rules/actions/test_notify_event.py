@@ -4,9 +4,12 @@ from sentry.rules.actions.notify_event import NotifyEventAction
 from sentry.rules.actions.services import LegacyPluginService
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class NotifyEventActionTest(RuleTestCase):
     rule_cls = NotifyEventAction
 

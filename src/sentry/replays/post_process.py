@@ -4,6 +4,7 @@ import collections
 from itertools import zip_longest
 from typing import Any, Dict, Generator, Iterable, Iterator, List, MutableMapping, Optional, Union
 
+from drf_spectacular.utils import extend_schema_serializer
 from typing_extensions import TypedDict
 
 from sentry.replays.validators import VALID_FIELD_SET
@@ -39,6 +40,7 @@ class UserResponseType(TypedDict, total=False):
     display_name: Optional[str]
 
 
+@extend_schema_serializer(exclude_fields=["info_ids", "warning_ids"])
 class ReplayDetailsResponse(TypedDict, total=False):
     id: str
     project_id: str
@@ -67,6 +69,10 @@ class ReplayDetailsResponse(TypedDict, total=False):
     platform: Optional[str]
     releases: List[str]
     dist: Optional[str]
+    warning_ids: Optional[List[str]]
+    info_ids: Optional[List[str]]
+    count_warnings: Optional[int]
+    count_infos: Optional[int]
 
 
 def process_raw_response(
@@ -80,7 +86,6 @@ def generate_restricted_fieldset(
     fields: List[str],
     response: Generator[ReplayDetailsResponse, None, None],
 ) -> Iterator[ReplayDetailsResponse]:
-
     """Return only the fields requested by the client."""
     if fields:
         for item in response:
@@ -172,6 +177,10 @@ def generate_normalized_output(
         ret_item["replay_type"] = item.pop("replay_type", "session")
         ret_item["started_at"] = item.pop("started_at", None)
 
+        ret_item["warning_ids"] = item.pop("warning_ids", None)
+        ret_item["info_ids"] = item.pop("info_ids", None)
+        ret_item["count_infos"] = item.pop("count_infos", None)
+        ret_item["count_warnings"] = item.pop("count_warnings", None)
         yield ret_item
 
 

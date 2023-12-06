@@ -4,8 +4,8 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sentry import audit_log
-from sentry.models import Rule
 from sentry.models.actor import ActorTuple
+from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.services.hybrid_cloud.log.service import log_rpc_service
 from sentry.testutils.cases import APITestCase
@@ -25,7 +25,7 @@ class BaseRuleSnoozeTest(APITestCase):
         self.login_as(user=self.user)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class PostRuleSnoozeTest(BaseRuleSnoozeTest):
     endpoint = "sentry-api-0-rule-snooze"
     method = "post"
@@ -267,7 +267,7 @@ class PostRuleSnoozeTest(BaseRuleSnoozeTest):
         assert "Datetime has wrong format." in response.data["until"][0]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class DeleteRuleSnoozeTest(BaseRuleSnoozeTest):
     endpoint = "sentry-api-0-rule-snooze"
     method = "delete"
@@ -326,7 +326,7 @@ class DeleteRuleSnoozeTest(BaseRuleSnoozeTest):
         assert response.status_code == 403
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class PostMetricRuleSnoozeTest(BaseRuleSnoozeTest):
     endpoint = "sentry-api-0-metric-rule-snooze"
     method = "post"
@@ -557,7 +557,7 @@ class PostMetricRuleSnoozeTest(BaseRuleSnoozeTest):
         assert "Rule does not exist" in response.data
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class DeleteMetricRuleSnoozeTest(BaseRuleSnoozeTest):
     endpoint = "sentry-api-0-metric-rule-snooze"
     method = "delete"

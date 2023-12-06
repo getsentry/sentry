@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+from django.http import HttpResponse
 from django.test import RequestFactory, override_settings
 
 from sentry.middleware.integrations.classifications import (
@@ -109,13 +110,13 @@ class IntegrationClassificationTest(BaseClassificationTestCase):
         provider = "acme"
         request = self.factory.post(f"{self.prefix}{provider}/webhook/")
         assert mock_identify_provider(request) == provider
-        assert IntegrationClassification.integration_parsers.get(provider) is None
+        assert self.integration_cls.integration_parsers.get(provider) is None
         self.validate_mock_ran_with_noop(request, mock_identify_provider)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch.object(SlackRequestParser, "get_response")
     def test_returns_parser_get_response(self, mock_parser_get_response):
-        result = {"ok": True}
+        result = HttpResponse(status=204)
         mock_parser_get_response.return_value = result
         response = self.integration_cls.get_response(
             self.factory.post(f"{self.prefix}{SlackRequestParser.provider}/webhook/")

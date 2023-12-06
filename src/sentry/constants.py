@@ -64,7 +64,6 @@ STATUS_IGNORED = 2
 # accuracy provided.
 MINUTE_NORMALIZATION = 15
 
-MAX_TAG_KEY_LENGTH = 32
 MAX_TAG_VALUE_LENGTH = 200
 MAX_CULPRIT_LENGTH = 200
 MAX_EMAIL_FIELD_LENGTH = 75
@@ -179,6 +178,8 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "staff",
         "subscribe",
         "support",
+        "syntax",
+        "syntaxfm",
         "team-avatar",
         "teams",
         "terms",
@@ -262,6 +263,7 @@ _SENTRY_RULES = (
     "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
     "sentry.rules.conditions.regression_event.RegressionEventCondition",
     "sentry.rules.conditions.reappeared_event.ReappearedEventCondition",
+    "sentry.rules.conditions.high_priority_issue.HighPriorityIssueCondition",
     "sentry.rules.conditions.tagged_event.TaggedEventCondition",
     "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
     "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
@@ -273,6 +275,7 @@ _SENTRY_RULES = (
     "sentry.rules.filters.assigned_to.AssignedToFilter",
     "sentry.rules.filters.latest_release.LatestReleaseFilter",
     "sentry.rules.filters.issue_category.IssueCategoryFilter",
+    "sentry.rules.filters.issue_severity.IssueSeverityFilter",
     # The following filters are duplicates of their respective conditions and are conditionally shown if the user has issue alert-filters
     "sentry.rules.filters.event_attribute.EventAttributeFilter",
     "sentry.rules.filters.tagged_event.TaggedEventFilter",
@@ -290,7 +293,9 @@ MIGRATED_CONDITIONS = frozenset(
 TICKET_ACTIONS = frozenset(
     [
         "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
+        "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
         "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
+        "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
     ]
 )
 
@@ -397,7 +402,7 @@ MARKETING_SLUG_TO_INTEGRATION_ID = {
     "pyramid": "python-pyramid",
     "pylons": "python-pylons",
     "laravel": "php-laravel",
-    "symfony": "php-symfony2",
+    "symfony": "php-symfony",
     "rails": "ruby-rails",
     "sinatra": "ruby-sinatra",
     "dotnet": "csharp",
@@ -460,12 +465,11 @@ def get_integration_id_for_event(
 
 
 class ObjectStatus:
-    VISIBLE = 0
+    ACTIVE = 0
     HIDDEN = 1
     PENDING_DELETION = 2
     DELETION_IN_PROGRESS = 3
 
-    ACTIVE = 0
     DISABLED = 1
 
     @classmethod
@@ -501,7 +505,7 @@ class SentryAppStatus:
         )
 
     @classmethod
-    def as_str(cls, status: int) -> Optional[str]:
+    def as_str(cls, status: int) -> str:
         if status == cls.UNPUBLISHED:
             return cls.UNPUBLISHED_STR
         elif status == cls.PUBLISHED:
@@ -513,10 +517,10 @@ class SentryAppStatus:
         elif status == cls.DELETION_IN_PROGRESS:
             return cls.DELETION_IN_PROGRESS_STR
         else:
-            return None
+            raise ValueError(f"Not a SentryAppStatus int: {status!r}")
 
     @classmethod
-    def as_int(cls, status: str) -> Optional[int]:
+    def as_int(cls, status: str) -> int:
         if status == cls.UNPUBLISHED_STR:
             return cls.UNPUBLISHED
         elif status == cls.PUBLISHED_STR:
@@ -528,7 +532,7 @@ class SentryAppStatus:
         elif status == cls.DELETION_IN_PROGRESS_STR:
             return cls.DELETION_IN_PROGRESS
         else:
-            return None
+            raise ValueError(f"Not a SentryAppStatus str: {status!r}")
 
 
 class SentryAppInstallationStatus:
@@ -545,13 +549,13 @@ class SentryAppInstallationStatus:
         )
 
     @classmethod
-    def as_str(cls, status: int) -> Optional[str]:
+    def as_str(cls, status: int) -> str:
         if status == cls.PENDING:
             return cls.PENDING_STR
         elif status == cls.INSTALLED:
             return cls.INSTALLED_STR
         else:
-            return None
+            raise ValueError(f"Not a SentryAppInstallationStatus int: {status!r}")
 
 
 class ExportQueryType:
@@ -572,22 +576,22 @@ class ExportQueryType:
         )
 
     @classmethod
-    def as_str(cls, integer: int) -> Optional[str]:
+    def as_str(cls, integer: int) -> str:
         if integer == cls.ISSUES_BY_TAG:
             return cls.ISSUES_BY_TAG_STR
         elif integer == cls.DISCOVER:
             return cls.DISCOVER_STR
         else:
-            return None
+            raise ValueError(f"Not an ExportQueryType int: {integer!r}")
 
     @classmethod
-    def from_str(cls, string: str) -> Optional[int]:
+    def from_str(cls, string: str) -> int:
         if string == cls.ISSUES_BY_TAG_STR:
             return cls.ISSUES_BY_TAG
         elif string == cls.DISCOVER_STR:
             return cls.DISCOVER
         else:
-            return None
+            raise ValueError(f"Not an ExportQueryType str: {string!r}")
 
 
 StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
@@ -693,11 +697,265 @@ DS_DENYLIST = frozenset(
 # Also it covers: livez, readyz
 HEALTH_CHECK_GLOBS = [
     "*healthcheck*",
-    "*healthy*",
-    "*live*",
-    "*ready*",
     "*heartbeat*",
     "*/health",
+    "*/healthy",
     "*/healthz",
+    "*/live",
+    "*/livez",
+    "*/ready",
+    "*/readyz",
     "*/ping",
 ]
+
+
+NEL_CULPRITS = {
+    # https://w3c.github.io/network-error-logging/#predefined-network-error-types
+    "dns.unreachable": "DNS server is unreachable",
+    "dns.name_not_resolved": "DNS server responded but is unable to resolve the address",
+    "dns.failed": "Request to the DNS server failed due to reasons not covered by previous errors",
+    "dns.address_changed": "Indicates that the resolved IP address for a request's origin has changed since the corresponding NEL policy was received",
+    "tcp.timed_out": "TCP connection to the server timed out",
+    "tcp.closed": "The TCP connection was closed by the server",
+    "tcp.reset": "The TCP connection was reset",
+    "tcp.refused": "The TCP connection was refused by the server",
+    "tcp.aborted": "The TCP connection was aborted",
+    "tcp.address_invalid": "The IP address is invalid",
+    "tcp.address_unreachable": "The IP address is unreachable",
+    "tcp.failed": "The TCP connection failed due to reasons not covered by previous errors",
+    "tls.version_or_cipher_mismatch": "The TLS connection was aborted due to version or cipher mismatch",
+    "tls.bad_client_auth_cert": "The TLS connection was aborted due to invalid client certificate",
+    "tls.cert.name_invalid": "The TLS connection was aborted due to invalid name",
+    "tls.cert.date_invalid": "The TLS connection was aborted due to invalid certificate date",
+    "tls.cert.authority_invalid": "The TLS connection was aborted due to invalid issuing authority",
+    "tls.cert.invalid": "The TLS connection was aborted due to invalid certificate",
+    "tls.cert.revoked": "The TLS connection was aborted due to revoked server certificate",
+    "tls.cert.pinned_key_not_in_cert_chain": "The TLS connection was aborted due to a key pinning error",
+    "tls.protocol.error": "The TLS connection was aborted due to a TLS protocol error",
+    "tls.failed": "The TLS connection failed due to reasons not covered by previous errors",
+    "http.error": "The user agent successfully received a response, but it had a {} status code",
+    "http.protocol.error": "The connection was aborted due to an HTTP protocol error",
+    "http.response.invalid": "Response is empty, has a content-length mismatch, has improper encoding, and/or other conditions that prevent user agent from processing the response",
+    "http.response.redirect_loop": "The request was aborted due to a detected redirect loop",
+    "http.failed": "The connection failed due to errors in HTTP protocol not covered by previous errors",
+    "abandoned": "User aborted the resource fetch before it is complete",
+    "unknown": "error type is unknown",
+    # Chromium-specific errors, not documented in the spec
+    # https://chromium.googlesource.com/chromium/src/+/HEAD/net/network_error_logging/network_error_logging_service.cc
+    "dns.protocol": "ERR_DNS_MALFORMED_RESPONSE",
+    "dns.server": "ERR_DNS_SERVER_FAILED",
+    "tls.unrecognized_name_alert": "ERR_SSL_UNRECOGNIZED_NAME_ALERT",
+    "h2.ping_failed": "ERR_HTTP2_PING_FAILED",
+    "h2.protocol.error": "ERR_HTTP2_PROTOCOL_ERROR",
+    "h3.protocol.error": "ERR_QUIC_PROTOCOL_ERROR",
+    "http.response.invalid.empty": "ERR_EMPTY_RESPONSE",
+    "http.response.invalid.content_length_mismatch": "ERR_CONTENT_LENGTH_MISMATCH",
+    "http.response.invalid.incomplete_chunked_encoding": "ERR_INCOMPLETE_CHUNKED_ENCODING",
+    "http.response.invalid.invalid_chunked_encoding": "ERR_INVALID_CHUNKED_ENCODING",
+    "http.request.range_not_satisfiable": "ERR_REQUEST_RANGE_NOT_SATISFIABLE",
+    "http.response.headers.truncated": "ERR_RESPONSE_HEADERS_TRUNCATED",
+    "http.response.headers.multiple_content_disposition": "ERR_RESPONSE_HEADERS_MULTIPLE_CONTENT_DISPOSITION",
+    "http.response.headers.multiple_content_length": "ERR_RESPONSE_HEADERS_MULTIPLE_CONTENT_LENGTH",
+}
+
+# Generated from https://raw.githubusercontent.com/github-linguist/linguist/master/lib/linguist/languages.yml and our list of platforms/languages
+EXTENSION_LANGUAGE_MAP = {
+    "c": "c",
+    "cats": "c",
+    "h": "objective-c",
+    "idc": "c",
+    "cs": "c#",
+    "cake": "coffeescript",
+    "csx": "c#",
+    "linq": "c#",
+    "cpp": "c++",
+    "c++": "c++",
+    "cc": "c++",
+    "cp": "c++",
+    "cppm": "c++",
+    "cxx": "c++",
+    "h++": "c++",
+    "hh": "c++",
+    "hpp": "c++",
+    "hxx": "c++",
+    "inc": "php",
+    "inl": "c++",
+    "ino": "c++",
+    "ipp": "c++",
+    "ixx": "c++",
+    "re": "c++",
+    "tcc": "c++",
+    "tpp": "c++",
+    "txx": "c++",
+    "chs": "c2hs haskell",
+    "clj": "clojure",
+    "bb": "clojure",
+    "boot": "clojure",
+    "cl2": "clojure",
+    "cljc": "clojure",
+    "cljs": "clojure",
+    "cljs.hl": "clojure",
+    "cljscm": "clojure",
+    "cljx": "clojure",
+    "hic": "clojure",
+    "coffee": "coffeescript",
+    "_coffee": "coffeescript",
+    "cjsx": "coffeescript",
+    "iced": "coffeescript",
+    "cfm": "coldfusion",
+    "cfml": "coldfusion",
+    "cfc": "coldfusion cfc",
+    "cr": "crystal",
+    "dart": "dart",
+    "ex": "elixir",
+    "exs": "elixir",
+    "fs": "f#",
+    "fsi": "f#",
+    "fsx": "f#",
+    "go": "go",
+    "groovy": "groovy",
+    "grt": "groovy",
+    "gtpl": "groovy",
+    "gvy": "groovy",
+    "gsp": "groovy server pages",
+    "hcl": "hcl",
+    "nomad": "hcl",
+    "tf": "hcl",
+    "tfvars": "hcl",
+    "workflow": "hcl",
+    "hs": "haskell",
+    "hs-boot": "haskell",
+    "hsc": "haskell",
+    "java": "java",
+    "jav": "java",
+    "jsh": "java",
+    "jsp": "java server pages",
+    "tag": "java server pages",
+    "js": "javascript",
+    "_js": "javascript",
+    "bones": "javascript",
+    "cjs": "javascript",
+    "es": "javascript",
+    "es6": "javascript",
+    "frag": "javascript",
+    "gs": "javascript",
+    "jake": "javascript",
+    "javascript": "javascript",
+    "jsb": "javascript",
+    "jscad": "javascript",
+    "jsfl": "javascript",
+    "jslib": "javascript",
+    "jsm": "javascript",
+    "jspre": "javascript",
+    "jss": "javascript",
+    "jsx": "javascript",
+    "mjs": "javascript",
+    "njs": "javascript",
+    "pac": "javascript",
+    "sjs": "javascript",
+    "ssjs": "javascript",
+    "xsjs": "javascript",
+    "xsjslib": "javascript",
+    "js.erb": "javascript+erb",
+    "kt": "kotlin",
+    "ktm": "kotlin",
+    "kts": "kotlin",
+    "litcoffee": "literate coffeescript",
+    "coffee.md": "literate coffeescript",
+    "lhs": "literate haskell",
+    "lua": "lua",
+    "fcgi": "ruby",
+    "nse": "lua",
+    "p8": "lua",
+    "pd_lua": "lua",
+    "rbxs": "lua",
+    "rockspec": "lua",
+    "wlua": "lua",
+    "numpy": "numpy",
+    "numpyw": "numpy",
+    "numsc": "numpy",
+    "ml": "ocaml",
+    "eliom": "ocaml",
+    "eliomi": "ocaml",
+    "ml4": "ocaml",
+    "mli": "ocaml",
+    "mll": "ocaml",
+    "mly": "ocaml",
+    "m": "objective-c",
+    "mm": "objective-c++",
+    "cl": "opencl",
+    "opencl": "opencl",
+    "php": "php",
+    "aw": "php",
+    "ctp": "php",
+    "php3": "php",
+    "php4": "php",
+    "php5": "php",
+    "phps": "php",
+    "phpt": "php",
+    "pl": "perl",
+    "al": "perl",
+    "cgi": "python",
+    "perl": "perl",
+    "ph": "perl",
+    "plx": "perl",
+    "pm": "perl",
+    "psgi": "perl",
+    "t": "perl",
+    "py": "python",
+    "gyp": "python",
+    "gypi": "python",
+    "lmi": "python",
+    "py3": "python",
+    "pyde": "python",
+    "pyi": "python",
+    "pyp": "python",
+    "pyt": "python",
+    "pyw": "python",
+    "rpy": "python",
+    "spec": "ruby",
+    "tac": "python",
+    "wsgi": "python",
+    "xpy": "python",
+    "rb": "ruby",
+    "builder": "ruby",
+    "eye": "ruby",
+    "gemspec": "ruby",
+    "god": "ruby",
+    "jbuilder": "ruby",
+    "mspec": "ruby",
+    "pluginspec": "ruby",
+    "podspec": "ruby",
+    "prawn": "ruby",
+    "rabl": "ruby",
+    "rake": "ruby",
+    "rbi": "ruby",
+    "rbuild": "ruby",
+    "rbw": "ruby",
+    "rbx": "ruby",
+    "ru": "ruby",
+    "ruby": "ruby",
+    "thor": "ruby",
+    "watchr": "ruby",
+    "rs": "rust",
+    "rs.in": "rust",
+    "scala": "scala",
+    "kojo": "scala",
+    "sbt": "scala",
+    "sc": "scala",
+    "smk": "snakemake",
+    "snakefile": "snakemake",
+    "swift": "swift",
+    "tsx": "tsx",
+    "ts": "typescript",
+    "cts": "typescript",
+    "mts": "typescript",
+    "upc": "unified parallel c",
+    "vb": "visual basic .net",
+    "vbhtml": "visual basic .net",
+    "bas": "visual basic 6.0",
+    "cls": "visual basic 6.0",
+    "ctl": "visual basic 6.0",
+    "dsr": "visual basic 6.0",
+    "frm": "visual basic 6.0",
+}

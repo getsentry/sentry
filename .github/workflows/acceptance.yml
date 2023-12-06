@@ -1,7 +1,3 @@
-# TODO(billy): this workflow has not been re-named from `acceptance` because
-# Visual Snapshots compares against artifacts from the same workflow name (on main branch)
-# We should rename this when we have a more finalized naming scheme.
-#
 # Also note that this name *MUST* match the filename because GHA
 # only provides the workflow name (https://docs.github.com/en/free-pro-team@latest/actions/reference/environment-variables#default-environment-variables)
 # and GH APIs only support querying by workflow *FILENAME* (https://developer.github.com/v3/actions/workflows/#get-a-workflow)
@@ -59,14 +55,13 @@ jobs:
     env:
       # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
       MATRIX_INSTANCE_TOTAL: 5
-      VISUAL_SNAPSHOT_ENABLE: 1
       TEST_GROUP_STRATEGY: roundrobin
 
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
         name: Checkout sentry
 
-      - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb # v1.1.0
+      - uses: getsentry/action-setup-volta@c52be2ea13cfdc084edb806e81958c13e445941e # v1.2.0
 
       - name: Step configurations
         id: config
@@ -111,13 +106,7 @@ jobs:
           pg-version: ${{ matrix.pg-version }}
 
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
-        run: |
-          mkdir -p ${{ steps.setup.outputs.acceptance-dir }}
-          mkdir -p ${{ steps.setup.outputs.acceptance-dir }}-mobile
-          mkdir -p ${{ steps.setup.outputs.acceptance-dir }}-tooltips
-          make run-acceptance
-        env:
-          PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
+        run: make run-acceptance
 
       # This job runs when FE or BE changes happen, however, we only upload coverage data for
       # BE changes since it conflicts with codecov's carry forward functionality
@@ -137,10 +126,6 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 3
     steps:
-      # If any jobs we depend on fail, we will fail since this check calls the
-      # visual snapshot service which creates the "Visual Snapshot" status,
-      # which is a required check.
-      # NOTE: A timeout is considered a failure
       - name: Check for failures
         if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
         run: |

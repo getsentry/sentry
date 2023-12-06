@@ -5,6 +5,7 @@ import {t} from 'sentry/locale';
 import {Project} from 'sentry/types';
 import {useMembers} from 'sentry/utils/useMembers';
 import {useTeams} from 'sentry/utils/useTeams';
+import {useTeamsById} from 'sentry/utils/useTeamsById';
 
 import FormContext from '../formContext';
 
@@ -60,7 +61,7 @@ function SentryMemberTeamSelectorField({
       currentItems?.filter(item => item.startsWith('team:')).map(user => user.slice(5)),
     [currentItems]
   );
-  useTeams({ids: ensureTeamIds});
+  useTeamsById({ids: ensureTeamIds});
 
   const {
     teams,

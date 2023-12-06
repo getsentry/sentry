@@ -8,15 +8,13 @@ import {t, tct} from 'sentry/locale';
 // Configuration Start
 const introduction = (
   <Fragment>
-    {t('In Rails, all uncaught exceptions will be automatically reported.')}
-    {t('We support Rails 5 and newer.')}
+    <p>{t('In Rails, all uncaught exceptions will be automatically reported.')}</p>
+    <p>{t('We support Rails 5 and newer.')}</p>
   </Fragment>
 );
 export const steps = ({
   dsn,
-}: {
-  dsn?: string;
-} = {}): LayoutProps['steps'] => [
+}: Partial<Pick<ModuleProps, 'dsn'>> = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: (

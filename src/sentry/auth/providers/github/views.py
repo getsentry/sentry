@@ -3,7 +3,7 @@ from django.http import HttpResponse
 from rest_framework.request import Request
 
 from sentry.auth.view import AuthView, ConfigureView
-from sentry.models import AuthIdentity
+from sentry.models.authidentity import AuthIdentity
 
 from .client import GitHubClient
 from .constants import (

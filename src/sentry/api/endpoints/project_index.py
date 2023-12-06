@@ -4,6 +4,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.paginator import DateTimePaginator
@@ -11,13 +12,17 @@ from sentry.api.serializers import ProjectWithOrganizationSerializer, serialize
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus
 from sentry.db.models.query import in_iexact
-from sentry.models import Project, ProjectPlatform
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.project import Project
+from sentry.models.projectplatform import ProjectPlatform
 from sentry.search.utils import tokenize_query
 
 
 @region_silo_endpoint
 class ProjectIndexEndpoint(Endpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectPermission,)
 
     def get(self, request: Request) -> Response:

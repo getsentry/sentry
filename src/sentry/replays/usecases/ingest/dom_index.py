@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import random
 import time
@@ -144,6 +146,7 @@ def get_user_actions(
                 is_target_tagname = payload["data"].get("node", {}).get("tagName") in (
                     "a",
                     "button",
+                    "input",
                 )
                 timeout = payload["data"].get("timeAfterClickMs", 0) or payload["data"].get(
                     "timeafterclickms", 0
@@ -191,26 +194,30 @@ def get_user_actions(
 
                 # these first two cover SDKs 7.44 and 7.45
                 if event_payload_data.get("requestBodySize"):
-                    metrics.timing(
+                    metrics.distribution(
                         "replays.usecases.ingest.request_body_size",
                         event_payload_data["requestBodySize"],
+                        unit="byte",
                     )
                 if event_payload_data.get("responseBodySize"):
-                    metrics.timing(
+                    metrics.distribution(
                         "replays.usecases.ingest.response_body_size",
                         event_payload_data["responseBodySize"],
+                        unit="byte",
                     )
 
                 # what the most recent SDKs send:
                 if event_payload_data.get("request", {}).get("size"):
-                    metrics.timing(
+                    metrics.distribution(
                         "replays.usecases.ingest.request_body_size",
                         event_payload_data["request"]["size"],
+                        unit="byte",
                     )
                 if event_payload_data.get("response", {}).get("size"):
-                    metrics.timing(
+                    metrics.distribution(
                         "replays.usecases.ingest.response_body_size",
                         event_payload_data["response"]["size"],
+                        unit="byte",
                     )
         # log the SDK options sent from the SDK 1/500 times
         if (
@@ -274,11 +281,15 @@ def create_click_event(
 
     attributes = node.get("attributes", {})
 
+    # The class attribute can have extra white-space contained within. We need to filter them out
+    # before truncating the list.
+    classes = _parse_classes(attributes.get("class", ""))
+
     return {
         "node_id": node["id"],
         "tag": node["tagName"][:32],
         "id": attributes.get("id", "")[:64],
-        "class": attributes.get("class", "").split(" ")[:10],
+        "class": classes,
         "text": node["textContent"][:1024],
         "role": attributes.get("role", "")[:32],
         "alt": attributes.get("alt", "")[:64],
@@ -292,3 +303,7 @@ def create_click_event(
             "{}{}{}".format(replay_id, str(payload["timestamp"]), str(node["id"]))
         ),
     }
+
+
+def _parse_classes(classes: str) -> list[str]:
+    return list(filter(lambda n: n != "", classes.split(" ")))[:10]

@@ -2,10 +2,10 @@ import {cloneElement, Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {StacktraceFilenameQuery} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
+import {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import {Frame, Organization, PlatformType} from 'sentry/types';
+import {Frame, Organization, PlatformKey} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {StackTraceMechanism, StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
@@ -31,10 +31,11 @@ type DefaultProps = {
 type Props = {
   data: StacktraceType;
   event: Event;
-  platform: PlatformType;
+  platform: PlatformKey;
   className?: string;
-  debugFrames?: StacktraceFilenameQuery[];
+  frameSourceMapDebuggerData?: FrameSourceMapDebuggerData[];
   hideIcon?: boolean;
+  hideSourceMapDebugger?: boolean;
   isHoverPreviewed?: boolean;
   lockAddress?: string;
   maxDepth?: number;
@@ -56,11 +57,12 @@ function Content({
   isHoverPreviewed,
   maxDepth,
   meta,
-  debugFrames,
   hideIcon,
   threadId,
   lockAddress,
   organization,
+  frameSourceMapDebuggerData,
+  hideSourceMapDebugger,
 }: Props) {
   const [showingAbsoluteAddresses, setShowingAbsoluteAddresses] = useState(false);
   const [showCompleteFunctionName, setShowCompleteFunctionName] = useState(false);
@@ -242,12 +244,13 @@ function Content({
           isHoverPreviewed,
           frameMeta: meta?.frames?.[frameIndex],
           registersMeta: meta?.registers,
-          debugFrames,
           isANR,
           threadId,
           lockAddress,
           hiddenFrameCount: frameCountMap[frameIndex],
           organization,
+          frameSourceResolutionResults: frameSourceMapDebuggerData?.[frameIndex],
+          hideSourceMapDebugger,
         };
 
         nRepeats = 0;

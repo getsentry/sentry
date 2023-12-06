@@ -19,7 +19,7 @@ function useLogReplayDataLoaded({fetchError, fetching, projectSlug, replay}: Pro
   });
 
   useEffect(() => {
-    if (fetching || fetchError || !replay || !project) {
+    if (fetching || fetchError || !replay || !project || replay.getReplay().is_archived) {
       return;
     }
     const replayRecord = replay.getReplay();

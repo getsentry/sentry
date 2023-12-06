@@ -3,7 +3,7 @@ import pick from 'lodash/pick';
 import {action, computed, makeObservable, observable} from 'mobx';
 
 import {Client} from 'sentry/api';
-import {EventTransaction} from 'sentry/types/event';
+import {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
 import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 
 import {ActiveOperationFilter, noFilter, toggleAllFilters, toggleFilter} from './filter';
@@ -22,7 +22,7 @@ class WaterfallModel {
   api: Client = new Client();
 
   // readonly state
-  event: Readonly<EventTransaction>;
+  event: Readonly<EventTransaction | AggregateEventTransaction>;
   rootSpan: SpanTreeModel;
   parsedTrace: ParsedTraceType;
   fuse: Fuse<IndexedFusedSpan> | undefined = undefined;
@@ -38,9 +38,10 @@ class WaterfallModel {
   focusedSpanIds: Set<string> | undefined = undefined;
 
   constructor(
-    event: Readonly<EventTransaction>,
+    event: Readonly<EventTransaction | AggregateEventTransaction>,
     affectedSpanIds?: string[],
-    focusedSpanIds?: string[]
+    focusedSpanIds?: string[],
+    hiddenSpanSubTrees?: Set<string>
   ) {
     this.event = event;
 
@@ -61,7 +62,7 @@ class WaterfallModel {
 
     // Set of span IDs whose sub-trees should be hidden. This is used for the
     // span tree toggling product feature.
-    this.hiddenSpanSubTrees = new Set();
+    this.hiddenSpanSubTrees = hiddenSpanSubTrees ?? new Set();
 
     // When viewing the span waterfall from a Performance Issue, a set of span IDs may be provided
 

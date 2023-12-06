@@ -5,10 +5,19 @@ import uuid
 from typing import Any
 
 import pytest
+from django.db.models import F
 from django.urls import reverse
 
+from sentry.models.project import Project
+from sentry.replays.endpoints.organization_replay_count import project_in_org_has_sent_replay
 from sentry.replays.testutils import mock_replay
-from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase, SnubaTestCase
+from sentry.snuba.dataset import Dataset
+from sentry.testutils.cases import (
+    APITestCase,
+    PerformanceIssueTestCase,
+    ReplaysSnubaTestCase,
+    SnubaTestCase,
+)
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
@@ -16,7 +25,9 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 @region_silo_test
-class OrganizationReplayCountEndpointTest(APITestCase, SnubaTestCase, ReplaysSnubaTestCase):
+class OrganizationReplayCountEndpointTest(
+    APITestCase, SnubaTestCase, ReplaysSnubaTestCase, PerformanceIssueTestCase
+):
     def setUp(self):
         super().setUp()
         self.min_ago = before_now(minutes=1)
@@ -188,6 +199,105 @@ class OrganizationReplayCountEndpointTest(APITestCase, SnubaTestCase, ReplaysSnu
             response.data[event_c.group.id],
             expected[event_c.group.id],
         )
+
+    def test_simple_performance(self):
+        replay1_id = uuid.uuid4().hex
+        replay2_id = uuid.uuid4().hex
+        replay3_id = uuid.uuid4().hex
+
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.project.id,
+                replay1_id,
+            )
+        )
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.project.id,
+                replay2_id,
+            )
+        )
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.project.id,
+                replay3_id,
+            )
+        )
+        issue1 = self.create_performance_issue(
+            project_id=self.project.id,
+            fingerprint="a",
+            contexts={
+                "trace": {
+                    "trace_id": str(uuid.uuid4().hex),
+                    "span_id": "933e5c9a8e464da9",
+                    "type": "trace",
+                },
+                "replay": {"replay_id": replay1_id},
+            },
+        )
+        self.create_performance_issue(
+            project_id=self.project.id,
+            fingerprint="a",
+            contexts={
+                "trace": {
+                    "trace_id": str(uuid.uuid4().hex),
+                    "span_id": "933e5c9a8e464da9",
+                    "type": "trace",
+                },
+                "replay": {"replay_id": replay3_id},
+            },
+        )
+        issue2 = self.create_performance_issue(
+            project_id=self.project.id,
+            fingerprint="b",
+            contexts={
+                "trace": {
+                    "trace_id": str(uuid.uuid4().hex),
+                    "span_id": "933e5c9a8e464da9",
+                    "type": "trace",
+                },
+                "replay": {"replay_id": replay2_id},
+            },
+        )
+        issue3 = self.create_performance_issue(
+            project_id=self.project.id,
+            fingerprint="c",
+            contexts={
+                "trace": {
+                    "trace_id": str(uuid.uuid4().hex),
+                    "span_id": "933e5c9a8e464da9",
+                    "type": "trace",
+                },
+                "replay": {"replay_id": "z" * 32},  # a replay id that doesn't exist
+            },
+        )
+
+        query = {
+            "query": f"issue.id:[{issue1.group.id}, {issue2.group.id}, {issue3.group.id}]",
+            "data_source": Dataset.IssuePlatform.value,
+        }
+        with self.feature(self.features):
+            response = self.client.get(self.url, query, format="json")
+
+        expected = {
+            issue1.group.id: 2,
+            issue2.group.id: 1,
+        }
+        assert response.status_code == 200, response.content
+        assert response.data == expected
+
+    def test_invalid_data_source(self):
+        query = {
+            "query": "issue.id:[1234]",
+            "data_source": "abcdefg",
+        }
+        with self.feature(self.features):
+            response = self.client.get(self.url, query, format="json")
+            assert response.status_code == 400, response.content
+            assert b"abcdefg" in response.content
 
     def test_one_replay_multiple_issues(self):
         event_id_a = "a" * 32
@@ -405,3 +515,30 @@ class OrganizationReplayCountEndpointTest(APITestCase, SnubaTestCase, ReplaysSnu
             b'{"detail":"Invalid quote at \'[\\"root\': quotes must enclose text or be '
             b'escaped."}'
         ), response.content
+
+    def test_endpoint_org_hasnt_sent_replays(self):
+        event_id_a = "a" * 32
+        event_a = self.store_event(
+            data={
+                "event_id": event_id_a,
+                "timestamp": iso_format(self.min_ago),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+        query = {"query": f"issue.id:[{event_a.group.id}]"}
+
+        with self.feature(self.features):
+            response = self.client.get(self.url, query, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data == {}
+
+    def test_project_in_org_has_sent_replay(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        assert project_in_org_has_sent_replay(org) is False
+
+        project.update(flags=F("flags").bitor(Project.flags.has_replays))
+
+        assert project_in_org_has_sent_replay(org) is True

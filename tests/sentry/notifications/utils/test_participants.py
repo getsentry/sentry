@@ -8,17 +8,21 @@ import pytest
 from django.utils import timezone
 
 from sentry.eventstore.models import Event
-from sentry.models import GroupAssignee, NotificationSetting, Project, Team, User
 from sentry.models.commit import Commit
+from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.grouprelease import GroupRelease
+from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.notifications.types import (
     ActionTargetType,
     FallthroughChoiceType,
-    NotificationSettingOptionValues,
-    NotificationSettingTypes,
+    NotificationSettingEnum,
 )
 from sentry.notifications.utils.participants import (
     FALLTHROUGH_NOTIFICATION_LIMIT,
@@ -35,10 +39,14 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.slack import link_team
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.cache import cache
 from tests.sentry.mail import make_event_data
+
+pytestmark = [requires_snuba]
 
 STACKTRACE = {
     "frames": [
@@ -63,7 +71,7 @@ class _ParticipantsTest(TestCase):
         slack: Iterable[int] = (),
     ) -> None:
         expected: dict[ExternalProviders, set[RpcActor]] = collections.defaultdict(set)
-        for (provider, user_ids) in [
+        for provider, user_ids in [
             (ExternalProviders.EMAIL, email),
             (ExternalProviders.SLACK, slack),
         ]:
@@ -75,7 +83,7 @@ class _ParticipantsTest(TestCase):
         assert actual == expected
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GetSendToMemberTest(_ParticipantsTest):
     def get_send_to_member(
         self, project: Optional[Project] = None, user_id: Optional[int] = None
@@ -93,14 +101,14 @@ class GetSendToMemberTest(_ParticipantsTest):
         self.assert_recipients_are(
             self.get_send_to_member(), email=[self.user.id], slack=[self.user.id]
         )
-
         with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                NotificationSettingOptionValues.NEVER,
+            NotificationSettingProvider.objects.create(
                 user_id=self.user.id,
-                project=self.project,
+                scope_type="user",
+                scope_identifier=self.user.id,
+                provider="email",
+                type="alerts",
+                value="never",
             )
 
         self.assert_recipients_are(self.get_send_to_member(), slack=[self.user.id])
@@ -131,24 +139,28 @@ class GetSendToMemberTest(_ParticipantsTest):
         assert self.get_send_to_member(self.project, user_3.id) == {}
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GetSendToTeamTest(_ParticipantsTest):
     def setUp(self):
         super().setUp()
         with assume_test_silo_mode(SiloMode.CONTROL):
-            # disable slack
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.SLACK,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                NotificationSettingOptionValues.NEVER,
+            NotificationSettingProvider.objects.create(
                 team_id=self.team.id,
+                scope_type="team",
+                scope_identifier=self.team.id,
+                provider="slack",
+                type="alerts",
+                value="never",
             )
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.SLACK,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                NotificationSettingOptionValues.NEVER,
+            NotificationSettingProvider.objects.create(
                 user_id=self.user.id,
+                scope_type="user",
+                scope_identifier=self.user.id,
+                provider="slack",
+                type="alerts",
+                value="never",
             )
+            NotificationSettingOption.objects.all().delete()
 
     def get_send_to_team(
         self, project: Optional[Project] = None, team_id: Optional[int] = None
@@ -166,36 +178,62 @@ class GetSendToTeamTest(_ParticipantsTest):
         self.assert_recipients_are(self.get_send_to_team(), email=[self.user.id])
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                NotificationSettingOptionValues.NEVER,
+            NotificationSettingProvider.objects.create(
                 user_id=self.user.id,
-                project=self.project,
+                scope_type="user",
+                scope_identifier=self.user.id,
+                provider="email",
+                type="alerts",
+                value="never",
             )
 
         assert self.get_send_to_team() == {}
 
     def test_send_to_team_direct(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.SLACK,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                NotificationSettingOptionValues.ALWAYS,
+            NotificationSettingProvider.objects.filter(
                 team_id=self.team.id,
-            )
+                scope_type="team",
+                scope_identifier=self.team.id,
+                provider="slack",
+                type="alerts",
+            ).update(value="always")
         assert self.get_send_to_team() == {
             ExternalProviders.SLACK: {RpcActor.from_orm_team(self.team)}
         }
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.SLACK,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                NotificationSettingOptionValues.NEVER,
+            NotificationSettingProvider.objects.create(
                 team_id=self.team.id,
+                scope_type="team",
+                scope_identifier=self.team.id,
+                provider="slack",
+                type="alerts",
+                value="never",
             )
         self.assert_recipients_are(self.get_send_to_team(), email=[self.user.id])
+
+    @with_feature("organizations:team-workflow-notifications")
+    def test_send_workflow_to_team_direct(self):
+        link_team(self.team, self.integration, "#team-channel", "team_channel_id")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            NotificationSettingProvider.objects.create(
+                team_id=self.team.id,
+                scope_type="team",
+                scope_identifier=self.team.id,
+                provider="slack",
+                type="workflow",
+                value="always",
+            )
+
+        assert get_send_to(
+            project=self.project,
+            target_type=ActionTargetType.TEAM,
+            target_identifier=self.team.id,
+            notification_type_enum=NotificationSettingEnum.WORKFLOW,
+        ) == {
+            ExternalProviders.SLACK: {RpcActor.from_orm_team(self.team)},
+        }
 
     def test_other_project_team(self):
         user_2 = self.create_user()
@@ -219,7 +257,7 @@ class GetSendToTeamTest(_ParticipantsTest):
         assert self.get_send_to_team(self.project, team_2.id) == {}
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GetSendToOwnersTest(_ParticipantsTest):
     def get_send_to_owners(self, event: Event) -> Mapping[ExternalProviders, Set[RpcActor]]:
         return get_send_to(
@@ -271,16 +309,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             ),
             fallthrough=True,
         )
-
-        # turn off slack for teams
         with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.SLACK,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                NotificationSettingOptionValues.NEVER,
-                team_id=self.team2.id,
-            )
-
             self.integration.add_organization(self.project.organization, self.user)
 
     def create_sample_commit(self, user: User) -> Commit:
@@ -306,14 +335,14 @@ class GetSendToOwnersTest(_ParticipantsTest):
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             # Make sure that disabling mail alerts works as expected
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                NotificationSettingOptionValues.NEVER,
+            NotificationSettingProvider.objects.create(
                 user_id=self.user.id,
-                project=self.project,
+                scope_type="user",
+                scope_identifier=self.user.id,
+                provider="email",
+                type="alerts",
+                value="never",
             )
-
         self.assert_recipients_are(self.get_send_to_owners(event), slack=[self.user.id])
 
     def test_single_user_no_teams(self):
@@ -331,18 +360,18 @@ class GetSendToOwnersTest(_ParticipantsTest):
         )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            # Make sure that disabling mail alerts works as expected
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                NotificationSettingOptionValues.NEVER,
+            # disable alerts on the project
+            NotificationSettingOption.objects.create(
                 user_id=self.user2.id,
-                project=self.project,
+                scope_type="project",
+                scope_identifier=self.project.id,
+                type="alerts",
+                value="never",
             )
         self.assert_recipients_are(
             self.get_send_to_owners(event),
             email=[self.user.id],
-            slack=[self.user.id, self.user2.id],
+            slack=[self.user.id],
         )
 
     def test_disable_alerts_multiple_scopes(self):
@@ -350,20 +379,21 @@ class GetSendToOwnersTest(_ParticipantsTest):
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             # Project-independent setting.
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                NotificationSettingOptionValues.ALWAYS,
+            NotificationSettingOption.objects.create(
                 user_id=self.user2.id,
+                scope_type="user",
+                scope_identifier=self.user2.id,
+                type="alerts",
+                value="always",
             )
 
             # Per-project setting.
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                NotificationSettingOptionValues.NEVER,
+            NotificationSettingOption.objects.create(
                 user_id=self.user2.id,
-                project=self.project,
+                scope_type="project",
+                scope_identifier=self.project.id,
+                type="alerts",
+                value="never",
             )
 
         self.assert_recipients_are(
@@ -667,7 +697,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GetOwnersCase(_ParticipantsTest):
     def setUp(self):
         self.user_1 = self.create_user(email="paul@atreides.space")
@@ -809,25 +839,8 @@ class GetOwnersCase(_ParticipantsTest):
         assert owner_reason is None
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GetSendToFallthroughTest(_ParticipantsTest):
-    def get_send_to_fallthrough(
-        self,
-        event: Event,
-        project: Project,
-        fallthrough_choice: Optional[FallthroughChoiceType] = None,
-    ) -> Mapping[ExternalProviders, Set[RpcActor]]:
-        return get_send_to(
-            project,
-            target_type=ActionTargetType.ISSUE_OWNERS,
-            target_identifier=None,
-            event=event,
-            fallthrough_choice=fallthrough_choice,
-        )
-
-    def store_event(self, filename: str, project: Project) -> Event:
-        return super().store_event(data=make_event_data(filename), project_id=project.id)
-
     def setUp(self):
         self.user2 = self.create_user(email="baz@example.com", is_active=True)
         self.user3 = self.create_user(email="bar@example.com", is_active=True)
@@ -853,12 +866,50 @@ class GetSendToFallthroughTest(_ParticipantsTest):
         # turn off slack for teams
         with assume_test_silo_mode(SiloMode.CONTROL):
             for user in [self.user, self.user2, self.user3]:
-                NotificationSetting.objects.update_settings(
-                    ExternalProviders.SLACK,
-                    NotificationSettingTypes.ISSUE_ALERTS,
-                    NotificationSettingOptionValues.NEVER,
+                NotificationSettingProvider.objects.create(
                     user_id=user.id,
+                    scope_type="user",
+                    scope_identifier=user.id,
+                    provider="slack",
+                    type="alerts",
+                    value="never",
                 )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # disable Slack
+            NotificationSettingProvider.objects.create(
+                team_id=self.team.id,
+                scope_type="team",
+                scope_identifier=self.team.id,
+                provider="slack",
+                type="alerts",
+                value="never",
+            )
+            NotificationSettingProvider.objects.create(
+                user_id=self.user.id,
+                scope_type="user",
+                scope_identifier=self.user.id,
+                provider="slack",
+                type="alerts",
+                value="never",
+            )
+            NotificationSettingOption.objects.all().delete()
+
+    def get_send_to_fallthrough(
+        self,
+        event: Event,
+        project: Project,
+        fallthrough_choice: Optional[FallthroughChoiceType] = None,
+    ) -> Mapping[ExternalProviders, Set[RpcActor]]:
+        return get_send_to(
+            project,
+            target_type=ActionTargetType.ISSUE_OWNERS,
+            target_identifier=None,
+            event=event,
+            fallthrough_choice=fallthrough_choice,
+        )
+
+    def store_event(self, filename: str, project: Project) -> Event:
+        return super().store_event(data=make_event_data(filename), project_id=project.id)
 
     def test_feature_off_no_owner(self):
         event = self.store_event("empty.lol", self.project)
@@ -961,11 +1012,13 @@ class GetSendToFallthroughTest(_ParticipantsTest):
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             for user in notified_users:
-                NotificationSetting.objects.update_settings(
-                    ExternalProviders.SLACK,
-                    NotificationSettingTypes.ISSUE_ALERTS,
-                    NotificationSettingOptionValues.NEVER,
+                NotificationSettingProvider.objects.create(
                     user_id=user.id,
+                    scope_type="user",
+                    scope_identifier=user.id,
+                    provider="slack",
+                    type="alerts",
+                    value="never",
                 )
 
         event = self.store_event("admin.lol", self.project)
@@ -987,11 +1040,13 @@ class GetSendToFallthroughTest(_ParticipantsTest):
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             for user in notifiable_users:
-                NotificationSetting.objects.update_settings(
-                    ExternalProviders.SLACK,
-                    NotificationSettingTypes.ISSUE_ALERTS,
-                    NotificationSettingOptionValues.NEVER,
+                NotificationSettingProvider.objects.create(
                     user_id=user.id,
+                    scope_type="user",
+                    scope_identifier=user.id,
+                    provider="slack",
+                    type="alerts",
+                    value="never",
                 )
 
         event = self.store_event("admin.lol", self.project)
@@ -1015,11 +1070,13 @@ class GetSendToFallthroughTest(_ParticipantsTest):
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             for user in notifiable_users:
-                NotificationSetting.objects.update_settings(
-                    ExternalProviders.SLACK,
-                    NotificationSettingTypes.ISSUE_ALERTS,
-                    NotificationSettingOptionValues.NEVER,
+                NotificationSettingProvider.objects.create(
                     user_id=user.id,
+                    scope_type="user",
+                    scope_identifier=user.id,
+                    provider="slack",
+                    type="alerts",
+                    value="never",
                 )
 
         event = self.store_event("admin.lol", self.project)

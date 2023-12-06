@@ -1,7 +1,5 @@
 from datetime import datetime, timedelta
 
-import pytest
-
 from sentry.replays.testutils import (
     mock_replay,
     mock_rrweb_div_helloworld,
@@ -16,7 +14,7 @@ from sentry.testutils.silo import no_silo_test
 FEATURE_NAME = ["organizations:session-replay", "organizations:performance-view"]
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class ReplayDetailTest(ReplaysAcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -76,24 +74,12 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
 
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-            self.browser.snapshot("replay detail not found")
 
-    @pytest.mark.skip(reason="flaky: https://github.com/getsentry/sentry/issues/42263")
     def test_simple(self):
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
-            self.browser.snapshot("replay detail")
-
-    def test_dom_events_tab(self):
-        with self.feature(FEATURE_NAME):
-            self.browser.get(self.path)
-            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-            self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
-            self.browser.click('[data-test-id="replay-details-dom-btn"]')
-            self.browser.wait_until_test_id("replay-details-dom-events-tab")
-            self.browser.snapshot("replay details - dom events tab")
 
     def test_console_tab(self):
         with self.feature(FEATURE_NAME):
@@ -102,7 +88,6 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
             self.browser.click('[data-test-id="replay-details-console-btn"]')
             self.browser.wait_until_test_id("replay-details-console-tab")
-            self.browser.snapshot("replay details - console tab")
 
     def test_network_tab(self):
         with self.feature(FEATURE_NAME):
@@ -111,7 +96,6 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
             self.browser.click('[data-test-id="replay-details-network-btn"]')
             self.browser.wait_until_test_id("replay-details-network-tab")
-            self.browser.snapshot("replay details - network tab")
 
     def test_memory_tab(self):
         with self.feature(FEATURE_NAME):
@@ -120,7 +104,6 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
             self.browser.click('[data-test-id="replay-details-memory-btn"]')
             self.browser.wait_until_test_id("replay-details-memory-tab")
-            self.browser.snapshot("replay details - memory tab")
 
     def test_errors_tab(self):
         with self.feature(FEATURE_NAME):
@@ -129,7 +112,6 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
             self.browser.click('[data-test-id="replay-details-errors-btn"]')
             self.browser.wait_until_test_id("replay-details-errors-tab")
-            self.browser.snapshot("replay details - errors tab")
 
     def test_trace_tab(self):
         with self.feature(FEATURE_NAME):
@@ -138,4 +120,3 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
             self.browser.click('[data-test-id="replay-details-trace-btn"]')
             self.browser.wait_until_test_id("replay-details-trace-tab")
-            self.browser.snapshot("replay details - trace tab")

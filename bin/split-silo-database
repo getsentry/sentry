@@ -22,6 +22,7 @@ def exec_run(container, command):
     if exit_code:
         click.echo("Container operation Failed!")
         click.echo(f"Container operation failed with {output}")
+    return output
 
 
 def split_database(tables: List[str], source: str, destination: str, reset: bool, verbose: bool):
@@ -49,6 +50,28 @@ def split_database(tables: List[str], source: str, destination: str, reset: bool
     if verbose:
         click.echo(f">> Running {' '.join(import_command)}")
     exec_run(postgres, import_command)
+
+    if destination == "region" and reset:
+        click.echo(">> Cloning stored procedures")
+        function_dump = [
+            "psql",
+            "-U",
+            "postgres",
+            source,
+            "-c",
+            "'\\sf sentry_increment_project_counter'",
+        ]
+        function_sql = exec_run(postgres, function_dump)
+
+        import_function = [
+            "psql",
+            "-U",
+            "postgres",
+            destination,
+            "-c",
+            "'" + function_sql.decode("utf8") + "'",
+        ]
+        exec_run(postgres, import_function)
 
 
 def revise_organization_mappings(legacy_region_name: str):
@@ -86,8 +109,24 @@ def main(database: str, reset: bool, verbose: bool, legacy_region_name: str):
 
     This operation will not modify the original source database.
     """
-    region_tables = ["django_migrations"]
-    control_tables = ["django_migrations"]
+    # We have a few tables that either need to be in both silos,
+    # or only in control. These tables don't have silo annotations
+    # as they are inherited from django and their silo assignments
+    # need to be manually defined.
+    region_tables = ["django_migrations", "django_content_type"]
+    control_tables = [
+        "django_migrations",
+        "django_admin_log",
+        "django_content_type",
+        "django_site",
+        "django_session",
+        "auth_user",
+        "auth_group",
+        "auth_permission",
+        "auth_group_permissions",
+        "auth_user_groups",
+        "auth_user_user_permissions",
+    ]
     for model in apps.get_models():
         silo_limit = getattr(model._meta, "silo_limit", None)
         if not silo_limit:

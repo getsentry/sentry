@@ -1,18 +1,13 @@
+import {Organization} from 'sentry-fixture/organization';
+
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
+import {QueryClientProvider} from 'sentry/utils/queryClient';
 
 import ReleaseContext from './releaseContext';
 import {defaultRow, mockedCommit, mockedUser1, mockedUser2} from './testUtils';
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-    },
-  },
-});
 
 export const mockedReleaseWithHealth = TestStubs.Release({
   id: '1',
@@ -29,9 +24,9 @@ export const mockedReleaseWithHealth = TestStubs.Release({
 });
 
 const renderReleaseContext = () => {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   render(
-    <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={makeTestQueryClient()}>
       <ReleaseContext dataRow={defaultRow} organization={organization} />
     </QueryClientProvider>,
     {organization}
@@ -41,13 +36,14 @@ const renderReleaseContext = () => {
 describe('Quick Context Content Release Column', function () {
   beforeEach(() => {
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/releases/backend@22.10.0+aaf33944f93dc8fa4234ca046a8d88fb1dccfb76/',
+      url: `/organizations/org-slug/releases/${encodeURIComponent(
+        'backend@22.10.0+aaf33944f93dc8fa4234ca046a8d88fb1dccfb76'
+      )}/`,
       body: mockedReleaseWithHealth,
     });
   });
 
   afterEach(() => {
-    queryClient.clear();
     MockApiClient.clearMockResponses();
   });
 

@@ -1,19 +1,19 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, List, Sequence, TypedDict, cast
+from typing import TYPE_CHECKING, List, Optional, Sequence, TypedDict, cast
 
 from django.db.models import Count, Max, OuterRef, Subquery
 from django.db.models.functions import TruncHour
 
 from sentry.api.paginator import OffsetPaginator
-from sentry.models import Group
+from sentry.models.group import Group
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.history.base import RuleGroupHistory, RuleHistoryBackend, TimeSeriesValue
 from sentry.utils.cursors import CursorResult
 
 if TYPE_CHECKING:
-    from sentry.models import Rule
+    from sentry.models.rule import Rule
     from sentry.utils.cursors import Cursor
 
 
@@ -40,9 +40,19 @@ class NoGroupBySubquery(Subquery):
 
 
 class PostgresRuleHistoryBackend(RuleHistoryBackend):
-    def record(self, rule: Rule, group: Group, event_id: str | None = None) -> None:
+    def record(
+        self,
+        rule: Rule,
+        group: Group,
+        event_id: Optional[str] = None,
+        notification_uuid: Optional[str] = None,
+    ) -> None:
         RuleFireHistory.objects.create(
-            project=rule.project, rule=rule, group=group, event_id=event_id
+            project=rule.project,
+            rule=rule,
+            group=group,
+            event_id=event_id,
+            notification_uuid=notification_uuid,
         )
 
     def fetch_rule_groups_paginated(

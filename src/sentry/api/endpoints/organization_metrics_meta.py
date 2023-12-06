@@ -2,6 +2,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import set_tag
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.search.events.fields import get_function_alias
@@ -14,6 +15,9 @@ COUNT_NULL = "count_null_transactions()"
 
 @region_silo_endpoint
 class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     """Metrics data can contain less than great data like null or unparameterized transactions
 
     This endpoint will return projects that have dynamic sampling turned on, and another list of "compatible projects"
@@ -61,6 +65,9 @@ class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
 
 @region_silo_endpoint
 class OrganizationMetricsCompatibilitySums(OrganizationEventsEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     """Return the total sum of metrics data, the null transactions and unparameterized transactions
 
     This is so the frontend can have an idea given its current selection of projects how good/bad the display would

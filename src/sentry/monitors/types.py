@@ -1,12 +1,11 @@
-from typing import Dict, Literal, TypedDict
+from dataclasses import dataclass
+from typing import Dict, Literal, TypedDict, Union
 
 from typing_extensions import NotRequired
 
 
 class CheckinMessage(TypedDict):
-    # TODO(epurkhiser): We should make this required and ensure the message
-    # produced by relay includes this message type
-    message_type: NotRequired[Literal["check_in"]]
+    message_type: Literal["check_in"]
     payload: str
     start_time: float
     project_id: str
@@ -33,3 +32,22 @@ class CheckinPayload(TypedDict):
     duration: NotRequired[int]
     monitor_config: NotRequired[Dict]
     contexts: NotRequired[CheckinContexts]
+
+
+IntervalUnit = Literal["year", "month", "week", "day", "hour", "minute"]
+
+
+@dataclass
+class CrontabSchedule:
+    crontab: str
+    type: Literal["crontab"] = "crontab"
+
+
+@dataclass
+class IntervalSchedule:
+    interval: int
+    unit: IntervalUnit
+    type: Literal["interval"] = "interval"
+
+
+ScheduleConfig = Union[CrontabSchedule, IntervalSchedule]

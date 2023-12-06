@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from typing import Any, Mapping, MutableMapping
+from urllib.parse import urlencode
 
-from sentry.models import Activity, NotificationSetting
-from sentry.notifications.types import GroupSubscriptionReason
+from sentry.models.activity import Activity
+from sentry.notifications.types import GroupSubscriptionReason, NotificationSettingEnum
 from sentry.notifications.utils import summarize_issues
-from sentry.notifications.utils.participants import ParticipantMap
-from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.notifications.utils.participants import ParticipantMap, get_notification_recipients
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.types.integrations import ExternalProviders
 
 from .base import ActivityNotification
@@ -21,13 +22,23 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
         self.issues = summarize_issues(self.activity.data["issues"])
 
     def get_participants_with_group_subscription_reason(self) -> ParticipantMap:
-        participants_by_provider = NotificationSetting.objects.get_notification_recipients(
-            self.project
+        participants_by_provider = None
+        user_ids = list(self.project.member_set.values_list("user_id", flat=True))
+        actors = [RpcActor(id=uid, actor_type=ActorType.USER) for uid in user_ids]
+        participants_by_provider = get_notification_recipients(
+            recipients=actors,
+            type=NotificationSettingEnum.WORKFLOW,
+            project_ids=[self.project.id],
+            organization_id=self.project.organization_id,
         )
         result = ParticipantMap()
         for provider, participants in participants_by_provider.items():
             for participant in participants:
-                result.add(provider, participant, GroupSubscriptionReason.processing_issue)
+                result.add(
+                    provider,
+                    participant,
+                    GroupSubscriptionReason.processing_issue,
+                )
         return result
 
     def get_message_description(self, recipient: RpcActor, provider: ExternalProviders) -> str:
@@ -40,7 +51,10 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
             "issues": self.issues,
             "reprocessing_active": self.activity.data["reprocessing_active"],
             "info_url": self.organization.absolute_url(
-                f"/settings/{self.organization.slug}/projects/{self.project.slug}/processing-issues/"
+                f"/settings/{self.organization.slug}/projects/{self.project.slug}/processing-issues/",
+                query=urlencode(
+                    {"referrer": self.metrics_key, "notification_uuid": self.notification_uuid}
+                ),
             ),
         }
 
@@ -55,7 +69,10 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
         self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
     ) -> str:
         project_url = self.organization.absolute_url(
-            f"/settings/{self.organization.slug}/projects/{self.project.slug}/processing-issues/"
+            f"/settings/{self.organization.slug}/projects/{self.project.slug}/processing-issues/",
+            query=urlencode(
+                {"referrer": self.metrics_key, "notification_uuid": self.notification_uuid}
+            ),
         )
         return f"Processing issues on {self.format_url(text=self.project.slug, url=project_url, provider=provider)}"
 

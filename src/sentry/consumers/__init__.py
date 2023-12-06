@@ -1,20 +1,24 @@
 from __future__ import annotations
 
+import logging
 import uuid
 from typing import List, Mapping, Optional, Sequence
 
 import click
 from arroyo.backends.abstract import Consumer
+from arroyo.backends.kafka import KafkaProducer
+from arroyo.dlq import DlqLimit, DlqPolicy, KafkaDlqProducer
 from arroyo.processing.processor import StreamProcessor
 from arroyo.processing.strategies import Healthcheck
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from django.conf import settings
 
-from sentry.conf.types.consumer_definition import ConsumerDefinition
+from sentry.conf.types.consumer_definition import ConsumerDefinition, validate_consumer_definition
 from sentry.consumers.validate_schema import ValidateSchema
 from sentry.utils.imports import import_string
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
-DEFAULT_BLOCK_SIZE = int(32 * 1e6)
+logger = logging.getLogger(__name__)
 
 
 def convert_max_batch_time(ctx, param, value):
@@ -30,8 +34,8 @@ def multiprocessing_options(
 ):
     return [
         click.Option(["--processes", "num_processes"], default=1, type=int),
-        click.Option(["--input-block-size"], type=int, default=DEFAULT_BLOCK_SIZE),
-        click.Option(["--output-block-size"], type=int, default=DEFAULT_BLOCK_SIZE),
+        click.Option(["--input-block-size"], type=int, default=None),
+        click.Option(["--output-block-size"], type=int, default=None),
         click.Option(
             ["--max-batch-size"],
             default=default_max_batch_size,
@@ -56,8 +60,8 @@ def ingest_replay_recordings_options() -> List[click.Option]:
 
 
 _METRICS_INDEXER_OPTIONS = [
-    click.Option(["--input-block-size"], type=int, default=DEFAULT_BLOCK_SIZE),
-    click.Option(["--output-block-size"], type=int, default=DEFAULT_BLOCK_SIZE),
+    click.Option(["--input-block-size"], type=int, default=None),
+    click.Option(["--output-block-size"], type=int, default=None),
     click.Option(["--indexer-db"], default="postgres"),
     click.Option(["max_msg_batch_size", "--max-msg-batch-size"], type=int, default=50),
     click.Option(["max_msg_batch_time", "--max-msg-batch-time-ms"], type=int, default=10000),
@@ -89,13 +93,21 @@ _METRICS_LAST_SEEN_UPDATER_OPTIONS = [
     click.Option(["--indexer-db"], default="postgres"),
 ]
 
-_POST_PROCESS_FORWARDER_OPTIONS = [
+_POST_PROCESS_FORWARDER_OPTIONS = multiprocessing_options(
+    default_max_batch_size=1000, default_max_batch_time_ms=1000
+) + [
     click.Option(
         ["--concurrency"],
         default=5,
         type=int,
         help="Thread pool size for post process worker.",
-    )
+    ),
+    click.Option(
+        ["--mode"],
+        default="multithreaded",
+        type=click.Choice(["multithreaded", "multiprocess"]),
+        help="Mode to run post process forwarder in.",
+    ),
 ]
 
 
@@ -177,7 +189,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     },
     "ingest-events": {
         "topic": settings.KAFKA_INGEST_EVENTS,
-        "strategy_factory": "sentry.ingest.consumer_v2.factory.IngestStrategyFactory",
+        "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "static_args": {
             "consumer_type": "events",
@@ -185,7 +197,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     },
     "ingest-attachments": {
         "topic": settings.KAFKA_INGEST_ATTACHMENTS,
-        "strategy_factory": "sentry.ingest.consumer_v2.factory.IngestStrategyFactory",
+        "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "static_args": {
             "consumer_type": "attachments",
@@ -193,7 +205,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     },
     "ingest-transactions": {
         "topic": settings.KAFKA_INGEST_TRANSACTIONS,
-        "strategy_factory": "sentry.ingest.consumer_v2.factory.IngestStrategyFactory",
+        "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "static_args": {
             "consumer_type": "transactions",
@@ -206,6 +218,9 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "static_args": {
             "ingest_profile": "release-health",
         },
+        "dlq_topic": settings.KAFKA_INGEST_METRICS_DLQ,
+        "dlq_max_invalid_ratio": 0.01,
+        "dlq_max_consecutive_count": 1000,
     },
     "ingest-generic-metrics": {
         "topic": settings.KAFKA_INGEST_PERFORMANCE_METRICS,
@@ -214,6 +229,9 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "static_args": {
             "ingest_profile": "performance",
         },
+        "dlq_topic": settings.KAFKA_INGEST_GENERIC_METRICS_DLQ,
+        "dlq_max_invalid_ratio": 0.01,
+        "dlq_max_consecutive_count": 1000,
     },
     "generic-metrics-last-seen-updater": {
         "topic": settings.KAFKA_SNUBA_GENERIC_METRICS,
@@ -283,7 +301,9 @@ def get_stream_processor(
     synchronize_commit_log_topic: Optional[str],
     synchronize_commit_group: Optional[str],
     healthcheck_file_path: Optional[str],
+    enable_dlq: bool,
     validate_schema: bool = False,
+    group_instance_id: Optional[str] = None,
 ) -> StreamProcessor:
     try:
         consumer_definition = KAFKA_CONSUMERS[consumer_name]
@@ -293,6 +313,12 @@ def get_stream_processor(
             f"Most likely there is another subcommand in 'sentry run' "
             f"responsible for this consumer"
         )
+    try:
+        validate_consumer_definition(consumer_definition)
+    except ValueError as e:
+        raise click.ClickException(
+            f"Invalid consumer definition configured for {consumer_name}"
+        ) from e
 
     strategy_factory_cls = import_string(consumer_definition["strategy_factory"])
     logical_topic = consumer_definition["topic"]
@@ -337,6 +363,13 @@ def get_stream_processor(
 
         if max_poll_interval_ms is not None:
             consumer_config["max.poll.interval.ms"] = max_poll_interval_ms
+            # HACK: If the max poll interval is less than 45 seconds, set the session timeout
+            # to the same. (it's default is 45 seconds and it must be <= to max.poll.interval.ms)
+            if max_poll_interval_ms < 45000:
+                consumer_config["session.timeout.ms"] = max_poll_interval_ms
+
+        if group_instance_id is not None:
+            consumer_config["group.instance.id"] = group_instance_id
 
         return consumer_config
 
@@ -388,12 +421,41 @@ def get_stream_processor(
             healthcheck_file_path, strategy_factory
         )
 
+    if enable_dlq:
+        try:
+            dlq_topic = consumer_definition["dlq_topic"]
+        except KeyError as e:
+            raise click.BadParameter(
+                f"Cannot enable DLQ for consumer: {consumer_name}, no DLQ topic has been defined for it"
+            ) from e
+        try:
+            cluster_setting = get_topic_definition(dlq_topic)["cluster"]
+        except ValueError as e:
+            raise click.BadParameter(
+                f"Cannot enable DLQ for consumer: {consumer_name}, DLQ topic {dlq_topic} is not configured in this environment"
+            ) from e
+
+        producer_config = get_kafka_producer_cluster_options(cluster_setting)
+        dlq_producer = KafkaProducer(producer_config)
+
+        dlq_policy = DlqPolicy(
+            KafkaDlqProducer(dlq_producer, Topic(dlq_topic)),
+            DlqLimit(
+                max_invalid_ratio=consumer_definition["dlq_max_invalid_ratio"],
+                max_consecutive_count=consumer_definition["dlq_max_consecutive_count"],
+            ),
+            None,
+        )
+    else:
+        dlq_policy = None
+
     return StreamProcessor(
         consumer=consumer,
         topic=Topic(topic),
         processor_factory=strategy_factory,
         commit_policy=ONCE_PER_SECOND,
         join_timeout=join_timeout,
+        dlq_policy=dlq_policy,
     )
 
 

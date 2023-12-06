@@ -5,7 +5,8 @@ from django.test import override_settings
 from responses import matchers
 
 from sentry.integrations.aws_lambda.integration import AwsLambdaIntegration
-from sentry.models import Integration, ProjectKey
+from sentry.models.integrations.integration import Integration
+from sentry.models.projectkey import ProjectKey
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -96,7 +97,7 @@ class AbstractServerlessTest(APITestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @override_settings(
     SENTRY_SUBNET_SECRET="hush-hush-im-invisible",
     SENTRY_CONTROL_ADDRESS="http://controlserver",
@@ -223,7 +224,7 @@ class OrganizationIntegrationServerlessFunctionsGetTest(AbstractServerlessTest):
         ]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @override_settings(
     SENTRY_SUBNET_SECRET="hush-hush-im-invisible",
     SENTRY_CONTROL_ADDRESS="http://controlserver",

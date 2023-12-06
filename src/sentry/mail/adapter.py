@@ -6,15 +6,20 @@ from sentry import digests
 from sentry.digests import Digest
 from sentry.digests import get_option_key as get_digest_option_key
 from sentry.digests.notifications import event_to_record, unsplit_key
-from sentry.models import NotificationSetting, Project, ProjectOption
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.project import Project
 from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.notifications.user_report import UserReportNotification
-from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
+from sentry.notifications.types import (
+    ActionTargetType,
+    FallthroughChoiceType,
+    NotificationSettingEnum,
+)
+from sentry.notifications.utils.participants import get_notification_recipients
 from sentry.plugins.base.structs import Notification
-from sentry.services.hybrid_cloud.actor import ActorType
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.tasks.digests import deliver_digest
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
@@ -41,6 +46,7 @@ class MailAdapter:
         target_identifier: Optional[int] = None,
         fallthrough_choice: Optional[FallthroughChoiceType] = None,
         skip_digests: bool = False,
+        notification_uuid: Optional[str] = None,
     ) -> None:
         metrics.incr("mail_adapter.rule_notify")
         rules = []
@@ -51,6 +57,7 @@ class MailAdapter:
             "target_type": target_type.value,
             "target_identifier": target_identifier,
             "fallthrough_choice": fallthrough_choice.value if fallthrough_choice else None,
+            "notification_uuid": notification_uuid,
         }
         log_event = "dispatched"
         for future in futures:
@@ -76,20 +83,22 @@ class MailAdapter:
             extra["digest_key"] = digest_key
             immediate_delivery = digests.add(
                 digest_key,
-                event_to_record(event, rules),
+                event_to_record(event, rules, notification_uuid=notification_uuid),
                 increment_delay=get_digest_option("increment_delay"),
                 maximum_delay=get_digest_option("maximum_delay"),
             )
             if immediate_delivery:
-                deliver_digest.delay(digest_key)
+                deliver_digest.delay(digest_key, notification_uuid=notification_uuid)
             else:
                 log_event = "digested"
 
         else:
             notification = Notification(event=event, rules=rules)
-            self.notify(notification, target_type, target_identifier, fallthrough_choice)
+            self.notify(
+                notification, target_type, target_identifier, fallthrough_choice, notification_uuid
+            )
 
-        logger.info("mail.adapter.notification.%s" % log_event, extra=extra)
+        logger.info("mail.adapter.notification.%s", log_event, extra=extra)
 
     @staticmethod
     def get_sendable_user_objects(project):
@@ -98,19 +107,15 @@ class MailAdapter:
         notifications for the provided project.
         """
         user_ids = project.member_set.values_list("user_id", flat=True)
-        users = user_service.get_many(filter=dict(user_ids=list(user_ids)))
-
-        accepting_recipients = NotificationSetting.objects.filter_to_accepting_recipients(
-            project, users
+        actors = [RpcActor(id=uid, actor_type=ActorType.USER) for uid in user_ids]
+        recipients = get_notification_recipients(
+            recipients=actors,
+            type=NotificationSettingEnum.ISSUE_ALERTS,
+            project_ids=[project.id],
+            organization_id=project.organization_id,
+            actor_type=ActorType.USER,
         )
-        email_recipients = accepting_recipients.get(ExternalProviders.EMAIL, ())
-
-        users_by_id = {user.id: user for user in users}
-        return [
-            users_by_id[recipient.id]
-            for recipient in email_recipients
-            if recipient.actor_type == ActorType.USER
-        ]
+        return recipients.get(ExternalProviders.EMAIL)
 
     def get_sendable_user_ids(self, project):
         users = self.get_sendable_user_objects(project)
@@ -123,10 +128,19 @@ class MailAdapter:
 
     @staticmethod
     def notify(
-        notification, target_type, target_identifier=None, fallthrough_choice=None, **kwargs
+        notification,
+        target_type,
+        target_identifier=None,
+        fallthrough_choice=None,
+        notification_uuid: Optional[str] = None,
+        **kwargs,
     ):
         AlertRuleNotification(
-            notification, target_type, target_identifier, fallthrough_choice
+            notification,
+            target_type,
+            target_identifier,
+            fallthrough_choice,
+            notification_uuid=notification_uuid,
         ).send()
 
     @staticmethod
@@ -136,10 +150,16 @@ class MailAdapter:
         target_type: ActionTargetType,
         target_identifier: Optional[int] = None,
         fallthrough_choice: Optional[FallthroughChoiceType] = None,
+        notification_uuid: Optional[str] = None,
     ) -> None:
         metrics.incr("mail_adapter.notify_digest")
         return DigestNotification(
-            project, digest, target_type, target_identifier, fallthrough_choice
+            project,
+            digest,
+            target_type,
+            target_identifier,
+            fallthrough_choice,
+            notification_uuid=notification_uuid,
         ).send()
 
     @staticmethod
@@ -147,7 +167,7 @@ class MailAdapter:
         metrics.incr("mail_adapter.notify_about_activity")
         email_cls = EMAIL_CLASSES_BY_TYPE.get(activity.type)
         if not email_cls:
-            logger.debug(f"No email associated with activity type `{activity.get_type_display()}`")
+            logger.debug("No email associated with activity type `%s`", activity.get_type_display())
             return
 
         email_cls(activity).send()

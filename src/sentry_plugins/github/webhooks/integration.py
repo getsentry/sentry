@@ -8,7 +8,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
 from sentry import options
-from sentry.models import Organization
+from sentry.models.organization import Organization
 
 from .base import GithubWebhookBase
 from .events import InstallationEventWebhook, InstallationRepositoryEventWebhook, PushEventWebhook

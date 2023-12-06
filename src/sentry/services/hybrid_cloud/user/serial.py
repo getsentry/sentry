@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any, FrozenSet, Iterable, List
 
+from django.utils.functional import LazyObject
+
 from sentry.db.models import BaseQuerySet
 from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.user import User
@@ -13,6 +15,8 @@ def serialize_generic_user(user: Any) -> RpcUser | None:
 
     Return None if the user is anonymous (not logged in).
     """
+    if isinstance(user, LazyObject):  # from auth middleware
+        user = getattr(user, "_wrapped")
     if user is None or user.id is None:
         return None
     if isinstance(user, RpcUser):

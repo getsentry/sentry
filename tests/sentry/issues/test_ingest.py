@@ -1,4 +1,5 @@
-from dataclasses import dataclass, replace
+from collections import namedtuple
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from hashlib import md5
 from unittest import mock
@@ -7,6 +8,7 @@ from unittest.mock import patch
 from sentry.constants import LOG_LEVELS_MAP
 from sentry.issues.grouptype import (
     ErrorGroupType,
+    FeedbackGroup,
     GroupCategory,
     GroupType,
     GroupTypeRegistry,
@@ -16,29 +18,28 @@ from sentry.issues.grouptype import (
 from sentry.issues.ingest import (
     _create_issue_kwargs,
     materialize_metadata,
-    process_occurrence_data,
     save_issue_from_occurrence,
     save_issue_occurrence,
     send_issue_occurrence_to_eventstream,
 )
-from sentry.models import (
-    Environment,
-    Group,
-    GroupEnvironment,
-    GroupRelease,
-    Release,
-    ReleaseProject,
-    ReleaseProjectEnvironment,
-)
-from sentry.ratelimits.sliding_windows import Quota
+from sentry.models.environment import Environment
+from sentry.models.group import Group
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.release import Release, ReleaseProject
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.ratelimits.sliding_windows import RequestedQuota
 from sentry.receivers import create_default_projects
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import raw_query
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
+
+pytestmark = [requires_snuba]
 
 
 @region_silo_test
@@ -48,10 +49,6 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         occurrence = self.build_occurrence(event_id=event.event_id)
         saved_occurrence, group_info = save_issue_occurrence(occurrence.to_dict(), event)
         assert group_info is not None
-        occurrence = replace(
-            occurrence,
-            fingerprint=[md5(fp.encode("utf-8")).hexdigest() for fp in occurrence.fingerprint],
-        )
         self.assert_occurrences_identical(occurrence, saved_occurrence)
         assert Group.objects.filter(grouphash__hash=saved_occurrence.fingerprint[0]).exists()
         now = datetime.now()
@@ -84,7 +81,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         )
         assert release_project_env.new_issues_count == 0
         occurrence_data = self.build_occurrence_data(event_id=event.event_id)
-        with self.tasks():
+        with self.tasks(), mock.patch("sentry.issues.ingest.eventstream") as eventstream:
             occurrence, group_info = save_issue_occurrence(occurrence_data, event)
         assert group_info is not None
         group = group_info.group
@@ -98,6 +95,23 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         release_project_env.refresh_from_db()
         assert release_project_env.new_issues_count == 1
         assert GroupRelease.objects.filter(group_id=group.id, release_id=release.id).exists()
+        eventstream.insert.assert_called_once_with(
+            event=event.for_group(group_info.group),
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            primary_hash=occurrence.fingerprint[0],
+            received_timestamp=event.data.get("received") or event.datetime,
+            skip_consume=False,
+            group_states=[
+                {
+                    "id": group_info.group.id,
+                    "is_new": True,
+                    "is_regression": False,
+                    "is_new_group_environment": True,
+                }
+            ],
+        )
 
     def test_different_ids(self) -> None:
         create_default_projects()
@@ -112,23 +126,25 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
             save_issue_occurrence(occurrence.to_dict(), event)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProcessOccurrenceDataTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
         data = self.build_occurrence_data(fingerprint=["hi", "bye"])
-        process_occurrence_data(data)
         assert data["fingerprint"] == [
             md5(b"hi").hexdigest(),
             md5(b"bye").hexdigest(),
         ]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
     def test_new_group(self) -> None:
         occurrence = self.build_occurrence(type=ErrorGroupType.type_id)
         event = self.store_event(
-            data={"platform": "javascript"},
+            data={
+                "platform": "javascript",
+                "sdk": {"name": "sentry.javascript.nextjs", "version": "1.2.3"},
+            },
             project_id=self.project.id,
         )
 
@@ -158,17 +174,18 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
                 tags={
                     "platform": "javascript",
                     "type": ErrorGroupType.type_id,
+                    "sdk": "sentry.javascript.nextjs",
                 },
             )
 
     def test_existing_group(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
-        occurrence = self.build_occurrence()
+        occurrence = self.build_occurrence(fingerprint=["some-fingerprint"])
         save_issue_from_occurrence(occurrence, event, None)
 
         new_event = self.store_event(data={}, project_id=self.project.id)
         new_occurrence = self.build_occurrence(
-            fingerprint=occurrence.fingerprint, subtitle="new subtitle", issue_title="new title"
+            fingerprint=["some-fingerprint"], subtitle="new subtitle", issue_title="new title"
         )
         with self.tasks():
             updated_group_info = save_issue_from_occurrence(new_occurrence, new_event, None)
@@ -187,13 +204,13 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
 
     def test_existing_group_different_category(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
-        occurrence = self.build_occurrence()
+        occurrence = self.build_occurrence(fingerprint=["some-fingerprint"])
         group_info = save_issue_from_occurrence(occurrence, event, None)
         assert group_info is not None
 
         new_event = self.store_event(data={}, project_id=self.project.id)
         new_occurrence = self.build_occurrence(
-            fingerprint=occurrence.fingerprint, type=MonitorCheckInFailure.type_id
+            fingerprint=["some-fingerprint"], type=MonitorCheckInFailure.type_id
         )
         with mock.patch("sentry.issues.ingest.logger") as logger:
             assert save_issue_from_occurrence(new_occurrence, new_event, None) is None
@@ -207,6 +224,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
             )
 
     def test_rate_limited(self) -> None:
+        MockGranted = namedtuple("MockGranted", ["granted"])
         event = self.store_event(data={}, project_id=self.project.id)
         occurrence = self.build_occurrence()
         group_info = save_issue_from_occurrence(occurrence, event, None)
@@ -215,10 +233,19 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         new_event = self.store_event(data={}, project_id=self.project.id)
         new_occurrence = self.build_occurrence(fingerprint=["another-fingerprint"])
         with mock.patch("sentry.issues.ingest.metrics") as metrics, mock.patch(
-            "sentry.issues.ingest.ISSUE_QUOTA", Quota(3600, 60, 1)
-        ):
+            "sentry.issues.ingest.issue_rate_limiter.check_and_use_quotas",
+            return_value=[MockGranted(granted=False)],
+        ) as check_and_use_quotas:
             assert save_issue_from_occurrence(new_occurrence, new_event, None) is None
             metrics.incr.assert_called_once_with("issues.issue.dropped.rate_limiting")
+            assert check_and_use_quotas.call_count == 1
+            assert check_and_use_quotas.call_args[0][0] == [
+                RequestedQuota(
+                    f"issue-platform-issues:{self.project.id}:{occurrence.type.slug}",
+                    1,
+                    [occurrence.type.creation_quota],
+                )
+            ]
 
     def test_noise_reduction(self) -> None:
         with patch("sentry.issues.grouptype.registry", new=GroupTypeRegistry()):
@@ -244,7 +271,10 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
 
     def test_frame_mix_metric_logged(self) -> None:
         event = self.store_event(
-            data={"platform": "javascript"},
+            data={
+                "platform": "javascript",
+                "sdk": {"name": "sentry.javascript.nextjs", "version": "1.2.3"},
+            },
             project_id=self.project.id,
         )
 
@@ -263,6 +293,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
                 tags={
                     "platform": "javascript",
                     "frame_mix": "in-app-only",
+                    "sdk": "sentry.javascript.nextjs",
                 },
             )
 
@@ -321,6 +352,31 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "title": occurrence.issue_title,
             "value": occurrence.subtitle,
             "dogs": "are great",
+        }
+
+    def test_populates_feedback_metadata(self) -> None:
+        occurrence = self.build_occurrence(
+            type=FeedbackGroup.type_id,
+            evidence_data={
+                "contact_email": "test@test.com",
+                "message": "test",
+                "name": "Name Test",
+                "source": "crash report widget",
+            },
+        )
+        event = self.store_event(data={}, project_id=self.project.id)
+        event.data.setdefault("metadata", {})
+        event.data["metadata"]["dogs"] = "are great"  # should not get clobbered
+
+        materialized = materialize_metadata(occurrence, event)
+        assert materialized["metadata"] == {
+            "title": occurrence.issue_title,
+            "value": occurrence.subtitle,
+            "dogs": "are great",
+            "contact_email": "test@test.com",
+            "message": "test",
+            "name": "Name Test",
+            "source": "crash report widget",
         }
 
 

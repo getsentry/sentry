@@ -1,9 +1,11 @@
 from enum import Enum, IntEnum
-from typing import Sequence, Tuple
+from typing import ClassVar, Sequence, Tuple
 
 from django.db import models
 from django.utils import timezone
+from typing_extensions import Self
 
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BoundedPositiveIntegerField,
@@ -32,7 +34,7 @@ class RuleSource(IntEnum):
 
 @region_silo_only_model
 class Rule(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     DEFAULT_CONDITION_MATCH = "all"  # any, all
     DEFAULT_FILTER_MATCH = "all"  # match to apply on filters
@@ -58,7 +60,7 @@ class Rule(Model):
 
     date_added = models.DateTimeField(default=timezone.now)
 
-    objects = BaseManager(cache_fields=("pk",))
+    objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("pk",))
 
     class Meta:
         db_table = "sentry_rule"
@@ -119,7 +121,7 @@ class RuleActivityType(Enum):
 
 @region_silo_only_model
 class RuleActivity(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     rule = FlexibleForeignKey("sentry.Rule")
     user_id = HybridCloudForeignKey("sentry.User", on_delete="SET_NULL", null=True)
@@ -129,3 +131,15 @@ class RuleActivity(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_ruleactivity"
+
+
+@region_silo_only_model
+class NeglectedRule(Model):
+    __relocation_scope__ = RelocationScope.Organization
+
+    rule = FlexibleForeignKey("sentry.Rule")
+    organization = FlexibleForeignKey("sentry.Organization")
+    disable_date = models.DateTimeField()
+    opted_out = models.BooleanField(default=False)
+    sent_initial_email_date = models.DateTimeField(null=True)
+    sent_final_email_date = models.DateTimeField(null=True)

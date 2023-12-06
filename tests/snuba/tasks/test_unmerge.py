@@ -5,12 +5,20 @@ import hashlib
 import itertools
 import logging
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
+from unittest import mock
 from unittest.mock import patch
+
+from django.utils import timezone
 
 from sentry import eventstream, tagstore, tsdb
 from sentry.eventstore.models import Event
-from sentry.models import Environment, Group, GroupHash, GroupRelease, Release, UserReport
+from sentry.models.environment import Environment
+from sentry.models.group import Group
+from sentry.models.grouphash import GroupHash
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.release import Release
+from sentry.models.userreport import UserReport
 from sentry.similarity import _make_index_backend, features
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.unmerge import (
@@ -32,7 +40,7 @@ from sentry.utils.dates import to_timestamp
 index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
 
 
-@patch("sentry.similarity.features.index", new=index)
+@patch.object(features, "index", new=index)
 class UnmergeTestCase(TestCase, SnubaTestCase):
     def test_get_fingerprint(self):
         assert (
@@ -165,14 +173,16 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         }
 
     @with_feature("projects:similarity-indexing")
-    def test_unmerge(self):
+    @mock.patch("sentry.analytics.record")
+    def test_unmerge(self, mock_record):
         now = before_now(minutes=5).replace(microsecond=0, tzinfo=timezone.utc)
 
         def time_from_now(offset=0):
             return now + timedelta(seconds=offset)
 
         project = self.create_project()
-
+        project.date_added = timezone.now() - timedelta(minutes=10)
+        project.save()
         sequence = itertools.count(0)
         tag_values = itertools.cycle(["red", "green", "blue"])
         user_values = itertools.cycle([{"id": 1}, {"id": 2}])
@@ -458,7 +468,14 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         def collect_by_user_tag(aggregate, event):
             aggregate = aggregate if aggregate is not None else set()
-            aggregate.add(get_event_user_from_interface(event.data["user"]).tag_value)
+            aggregate.add(
+                get_event_user_from_interface(event.data["user"], event.group.project).tag_value
+            )
+            mock_record.assert_called_with(
+                "eventuser_endpoint.request",
+                project_id=event.group.project.id,
+                endpoint="sentry.tasks.unmerge.get_event_user_from_interface",
+            )
             return aggregate
 
         for series in [time_series, environment_time_series]:

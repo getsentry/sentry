@@ -7,8 +7,10 @@ from django.http.request import HttpRequest
 
 from sentry import eventstore
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
-from sentry.models import Group, Project, User
+from sentry.models.group import Group
 from sentry.models.integrations.integration import Integration
+from sentry.models.project import Project
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.integration import integration_service
 
 from . import Handler, UnfurlableUrl, UnfurledUrl, make_type_coercer

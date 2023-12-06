@@ -5,7 +5,9 @@ from typing import Any
 
 from fixtures.bitbucket import PUSH_EVENT_EXAMPLE
 from sentry.integrations.bitbucket.webhook import PROVIDER_NAME
-from sentry.models import Commit, CommitAuthor, Repository
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -65,13 +67,13 @@ class WebhookBaseTest(APITestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class WebhookGetTest(WebhookBaseTest):
     def test_get_request_fails(self):
         self.get_error_response(self.organization_id, status_code=405)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class WebhookTest(WebhookBaseTest):
     method = "post"
 
@@ -107,7 +109,7 @@ class WebhookTest(WebhookBaseTest):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class PushEventWebhookTest(WebhookBaseTest):
     method = "post"
 

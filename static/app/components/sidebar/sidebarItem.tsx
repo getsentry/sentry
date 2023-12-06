@@ -1,27 +1,35 @@
-import {Fragment, isValidElement} from 'react';
+import {Fragment, isValidElement, useCallback, useMemo} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {LocationDescriptor} from 'history';
 
 import FeatureBadge from 'sentry/components/featureBadge';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
+import {Flex} from 'sentry/components/profiling/flex';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import localStorage from 'sentry/utils/localStorage';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {SidebarOrientation} from './types';
+import {SIDEBAR_NAVIGATION_SOURCE} from './utils';
 
 const LabelHook = HookOrDefault({
   hookName: 'sidebar:item-label',
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
+
+const tooltipDisabledProps = {
+  disabled: true,
+};
 
 export type SidebarItemProps = {
   /**
@@ -75,7 +83,7 @@ export type SidebarItemProps = {
    */
   isBeta?: boolean;
   /**
-   * Additional badge letting users know a tab is new.
+   * Specify the variant for the badge.
    */
   isNew?: boolean;
   /**
@@ -87,17 +95,23 @@ export type SidebarItemProps = {
    * The current organization. Useful for analytics.
    */
   organization?: Organization;
+  search?: string;
   to?: string;
   /**
    * Content to render at the end of the item.
    */
   trailingItems?: React.ReactNode;
+  /**
+   * Content to render at the end of the item.
+   */
+  variant?: 'badge' | 'indicator' | 'short' | undefined;
 };
 
 function SidebarItem({
   id,
   href,
   to,
+  search,
   icon,
   label,
   badge,
@@ -114,6 +128,7 @@ function SidebarItem({
   organization,
   onClick,
   trailingItems,
+  variant,
   ...props
 }: SidebarItemProps) {
   const router = useRouter();
@@ -122,28 +137,11 @@ function SidebarItem({
   if (isValidElement(label)) {
     labelString = label?.props?.children ?? label;
   }
-  // take off the query params for matching
-  const toPathWithoutReferrer = to?.split('?')[0];
   // If there is no active panel open and if path is active according to react-router
   const isActiveRouter =
-    (!hasPanel &&
-      router &&
-      toPathWithoutReferrer &&
-      (exact
-        ? location.pathname === normalizeUrl(toPathWithoutReferrer)
-        : location.pathname.startsWith(normalizeUrl(toPathWithoutReferrer)))) ||
-    (labelString === 'Discover' && location.pathname.includes('/discover/')) ||
-    (labelString === 'Dashboards' &&
-      (location.pathname.includes('/dashboards/') ||
-        location.pathname.includes('/dashboard/')) &&
-      !location.pathname.startsWith('/settings/')) ||
-    // TODO: this won't be necessary once we remove settingsHome
-    (labelString === 'Settings' && location.pathname.startsWith('/settings/')) ||
-    (labelString === 'Alerts' &&
-      location.pathname.includes('/alerts/') &&
-      !location.pathname.startsWith('/settings/'));
+    !hasPanel && router && isItemActive({to, label: labelString}, exact);
 
-  const isActive = active || isActiveRouter;
+  const isActive = defined(active) ? active : isActiveRouter;
   const isTop = orientation === 'top';
   const placement = isTop ? 'bottom' : 'right';
 
@@ -151,41 +149,56 @@ function SidebarItem({
   const isNewSeenKey = `sidebar-new-seen:${id}${seenSuffix}`;
   const showIsNew = isNew && !localStorage.getItem(isNewSeenKey);
 
-  const recordAnalytics = () => {
+  const recordAnalytics = useCallback(() => {
     trackAnalytics('growth.clicked_sidebar', {
       item: id,
       organization: organization || null,
     });
-  };
+  }, [id, organization]);
+
+  const toProps: LocationDescriptor = useMemo(() => {
+    return {
+      pathname: to ? to : href ?? '#',
+      search,
+      state: {source: SIDEBAR_NAVIGATION_SOURCE},
+    };
+  }, [to, href, search]);
 
   const badges = (
     <Fragment>
-      {showIsNew && <FeatureBadge type="new" tooltipProps={{disabled: true}} />}
-      {isBeta && <FeatureBadge type="beta" tooltipProps={{disabled: true}} />}
-      {isAlpha && <FeatureBadge type="alpha" tooltipProps={{disabled: true}} />}
+      {showIsNew && <FeatureBadge type="new" variant={variant} />}
+      {isBeta && <FeatureBadge type="beta" variant={variant} />}
+      {isAlpha && <FeatureBadge type="alpha" variant={variant} />}
     </Fragment>
   );
 
-  const tooltipLabel = (
-    <Fragment>
-      {label} {badges}
-    </Fragment>
+  const handleItemClick = useCallback(
+    (event: React.MouseEvent<HTMLAnchorElement>) => {
+      !(to || href) && event.preventDefault();
+      recordAnalytics();
+      onClick?.(id, event);
+      showIsNew && localStorage.setItem(isNewSeenKey, 'true');
+    },
+    [href, to, id, onClick, recordAnalytics, showIsNew, isNewSeenKey]
   );
 
   return (
-    <Tooltip disabled={!collapsed} title={tooltipLabel} position={placement}>
+    <Tooltip
+      disabled={!collapsed && !isTop}
+      title={
+        <Flex align="center">
+          {label} {badges}
+        </Flex>
+      }
+      position={placement}
+    >
       <StyledSidebarItem
         {...props}
         id={`sidebar-item-${id}`}
         active={isActive ? 'true' : undefined}
-        to={(to ? to : href) || '#'}
+        to={toProps}
         className={className}
-        onClick={(event: React.MouseEvent<HTMLAnchorElement>) => {
-          !(to || href) && event.preventDefault();
-          recordAnalytics();
-          onClick?.(id, event);
-          showIsNew && localStorage.setItem(isNewSeenKey, 'true');
-        }}
+        onClick={handleItemClick}
       >
         <InteractionStateLayer isPressed={isActive} color="white" higherOpacity />
         <SidebarItemWrapper collapsed={collapsed}>
@@ -202,21 +215,21 @@ function SidebarItem({
             <CollapsedFeatureBadge
               type="new"
               variant="indicator"
-              tooltipProps={{disabled: true}}
+              tooltipProps={tooltipDisabledProps}
             />
           )}
           {collapsed && isBeta && (
             <CollapsedFeatureBadge
               type="beta"
               variant="indicator"
-              tooltipProps={{disabled: true}}
+              tooltipProps={tooltipDisabledProps}
             />
           )}
           {collapsed && isAlpha && (
             <CollapsedFeatureBadge
               type="alpha"
               variant="indicator"
-              tooltipProps={{disabled: true}}
+              tooltipProps={tooltipDisabledProps}
             />
           )}
           {badge !== undefined && badge > 0 && (
@@ -226,6 +239,33 @@ function SidebarItem({
         </SidebarItemWrapper>
       </StyledSidebarItem>
     </Tooltip>
+  );
+}
+
+export function isItemActive(
+  item: Pick<SidebarItemProps, 'to' | 'label'>,
+  exact?: boolean
+): boolean {
+  // take off the query params for matching
+  const toPathWithoutReferrer = item?.to?.split('?')[0];
+  if (!toPathWithoutReferrer) {
+    return false;
+  }
+
+  return (
+    (exact
+      ? location.pathname === normalizeUrl(toPathWithoutReferrer)
+      : location.pathname.startsWith(normalizeUrl(toPathWithoutReferrer))) ||
+    (item?.label === 'Discover' && location.pathname.includes('/discover/')) ||
+    (item?.label === 'Dashboards' &&
+      (location.pathname.includes('/dashboards/') ||
+        location.pathname.includes('/dashboard/')) &&
+      !location.pathname.startsWith('/settings/')) ||
+    // TODO: this won't be necessary once we remove settingsHome
+    (item?.label === 'Settings' && location.pathname.startsWith('/settings/')) ||
+    (item?.label === 'Alerts' &&
+      location.pathname.includes('/alerts/') &&
+      !location.pathname.startsWith('/settings/'))
   );
 }
 
@@ -340,6 +380,7 @@ const SidebarItemLabel = styled('span')`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  overflow: hidden;
 `;
 
 const getCollapsedBadgeStyle = ({collapsed, theme}) => {

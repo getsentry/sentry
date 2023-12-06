@@ -41,10 +41,6 @@ const defaultProps: DefaultProps = {
    */
   type: 'letter_avatar',
   /**
-   * Path to uploaded avatar (differs based on model type)
-   */
-  uploadPath: 'avatar',
-  /**
    * Should avatar be round instead of a square
    */
   round: false,
@@ -65,16 +61,6 @@ type DefaultProps = {
    * The type of avatar being rendered.
    */
   type?: Avatar['avatarType'];
-  /**
-   * Path to uploaded avatar (differs based on model type)
-   */
-  uploadPath?:
-    | 'avatar'
-    | 'team-avatar'
-    | 'organization-avatar'
-    | 'project-avatar'
-    | 'sentry-app-avatar'
-    | 'doc-integration-avatar';
 };
 
 type BaseProps = DefaultProps & {
@@ -101,7 +87,10 @@ type BaseProps = DefaultProps & {
    * Additional props for the tooltip
    */
   tooltipOptions?: Omit<TooltipProps, 'children' | 'title'>;
-  uploadId?: string | null | undefined;
+  /**
+   * Full URL to the uploaded avatar's image.
+   */
+  uploadUrl?: string | null | undefined;
 };
 
 type Props = BaseProps;
@@ -125,7 +114,7 @@ class BaseAvatar extends Component<Props, State> {
     };
   }
 
-  getRemoteImageSize = () => {
+  getRemoteImageSize() {
     const {remoteImageSize, size} = this.props;
     // Try to make sure remote image size is >= requested size
     // If requested size > allowed size then use the largest allowed size
@@ -135,15 +124,16 @@ class BaseAvatar extends Component<Props, State> {
         ALLOWED_SIZES[ALLOWED_SIZES.length - 1]);
 
     return remoteImageSize || allowed || DEFAULT_GRAVATAR_SIZE;
-  };
+  }
 
-  buildUploadUrl = () => {
-    const {uploadPath, uploadId} = this.props;
+  buildUploadUrl() {
+    const {uploadUrl} = this.props;
+    if (!uploadUrl) {
+      return '';
+    }
 
-    return `/${uploadPath || 'avatar'}/${uploadId}/?${qs.stringify({
-      s: DEFAULT_REMOTE_SIZE,
-    })}`;
-  };
+    return `${uploadUrl}?${qs.stringify({s: DEFAULT_REMOTE_SIZE})}`;
+  }
 
   handleLoad = () => {
     this.setState({showBackupAvatar: false, hasLoaded: true});
@@ -153,7 +143,7 @@ class BaseAvatar extends Component<Props, State> {
     this.setState({showBackupAvatar: true, loadError: true, hasLoaded: true});
   };
 
-  renderImg = () => {
+  renderImg() {
     if (this.state.loadError) {
       return null;
     }
@@ -194,15 +184,16 @@ class BaseAvatar extends Component<Props, State> {
     }
 
     return this.renderLetterAvatar();
-  };
+  }
 
   renderLetterAvatar() {
     const {title, letterId, round, suggested} = this.props;
+    const modifiedTitle = title === '[Filtered]' ? '?' : title;
 
     return (
       <LetterAvatar
         round={round}
-        displayName={title}
+        displayName={modifiedTitle}
         identifier={letterId}
         suggested={suggested}
       />

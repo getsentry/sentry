@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import ipaddress
 import logging
+import mimetypes
 import random
 import re
 import time
@@ -28,10 +29,13 @@ import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError, OperationalError, connection, router, transaction
+from django.db import OperationalError, connection, router, transaction
 from django.db.models import Func
 from django.db.models.signals import post_save
 from django.utils.encoding import force_str
+from urllib3 import Retry
+from urllib3.exceptions import MaxRetryError
+from usageaccountant import UsageUnit
 
 from sentry import (
     eventstore,
@@ -44,6 +48,7 @@ from sentry import (
     tsdb,
 )
 from sentry.attachments import CachedAttachment, MissingAttachmentChunks, attachment_cache
+from sentry.conf.server import SEVERITY_DETECTION_RETRIES
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS_MAP,
@@ -71,40 +76,33 @@ from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.issues.producer import produce_occurrence_to_kafka
+from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
 from sentry.locks import locks
-from sentry.models import (
-    CRASH_REPORT_TYPES,
-    Activity,
-    Environment,
-    EventAttachment,
-    EventDict,
-    EventUser,
-    File,
-    Group,
-    GroupEnvironment,
-    GroupHash,
-    GroupLink,
-    GroupRelease,
-    GroupResolution,
-    GroupStatus,
-    Organization,
-    Project,
-    ProjectKey,
-    PullRequest,
-    Release,
-    ReleaseCommit,
-    ReleaseEnvironment,
-    ReleaseProject,
-    ReleaseProjectEnvironment,
-    UserReport,
-    get_crashreport_key,
-)
+from sentry.models.activity import Activity
+from sentry.models.environment import Environment
+from sentry.models.event import EventDict
+from sentry.models.eventattachment import CRASH_REPORT_TYPES, EventAttachment, get_crashreport_key
+from sentry.models.files.file import File
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+from sentry.models.grouplink import GroupLink
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.groupresolution import GroupResolution
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.models.release import follows_semver_versioning_scheme
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
+from sentry.models.pullrequest import PullRequest
+from sentry.models.release import Release, ReleaseProject, follows_semver_versioning_scheme
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releaseenvironment import ReleaseEnvironment
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.userreport import UserReport
+from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 from sentry.quotas.base import index_data_category
@@ -124,26 +122,31 @@ from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
+from sentry.usage_accountant import record
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.dates import to_datetime, to_timestamp
-from sentry.utils.event import has_event_minified_stack_trace
+from sentry.utils.event import has_event_minified_stack_trace, has_stacktrace, is_handled
+from sentry.utils.eventuser import EventUser
 from sentry.utils.metrics import MutableTags
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
+from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import BaseEvent, Event
 
 logger = logging.getLogger("sentry.events")
 
-SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple")
+SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple", "nel")
 
 # Timeout for cached group crash report counts
 CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
+
+NON_TITLE_EVENT_TITLES = ["<untitled>", "<unknown>", "<unlabeled event>", "Error"]
 
 
 @dataclass
@@ -177,6 +180,30 @@ def get_tag(data: dict[str, Any], key: str) -> Optional[Any]:
 
 def is_sample_event(job):
     return get_tag(job["data"], "sample_event") == "yes"
+
+
+def sdk_metadata_from_event(event: Event) -> Mapping[str, Any]:
+    """
+    Returns a metadata dictionary with "sdk" field populated, including a normalized name
+    Returns {} when event type of event is known to not be SDK generated.
+    """
+
+    if event.get_event_type() in SECURITY_REPORT_INTERFACES:
+        return {}
+
+    if not (sdk_metadata := event.data.get("sdk")):
+        return {}
+
+    try:
+        return {
+            "sdk": {
+                "name": sdk_metadata.get("name") or "unknown",
+                "name_normalized": normalized_sdk_tag_from_event(event),
+            }
+        }
+    except Exception:
+        logger.warning("failed to set normalized SDK name", exc_info=True)
+        return {}
 
 
 def plugin_is_regression(group: Group, event: Event) -> bool:
@@ -374,7 +401,7 @@ class EventManager:
         # XXX: This is a hack to make generic events work (for now?). I'm not sure whether we should
         # include this in the rust normalizer, since we don't want people sending us these via the
         # sdk.
-        if pre_normalize_type == "generic":
+        if pre_normalize_type in ("generic", "feedback"):
             self._data["type"] = pre_normalize_type
 
     def get_data(self) -> CanonicalKeyDict:
@@ -424,7 +451,12 @@ class EventManager:
 
         projects = {project.id: project}
 
-        job = {"data": self._data, "project_id": project.id, "raw": raw, "start_time": start_time}
+        job: dict[str, Any] = {
+            "data": self._data,
+            "project_id": project.id,
+            "raw": raw,
+            "start_time": start_time,
+        }
 
         # After calling _pull_out_data we get some keys in the job like the platform
         with sentry_sdk.start_span(op="event_manager.save.pull_out_data"):
@@ -447,7 +479,10 @@ class EventManager:
 
             return jobs[0]["event"]
         else:
-            metric_tags = {"platform": job["event"].platform or "unknown"}
+            metric_tags = {
+                "platform": job["event"].platform or "unknown",
+                "sdk": normalized_sdk_tag_from_event(job["event"]),
+            }
             # This metric allows differentiating from all calls to the `event_manager.save` metric
             # and adds support for differentiating based on platforms
             with metrics.timer("event_manager.save_error_events", tags=metric_tags):
@@ -458,7 +493,7 @@ class EventManager:
         project: Project,
         job: Job,
         projects: ProjectsMapping,
-        metric_tags: Dict[str, str],
+        metric_tags: MutableTags,
         raw: bool = False,
         cache_key: Optional[str] = None,
     ) -> Event:
@@ -555,9 +590,9 @@ class EventManager:
 
         _materialize_metadata_many(jobs)
 
-        kwargs = _create_kwargs(job)
+        group_creation_kwargs = _get_group_creation_kwargs(job)
 
-        kwargs["culprit"] = job["culprit"]
+        group_creation_kwargs["culprit"] = job["culprit"]
 
         # Load attachments first, but persist them at the very last after
         # posting to eventstream to make sure all counters and eventstream are
@@ -576,7 +611,7 @@ class EventManager:
                     metadata=dict(job["event_metadata"]),
                     received_timestamp=job["received_timestamp"],
                     migrate_off_hierarchical=migrate_off_hierarchical,
-                    **kwargs,
+                    **group_creation_kwargs,
                 )
                 job["groups"] = [group_info]
         except HashDiscarded as err:
@@ -630,7 +665,7 @@ class EventManager:
             old_bytes = job["event_metrics"].get(key) or 0
             job["event_metrics"][key] = old_bytes + attachment.size
 
-        _nodestore_save_many(jobs)
+        _nodestore_save_many(jobs=jobs, app_feature="errors")
         save_unprocessed_event(project, job["event"].event_id)
 
         if not raw:
@@ -679,7 +714,9 @@ class EventManager:
             job["received_timestamp"] - job["recorded_timestamp"],
             tags=metric_tags,
         )
-        metrics.timing("events.size.data.post_save", job["event"].size, tags=metric_tags)
+        metrics.distribution(
+            "events.size.data.post_save", job["event"].size, tags=metric_tags, unit="byte"
+        )
         metrics.incr(
             "events.post_save.normalize.errors",
             amount=len(job["data"].get("errors") or ()),
@@ -772,7 +809,7 @@ def _auto_update_grouping(project: Project) -> None:
             "sentry:secondary_grouping_expiry": expiry,
             "sentry:grouping_config": new_grouping,
         }
-        for (key, value) in changes.items():
+        for key, value in changes.items():
             project.update_option(key, value)
         create_system_audit_entry(
             organization=project.organization,
@@ -782,11 +819,17 @@ def _auto_update_grouping(project: Project) -> None:
         )
 
 
-@metrics.wraps("event_manager.background_grouping")
+# TODO: this seems to be dead code, validate and remove
 def _calculate_background_grouping(
     project: Project, event: Event, config: GroupingConfig
 ) -> CalculatedHashes:
-    return _calculate_event_grouping(project, event, config)
+    metric_tags: MutableTags = {
+        "grouping_config": config["id"],
+        "platform": event.platform or "unknown",
+        "sdk": normalized_sdk_tag_from_event(event),
+    }
+    with metrics.timer("event_manager.background_grouping", tags=metric_tags):
+        return _calculate_event_grouping(project, event, config)
 
 
 def _run_background_grouping(project: Project, job: Job) -> None:
@@ -1090,7 +1133,7 @@ def _materialize_metadata_many(jobs: Sequence[Job]) -> None:
         job["culprit"] = data["culprit"]
 
 
-def _create_kwargs(job: Union[Job, PerformanceJob]) -> dict[str, Any]:
+def _get_group_creation_kwargs(job: Union[Job, PerformanceJob]) -> dict[str, Any]:
     kwargs = {
         "platform": job["platform"],
         "message": job["event"].search_message,
@@ -1284,7 +1327,7 @@ def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
 
 
 @metrics.wraps("save_event.nodestore_save_many")
-def _nodestore_save_many(jobs: Sequence[Job]) -> None:
+def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
     inserted_time = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
     for job in jobs:
         # Write the event to Nodestore
@@ -1300,6 +1343,17 @@ def _nodestore_save_many(jobs: Sequence[Job]) -> None:
             if unprocessed is not None:
                 subkeys["unprocessed"] = unprocessed
 
+        if app_feature:
+            event_size = 0
+            event_metrics = job.get("event_metrics")
+            if event_metrics:
+                event_size = event_metrics.get("bytes.stored.event", 0)
+            record(
+                resource_id=settings.COGS_EVENT_STORE_LABEL,
+                app_feature=app_feature,
+                amount=event_size,
+                usage_type=UsageUnit.BYTES,
+            )
         job["event"].data["nodestore_insert"] = inserted_time
         job["event"].data.save(subkeys=subkeys)
 
@@ -1427,46 +1481,12 @@ def _get_event_user_impl(
 
     euser = EventUser(
         project_id=project.id,
-        ident=user_data.get("id"),
+        user_ident=user_data.get("id"),
         email=user_data.get("email"),
         username=user_data.get("username"),
         ip_address=ip_address,
         name=user_data.get("name"),
     )
-    euser.set_hash()
-    if not euser.hash:
-        return None
-
-    cache_key = f"euserid:1:{project.id}:{euser.hash}"
-    euser_id = cache.get(cache_key)
-    if euser_id is None:
-        metrics_tags["cache_hit"] = "false"
-
-        try:
-            euser, created = EventUser.objects.get_or_create(
-                project_id=euser.project_id,
-                hash=euser.hash,
-                defaults={
-                    "ident": euser.ident,
-                    "email": euser.email,
-                    "username": euser.username,
-                    "ip_address": euser.ip_address,
-                    "name": euser.name,
-                },
-            )
-        except IntegrityError:
-            # TODO(michal): This is result of project_id, ident duplicate and
-            # should not be possible since we prioritize ident for hash
-            created = False
-            cache.set(cache_key, -1, 3600)
-        else:
-            if not created and user_data.get("name") and euser.name != user_data.get("name"):
-                euser.update(name=user_data["name"])
-            cache.set(cache_key, euser.id, 3600)
-
-        metrics_tags["created"] = str(created).lower()
-    else:
-        metrics_tags["cache_hit"] = "true"
 
     return euser
 
@@ -1577,7 +1597,6 @@ def _save_aggregate(
     kwargs["data"]["last_received"] = received_timestamp
 
     if existing_grouphash is None:
-
         if killswitch_matches_context(
             "store.load-shed-group-creation-projects",
             {
@@ -1617,8 +1636,19 @@ def _save_aggregate(
                 root_hierarchical_grouphash = None
 
             if existing_grouphash is None:
-
                 group = _create_group(project, event, **kwargs)
+
+                if (
+                    features.has("projects:first-event-severity-calculation", event.project)
+                    and group.data.get("metadata", {}).get("severity") is None
+                ):
+                    logger.error(
+                        "Group created without severity score",
+                        extra={
+                            "event_id": event.data["event_id"],
+                            "group_id": group.id,
+                        },
+                    )
 
                 if root_hierarchical_grouphash is not None:
                     new_hashes = [root_hierarchical_grouphash]
@@ -1638,7 +1668,10 @@ def _save_aggregate(
                 metrics.incr(
                     "group.created",
                     skip_internal=True,
-                    tags={"platform": event.platform or "unknown"},
+                    tags={
+                        "platform": event.platform or "unknown",
+                        "sdk": normalized_sdk_tag_from_event(event),
+                    },
                 )
 
                 # This only applies to events with stacktraces
@@ -1649,6 +1682,7 @@ def _save_aggregate(
                         sample_rate=1.0,
                         tags={
                             "platform": event.platform or "unknown",
+                            "sdk": normalized_sdk_tag_from_event(event),
                             "frame_mix": frame_mix,
                         },
                     )
@@ -1715,7 +1749,10 @@ def _save_aggregate(
         ).update(group=group)
 
     is_regression = _process_existing_aggregate(
-        group=group, event=event, data=kwargs, release=release
+        group=group,
+        event=event,
+        incoming_group_values=kwargs,
+        release=release,
     )
 
     return GroupInfo(group, is_new, is_regression)
@@ -1805,10 +1842,7 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
     try:
         short_id = project.next_short_id()
     except OperationalError:
-        metrics.incr(
-            "next_short_id.timeout",
-            tags={"platform": event.platform or "unknown"},
-        )
+        metrics.incr("next_short_id.timeout")
         sentry_sdk.capture_message("short_id.timeout")
         raise HashDiscarded("Timeout when getting next_short_id", reason="timeout")
 
@@ -1824,53 +1858,40 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
         else None
     )
 
+    group_data = kwargs.pop("data", {})
+
+    # add sdk tag to metadata
+    group_data.setdefault("metadata", {}).update(sdk_metadata_from_event(event))
+
+    # get severity score for use in alerting
+    if features.has("projects:first-event-severity-calculation", event.project):
+        severity = _get_severity_score(event)
+        if severity is not None:  # Severity can be 0
+            group_data.setdefault("metadata", {})
+            group_data["metadata"]["severity"] = severity
+
     return Group.objects.create(
         project=project,
         short_id=short_id,
         first_release_id=first_release_id,
+        data=group_data,
         **kwargs,
     )
 
 
 def _handle_regression(group: Group, event: Event, release: Optional[Release]) -> Optional[bool]:
-    should_log_extra_info = features.has(
-        "organizations:detailed-alert-logging", group.project.organization
-    )
-    logging_details = {
-        "group_id": group.id,
-        "event_id": event.event_id,
-    }
-    if should_log_extra_info:
-        logger.info("_handle_regression", extra={**logging_details})
-
     if not group.is_resolved():
-        if should_log_extra_info:
-            logger.info(
-                "_handle_regression: group.is_resolved returned true", extra={**logging_details}
-            )
         return None
 
     # we only mark it as a regression if the event's release is newer than
     # the release which we originally marked this as resolved
     elif GroupResolution.has_resolution(group, release):
-        if should_log_extra_info:
-            logger.info(
-                "_handle_regression: group.is_resolved returned true", extra={**logging_details}
-            )
         return None
 
     elif has_pending_commit_resolution(group):
-        if should_log_extra_info:
-            logger.info(
-                "_handle_regression: group.is_resolved returned true", extra={**logging_details}
-            )
         return None
 
     if not plugin_is_regression(group, event):
-        if should_log_extra_info:
-            logger.info(
-                "_handle_regression: group.is_resolved returned true", extra={**logging_details}
-            )
         return None
 
     # we now think its a regression, rely on the database to validate that
@@ -1897,11 +1918,6 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
             substatus=GroupSubStatus.REGRESSED,
         )
     )
-    if should_log_extra_info:
-        logger.info(
-            f"_handle_regression: is_regression evaluated to {is_regression}",
-            extra={**logging_details},
-        )
 
     group.active_at = date
     group.status = GroupStatus.UNRESOLVED
@@ -2005,32 +2021,162 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
 
 
 def _process_existing_aggregate(
-    group: Group, event: Event, data: Mapping[str, Any], release: Optional[Release]
+    group: Group, event: Event, incoming_group_values: Mapping[str, Any], release: Optional[Release]
 ) -> bool:
-    date = max(event.datetime, group.last_seen)
-    extra = {"last_seen": date, "data": data["data"]}
+    last_seen = max(event.datetime, group.last_seen)
+    updated_group_values: dict[str, Any] = {"last_seen": last_seen}
+    # Unclear why this is necessary, given that it's also in `updated_group_values`, but removing
+    # it causes unrelated tests to fail. Hard to say if that's the tests or the removal, though.
+    group.last_seen = updated_group_values["last_seen"]
+
     if (
         event.search_message
         and event.search_message != group.message
         and event.get_event_type() != TransactionEvent.key
     ):
-        extra["message"] = event.search_message
-    if group.level != data["level"]:
-        extra["level"] = data["level"]
-    if group.culprit != data["culprit"]:
-        extra["culprit"] = data["culprit"]
+        updated_group_values["message"] = event.search_message
+    if group.level != incoming_group_values["level"]:
+        updated_group_values["level"] = incoming_group_values["level"]
+    if group.culprit != incoming_group_values["culprit"]:
+        updated_group_values["culprit"] = incoming_group_values["culprit"]
+
+    # If the new event has a timestamp earlier than our current `fist_seen` value (which can happen,
+    # for example because of misaligned internal clocks on two different host machines or because of
+    # race conditions) then we want to use the current event's time
     if group.first_seen > event.datetime:
-        extra["first_seen"] = event.datetime
+        updated_group_values["first_seen"] = event.datetime
 
     is_regression = _handle_regression(group, event, release)
 
-    group.last_seen = extra["last_seen"]
+    # Merge new data with existing data
+    incoming_data = incoming_group_values["data"]
+    incoming_metadata = incoming_group_values["data"].get("metadata", {})
+
+    existing_data = group.data
+    # Grab a reference to this before it gets clobbered when we update `existing_data`
+    existing_metadata = group.data.get("metadata", {})
+
+    existing_data.update(incoming_data)
+    existing_metadata.update(incoming_metadata)
+
+    updated_group_values["data"] = existing_data
+    updated_group_values["data"]["metadata"] = existing_metadata
 
     update_kwargs = {"times_seen": 1}
 
-    buffer_incr(Group, update_kwargs, {"id": group.id}, extra)
+    buffer_incr(Group, update_kwargs, {"id": group.id}, updated_group_values)
 
     return bool(is_regression)
+
+
+severity_connection_pool = connection_from_url(
+    settings.SEVERITY_DETECTION_URL,
+    retries=Retry(
+        total=SEVERITY_DETECTION_RETRIES,  # Defaults to 1
+        status_forcelist=[
+            408,  # Request timeout
+            429,  # Too many requests
+            502,  # Bad gateway
+            503,  # Service unavailable
+            504,  # Gateway timeout
+        ],
+    ),
+    timeout=settings.SEVERITY_DETECTION_TIMEOUT,  # Defaults to 300 milliseconds
+)
+
+
+def _get_severity_score(event: Event) -> float | None:
+    # Short circuit the severity value if we know the event is fatal or info/debug
+    level = str(event.data.get("level", "error"))
+    if LOG_LEVELS_MAP[level] == logging.FATAL:
+        return 1.0
+    if LOG_LEVELS_MAP[level] <= logging.INFO:
+        return 0.0
+
+    op = "event_manager._get_severity_score"
+    logger_data = {"event_id": event.data["event_id"], "op": op}
+    severity = None
+
+    event_type = get_event_type(event.data)
+    metadata = event_type.get_metadata(event.data)
+
+    exception_type = metadata.get("type")
+    exception_value = metadata.get("value")
+
+    if exception_type:
+        title = exception_type
+        if exception_value:
+            title += f": {exception_value}"
+
+        # We truncate the title to 128 characters as any more than that is unlikely to be helpful
+        # and would slow down the model.
+        title = trim(title, 128)
+    else:
+        # Fall back to using just the title for events without an exception.
+        title = event.title
+
+    # If the event hasn't yet been given a helpful title, attempt to calculate one
+    if title in NON_TITLE_EVENT_TITLES:
+        title = event_type.get_title(metadata)
+
+    # If there's still nothing helpful to be had, bail
+    if title in NON_TITLE_EVENT_TITLES:
+        logger_data.update(
+            {"event_type": event_type.key, "event_title": event.title, "computed_title": title}
+        )
+        logger.warning(
+            "Unable to get severity score because of unusable `message` value '%s'",
+            title,
+            extra=logger_data,
+        )
+        return None
+
+    payload = {
+        "message": title,
+        "has_stacktrace": int(has_stacktrace(event.data)),
+        "handled": is_handled(event.data),
+    }
+
+    if options.get("processing.severity-backlog-test.timeout"):
+        payload["trigger_timeout"] = True
+    if options.get("processing.severity-backlog-test.error"):
+        payload["trigger_error"] = True
+
+    logger_data["payload"] = payload
+
+    with metrics.timer(op):
+        with sentry_sdk.start_span(op=op):
+            try:
+                response = severity_connection_pool.urlopen(
+                    "POST",
+                    "/v0/issues/severity-score",
+                    body=json.dumps(payload),
+                    headers={"content-type": "application/json;charset=utf-8"},
+                )
+                severity = json.loads(response.data).get("severity")
+            except MaxRetryError as e:
+                logger.warning(
+                    "Unable to get severity score from microservice after %s retr%s. Got MaxRetryError caused by: %s.",
+                    SEVERITY_DETECTION_RETRIES,
+                    "ies" if SEVERITY_DETECTION_RETRIES > 1 else "y",
+                    repr(e.reason),
+                    extra=logger_data,
+                )
+            except Exception as e:
+                logger.warning(
+                    "Unable to get severity score from microservice. Got: %s.",
+                    repr(e),
+                    extra=logger_data,
+                )
+            else:
+                logger.info(
+                    "Got severity score of %s for event %s",
+                    severity,
+                    event.data["event_id"],
+                    extra=logger_data,
+                )
+
+    return severity
 
 
 Attachment = CachedAttachment
@@ -2097,7 +2243,10 @@ def discard_event(job: Job, attachments: Sequence[Attachment]) -> None:
     metrics.incr(
         "events.discarded",
         skip_internal=True,
-        tags={"platform": job["platform"]},
+        tags={
+            "platform": job["platform"],
+            "sdk": normalized_sdk_tag_from_event(job["event"]),
+        },
     )
 
 
@@ -2272,20 +2421,32 @@ def save_attachment(
         logger.exception("Missing chunks for cache_key=%s", cache_key)
         return
 
+    content_type = normalize_content_type(attachment.content_type, attachment.name)
+
     file = File.objects.create(
         name=attachment.name,
         type=attachment.type,
-        headers={"Content-Type": attachment.content_type},
+        headers={"Content-Type": content_type},
     )
     file.putfile(BytesIO(data), blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE)
 
+    size = file.size
+    sha1 = file.checksum
+    file_id = file.id
+
     EventAttachment.objects.create(
-        event_id=event_id,
+        # lookup:
         project_id=project.id,
         group_id=group_id,
-        name=attachment.name,
-        file_id=file.id,
+        event_id=event_id,
+        # metadata:
         type=attachment.type,
+        name=attachment.name,
+        content_type=content_type,
+        size=size,
+        sha1=sha1,
+        # storage:
+        file_id=file_id,
     )
 
     track_outcome(
@@ -2299,6 +2460,12 @@ def save_attachment(
         category=DataCategory.ATTACHMENT,
         quantity=attachment.size or 1,
     )
+
+
+def normalize_content_type(content_type: str | None, name: str) -> str:
+    if content_type:
+        return content_type.split(";")[0].strip()
+    return mimetypes.guess_type(name)[0] or "application/octet-stream"
 
 
 def save_attachments(cache_key: Optional[str], attachments: list[Attachment], job: Job) -> None:
@@ -2345,7 +2512,6 @@ def _materialize_event_metrics(jobs: Sequence[Job]) -> None:
         job["event_metrics"] = event_metrics
 
 
-@metrics.wraps("save_event.calculate_event_grouping")
 def _calculate_event_grouping(
     project: Project, event: Event, grouping_config: GroupingConfig
 ) -> CalculatedHashes:
@@ -2353,43 +2519,45 @@ def _calculate_event_grouping(
     Main entrypoint for modifying/enhancing and grouping an event, writes
     hashes back into event payload.
     """
-    metric_tags = {
+    metric_tags: MutableTags = {
         "grouping_config": grouping_config["id"],
         "platform": event.platform or "unknown",
+        "sdk": normalized_sdk_tag_from_event(event),
     }
 
-    with metrics.timer("event_manager.normalize_stacktraces_for_grouping", tags=metric_tags):
-        with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):
-            event.normalize_stacktraces_for_grouping(load_grouping_config(grouping_config))
+    with metrics.timer("save_event.calculate_event_grouping", tags=metric_tags):
+        with metrics.timer("event_manager.normalize_stacktraces_for_grouping", tags=metric_tags):
+            with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):
+                event.normalize_stacktraces_for_grouping(load_grouping_config(grouping_config))
 
-    # Detect & set synthetic marker if necessary
-    detect_synthetic_exception(event.data, grouping_config)
+        # Detect & set synthetic marker if necessary
+        detect_synthetic_exception(event.data, grouping_config)
 
-    with metrics.timer("event_manager.apply_server_fingerprinting"):
-        # The active grouping config was put into the event in the
-        # normalize step before.  We now also make sure that the
-        # fingerprint was set to `'{{ default }}' just in case someone
-        # removed it from the payload.  The call to get_hashes will then
-        # look at `grouping_config` to pick the right parameters.
-        event.data["fingerprint"] = event.data.data.get("fingerprint") or ["{{ default }}"]
-        apply_server_fingerprinting(
-            event.data.data,
-            get_fingerprinting_config_for_project(project),
-            allow_custom_title=True,
-        )
+        with metrics.timer("event_manager.apply_server_fingerprinting", tags=metric_tags):
+            # The active grouping config was put into the event in the
+            # normalize step before.  We now also make sure that the
+            # fingerprint was set to `'{{ default }}' just in case someone
+            # removed it from the payload.  The call to get_hashes will then
+            # look at `grouping_config` to pick the right parameters.
+            event.data["fingerprint"] = event.data.data.get("fingerprint") or ["{{ default }}"]
+            apply_server_fingerprinting(
+                event.data.data,
+                get_fingerprinting_config_for_project(project),
+                allow_custom_title=True,
+            )
 
-    with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
-        # Here we try to use the grouping config that was requested in the
-        # event. If that config has since been deleted (because it was an
-        # experimental grouping config) we fall back to the default.
-        try:
-            hashes = event.get_hashes(grouping_config)
-        except GroupingConfigNotFound:
-            event.data["grouping_config"] = get_grouping_config_dict_for_project(project)
-            hashes = event.get_hashes()
+        with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
+            # Here we try to use the grouping config that was requested in the
+            # event. If that config has since been deleted (because it was an
+            # experimental grouping config) we fall back to the default.
+            try:
+                hashes = event.get_hashes(grouping_config)
+            except GroupingConfigNotFound:
+                event.data["grouping_config"] = get_grouping_config_dict_for_project(project)
+                hashes = event.get_hashes()
 
-    hashes.write_to_event(event.data)
-    return hashes
+        hashes.write_to_event(event.data)
+        return hashes
 
 
 @metrics.wraps("save_event.calculate_span_grouping")
@@ -2403,12 +2571,15 @@ def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> 
                 groupings = event.get_span_groupings()
             groupings.write_to_event(event.data)
 
-            metrics.timing("save_event.transaction.span_count", len(groupings.results))
+            metrics.distribution("save_event.transaction.span_count", len(groupings.results))
             unique_default_hashes = set(groupings.results.values())
             metrics.incr(
                 "save_event.transaction.span_group_count.default",
                 amount=len(unique_default_hashes),
-                tags={"platform": job["platform"] or "unknown"},
+                tags={
+                    "platform": job["platform"] or "unknown",
+                    "sdk": normalized_sdk_tag_from_event(event),
+                },
             )
         except Exception:
             sentry_sdk.capture_exception()
@@ -2448,6 +2619,18 @@ def _save_grouphash_and_group(
             group = _create_group(project, event, **group_kwargs)
             group_hash.update(group=group)
 
+            if (
+                features.has("projects:first-event-severity-calculation", event.project)
+                and group.data.get("metadata", {}).get("severity") is None
+            ):
+                logger.error(
+                    "Group created without severity score",
+                    extra={
+                        "event_id": event.data["event_id"],
+                        "group_id": group.id,
+                    },
+                )
+
     if group is None:
         # If we failed to create the group it means another worker beat us to
         # it. Since a GroupHash can only be created in a transaction with the
@@ -2465,6 +2648,26 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
         event_id = event.event_id
 
         performance_problems = job["performance_problems"]
+        if features.has("organizations:issue-platform-extra-logging", project.organization):
+            if performance_problems and len(performance_problems) > 0:
+                logger.warning(
+                    "Detected %s performance problems",
+                    len(performance_problems),
+                    extra={
+                        "performance_problems": performance_problems,
+                        "project_id": project.id,
+                        "event_id": event_id,
+                    },
+                )
+            else:
+                logger.warning(
+                    "No performance problems detected",
+                    extra={
+                        "project_id": project.id,
+                        "event_id": event_id,
+                    },
+                )
+
         for problem in performance_problems:
             occurrence = IssueOccurrence(
                 id=uuid.uuid4().hex,
@@ -2482,7 +2685,7 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
                 level=job["level"],
             )
 
-            produce_occurrence_to_kafka(occurrence)
+            produce_occurrence_to_kafka(payload_type=PayloadType.OCCURRENCE, occurrence=occurrence)
 
 
 @metrics.wraps("event_manager.save_transaction_events")
@@ -2514,7 +2717,7 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
     _get_or_create_release_associated_models(jobs, projects)
     _tsdb_record_all_metrics(jobs)
     _materialize_event_metrics(jobs)
-    _nodestore_save_many(jobs)
+    _nodestore_save_many(jobs=jobs, app_feature="transactions")
     _eventstream_insert_many(jobs)
     _track_outcome_accepted_many(jobs)
     _detect_performance_problems(jobs, projects)
@@ -2548,6 +2751,6 @@ def save_generic_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Seque
     _materialize_metadata_many(jobs)
     _get_or_create_environment_many(jobs, projects)
     _materialize_event_metrics(jobs)
-    _nodestore_save_many(jobs)
+    _nodestore_save_many(jobs=jobs, app_feature="issue_platform")
 
     return jobs

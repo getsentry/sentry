@@ -1,11 +1,11 @@
-from sentry.models import InviteStatus
+from sentry.models.organizationmember import InviteStatus
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TeamMembersTest(APITestCase):
     endpoint = "sentry-api-0-team-members"
 

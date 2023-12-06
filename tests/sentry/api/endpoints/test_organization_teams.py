@@ -2,14 +2,17 @@ from functools import cached_property
 
 from django.urls import reverse
 
-from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
+from sentry.api.fields.sentry_slug import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.projectteam import ProjectTeam
+from sentry.models.team import Team
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import get_provider_string
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationTeamsListTest(APITestCase):
     def test_simple(self):
         user = self.create_user()
@@ -165,7 +168,7 @@ class OrganizationTeamsListTest(APITestCase):
         assert response.status_code == 200, response.content
 
 
-@region_silo_test  # TODO(hybrid-cloud): stable blocked on org members
+@region_silo_test
 class OrganizationTeamsCreateTest(APITestCase):
     endpoint = "sentry-api-0-organization-teams"
     method = "post"
@@ -248,3 +251,15 @@ class OrganizationTeamsCreateTest(APITestCase):
         self.get_error_response(
             self.organization.slug, name="x" * 65, slug="xxxxxxx", status_code=400
         )
+
+    def test_invalid_numeric_slug(self):
+        response = self.get_error_response(
+            self.organization.slug, name="hello word", slug="1234", status_code=400
+        )
+        assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
+
+    def test_generated_slug_not_entirely_numeric(self):
+        response = self.get_success_response(self.organization.slug, name="1234", status_code=201)
+        team = Team.objects.get(id=response.data["id"])
+        assert team.slug.startswith("1234-")
+        assert not team.slug.isdecimal()

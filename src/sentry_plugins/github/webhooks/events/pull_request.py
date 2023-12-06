@@ -1,7 +1,9 @@
 from django.db import IntegrityError
 from django.http import Http404
 
-from sentry.models import CommitAuthor, PullRequest, Repository
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.pullrequest import PullRequest
+from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.user.service import user_service
 
 from . import Webhook, get_external_id

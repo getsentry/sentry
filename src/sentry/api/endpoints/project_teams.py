@@ -1,15 +1,22 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import Team
+from sentry.models.team import Team
 
 
 @region_silo_endpoint
 class ProjectTeamsEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.ENTERPRISE
+
     def get(self, request: Request, project) -> Response:
         """
         List a Project's Teams

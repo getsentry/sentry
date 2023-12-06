@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Generator
 from unittest import mock
 
 import pytest
-from freezegun import freeze_time
 
 from sentry.processing import realtime_metrics
 from sentry.processing.realtime_metrics.base import RealtimeMetricsStore
@@ -15,6 +14,7 @@ from sentry.tasks.low_priority_symbolication import (
     _scan_for_suspect_projects,
     _update_lpq_eligibility,
 )
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.utils.services import LazyServiceWrapper
 

@@ -6,6 +6,8 @@ import {space} from 'sentry/styles/space';
 export type PerformanceWidgetContainerTypes = 'panel' | 'inline';
 
 const StyledPanel = styled(Panel)`
+  display: flex;
+  flex-direction: column;
   padding-top: ${space(2)};
   margin-bottom: 0;
 `;

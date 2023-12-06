@@ -6,7 +6,7 @@ from django.db import router, transaction
 
 from sentry import eventstore, eventstream, nodestore
 from sentry.eventstore.models import Event
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.reprocessing2 import buffered_delete_old_primary_hash
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry
@@ -97,7 +97,7 @@ def reprocess_group(
                         start_time=start_time,
                     )
                 except CannotReprocess as e:
-                    logger.error(f"reprocessing2.{e}")
+                    logger.error("reprocessing2.%s", e)
                 except Exception:
                     sentry_sdk.capture_exception()
                 else:
@@ -173,7 +173,7 @@ def handle_remaining_events(
     if event_ids_redis_key is not None:
         event_ids, from_timestamp, to_timestamp = pop_batched_events_from_redis(event_ids_redis_key)
 
-    metrics.timing(
+    metrics.distribution(
         "events.reprocessing.handle_remaining_events.batch_size",
         len(event_ids),
         sample_rate=1.0,
@@ -226,7 +226,9 @@ def handle_remaining_events(
     soft_time_limit=60 * 5,
 )
 def finish_reprocessing(project_id, group_id):
-    from sentry.models import Activity, Group, GroupRedirect
+    from sentry.models.activity import Activity
+    from sentry.models.group import Group
+    from sentry.models.groupredirect import GroupRedirect
 
     with transaction.atomic(router.db_for_write(Group)):
         group = Group.objects.get(id=group_id)

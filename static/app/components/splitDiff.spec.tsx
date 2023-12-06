@@ -8,8 +8,7 @@ describe('SplitDiff', function () {
   afterEach(function () {});
 
   it('renders', function () {
-    const {container} = render(<SplitDiff base="restaurant" target="aura" />);
-    expect(container).toSnapshot();
+    render(<SplitDiff base="restaurant" target="aura" />);
   });
 
   it('renders with newlines', function () {
@@ -19,7 +18,6 @@ describe('SplitDiff', function () {
     const target = `aura
     and your aura
     common`;
-    const {container} = render(<SplitDiff base={base} target={target} />);
-    expect(container).toSnapshot();
+    render(<SplitDiff base={base} target={target} />);
   });
 });

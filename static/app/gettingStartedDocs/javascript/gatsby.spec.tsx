@@ -7,9 +7,10 @@ import {GettingStartedWithGatsby, nextSteps, steps} from './gatsby';
 
 describe('GettingStartedWithGatsby', function () {
   it('all products are selected', function () {
-    const {container} = render(
+    render(
       <GettingStartedWithGatsby
         dsn="test-dsn"
+        projectSlug="test-project"
         activeProductSelection={[
           ProductSolution.PERFORMANCE_MONITORING,
           ProductSolution.SESSION_REPLAY,
@@ -38,7 +39,5 @@ describe('GettingStartedWithGatsby', function () {
         screen.getByRole('link', {name: filteredNextStepsLink.name})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

@@ -2,17 +2,19 @@ from __future__ import annotations
 
 import logging
 from datetime import timezone
-from typing import Any, MutableMapping
+from typing import Any, ClassVar, MutableMapping
 
 from dateutil.parser import parse as parse_date
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
-from sentry.api.exceptions import SentryAPIException, status
+from sentry.api.exceptions import SentryAPIException
 from sentry.constants import ObjectStatus
 from sentry.integrations import IntegrationInstallation
-from sentry.models import Integration, Repository
+from sentry.models.integrations.integration import Integration
+from sentry.models.repository import Repository
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization.model import RpcOrganization
@@ -49,8 +51,8 @@ class IntegrationRepositoryProvider:
     Does not include plugins.
     """
 
-    name = None
-    repo_provider = None
+    name: ClassVar[str]
+    repo_provider: ClassVar[str]
 
     def __init__(self, id):
         self.id = id
@@ -88,11 +90,11 @@ class IntegrationRepositoryProvider:
         integration_id = result.get("integration_id")
         external_id = result.get("external_id")
         name = result.get("name")
+        url = result.get("url")
 
-        # first check if there is an existing hidden repository with an integration that matches
+        # first check if there is an existing hidden repository for the organization and external id
         repositories = repository_service.get_repositories(
             organization_id=organization.id,
-            integration_id=integration_id,
             external_id=external_id,
             status=ObjectStatus.HIDDEN,
         )
@@ -100,6 +102,8 @@ class IntegrationRepositoryProvider:
         if existing_repo:
             existing_repo.status = ObjectStatus.ACTIVE
             existing_repo.name = name
+            existing_repo.integration_id = integration_id
+            existing_repo.url = url
             repository_service.update_repository(
                 organization_id=organization.id, update=existing_repo
             )

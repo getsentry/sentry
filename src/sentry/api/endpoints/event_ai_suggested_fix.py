@@ -1,12 +1,17 @@
+from __future__ import annotations
+
 import logging
 import random
+from typing import Any
 
-import openai
 from django.conf import settings
 from django.dispatch import Signal
 from django.http import HttpResponse, StreamingHttpResponse
+from openai import OpenAI, RateLimitError
 
-from sentry import eventstore, features
+from sentry import eventstore
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -17,9 +22,6 @@ from sentry.utils.cache import cache
 logger = logging.getLogger(__name__)
 
 from rest_framework.request import Request
-from rest_framework.response import Response
-
-openai.api_key = settings.OPENAI_API_KEY
 
 openai_policy_check = Signal()
 
@@ -109,6 +111,20 @@ BLOCKED_TAGS = frozenset(
     ]
 )
 
+openai_client: OpenAI | None = None
+
+
+def get_openai_client() -> OpenAI:
+    global openai_client
+
+    if openai_client:
+        return openai_client
+
+    # this will raise if OPENAI_API_KEY is not set
+    openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
+
+    return openai_client
+
 
 def get_openai_policy(organization):
     """Uses a signal to determine what the policy for OpenAI should be."""
@@ -185,7 +201,7 @@ def describe_event_for_ai(event, model):
     for idx, exc in enumerate(
         reversed((event.get("exception", {})).get("values", ())[:MAX_EXCEPTIONS])
     ):
-        exception = {}
+        exception: dict[str, Any] = {}
         if idx > 0:
             exception["raised_during_handling_of_previous_exception"] = True
         exception["num"] = idx + 1
@@ -205,7 +221,7 @@ def describe_event_for_ai(event, model):
         if frames:
             stacktrace = []
             for frame in reversed(frames):
-                stack_frame = {}
+                stack_frame: dict[str, Any] = {}
                 set_if_value(stack_frame, "func", frame.get("function"))
                 set_if_value(stack_frame, "module", frame.get("module"))
                 set_if_value(stack_frame, "file", frame.get("filename"))
@@ -243,12 +259,14 @@ def describe_event_for_ai(event, model):
     return data
 
 
-def suggest_fix(event_data, model="gpt-3.5-turbo", stream=False):
+def suggest_fix(event_data, model="gpt-3.5-turbo-16k", stream=False):
     """Runs an OpenAI request to suggest a fix."""
     prompt = PROMPT.replace("___FUN_PROMPT___", random.choice(FUN_PROMPT_CHOICES))
     event_info = describe_event_for_ai(event_data, model=model)
 
-    response = openai.ChatCompletion.create(
+    client = get_openai_client()
+
+    response = client.chat.completions.create(
         model=model,
         temperature=0.7,
         messages=[
@@ -262,7 +280,7 @@ def suggest_fix(event_data, model="gpt-3.5-turbo", stream=False):
     )
     if stream:
         return reduce_stream(response)
-    return response["choices"][0]["message"]["content"]
+    return response.choices[0].message.content
 
 
 def reduce_stream(response):
@@ -274,6 +292,10 @@ def reduce_stream(response):
 
 @region_silo_endpoint
 class EventAiSuggestedFixEndpoint(ProjectEndpoint):
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
     # go away
     private = True
     enforce_rate_limit = True
@@ -285,7 +307,7 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
         },
     }
 
-    def get(self, request: Request, project, event_id) -> Response:
+    def get(self, request: Request, project, event_id) -> HttpResponse | StreamingHttpResponse:
         """
         Makes AI make suggestions about an event
         ````````````````````````````````````````
@@ -293,10 +315,8 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
         This endpoint returns a JSON response that provides helpful suggestions about how to
         understand or resolve an event.
         """
-        # To use this feature you need the feature enabled and openai needs to be configured
-        if not settings.OPENAI_API_KEY or not features.has(
-            "organizations:open-ai-suggestion", project.organization, actor=request.user
-        ):
+        # To use this feature you need openai to be configured
+        if not settings.OPENAI_API_KEY:
             raise ResourceDoesNotExist
 
         event = eventstore.backend.get_event_by_id(project.id, event_id)
@@ -331,9 +351,9 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
         if suggestion is None:
             try:
                 suggestion = suggest_fix(event.data, stream=stream)
-            except openai.error.RateLimitError as err:
+            except RateLimitError as err:
                 return HttpResponse(
-                    json.dumps({"error": err.json_body["error"]}),
+                    json.dumps({"error": err.response.json()["error"]}),
                     content_type="text/plain; charset=utf-8",
                     status=429,
                 )

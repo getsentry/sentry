@@ -3,15 +3,12 @@ from __future__ import annotations
 from collections import defaultdict, namedtuple
 from typing import Any, Dict, Sequence
 
-from sentry.models import (
-    Activity,
-    Group,
-    GroupStatus,
-    GroupSubscription,
-    Project,
-    User,
-    record_group_history_from_activity_type,
-)
+from sentry.models.activity import Activity
+from sentry.models.group import Group, GroupStatus
+from sentry.models.grouphistory import record_group_history_from_activity_type
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.project import Project
+from sentry.models.user import User
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import issue_ignored, issue_unignored, issue_unresolved
 from sentry.tasks.integrations import kick_off_status_syncs
@@ -109,7 +106,7 @@ def handle_status_update(
         if not is_bulk:
             if acting_user:
                 GroupSubscription.objects.subscribe(
-                    user=acting_user,
+                    subscriber=acting_user,
                     group=group,
                     reason=GroupSubscriptionReason.status_change,
                 )

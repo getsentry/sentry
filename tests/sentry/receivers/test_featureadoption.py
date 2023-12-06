@@ -1,6 +1,9 @@
 from django.utils import timezone
 
-from sentry.models import FeatureAdoption, GroupAssignee, GroupTombstone, Rule
+from sentry.models.featureadoption import FeatureAdoption
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.grouptombstone import GroupTombstone
+from sentry.models.rule import Rule
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.receivers.rules import DEFAULT_RULE_DATA

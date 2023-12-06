@@ -237,23 +237,26 @@ describe('TraceView', () => {
       const mockResponse = {
         method: 'GET',
         statusCode: 200,
-        body: [
-          event,
-          {
-            errors: [],
-            event_id: '998d7e2c304c45729545e4434e2967cb',
-            generation: 1,
-            parent_event_id: '2b658a829a21496b87fd1f14a61abf65',
-            parent_span_id: 'b000000000000000',
-            project_id: project.id,
-            project_slug: project.slug,
-            span_id: '8596e2795f88471d',
-            transaction:
-              '/api/0/organizations/{organization_slug}/events/{project_slug}:{event_id}/',
-            'transaction.duration': 159,
-            'transaction.op': 'http.server',
-          },
-        ],
+        body: {
+          transactions: [
+            event,
+            {
+              errors: [],
+              event_id: '998d7e2c304c45729545e4434e2967cb',
+              generation: 1,
+              parent_event_id: '2b658a829a21496b87fd1f14a61abf65',
+              parent_span_id: 'b000000000000000',
+              project_id: project.id,
+              project_slug: project.slug,
+              span_id: '8596e2795f88471d',
+              transaction:
+                '/api/0/organizations/{organization_slug}/events/{project_slug}:{event_id}/',
+              'transaction.duration': 159,
+              'transaction.op': 'http.server',
+            },
+          ],
+          orphan_errors: [],
+        },
       };
 
       const eventsTraceMock = MockApiClient.addMockResponse({
@@ -327,37 +330,40 @@ describe('TraceView', () => {
       const mockResponse = {
         method: 'GET',
         statusCode: 200,
-        body: [
-          event,
-          {
-            errors: [],
-            event_id: '998d7e2c304c45729545e4434e2967cb',
-            generation: 1,
-            parent_event_id: '2b658a829a21496b87fd1f14a61abf65',
-            parent_span_id: 'b000000000000000',
-            project_id: project.id,
-            project_slug: project.slug,
-            span_id: '8596e2795f88471d',
-            transaction:
-              '/api/0/organizations/{organization_slug}/events/{project_slug}:{event_id}/',
-            'transaction.duration': 159,
-            'transaction.op': 'http.server',
-          },
-          {
-            errors: [],
-            event_id: '59e1fe369528499b87dab7221ce6b8a9',
-            generation: 1,
-            parent_event_id: '2b658a829a21496b87fd1f14a61abf65',
-            parent_span_id: 'b000000000000000',
-            project_id: project.id,
-            project_slug: project.slug,
-            span_id: 'aa5abb302ad5b9e1',
-            transaction:
-              '/api/0/organizations/{organization_slug}/events/{project_slug}:{event_id}/',
-            'transaction.duration': 159,
-            'transaction.op': 'middleware.nextjs',
-          },
-        ],
+        body: {
+          transactions: [
+            event,
+            {
+              errors: [],
+              event_id: '998d7e2c304c45729545e4434e2967cb',
+              generation: 1,
+              parent_event_id: '2b658a829a21496b87fd1f14a61abf65',
+              parent_span_id: 'b000000000000000',
+              project_id: project.id,
+              project_slug: project.slug,
+              span_id: '8596e2795f88471d',
+              transaction:
+                '/api/0/organizations/{organization_slug}/events/{project_slug}:{event_id}/',
+              'transaction.duration': 159,
+              'transaction.op': 'http.server',
+            },
+            {
+              errors: [],
+              event_id: '59e1fe369528499b87dab7221ce6b8a9',
+              generation: 1,
+              parent_event_id: '2b658a829a21496b87fd1f14a61abf65',
+              parent_span_id: 'b000000000000000',
+              project_id: project.id,
+              project_slug: project.slug,
+              span_id: 'aa5abb302ad5b9e1',
+              transaction:
+                '/api/0/organizations/{organization_slug}/events/{project_slug}:{event_id}/',
+              'transaction.duration': 159,
+              'transaction.op': 'middleware.nextjs',
+            },
+          ],
+          orphan_errors: [],
+        },
       };
 
       const eventsTraceMock = MockApiClient.addMockResponse({

@@ -28,7 +28,7 @@ def error_regions(region: Region, invalid_region_names: Iterable[str]):
 class BaseRequestParserTest(TestCase):
     response_handler = MagicMock()
     region_config = (
-        Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT),
+        Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT),
         Region("eu", 2, "https://eu.testserver", RegionCategory.MULTI_TENANT),
     )
     factory = RequestFactory()
@@ -76,13 +76,13 @@ class BaseRequestParserTest(TestCase):
 
         response_map = self.parser.get_responses_from_region_silos(regions=self.region_config)
         assert mock__get_response.call_count == len(self.region_config)
-        assert response_map["na"].response == "na"
+        assert response_map["us"].response == "us"
         assert type(response_map["eu"].error) is SiloLimit.AvailabilityError
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch.object(BaseRequestParser, "get_response_from_region_silo")
     def test_get_responses_from_region_silos_with_complete_failure(self, mock__get_response):
-        mock__get_response.side_effect = lambda region: error_regions(region, ["na", "eu"])
+        mock__get_response.side_effect = lambda region: error_regions(region, ["us", "eu"])
 
         self.response_handler.reset_mock()
         response_map = self.parser.get_responses_from_region_silos(regions=self.region_config)
@@ -106,7 +106,7 @@ class BaseRequestParserTest(TestCase):
         new_outboxes = ControlOutbox.objects.all()
         assert len(new_outboxes) == 2
         for outbox in new_outboxes:
-            assert outbox.region_name in ["na", "eu"]
+            assert outbox.region_name in ["us", "eu"]
             assert outbox.category == OutboxCategory.WEBHOOK_PROXY
             assert outbox.shard_scope == OutboxScope.WEBHOOK_SCOPE
             assert outbox.shard_identifier == WebhookProviderIdentifier.SLACK.value

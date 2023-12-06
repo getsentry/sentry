@@ -1,17 +1,15 @@
 from unittest import mock
 
 from sentry.integrations.example.integration import AliasedIntegrationProvider, ExampleIntegration
-from sentry.models import (
-    ExternalIssue,
-    Group,
-    GroupLink,
-    GroupStatus,
-    Integration,
-    OrganizationIntegration,
-)
+from sentry.models.group import Group, GroupStatus
+from sentry.models.grouplink import GroupLink
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 @region_silo_test
@@ -20,20 +18,22 @@ class IssueSyncIntegration(TestCase):
         group = self.group
         assert group.status == GroupStatus.UNRESOLVED
 
-        integration = Integration.objects.create(provider="example", external_id="123456")
-        integration.add_organization(group.organization, self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(provider="example", external_id="123456")
+            integration.add_organization(group.organization, self.user)
 
-        OrganizationIntegration.objects.filter(
-            integration_id=integration.id, organization_id=group.organization.id
-        ).update(
-            config={
-                "sync_comments": True,
-                "sync_status_outbound": True,
-                "sync_status_inbound": True,
-                "sync_assignee_outbound": True,
-                "sync_assignee_inbound": True,
-            }
-        )
+            for oi in OrganizationIntegration.objects.filter(
+                integration_id=integration.id, organization_id=group.organization.id
+            ):
+                oi.update(
+                    config={
+                        "sync_comments": True,
+                        "sync_status_outbound": True,
+                        "sync_status_inbound": True,
+                        "sync_assignee_outbound": True,
+                        "sync_assignee_inbound": True,
+                    }
+                )
 
         external_issue = ExternalIssue.objects.create(
             organization_id=group.organization.id, integration_id=integration.id, key="APP-123"
@@ -64,20 +64,22 @@ class IssueSyncIntegration(TestCase):
         group.save()
         assert group.status == GroupStatus.RESOLVED
 
-        integration = Integration.objects.create(provider="example", external_id="123456")
-        integration.add_organization(group.organization, self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(provider="example", external_id="123456")
+            integration.add_organization(group.organization, self.user)
 
-        OrganizationIntegration.objects.filter(
-            integration_id=integration.id, organization_id=group.organization.id
-        ).update(
-            config={
-                "sync_comments": True,
-                "sync_status_outbound": True,
-                "sync_status_inbound": True,
-                "sync_assignee_outbound": True,
-                "sync_assignee_inbound": True,
-            }
-        )
+            for oi in OrganizationIntegration.objects.filter(
+                integration_id=integration.id, organization_id=group.organization.id
+            ):
+                oi.update(
+                    config={
+                        "sync_comments": True,
+                        "sync_status_outbound": True,
+                        "sync_status_inbound": True,
+                        "sync_assignee_outbound": True,
+                        "sync_assignee_inbound": True,
+                    }
+                )
 
         external_issue = ExternalIssue.objects.create(
             organization_id=group.organization.id, integration_id=integration.id, key="APP-123"
@@ -130,13 +132,13 @@ class IssueDefaultTest(TestCase):
         self.installation = installation
 
     def test_get_repository_choices(self):
-        default_repo, repo_choice = self.installation.get_repository_choices(self.group)
+        default_repo, repo_choice = self.installation.get_repository_choices(self.group, {})
         assert default_repo == "user/repo"
         assert repo_choice == [("user/repo", "repo")]
 
     def test_get_repository_choices_no_repos(self):
         with mock.patch.object(self.installation, "get_repositories", return_value=[]):
-            default_repo, repo_choice = self.installation.get_repository_choices(self.group)
+            default_repo, repo_choice = self.installation.get_repository_choices(self.group, {})
             assert default_repo == ""
             assert repo_choice == []
 
@@ -154,7 +156,7 @@ class IssueDefaultTest(TestCase):
                 {"name": "repo2", "identifier": "user/repo2"},
             ],
         ):
-            default_repo, repo_choice = self.installation.get_repository_choices(self.group)
+            default_repo, repo_choice = self.installation.get_repository_choices(self.group, {})
             assert default_repo == "user/repo2"
             assert repo_choice == [("user/repo1", "repo1"), ("user/repo2", "repo2")]
 
@@ -200,8 +202,9 @@ class IssueDefaultTest(TestCase):
         }
 
     def test_store_issue_last_defaults_for_user_multiple_providers(self):
-        other_integration = Integration.objects.create(provider=AliasedIntegrationProvider.key)
-        other_integration.add_organization(self.organization, self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            other_integration = Integration.objects.create(provider=AliasedIntegrationProvider.key)
+            other_integration.add_organization(self.organization, self.user)
         other_installation = other_integration.get_installation(self.organization.id)
 
         self.installation.store_issue_last_defaults(
@@ -227,8 +230,9 @@ class IssueDefaultTest(TestCase):
             self.group.id: [f'<a href="{link}">{label}</a>']
         }
 
-        integration = Integration.objects.create(provider="example", external_id="4444")
-        integration.add_organization(self.group.organization, self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(provider="example", external_id="4444")
+            integration.add_organization(self.group.organization, self.user)
         installation = integration.get_installation(self.group.organization.id)
 
         assert installation.get_annotations_for_group_list([self.group]) == {self.group.id: []}

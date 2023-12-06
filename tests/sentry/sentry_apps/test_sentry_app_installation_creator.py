@@ -4,14 +4,17 @@ import responses
 
 from sentry import audit_log
 from sentry.constants import SentryAppInstallationStatus
-from sentry.models import ApiGrant, AuditLogEntry, ServiceHook, ServiceHookProject
+from sentry.models.apigrant import ApiGrant
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.installations import SentryAppInstallationCreator
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestCreator(TestCase):
     def setUp(self):
 
@@ -87,10 +90,11 @@ class TestCreator(TestCase):
     @responses.activate
     @patch("sentry.mediators.sentry_app_installations.InstallationNotifier.run")
     def test_notifies_service(self, run):
+        rpc_user = user_service.get_user(user_id=self.user.id)
         with self.tasks():
             responses.add(responses.POST, "https://example.com/webhook")
             install = self.run_creator()
-            run.assert_called_once_with(install=install, user=self.user, action="created")
+            run.assert_called_once_with(install=install, user=rpc_user, action="created")
 
     @responses.activate
     def test_associations(self):
@@ -116,6 +120,7 @@ class TestCreator(TestCase):
 
         assert install.status == SentryAppInstallationStatus.INSTALLED
 
+    @responses.activate
     @patch("sentry.analytics.record")
     def test_records_analytics(self, record):
         SentryAppInstallationCreator(organization_id=self.org.id, slug="nulldb",).run(

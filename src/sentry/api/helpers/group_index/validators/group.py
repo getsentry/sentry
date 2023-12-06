@@ -3,8 +3,10 @@ from typing import Any, Mapping
 from rest_framework import serializers
 
 from sentry.api.fields import ActorField
-from sentry.models import Actor, Team, User
+from sentry.models.actor import Actor
 from sentry.models.group import STATUS_UPDATE_CHOICES
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES
 
 from . import InboxDetailsValidator, StatusDetailsValidator

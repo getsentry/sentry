@@ -62,7 +62,7 @@ export function CodeOwnerFileTable({
         `/projects/${organization.slug}/${project.slug}/codeowners/${codeowner.id}/`,
         {
           method: 'PUT',
-          data: {raw: codeownerFile.raw},
+          data: {raw: codeownerFile.raw, date_updated: new Date().toISOString()},
         }
       );
       onUpdate({...codeowner, ...data});

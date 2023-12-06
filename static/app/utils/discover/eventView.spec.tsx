@@ -1,4 +1,6 @@
 import shuffle from 'lodash/shuffle';
+import {Organization} from 'sentry-fixture/organization';
+import {PageFilters} from 'sentry-fixture/pageFilters';
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {NewQuery, SavedQuery} from 'sentry/types';
@@ -515,7 +517,7 @@ describe('EventView.fromNewQueryWithPageFilters()', function () {
   };
 
   it('maps basic properties of a prebuilt query', function () {
-    const pageFilters = TestStubs.PageFilters();
+    const pageFilters = PageFilters();
 
     const eventView = EventView.fromNewQueryWithPageFilters(prebuiltQuery, pageFilters);
 
@@ -564,7 +566,7 @@ describe('EventView.fromNewQueryWithPageFilters()', function () {
 describe('EventView.fromNewQueryWithLocation()', function () {
   const prebuiltQuery: NewQuery = {
     id: undefined,
-    name: 'All Events',
+    name: 'Sampled Events',
     query: '',
     projects: [],
     fields: ['title', 'event.type', 'project', 'user', 'timestamp'],
@@ -583,7 +585,7 @@ describe('EventView.fromNewQueryWithLocation()', function () {
 
     expect(eventView).toMatchObject({
       id: undefined,
-      name: 'All Events',
+      name: 'Sampled Events',
       fields: [
         {field: 'title'},
         {field: 'event.type'},
@@ -616,7 +618,7 @@ describe('EventView.fromNewQueryWithLocation()', function () {
 
     expect(eventView).toMatchObject({
       id: undefined,
-      name: 'All Events',
+      name: 'Sampled Events',
       fields: [
         {field: 'title'},
         {field: 'event.type'},
@@ -655,7 +657,7 @@ describe('EventView.fromNewQueryWithLocation()', function () {
 
     expect(eventView).toMatchObject({
       id: undefined,
-      name: 'All Events',
+      name: 'Sampled Events',
       fields: [
         {field: 'title'},
         {field: 'event.type'},
@@ -696,7 +698,7 @@ describe('EventView.fromNewQueryWithLocation()', function () {
 
     expect(eventView2).toMatchObject({
       id: undefined,
-      name: 'All Events',
+      name: 'Sampled Events',
       fields: [
         {field: 'title'},
         {field: 'event.type'},
@@ -2976,7 +2978,7 @@ describe('EventView.getResultsViewUrlTarget()', function () {
     display: 'previous',
     dataset: DiscoverDatasets.DISCOVER,
   };
-  const organization = TestStubs.Organization();
+  const organization = Organization();
 
   it('generates a URL with non-customer domain context', function () {
     window.__initialData.customerDomain = null;
@@ -3032,7 +3034,7 @@ describe('EventView.getResultsViewShortUrlTarget()', function () {
     display: 'previous',
     dataset: DiscoverDatasets.DISCOVER,
   };
-  const organization = TestStubs.Organization();
+  const organization = Organization();
 
   it('generates a URL with non-customer domain context', function () {
     window.__initialData.customerDomain = null;
@@ -3096,7 +3098,7 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
     display: 'previous',
     dataset: DiscoverDatasets.DISCOVER,
   };
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   const showTransactions = EventsDisplayFilterName.P99;
   const breakdown = SpanOperationBreakdownFilter.HTTP;
   const webVital = WebVital.LCP;

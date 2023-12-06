@@ -5,6 +5,8 @@ from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 
 from sentry import analytics, features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppsBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
@@ -12,7 +14,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
-from sentry.models import SentryApp
+from sentry.models.integrations.sentry_app import SentryApp
 from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import json
@@ -22,6 +24,12 @@ logger = logging.getLogger(__name__)
 
 @control_silo_endpoint
 class SentryAppsEndpoint(SentryAppsBaseEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.ISSUES
+
     def get(self, request: Request) -> Response:
         status = request.GET.get("status")
 

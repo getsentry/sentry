@@ -4,6 +4,8 @@ from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Sub
 from drf_spectacular.utils import extend_schema
 
 from sentry import audit_log
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -15,20 +17,21 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.parameters import GlobalParams, OrganizationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.constants import ObjectStatus
 from sentry.db.models.query import in_iexact
-from sentry.models import Environment, Organization
+from sentry.models.environment import Environment
+from sentry.models.organization import Organization
 from sentry.monitors.models import (
     Monitor,
     MonitorEnvironment,
     MonitorLimitsExceeded,
+    MonitorObjectStatus,
     MonitorStatus,
     MonitorType,
 )
 from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
-from sentry.monitors.utils import create_alert_rule, signal_first_monitor_created
+from sentry.monitors.utils import create_alert_rule, signal_monitor_created
 from sentry.monitors.validators import MonitorValidator
 from sentry.search.utils import tokenize_query
 
@@ -65,14 +68,18 @@ MONITOR_ENVIRONMENT_ORDERING = Case(
 @region_silo_endpoint
 @extend_schema(tags=["Crons"])
 class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
-    public = {"GET", "POST"}
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
+    }
+    owner = ApiOwner.CRONS
     permission_classes = (OrganizationMonitorPermission,)
 
     @extend_schema(
         operation_id="Retrieve Monitors for an Organization",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT,
+            OrganizationParams.PROJECT,
             GlobalParams.ENVIRONMENT,
         ],
         responses={
@@ -84,7 +91,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
     )
     def get(self, request: Request, organization: Organization) -> Response:
         """
-        Lists monitors, including nested monitor enviroments. May be filtered to a project or environment.
+        Lists monitors, including nested monitor environments. May be filtered to a project or environment.
         """
         try:
             filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
@@ -93,18 +100,26 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
 
         queryset = Monitor.objects.filter(
             organization_id=organization.id, project_id__in=filter_params["project_id"]
-        ).exclude(status__in=[ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS])
+        ).exclude(
+            status__in=[
+                MonitorObjectStatus.PENDING_DELETION,
+                MonitorObjectStatus.DELETION_IN_PROGRESS,
+            ]
+        )
         query = request.GET.get("query")
 
         environments = None
         if "environment" in filter_params:
             environments = filter_params["environment_objects"]
+            # use a distinct() filter as queries spanning multiple tables can include duplicates
             if request.GET.get("includeNew"):
                 queryset = queryset.filter(
                     Q(monitorenvironment__environment__in=environments) | Q(monitorenvironment=None)
-                )
+                ).distinct()
             else:
-                queryset = queryset.filter(monitorenvironment__environment__in=environments)
+                queryset = queryset.filter(
+                    monitorenvironment__environment__in=environments
+                ).distinct()
         else:
             environments = list(Environment.objects.filter(organization_id=organization.id))
 
@@ -178,7 +193,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         parameters=[GlobalParams.ORG_SLUG],
         request=MonitorValidator,
         responses={
-            201: inline_sentry_response_serializer("Monitor", MonitorSerializerResponse),
+            201: MonitorSerializer,
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
@@ -219,7 +234,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         )
 
         project = result["project"]
-        signal_first_monitor_created(project, request.user, False)
+        signal_monitor_created(project, request.user, False)
 
         validated_alert_rule = result.get("alert_rule")
         if validated_alert_rule:

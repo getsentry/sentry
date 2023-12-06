@@ -38,6 +38,8 @@ class MetricsBackend(local):
         tags: Optional[Tags] = None,
         amount: Union[float, int] = 1,
         sample_rate: float = 1,
+        unit: Optional[str] = None,
+        stacklevel: int = 0,
     ) -> None:
         raise NotImplementedError
 
@@ -48,6 +50,7 @@ class MetricsBackend(local):
         instance: Optional[str] = None,
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
+        stacklevel: int = 0,
     ) -> None:
         raise NotImplementedError
 
@@ -58,5 +61,19 @@ class MetricsBackend(local):
         instance: Optional[str] = None,
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
+        unit: Optional[str] = None,
+        stacklevel: int = 0,
+    ) -> None:
+        raise NotImplementedError
+
+    def distribution(
+        self,
+        key: str,
+        value: float,
+        instance: Optional[str] = None,
+        tags: Optional[Tags] = None,
+        sample_rate: float = 1,
+        unit: Optional[str] = None,
+        stacklevel: int = 0,
     ) -> None:
         raise NotImplementedError

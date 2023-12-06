@@ -1,4 +1,4 @@
-import React, {createRef, useEffect} from 'react';
+import {createRef, Fragment, useEffect} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -58,6 +58,7 @@ type Props = Pick<RouteComponentProps<{}, {}>, 'location'> & {
   traceSlug: string;
   traces: TraceFullDetailed[];
   filteredEventIds?: Set<string>;
+  handleLimitChange?: (newLimit: number) => void;
   orphanErrors?: TraceError[];
   traceInfo?: TraceInfo;
 };
@@ -139,6 +140,7 @@ export default function TraceView({
   traceEventView,
   filteredEventIds,
   orphanErrors,
+  handleLimitChange,
   ...props
 }: Props) {
   const sentryTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
@@ -147,7 +149,7 @@ export default function TraceView({
     description: 'trace-view-content',
   });
   const hasOrphanErrors = orphanErrors && orphanErrors.length > 0;
-  const traceHasSingleOrphanError = orphanErrors?.length === 1 && traces.length <= 0;
+  const onlyOrphanErrors = hasOrphanErrors && (!traces || traces.length === 0);
 
   useEffect(() => {
     trackAnalytics('performance_views.trace_view.view', {
@@ -216,7 +218,7 @@ export default function TraceView({
 
     return {
       transactionGroup: (
-        <React.Fragment key={eventId}>
+        <Fragment key={eventId}>
           <TraceHiddenMessage
             isVisible={isVisible}
             numberOfHiddenTransactionsAbove={numberOfHiddenTransactionsAbove}
@@ -245,7 +247,7 @@ export default function TraceView({
             renderedChildren={accumulated.renderedChildren}
             barColor={pickBarColor(transaction['transaction.op'])}
           />
-        </React.Fragment>
+        </Fragment>
       ),
       lastIndex: accumulated.lastIndex,
       numberOfHiddenTransactionsAbove: accumulated.numberOfHiddenTransactionsAbove,
@@ -327,7 +329,7 @@ export default function TraceView({
       }
 
       transactionGroups.push(
-        <React.Fragment key={error.event_id}>
+        <Fragment key={error.event_id}>
           <TraceHiddenMessage
             isVisible={isVisible}
             numberOfHiddenTransactionsAbove={
@@ -354,10 +356,10 @@ export default function TraceView({
             isLast={isLastError}
             index={lastIndex + index + 1}
             isVisible={isVisible}
-            hasGuideAnchor
+            hasGuideAnchor={index === 0 && transactionGroups.length === 0}
             renderedChildren={[]}
           />
-        </React.Fragment>
+        </Fragment>
       );
     });
   }
@@ -441,7 +443,7 @@ export default function TraceView({
                     hasGuideAnchor={false}
                     renderedChildren={transactionGroups}
                     barColor={pickBarColor('')}
-                    traceHasSingleOrphanError={traceHasSingleOrphanError}
+                    onlyOrphanErrors={onlyOrphanErrors}
                     numOfOrphanErrors={orphanErrors?.length}
                   />
                   <TraceHiddenMessage
@@ -454,6 +456,7 @@ export default function TraceView({
                     organization={organization}
                     traceEventView={traceEventView}
                     meta={meta}
+                    handleLimitChange={handleLimitChange}
                   />
                 </TraceViewContainer>
               </StyledTracePanel>

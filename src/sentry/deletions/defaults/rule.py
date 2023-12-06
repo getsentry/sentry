@@ -3,7 +3,8 @@ from ..base import ModelDeletionTask, ModelRelation
 
 class RuleDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
-        from sentry.models import GroupRuleStatus, RuleActivity
+        from sentry.models.grouprulestatus import GroupRuleStatus
+        from sentry.models.rule import RuleActivity
         from sentry.models.rulefirehistory import RuleFireHistory
 
         return [

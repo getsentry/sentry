@@ -1,5 +1,6 @@
 import {RouteComponentProps} from 'react-router';
 import {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
+import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -83,6 +84,14 @@ describe('normalizeUrl', function () {
       ],
       // Team settings links in breadcrumbs can be pre-normalized from breadcrumbs
       ['/settings/teams/peeps/', '/settings/teams/peeps/'],
+      [
+        '/settings/billing/checkout/?_q=all#hash',
+        '/settings/billing/checkout/?_q=all#hash',
+      ],
+      [
+        '/settings/billing/bundle-checkout/?_q=all#hash',
+        '/settings/billing/bundle-checkout/?_q=all#hash',
+      ],
     ];
     for (const [input, expected] of cases) {
       result = normalizeUrl(input);
@@ -259,7 +268,7 @@ describe('withDomainRequired', function () {
       },
     } as any;
 
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       slug: 'albertos-apples',
       features: [],
     });
@@ -308,7 +317,7 @@ describe('withDomainRequired', function () {
       },
     } as any;
 
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       slug: 'albertos-apples',
       features: [],
     });
@@ -357,7 +366,7 @@ describe('withDomainRequired', function () {
       },
     } as any;
 
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       slug: 'albertos-apples',
       features: [],
     });

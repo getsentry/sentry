@@ -2,6 +2,8 @@ import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.constants import ObjectStatus
 from sentry.integrations.utils import get_integration_from_jwt
@@ -13,6 +15,10 @@ from .base import JiraWebhookBase
 
 @control_silo_endpoint
 class JiraSentryUninstalledWebhook(JiraWebhookBase):
+    owner = ApiOwner.INTEGRATIONS
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     """
     Webhook hit by Jira whenever someone uninstalls the Sentry integration from their Jira instance.
     """

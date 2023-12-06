@@ -1,3 +1,6 @@
+import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+import {Event as EventFixture} from 'sentry-fixture/event';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -31,14 +34,13 @@ export const gpuMetaMockData = {
   },
 };
 
-const event = {
-  ...TestStubs.Event(),
+const event = EventFixture({
   _meta: {
     contexts: {
       gpu: gpuMetaMockData,
     },
   },
-};
+});
 
 // Flaky test https://github.com/getsentry/sentry/actions/runs/4465585304/jobs/7842795315?pr=45984
 // eslint-disable-next-line
@@ -46,7 +48,7 @@ describe.skip('gpu event context', function () {
   it('display redacted data', async function () {
     render(<GPUEventContext event={event} data={gpuMockData} />, {
       organization: {
-        relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+        relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
       },
     });
 

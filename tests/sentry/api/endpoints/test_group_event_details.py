@@ -2,11 +2,10 @@ import uuid
 from uuid import uuid4
 
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
-from sentry.models import GroupStatus
+from sentry.models.group import GroupStatus
 from sentry.models.release import Release
 from sentry.search.events.constants import SEMVER_ALIAS
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -57,7 +56,7 @@ class GroupEventDetailsEndpointTestBase(APITestCase, SnubaTestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCase, SnubaTestCase):
     def test_get_simple_latest(self):
         url = f"/api/0/issues/{self.event_a.group.id}/events/latest/"
@@ -139,17 +138,10 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupEventDetailsHelpfulEndpointTest(
     GroupEventDetailsEndpointTestBase, APITestCase, SnubaTestCase, OccurrenceTestMixin
 ):
-    def test_get_helpful_feature_off(self):
-        url = f"/api/0/issues/{self.event_a.group.id}/events/helpful/"
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 404, response.content
-
-    @with_feature("organizations:issue-details-most-helpful-event")
     def test_get_simple_helpful(self):
         self.event_d = self.store_event(
             data={
@@ -177,7 +169,42 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["previousEventID"] == self.event_c.event_id
         assert response.data["nextEventID"] is None
 
-    @with_feature("organizations:issue-details-most-helpful-event")
+    def test_get_helpful_event_id(self):
+        """
+        When everything else is equal, the event_id should be used to break ties.
+        """
+        timestamp = iso_format(before_now(minutes=1))
+
+        self.event_d = self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "environment": "staging",
+                "timestamp": timestamp,
+                "fingerprint": ["group-1"],
+                "contexts": {},
+                "errors": [],
+            },
+            project_id=self.project_1.id,
+        )
+        self.event_e = self.store_event(
+            data={
+                "event_id": "e" * 32,
+                "environment": "staging",
+                "timestamp": timestamp,
+                "fingerprint": ["group-1"],
+                "contexts": {},
+                "errors": [],
+            },
+            project_id=self.project_1.id,
+        )
+        url = f"/api/0/issues/{self.event_a.group.id}/events/helpful/"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(self.event_e.event_id)
+        assert response.data["previousEventID"] == self.event_d.event_id
+        assert response.data["nextEventID"] is None
+
     def test_get_helpful_replay_id_order(self):
         replay_id_1 = uuid.uuid4().hex
         replay_id_2 = uuid.uuid4().hex
@@ -226,7 +253,6 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["previousEventID"] == str(self.event_d.event_id)
         assert response.data["nextEventID"] == str(self.event_f.event_id)
 
-    @with_feature("organizations:issue-details-most-helpful-event")
     def test_with_empty_query(self):
         url = f"/api/0/issues/{self.event_a.group.id}/events/helpful/"
         response = self.client.get(url, {"query": ""}, format="json")
@@ -236,7 +262,6 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["previousEventID"] == str(self.event_b.event_id)
         assert response.data["nextEventID"] is None
 
-    @with_feature("organizations:issue-details-most-helpful-event")
     def test_issue_filter_query_ignored(self):
         url = f"/api/0/issues/{self.event_a.group.id}/events/helpful/"
         response = self.client.get(url, {"query": "is:unresolved"}, format="json")
@@ -246,7 +271,6 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["previousEventID"] == str(self.event_b.event_id)
         assert response.data["nextEventID"] is None
 
-    @with_feature("organizations:issue-details-most-helpful-event")
     def test_event_release_query(self):
         url = f"/api/0/issues/{self.event_a.group.id}/events/helpful/"
         response = self.client.get(url, {"query": f"release:{self.release_version}"}, format="json")
@@ -256,7 +280,6 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["previousEventID"] == str(self.event_b.event_id)
         assert response.data["nextEventID"] is None
 
-    @with_feature("organizations:issue-details-most-helpful-event")
     def test_event_release_semver_query(self):
         event_g = self.store_event(
             data={
@@ -281,7 +304,6 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["previousEventID"] is None
         assert response.data["nextEventID"] is None
 
-    @with_feature("organizations:issue-details-most-helpful-event")
     def test_has_environment(self):
         url = f"/api/0/issues/{self.event_a.group.id}/events/helpful/"
         response = self.client.get(url, {"query": "has:environment"}, format="json")
@@ -291,7 +313,6 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["previousEventID"] == str(self.event_b.event_id)
         assert response.data["nextEventID"] is None
 
-    @with_feature("organizations:issue-details-most-helpful-event")
     def test_skipped_snuba_fields_ignored(self):
         event_e = self.store_event(
             data={
@@ -335,7 +356,6 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["previousEventID"] is None
         assert response.data["nextEventID"] == str(event_f.event_id)
 
-    @with_feature("organizations:issue-details-most-helpful-event")
     def test_query_title(self):
         title = "four score and seven years ago"
         event_e = self.store_event(
@@ -357,7 +377,6 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["previousEventID"] is None
         assert response.data["nextEventID"] is None
 
-    @with_feature("organizations:issue-details-most-helpful-event")
     def test_query_issue_platform_title(self):
         issue_title = "king of england"
         occurrence_data = self.build_occurrence_data(project_id=self.project.id, title=issue_title)

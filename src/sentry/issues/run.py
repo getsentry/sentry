@@ -1,5 +1,5 @@
 import logging
-from typing import Mapping
+from typing import Mapping, Optional
 
 import rapidjson
 from arroyo import Topic
@@ -27,10 +27,10 @@ def get_occurrences_ingest_consumer(
     max_batch_size: int,
     max_batch_time: int,
     num_processes: int,
-    input_block_size: int,
-    output_block_size: int,
+    input_block_size: Optional[int],
+    output_block_size: Optional[int],
 ) -> StreamProcessor[KafkaPayload]:
-    return create_ingest_occurences_consumer(
+    return create_ingest_occurrences_consumer(
         consumer_type,
         auto_offset_reset,
         group_id,
@@ -43,7 +43,7 @@ def get_occurrences_ingest_consumer(
     )
 
 
-def create_ingest_occurences_consumer(
+def create_ingest_occurrences_consumer(
     topic_name: str,
     auto_offset_reset: str,
     group_id: str,
@@ -51,8 +51,8 @@ def create_ingest_occurences_consumer(
     max_batch_size: int,
     max_batch_time: int,
     num_processes: int,
-    input_block_size: int,
-    output_block_size: int,
+    input_block_size: Optional[int],
+    output_block_size: Optional[int],
 ) -> StreamProcessor[KafkaPayload]:
     from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
 
@@ -89,8 +89,8 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         max_batch_size: int,
         max_batch_time: int,
         num_processes: int,
-        input_block_size: int,
-        output_block_size: int,
+        input_block_size: Optional[int],
+        output_block_size: Optional[int],
     ):
         super().__init__()
         self.max_batch_size = max_batch_size

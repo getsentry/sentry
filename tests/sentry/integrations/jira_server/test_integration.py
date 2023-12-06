@@ -5,37 +5,81 @@ from unittest.mock import patch
 
 import pytest
 import responses
+from django.db import router
 from django.urls import reverse
 
 from fixtures.integrations.jira.stub_client import StubJiraApiClient
 from fixtures.integrations.stub_service import StubService
 from sentry.integrations.jira_server.integration import JiraServerIntegration
-from sentry.models import (
-    ExternalIssue,
-    GroupLink,
-    GroupMeta,
-    Integration,
-    IntegrationExternalProject,
-    OrganizationIntegration,
-)
+from sentry.models.grouplink import GroupLink
+from sentry.models.groupmeta import GroupMeta
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.integration_external_project import IntegrationExternalProject
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.silo import unguarded_write
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry_plugins.jira.plugin import JiraPlugin
 
 from . import get_integration
 
-DFAULT_PROJECT_ID = 10000
+pytestmark = [requires_snuba]
+
+DEFAULT_PROJECT_ID = 10000
 DEFAULT_ISSUE_TYPE_ID = 10000
 
 
 def get_client():
     return StubJiraApiClient()
+
+
+@region_silo_test
+class RegionJiraServerIntegrationTest(APITestCase):
+    def setUp(self):
+        super().setUp()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = get_integration(self.organization, self.user)
+            self.user.name = "Sentry Admin"
+            self.user.save()
+        self.login_as(self.user)
+        installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, JiraServerIntegration)
+        self.installation = installation
+
+    def test_create_comment(self):
+        group_note = mock.Mock()
+        comment = "hello world\nThis is a comment.\n\n\n    Glad it's quoted"
+        group_note.data = {"text": comment}
+        with mock.patch.object(StubJiraApiClient, "create_comment") as mock_create_comment:
+            with mock.patch.object(self.installation, "get_client", get_client):
+                self.installation.create_comment(1, self.user.id, group_note)
+                assert (
+                    mock_create_comment.call_args[0][1]
+                    == "Sentry Admin wrote:\n\n{quote}%s{quote}" % comment
+                )
+
+    def test_update_comment(self):
+        group_note = mock.Mock()
+        comment = "hello world\nThis is a comment.\n\n\n    I've changed it"
+        group_note.data = {"text": comment, "external_id": "123"}
+        with mock.patch.object(StubJiraApiClient, "update_comment") as mock_update_comment:
+            with mock.patch.object(self.installation, "get_client", get_client):
+                self.installation.update_comment(1, self.user.id, group_note)
+                assert mock_update_comment.call_args[0] == (
+                    1,
+                    "123",
+                    "Sentry Admin wrote:\n\n{quote}%s{quote}" % comment,
+                )
 
 
 class JiraServerIntegrationTest(APITestCase):
@@ -408,6 +452,44 @@ class JiraServerIntegrationTest(APITestCase):
                 "updatesForm": True,
             }
 
+    @responses.activate
+    def test_get_create_issue_config_with_default_project_issue_types_erroring(self):
+        """Test that if you have a default project set that's returning an error when
+        we try to get the issue types we try a second project
+        """
+        event = self.store_event(
+            data={"message": "oh no", "timestamp": self.min_ago}, project_id=self.project.id
+        )
+        group = event.group
+        assert group is not None
+        assert self.installation.org_integration is not None
+        self.installation.org_integration = integration_service.update_organization_integration(
+            org_integration_id=self.installation.org_integration.id,
+            config={"project_issue_defaults": {str(group.project_id): {}}},
+        )
+        responses.add(
+            responses.GET,
+            "https://jira.example.org/rest/api/2/project",
+            content_type="json",
+            body="""[
+                {"id": "10000", "key": "SAAH"},
+                {"id": "10001", "key": "SAMP"},
+                {"id": "10002", "key": "SAHM"}
+            ]""",
+        )
+        responses.add(
+            responses.GET,
+            "https://jira.example.org/rest/api/2/issue/createmeta/10000/issuetypes",
+            content_type="json",
+            status=400,
+            body="",
+        )
+
+        fields = self.installation.get_create_issue_config(event.group, self.user)
+        assert fields[0]["name"] == "project"
+        assert fields[1]["name"] == "error"
+        assert fields[1]["type"] == "blank"
+
     @patch("sentry.integrations.jira_server.client.JiraServerClient.get_issue_fields")
     def test_get_create_issue_config_with_default_project_deleted(self, mock_get_issue_fields):
         event = self.store_event(
@@ -443,7 +525,6 @@ class JiraServerIntegrationTest(APITestCase):
 
             fields = self.installation.get_create_issue_config(group, self.user)
             project_field = [field for field in fields if field["name"] == "project"][0]
-
             assert project_field == {
                 "default": "10004",
                 "choices": [("10000", "EX"), ("10001", "ABC")],
@@ -517,14 +598,14 @@ class JiraServerIntegrationTest(APITestCase):
         )
         responses.add(
             responses.GET,
-            f"https://jira.example.org/rest/api/2/issue/createmeta/{DFAULT_PROJECT_ID}/issuetypes",
+            f"https://jira.example.org/rest/api/2/issue/createmeta/{DEFAULT_PROJECT_ID}/issuetypes",
             body=StubService.get_stub_json("jira", "issue_types_response.json"),
             content_type="json",
         )
         # Fail to return metadata
         responses.add(
             responses.GET,
-            f"https://jira.example.org/rest/api/2/issue/createmeta/{DFAULT_PROJECT_ID}/issuetypes/{DEFAULT_ISSUE_TYPE_ID}",
+            f"https://jira.example.org/rest/api/2/issue/createmeta/{DEFAULT_PROJECT_ID}/issuetypes/{DEFAULT_ISSUE_TYPE_ID}",
             content_type="json",
             status=401,
             body="",
@@ -554,26 +635,67 @@ class JiraServerIntegrationTest(APITestCase):
             },
         ]
 
+    def test_create_issue_no_project(self):
+        with mock.patch.object(StubJiraApiClient, "get_issue_fields") as mock_get_issue_fields:
+            mock_issue_fields = StubService.get_stub_data("jira", "issue_fields_response.json")
+            mock_issue_fields["values"] = list(
+                filter(lambda x: x["fieldId"] != "project", mock_issue_fields["values"])
+            )
+            mock_get_issue_fields.return_value = mock_issue_fields
+            with mock.patch.object(StubJiraApiClient, "create_issue") as mock_create_issue:
+                mock_create_issue.return_value = {"key": "APP-123"}
+                with mock.patch.object(self.installation, "get_client", get_client):
+                    assert self.installation.create_issue(
+                        {
+                            "title": "example summary",
+                            "description": "example bug report",
+                            "issuetype": "1",
+                            "project": "10000",
+                        }
+                    ) == {
+                        "title": "example summary",
+                        "description": "example bug report",
+                        "key": "APP-123",
+                    }
+                    mock_create_issue.assert_called_once_with(
+                        {
+                            "description": "example bug report",
+                            "issuetype": {"id": "1"},
+                            "project": {"id": "10000"},
+                            "summary": "example summary",
+                        }
+                    )
+
     def test_create_issue(self):
-        with mock.patch.object(self.installation, "get_client", get_client):
-            assert self.installation.create_issue(
-                {
+        with mock.patch.object(StubJiraApiClient, "create_issue") as mock_create_issue:
+            mock_create_issue.return_value = {"key": "APP-123"}
+            with mock.patch.object(self.installation, "get_client", get_client):
+                assert self.installation.create_issue(
+                    {
+                        "title": "example summary",
+                        "description": "example bug report",
+                        "issuetype": "1",
+                        "project": "10000",
+                    }
+                ) == {
                     "title": "example summary",
                     "description": "example bug report",
-                    "issuetype": "1",
-                    "project": "10000",
+                    "key": "APP-123",
                 }
-            ) == {
-                "title": "example summary",
-                "description": "example bug report",
-                "key": "APP-123",
-            }
+                mock_create_issue.assert_called_once_with(
+                    {
+                        "description": "example bug report",
+                        "issuetype": {"id": "1"},
+                        "project": {"id": "10000"},
+                        "summary": "example summary",
+                    }
+                )
 
     @responses.activate
     def test_create_issue_labels_and_option(self):
         responses.add(
             responses.GET,
-            f"https://jira.example.org/rest/api/2/issue/createmeta/{DFAULT_PROJECT_ID}/issuetypes/{DEFAULT_ISSUE_TYPE_ID}",
+            f"https://jira.example.org/rest/api/2/issue/createmeta/{DEFAULT_PROJECT_ID}/issuetypes/{DEFAULT_ISSUE_TYPE_ID}",
             body=StubService.get_stub_json("jira", "issue_fields_response.json"),
             content_type="json",
         )
@@ -890,47 +1012,6 @@ class JiraServerIntegrationTest(APITestCase):
             == "hello world, goodnight, moon"
         )
 
-    def test_create_comment(self):
-        self.user.name = "Sentry Admin"
-        self.user.save()
-        self.login_as(self.user)
-
-        integration = Integration.objects.create(provider="jira", name="Example Jira")
-        integration.add_organization(self.organization, self.user)
-        installation = integration.get_installation(self.organization.id)
-
-        group_note = mock.Mock()
-        comment = "hello world\nThis is a comment.\n\n\n    Glad it's quoted"
-        group_note.data = {"text": comment}
-        with mock.patch.object(StubJiraApiClient, "create_comment") as mock_create_comment:
-            with mock.patch.object(installation, "get_client", get_client):
-                installation.create_comment(1, self.user.id, group_note)
-                assert (
-                    mock_create_comment.call_args[0][1]
-                    == "Sentry Admin wrote:\n\n{quote}%s{quote}" % comment
-                )
-
-    def test_update_comment(self):
-        self.user.name = "Sentry Admin"
-        self.user.save()
-        self.login_as(self.user)
-
-        integration = Integration.objects.create(provider="jira", name="Example Jira")
-        integration.add_organization(self.organization, self.user)
-        installation = integration.get_installation(self.organization.id)
-
-        group_note = mock.Mock()
-        comment = "hello world\nThis is a comment.\n\n\n    I've changed it"
-        group_note.data = {"text": comment, "external_id": "123"}
-        with mock.patch.object(StubJiraApiClient, "update_comment") as mock_update_comment:
-            with mock.patch.object(installation, "get_client", get_client):
-                installation.update_comment(1, self.user.id, group_note)
-                assert mock_update_comment.call_args[0] == (
-                    1,
-                    "123",
-                    "Sentry Admin wrote:\n\n{quote}%s{quote}" % comment,
-                )
-
 
 class JiraMigrationIntegrationTest(APITestCase):
     @cached_property
@@ -981,7 +1062,8 @@ class JiraMigrationIntegrationTest(APITestCase):
             key=f"{self.plugin.slug}:tid", group_id=group2.id, value="BAR-1"
         )
         org_integration = OrganizationIntegration.objects.get(integration_id=self.integration.id)
-        org_integration.config.update({"issues_ignored_fields": ["reporter", "test"]})
+        with unguarded_write(router.db_for_write(OrganizationIntegration)):
+            org_integration.config.update({"issues_ignored_fields": ["reporter", "test"]})
         org_integration.save()
 
         with self.tasks():

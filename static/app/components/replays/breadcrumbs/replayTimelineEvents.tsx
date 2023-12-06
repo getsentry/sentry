@@ -8,13 +8,14 @@ import {getFramesByColumn} from 'sentry/components/replays/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
-import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import type {Color} from 'sentry/utils/theme';
 
 const NODE_SIZES = [8, 12, 16];
 
-interface Props extends ReturnType<typeof useCrumbHandlers> {
+interface Props {
   durationMs: number;
   frames: ReplayFrame[];
   startTimestampMs: number;
@@ -26,9 +27,6 @@ function ReplayTimelineEvents({
   className,
   durationMs,
   frames,
-  onMouseEnter,
-  onMouseLeave,
-  onClickTimestamp,
   startTimestampMs,
   width,
 }: Props) {
@@ -43,10 +41,7 @@ function ReplayTimelineEvents({
         <EventColumn key={column} column={column}>
           <Event
             frames={colFrames}
-            onMouseEnter={onMouseEnter}
-            onMouseLeave={onMouseLeave}
             markerWidth={markerWidth}
-            onClickTimestamp={onClickTimestamp}
             startTimestampMs={startTimestampMs}
           />
         </EventColumn>
@@ -69,26 +64,32 @@ const EventColumn = styled(Timeline.Col)<{column: number}>`
 
 function Event({
   frames,
-  onMouseEnter,
-  onMouseLeave,
   markerWidth,
-  onClickTimestamp,
   startTimestampMs,
 }: {
   frames: ReplayFrame[];
   markerWidth: number;
   startTimestampMs: number;
-} & ReturnType<typeof useCrumbHandlers>) {
+}) {
   const theme = useTheme();
+  const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
+  const {setActiveTab} = useActiveReplayTab();
 
   const buttons = frames.map((frame, i) => (
     <BreadcrumbItem
       frame={frame}
+      extraction={undefined}
       key={i}
-      onClick={onClickTimestamp}
+      onClick={() => {
+        onClickTimestamp(frame);
+        setActiveTab(getFrameDetails(frame).tabKey);
+      }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       startTimestampMs={startTimestampMs}
+      traces={undefined}
+      onDimensionChange={() => {}}
+      onInspectorExpanded={() => {}}
     />
   ));
   const title = <TooltipWrapper>{buttons}</TooltipWrapper>;
@@ -195,7 +196,7 @@ const IconNode = styled('div')<{colors: Color[]; frameCount: number}>`
 `;
 
 const TooltipWrapper = styled('div')`
-  max-height: calc(100vh - ${space(4)});
+  max-height: 80vh;
   overflow: auto;
 `;
 

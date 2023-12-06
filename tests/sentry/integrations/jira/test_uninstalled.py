@@ -5,7 +5,7 @@ import responses
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.utils import get_query_hash
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -14,7 +14,7 @@ from sentry.utils.http import absolute_uri
 from tests.sentry.utils.test_jwt import RS256_KEY, RS256_PUB_KEY
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class JiraUninstalledTest(APITestCase):
     external_id = "it2may+cody"
     kid = "cudi"

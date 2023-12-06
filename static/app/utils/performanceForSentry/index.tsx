@@ -24,6 +24,9 @@ const ASSET_OUTLIER_VALUE = 1_000_000_000; // Assets over 1GB are ignored since 
 const VCD_START = 'vcd-start';
 const VCD_END = 'vcd-end';
 
+// This re-export makes it possible to stub out the Profiler globally if required
+export {Profiler};
+
 /**
  * It depends on where it is called but the way we fetch transactions can be empty despite an ongoing transaction existing.
  * This will return an interaction-type transaction held onto by a class static if one exists.
@@ -41,7 +44,7 @@ export function onRenderCallback(
   actualDuration: number
 ) {
   try {
-    const transaction: Transaction | undefined = getPerformanceTransaction();
+    const transaction = getPerformanceTransaction();
     if (transaction && actualDuration > MIN_UPDATE_SPAN_TIME) {
       const now = timestampWithMs();
       transaction.startChild({

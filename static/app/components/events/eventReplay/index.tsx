@@ -5,11 +5,10 @@ import {EventReplaySection} from 'sentry/components/events/eventReplay/eventRepl
 import LazyLoad from 'sentry/components/lazyLoad';
 import {Group} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent, getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useHasOrganizationSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
-import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
+import {projectCanUpsellReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 
@@ -19,10 +18,13 @@ type Props = {
   group?: Group;
 };
 
-function EventReplayContent({projectSlug, event, group}: Props) {
+function EventReplayContent({
+  event,
+  group,
+  replayId,
+}: Props & {replayId: undefined | string}) {
   const organization = useOrganization();
   const {hasOrgSentReplays, fetching} = useHasOrganizationSentAnyReplayEvents();
-  const replayId = getReplayIdFromEvent(event);
 
   const onboardingPanel = useCallback(() => import('./replayInlineOnboardingPanel'), []);
   const replayPreview = useCallback(() => import('./replayPreview'), []);
@@ -43,20 +45,27 @@ function EventReplayContent({projectSlug, event, group}: Props) {
     return null;
   }
 
+  const startTimestampMS =
+    'startTimestamp' in event ? event.startTimestamp * 1000 : undefined;
+  const timeOfEvent = event.dateCreated ?? startTimestampMS ?? event.dateReceived;
+  const eventTimestampMs = timeOfEvent ? Math.floor(new Date(timeOfEvent).getTime()) : 0;
+
   return (
     <EventReplaySection>
       <ErrorBoundary mini>
         <LazyLoad
           component={replayPreview}
-          replaySlug={`${projectSlug}:${replayId}`}
+          replaySlug={replayId}
           orgSlug={organization.slug}
-          event={event}
-          onClickOpenReplay={() => {
-            trackAnalytics('issue_details.open_replay_details_clicked', {
+          eventTimestampMs={eventTimestampMs}
+          buttonProps={{
+            analyticsEventKey: 'issue_details.open_replay_details_clicked',
+            analyticsEventName: 'Issue Details: Open Replay Details Clicked',
+            analyticsParams: {
               ...getAnalyticsDataForEvent(event),
               ...getAnalyticsDataForGroup(group),
               organization,
-            });
+            },
           }}
         />
       </ErrorBoundary>
@@ -64,15 +73,24 @@ function EventReplayContent({projectSlug, event, group}: Props) {
   );
 }
 
-export default function EventReplay({projectSlug, event, group}: Props) {
+export default function EventReplay({event, group, projectSlug}: Props) {
   const organization = useOrganization();
   const hasReplaysFeature = organization.features.includes('session-replay');
-  const project = useProjectFromSlug({organization, projectSlug});
-  const isReplayRelated = projectCanLinkToReplay(project);
 
-  if (!hasReplaysFeature || !isReplayRelated) {
-    return null;
+  const project = useProjectFromSlug({organization, projectSlug});
+  const canUpsellReplay = projectCanUpsellReplay(project);
+  const replayId = getReplayIdFromEvent(event);
+
+  if (hasReplaysFeature && (replayId || canUpsellReplay)) {
+    return (
+      <EventReplayContent
+        event={event}
+        group={group}
+        projectSlug={projectSlug}
+        replayId={replayId}
+      />
+    );
   }
 
-  return <EventReplayContent {...{projectSlug, event, group}} />;
+  return null;
 }

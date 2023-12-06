@@ -1,3 +1,6 @@
+import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -10,12 +13,11 @@ describe('NoProjectMessage', function () {
     ProjectsStore.reset();
   });
 
-  const org = TestStubs.Organization();
+  const org = Organization();
 
   it('renders', function () {
-    const organization = TestStubs.Organization({slug: 'org-slug'});
+    const organization = Organization({slug: 'org-slug'});
     const childrenMock = jest.fn().mockReturnValue(null);
-    delete organization.projects;
     ProjectsStore.loadInitialData([]);
 
     render(
@@ -27,9 +29,10 @@ describe('NoProjectMessage', function () {
   });
 
   it('shows "Create Project" button when there are no projects', function () {
+    const organization = Organization({slug: 'org-slug', features: ['team-roles']});
     ProjectsStore.loadInitialData([]);
 
-    render(<NoProjectMessage organization={org} />);
+    render(<NoProjectMessage organization={organization} />);
 
     expect(screen.getByRole('button', {name: 'Create project'})).toBeEnabled();
   });
@@ -37,7 +40,7 @@ describe('NoProjectMessage', function () {
   it('disable "Create Project" when user has no org-level access', function () {
     ProjectsStore.loadInitialData([]);
 
-    render(<NoProjectMessage organization={TestStubs.Organization({access: []})} />);
+    render(<NoProjectMessage organization={Organization({access: []})} />);
 
     expect(screen.getByRole('button', {name: 'Create project'})).toBeDisabled();
   });
@@ -45,11 +48,15 @@ describe('NoProjectMessage', function () {
   it('shows "Create Project" button when user has team-level access', function () {
     ProjectsStore.loadInitialData([]);
     TeamStore.loadInitialData([
-      {...TestStubs.Team(), access: ['team:admin', 'team:write', 'team:read']},
+      {...Team(), access: ['team:admin', 'team:write', 'team:read']},
     ]);
 
     // No org-level access
-    render(<NoProjectMessage organization={TestStubs.Organization({access: []})} />);
+    render(
+      <NoProjectMessage
+        organization={Organization({access: [], features: ['team-roles']})}
+      />
+    );
 
     expect(screen.getByRole('button', {name: 'Create project'})).toBeEnabled();
   });

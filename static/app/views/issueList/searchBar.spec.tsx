@@ -1,3 +1,5 @@
+import {Tags} from 'sentry-fixture/tags';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -12,7 +14,7 @@ describe('IssueListSearchBar', function () {
 
   beforeEach(function () {
     TagStore.reset();
-    TagStore.loadTagsSuccess(TestStubs.Tags());
+    TagStore.loadTagsSuccess(Tags());
 
     defaultProps = {
       organization,

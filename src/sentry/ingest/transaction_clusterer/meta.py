@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import Optional, TypedDict
 
 from sentry.ingest.transaction_clusterer import ClustererNamespace
-from sentry.models import Project
+from sentry.models.project import Project
 
 
 class ClustererMeta(TypedDict):

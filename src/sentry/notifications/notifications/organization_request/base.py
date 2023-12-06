@@ -9,18 +9,19 @@ from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.strategies.role_based_recipient_strategy import (
     RoleBasedRecipientStrategy,
 )
-from sentry.notifications.types import NotificationSettingTypes
+from sentry.notifications.types import NotificationSettingEnum
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, User
+    from sentry.models.organization import Organization
+    from sentry.models.user import User
 
 logger = logging.getLogger(__name__)
 
 
 class OrganizationRequestNotification(BaseNotification, abc.ABC):
-    notification_setting_type = NotificationSettingTypes.APPROVAL
+    notification_setting_type_enum = NotificationSettingEnum.APPROVAL
     RoleBasedRecipientStrategyClass: Type[RoleBasedRecipientStrategy]
 
     def __init__(self, organization: Organization, requester: User) -> None:

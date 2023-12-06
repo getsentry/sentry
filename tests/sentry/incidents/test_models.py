@@ -7,7 +7,6 @@ import pytest
 from django.core.cache import cache
 from django.db import IntegrityError, router, transaction
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.db.models.manager import BaseManager
 from sentry.incidents.logic import delete_alert_rule, update_alert_rule
@@ -26,10 +25,11 @@ from sentry.incidents.models import (
 )
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class FetchForOrganizationTest(TestCase):
     def test_empty(self):
         incidents = Incident.objects.fetch_for_organization(self.organization, [self.project])
@@ -104,6 +104,8 @@ class IncidentClearSubscriptionCacheTest(TestCase):
         )
         subscription_id = self.subscription.id
         self.subscription.delete()
+        assert cache.get(AlertRule.objects.CACHE_SUBSCRIPTION_KEY % self.subscription.id) is None
+
         # Add the subscription id back in so we don't use `None` in the lookup check.
         self.subscription.id = subscription_id
         with pytest.raises(AlertRule.DoesNotExist):
@@ -116,6 +118,7 @@ class IncidentClearSubscriptionCacheTest(TestCase):
             == self.alert_rule
         )
         delete_alert_rule(self.alert_rule)
+        assert cache.get(AlertRule.objects.CACHE_SUBSCRIPTION_KEY % self.subscription.id) is None
         with pytest.raises(AlertRule.DoesNotExist):
             AlertRule.objects.get_for_subscription(self.subscription)
 
@@ -390,7 +393,7 @@ class IncidentCurrentEndDateTest(unittest.TestCase):
         assert incident.current_end_date == timezone.now() - timedelta(minutes=10)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class AlertRuleFetchForOrganizationTest(TestCase):
     def test_empty(self):
         alert_rule = AlertRule.objects.fetch_for_organization(self.organization)

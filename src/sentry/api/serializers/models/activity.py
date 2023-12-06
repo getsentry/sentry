@@ -2,7 +2,10 @@ import functools
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
-from sentry.models import Activity, Commit, Group, PullRequest
+from sentry.models.activity import Activity
+from sentry.models.commit import Commit
+from sentry.models.group import Group
+from sentry.models.pullrequest import PullRequest
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.activity import ActivityType

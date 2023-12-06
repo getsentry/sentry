@@ -17,7 +17,7 @@ format.
 from __future__ import annotations
 
 import datetime
-from typing import Callable, Generic, Type
+from typing import Callable, Generic, Protocol, Type
 from uuid import UUID
 
 from snuba_sdk import Column, Condition, Function
@@ -25,6 +25,18 @@ from snuba_sdk.expressions import Expression
 
 from sentry.api.event_search import SearchFilter
 from sentry.replays.lib.new_query.conditions import GenericBase, T
+
+
+class FieldProtocol(Protocol):
+    """Field interface.
+
+    Any instance which defines an "apply" method which accepts a "SearchFilter" and returns a
+    "Condition" is considered a field.  Additional methods and state may be added to help
+    construct the "Condition".
+    """
+
+    def apply(self, search_filter: SearchFilter) -> Condition:
+        ...
 
 
 class BaseField(Generic[T]):
@@ -97,6 +109,9 @@ class ColumnField(BaseField[T]):
         # as "Sequence" types.  Sequence[str] is the same type as str.  So we can't check for
         # Sequence in the isinstance check.  We have to explicitly check for all the possible
         # scalar values and then use the else to apply array based filtering techniques.
+        #
+        # This exists solely to satisfy typing concerns.  Otherwise `isinstance(value, list)` is
+        # perfectly valid Python.
         if isinstance(value, (str, int, float, datetime.datetime)):
             # We don't care that the SearchFilter typed the value for us. We'll determine what we
             # want to parse it to.  There's too much polymorphism if we have to consider coercing
@@ -121,11 +136,15 @@ class ColumnField(BaseField[T]):
 
 
 class StringColumnField(ColumnField[str]):
-    """String type conditional column field."""
+    """String-type condition column field."""
+
+
+class IntegerColumnField(ColumnField[int]):
+    """Integer-type condition column field."""
 
 
 class UUIDColumnField(ColumnField[UUID]):
-    """UUID type conditional column field."""
+    """UUID-type condition column field."""
 
 
 class CountField(ColumnField[int]):

@@ -9,6 +9,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import ratelimits as ratelimiter
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import email_verification_required, sudo_required
@@ -16,7 +18,8 @@ from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from
 from sentry.api.serializers import serialize
 from sentry.auth.authenticators.base import EnrollmentStatus, NewEnrollmentDisallowed
 from sentry.auth.authenticators.sms import SMSRateLimitExceeded
-from sentry.models import Authenticator, User
+from sentry.models.authenticator import Authenticator
+from sentry.models.user import User
 from sentry.security import capture_security_activity
 from sentry.services.hybrid_cloud.organization import organization_service
 
@@ -105,6 +108,12 @@ def get_serializer_field_metadata(serializer, fields=None):
 
 @control_silo_endpoint
 class UserAuthenticatorEnrollEndpoint(UserEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.ENTERPRISE
+
     @sudo_required
     def get(self, request: Request, user, interface_id) -> HttpResponse:
         """

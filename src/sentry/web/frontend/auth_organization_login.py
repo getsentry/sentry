@@ -7,10 +7,13 @@ from rest_framework.request import Request
 
 from sentry.auth.helper import AuthHelper
 from sentry.constants import WARN_SESSION_EXPIRED
-from sentry.models import AuthProvider
+from sentry.models.authprovider import AuthProvider
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.utils.auth import initiate_login
 from sentry.web.frontend.auth_login import AuthLoginView
+
+TERMS_URL = "https://sentry.io/terms/"
+PRIVACY_POLICY_URL = "https://sentry.io/privacy/"
 
 
 class AuthOrganizationLoginView(AuthLoginView):
@@ -37,7 +40,6 @@ class AuthOrganizationLoginView(AuthLoginView):
             return helper.current_step()
 
         provider = auth_provider.get_provider()
-
         context = {
             "CAN_REGISTER": False,
             "organization": organization,
@@ -45,6 +47,9 @@ class AuthOrganizationLoginView(AuthLoginView):
             "provider_name": provider.name,
             "authenticated": request.user.is_authenticated,
             "referrer": referrer,
+            "terms_url": TERMS_URL,
+            "privacy_policy_url": PRIVACY_POLICY_URL,
+            "is_provider_partner": provider.is_partner,
         }
 
         return self.respond("sentry/organization-login.html", context)

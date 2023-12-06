@@ -79,7 +79,6 @@ def mock_expected_response(
         "duration": (finished_at - started_at).seconds,
         "count_dead_clicks": kwargs.pop("count_dead_clicks", 0),
         "count_rage_clicks": kwargs.pop("count_rage_clicks", 0),
-        "count_errors": kwargs.pop("count_errors", 1),
         "count_segments": kwargs.pop("count_segments", 1),
         "count_urls": len(urls),
         "platform": kwargs.pop("platform", "javascript"),
@@ -115,6 +114,11 @@ def mock_expected_response(
         "activity": kwargs.pop("activity", 0),
         "is_archived": kwargs.pop("is_archived", False),
         "clicks": kwargs.pop("clicks", []),
+        "warning_ids": kwargs.pop("warning_ids", []),
+        "info_ids": kwargs.pop("info_ids", []),
+        "count_errors": kwargs.pop("count_errors", 0),
+        "count_warnings": kwargs.pop("count_warnings", 0),
+        "count_infos": kwargs.pop("count_infos", 0),
     }
 
 

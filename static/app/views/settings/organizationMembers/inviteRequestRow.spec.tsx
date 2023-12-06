@@ -1,4 +1,6 @@
 import selectEvent from 'react-select-event';
+import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
 
 import {
   render,
@@ -36,10 +38,10 @@ const roles: OrgRole[] = [
 ];
 
 describe('InviteRequestRow', function () {
-  const orgWithoutAdminAccess = TestStubs.Organization({
+  const orgWithoutAdminAccess = Organization({
     access: [],
   });
-  const orgWithAdminAccess = TestStubs.Organization({
+  const orgWithAdminAccess = Organization({
     access: ['member:admin'],
   });
   const inviteRequestBusy: Record<string, boolean> = {};
@@ -172,8 +174,8 @@ describe('InviteRequestRow', function () {
     });
 
     void TeamStore.loadInitialData([
-      TestStubs.Team({id: '1', slug: 'one'}),
-      TestStubs.Team({id: '2', slug: 'two'}),
+      Team({id: '1', slug: 'one'}),
+      Team({id: '2', slug: 'two'}),
     ]);
     const mockUpdate = jest.fn();
 

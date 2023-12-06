@@ -3,12 +3,13 @@ from __future__ import annotations
 import abc
 import logging
 from collections import namedtuple
-from typing import Any, Callable, ClassVar, Dict, Mapping, Sequence, Type
+from typing import Any, Callable, ClassVar, Dict, Sequence, Type
 
 from django import forms
 
 from sentry.eventstore.models import GroupEvent
-from sentry.models import Project, Rule
+from sentry.models.project import Project
+from sentry.models.rule import Rule
 from sentry.snuba.dataset import Dataset
 from sentry.types.condition_activity import ConditionActivity
 from sentry.types.rules import RuleFuture
@@ -57,7 +58,7 @@ class RuleBase(abc.ABC):
     def __init__(
         self,
         project: Project,
-        data: Mapping[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
         rule: Rule | None = None,
     ) -> None:
         self.project = project
@@ -76,7 +77,7 @@ class RuleBase(abc.ABC):
         return self.data.get(key, default)
 
     def get_form_instance(self) -> forms.Form:
-        data: Mapping[str, Any] | None = None
+        data: dict[str, Any] | None = None
         if self.had_data:
             data = self.data
         return self.form_cls(data)
@@ -115,8 +116,10 @@ class EventState:
         is_regression: bool,
         is_new_group_environment: bool,
         has_reappeared: bool,
+        has_escalated: bool,
     ) -> None:
         self.is_new = is_new
         self.is_regression = is_regression
         self.is_new_group_environment = is_new_group_environment
         self.has_reappeared = has_reappeared
+        self.has_escalated = has_escalated

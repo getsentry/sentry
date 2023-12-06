@@ -3,13 +3,14 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 
-import {GettingStartedWithAngular, nextSteps, steps} from './angular';
+import {AngularVersion, GettingStartedWithAngular, nextSteps, steps} from './angular';
 
 describe('GettingStartedWithAngular', function () {
   it('all products are selected', function () {
-    const {container} = render(
+    render(
       <GettingStartedWithAngular
         dsn="test-dsn"
+        projectSlug="test-project"
         activeProductSelection={[
           ProductSolution.PERFORMANCE_MONITORING,
           ProductSolution.SESSION_REPLAY,
@@ -18,7 +19,11 @@ describe('GettingStartedWithAngular', function () {
     );
 
     // Steps
-    for (const step of steps()) {
+    for (const step of steps({
+      angularVersion: AngularVersion.V12,
+      errorHandlerProviders: 'test-error-handler-providers',
+      sentryInitContent: 'test-init-content',
+    })) {
       expect(
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
@@ -38,7 +43,5 @@ describe('GettingStartedWithAngular', function () {
         screen.getByRole('link', {name: filteredNextStepsLink.name})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

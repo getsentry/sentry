@@ -17,7 +17,10 @@ from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.tasks.derive_code_mappings import derive_code_mappings, identify_stacktrace_paths
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.locking import UnableToAcquireLock
+
+pytestmark = [requires_snuba]
 
 
 class BaseDeriveCodeMappings(TestCase):
@@ -68,7 +71,7 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
                 side_effect=ApiError("foo"),
             ):
                 derive_code_mappings(self.project.id, self.event_data)
-                assert mock_logger.exception.call_count == 1
+                assert mock_logger.error.call_count == 1
 
     def test_unable_to_get_lock(self):
         with patch("sentry.tasks.derive_code_mappings.SUPPORTED_LANGUAGES", ["other"]):
@@ -441,6 +444,8 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
             source_root="src/sentry/models",
             repository=repository,
             organization_integration_id=organization_integration.id,
+            integration_id=organization_integration.integration_id,
+            organization_id=organization_integration.organization_id,
         )
 
         assert RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()

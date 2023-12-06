@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
-import DatePageFilter from 'sentry/components/datePageFilter';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -56,7 +56,6 @@ export default function SpanDetailsControls({
       <PageFilterBar condensed>
         <EnvironmentPageFilter />
         <DatePageFilter
-          alignDropdown="left"
           relativeOptions={SPAN_RELATIVE_PERIODS}
           maxPickableDays={SPAN_RETENTION_DAYS}
         />

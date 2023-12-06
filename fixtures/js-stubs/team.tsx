@@ -1,6 +1,6 @@
 import {uuid4} from '@sentry/utils';
 
-import type {Team as TeamType} from 'sentry/types';
+import type {DetailedTeam as TeamType} from 'sentry/types';
 
 export function Team(params: Partial<TeamType> = {}): TeamType {
   return {
@@ -8,7 +8,7 @@ export function Team(params: Partial<TeamType> = {}): TeamType {
     slug: 'team-slug',
     name: 'Team Name',
     access: ['team:read'],
-    orgRole: null, // TODO(cathy): Rename this
+    orgRole: undefined, // TODO(cathy): Rename this
     teamRole: null,
     isMember: true,
     memberCount: 0,
@@ -17,6 +17,7 @@ export function Team(params: Partial<TeamType> = {}): TeamType {
       'idp:provisioned': false,
     },
     externalTeams: [],
+    projects: [],
     hasAccess: false,
     isPending: false,
     ...params,

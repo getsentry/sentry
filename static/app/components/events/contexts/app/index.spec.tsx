@@ -1,3 +1,6 @@
+import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+import {Event as EventFixture} from 'sentry-fixture/event';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -13,6 +16,7 @@ export const appMockData: AppData = {
   app_build: '1',
   app_id: '3145EA1A-0EAE-3F8C-969A-13A01394D3EA',
   type: 'app',
+  in_foreground: false,
 };
 
 export const appMetaMockData = {
@@ -32,20 +36,19 @@ export const appMetaMockData = {
   },
 };
 
-const event = {
-  ...TestStubs.Event(),
+const event = EventFixture({
   _meta: {
     contexts: {
       app: appMetaMockData,
     },
   },
-};
+});
 
 describe('app event context', function () {
   it('display redacted data', async function () {
     render(<AppEventContext event={event} data={appMockData} />, {
       organization: {
-        relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+        relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
       },
     });
 

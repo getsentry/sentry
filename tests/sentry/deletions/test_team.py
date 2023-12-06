@@ -1,12 +1,14 @@
-from sentry.models import Project, Rule, Team
+from sentry.models.project import Project
 from sentry.models.projectteam import ProjectTeam
+from sentry.models.rule import Rule
+from sentry.models.team import Team
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import TestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class DeleteTeamTest(TestCase, HybridCloudTestMixin):
     def test_simple(self):
         team = self.create_team(name="test")

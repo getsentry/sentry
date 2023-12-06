@@ -6,15 +6,15 @@ describe('filterMonitorStatsBucketByEnvs', function () {
     const bucket = [
       1,
       {
-        prod: {ok: 0, missed: 0, timeout: 1, error: 0},
-        dev: {ok: 1, missed: 0, timeout: 0, error: 0},
+        prod: {in_progress: 0, ok: 0, missed: 0, timeout: 1, error: 0},
+        dev: {in_progress: 0, ok: 1, missed: 0, timeout: 0, error: 0},
       },
     ] as MonitorBucket;
     const filteredBucket = filterMonitorStatsBucketByEnv(bucket, 'prod');
     expect(filteredBucket).toEqual([
       1,
       {
-        prod: {ok: 0, missed: 0, timeout: 1, error: 0},
+        prod: {in_progress: 0, ok: 0, missed: 0, timeout: 1, error: 0},
       },
     ]);
   });

@@ -5,7 +5,7 @@ from hashlib import sha256
 from typing import TYPE_CHECKING, TypedDict
 
 if TYPE_CHECKING:
-    from sentry.models import OrganizationMember
+    from sentry.models.organizationmember import OrganizationMember
 
 
 ALLOWED_ROLES = ["admin", "manager", "owner"]

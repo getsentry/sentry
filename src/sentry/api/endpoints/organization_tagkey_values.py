@@ -4,6 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tagstore
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import SequencePaginator
@@ -19,6 +20,10 @@ def validate_sort_field(field_name: str) -> str:
 
 @region_silo_endpoint
 class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization, key) -> Response:
         if not TAG_KEY_RE.match(key):
             return Response({"detail": f'Invalid tag key format for "{key}"'}, status=400)

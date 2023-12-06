@@ -1,14 +1,15 @@
-from sentry.models import ACTOR_TYPES, Actor, ExternalActor
+from sentry.models.actor import ACTOR_TYPES, Actor
+from sentry.models.integrations.external_actor import ExternalActor
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ExternalActorTest(TestCase):
     def setUp(self) -> None:
         actor = Actor.objects.create(type=ACTOR_TYPES["team"])
-        org = self.create_organization()
-        self.create_team(organization=org, actor=actor)
+        org = self.create_organization(owner=self.user)
+        team = self.create_team(organization=org, actor=actor)
 
         integrations = [
             self.create_integration(
@@ -19,7 +20,7 @@ class ExternalActorTest(TestCase):
         target_integration = integrations[len(integrations) // 2]
 
         self.external_actor = ExternalActor.objects.create(
-            actor=actor,
+            team_id=team.id,
             organization=org,
             integration_id=target_integration.id,
             provider=0,

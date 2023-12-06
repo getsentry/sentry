@@ -8,17 +8,19 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams
 from sentry.apidocs import constants as api_constants
 from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
-from sentry.apidocs.parameters import GlobalParams, VisibilityParams
+from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
+from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -69,13 +71,20 @@ ALLOWED_EVENTS_REFERRERS = {
     Referrer.API_STARFISH_SPAN_SUMMARY_TRANSACTIONS.value,
     Referrer.API_STARFISH_SPAN_TRANSACTION_METRICS.value,
     Referrer.API_STARFISH_TOTAL_TIME.value,
+    Referrer.API_STARFISH_MOBILE_SCREEN_TABLE.value,
+    Referrer.API_STARFISH_MOBILE_SCREEN_BAR_CHART.value,
+    Referrer.API_STARFISH_MOBILE_RELEASE_SELECTOR.value,
+    Referrer.API_STARFISH_MOBILE_DEVICE_BREAKDOWN.value,
+    Referrer.API_STARFISH_MOBILE_EVENT_SAMPLES.value,
+    Referrer.API_STARFISH_MOBILE_SCREEN_TOTALS.value,
+    Referrer.API_STARFISH_MOBILE_SPAN_TABLE.value,
 }
 
 API_TOKEN_REFERRER = Referrer.API_AUTH_TOKEN_EVENTS.value
 
-RATE_LIMIT = 15
+RATE_LIMIT = 30
 RATE_LIMIT_WINDOW = 1
-CONCURRENT_RATE_LIMIT = 10
+CONCURRENT_RATE_LIMIT = 15
 
 DEFAULT_RATE_LIMIT = 50
 DEFAULT_RATE_LIMIT_WINDOW = 1
@@ -122,7 +131,9 @@ def rate_limit_events(request: Request, organization_slug=None, *args, **kwargs)
 @extend_schema(tags=["Discover"])
 @region_silo_endpoint
 class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
-    public = {"GET"}
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+    }
 
     enforce_rate_limit = True
 
@@ -139,6 +150,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             "organizations:use-metrics-layer",
             "organizations:starfish-view",
             "organizations:on-demand-metrics-extraction",
+            "organizations:on-demand-metrics-extraction-widgets",
             "organizations:on-demand-metrics-extraction-experimental",
         ]
         batch_features = features.batch_has(
@@ -167,7 +179,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             GlobalParams.END,
             GlobalParams.ENVIRONMENT,
             GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT,
+            OrganizationParams.PROJECT,
             GlobalParams.START,
             GlobalParams.STATS_PERIOD,
             VisibilityParams.FIELD,
@@ -235,9 +247,19 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             or batch_features.get("organizations:dashboards-mep", False)
         )
 
-        on_demand_metrics_enabled = batch_features.get(
-            "organizations:on-demand-metrics-extraction", False
-        ) and batch_features.get("organizations:on-demand-metrics-extraction-experimental", False)
+        try:
+            use_on_demand_metrics, on_demand_metrics_type = self.handle_on_demand(request)
+        except ValueError:
+            metric_type_values = [e.value for e in MetricSpecType]
+            metric_types = ",".join(metric_type_values)
+            return Response(
+                {"detail": f"On demand metric type must be one of: {metric_types}"}, status=400
+            )
+
+        on_demand_metrics_enabled = (
+            batch_features.get("organizations:on-demand-metrics-extraction", False)
+            or batch_features.get("organizations:on-demand-metrics-extraction-widgets", False)
+        ) and use_on_demand_metrics
 
         dataset = self.get_dataset(request)
         metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
@@ -270,6 +292,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 has_metrics=use_metrics,
                 use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
+                on_demand_metrics_type=on_demand_metrics_type,
             )
 
         with self.handle_query_errors():

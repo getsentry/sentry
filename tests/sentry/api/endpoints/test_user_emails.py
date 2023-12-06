@@ -1,11 +1,13 @@
 from django.urls import reverse
 
-from sentry.models import User, UserEmail, UserOption
+from sentry.models.options.user_option import UserOption
+from sentry.models.user import User
+from sentry.models.useremail import UserEmail
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class UserEmailsTest(APITestCase):
     def setUp(self):
         super().setUp()

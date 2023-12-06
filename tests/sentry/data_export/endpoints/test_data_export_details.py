@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from sentry.data_export.base import ExportQueryType, ExportStatus
 from sentry.data_export.models import ExportedData
-from sentry.models import File
+from sentry.models.files.file import File
 from sentry.testutils.cases import APITestCase
 
 

@@ -2,13 +2,15 @@ from functools import cached_property
 
 from django.utils import timezone
 
-from sentry.models import ApiApplication, ApiGrant, ApiToken
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.apigrant import ApiGrant
+from sentry.models.apitoken import ApiToken
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OAuthTokenTest(TestCase):
     @cached_property
     def path(self):
@@ -40,7 +42,7 @@ class OAuthTokenTest(TestCase):
         assert json.loads(resp.content) == {"error": "unsupported_grant_type"}
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OAuthTokenCodeTest(TestCase):
     @cached_property
     def path(self):
@@ -325,7 +327,7 @@ class OAuthTokenCodeTest(TestCase):
             data = json.loads(resp.content)
             token = ApiToken.objects.get(token=data["access_token"])
 
-            assert token.get_scopes() == ["openid", "profile", "email"]
+            assert token.get_scopes() == ["email", "openid", "profile"]
             assert data["refresh_token"] == token.refresh_token
             assert data["access_token"] == token.token
             assert isinstance(data["expires_in"], int)
@@ -335,7 +337,7 @@ class OAuthTokenCodeTest(TestCase):
             assert data["id_token"].count(".") == 2
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OAuthTokenRefreshTokenTest(TestCase):
     @cached_property
     def path(self):

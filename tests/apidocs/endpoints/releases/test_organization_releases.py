@@ -4,11 +4,11 @@ from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
-from sentry.models import Release
+from sentry.models.release import Release
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationReleasesDocsTest(APIDocsTestCase):
     def setUp(self):
         user = self.create_user(is_staff=False, is_superuser=False)

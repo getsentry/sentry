@@ -8,8 +8,9 @@ if TYPE_CHECKING:
         IntegrationInstallation,
         IntegrationProvider,
     )
-    from sentry.models import SentryApp
     from sentry.models.integrations.integration import Integration
+    from sentry.models.integrations.sentry_app import SentryApp
+    from sentry.services.hybrid_cloud.app.model import RpcSentryApp
     from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 
 
@@ -48,14 +49,13 @@ def is_response_error(resp) -> bool:
     return False
 
 
-def get_redis_key(sentryapp: SentryApp, org_id):
-    from sentry.models import SentryAppInstallation
+def get_redis_key(sentryapp: SentryApp | RpcSentryApp, org_id):
+    from sentry.services.hybrid_cloud.app.service import app_service
 
-    installations = SentryAppInstallation.objects.filter(
+    installation = app_service.get_installation(
+        sentry_app_id=sentryapp.id,
         organization_id=org_id,
-        sentry_app=sentryapp,
     )
-    if installations.exists():
-        installation = installations.first()
+    if installation:
         return f"sentry-app-error:{installation.uuid}"
     return ""

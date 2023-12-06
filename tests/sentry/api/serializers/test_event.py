@@ -1,3 +1,4 @@
+from datetime import datetime
 from unittest import mock
 
 from sentry.api.serializers import SimpleEventSerializer, serialize
@@ -7,17 +8,21 @@ from sentry.api.serializers.models.event import (
     SqlFormatEventSerializer,
 )
 from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
-from sentry.models import EventError
+from sentry.models.eventerror import EventError
+from sentry.models.release import Release
 from sentry.sdk_updates import SdkIndexState
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format, timestamp_format
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
+pytestmark = [requires_snuba]
 
-@region_silo_test(stable=True)
+
+@region_silo_test
 class EventSerializerTest(TestCase, OccurrenceTestMixin):
     def test_simple(self):
         event_id = "a" * 32
@@ -240,7 +245,7 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SharedEventSerializerTest(TestCase):
     def test_simple(self):
         event = self.store_event(
@@ -261,7 +266,7 @@ class SharedEventSerializerTest(TestCase):
             assert entry["type"] != "breadcrumbs"
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SimpleEventSerializerTest(TestCase):
     def test_user(self):
         """
@@ -317,7 +322,7 @@ class SimpleEventSerializerTest(TestCase):
         assert result["groupID"] is None
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class IssueEventSerializerTest(TestCase):
     @mock.patch(
         "sentry.sdk_updates.SdkIndexState",
@@ -399,7 +404,7 @@ class IssueEventSerializerTest(TestCase):
         assert result["sdkUpdates"] == []
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SqlFormatEventSerializerTest(TestCase):
     def test_event_breadcrumb_formatting(self):
         event = self.store_event(
@@ -457,6 +462,42 @@ class SqlFormatEventSerializerTest(TestCase):
         assert (
             result["entries"][0]["data"]["values"][1]["message"] == """This is not "SQL" content."""
         )
+
+    def test_adds_release_info(self):
+        event = self.store_event(
+            data={
+                "tags": {
+                    "sentry:release": "internal@1.0.0",
+                }
+            },
+            project_id=self.project.id,
+        )
+
+        repo = self.create_repo(project=self.project, name=self.project.name)
+
+        release = Release.objects.create(
+            version="internal@1.0.0",
+            organization=self.organization,
+            date_released=datetime(2023, 1, 1),
+        )
+        release.add_project(self.project)
+        release.set_commits(
+            [
+                {
+                    "id": "917ac271787e74ff2dbe52b67e77afcff9aaa305",
+                    "repository": repo.name,
+                    "author_email": "bob@example.com",
+                    "author_name": "Bob",
+                    "message": "I hope this fixes it",
+                    "patch_set": [{"path": "src/sentry/models/release.py", "type": "M"}],
+                }
+            ]
+        )
+
+        result = serialize(event, None, SqlFormatEventSerializer())
+
+        assert result["release"]["version"] == "internal@1.0.0"
+        assert result["release"]["lastCommit"]["id"] == "917ac271787e74ff2dbe52b67e77afcff9aaa305"
 
     def test_event_db_span_formatting(self):
         event_data = get_event("n-plus-one-in-django-new-view")

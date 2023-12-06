@@ -4,7 +4,7 @@ import AwsLambdaFunctionSelect from 'sentry/views/integrationPipeline/awsLambdaF
 
 describe('AwsLambdaFunctionSelect', () => {
   it('choose lambdas', () => {
-    const {container} = render(
+    render(
       <AwsLambdaFunctionSelect
         initialStepNumber={0}
         lambdaFunctions={[
@@ -14,7 +14,6 @@ describe('AwsLambdaFunctionSelect', () => {
         ]}
       />
     );
-    expect(container).toSnapshot();
     expect(screen.getByRole('checkbox', {name: 'lambdaB'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Finish Setup'})).toBeInTheDocument();
     // TODO: add assertion for form post

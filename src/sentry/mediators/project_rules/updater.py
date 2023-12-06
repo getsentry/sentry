@@ -3,7 +3,9 @@ from rest_framework.request import Request
 
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
-from sentry.models import Actor, Project, Rule
+from sentry.models.actor import Actor
+from sentry.models.project import Project
+from sentry.models.rule import Rule
 
 
 class Updater(Mediator):
@@ -60,8 +62,7 @@ class Updater(Mediator):
             self.rule.data["filter_match"] = self.filter_match
 
     def _update_conditions(self):
-        if self.conditions:
-            self.rule.data["conditions"] = self.conditions
+        self.rule.data["conditions"] = self.conditions or []
 
     def _update_frequency(self):
         if self.frequency:

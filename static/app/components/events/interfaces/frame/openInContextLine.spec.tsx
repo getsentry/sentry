@@ -1,14 +1,16 @@
+import {SentryAppInstallation} from 'sentry-fixture/sentryAppInstallation';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {OpenInContextLine} from 'sentry/components/events/interfaces/frame/openInContextLine';
-import {SentryAppComponent} from 'sentry/types';
+import {SentryAppComponent, SentryAppSchemaStacktraceLink} from 'sentry/types';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 
 describe('OpenInContextLine', function () {
   const filename = '/sentry/app.py';
   const group = TestStubs.Group();
-  const install = TestStubs.SentryAppInstallation();
-  const components: SentryAppComponent[] = [
+  const install = SentryAppInstallation();
+  const components: SentryAppComponent<SentryAppSchemaStacktraceLink>[] = [
     {
       uuid: 'ed517da4-a324-44c0-aeea-1894cd9923fb',
       type: 'stacktrace-link',

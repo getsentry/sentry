@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from io import BytesIO
 from typing import ClassVar
+from urllib.parse import urljoin
 from uuid import uuid4
 
 from django.core.exceptions import ObjectDoesNotExist
@@ -10,10 +11,13 @@ from django.utils.encoding import force_bytes
 from PIL import Image
 from typing_extensions import Self
 
+from sentry import options
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, Model
 from sentry.models.files.file import File
 from sentry.silo import SiloMode
 from sentry.tasks.files import copy_file_to_control_and_update_model
+from sentry.types.region import get_local_region
 from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction
 
@@ -25,7 +29,7 @@ class AvatarBase(Model):
     avatar preferences/files. If extending this class, ensure the model has avatar_type.
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     ALLOWED_SIZES: ClassVar[tuple[int, ...]] = (20, 32, 36, 48, 52, 64, 80, 96, 120)
 
@@ -39,14 +43,16 @@ class AvatarBase(Model):
     class Meta:
         abstract = True
 
+    url_path = "avatar"
+
     def save(self, *args, **kwargs):
         if not self.ident:
             self.ident = uuid4().hex
         return super().save(*args, **kwargs)
 
     def get_file(self):
-        # If we're getting a file, and the preferred write file
-        # type isn't present, move data over to new storage async.
+        # If we're getting a file, and the preferred write file type isn't
+        # present, move data over to new storage async.
         file_id = getattr(self, self.file_write_fk(), None)
         file_class = self.file_class()
 
@@ -126,6 +132,22 @@ class AvatarBase(Model):
         Varies in ControlAvatarBase
         """
         return "file_id"
+
+    def absolute_url(self) -> str:
+        """
+        Get the absolute URL to an avatar.
+
+        Use the implementing class's silo_limit to infer which
+        host name should be used.
+        """
+        cls = type(self)
+
+        url_base = options.get("system.url-prefix")
+        silo_limit = getattr(cls._meta, "silo_limit", None)
+        if silo_limit is not None and SiloMode.REGION in silo_limit.modes:
+            url_base = get_local_region().to_url("")
+
+        return urljoin(url_base, f"/{self.url_path}/{self.ident}/")
 
     @classmethod
     def save_avatar(cls, relation, type, avatar=None, filename=None, color=None) -> Self:

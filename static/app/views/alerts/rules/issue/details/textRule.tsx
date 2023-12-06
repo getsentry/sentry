@@ -2,14 +2,14 @@ import {Fragment} from 'react';
 
 import {t} from 'sentry/locale';
 import type {Member, Team} from 'sentry/types';
-import type {IssueAlertRule} from 'sentry/types/alerts';
+import {
+  IssueAlertActionType,
+  IssueAlertConditionType,
+  type IssueAlertRule,
+} from 'sentry/types/alerts';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AlertRuleComparisonType} from 'sentry/views/alerts/rules/metric/types';
-import {CHANGE_ALERT_CONDITION_IDS} from 'sentry/views/alerts/utils/constants';
-import {
-  EVENT_FREQUENCY_PERCENT_CONDITION,
-  REAPPEARED_EVENT_CONDITION,
-} from 'sentry/views/projectInstall/issueAlertOptions';
+import {CHANGE_ALERT_PLACEHOLDERS_LABELS} from 'sentry/views/alerts/utils/constants';
 
 /**
  * Translate Issue Alert Conditions to text
@@ -21,46 +21,32 @@ export function TextCondition({
 }) {
   const organization = useOrganization();
 
-  if (CHANGE_ALERT_CONDITION_IDS.includes(condition.id)) {
+  if (
+    condition.id === IssueAlertConditionType.EVENT_FREQUENCY_PERCENT ||
+    condition.id === IssueAlertConditionType.EVENT_FREQUENCY ||
+    condition.id === IssueAlertConditionType.EVENT_UNIQUE_USER_FREQUENCY
+  ) {
+    const subject = CHANGE_ALERT_PLACEHOLDERS_LABELS[condition.id];
     if (condition.comparisonType === AlertRuleComparisonType.PERCENT) {
-      if (condition.id === EVENT_FREQUENCY_PERCENT_CONDITION) {
-        return (
-          <Fragment>
-            {t(
-              // Double %% escapes
-              'Percent of sessions affected by an issue is %s%% higher in %s compared to %s ago',
-              condition.value,
-              condition.interval,
-              condition.comparisonInterval
-            )}
-          </Fragment>
-        );
-      }
+      // This text does not translate well and should match the alert builder
       return (
         <Fragment>
-          {t(
-            // Double %% escapes
-            'Number of events in an issue is %s%% higher in %s compared to %s ago',
-            condition.value,
-            condition.interval,
-            condition.comparisonInterval
-          )}
+          {subject} {condition.value}% higher in {condition.interval} compared to{' '}
+          {condition.comparisonInterval} ago
         </Fragment>
       );
     }
 
     return (
+      // This text does not translate well and should match the alert builder
       <Fragment>
-        {t(
-          'Number of events in an issue is more than %s in %s',
-          condition.value,
-          condition.interval
-        )}
+        {subject} more than {condition.value} in {condition.interval}
       </Fragment>
     );
   }
+
   if (
-    condition.id === REAPPEARED_EVENT_CONDITION &&
+    condition.id === IssueAlertConditionType.REAPPEARED_EVENT &&
     organization.features.includes('escalating-issues')
   ) {
     return (
@@ -96,7 +82,7 @@ export function TextAction({
     );
   }
 
-  if (action.id === 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction') {
+  if (action.id === IssueAlertActionType.SLACK) {
     const name = action.name
       // Hide the id "(optionally, an ID: XXX)"
       .replace(/\(optionally.*\)/, '')

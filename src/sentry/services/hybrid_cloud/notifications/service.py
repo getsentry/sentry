@@ -2,20 +2,18 @@
 #     from __future__ import annotations
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
-
 from abc import abstractmethod
-from typing import List, Mapping, Optional, Sequence, cast
+from typing import List, Mapping, MutableMapping, Optional, Set, Tuple
 
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.services.hybrid_cloud.auth.model import AuthenticationContext
-from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
-from sentry.services.hybrid_cloud.notifications import RpcNotificationSetting
-from sentry.services.hybrid_cloud.notifications.model import NotificationSettingFilterArgs
+from sentry.notifications.types import (
+    NotificationScopeEnum,
+    NotificationSettingEnum,
+    NotificationSettingsOptionEnum,
+)
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
 
 class NotificationsService(RpcService):
@@ -32,97 +30,34 @@ class NotificationsService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_settings_for_recipient_by_parent(
+    def enable_all_settings_for_provider(
         self,
         *,
-        type: NotificationSettingTypes,
-        parent_id: int,
-        recipients: Sequence[RpcActor],
-    ) -> List[RpcNotificationSetting]:
+        external_provider: ExternalProviderEnum,
+        user_id: Optional[int] = None,
+        team_id: Optional[int] = None,
+        types: Optional[List[NotificationSettingEnum]] = None,
+    ) -> None:
         pass
 
     @rpc_method
     @abstractmethod
-    def get_settings_for_users(
+    def update_notification_options(
         self,
         *,
-        types: List[NotificationSettingTypes],
-        users: List[RpcUser],
-        value: NotificationSettingOptionValues,
-    ) -> List[RpcNotificationSetting]:
-        pass
-
-    @rpc_method
-    @abstractmethod
-    def get_settings_for_user_by_projects(
-        self, *, type: NotificationSettingTypes, user_id: int, parent_ids: List[int]
-    ) -> List[RpcNotificationSetting]:
-        pass
-
-    @rpc_method
-    @abstractmethod
-    def update_settings(
-        self,
-        *,
-        external_provider: ExternalProviders,
-        notification_type: NotificationSettingTypes,
-        setting_option: NotificationSettingOptionValues,
         actor: RpcActor,
-        project_id: Optional[int] = None,
-        organization_id: Optional[int] = None,
+        type: NotificationSettingEnum,
+        scope_type: NotificationScopeEnum,
+        scope_identifier: int,
+        value: NotificationSettingsOptionEnum,
     ) -> None:
         pass
 
     @rpc_method
     @abstractmethod
-    def bulk_update_settings(
-        self,
-        *,
-        notification_type_to_value_map: Mapping[
-            NotificationSettingTypes, NotificationSettingOptionValues
-        ],
-        external_provider: ExternalProviders,
-        user_id: int,
-    ) -> None:
-        pass
-
-    @rpc_method
-    @abstractmethod
-    def uninstall_slack_settings(
-        self,
-        organization_id: int,
-        project_ids: List[int],
-    ) -> None:
-        pass
-
-    @rpc_method
-    @abstractmethod
-    def remove_notification_settings_for_team(
+    def remove_notification_settings_for_provider_team(
         self, *, team_id: int, provider: ExternalProviders
     ) -> None:
-        pass
-
-    @rpc_method
-    @abstractmethod
-    def remove_notification_settings_for_user(
-        self, *, user_id: int, provider: ExternalProviders
-    ) -> None:
-        pass
-
-    @rpc_method
-    @abstractmethod
-    def get_many(self, *, filter: NotificationSettingFilterArgs) -> List[RpcNotificationSetting]:
-        pass
-
-    @rpc_method
-    @abstractmethod
-    def serialize_many(
-        self,
-        *,
-        filter: NotificationSettingFilterArgs,
-        as_user: Optional[RpcUser] = None,
-        auth_context: Optional[AuthenticationContext] = None,
-    ) -> List[OpaqueSerializedResponse]:
         pass
 
     @rpc_method
@@ -135,7 +70,48 @@ class NotificationsService(RpcService):
     def remove_notification_settings_for_project(self, *, project_id: int) -> None:
         pass
 
+    @rpc_method
+    @abstractmethod
+    def get_subscriptions_for_projects(
+        self,
+        *,
+        user_id: int,
+        project_ids: List[int],
+        type: NotificationSettingEnum,
+    ) -> Mapping[int, Tuple[bool, bool, bool]]:
+        pass
 
-notifications_service: NotificationsService = cast(
-    NotificationsService, NotificationsService.create_delegation()
-)
+    @rpc_method
+    @abstractmethod
+    def get_participants(
+        self,
+        *,
+        recipients: List[RpcActor],
+        type: NotificationSettingEnum,
+        project_ids: Optional[List[int]] = None,
+        organization_id: Optional[int] = None,
+    ) -> MutableMapping[int, MutableMapping[int, str]]:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def get_users_for_weekly_reports(
+        self, *, organization_id: int, user_ids: List[int]
+    ) -> List[int]:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def get_notification_recipients(
+        self,
+        *,
+        recipients: List[RpcActor],
+        type: NotificationSettingEnum,
+        organization_id: Optional[int] = None,
+        project_ids: Optional[List[int]] = None,
+        actor_type: Optional[ActorType] = None,
+    ) -> Mapping[str, Set[RpcActor]]:
+        pass
+
+
+notifications_service = NotificationsService.create_delegation()

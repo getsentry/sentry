@@ -17,10 +17,11 @@ async function exportDashboard() {
     const structure = {
       base_url: null,
       dashboard_id: null,
+      org_slug: null,
     };
 
     const params = getAPIParams(structure);
-    const apiUrl = `https://${params.base_url}/api/0/organizations/testorg-az/dashboards/${params.dashboard_id}/`;
+    const apiUrl = `https://${params.base_url}/api/0/organizations/${params.org_slug}/dashboards/${params.dashboard_id}/`;
     const response = await fetch(apiUrl);
     const jsonData = await response.json();
     const normalized = normalizeData(jsonData);
@@ -39,6 +40,7 @@ function getAPIParams(structure) {
   const regex = {
     base_url: /(\/\/)(.*?)(\/)/,
     dashboard_id: /(dashboard\/)(.*?)(\/)/,
+    org_slug: /(\/\/)(.+?)(?=\.)/,
   };
 
   for (const attr in regex) {
@@ -122,6 +124,7 @@ function getPropertyStructure(property) {
         queries: [],
         displayType: '',
         widgetType: '',
+        layout: [],
       };
       break;
     case 'queries':

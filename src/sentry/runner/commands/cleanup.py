@@ -9,6 +9,7 @@ from typing import Final, Literal
 from uuid import uuid4
 
 import click
+import sentry_sdk
 from django.conf import settings
 from django.utils import timezone
 from typing_extensions import TypeAlias
@@ -17,7 +18,7 @@ from sentry.runner.decorators import log_options
 
 
 def get_project(value):
-    from sentry.models import Project
+    from sentry.models.project import Project
 
     try:
         if value.isdigit():
@@ -162,13 +163,16 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         from sentry.models.rulefirehistory import RuleFireHistory
         from sentry.monitors import models as monitor_models
         from sentry.replays import models as replay_models
-        from sentry.sentry_metrics.indexer.postgres import models as metrics_indexer_models
         from sentry.utils import metrics
         from sentry.utils.query import RangeQuerySetWrapper
 
         start_time = None
         if timed:
             start_time = time.time()
+        transaction = sentry_sdk.start_transaction(op="cleanup", name="cleanup")
+        transaction.__enter__()
+        transaction.set_tag("router", router)
+        transaction.set_tag("model", model)
 
         # list of models which this query is restricted to
         model_list = {m.lower() for m in model}
@@ -193,9 +197,6 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             (models.GroupEmailThread, "date", None),
             (models.GroupRuleStatus, "date_added", None),
             (RuleFireHistory, "date_added", None),
-            (monitor_models.MonitorCheckIn, "date_added", None),
-            (metrics_indexer_models.StringIndexer, "last_seen", None),
-            (metrics_indexer_models.PerfStringIndexer, "last_seen", None),
         ] + additional_bulk_query_deletes
 
         # Deletions that use the `deletions` code path (which handles their child relations)
@@ -204,6 +205,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             (models.EventAttachment, "date_added", "date_added"),
             (replay_models.ReplayRecordingSegment, "date_added", "date_added"),
             (models.ArtifactBundle, "date_added", "date_added"),
+            (monitor_models.MonitorCheckIn, "date_added", "date_added"),
         ]
         # Deletions that we run per project. In some cases we can't use an index on just the date
         # column, so as an alternative we use `(project_id, <date_col>)` instead
@@ -212,6 +214,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             # used this index instead of a more appropriate one. This was causing a lot of postgres
             # load, so we had to remove it.
             (models.Group, "last_seen", "last_seen"),
+            (models.ProjectDebugFile, "date_accessed", "date_accessed"),
         ]
 
         if not silent:
@@ -272,8 +275,6 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             click.echo("Bulk NodeStore deletion not available for project selection", err=True)
             project_id = get_project(project)
             # These models span across projects, so let's skip them
-            BULK_QUERY_DELETES.remove((metrics_indexer_models.StringIndexer, "last_seen", None))
-            BULK_QUERY_DELETES.remove((metrics_indexer_models.PerfStringIndexer, "last_seen", None))
             DELETES.remove((models.ArtifactBundle, "date_added", "date_added"))
             if project_id is None:
                 click.echo("Error: Project not found", err=True)
@@ -400,6 +401,9 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         metrics.timing("cleanup.duration", duration, instance=router, sample_rate=1.0)
         click.echo("Clean up took %s second(s)." % duration)
 
+    if transaction:
+        transaction.__exit__(None, None, None)
+
 
 def cleanup_unused_files(quiet=False):
     """
@@ -410,7 +414,9 @@ def cleanup_unused_files(quiet=False):
     any blobs which are brand new and potentially in the process of being
     referenced.
     """
-    from sentry.models import File, FileBlob, FileBlobIndex
+    from sentry.models.files.file import File
+    from sentry.models.files.fileblob import FileBlob
+    from sentry.models.files.fileblobindex import FileBlobIndex
 
     if quiet:
         from sentry.utils.query import RangeQuerySetWrapper

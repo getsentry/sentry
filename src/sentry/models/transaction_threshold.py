@@ -2,6 +2,7 @@ from enum import Enum
 
 from django.db import models
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_only_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.utils.cache import cache
@@ -52,7 +53,7 @@ def _filter_and_cache(cls, cache_key, project_ids, organization_id, order_by, va
 
 @region_silo_only_model
 class ProjectTransactionThresholdOverride(DefaultFieldsModel):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     # max_length here is based on the maximum for transactions in relay
     transaction = models.CharField(max_length=200)
@@ -82,7 +83,7 @@ class ProjectTransactionThresholdOverride(DefaultFieldsModel):
 
 @region_silo_only_model
 class ProjectTransactionThreshold(DefaultFieldsModel):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project", unique=True, db_constraint=False)
     organization = FlexibleForeignKey("sentry.Organization")

@@ -5,7 +5,7 @@
 
 import datetime
 
-from sentry.models import LostPasswordHash
+from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.services.hybrid_cloud import RpcModel
 
 

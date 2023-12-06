@@ -1,5 +1,6 @@
 from sentry.constants import ObjectStatus
-from sentry.models import GroupRuleStatus, Rule, RuleActivity, RuleActivityType
+from sentry.models.grouprulestatus import GroupRuleStatus
+from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import TestCase
@@ -7,7 +8,7 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class DeleteRuleTest(TestCase, HybridCloudTestMixin):
     def test_simple(self):
         project = self.create_project()

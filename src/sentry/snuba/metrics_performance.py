@@ -1,19 +1,28 @@
+from __future__ import annotations
+
+import logging
 from datetime import timedelta
-from typing import Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence
 
 import sentry_sdk
 from snuba_sdk import Column
 
 from sentry.discover.arithmetic import categorize_columns
+from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.search.events.builder import (
     HistogramMetricQueryBuilder,
     MetricsQueryBuilder,
     TimeseriesMetricQueryBuilder,
+    TopMetricsQueryBuilder,
 )
 from sentry.search.events.fields import get_function_alias
+from sentry.search.events.types import EventsResponse, QueryBuilderConfig
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.utils.snuba import SnubaTSResult, bulk_snql_query
+
+logger = logging.getLogger(__name__)
 
 INLIER_QUERY_CLAUSE = "histogram_outlier:inlier"
 
@@ -38,36 +47,42 @@ def query(
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
+    on_demand_metrics_type: Optional[MetricSpecType] = None,
     granularity: Optional[int] = None,
 ):
     with sentry_sdk.start_span(op="mep", description="MetricQueryBuilder"):
         metrics_query = MetricsQueryBuilder(
             params,
+            dataset=Dataset.PerformanceMetrics,
             snuba_params=snuba_params,
             query=query,
             selected_columns=selected_columns,
             equations=[],
             orderby=orderby,
-            # Auto fields will add things like id back in if enabled
-            auto_fields=False,
-            auto_aggregations=auto_aggregations,
-            use_aggregate_conditions=use_aggregate_conditions,
-            allow_metric_aggregates=allow_metric_aggregates,
-            functions_acl=functions_acl,
             limit=limit,
             offset=offset,
-            dataset=Dataset.PerformanceMetrics,
-            transform_alias_to_input_format=transform_alias_to_input_format,
-            use_metrics_layer=use_metrics_layer,
             granularity=granularity,
-            on_demand_metrics_enabled=on_demand_metrics_enabled,
+            config=QueryBuilderConfig(
+                auto_aggregations=auto_aggregations,
+                use_aggregate_conditions=use_aggregate_conditions,
+                allow_metric_aggregates=allow_metric_aggregates,
+                functions_acl=functions_acl,
+                # Auto fields will add things like id back in if enabled
+                auto_fields=False,
+                transform_alias_to_input_format=transform_alias_to_input_format,
+                use_metrics_layer=use_metrics_layer,
+                on_demand_metrics_enabled=on_demand_metrics_enabled,
+                on_demand_metrics_type=on_demand_metrics_type,
+            ),
         )
         metrics_referrer = referrer + ".metrics-enhanced"
         results = metrics_query.run_query(metrics_referrer)
     with sentry_sdk.start_span(op="mep", description="query.transform_results"):
         results = metrics_query.process_results(results)
         results["meta"]["isMetricsData"] = True
+        results["meta"]["isMetricsExtractedData"] = metrics_query.use_on_demand
         sentry_sdk.set_tag("performance.dataset", "metrics")
+        sentry_sdk.set_tag("on_demand.is_extracted", metrics_query.use_on_demand)
         return results
 
 
@@ -84,9 +99,10 @@ def bulk_timeseries_query(
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
+    on_demand_metrics_type: Optional[MetricSpecType] = None,
     groupby: Optional[Column] = None,
     apply_formatting: Optional[bool] = True,
-) -> SnubaTSResult:
+) -> SnubaTSResult | EventsResponse:
     """
     High-level API for doing *bulk* arbitrary user timeseries queries against events.
     this API should match that of sentry.snuba.discover.timeseries_query
@@ -99,7 +115,6 @@ def bulk_timeseries_query(
     if metrics_compatible:
         with sentry_sdk.start_span(op="mep", description="TimeseriesMetricQueryBuilder"):
             metrics_queries = []
-            metrics_query = None
             for query in queries:
                 metrics_query = TimeseriesMetricQueryBuilder(
                     params,
@@ -107,28 +122,30 @@ def bulk_timeseries_query(
                     dataset=Dataset.PerformanceMetrics,
                     query=query,
                     selected_columns=columns,
-                    functions_acl=functions_acl,
-                    allow_metric_aggregates=allow_metric_aggregates,
-                    use_metrics_layer=use_metrics_layer,
                     groupby=groupby,
+                    config=QueryBuilderConfig(
+                        functions_acl=functions_acl,
+                        allow_metric_aggregates=allow_metric_aggregates,
+                        use_metrics_layer=use_metrics_layer,
+                    ),
                 )
                 snql_query = metrics_query.get_snql_query()
                 metrics_queries.append(snql_query[0])
 
             metrics_referrer = referrer + ".metrics-enhanced"
             bulk_result = bulk_snql_query(metrics_queries, metrics_referrer)
-            result = {"data": []}
+            _result: dict[str, Any] = {"data": []}
             for br in bulk_result:
-                result["data"] = [*result["data"], *br["data"]]
-                result["meta"] = br["meta"]
+                _result["data"] = [*_result["data"], *br["data"]]
+                _result["meta"] = br["meta"]
         with sentry_sdk.start_span(op="mep", description="query.transform_results"):
-            result = metrics_query.process_results(result)
+            result = metrics_query.process_results(_result)
             sentry_sdk.set_tag("performance.dataset", "metrics")
             result["meta"]["isMetricsData"] = True
 
             # Sometimes additional formatting needs to be done downstream
             if not apply_formatting:
-                return result
+                return result  # EventsResponseData type
 
             result["data"] = (
                 discover.zerofill(
@@ -173,7 +190,7 @@ def bulk_timeseries_query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: Dict[str, str],
+    params: Dict[str, Any],
     rollup: int,
     referrer: str,
     zerofill_results: bool = True,
@@ -183,30 +200,32 @@ def timeseries_query(
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
+    on_demand_metrics_type: Optional[MetricSpecType] = None,
     groupby: Optional[Column] = None,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
     this API should match that of sentry.snuba.discover.timeseries_query
     """
-    metrics_compatible = False
     equations, columns = categorize_columns(selected_columns)
-    if comparison_delta is None and not equations:
-        metrics_compatible = True
+    metrics_compatible = not equations
 
-    if metrics_compatible:
+    def run_metrics_query(inner_params: Dict[str, Any]):
         with sentry_sdk.start_span(op="mep", description="TimeseriesMetricQueryBuilder"):
             metrics_query = TimeseriesMetricQueryBuilder(
-                params,
+                inner_params,
                 rollup,
                 dataset=Dataset.PerformanceMetrics,
                 query=query,
                 selected_columns=columns,
-                functions_acl=functions_acl,
-                allow_metric_aggregates=allow_metric_aggregates,
-                use_metrics_layer=use_metrics_layer,
                 groupby=groupby,
-                on_demand_metrics_enabled=on_demand_metrics_enabled,
+                config=QueryBuilderConfig(
+                    functions_acl=functions_acl,
+                    allow_metric_aggregates=allow_metric_aggregates,
+                    use_metrics_layer=use_metrics_layer,
+                    on_demand_metrics_enabled=on_demand_metrics_enabled,
+                    on_demand_metrics_type=on_demand_metrics_type,
+                ),
             )
             metrics_referrer = referrer + ".metrics-enhanced"
             result = metrics_query.run_query(metrics_referrer)
@@ -215,8 +234,8 @@ def timeseries_query(
             result["data"] = (
                 discover.zerofill(
                     result["data"],
-                    params["start"],
-                    params["end"],
+                    inner_params["start"],
+                    inner_params["end"],
                     rollup,
                     "time",
                 )
@@ -225,17 +244,76 @@ def timeseries_query(
             )
             sentry_sdk.set_tag("performance.dataset", "metrics")
             result["meta"]["isMetricsData"] = True
+            sentry_sdk.set_tag("on_demand.is_extracted", metrics_query.use_on_demand)
+            result["meta"]["isMetricsExtractedData"] = metrics_query.use_on_demand
 
-            return SnubaTSResult(
-                {
-                    "data": result["data"],
-                    "isMetricsData": True,
-                    "meta": result["meta"],
-                },
-                params["start"],
-                params["end"],
-                rollup,
+            return {
+                "data": result["data"],
+                "isMetricsData": True,
+                "isMetricsExtractedData": metrics_query.use_on_demand,
+                "meta": result["meta"],
+            }
+
+    if metrics_compatible:
+        # We could run these two queries in a batch but this would require a big refactor in the `get_snql_query` method
+        # of the TimeseriesMetricQueryBuilder. In case this becomes a performance bottleneck, we should invest more
+        # time into properly performing batching.
+        #
+        # In case we want to support multiple aggregate comparisons, we can just remove the condition below and rework
+        # the implementation of the `comparisonCount` field.
+        result = run_metrics_query(inner_params=params)
+        if comparison_delta:
+            result_to_compare = run_metrics_query(
+                inner_params={
+                    **params,
+                    "start": params["start"] - comparison_delta,
+                    "end": params["end"] - comparison_delta,
+                }
             )
+
+            aliased_columns = [
+                get_function_alias(selected_column) for selected_column in selected_columns
+            ]
+            if len(aliased_columns) != 1:
+                raise IncompatibleMetricsQuery(
+                    "The comparison query for metrics supports only one aggregate."
+                )
+
+            merged_data = []
+            for data, data_to_compare in zip(result["data"], result_to_compare["data"]):
+                merged_item = {"time": data["time"]}
+
+                for aliased_column in aliased_columns:
+                    # We only add data in the dictionary in case it's not `None`, since the serializer,
+                    # will convert all missing dictionary values to 0.
+                    if (column := data.get(aliased_column)) is not None:
+                        # We get from the main timeseries the actual result.
+                        merged_item[aliased_column] = column
+
+                    # It can be that we have the data in the comparison, in that case want to show it.
+                    if (column := data_to_compare.get(aliased_column)) is not None:
+                        # TODO: this implementation was copied over from discover to reduce the refactor size but it
+                        #  would be better to prefix the comparisons with like `comparison_[alias]` and convert them
+                        #  in the serializer.
+                        merged_item["comparisonCount"] = column
+
+                merged_data.append(merged_item)
+
+            result["data"] = merged_data
+
+        return SnubaTSResult(
+            {
+                "data": result["data"],
+                "isMetricsData": True,
+                "meta": result["meta"],
+            },
+            # We keep the params passed in the function as the time interval.
+            params["start"],
+            params["end"],
+            rollup,
+        )
+
+    # In case the query was not compatible with metrics we return empty data.
     return SnubaTSResult(
         {
             "data": discover.zerofill([], params["start"], params["end"], rollup, "time")
@@ -246,6 +324,136 @@ def timeseries_query(
         params["end"],
         rollup,
     )
+
+
+def top_events_timeseries(
+    timeseries_columns,
+    selected_columns,
+    user_query,
+    params,
+    orderby,
+    rollup,
+    limit,
+    organization,
+    equations=None,
+    referrer=None,
+    top_events=None,
+    allow_empty=True,
+    zerofill_results=True,
+    include_other=False,
+    functions_acl=None,
+    on_demand_metrics_enabled=False,
+    on_demand_metrics_type: Optional[MetricSpecType] = None,
+) -> SnubaTSResult | dict[str, Any]:
+    if top_events is None:
+        top_events = query(
+            selected_columns,
+            query=user_query,
+            params=params,
+            equations=equations,
+            orderby=orderby,
+            limit=limit,
+            referrer=referrer,
+            auto_aggregations=True,
+            use_aggregate_conditions=True,
+            on_demand_metrics_enabled=on_demand_metrics_enabled,
+            on_demand_metrics_type=on_demand_metrics_type,
+        )
+
+    top_events_builder = TopMetricsQueryBuilder(
+        Dataset.PerformanceMetrics,
+        params,
+        rollup,
+        top_events["data"],
+        other=False,
+        query=user_query,
+        selected_columns=selected_columns,
+        timeseries_columns=timeseries_columns,
+        config=QueryBuilderConfig(
+            functions_acl=functions_acl,
+            on_demand_metrics_enabled=on_demand_metrics_enabled,
+            on_demand_metrics_type=on_demand_metrics_type,
+        ),
+    )
+    if len(top_events["data"]) == limit and include_other:
+        other_events_builder = TopMetricsQueryBuilder(
+            Dataset.PerformanceMetrics,
+            params,
+            rollup,
+            top_events["data"],
+            other=True,
+            query=user_query,
+            selected_columns=selected_columns,
+            timeseries_columns=timeseries_columns,
+            config=QueryBuilderConfig(
+                on_demand_metrics_enabled=on_demand_metrics_enabled,
+                on_demand_metrics_type=on_demand_metrics_type,
+            ),
+        )
+
+        # TODO: use bulk_snql_query
+        other_result = other_events_builder.run_query(referrer)
+        result = top_events_builder.run_query(referrer)
+    else:
+        result = top_events_builder.run_query(referrer)
+        other_result = {"data": []}
+    if (
+        not allow_empty
+        and not len(result.get("data", []))
+        and not len(other_result.get("data", []))
+    ):
+        return SnubaTSResult(
+            {
+                "data": discover.zerofill([], params["start"], params["end"], rollup, "time")
+                if zerofill_results
+                else [],
+            },
+            params["start"],
+            params["end"],
+            rollup,
+        )
+
+    result = top_events_builder.process_results(result)
+
+    translated_groupby = top_events_builder.translated_groupby
+
+    results: dict[str, Any] = (
+        {discover.OTHER_KEY: {"order": limit, "data": other_result["data"]}}
+        if len(other_result.get("data", []))
+        else {}
+    )
+    # Using the top events add the order to the results
+    for index, item in enumerate(top_events["data"]):
+        result_key = discover.create_result_key(item, translated_groupby, {})
+        results[result_key] = {"order": index, "data": []}
+    for row in result["data"]:
+        result_key = discover.create_result_key(row, translated_groupby, {})
+        if result_key in results:
+            results[result_key]["data"].append(row)
+        else:
+            logger.warning(
+                "spans_metrics.top-events.timeseries.key-mismatch",
+                extra={"result_key": result_key, "top_event_keys": list(results.keys())},
+            )
+    for key, item in results.items():
+        results[key] = SnubaTSResult(
+            {
+                "data": discover.zerofill(
+                    item["data"], params["start"], params["end"], rollup, "time"
+                )
+                if zerofill_results
+                else item["data"],
+                "order": item["order"],
+                # One of the queries in the builder has required, thus, we mark all of them
+                # This could mislead downstream consumers of the meta data
+                "meta": {"isMetricsExtractedData": top_events_builder.use_on_demand},
+            },
+            params["start"],
+            params["end"],
+            rollup,
+        )
+
+    return results
 
 
 def histogram_query(
@@ -321,7 +529,9 @@ def histogram_query(
         selected_columns=[f"histogram({field})" for field in fields],
         orderby=order_by,
         limitby=limit_by,
-        use_metrics_layer=use_metrics_layer,
+        config=QueryBuilderConfig(
+            use_metrics_layer=use_metrics_layer,
+        ),
     )
     if extra_conditions is not None:
         builder.add_conditions(extra_conditions)
@@ -351,7 +561,7 @@ def normalize_histogram_results(fields, histogram_params, results):
     """
 
     # zerofill and rename the columns while making sure to adjust for precision
-    bucket_maps = {field: {} for field in fields}
+    bucket_maps: dict[str, Any] = {field: {} for field in fields}
     # Only one row in metrics result
     data = results["data"][0]
     for field in fields:
@@ -359,7 +569,7 @@ def normalize_histogram_results(fields, histogram_params, results):
         histogram_alias = get_function_alias(histogram_column)
         bucket_maps[field] = {start: height for start, end, height in data[histogram_alias]}
 
-    new_data = {field: [] for field in fields}
+    new_data: dict[str, Any] = {field: [] for field in fields}
     for i in range(histogram_params.num_buckets):
         bucket = histogram_params.start_offset + histogram_params.bucket_size * i
         for field in fields:

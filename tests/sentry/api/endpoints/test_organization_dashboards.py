@@ -5,9 +5,8 @@ from typing import Any
 
 from django.urls import reverse
 
-from sentry.models import (
-    Dashboard,
-    DashboardTombstone,
+from sentry.models.dashboard import Dashboard, DashboardTombstone
+from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetTypes,
@@ -17,7 +16,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
     def setUp(self):
         super().setUp()
@@ -839,3 +838,28 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             DashboardWidgetDisplayTypes.LINE_CHART
         )
         assert widget_data["layout"] is None
+
+    def test_post_dashboard_with_widget_filter_requiring_environment(self):
+        mock_project = self.create_project()
+        self.create_environment(project=mock_project, name="mock_env")
+        data = {
+            "title": "Dashboard",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Widget",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "release.stage:adopted",
+                        }
+                    ],
+                }
+            ],
+        }
+        response = self.do_request("post", f"{self.url}?environment=mock_env", data=data)
+        assert response.status_code == 201, response.data

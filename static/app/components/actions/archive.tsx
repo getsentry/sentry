@@ -15,6 +15,7 @@ interface ArchiveActionProps {
   className?: string;
   confirmLabel?: string;
   confirmMessage?: () => React.ReactNode;
+  disableArchiveUntilOccurrence?: boolean;
   disabled?: boolean;
   isArchived?: boolean;
   shouldConfirm?: boolean;
@@ -32,15 +33,20 @@ const ARCHIVE_FOREVER: GroupStatusResolution = {
   substatus: GroupSubstatus.ARCHIVED_FOREVER,
 };
 
+type GetArchiveActionsProps = Pick<
+  ArchiveActionProps,
+  'shouldConfirm' | 'confirmMessage' | 'onUpdate' | 'confirmLabel'
+> & {
+  disableArchiveUntilOccurrence?: boolean;
+};
+
 export function getArchiveActions({
   shouldConfirm,
   confirmLabel,
   confirmMessage,
   onUpdate,
-}: Pick<
-  ArchiveActionProps,
-  'shouldConfirm' | 'confirmMessage' | 'onUpdate' | 'confirmLabel'
->): {
+  disableArchiveUntilOccurrence,
+}: GetArchiveActionsProps): {
   dropdownItems: MenuItemProps[];
   onArchive: (resolution: GroupStatusResolution) => void;
 } {
@@ -78,7 +84,12 @@ export function getArchiveActions({
         label: t('Forever'),
         onAction: () => onArchive(ARCHIVE_FOREVER),
       },
-      ...dropdownItems,
+      ...dropdownItems.filter(item => {
+        if (disableArchiveUntilOccurrence) {
+          return item.key !== 'until-reoccur' && item.key !== 'until-affect';
+        }
+        return true;
+      }),
     ],
   };
 }
@@ -86,6 +97,7 @@ export function getArchiveActions({
 function ArchiveActions({
   size = 'xs',
   disabled,
+  disableArchiveUntilOccurrence,
   className,
   shouldConfirm,
   confirmLabel,
@@ -116,6 +128,7 @@ function ArchiveActions({
     onUpdate,
     shouldConfirm,
     confirmMessage,
+    disableArchiveUntilOccurrence,
   });
 
   return (
@@ -127,7 +140,7 @@ function ArchiveActions({
           'We’ll nag you with a notification if the issue gets worse. All archived issues can be found in the Archived tab. [docs:Read the docs]',
           {
             docs: (
-              <ExternalLink href="https://docs.sentry.io/product/accounts/early-adopter-features/issue-archiving/" />
+              <ExternalLink href="https://docs.sentry.io/product/issues/states-triage/#archive" />
             ),
           }
         )}
@@ -151,7 +164,7 @@ function ArchiveActions({
         menuTitle={
           <MenuWrapper>
             {t('Archive')}
-            <StyledExternalLink href="https://sentry-docs-git-update-beta-test-archiving.sentry.dev/product/issues/states-triage/escalating-issues/">
+            <StyledExternalLink href="https://docs.sentry.io/product/issues/states-triage/#archive">
               {t('Read the docs')}
             </StyledExternalLink>
           </MenuWrapper>

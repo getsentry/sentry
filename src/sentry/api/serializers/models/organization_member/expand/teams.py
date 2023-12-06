@@ -1,6 +1,7 @@
 from typing import Any, Mapping, MutableMapping, Sequence, cast
 
-from sentry.models import OrganizationMember, User
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.user import User
 
 from ..base import OrganizationMemberSerializer
 from ..response import OrganizationMemberWithTeamsResponse

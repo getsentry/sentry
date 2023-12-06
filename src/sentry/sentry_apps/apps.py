@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+from dataclasses import field
 from itertools import chain
 from typing import Any, Iterable, List, Mapping, Set
 
@@ -13,30 +14,29 @@ from rest_framework.exceptions import ValidationError
 from sentry_sdk.api import push_scope
 
 from sentry import analytics, audit_log
+from sentry.api.helpers.slugs import sentry_slugify
 from sentry.constants import SentryAppStatus
 from sentry.coreapi import APIError
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
-from sentry.models import (
-    ApiApplication,
-    ApiToken,
-    IntegrationFeature,
-    SentryApp,
-    SentryAppComponent,
-    SentryAppInstallation,
-    User,
-)
-from sentry.models.integrations.integration_feature import IntegrationTypes
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.apitoken import ApiToken
+from sentry.models.integrations.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.models.integrations.sentry_app import (
     EVENT_EXPANSION,
     REQUIRED_EVENT_PERMISSIONS,
+    UUID_CHARS_IN_SLUG,
+    SentryApp,
     default_uuid,
-    generate_slug,
 )
+from sentry.models.integrations.sentry_app_component import SentryAppComponent
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.user import User
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
 )
 from sentry.services.hybrid_cloud.hook import hook_service
+from sentry.services.hybrid_cloud.user.model import RpcUser
 
 Schema = Mapping[str, Any]
 
@@ -145,10 +145,15 @@ class SentryAppUpdater:
                 raise APIError("Cannot update permissions on a published integration.")
             self.sentry_app.scope_list = self.scopes
             # update the scopes of active tokens tokens
-            ApiToken.objects.filter(
-                Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now()),
-                application=self.sentry_app.application,
-            ).update(scope_list=list(self.scopes))
+            tokens = list(
+                ApiToken.objects.filter(
+                    Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now()),
+                    application=self.sentry_app.application,
+                )
+            )
+            for token in tokens:
+                token.scope_list = self.scopes
+            ApiToken.objects.bulk_update(tokens, ["scope_list"])
 
     def _update_events(self) -> None:
         if self.events is not None:
@@ -267,6 +272,7 @@ class SentryAppCreator:
     overview: str | None = None
     allowed_origins: List[str] = dataclasses.field(default_factory=list)
     popularity: int | None = None
+    metadata: dict | None = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if self.is_internal:
@@ -274,7 +280,7 @@ class SentryAppCreator:
                 not self.verify_install
             ), "Internal apps should not require installation verification"
 
-    def run(self, *, user: User, request: HttpRequest | None = None) -> SentryApp:
+    def run(self, *, user: User | RpcUser, request: HttpRequest | None = None) -> SentryApp:
         with transaction.atomic(router.db_for_write(User)), in_test_hide_transaction_boundary():
             slug = self._generate_and_validate_slug()
             proxy = self._create_proxy_user(slug=slug)
@@ -292,7 +298,11 @@ class SentryAppCreator:
         return sentry_app
 
     def _generate_and_validate_slug(self) -> str:
-        slug = generate_slug(self.name, is_internal=self.is_internal)
+        # sentry_slugify ensures the slug is not entirely numeric
+        slug = sentry_slugify(self.name)
+        # for internal, add some uuid to make it unique
+        if self.is_internal:
+            slug = f"{slug}-{default_uuid()[:UUID_CHARS_IN_SLUG]}"
 
         # validate globally unique slug
         queryset = SentryApp.with_deleted.filter(slug=slug)
@@ -315,9 +325,8 @@ class SentryAppCreator:
         )
 
     def _create_sentry_app(
-        self, user: User, slug: str, proxy: User, api_app: ApiApplication
+        self, user: User | RpcUser, slug: str, proxy: User, api_app: ApiApplication
     ) -> SentryApp:
-
         kwargs = {
             "name": self.name,
             "slug": slug,
@@ -334,9 +343,10 @@ class SentryAppCreator:
             "verify_install": self.verify_install,
             "overview": self.overview,
             "popularity": self.popularity or SentryApp._meta.get_field("popularity").default,
-            "creator_user": user,
+            "creator_user_id": user.id,
             "creator_label": user.email
             or user.username,  # email is not required for some users (sentry apps)
+            "metadata": self.metadata if self.metadata else {},
         }
 
         if self.is_internal:

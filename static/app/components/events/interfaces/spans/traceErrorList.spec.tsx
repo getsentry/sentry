@@ -1,3 +1,7 @@
+import {Span} from 'sentry-fixture/span';
+import {TraceError} from 'sentry-fixture/traceError';
+import {TracePerformanceIssue} from 'sentry-fixture/tracePerformanceIssue';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import TraceErrorList from 'sentry/components/events/interfaces/spans/traceErrorList';
@@ -10,7 +14,7 @@ describe('TraceErrorList', () => {
         {
           type: 'spans',
           data: [
-            TestStubs.Span({
+            Span({
               op: '/api/fetchitems',
               span_id: '42118aba',
             }),
@@ -20,17 +24,17 @@ describe('TraceErrorList', () => {
     });
 
     const errors = [
-      TestStubs.TraceError({
+      TraceError({
         event_id: '1',
         span: '42118aba',
         level: 'warning',
       }),
-      TestStubs.TraceError({
+      TraceError({
         event_id: '2',
         span: '42118aba',
         level: 'warning',
       }),
-      TestStubs.TraceError({
+      TraceError({
         event_id: '3',
         span: '42118aba',
         level: 'error',
@@ -56,7 +60,7 @@ describe('TraceErrorList', () => {
         {
           type: 'spans',
           data: [
-            TestStubs.Span({
+            Span({
               op: '/api/fetchitems',
               span_id: '42118aba',
             }),
@@ -66,7 +70,7 @@ describe('TraceErrorList', () => {
     });
 
     const errors = [
-      TestStubs.TraceError({
+      TraceError({
         event_id: '1',
         level: 'warning',
       }),
@@ -76,5 +80,52 @@ describe('TraceErrorList', () => {
 
     const listItem = screen.getByRole('listitem');
     expect(listItem).toHaveTextContent('1 warning error in /path');
+  });
+
+  it('groups performance issues separately', () => {
+    const event = TestStubs.Event({
+      contexts: {
+        trace: {
+          op: '/path',
+        },
+      },
+      entries: [
+        {
+          type: 'spans',
+          data: [
+            Span({
+              op: '/api/fetchitems',
+              span_id: '42118aba',
+            }),
+          ],
+        },
+      ],
+    });
+
+    const errors = [
+      TraceError({
+        event_id: '1',
+        level: 'warning',
+      }),
+    ];
+
+    const performanceIssues = [
+      TracePerformanceIssue({
+        event_id: '1',
+      }),
+    ];
+
+    render(
+      <TraceErrorList
+        trace={parseTrace(event)}
+        errors={errors}
+        performanceIssues={performanceIssues}
+      />
+    );
+
+    const listItems = screen.getAllByRole('listitem');
+    expect(listItems).toHaveLength(2);
+    expect(listItems[0]).toHaveTextContent('1 warning error in /path');
+    expect(listItems[1]).toHaveTextContent('1 performance issue in /path');
   });
 });

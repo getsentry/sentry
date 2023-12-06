@@ -3,6 +3,8 @@ import logging
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.integration import IntegrationEndpoint
 from sentry.integrations.bitbucket.integration import BitbucketIntegration
@@ -14,6 +16,11 @@ logger = logging.getLogger("sentry.integrations.bitbucket")
 
 @control_silo_endpoint
 class BitbucketSearchEndpoint(IntegrationEndpoint):
+    owner = ApiOwner.INTEGRATIONS
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization, integration_id, **kwds) -> Response:
         try:
             integration = Integration.objects.get(
@@ -61,7 +68,6 @@ class BitbucketSearchEndpoint(IntegrationEndpoint):
             )
 
         if field == "repo":
-
             result = installation.get_repositories(query)
             return Response([{"label": i["name"], "value": i["name"]} for i in result])
 

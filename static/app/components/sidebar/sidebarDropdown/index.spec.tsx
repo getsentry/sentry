@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import SidebarDropdown from 'sentry/components/sidebar/sidebarDropdown';
@@ -6,7 +8,7 @@ import ConfigStore from 'sentry/stores/configStore';
 function renderDropdown(props: any = {}) {
   const user = TestStubs.User();
   const config = TestStubs.Config();
-  const organization = TestStubs.Organization({orgRole: 'member'});
+  const organization = Organization({orgRole: 'member'});
   const routerContext = TestStubs.routerContext([
     {
       organization,
@@ -27,12 +29,10 @@ function renderDropdown(props: any = {}) {
 
 describe('SidebarDropdown', function () {
   it('renders', function () {
-    const {container} = renderDropdown();
-    expect(container).toSnapshot();
+    renderDropdown();
   });
   it('renders without org links', function () {
-    const {container} = renderDropdown({hideOrgLinks: true});
-    expect(container).toSnapshot();
+    renderDropdown({hideOrgLinks: true});
   });
   it('renders open sidebar', async function () {
     const config = TestStubs.Config({

@@ -7,12 +7,15 @@ from sentry_sdk import Hub, push_scope
 
 from sentry import eventstore
 from sentry.eventstore.models import Event
-from sentry.models import manage_default_super_admin_role
+from sentry.models.userrole import manage_default_super_admin_role
 from sentry.receivers import create_default_projects
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.pytest.relay import adjust_settings_for_relay_tests
+from sentry.testutils.skips import requires_kafka
 from sentry.utils.sdk import bind_organization_context, configure_sdk
+
+pytestmark = [requires_kafka]
 
 
 @pytest.fixture(autouse=True)

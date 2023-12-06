@@ -97,11 +97,15 @@ class TagField:
         self.parse = parse_str
         self.query = SumOfTagScalar
 
-    def apply(self, key: str, search_filter: SearchFilter) -> Condition:
+    def apply(self, search_filter: SearchFilter) -> Condition:
         """Apply a search operation against any named expression.
 
         A named expression can be a column name or an expression alias.
         """
+        key = search_filter.key.name
+        if key.startswith("tags["):
+            key = key[5:-1]
+
         operator = search_filter.operator
         value = search_filter.value.value
 

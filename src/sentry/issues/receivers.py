@@ -1,6 +1,7 @@
 from typing import Any
 
-from sentry.models import Group, GroupSnooze
+from sentry.models.group import Group
+from sentry.models.groupsnooze import GroupSnooze
 from sentry.signals import issue_resolved
 
 

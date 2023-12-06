@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -5,7 +7,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {getCurrentLandingDisplay} from 'sentry/views/performance/landing/utils';
 
 function initializeData(projects, query = {}) {
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features: [],
     projects,
   });
@@ -40,7 +42,7 @@ describe('Utils', function () {
       const projects = [TestStubs.Project()];
       const data = initializeData(projects, {landingDisplay: 'frontend_pageload'});
       expect(getCurrentLandingDisplay(data.router.location, projects).label).toEqual(
-        'Web Vitals'
+        'All Transactions'
       );
     });
     it('returns frontend display if project matches', function () {
@@ -48,7 +50,7 @@ describe('Utils', function () {
       const data = initializeData(projects, {project: 22});
       expect(
         getCurrentLandingDisplay(data.router.location, projects, data.eventView).label
-      ).toEqual('Web Vitals');
+      ).toEqual('Frontend');
     });
     it('returns backend display if project matches', function () {
       const projects = [TestStubs.Project({id: '22', platform: 'php'})];

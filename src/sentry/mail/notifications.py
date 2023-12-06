@@ -7,14 +7,17 @@ import sentry_sdk
 from django.utils.encoding import force_str
 
 from sentry import options
-from sentry.models import Project, ProjectOption, Team
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.project import Project
+from sentry.models.team import Team
 from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
 from sentry.notifications.notify import register_notification_provider
+from sentry.notifications.types import UnsubscribeContext
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.email import MessageBuilder, group_id_to_email
-from sentry.utils.linksign import generate_signed_link
+from sentry.utils.linksign import generate_signed_unsubscribe_link
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +36,7 @@ def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
             {
                 "X-Sentry-Logger": group.logger,
                 "X-Sentry-Logger-Level": group.get_level_display(),
-                "X-Sentry-Reply-To": group_id_to_email(group.id),
+                "X-Sentry-Reply-To": group_id_to_email(group.id, group.project.organization_id),
             }
         )
 
@@ -58,16 +61,14 @@ def get_subject_with_prefix(
     return f"{prefix}{notification.get_subject(context)}".encode()
 
 
-def get_unsubscribe_link(
-    user_id: int, resource_id: int, key: str = "issue", referrer: str | None = None
-) -> str:
-    signed_link: str = generate_signed_link(
-        user_id,
-        f"sentry-account-email-unsubscribe-{key}",
-        referrer,
-        kwargs={f"{key}_id": resource_id},
+def get_unsubscribe_link(user_id: int, data: UnsubscribeContext) -> str:
+    return generate_signed_unsubscribe_link(
+        organization=data.organization,
+        user_id=user_id,
+        resource=data.key,
+        referrer=data.referrer,
+        resource_id=data.resource_id,
     )
-    return signed_link
 
 
 def _log_message(notification: BaseNotification, recipient: RpcActor) -> None:
@@ -91,17 +92,12 @@ def get_context(
         **shared_context,
         **notification.get_recipient_context(recipient_actor, extra_context),
     }
-    # TODO(mgaeta): The unsubscribe system relies on `user_id` so it doesn't
-    #  work with Teams. We should add the `actor_id` to the signed link.
+    # TODO: The unsubscribe system relies on `user_id` so it doesn't
+    # work with Teams.
     unsubscribe_key = notification.get_unsubscribe_key()
     if recipient_actor.actor_type == ActorType.USER and unsubscribe_key:
-        key, resource_id, referrer = unsubscribe_key
         context.update(
-            {
-                "unsubscribe_link": get_unsubscribe_link(
-                    recipient_actor.id, resource_id, key, referrer
-                )
-            }
+            {"unsubscribe_link": get_unsubscribe_link(recipient_actor.id, unsubscribe_key)}
         )
 
     return context

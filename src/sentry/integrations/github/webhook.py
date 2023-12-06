@@ -15,11 +15,18 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
 from sentry import analytics, features, options
-from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.constants import ObjectStatus
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import Endpoint, all_silo_endpoint
+from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
+from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.utils.scope import clear_tags_and_context
-from sentry.models import Commit, CommitAuthor, Organization, PullRequest, Repository
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.organization import Organization
+from sentry.models.pullrequest import PullRequest
+from sentry.models.repository import Repository
 from sentry.plugins.providers.integration_repository import (
     RepoExistsError,
     get_integration_repository_provider,
@@ -33,9 +40,12 @@ from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.silo import SiloMode
+from sentry.tasks.integrations.github.open_pr_comment import open_pr_comment_workflow
 from sentry.utils import json, metrics
 from sentry.utils.json import JSONData
 
+from .integration import GitHubIntegrationProvider
 from .repository import GitHubRepositoryProvider
 
 logger = logging.getLogger("sentry.webhooks")
@@ -44,6 +54,18 @@ logger = logging.getLogger("sentry.webhooks")
 def get_github_external_id(event: Mapping[str, Any], host: str | None = None) -> str | None:
     external_id: str | None = event.get("installation", {}).get("id")
     return f"{host}:{external_id}" if host else external_id
+
+
+def get_file_language(filename: str) -> str | None:
+    extension = filename.split(".")[-1]
+    language = None
+    if extension != filename:
+        language = EXTENSION_LANGUAGE_MAP.get(extension)
+
+        if language is None:
+            logger.info("github.unaccounted_file_lang", extra={"extension": extension})
+
+    return language
 
 
 class Webhook:
@@ -78,7 +100,7 @@ class Webhook:
                     "external_id": str(external_id),
                 },
             )
-            logger.exception("Integration does not exist.")
+            metrics.incr("github.webhook.integration_does_not_exist")
             return
 
         if "repository" in event:
@@ -108,22 +130,21 @@ class Webhook:
                 for org in orgs.values():
                     rpc_org = serialize_rpc_organization(org)
 
-                    if features.has("organizations:integrations-auto-repo-linking", org):
-                        try:
-                            _, repo = provider.create_repository(
-                                repo_config=config, organization=rpc_org
-                            )
-                        except RepoExistsError:
-                            metrics.incr("sentry.integration_repo_provider.repo_exists")
-                            continue
-
-                        analytics.record(
-                            "webhook.repository_created",
-                            organization_id=org.id,
-                            repository_id=repo.id,
-                            integration="github",
+                    try:
+                        _, repo = provider.create_repository(
+                            repo_config=config, organization=rpc_org
                         )
-                        metrics.incr("github.webhook.repository_created")
+                    except RepoExistsError:
+                        metrics.incr("sentry.integration_repo_provider.repo_exists")
+                        continue
+
+                    analytics.record(
+                        "webhook.repository_created",
+                        organization_id=org.id,
+                        repository_id=repo.id,
+                        integration="github",
+                    )
+                    metrics.incr("github.webhook.repository_created")
 
                 repos = repos.all()
 
@@ -162,7 +183,22 @@ class InstallationEventWebhook(Webhook):
     # https://developer.github.com/v3/activity/events/types/#installationevent
     def __call__(self, event: Mapping[str, Any], host: str | None = None) -> None:
         installation = event["installation"]
-        if installation and event["action"] == "deleted":
+
+        if not installation:
+            return
+
+        if event["action"] == "created":
+            state = {
+                "installation_id": event["installation"]["id"],
+                "sender": {
+                    "id": event["sender"]["id"],
+                    "login": event["sender"]["login"],
+                },
+            }
+            data = GitHubIntegrationProvider().build_integration(state)
+            ensure_integration("github", data)
+
+        if event["action"] == "deleted":
             external_id = event["installation"]["id"]
             if host:
                 external_id = "{}:{}".format(host, event["installation"]["id"])
@@ -206,11 +242,13 @@ class InstallationEventWebhook(Webhook):
         integration_service.update_integration(
             integration_id=integration.id, status=ObjectStatus.DISABLED
         )
-        Repository.objects.filter(
-            organization_id__in=org_ids,
-            provider=f"integrations:{self.provider}",
-            integration_id=integration.id,
-        ).update(status=ObjectStatus.DISABLED)
+
+        if len(org_ids) > 0 and SiloMode.get_current_mode() != SiloMode.CONTROL:
+            Repository.objects.filter(
+                organization_id__in=org_ids,
+                provider=f"integrations:{self.provider}",
+                integration_id=integration.id,
+            ).update(status=ObjectStatus.DISABLED)
 
 
 class PushEventWebhook(Webhook):
@@ -240,6 +278,7 @@ class PushEventWebhook(Webhook):
         client = integration.get_installation(organization_id=organization.id).get_client()
         gh_username_cache: MutableMapping[str, str | None] = {}
 
+        languages = set()
         for commit in event["commits"]:
             if not commit["distinct"]:
                 continue
@@ -356,19 +395,36 @@ class PushEventWebhook(Webhook):
                         date_added=parse_date(commit["timestamp"]).astimezone(timezone.utc),
                     )
                     for fname in commit["added"]:
+                        languages.add(get_file_language(fname))
                         CommitFileChange.objects.create(
-                            organization_id=organization.id, commit=c, filename=fname, type="A"
+                            organization_id=organization.id,
+                            commit=c,
+                            filename=fname,
+                            type="A",
                         )
                     for fname in commit["removed"]:
+                        languages.add(get_file_language(fname))
                         CommitFileChange.objects.create(
-                            organization_id=organization.id, commit=c, filename=fname, type="D"
+                            organization_id=organization.id,
+                            commit=c,
+                            filename=fname,
+                            type="D",
                         )
                     for fname in commit["modified"]:
+                        languages.add(get_file_language(fname))
                         CommitFileChange.objects.create(
-                            organization_id=organization.id, commit=c, filename=fname, type="M"
+                            organization_id=organization.id,
+                            commit=c,
+                            filename=fname,
+                            type="M",
                         )
+
             except IntegrityError:
                 pass
+
+        languages.discard(None)
+        repo.languages = list(set(repo.languages or []).union(languages))
+        repo.save()
 
 
 class PullRequestEventWebhook(Webhook):
@@ -391,12 +447,12 @@ class PullRequestEventWebhook(Webhook):
         repo: Repository,
         host: str | None = None,
     ) -> None:
-
         pull_request = event["pull_request"]
         number = pull_request["number"]
         title = pull_request["title"]
         body = pull_request["body"]
         user = pull_request["user"]
+        action = event["action"]
 
         """
         The value of the merge_commit_sha attribute changes depending on the
@@ -450,7 +506,7 @@ class PullRequestEventWebhook(Webhook):
 
         author.preload_users()
         try:
-            PullRequest.objects.update_or_create(
+            pr, created = PullRequest.objects.update_or_create(
                 organization_id=organization.id,
                 repository_id=repo.id,
                 key=number,
@@ -462,6 +518,22 @@ class PullRequestEventWebhook(Webhook):
                     "merge_commit_sha": merge_commit_sha,
                 },
             )
+
+            if action == "opened" and created:
+                if not features.has("organizations:integrations-open-pr-comment", organization):
+                    logger.info(
+                        "github.open_pr_comment.flag_missing",
+                        extra={"organization_id": organization.id},
+                    )
+                    return
+
+                metrics.incr("github.open_pr_comment.queue_task")
+                logger.info(
+                    "github.open_pr_comment.queue_task",
+                    extra={"pr_id": pr.id},
+                )
+                open_pr_comment_workflow.delay(pr_id=pr.id)
+
         except IntegrityError:
             pass
 
@@ -550,8 +622,12 @@ class GitHubWebhookBase(Endpoint):
         return HttpResponse(status=204)
 
 
-@region_silo_endpoint
+@all_silo_endpoint
 class GitHubIntegrationsWebhookEndpoint(GitHubWebhookBase):
+    owner = ApiOwner.ECOSYSTEM
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     _handlers = {
         "push": PushEventWebhook,
         "pull_request": PullRequestEventWebhook,

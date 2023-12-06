@@ -18,12 +18,14 @@ from typing import (
     Union,
 )
 
-from snuba_sdk import Column, Condition, Op
+from snuba_sdk import Column, Condition, Join, Op, Request
 
 from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
-from sentry.models import Environment, Organization
+from sentry.models.environment import Environment
+from sentry.models.organization import Organization
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
     MetricIndexNotFound,
@@ -34,6 +36,7 @@ from sentry.sentry_metrics.utils import (
     reverse_resolve_tag_value,
 )
 from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.utils import metrics
@@ -152,7 +155,7 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
         project_ids: Sequence[int],
         environment: Optional[Environment],
         params: Optional[MutableMapping[str, Any]] = None,
-        skip_issue_validation: bool = False,
+        skip_field_validation_for_entity_subscription_deletion: bool = False,
     ) -> QueryBuilder:
         raise NotImplementedError
 
@@ -173,9 +176,9 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
         project_ids: Sequence[int],
         environment: Optional[Environment],
         params: Optional[MutableMapping[str, Any]] = None,
-        skip_issue_validation: bool = False,
+        skip_field_validation_for_entity_subscription_deletion: bool = False,
     ) -> QueryBuilder:
-        from sentry.search.events.builder import QueryBuilder
+        from sentry.search.events.builder import ErrorsQueryBuilder, QueryBuilder
 
         if params is None:
             params = {}
@@ -186,16 +189,30 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
         if environment:
             params["environment"] = environment.name
 
-        return QueryBuilder(
+        query_builder_cls = QueryBuilder
+        # TODO: Remove this query when we remove the feature check
+        organization = Organization.objects.filter(project__id__in=project_ids)[0]
+        parser_config_overrides: MutableMapping[str, Any] = {"blocked_keys": ALERT_BLOCKED_FIELDS}
+        if self.dataset == Dataset.Events and features.has(
+            "organizations:metric-alert-ignore-archived", organization
+        ):
+            from sentry.snuba.errors import PARSER_CONFIG_OVERRIDES
+
+            query_builder_cls = ErrorsQueryBuilder
+            parser_config_overrides.update(PARSER_CONFIG_OVERRIDES)
+
+        return query_builder_cls(
             dataset=Dataset(self.dataset.value),
             query=query,
             selected_columns=[self.aggregate],
             params=params,
             offset=None,
             limit=None,
-            skip_time_conditions=True,
-            parser_config_overrides={"blocked_keys": ALERT_BLOCKED_FIELDS},
-            skip_issue_validation=skip_issue_validation,
+            config=QueryBuilderConfig(
+                skip_time_conditions=True,
+                parser_config_overrides=parser_config_overrides,
+                skip_field_validation_for_entity_subscription_deletion=skip_field_validation_for_entity_subscription_deletion,
+            ),
         )
 
     def get_entity_extra_params(self) -> Mapping[str, Any]:
@@ -255,7 +272,7 @@ class SessionsEntitySubscription(BaseEntitySubscription):
         project_ids: Sequence[int],
         environment: Optional[Environment],
         params: Optional[MutableMapping[str, Any]] = None,
-        skip_issue_validation: bool = False,
+        skip_field_validation_for_entity_subscription_deletion: bool = False,
     ) -> QueryBuilder:
         from sentry.search.events.builder import SessionsQueryBuilder
 
@@ -287,10 +304,12 @@ class SessionsEntitySubscription(BaseEntitySubscription):
             params=params,
             offset=None,
             limit=None,
-            functions_acl=["identity"],
-            skip_time_conditions=True,
-            parser_config_overrides={"blocked_keys": ALERT_BLOCKED_FIELDS},
-            skip_issue_validation=skip_issue_validation,
+            config=QueryBuilderConfig(
+                functions_acl=["identity"],
+                skip_time_conditions=True,
+                parser_config_overrides={"blocked_keys": ALERT_BLOCKED_FIELDS},
+                skip_field_validation_for_entity_subscription_deletion=skip_field_validation_for_entity_subscription_deletion,
+            ),
         )
 
 
@@ -308,7 +327,8 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         self.org_id = extra_fields["org_id"]
         self.time_window = time_window
         self.use_metrics_layer = features.has(
-            "organizations:use-metrics-layer", Organization.objects.get_from_cache(id=self.org_id)
+            "organizations:use-metrics-layer-in-alerts",
+            Organization.objects.get_from_cache(id=self.org_id),
         )
         self.on_demand_metrics_enabled = features.has(
             "organizations:on-demand-metrics-extraction",
@@ -357,45 +377,42 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
 
         return resolve_tag_values(self._get_use_case_id(), self.org_id, strings)
 
-    def _get_environment_condition(self, environment_name: str) -> Condition:
-        return Condition(
-            Column(self.resolve_tag_key_if_needed("environment")),
-            Op.EQ,
-            self.resolve_tag_value_if_needed(environment_name),
-        )
-
     def build_query_builder(
         self,
         query: str,
         project_ids: Sequence[int],
         environment: Optional[Environment],
         params: Optional[MutableMapping[str, Any]] = None,
-        skip_issue_validation: bool = False,
+        skip_field_validation_for_entity_subscription_deletion: bool = False,
     ) -> QueryBuilder:
         from sentry.search.events.builder import AlertMetricsQueryBuilder
 
         if params is None:
             params = {}
 
+        if environment:
+            params["environment"] = environment.name
+
         query = apply_dataset_query_conditions(self.query_type, query, None)
         params["project_id"] = project_ids
+        params["use_case_id"] = self._get_use_case_id().value
         qb = AlertMetricsQueryBuilder(
             dataset=Dataset(self.dataset.value),
             query=query,
             selected_columns=self.get_snql_aggregations(),
             params=params,
             offset=None,
-            skip_time_conditions=True,
             granularity=self.get_granularity(),
-            use_metrics_layer=self.use_metrics_layer,
-            on_demand_metrics_enabled=self.on_demand_metrics_enabled,
-            skip_issue_validation=skip_issue_validation,
+            config=QueryBuilderConfig(
+                skip_time_conditions=True,
+                use_metrics_layer=self.use_metrics_layer,
+                on_demand_metrics_enabled=self.on_demand_metrics_enabled,
+                on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
+                skip_field_validation_for_entity_subscription_deletion=skip_field_validation_for_entity_subscription_deletion,
+            ),
         )
+
         extra_conditions = self.get_snql_extra_conditions()
-
-        if environment:
-            extra_conditions.append(self._get_environment_condition(environment.name))
-
         qb.add_conditions(extra_conditions)
 
         return qb
@@ -560,7 +577,7 @@ class BaseCrashRateMetricsEntitySubscription(BaseMetricsEntitySubscription):
 
 
 class MetricsCountersEntitySubscription(BaseCrashRateMetricsEntitySubscription):
-    metric_key: SessionMRI = SessionMRI.SESSION
+    metric_key: SessionMRI = SessionMRI.RAW_SESSION
 
     def get_snql_aggregations(self) -> List[str]:
         return [
@@ -585,7 +602,7 @@ class MetricsCountersEntitySubscription(BaseCrashRateMetricsEntitySubscription):
 
 
 class MetricsSetsEntitySubscription(BaseCrashRateMetricsEntitySubscription):
-    metric_key: SessionMRI = SessionMRI.USER
+    metric_key: SessionMRI = SessionMRI.RAW_USER
 
     def get_snql_aggregations(self) -> List[str]:
         return [
@@ -652,8 +669,16 @@ def determine_crash_rate_alert_entity(aggregate: str) -> EntityKey:
     return EntityKey.MetricsCounters if count_col_matched == "sessions" else EntityKey.MetricsSets
 
 
+def get_entity_key_from_request(request: Request) -> EntityKey:
+    match = request.query.match
+    if isinstance(match, Join):
+        # XXX: Is there a better way to handle this
+        match = match.relationships[0].lhs
+    return EntityKey(match.name)
+
+
 def get_entity_key_from_query_builder(query_builder: QueryBuilder) -> EntityKey:
-    return EntityKey(query_builder.get_snql_query().query.match.name)
+    return get_entity_key_from_request(query_builder.get_snql_query())
 
 
 def get_entity_subscription_from_snuba_query(
@@ -676,7 +701,7 @@ def get_entity_key_from_snuba_query(
     snuba_query: SnubaQuery,
     organization_id: int,
     project_id: int,
-    skip_issue_validation: bool = False,
+    skip_field_validation_for_entity_subscription_deletion: bool = False,
 ) -> EntityKey:
     entity_subscription = get_entity_subscription_from_snuba_query(
         snuba_query,
@@ -687,6 +712,6 @@ def get_entity_key_from_snuba_query(
         [project_id],
         None,
         {"organization_id": organization_id},
-        skip_issue_validation=skip_issue_validation,
+        skip_field_validation_for_entity_subscription_deletion=skip_field_validation_for_entity_subscription_deletion,
     )
     return get_entity_key_from_query_builder(query_builder)

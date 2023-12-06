@@ -15,11 +15,8 @@ import {
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
-import {
-  SpanSummaryQueryFilters,
-  useSpanMetrics,
-} from 'sentry/views/starfish/queries/useSpanMetrics';
-import {SpanMetricsFields, StarfishFunctions} from 'sentry/views/starfish/types';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -36,7 +33,7 @@ type Query = {
   endpointMethod: string;
   transaction: string;
   transactionMethod: string;
-  [QueryParameterNames.SORT]: string;
+  [QueryParameterNames.SPANS_SORT]: string;
 };
 
 type Props = {
@@ -49,39 +46,35 @@ function SpanSummaryPage({params, location}: Props) {
 
   const {transaction, transactionMethod, endpoint, endpointMethod} = location.query;
 
-  const queryFilter: SpanSummaryQueryFilters = endpoint
-    ? {transactionName: endpoint, 'transaction.method': endpointMethod}
-    : {};
+  const filters: SpanMetricsQueryFilters = {
+    'span.group': groupId,
+  };
 
-  const sort =
-    fromSorts(location.query[QueryParameterNames.SORT]).filter(isAValidSort)[0] ??
-    DEFAULT_SORT; // We only allow one sort on this table in this view
-
-  if (endpointMethod && queryFilter) {
-    queryFilter['transaction.method'] = endpointMethod;
+  if (endpoint) {
+    filters.transaction = endpoint;
   }
 
+  if (endpointMethod) {
+    filters['transaction.method'] = endpointMethod;
+  }
+
+  const sort =
+    fromSorts(location.query[QueryParameterNames.ENDPOINTS_SORT]).filter(
+      isAValidSort
+    )[0] ?? DEFAULT_SORT; // We only allow one sort on this table in this view
+
   const {data: spanMetrics, isLoading: isSpanMetricsLoading} = useSpanMetrics(
-    groupId,
-    queryFilter,
-    [
-      SpanMetricsFields.SPAN_OP,
-      SpanMetricsFields.SPAN_GROUP,
-      SpanMetricsFields.PROJECT_ID,
-      `${StarfishFunctions.SPS}()`,
-    ],
+    filters,
+    ['span.op', 'span.group', 'project.id', 'sps()'],
     'api.starfish.span-summary-page-metrics'
   );
 
   const span = {
-    [SpanMetricsFields.SPAN_OP]: spanMetrics[SpanMetricsFields.SPAN_OP],
-    [SpanMetricsFields.SPAN_GROUP]: groupId,
+    ['span.op']: spanMetrics['span.op'],
+    ['span.group']: groupId,
   };
 
-  const title = [
-    getSpanOperationDescription(span[SpanMetricsFields.SPAN_OP]),
-    t('Summary'),
-  ].join(' ');
+  const title = [getSpanOperationDescription(span['span.op']), t('Summary')].join(' ');
 
   const crumbs: Crumb[] = [];
   crumbs.push({
@@ -137,8 +130,7 @@ function SpanSummaryPage({params, location}: Props) {
                 )}
 
                 <SampleList
-                  groupId={span[SpanMetricsFields.SPAN_GROUP]}
-                  projectId={spanMetrics[SpanMetricsFields.PROJECT_ID]}
+                  groupId={span['span.group']}
                   transactionName={transaction}
                   transactionMethod={transactionMethod}
                 />
@@ -155,5 +147,5 @@ export default SpanSummaryPage;
 
 const DEFAULT_SORT: Sort = {
   kind: 'desc',
-  field: 'time_spent_percentage(local)',
+  field: 'time_spent_percentage()',
 };

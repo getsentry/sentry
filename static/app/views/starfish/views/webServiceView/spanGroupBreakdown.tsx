@@ -13,14 +13,14 @@ import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/ch
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import useOrganization from 'sentry/utils/useOrganization';
 import Chart from 'sentry/views/starfish/components/chart';
-import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
 import {
   DataDisplayType,
   DataRow,
 } from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
-const {SPAN_MODULE} = SpanMetricsFields;
+const {SPAN_MODULE} = SpanMetricsField;
 
 type Props = {
   colorPalette: string[];
@@ -150,7 +150,8 @@ export function SpanGroupBreakdown({
               bottom: '0',
             }}
             definedAxisTicks={6}
-            stacked
+            isLineChart={dataDisplayType !== DataDisplayType.PERCENTAGE}
+            stacked={dataDisplayType === DataDisplayType.PERCENTAGE}
             aggregateOutputFormat={
               dataDisplayType === DataDisplayType.PERCENTAGE ? 'percentage' : 'duration'
             }
@@ -187,7 +188,7 @@ export function SpanGroupBreakdown({
 }
 
 const ChartPadding = styled('div')`
-  padding: 0 ${space(2)};
+  padding: ${space(2)};
   flex: 2;
 `;
 

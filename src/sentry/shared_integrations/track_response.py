@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Mapping, Optional
 
 from django.utils.functional import cached_property
 from rest_framework.response import Response
@@ -41,6 +42,7 @@ class TrackResponseMixin:
         span: Span | None = None,
         error: Exception | None = None,
         resp: Response | None = None,
+        extra: Optional[Mapping[str, str]] = None,
     ) -> None:
         # if no span was passed, create a dummy to which to add data to avoid having to wrap every
         # span call in `if span`
@@ -57,12 +59,13 @@ class TrackResponseMixin:
         except ValueError:
             span.set_status(str(code))
 
-        extra = {
+        log_params = {
+            **(extra or {}),
             "status_string": str(code),
             "error": str(error)[:256] if error else None,
         }
         if self.integration_type:
-            extra[self.integration_type] = self.name
+            log_params[self.integration_type] = self.name
 
-        extra.update(getattr(self, "logging_context", None) or {})
-        self.logger.info(f"{self.integration_type}.http_response", extra=extra)
+        log_params.update(getattr(self, "logging_context", None) or {})
+        self.logger.info(f"{self.integration_type}.http_response", extra=log_params)

@@ -1,8 +1,9 @@
 import bisect
 import functools
+import logging
 import math
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Callable, Optional, Sequence
 from urllib.parse import quote
 
 from django.core.exceptions import EmptyResultSet, ObjectDoesNotExist
@@ -14,9 +15,29 @@ from sentry.utils.pagination_factory import PaginatorLike
 
 quote_name = connections["default"].ops.quote_name
 
+logger = logging.getLogger()
+
 
 MAX_LIMIT = 100
 MAX_HITS_LIMIT = 1000
+MAX_SNUBA_ELEMENTS = 10000
+
+
+def count_hits(queryset, max_hits):
+    if not max_hits:
+        return 0
+    hits_query = queryset.values()[:max_hits].query
+    # clear out any select fields (include select_related) and pull just the id
+    hits_query.clear_select_clause()
+    hits_query.add_fields(["id"])
+    hits_query.clear_ordering(force_empty=True)
+    try:
+        h_sql, h_params = hits_query.sql_with_params()
+    except EmptyResultSet:
+        return 0
+    cursor = connections[queryset.using_replica().db].cursor()
+    cursor.execute(f"SELECT COUNT(*) FROM ({h_sql}) as t", h_params)
+    return cursor.fetchone()[0]
 
 
 class BadPaginationError(Exception):
@@ -179,20 +200,7 @@ class BasePaginator:
         return cursor
 
     def count_hits(self, max_hits):
-        if not max_hits:
-            return 0
-        hits_query = self.queryset.values()[:max_hits].query
-        # clear out any select fields (include select_related) and pull just the id
-        hits_query.clear_select_clause()
-        hits_query.add_fields(["id"])
-        hits_query.clear_ordering(force_empty=True)
-        try:
-            h_sql, h_params = hits_query.sql_with_params()
-        except EmptyResultSet:
-            return 0
-        cursor = connections[self.queryset.using_replica().db].cursor()
-        cursor.execute(f"SELECT COUNT(*) FROM ({h_sql}) as t", h_params)
-        return cursor.fetchone()[0]
+        return count_hits(self.queryset, max_hits)
 
 
 class Paginator(BasePaginator):
@@ -274,7 +282,15 @@ class OffsetPaginator(PaginatorLike):
         if self.on_results:
             results = self.on_results(results)
 
-        return CursorResult(results=results, next=next_cursor, prev=prev_cursor)
+        if count_hits:
+            hits = self.count_hits(max_hits=MAX_HITS_LIMIT)
+        else:
+            hits = None
+
+        return CursorResult(results=results, next=next_cursor, prev=prev_cursor, hits=hits)
+
+    def count_hits(self, max_hits):
+        return count_hits(self.queryset, max_hits)
 
 
 class MergingOffsetPaginator(OffsetPaginator):
@@ -729,6 +745,44 @@ class ChainPaginator:
 
         if next_cursor.has_results:
             results.pop()
+
+        if self.on_results:
+            results = self.on_results(results)
+
+        return CursorResult(results=results, next=next_cursor, prev=prev_cursor)
+
+
+class CallbackPaginator:
+    def __init__(
+        self,
+        callback: Callable[[int, int], Sequence[Any]],
+        on_results: Optional[Callable[[Sequence[Any]], Any]] = None,
+    ):
+        self.offset = 0
+        self.callback = callback
+        self.on_results = on_results
+
+    def get_result(self, limit: int, cursor: Cursor = None):
+        if cursor is None:
+            cursor = Cursor(0, 0, 0)
+
+        # if the limit is equal to the max, we can only return 1 page
+        fetch_limit = limit
+        if fetch_limit < MAX_SNUBA_ELEMENTS:
+            fetch_limit += 1  # +1 to limit so that we can tell if there are more results left after the current page
+
+        # offset = "page" number * max number of items per page
+        fetch_offset = cursor.offset * cursor.value
+        if self.offset < 0:
+            raise BadPaginationError("Pagination offset cannot be negative")
+
+        results = self.callback(limit=fetch_limit, offset=fetch_offset)
+
+        next_cursor = Cursor(limit, cursor.offset + 1, False, len(results) > limit)
+        prev_cursor = Cursor(limit, cursor.offset - 1, True, cursor.offset > 0)
+
+        if next_cursor.has_results:
+            results.pop()  # pop the last result bc we have more results than the limit by 1 on this page
 
         if self.on_results:
             results = self.on_results(results)

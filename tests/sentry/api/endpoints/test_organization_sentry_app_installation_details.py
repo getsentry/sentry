@@ -6,8 +6,9 @@ from django.urls import reverse
 from sentry import audit_log
 from sentry.constants import SentryAppInstallationStatus
 from sentry.mediators.token_exchange.grant_exchanger import GrantExchanger
-from sentry.models import AuditLogEntry
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.services.hybrid_cloud.app import app_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -55,7 +56,7 @@ class SentryAppInstallationDetailsTest(APITestCase):
         )
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
     def test_access_within_installs_organization(self):
         self.login_as(user=self.user)
@@ -79,7 +80,7 @@ class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
         assert response.status_code == 404
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
     @responses.activate
     @patch("sentry.mediators.sentry_app_installations.InstallationNotifier.run")
@@ -87,13 +88,12 @@ class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
     def test_delete_install(self, record, run):
         responses.add(url="https://example.com/webhook", method=responses.POST, body=b"")
         self.login_as(user=self.user)
+        rpc_user = user_service.get_user(user_id=self.user.id)
         response = self.client.delete(self.url, format="json")
         assert AuditLogEntry.objects.filter(
             event=audit_log.get_event_id("SENTRY_APP_UNINSTALL")
         ).exists()
-        run.assert_called_once_with(
-            install=self.orm_installation2, user=self.user, action="deleted"
-        )
+        run.assert_called_once_with(install=self.orm_installation2, user=rpc_user, action="deleted")
         record.assert_called_with(
             "sentry_app.uninstalled",
             user_id=self.user.id,
@@ -112,7 +112,7 @@ class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
         assert response.status_code == 403
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class MarkInstalledSentryAppInstallationsTest(SentryAppInstallationDetailsTest):
     def setUp(self):
         super().setUp()

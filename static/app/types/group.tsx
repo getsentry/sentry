@@ -1,12 +1,11 @@
 import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
-import type {PlatformKey} from 'sentry/data/platformCategories';
 import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
 import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
 import type {Commit, PullRequest, Repository} from './integrations';
 import type {Team} from './organization';
-import type {Project} from './project';
+import type {PlatformKey, Project} from './project';
 import type {AvatarUser, User} from './user';
 
 export type EntryData = Record<string, any | Array<any>>;
@@ -47,6 +46,7 @@ export enum SavedSearchType {
   EVENT = 1,
   SESSION = 2,
   REPLAY = 3,
+  METRIC = 4,
 }
 
 export enum IssueCategory {
@@ -54,6 +54,9 @@ export enum IssueCategory {
   ERROR = 'error',
   CRON = 'cron',
   PROFILE = 'profile',
+}
+export enum ErrorType {
+  CHUNK_LOAD_ERROR = 'chunk_load_error',
 }
 
 export enum IssueType {
@@ -72,35 +75,85 @@ export enum IssueType {
   PERFORMANCE_UNCOMPRESSED_ASSET = 'performance_uncompressed_assets',
   PERFORMANCE_LARGE_HTTP_PAYLOAD = 'performance_large_http_payload',
   PERFORMANCE_HTTP_OVERHEAD = 'performance_http_overhead',
+  PERFORMANCE_DURATION_REGRESSION = 'performance_duration_regression',
+  PERFORMANCE_ENDPOINT_REGRESSION = 'performance_p95_endpoint_regression',
 
   // Profile
   PROFILE_FILE_IO_MAIN_THREAD = 'profile_file_io_main_thread',
   PROFILE_IMAGE_DECODE_MAIN_THREAD = 'profile_image_decode_main_thread',
   PROFILE_JSON_DECODE_MAIN_THREAD = 'profile_json_decode_main_thread',
   PROFILE_REGEX_MAIN_THREAD = 'profile_regex_main_thread',
+  PROFILE_FRAME_DROP = 'profile_frame_drop',
+  PROFILE_FRAME_DROP_EXPERIMENTAL = 'profile_frame_drop_experimental',
+  PROFILE_FUNCTION_REGRESSION = 'profile_function_regression',
+  PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL = 'profile_function_regression_exp',
 }
 
-export const getIssueTypeFromOccurenceType = (
+export enum IssueTitle {
+  PERFORMANCE_CONSECUTIVE_DB_QUERIES = 'Consecutive DB Queries',
+  PERFORMANCE_CONSECUTIVE_HTTP = 'Consecutive HTTP',
+  PERFORMANCE_FILE_IO_MAIN_THREAD = 'File IO on Main Thread',
+  PERFORMANCE_DB_MAIN_THREAD = 'DB on Main Thread',
+  PERFORMANCE_N_PLUS_ONE_API_CALLS = 'N+1 API Call',
+  PERFORMANCE_N_PLUS_ONE_DB_QUERIES = 'N+1 Query',
+  PERFORMANCE_SLOW_DB_QUERY = 'Slow DB Query',
+  PERFORMANCE_RENDER_BLOCKING_ASSET = 'Large Render Blocking Asset',
+  PERFORMANCE_UNCOMPRESSED_ASSET = 'Uncompressed Asset',
+  PERFORMANCE_LARGE_HTTP_PAYLOAD = 'Large HTTP payload',
+  PERFORMANCE_HTTP_OVERHEAD = 'HTTP/1.1 Overhead',
+  PERFORMANCE_DURATION_REGRESSION = 'Duration Regression',
+}
+
+const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
+  1001: IssueType.PERFORMANCE_SLOW_DB_QUERY,
+  1004: IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
+  1006: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+  1007: IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
+  1008: IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD,
+  1009: IssueType.PERFORMANCE_CONSECUTIVE_HTTP,
+  1010: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
+  1012: IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
+  1013: IssueType.PERFORMANCE_DB_MAIN_THREAD,
+  1015: IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
+  1016: IssueType.PERFORMANCE_HTTP_OVERHEAD,
+  1017: IssueType.PERFORMANCE_DURATION_REGRESSION,
+  1018: IssueType.PERFORMANCE_ENDPOINT_REGRESSION,
+  2001: IssueType.PROFILE_FILE_IO_MAIN_THREAD,
+  2002: IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD,
+  2003: IssueType.PROFILE_JSON_DECODE_MAIN_THREAD,
+  2007: IssueType.PROFILE_REGEX_MAIN_THREAD,
+  2008: IssueType.PROFILE_FRAME_DROP,
+  2009: IssueType.PROFILE_FRAME_DROP_EXPERIMENTAL,
+  2010: IssueType.PROFILE_FUNCTION_REGRESSION,
+  2011: IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL,
+};
+
+const PERFORMANCE_REGRESSION_TYPE_IDS = new Set([1017, 1018, 2010, 2011]);
+
+export function getIssueTypeFromOccurrenceType(
   typeId: number | undefined
-): IssueType | null => {
-  const occurrenceTypeToIssueIdMap = {
-    1001: IssueType.PERFORMANCE_SLOW_DB_QUERY,
-    1004: IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
-    1006: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-    1007: IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
-    1008: IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD,
-    1009: IssueType.PERFORMANCE_CONSECUTIVE_HTTP,
-    1010: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
-    1012: IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
-    1013: IssueType.PERFORMANCE_DB_MAIN_THREAD,
-    1015: IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
-    1016: IssueType.PERFORMANCE_HTTP_OVERHEAD,
-  };
+): IssueType | null {
   if (!typeId) {
     return null;
   }
-  return occurrenceTypeToIssueIdMap[typeId] ?? null;
-};
+  return OCCURRENCE_TYPE_TO_ISSUE_TYPE[typeId] ?? null;
+}
+
+export function isTransactionBased(typeId: number | undefined): boolean {
+  if (!typeId) {
+    return false;
+  }
+  // the 1xxx type ids are transaction based performance issues
+  return typeId >= 1000 && typeId < 2000;
+}
+
+export function isOccurrenceBased(typeId: number | undefined): boolean {
+  if (!typeId) {
+    return false;
+  }
+  // these are regression type performance issues
+  return !PERFORMANCE_REGRESSION_TYPE_IDS.has(typeId);
+}
 
 // endpoint: /api/0/issues/:issueId/attachments/?limit=50
 export type IssueAttachment = {
@@ -501,6 +554,7 @@ interface GroupFiltered {
 export interface GroupStats extends GroupFiltered {
   filtered: GroupFiltered | null;
   id: string;
+  isUnhandled?: boolean;
   // for issue alert previews, the last time a group triggered a rule
   lastTriggered?: string;
   lifetime?: GroupFiltered;
@@ -539,6 +593,14 @@ interface ReprocessingStatusDetails {
   pendingEvents: number;
 }
 
+export interface UserParticipant extends User {
+  type: 'user';
+}
+
+export interface TeamParticipant extends Team {
+  type: 'team';
+}
+
 /**
  * The payload sent when marking reviewed
  */
@@ -548,6 +610,7 @@ export interface MarkReviewed {
 /**
  * The payload sent when updating a group's status
  */
+
 export interface GroupStatusResolution {
   status: GroupStatus.RESOLVED | GroupStatus.UNRESOLVED | GroupStatus.IGNORED;
   statusDetails: ResolvedStatusDetails | IgnoredStatusDetails | {};
@@ -575,7 +638,7 @@ export const enum GroupSubstatus {
 export interface BaseGroup {
   activity: GroupActivity[];
   annotations: string[];
-  assignedTo: Actor;
+  assignedTo: Actor | null;
   culprit: string;
   firstSeen: string;
   hasSeen: boolean;
@@ -583,16 +646,14 @@ export interface BaseGroup {
   isBookmarked: boolean;
   isPublic: boolean;
   isSubscribed: boolean;
-  isUnhandled: boolean;
   issueCategory: IssueCategory;
   issueType: IssueType;
   lastSeen: string;
-  latestEvent: Event;
   level: Level;
-  logger: string;
+  logger: string | null;
   metadata: EventMetadata;
   numComments: number;
-  participants: User[];
+  participants: Array<UserParticipant | TeamParticipant>;
   permalink: string;
   platform: PlatformKey;
   pluginActions: any[]; // TODO(ts)
@@ -609,6 +670,7 @@ export interface BaseGroup {
   type: EventOrGroupType;
   userReportCount: number;
   inbox?: InboxDetails | null | false;
+  latestEvent?: Event;
   owners?: SuggestedOwner[] | null;
   substatus?: GroupSubstatus | null;
 }

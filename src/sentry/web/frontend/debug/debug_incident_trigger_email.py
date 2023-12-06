@@ -1,4 +1,5 @@
 from unittest import mock
+from uuid import uuid4
 
 from django.utils import timezone
 
@@ -10,7 +11,9 @@ from sentry.incidents.models import (
     IncidentStatus,
     TriggerStatus,
 )
-from sentry.models import Organization, Project, User
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.user import User
 from sentry.snuba.models import SnubaQuery
 
 from .mail import MailPreviewView
@@ -45,7 +48,13 @@ class DebugIncidentTriggerEmailView(MailPreviewView):
         trigger = AlertRuleTrigger(alert_rule=alert_rule)
 
         return generate_incident_trigger_email_context(
-            project, incident, trigger, TriggerStatus.ACTIVE, IncidentStatus(incident.status), user
+            project,
+            incident,
+            trigger,
+            TriggerStatus.ACTIVE,
+            IncidentStatus(incident.status),
+            user,
+            notification_uuid=str(uuid4()),
         )
 
     @property

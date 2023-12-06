@@ -18,6 +18,17 @@ fi
 
 venv_name=".venv"
 
+# XDG paths' standardized defaults:
+# (see https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html#variables )
+export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
+export XDG_DATA_DIRS="${XDG_DATA_DIRS:-/usr/local/share/:/usr/share/}"
+export XDG_CONFIG_DIRS="${XDG_CONFIG_DIRS:-/etc/xdg}"
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/var/run}"
+
+
 # Check if a command is available
 require() {
     command -v "$1" >/dev/null 2>&1
@@ -26,7 +37,11 @@ require() {
 configure-sentry-cli() {
     if [ -z "${SENTRY_DEVENV_NO_REPORT+x}" ]; then
         if ! require sentry-cli; then
-            curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=2.14.4 bash
+            if [ -f "${venv_name}/bin/pip" ]; then
+                pip-install sentry-cli
+            else
+                curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=2.14.4 bash
+            fi
         fi
     fi
 }
@@ -80,7 +95,7 @@ pip-install() {
 }
 
 upgrade-pip() {
-    pip-install pip setuptools wheel
+    pip-install pip
 }
 
 install-py-dev() {
@@ -92,14 +107,14 @@ install-py-dev() {
     echo "--> Installing Sentry (for development)"
 
     # pip doesn't do well with swapping drop-ins
-    pip uninstall -qqy uwsgi
+    pip uninstall -qqy djangorestframework-stubs django-stubs
 
     pip-install -r requirements-dev-frozen.txt
 
     # SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
     # Webpacked assets are only necessary for devserver (which does it lazily anyways)
     # and acceptance tests, which webpack automatically if run.
-    SENTRY_LIGHT_BUILD=1 pip-install -e . --no-deps
+    python3 -m tools.fast_editable --path .
 }
 
 setup-git-config() {
@@ -134,7 +149,7 @@ setup-git() {
 
 node-version-check() {
     # Checks to see if node's version matches the one specified in package.json for Volta.
-    node -pe "process.exit(Number(!(process.version == 'v' + require('./package.json').volta.node )))" ||
+    node -pe "process.exit(Number(!(process.version == 'v' + require('./.volta.json').volta.node )))" ||
         (
             echo 'Unexpected node version. Recommended to use https://github.com/volta-cli/volta'
             echo 'Run `volta install node` and `volta install yarn` to update your toolchain.'
@@ -172,10 +187,10 @@ run-dependent-services() {
 create-db() {
     container_name=${POSTGRES_CONTAINER:-sentry_postgres}
     echo "--> Creating 'sentry' database"
-    docker exec ${container_name} createdb -h 127.0.0.1 -U postgres -E utf-8 sentry || true
+    docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 sentry || true
     echo "--> Creating 'control' and 'region' database"
-    docker exec ${container_name} createdb -h 127.0.0.1 -U postgres -E utf-8 control || true
-    docker exec ${container_name} createdb -h 127.0.0.1 -U postgres -E utf-8 region || true
+    docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 control || true
+    docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 region || true
 }
 
 apply-migrations() {
@@ -188,7 +203,7 @@ create-superuser() {
     if [[ -n "${GITHUB_ACTIONS+x}" ]]; then
         sentry createuser --superuser --email foo@tbd.com --no-password --no-input
     else
-        sentry createuser --superuser --email admin@sentry.io --password admin
+        sentry createuser --superuser --email admin@sentry.io --password admin --no-input
         echo "Password is admin."
     fi
 }
@@ -228,10 +243,10 @@ clean() {
 drop-db() {
     container_name=${POSTGRES_CONTAINER:-sentry_postgres}
     echo "--> Dropping existing 'sentry' database"
-    docker exec ${container_name} dropdb --if-exists -h 127.0.0.1 -U postgres sentry
+    docker exec "${container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres sentry
     echo "--> Dropping 'control' and 'region' database"
-    docker exec ${container_name} dropdb --if-exists -h 127.0.0.1 -U postgres control
-    docker exec ${container_name} dropdb --if-exists -h 127.0.0.1 -U postgres region
+    docker exec "${container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres control
+    docker exec "${container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres region
 }
 
 reset-db() {
@@ -239,7 +254,7 @@ reset-db() {
     create-db
     apply-migrations
     create-superuser
-    echo "Finished resetting database. To load mock data, run `./bin/load-mocks`"
+    echo 'Finished resetting database. To load mock data, run `./bin/load-mocks`'
 }
 
 prerequisites() {

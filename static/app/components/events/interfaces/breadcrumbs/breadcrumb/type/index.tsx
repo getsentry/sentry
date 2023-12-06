@@ -14,12 +14,7 @@ type Props = Required<Pick<SVGIconProps, 'color'>> &
 function Type({type, color, description, error}: Props) {
   return (
     <Wrapper error={error}>
-      <Tooltip
-        title={description}
-        disabled={!description}
-        skipWrapper
-        disableForVisualTest
-      >
+      <Tooltip title={description} disabled={!description} skipWrapper>
         <IconWrapper color={color}>
           <Icon type={type} />
         </IconWrapper>

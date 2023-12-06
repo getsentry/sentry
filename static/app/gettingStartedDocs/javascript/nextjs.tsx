@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list/';
@@ -6,46 +7,28 @@ import ListItem from 'sentry/components/list/listItem';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
-// Configuration Start
-const replayIntegration = `
-new Sentry.Replay(),
-`;
+type Props = {
+  dsn: string;
+  organization: Organization | undefined;
+  projectSlug: string;
+};
 
-const replayOtherConfig = `
-// Session Replay
-replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
-replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.
-`;
-
-const performanceIntegration = `
-new Sentry.BrowserTracing(),
-`;
-
-const performanceOtherConfig = `
-// Performance Monitoring
-tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!
-`;
-
-export const steps = ({
-  sentryInitContent,
-}: {
-  sentryInitContent?: string;
-} = {}): LayoutProps['steps'] => [
+export const steps = ({dsn, projectSlug, organization}: Props): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
     description: (
       <p>
-        {tct(
-          'Add Sentry automatically to your app with the [wizardLink:Sentry wizard].',
-          {
-            wizardLink: (
-              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/#install" />
-            ),
-          }
-        )}
+        {tct('Configure your app automatically with the [wizardLink:Sentry wizard].', {
+          wizardLink: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/#install" />
+          ),
+        })}
       </p>
     ),
     configurations: [
@@ -54,37 +37,47 @@ export const steps = ({
         code: `npx @sentry/wizard@latest -i nextjs`,
       },
     ],
-  },
-  {
-    type: StepType.CONFIGURE,
-    description: (
+    additionalInfo: (
       <Fragment>
-        {t('The Sentry wizard will automatically patch your application:')}
+        {t(
+          'The Sentry wizard will automatically patch your application to configure the Sentry SDK:'
+        )}
         <List symbol="bullet">
           <ListItem>
             {tct(
-              'Create [sentryClientCode:sentry.client.config.js] and [sentryServerCode:sentry.server.config.js] with the default [sentryInitCode:Sentry.init].',
+              'Create [clientCode:sentry.client.config.js] and [serverCode:sentry.server.config.js] with the default [sentryInitCode:Sentry.init].',
               {
-                sentryClientCode: <code />,
-                sentryServerCode: <code />,
+                clientCode: <code />,
+                serverCode: <code />,
                 sentryInitCode: <code />,
               }
             )}
           </ListItem>
           <ListItem>
-            {tct('Create [code:next.config.js] with the default configuration.', {
-              code: <code />,
-            })}
-          </ListItem>
-          <ListItem>
             {tct(
-              'Create [code:sentry.properties] with configuration for sentry-cli (which is used when automatically uploading source maps).',
+              'Create or update your Next.js config [nextConfig:next.config.js] with the default Sentry configuration.',
               {
-                code: <code />,
+                nextConfig: <code />,
               }
             )}
           </ListItem>
+          <ListItem>
+            {tct(
+              'Create [sentryClircCode:.sentryclirc] and [sentryPropertiesCode:sentry.properties] files with configuration for sentry-cli (which is used when automatically uploading source maps).',
+              {
+                sentryClircCode: <code />,
+                sentryPropertiesCode: <code />,
+              }
+            )}
+          </ListItem>
+          <ListItem>
+            {tct('Add an example page to your app to verify your Sentry setup.', {
+              sentryClircCode: <code />,
+            })}
+          </ListItem>
         </List>
+        <br />
+        <ManualSetupTitle>{t('Manual Setup')}</ManualSetupTitle>
         <p>
           {tct('Alternatively, you can also [manualSetupLink:set up the SDK manually].', {
             manualSetupLink: (
@@ -92,125 +85,44 @@ export const steps = ({
             ),
           })}
         </p>
+        <br />
+        <DSNText>
+          <p>
+            {tct(
+              "If you already have the configuration for Sentry in your application, and just need this project's ([projectSlug]) DSN, you can find it below:",
+              {
+                projectSlug: <code>{projectSlug}</code>,
+              }
+            )}
+          </p>
+        </DSNText>
+        {organization && (
+          <TextCopyInput
+            onCopy={() => trackAnalytics('onboarding.nextjs-dsn-copied', {organization})}
+          >
+            {dsn}
+          </TextCopyInput>
+        )}
       </Fragment>
     ),
-    configurations: [
-      {
-        description: (
-          <Fragment>
-            <strong>{t('Configure the Sentry SDK:')}</strong>
-            <p>
-              {tct(
-                'Install Sentry’s Next.js SDK using either [yarnCode:yarn] or [npmCode:npm]:',
-                {
-                  yarnCode: <code />,
-                  npmCode: <code />,
-                }
-              )}
-            </p>
-          </Fragment>
-        ),
-        language: 'bash',
-        code: `
-yarn add @sentry/nextjs
-# or
-npm install --save @sentry/nextjs
-        `,
-      },
-      {
-        language: 'javascript',
-        code: `
-        Sentry.init({
-          ${sentryInitContent}
-        });
-        `,
-      },
-    ],
-  },
-  {
-    type: StepType.VERIFY,
-    description: t(
-      "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-    ),
-    configurations: [
-      {
-        language: 'javascript',
-        code: `
-        return <button onClick={() => methodDoesNotExist()}>Break the world</button>;
-        `,
-      },
-    ],
   },
 ];
 
-export const nextSteps = [
-  {
-    id: 'source-maps',
-    name: t('Source Maps'),
-    description: t('Learn how to enable readable stack traces in your Sentry errors.'),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/sourcemaps/',
-  },
-  {
-    id: 'performance-monitoring',
-    name: t('Performance Monitoring'),
-    description: t(
-      'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
-    ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/performance/',
-  },
-  {
-    id: 'session-replay',
-    name: t('Session Replay'),
-    description: t(
-      'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
-    ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/session-replay/',
-  },
-];
 // Configuration End
 
-export function GettingStartedWithNextJs({
-  dsn,
-  activeProductSelection = [],
-  ...props
-}: ModuleProps) {
-  const integrations: string[] = [];
-  const otherConfigs: string[] = [];
-  let nextStepDocs = [...nextSteps];
+export function GettingStartedWithNextJs({...props}: ModuleProps) {
+  const {projectSlug, dsn, organization} = props;
 
-  if (activeProductSelection.includes(ProductSolution.PERFORMANCE_MONITORING)) {
-    integrations.push(performanceIntegration.trim());
-    otherConfigs.push(performanceOtherConfig.trim());
-    nextStepDocs = nextStepDocs.filter(
-      step => step.id !== ProductSolution.PERFORMANCE_MONITORING
-    );
-  }
-
-  if (activeProductSelection.includes(ProductSolution.SESSION_REPLAY)) {
-    integrations.push(replayIntegration.trim());
-    otherConfigs.push(replayOtherConfig.trim());
-    nextStepDocs = nextStepDocs.filter(
-      step => step.id !== ProductSolution.SESSION_REPLAY
-    );
-  }
-
-  let sentryInitContent: string[] = [`dsn: "${dsn}",`];
-
-  if (integrations.length > 0) {
-    sentryInitContent = sentryInitContent.concat('integrations: [', integrations, '],');
-  }
-
-  if (otherConfigs.length > 0) {
-    sentryInitContent = sentryInitContent.concat(otherConfigs);
-  }
-
-  return (
-    <Layout
-      steps={steps({sentryInitContent: sentryInitContent.join('\n')})}
-      nextSteps={nextStepDocs}
-      {...props}
-    />
-  );
+  return <Layout steps={steps({dsn, projectSlug, organization})} {...props} />;
 }
 
 export default GettingStartedWithNextJs;
+
+const DSNText = styled('div')`
+  margin-bottom: ${space(0.5)};
+`;
+
+const ManualSetupTitle = styled('p')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: bold;
+`;

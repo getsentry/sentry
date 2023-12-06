@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -21,7 +23,7 @@ jest.mock('sentry/views/dashboards/widgetCard/releaseWidgetQueries');
 
 describe('Dashboards > WidgetCard', function () {
   const {router, organization, routerContext} = initializeOrg({
-    organization: TestStubs.Organization({
+    organization: Organization({
       features: ['dashboards-edit', 'discover-basic'],
       projects: [TestStubs.Project()],
     }),

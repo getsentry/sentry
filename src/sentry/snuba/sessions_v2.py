@@ -1,18 +1,26 @@
+from __future__ import annotations
+
 import itertools
 import logging
 import math
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
-from snuba_sdk import Column, Condition, Function, Limit, Op
+from snuba_sdk import BooleanCondition, Column, Condition, Function, Limit, Op
 
 from sentry.api.utils import get_date_range_from_params
+from sentry.models.project import Project
 from sentry.release_health.base import AllowedResolution, SessionsQueryConfig
 from sentry.search.events.builder import SessionsV2QueryBuilder, TimeseriesSessionsV2QueryBuilder
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
-from sentry.utils.dates import parse_stats_period, to_datetime, to_timestamp
+from sentry.snuba.metrics.utils import to_intervals
+from sentry.utils.dates import parse_stats_period, to_timestamp
+from sentry.utils.outcomes import Outcome
 
 logger = logging.getLogger(__name__)
+
+dropped_outcomes = [Outcome.INVALID.api_name(), Outcome.RATE_LIMITED.api_name()]
 
 
 """
@@ -325,8 +333,8 @@ class QueryDefinition:
             "query": self.query,
             "orderby": orderby,
             "limit": max_groups,
-            "auto_aggregations": True,
             "granularity": self.rollup,
+            "config": QueryBuilderConfig(auto_aggregations=True),
         }
         if self._query_config.allow_session_status_query:
             query_builder_dict.update({"extra_filter_allowlist_fields": ["session.status"]})
@@ -340,7 +348,10 @@ class QueryDefinition:
         conditions = SessionsV2QueryBuilder(**self.to_query_builder_dict()).where
         filter_conditions = []
         for condition in conditions:
-            # Exclude sessions "started" timestamp condition and org_id condition, as it is not needed for metrics queries.
+            self._check_supported_condition(condition)
+
+            # Exclude sessions "started" timestamp condition and org_id condition, as it is not needed for metrics
+            # queries.
             if (
                 isinstance(condition, Condition)
                 and isinstance(condition.lhs, Column)
@@ -348,7 +359,22 @@ class QueryDefinition:
             ):
                 continue
             filter_conditions.append(condition)
+
         return filter_conditions
+
+    @classmethod
+    def _check_supported_condition(cls, condition):
+        if isinstance(condition, BooleanCondition):
+            for nested_condition in condition.conditions:
+                cls._check_supported_condition(nested_condition)
+        elif isinstance(condition, Condition):
+            if isinstance(condition.lhs, Function):
+                # Since we moved to metrics backed sessions, we don't allow wildcard search anymore. The reason for this
+                # is that we don't store tag values as strings in the database, this makes wildcard match on the
+                # db impossible. The solution would be to lift it out at the application level, but it will impact
+                # performance.
+                if condition.lhs.function == "match":
+                    raise InvalidField("Invalid condition: wildcard search is not supported")
 
     def __repr__(self):
         return f"{self.__class__.__name__}({repr(self.__dict__)})"
@@ -408,46 +434,15 @@ def get_constrained_date_range(
     if ONE_DAY % interval != 0:
         raise InvalidParams("The interval should divide one day without a remainder.")
 
-    using_minute_resolution = interval % ONE_HOUR != 0
-
     start, end = get_date_range_from_params(params)
     now = get_now()
 
     if start > now:
         start = now
 
-    # if `end` is explicitly given, we add a second to it, so it is treated as
-    # inclusive. the rounding logic down below will take care of the rest.
-    if params.get("end"):
-        end += timedelta(seconds=1)
+    adjusted_start, adjusted_end, _num_intervals = to_intervals(start, end, interval)
 
-    date_range = end - start
-    # round the range up to a multiple of the interval.
-    # the minimum is 1h so the "totals" will not go out of sync, as they will
-    # use the materialized storage due to no grouping on the `started` column.
-    # NOTE: we can remove the difference between `interval` / `rounding_interval`
-    # as soon as snuba can provide us with grouped totals in the same query
-    # as the timeseries (using `WITH ROLLUP` in clickhouse)
-
-    rounding_interval = int(math.ceil(interval / ONE_HOUR) * ONE_HOUR)
-
-    # Hack to disabled rounding interval for metrics-based queries:
-    if interval < ONE_MINUTE:
-        rounding_interval = interval
-
-    date_range = timedelta(
-        seconds=int(rounding_interval * math.ceil(date_range.total_seconds() / rounding_interval))
-    )
-
-    if using_minute_resolution and restrict_date_range:
-        if date_range.total_seconds() > 6 * ONE_HOUR:
-            raise InvalidParams(
-                "The time-range when using one-minute resolution intervals is restricted to 6 hours."
-            )
-        if (now - start).total_seconds() > 30 * ONE_DAY:
-            raise InvalidParams(
-                "The time-range when using one-minute resolution intervals is restricted to the last 30 days."
-            )
+    date_range = adjusted_end - adjusted_start
 
     if date_range.total_seconds() / interval > max_points:
         raise InvalidParams(
@@ -455,24 +450,7 @@ def get_constrained_date_range(
             "Use a larger interval, or a smaller date range."
         )
 
-    end_ts = int(rounding_interval * math.ceil(to_timestamp(end) / rounding_interval))
-    end = to_datetime(end_ts)
-    # when expanding the rounding interval, we would adjust the end time too far
-    # to the future, in which case the start time would not actually contain our
-    # desired date range. adjust for this by extend the time by another interval.
-    # for example, when "45m" means the range from 08:49:00-09:34:00, our rounding
-    # has to go from 08:00:00 to 10:00:00.
-    if rounding_interval > interval and (end - date_range) > start:
-        date_range += timedelta(seconds=rounding_interval)
-    start = end - date_range
-
-    # snuba <-> sentry has a 5 minute cache for *exact* queries, which these
-    # are because of the way we do our rounding. For that reason we round the end
-    # of "realtime" queries to one minute into the future to get a one-minute cache instead.
-    if end > now:
-        end = to_datetime(ONE_MINUTE * (math.floor(to_timestamp(now) / ONE_MINUTE) + 1))
-
-    return start, end, interval
+    return adjusted_start, adjusted_end, interval
 
 
 TS_COL = "bucketed_started"
@@ -629,6 +607,131 @@ def massage_sessions_result(
         "query": query.query,
         "intervals": timestamps,
         "groups": groups,
+    }
+
+
+def massage_sessions_result_summary(
+    query, result_totals, outcome_query=None
+) -> Dict[str, List[Any]]:
+    """
+    Post-processes the query result.
+
+    Given the `query` as defined by [`QueryDefinition`] and its totals and
+    timeseries results from snuba, groups and transforms the result into the
+    expected format.
+
+    For example:
+    ```json
+    {
+      "start": "2020-12-16T00:00:00Z",
+      "end": "2020-12-16T12:00:00Z",
+      "projects": [
+        {
+          "id": 1,
+          "stats": [
+            {
+              "category": "error",
+              "outcomes": {
+                "accepted": 6,
+                "filtered": 0,
+                "rate_limited": 1,
+                "invalid": 0,
+                "abuse": 0,
+                "client_discard": 0,
+              },
+              "totals": {
+                "dropped": 1,
+                "sum(quantity)": 7,
+              },
+            }
+          ]
+        }
+      ]
+    }
+    ```
+    """
+    total_groups = _split_rows_groupby(result_totals, query.groupby)
+
+    def make_totals(totals, group):
+        return {
+            name: field.extract_from_row(totals[0], group) for name, field in query.fields.items()
+        }
+
+    def get_category_stats(
+        reason, totals, outcome, category, category_stats: None | Dict[str, int] = None
+    ):
+        if not category_stats:
+            category_stats = {
+                "category": category,
+                "outcomes": {o.api_name(): 0 for o in Outcome}
+                if not outcome_query
+                else {o: 0 for o in outcome_query},
+                "totals": {},
+            }
+            if not outcome_query or any([o in dropped_outcomes for o in outcome_query]):
+                category_stats["totals"] = {"dropped": 0}
+            if reason:
+                category_stats["reason"] = reason
+
+        for k, v in totals.items():
+            if k in category_stats["totals"]:
+                category_stats["totals"][k] += v
+            else:
+                category_stats["totals"][k] = v
+
+            category_stats["outcomes"][outcome] += v
+            if outcome in dropped_outcomes:
+                category_stats["totals"]["dropped"] += v
+
+        return category_stats
+
+    keys = set(total_groups.keys())
+    projects = {}
+
+    for key in keys:
+        by = dict(key)
+        project_id = by["project"]
+        outcome = by["outcome"]
+        category = by["category"]
+        reason = by.get("reason")  # optional
+
+        totals = make_totals(total_groups.get(key, [None]), by)
+
+        if project_id not in projects:
+            projects[project_id] = {"categories": {}}
+
+        if category in projects[project_id]["categories"]:
+            # update stats dict for category
+            projects[project_id]["categories"][category] = get_category_stats(
+                reason, totals, outcome, category, projects[project_id]["categories"][category]
+            )
+        else:
+            # create stats dict for category
+            projects[project_id]["categories"][category] = get_category_stats(
+                reason, totals, outcome, category
+            )
+
+    projects = dict(sorted(projects.items()))
+    ids = projects.keys()
+    project_id_to_slug = dict(Project.objects.filter(id__in=ids).values_list("id", "slug"))
+    formatted_projects = []
+
+    # format stats for each project
+    for key, values in projects.items():
+        categories = values["categories"]
+        project_dict = {"id": key, "slug": project_id_to_slug[key], "stats": []}
+
+        for key, stats in categories.items():
+            project_dict["stats"].append(stats)
+
+        project_dict["stats"].sort(key=lambda d: d["category"])
+
+        formatted_projects.append(project_dict)
+
+    return projects, {
+        "start": isoformat_z(query.start),
+        "end": isoformat_z(query.end),
+        "projects": formatted_projects,
     }
 
 

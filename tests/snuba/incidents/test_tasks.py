@@ -9,7 +9,6 @@ from confluent_kafka.admin import AdminClient
 from django.conf import settings
 from django.core import mail
 from django.test.utils import override_settings
-from freezegun import freeze_time
 
 from sentry.incidents.action_handlers import (
     EmailActionHandler,
@@ -23,6 +22,7 @@ from sentry.incidents.logic import (
 from sentry.incidents.models import (
     AlertRuleTriggerAction,
     Incident,
+    IncidentActivity,
     IncidentStatus,
     IncidentType,
     TriggerStatus,
@@ -34,8 +34,12 @@ from sentry.snuba.query_subscriptions.constants import topic_to_dataset
 from sentry.snuba.query_subscriptions.consumer import subscriber_registry
 from sentry.snuba.query_subscriptions.run import get_query_subscription_consumer
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.skips import requires_kafka
 from sentry.utils import json, kafka_config
 from sentry.utils.batching_kafka_consumer import create_topics
+
+pytestmark = [requires_kafka]
 
 
 @freeze_time()
@@ -161,6 +165,9 @@ class HandleSnubaQueryUpdateTest(TestCase):
 
         assert len(mail.outbox) == 1
         handler = EmailActionHandler(self.action, active_incident().get(), self.project)
+        incident_activity = (
+            IncidentActivity.objects.filter(incident=handler.incident).order_by("-id").first()
+        )
         message_builder = handler.build_message(
             generate_incident_trigger_email_context(
                 handler.project,
@@ -168,6 +175,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
                 handler.action.alert_rule_trigger,
                 TriggerStatus.ACTIVE,
                 IncidentStatus.CRITICAL,
+                notification_uuid=str(incident_activity.notification_uuid),
             ),
             TriggerStatus.ACTIVE,
             self.user.id,

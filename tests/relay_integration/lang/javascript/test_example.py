@@ -2,10 +2,13 @@ import os
 
 import pytest
 
-from sentry.models import File, Release, ReleaseFile
+from sentry.models.files.file import File
+from sentry.models.release import Release
+from sentry.models.releasefile import ReleaseFile
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.relay import RelayStoreHelper
-from sentry.testutils.skips import requires_symbolicator
+from sentry.testutils.skips import requires_kafka, requires_symbolicator
 
 # IMPORTANT:
 #
@@ -17,6 +20,9 @@ from sentry.testutils.skips import requires_symbolicator
 # entry to your `/etc/hosts`
 
 
+pytestmark = [requires_symbolicator, requires_kafka]
+
+
 def get_fixture_path(name):
     return os.path.join(os.path.dirname(__file__), "fixtures/example", name)
 
@@ -26,7 +32,7 @@ def load_fixture(name):
         return f.read()
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 class TestExample(RelayStoreHelper):
     @pytest.fixture(autouse=True)
     def initialize(

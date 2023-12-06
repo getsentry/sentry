@@ -4,7 +4,10 @@ import abc
 from dataclasses import dataclass
 from typing import Collection, Iterable, Type
 
-from sentry.models import Organization, OrganizationMember, User, UserEmail
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.user import User
+from sentry.models.useremail import UserEmail
 from sentry.utils import metrics
 
 

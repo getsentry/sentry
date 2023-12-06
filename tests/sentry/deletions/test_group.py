@@ -4,23 +4,21 @@ from uuid import uuid4
 from sentry import nodestore
 from sentry.deletions.defaults.group import EventDataDeletionTask
 from sentry.eventstore.models import Event
-from sentry.models import (
-    EventAttachment,
-    File,
-    Group,
-    GroupAssignee,
-    GroupHash,
-    GroupMeta,
-    GroupRedirect,
-    UserReport,
-)
+from sentry.models.eventattachment import EventAttachment
+from sentry.models.files.file import File
+from sentry.models.group import Group
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.grouphash import GroupHash
+from sentry.models.groupmeta import GroupMeta
+from sentry.models.groupredirect import GroupRedirect
+from sentry.models.userreport import UserReport
 from sentry.tasks.deletion.groups import delete_groups
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class DeleteGroupTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

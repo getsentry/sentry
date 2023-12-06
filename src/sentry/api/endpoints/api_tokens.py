@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.db import router, transaction
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from rest_framework import serializers
@@ -7,12 +8,15 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.fields import MultipleChoiceField
 from sentry.api.serializers import serialize
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import ApiToken
+from sentry.models.apitoken import ApiToken
+from sentry.models.outbox import outbox_context
 from sentry.security import capture_security_activity
 
 
@@ -22,6 +26,12 @@ class ApiTokenSerializer(serializers.Serializer):
 
 @control_silo_endpoint
 class ApiTokensEndpoint(Endpoint):
+    owner = ApiOwner.SECURITY
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     authentication_classes = (SessionNoAuthTokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
@@ -76,7 +86,11 @@ class ApiTokensEndpoint(Endpoint):
         if not token:
             return Response({"token": ""}, status=400)
 
-        ApiToken.objects.filter(user_id=user_id, token=token, application__isnull=True).delete()
+        with outbox_context(transaction.atomic(router.db_for_write(ApiToken)), flush=False):
+            for token in ApiToken.objects.filter(
+                user_id=user_id, token=token, application__isnull=True
+            ):
+                token.delete()
 
         analytics.record("api_token.deleted", user_id=request.user.id)
 

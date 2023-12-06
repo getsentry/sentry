@@ -20,7 +20,7 @@ class ProviderManager:
             raise ProviderNotRegistered(key)
         return cls(key=key, **kwargs)
 
-    def exists(self, key):
+    def exists(self, key: str) -> bool:
         return key in self.__values
 
     def register(self, key, cls):

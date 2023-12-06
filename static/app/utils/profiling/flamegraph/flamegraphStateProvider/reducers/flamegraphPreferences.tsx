@@ -7,7 +7,7 @@ export type FlamegraphColorCodings = [
   'by symbol name',
   'by library',
   'by recursion',
-  'by frequency'
+  'by frequency',
 ];
 
 export type FlamegraphSorting = Flamegraph['sort'];
@@ -18,6 +18,7 @@ export interface FlamegraphPreferences {
   layout: 'table right' | 'table bottom' | 'table left';
   sorting: FlamegraphSorting;
   timelines: {
+    battery_chart: boolean;
     cpu_chart: boolean;
     memory_chart: boolean;
     minimap: boolean;

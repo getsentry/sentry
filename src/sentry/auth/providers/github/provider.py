@@ -10,8 +10,12 @@ class GitHubOAuth2Provider(OAuth2Provider):
     access_token_url = ACCESS_TOKEN_URL
     authorize_url = AUTHORIZE_URL
     name = "GitHub"
-    client_id = CLIENT_ID
-    client_secret = CLIENT_SECRET
+
+    def get_client_id(self):
+        return CLIENT_ID
+
+    def get_client_secret(self):
+        return CLIENT_SECRET
 
     def __init__(self, org=None, **config):
         super().__init__(**config)
@@ -22,11 +26,13 @@ class GitHubOAuth2Provider(OAuth2Provider):
 
     def get_auth_pipeline(self):
         return [
-            OAuth2Login(authorize_url=self.authorize_url, client_id=self.client_id, scope=SCOPE),
+            OAuth2Login(
+                authorize_url=self.authorize_url, client_id=self.get_client_id(), scope=SCOPE
+            ),
             OAuth2Callback(
                 access_token_url=self.access_token_url,
-                client_id=self.client_id,
-                client_secret=self.client_secret,
+                client_id=self.get_client_id(),
+                client_secret=self.get_client_secret(),
             ),
             FetchUser(org=self.org),
             ConfirmEmail(),

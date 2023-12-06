@@ -1,21 +1,12 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 
-import {GettingStartedWithSvelteKit, nextSteps, steps} from './sveltekit';
+import {GettingStartedWithSvelteKit, steps} from './sveltekit';
 
 describe('GettingStartedWithSvelteKit', function () {
-  it('all products are selected', function () {
-    const {container} = render(
-      <GettingStartedWithSvelteKit
-        dsn="test-dsn"
-        activeProductSelection={[
-          ProductSolution.PERFORMANCE_MONITORING,
-          ProductSolution.SESSION_REPLAY,
-        ]}
-      />
-    );
+  it('renders doc correctly', function () {
+    render(<GettingStartedWithSvelteKit dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -23,22 +14,5 @@ describe('GettingStartedWithSvelteKit', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    // Next Steps
-    const filteredNextStepsLinks = nextSteps.filter(
-      nextStep =>
-        ![
-          ProductSolution.PERFORMANCE_MONITORING,
-          ProductSolution.SESSION_REPLAY,
-        ].includes(nextStep.id as ProductSolution)
-    );
-
-    for (const filteredNextStepsLink of filteredNextStepsLinks) {
-      expect(
-        screen.getByRole('link', {name: filteredNextStepsLink.name})
-      ).toBeInTheDocument();
-    }
-
-    expect(container).toSnapshot();
   });
 });

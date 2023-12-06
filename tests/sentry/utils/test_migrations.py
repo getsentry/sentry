@@ -1,4 +1,4 @@
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
 from sentry.utils.migrations import clear_flag
 

@@ -1,5 +1,15 @@
+import {SourceMapArchive} from 'sentry-fixture/sourceMapArchive';
+import {SourceMapArtifact} from 'sentry-fixture/sourceMapArtifact';
+import {SourceMapsDebugIDBundlesArtifacts} from 'sentry-fixture/sourceMapsDebugIDBundlesArtifacts';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
@@ -19,8 +29,8 @@ function renderReleaseBundlesMockRequests({
     body: empty
       ? []
       : [
-          TestStubs.SourceMapArchive(),
-          TestStubs.SourceMapArchive({
+          SourceMapArchive(),
+          SourceMapArchive({
             id: 2,
             name: 'abc',
             fileCount: 3,
@@ -31,7 +41,7 @@ function renderReleaseBundlesMockRequests({
 
   const sourceMapsFiles = MockApiClient.addMockResponse({
     url: `/projects/${orgSlug}/${projectSlug}/releases/bea7335dfaebc0ca6e65a057/files/`,
-    body: empty ? [] : [TestStubs.SourceMapArtifact()],
+    body: empty ? [] : [SourceMapArtifact()],
   });
 
   return {sourceMaps, sourceMapsFiles};
@@ -48,10 +58,23 @@ function renderDebugIdBundlesMockRequests({
 }) {
   const artifactBundlesFiles = MockApiClient.addMockResponse({
     url: `/projects/${orgSlug}/${projectSlug}/artifact-bundles/7227e105-744e-4066-8c69-3e5e344723fc/files/`,
-    body: empty ? {} : TestStubs.SourceMapsDebugIDBundlesArtifacts(),
+    body: SourceMapsDebugIDBundlesArtifacts(
+      empty
+        ? {
+            fileCount: 0,
+            associations: [],
+            files: [],
+          }
+        : {}
+    ),
   });
 
-  return {artifactBundlesFiles};
+  const artifactBundlesDeletion = MockApiClient.addMockResponse({
+    url: `/projects/${orgSlug}/${projectSlug}/files/artifact-bundles/`,
+    method: 'DELETE',
+  });
+
+  return {artifactBundlesFiles, artifactBundlesDeletion};
 }
 
 describe('ProjectSourceMapsArtifacts', function () {
@@ -167,7 +190,7 @@ describe('ProjectSourceMapsArtifacts', function () {
         user: {...ConfigStore.config.user, isSuperuser: true},
       };
 
-      renderDebugIdBundlesMockRequests({
+      const mockRequests = renderDebugIdBundlesMockRequests({
         orgSlug: organization.slug,
         projectSlug: project.slug,
       });
@@ -186,20 +209,29 @@ describe('ProjectSourceMapsArtifacts', function () {
       );
 
       // Title
-      expect(screen.getByRole('heading')).toHaveTextContent('Artifact Bundle');
-      // Subtitle
-      expect(
-        screen.getByText('7227e105-744e-4066-8c69-3e5e344723fc')
-      ).toBeInTheDocument();
+      expect(screen.getByRole('heading')).toHaveTextContent(
+        '7227e105-744e-4066-8c69-3e5e344723fc'
+      );
 
+      // Details
+      // Artifacts
+      expect(await screen.findByText('Artifacts')).toBeInTheDocument();
+      expect(await screen.findByText('22')).toBeInTheDocument();
       // Release information
+      expect(await screen.findByText('Associated Releases')).toBeInTheDocument();
       expect(
-        await screen.findByText(textWithMarkupMatcher('2 Releases associated'))
+        await screen.findByText(textWithMarkupMatcher('v2.0 (Dist: none)'))
       ).toBeInTheDocument();
-      await userEvent.hover(screen.getByText('2 Releases'));
       expect(
-        await screen.findByText('frontend@2e318148eac9298ec04a662ae32b4b093b027f0a')
+        await screen.findByText(
+          textWithMarkupMatcher(
+            'frontend@2e318148eac9298ec04a662ae32b4b093b027f0a (Dist: android, iOS)'
+          )
+        )
       ).toBeInTheDocument();
+      // Date Uploaded
+      expect(await screen.findByText('Date Uploaded')).toBeInTheDocument();
+      expect(await screen.findByText('Mar 8, 2023 9:53 AM UTC')).toBeInTheDocument();
 
       // Search bar
       expect(screen.getByPlaceholderText('Filter by Path or ID')).toBeInTheDocument();
@@ -217,6 +249,26 @@ describe('ProjectSourceMapsArtifacts', function () {
         'href',
         '/projects/org-slug/project-slug/artifact-bundles/7227e105-744e-4066-8c69-3e5e344723fc/files/ZmlsZXMvXy9fL21haW4uanM=/?download=1'
       );
+
+      renderGlobalModal();
+
+      // Delete item displays a confirmation modal
+      await userEvent.click(screen.getByRole('button', {name: 'Delete Bundle'}));
+      expect(
+        await screen.findByText('Are you sure you want to delete this bundle?')
+      ).toBeInTheDocument();
+      // Close modal
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+      await waitFor(() => {
+        expect(mockRequests.artifactBundlesDeletion).toHaveBeenLastCalledWith(
+          '/projects/org-slug/project-slug/files/artifact-bundles/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              bundleId: '7227e105-744e-4066-8c69-3e5e344723fc',
+            }),
+          })
+        );
+      });
     });
 
     it('renders empty state', async function () {
@@ -255,10 +307,9 @@ describe('ProjectSourceMapsArtifacts', function () {
         await screen.findByText('There are no artifacts in this bundle.')
       ).toBeInTheDocument();
 
-      // TODO(Pri): Uncomment once fully transitioned to associations.
-      // expect(
-      //   screen.getByText('No releases associated with this bundle')
-      // ).toBeInTheDocument();
+      expect(
+        screen.getByText('No releases associated with this bundle')
+      ).toBeInTheDocument();
     });
   });
 });

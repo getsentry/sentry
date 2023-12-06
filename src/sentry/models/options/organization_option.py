@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, ClassVar, Mapping, Sequence
 
 from django.db import models
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields.picklefield import PickledObjectField
 from sentry.db.models.manager import OptionManager, ValidateFunction, Value
 from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
-    from sentry.models import Organization
+    from sentry.models.organization import Organization
 
 
 class OrganizationOptionManager(OptionManager["OrganizationOption"]):
@@ -98,13 +99,13 @@ class OrganizationOption(Model):
     value: { updated: datetime }
     """
 
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     organization = FlexibleForeignKey("sentry.Organization")
     key = models.CharField(max_length=64)
     value = PickledObjectField()
 
-    objects = OrganizationOptionManager()
+    objects: ClassVar[OrganizationOptionManager] = OrganizationOptionManager()
 
     class Meta:
         app_label = "sentry"

@@ -6,7 +6,6 @@ import pytest
 import responses
 from django.db import router, transaction
 from django.test.utils import override_settings
-from freezegun import freeze_time
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
@@ -16,21 +15,31 @@ from sentry.incidents.models import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
-from sentry.models import AuditLogEntry, Integration, outbox_context
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.integrations.integration import Integration
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.outbox import outbox_context
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
+from sentry.tasks.integrations.slack.find_channel_id_for_alert_rule import (
+    find_channel_id_for_alert_rule,
+)
+from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 
-pytestmark = [pytest.mark.sentry_metrics]
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
-class AlertRuleBase:
+class AlertRuleBase(APITestCase):
+    __test__ = Abstract(__module__, __qualname__)
+
     @cached_property
     def organization(self):
         return self.create_organization()
@@ -75,10 +84,12 @@ class AlertRuleBase:
 
 
 class AlertRuleIndexBase(AlertRuleBase):
+    __test__ = Abstract(__module__, __qualname__)
+
     endpoint = "sentry-api-0-organization-alert-rules"
 
 
-class AlertRuleListEndpointTest(AlertRuleIndexBase, APITestCase):
+class AlertRuleListEndpointTest(AlertRuleIndexBase):
     def test_simple(self):
         self.create_team(organization=self.organization, members=[self.user])
         alert_rule = self.create_alert_rule()
@@ -96,9 +107,9 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, APITestCase):
         assert resp.status_code == 404
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time()
-class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
+class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
     method = "post"
 
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -132,6 +143,26 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
             resp.renderer_context["request"].META["REMOTE_ADDR"]
             == list(audit_log_entry)[0].ip_address
         )
+
+    def test_status_filter(self):
+        with outbox_runner(), self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:metric-alert-ignore-archived",
+            ]
+        ):
+            data = deepcopy(self.alert_rule_dict)
+            data["query"] = "is:unresolved"
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **data,
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+        assert alert_rule.snuba_query.query == "is:unresolved"
 
     @override_settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=1)
     def test_enforce_max_subscriptions(self):
@@ -548,7 +579,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=("#", None, True),
     )
-    @patch("sentry.tasks.integrations.slack.find_channel_id_for_alert_rule.apply_async")
+    @patch.object(find_channel_id_for_alert_rule, "apply_async")
     @patch("sentry.integrations.slack.utils.rule_status.uuid4")
     def test_kicks_off_slack_async_job(
         self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
@@ -703,10 +734,133 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
         # Did not increment from the last assertion because we early out on the validation error
         assert mock_get_channel_id.call_count == 3
 
+    def test_performance_dataset(self):
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:mep-rollout-flag",
+                "organizations:dynamic-sampling",
+            ]
+        ):
+            test_params = {**self.alert_rule_dict, "dataset": "generic_metrics"}
+
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **test_params,
+            )
+
+            assert "id" in resp.data
+            alert_rule = AlertRule.objects.get(id=resp.data["id"])
+            assert resp.data == serialize(alert_rule, self.user)
+
+            test_params = {**self.alert_rule_dict, "dataset": "transactions"}
+
+            resp = self.get_error_response(
+                self.organization.slug,
+                status_code=400,
+                **test_params,
+            )
+
+            assert (
+                resp.data["dataset"][0]
+                == "Performance alerts must use the `generic_metrics` dataset"
+            )
+
+    def test_alert_with_metrics_layer(self):
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:mep-rollout-flag",
+                "organizations:dynamic-sampling",
+                "organizations:use-metrics-layer-in-alerts",
+            ]
+        ):
+            for mri in ("apdex()", "failure_rate()"):
+                test_params = {
+                    **self.alert_rule_dict,
+                    "aggregate": mri,
+                    "dataset": "generic_metrics",
+                }
+
+                resp = self.get_success_response(
+                    self.organization.slug,
+                    status_code=201,
+                    **test_params,
+                )
+
+                assert "id" in resp.data
+                alert_rule = AlertRule.objects.get(id=resp.data["id"])
+                assert resp.data == serialize(alert_rule, self.user)
+
+    def test_alert_with_metric_mri(self):
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:mep-rollout-flag",
+                "organizations:dynamic-sampling",
+                "organizations:ddm-experimental",
+                "organizations:use-metrics-layer-in-alerts",
+            ]
+        ):
+            for mri in (
+                "sum(c:transactions/count_per_root_project@none)",
+                "p90(d:transactions/duration@millisecond)",
+                "p95(d:transactions/duration@millisecond)",
+                "count_unique(s:transactions/user@none)",
+                "avg(d:custom/sentry.process_profile.symbolicate.process@second)",
+            ):
+                test_params = {
+                    **self.alert_rule_dict,
+                    "aggregate": mri,
+                    "dataset": "generic_metrics",
+                }
+
+                resp = self.get_success_response(
+                    self.organization.slug,
+                    status_code=201,
+                    **test_params,
+                )
+
+                assert "id" in resp.data
+                alert_rule = AlertRule.objects.get(id=resp.data["id"])
+                assert resp.data == serialize(alert_rule, self.user)
+
+    def test_alert_with_metric_mri_on_wrong_dataset(self):
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:mep-rollout-flag",
+                "organizations:dynamic-sampling",
+                "organizations:ddm-experimental",
+                "organizations:use-metrics-layer-in-alerts",
+            ]
+        ):
+            test_params = {
+                **self.alert_rule_dict,
+                "aggregate": "sum(c:sessions/session@none)",
+                "dataset": "metrics",
+            }
+
+            resp = self.get_error_response(
+                self.organization.slug,
+                status_code=400,
+                **test_params,
+            )
+
+            assert (
+                resp.data["nonFieldErrors"][0]
+                == "You can use an MRI only on alerts on performance metrics"
+            )
+
 
 # TODO(Gabe): Rewrite this test to properly annotate the silo mode
 @freeze_time()
-class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase, APITestCase):
+class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
     method = "post"
 
     def setUp(self):
@@ -805,7 +959,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase, APITestCase)
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=("#", None, True),
     )
-    @patch("sentry.tasks.integrations.slack.find_channel_id_for_alert_rule.apply_async")
+    @patch.object(find_channel_id_for_alert_rule, "apply_async")
     @patch("sentry.integrations.slack.utils.rule_status.uuid4")
     def test_crash_rate_alerts_kicks_off_slack_async_job(
         self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
@@ -848,7 +1002,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase, APITestCase)
         mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time()
 class MetricsCrashRateAlertCreationTest(AlertRuleCreateEndpointTestCrashRateAlert):
     method = "post"
@@ -857,8 +1011,8 @@ class MetricsCrashRateAlertCreationTest(AlertRuleCreateEndpointTestCrashRateAler
         super().setUp()
         self.valid_alert_rule["dataset"] = Dataset.Metrics.value
         for tag in [
-            SessionMRI.SESSION.value,
-            SessionMRI.USER.value,
+            SessionMRI.RAW_SESSION.value,
+            SessionMRI.RAW_USER.value,
             "session.status",
             "init",
             "crashed",

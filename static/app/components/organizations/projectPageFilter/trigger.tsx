@@ -78,6 +78,7 @@ function BaseProjectPageFilterTrigger(
     <DropdownButton
       {...props}
       ref={forwardedRef}
+      data-test-id="page-filter-project-selector"
       icon={
         <TriggerIconWrap>
           {!ready || isAllProjectsSelected || isMyProjectsSelected ? (

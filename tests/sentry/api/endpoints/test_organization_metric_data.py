@@ -7,7 +7,6 @@ from unittest import mock
 from unittest.mock import patch
 
 import pytest
-from freezegun import freeze_time
 
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -20,6 +19,7 @@ from sentry.snuba.metrics.naming_layer.public import (
     TransactionTagsKey,
 )
 from sentry.testutils.cases import MetricsAPIBaseTestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor
 from tests.sentry.api.endpoints.test_organization_metrics import MOCKED_DERIVED_METRICS
@@ -37,7 +37,102 @@ rh_indexer_record = partial(indexer_record, UseCaseID.SESSIONS)
 pytestmark = [pytest.mark.sentry_metrics]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
+@freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
+class OrganizationMetricsDataWithNewLayerTest(MetricsAPIBaseTestCase):
+    endpoint = "sentry-api-0-organization-metrics-data"
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+
+    @property
+    def now(self):
+        return MetricsAPIBaseTestCase.MOCK_DATETIME
+
+    @patch("sentry.api.endpoints.organization_metrics.run_metrics_query")
+    def test_query_with_feature_flag_enabled_but_param_missing(self, run_metrics_query):
+        run_metrics_query.return_value = {}
+
+        self.get_response(
+            self.project.organization.slug,
+            field=f"sum({TransactionMRI.DURATION.value})",
+            useCase="transactions",
+            useNewMetricsLayer="false",
+            statsPeriod="1h",
+            interval="1h",
+        )
+        run_metrics_query.assert_not_called()
+
+        self.get_response(
+            self.project.organization.slug,
+            field=f"sum({TransactionMRI.DURATION.value})",
+            useCase="transactions",
+            useNewMetricsLayer="true",
+            statsPeriod="1h",
+            interval="1h",
+        )
+        run_metrics_query.assert_called_once()
+
+    def test_query_with_invalid_query(self):
+        self.get_error_response(
+            self.project.organization.slug,
+            status_code=400,
+            field=f"sum({TransactionMRI.DURATION.value})",
+            query="foo:foz < bar:baz",
+            useCase="transactions",
+            useNewMetricsLayer="true",
+            statsPeriod="1h",
+            interval="1h",
+        )
+
+    def test_query_with_invalid_percentile(self):
+        self.get_error_response(
+            self.project.organization.slug,
+            status_code=500,
+            field=f"p30({TransactionMRI.DURATION.value})",
+            useCase="transactions",
+            useNewMetricsLayer="true",
+            statsPeriod="1h",
+            interval="1h",
+        )
+
+    def test_compare_query_with_transactions_metric(self):
+        self.store_performance_metric(
+            name=TransactionMRI.DURATION.value,
+            tags={"transaction": "/hello", "platform": "ios"},
+            value=10,
+        )
+
+        responses = []
+        for flag_value in False, True:
+            response = self.get_response(
+                self.project.organization.slug,
+                field=f"sum({TransactionMRI.DURATION.value})",
+                useCase="transactions",
+                useNewMetricsLayer="true" if flag_value else "false",
+                statsPeriod="1h",
+                interval="1h",
+            )
+            responses.append(response)
+
+        response_old = responses[0].data
+        response_new = responses[1].data
+
+        # We want to only compare a subset of the fields, since the new integration doesn't have all features.
+        assert response_old["groups"][0]["by"] == response_new["groups"][0]["by"]
+        assert list(response_old["groups"][0]["series"].values()) == list(
+            response_new["groups"][0]["series"].values()
+        )
+        assert list(response_old["groups"][0]["totals"].values()) == list(
+            response_new["groups"][0]["totals"].values()
+        )
+        assert response_old["intervals"] == response_new["intervals"]
+        assert response_old["start"] == response_new["start"]
+        assert response_old["end"] == response_new["end"]
+
+
+@region_silo_test
 @freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
 class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-metrics-data"
@@ -51,9 +146,9 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.project.organization.id, TransactionMRI.MEASUREMENTS_LCP.value
         )
         org_id = self.organization.id
-        self.session_metric = rh_indexer_record(org_id, SessionMRI.SESSION.value)
+        self.session_metric = rh_indexer_record(org_id, SessionMRI.RAW_SESSION.value)
         self.session_duration = rh_indexer_record(org_id, SessionMRI.DURATION.value)
-        self.session_error_metric = rh_indexer_record(org_id, SessionMRI.ERROR.value)
+        self.session_error_metric = rh_indexer_record(org_id, SessionMRI.RAW_ERROR.value)
 
     @property
     def now(self):
@@ -466,7 +561,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         assert response.status_code == 400
         assert (
             response.data["detail"]
-            == "Failed to parse query: Release Health Queries don't support wildcards"
+            == "Failed to parse conditions: Release Health Queries don't support wildcards"
         )
 
     def test_pagination_offset_without_orderby(self):
@@ -1205,7 +1300,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         within the limit, and that are also with complete data from across the entities
         """
         self.store_release_health_metric(
-            name=SessionMRI.SESSION.value,
+            name=SessionMRI.RAW_SESSION.value,
             tags={"tag3": "value1"},
             value=10,
         )
@@ -1249,7 +1344,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         """
         for tag, tag_value in (("tag1", "group1"), ("tag1", "group2")):
             self.store_release_health_metric(
-                name=SessionMRI.SESSION.value,
+                name=SessionMRI.RAW_SESSION.value,
                 tags={tag: tag_value},
                 value=10,
             )
@@ -1260,7 +1355,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         ):
             for value in numbers:
                 self.store_release_health_metric(
-                    name=SessionMRI.ERROR.value,
+                    name=SessionMRI.RAW_ERROR.value,
                     tags={tag: tag_value},
                     value=value,
                 )
@@ -1304,7 +1399,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             ("tag2", "C1"),
         ):
             self.store_release_health_metric(
-                name=SessionMRI.SESSION.value,
+                name=SessionMRI.RAW_SESSION.value,
                 tags={tag: tag_value},
                 value=10,
                 minutes_before_now=4,
@@ -1318,7 +1413,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         ):
             for value in numbers:
                 self.store_release_health_metric(
-                    name=SessionMRI.ERROR.value,
+                    name=SessionMRI.RAW_ERROR.value,
                     tags={tag: tag_value},
                     value=value,
                 )
@@ -1463,7 +1558,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         )
         assert response.status_code == 400
         assert response.json()["detail"] == (
-            f"Requested interval of timedelta of {timedelta(minutes=5)} with statsPeriod "
+            f"Requested intervals (288) of timedelta of {timedelta(minutes=5)} with statsPeriod "
             f"timedelta of {timedelta(hours=24)} is too granular "
             f"for a per_page of 51 elements. Increase your interval, decrease your statsPeriod, "
             f"or decrease your per_page parameter."
@@ -1495,6 +1590,95 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         )
         assert response.status_code == 400
 
+    def test_transaction_status_unknown_error(self):
+        self.store_performance_metric(
+            name=TransactionMRI.DURATION.value,
+            tags={"transaction.status": "unknown"},
+            value=10.0,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=f"sum({TransactionMetricKey.DURATION.value})",
+            query="transaction.status:unknown_error",
+            statsPeriod="1h",
+            interval="1h",
+            per_page=1,
+            useCase="transactions",
+        )
+        groups = response.data["groups"]
+        assert groups == [
+            {
+                "by": {},
+                "series": {"sum(transaction.duration)": [10.0]},
+                "totals": {"sum(transaction.duration)": 10.0},
+            }
+        ]
+
+    def test_gauges(self):
+        mri = "g:custom/page_load@millisecond"
+
+        gauge_1 = {
+            "min": 1.0,
+            "max": 20.0,
+            "sum": 21.0,
+            "count": 2,
+            "last": 20.0,
+        }
+
+        gauge_2 = {
+            "min": 2.0,
+            "max": 21.0,
+            "sum": 21.0,
+            "count": 3,
+            "last": 4.0,
+        }
+
+        for value, minutes in ((gauge_1, 35), (gauge_2, 5)):
+            self.store_custom_metric(name=mri, tags={}, value=value, minutes_before_now=minutes)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=[
+                f"count({mri})",
+                f"min({mri})",
+                f"max({mri})",
+                f"last({mri})",
+                f"sum({mri})",
+                f"avg({mri})",
+            ],
+            query="",
+            statsPeriod="1h",
+            interval="30m",
+            per_page=3,
+            useCase="custom",
+            includeSeries="1",
+        )
+        groups = response.data["groups"]
+
+        assert len(groups) == 1
+        assert groups == [
+            {
+                "by": {},
+                "series": {
+                    "count(page_load)": [2, 3],
+                    "max(page_load)": [20.0, 21.0],
+                    "min(page_load)": [1.0, 2.0],
+                    "last(page_load)": [20.0, 4.0],
+                    "sum(page_load)": [21.0, 21.0],
+                    "avg(page_load)": [10.5, 7.0],
+                },
+                "totals": {
+                    "count(page_load)": 5,
+                    "max(page_load)": 21.0,
+                    "min(page_load)": 1.0,
+                    "last(page_load)": 4.0,
+                    "sum(page_load)": 42.0,
+                    "avg(page_load)": 8.4,
+                },
+            }
+        ]
+
 
 @freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
 class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
@@ -1505,9 +1689,9 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         self.login_as(user=self.user)
         org_id = self.organization.id
         self.session_duration_metric = rh_indexer_record(org_id, SessionMRI.RAW_DURATION.value)
-        self.session_metric = rh_indexer_record(org_id, SessionMRI.SESSION.value)
-        self.session_user_metric = rh_indexer_record(org_id, SessionMRI.USER.value)
-        self.session_error_metric = rh_indexer_record(org_id, SessionMRI.ERROR.value)
+        self.session_metric = rh_indexer_record(org_id, SessionMRI.RAW_SESSION.value)
+        self.session_user_metric = rh_indexer_record(org_id, SessionMRI.RAW_USER.value)
+        self.session_error_metric = rh_indexer_record(org_id, SessionMRI.RAW_ERROR.value)
         self.session_status_tag = rh_indexer_record(org_id, "session.status")
         self.release_tag = rh_indexer_record(self.organization.id, "release")
         self.tx_metric = perf_indexer_record(org_id, TransactionMRI.DURATION.value)
@@ -1574,8 +1758,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         )
         assert response.status_code == 400
         assert response.json()["detail"] == (
-            "Failed to parse 'crash_free_fake'. Must be something like 'sum(my_metric)', "
-            "or a supported aggregate derived metric like `session.crash_free_rate`"
+            "Failed to parse 'crash_free_fake'. The metric name must belong to a public metric."
         )
 
     def test_crash_free_percentage(self):
@@ -1686,14 +1869,14 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             ("init", 15),
         ):
             self.store_release_health_metric(
-                name=SessionMRI.SESSION.value,
+                name=SessionMRI.RAW_SESSION.value,
                 tags={"session.status": tag_value},
                 value=value,
                 minutes_before_now=4,
             )
         for value in range(3):
             self.store_release_health_metric(
-                name=SessionMRI.ERROR.value,
+                name=SessionMRI.RAW_ERROR.value,
                 tags={"release": "foo"},
                 value=value,
             )
@@ -1734,7 +1917,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             ("bar", 3, 2),
         ):
             self.store_release_health_metric(
-                name=SessionMRI.SESSION.value,
+                name=SessionMRI.RAW_SESSION.value,
                 tags={"session.status": "abnormal", "release": tag_value},
                 value=value,
                 minutes_before_now=minutes,
@@ -1763,7 +1946,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         ):
             for value in values:
                 self.store_release_health_metric(
-                    name=SessionMRI.USER.value,
+                    name=SessionMRI.RAW_USER.value,
                     tags={"session.status": "crashed", "release": tag_value},
                     value=value,
                 )
@@ -1787,7 +1970,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     def test_all_user_sessions(self):
         for value in [1, 2, 4]:
             self.store_release_health_metric(
-                name=SessionMRI.USER.value,
+                name=SessionMRI.RAW_USER.value,
                 tags={},
                 value=value,
             )
@@ -1810,7 +1993,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         for tags, values in cases:
             for value in values:
                 self.store_release_health_metric(
-                    name=SessionMRI.USER.value,
+                    name=SessionMRI.RAW_USER.value,
                     tags=tags,
                     value=value,
                 )
@@ -1833,7 +2016,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         ):
             for value in values:
                 self.store_release_health_metric(
-                    name=SessionMRI.USER.value,
+                    name=SessionMRI.RAW_USER.value,
                     tags=tags,
                     value=value,
                 )
@@ -1867,7 +2050,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         ):
             for value in values:
                 self.store_release_health_metric(
-                    name=SessionMRI.USER.value,
+                    name=SessionMRI.RAW_USER.value,
                     tags=tags,
                     value=value,
                 )
@@ -1883,7 +2066,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             ("crashed", "foobar@2.0", 3, 2),
         ):
             self.store_release_health_metric(
-                name=SessionMRI.SESSION.value,
+                name=SessionMRI.RAW_SESSION.value,
                 tags={"session.status": tag_value, "release": release_tag_value},
                 value=value,
             )
@@ -1921,14 +2104,14 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             ({"session.status": "init", "release": "foo"}, 10),
         ):
             self.store_release_health_metric(
-                name=SessionMRI.SESSION.value,
+                name=SessionMRI.RAW_SESSION.value,
                 tags=tags,
                 value=value,
             )
 
         for value in range(3):
             self.store_release_health_metric(
-                name=SessionMRI.ERROR.value,
+                name=SessionMRI.RAW_ERROR.value,
                 tags={"release": "foo"},
                 value=value,
             )
@@ -1950,7 +2133,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             ("init", 10),
         ):
             self.store_release_health_metric(
-                name=SessionMRI.SESSION.value,
+                name=SessionMRI.RAW_SESSION.value,
                 tags={"session.status": tag_value, "release": "foo"},
                 value=value,
             )
@@ -1982,7 +2165,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         ):
             for value in values:
                 self.store_release_health_metric(
-                    name=SessionMRI.USER.value,
+                    name=SessionMRI.RAW_USER.value,
                     tags={"session.status": tag_value},
                     value=value,
                 )
@@ -2003,7 +2186,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         # Errored = -3
         for value in [1, 2, 4]:
             self.store_release_health_metric(
-                name=SessionMRI.USER.value,
+                name=SessionMRI.RAW_USER.value,
                 tags={"session.status": "crashed"},
                 value=value,
             )
@@ -2027,7 +2210,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         for tags, values in cases:
             for value in values:
                 self.store_release_health_metric(
-                    name=SessionMRI.USER.value,
+                    name=SessionMRI.RAW_USER.value,
                     tags=tags,
                     value=value,
                 )
@@ -2046,7 +2229,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         # init = 0
         # errored_all = 1
         self.store_release_health_metric(
-            name=SessionMRI.USER.value,
+            name=SessionMRI.RAW_USER.value,
             tags={"session.status": "errored"},
             value=1,
         )
@@ -2071,8 +2254,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         )
 
         assert response.data["detail"] == (
-            "Failed to parse 'transaction.all'. Must be something like 'sum(my_metric)', "
-            "or a supported aggregate derived metric like `session.crash_free_rate`"
+            "Failed to parse 'transaction.all'. The metric name must belong to a public metric."
         )
 
     def test_failure_rate_transaction(self):
@@ -2152,8 +2334,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                 interval="6m",
             )
             assert response.data["detail"] == (
-                f"Failed to parse '{private_name}'. Must be something like 'sum(my_metric)', "
-                "or a supported aggregate derived metric like `session.crash_free_rate`"
+                f"Failed to parse '{private_name}'. The metric name must belong to a public metric."
             )
 
     def test_apdex_transactions(self):

@@ -1,10 +1,14 @@
 from io import BytesIO
 
-from sentry.models import EventAttachment, File
+from sentry.models.eventattachment import EventAttachment
+from sentry.models.files.file import File
 from sentry.testutils.cases import APITestCase, PermissionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
 class CreateAttachmentMixin:
@@ -31,12 +35,11 @@ class CreateAttachmentMixin:
             type=self.file.type,
             name="hello.png",
         )
-        assert self.attachment.mimetype == "image/png"
 
         return self.attachment
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -49,7 +52,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(self.attachment.id)
-        assert response.data["mimetype"] == self.attachment.mimetype
+        assert response.data["mimetype"] == "image/png"
         assert response.data["event_id"] == self.event.event_id
 
     def test_download(self):
@@ -80,7 +83,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert EventAttachment.objects.count() == 0
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentMixin):
     def setUp(self):
         super().setUp()

@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -16,7 +18,7 @@ import EventsPageContent from 'sentry/views/performance/transactionSummary/trans
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 
 function initializeData() {
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features: ['discover-basic', 'performance-view'],
     projects: [TestStubs.Project()],
   });

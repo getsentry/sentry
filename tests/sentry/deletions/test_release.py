@@ -1,11 +1,9 @@
-from sentry.models import (
-    Environment,
-    Project,
-    Release,
-    ReleaseCommit,
-    ReleaseEnvironment,
-    ReleaseFile,
-)
+from sentry.models.environment import Environment
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releaseenvironment import ReleaseEnvironment
+from sentry.models.releasefile import ReleaseFile
 from sentry.silo import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
@@ -16,7 +14,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class DeleteReleaseTest(TransactionTestCase, HybridCloudTestMixin):
     def test_simple(self):
         org = self.create_organization()

@@ -153,25 +153,25 @@
     "/api/0/projects/{organization_slug}/{project_slug}/issues/": {
       "$ref": "paths/events/project-issues.json"
     },
-    "/api/0/issues/{issue_id}/tags/{key}/values/": {
+    "/api/0/organizations/{organization_slug}/issues/{issue_id}/tags/{key}/values/": {
       "$ref": "paths/events/tag-values.json"
     },
-    "/api/0/issues/{issue_id}/tags/{key}/": {
+    "/api/0/organizations/{organization_slug}/issues/{issue_id}/tags/{key}/": {
       "$ref": "paths/events/tag-details.json"
     },
-    "/api/0/issues/{issue_id}/hashes/": {
+    "/api/0/organizations/{organization_slug}/issues/{issue_id}/hashes/": {
       "$ref": "paths/events/issue-hashes.json"
     },
-    "/api/0/issues/{issue_id}/events/oldest/": {
+    "/api/0/organizations/{organization_slug}/issues/{issue_id}/events/oldest/": {
       "$ref": "paths/events/oldest-event.json"
     },
-    "/api/0/issues/{issue_id}/events/latest/": {
+    "/api/0/organizations/{organization_slug}/issues/{issue_id}/events/latest/": {
       "$ref": "paths/events/latest-event.json"
     },
-    "/api/0/issues/{issue_id}/events/": {
+    "/api/0/organizations/{organization_slug}/issues/{issue_id}/events/": {
       "$ref": "paths/events/issue-events.json"
     },
-    "/api/0/issues/{issue_id}/": {
+    "/api/0/organizations/{organization_slug}/issues/{issue_id}/": {
       "$ref": "paths/events/issue-details.json"
     },
     "/api/0/organizations/{organization_slug}/releases/": {
@@ -216,8 +216,8 @@
     "/api/0/sentry-app-installations/{uuid}/external-issues/{external_issue_id}/": {
       "$ref": "paths/integration-platform/sentry-app-external-issue-details.json"
     },
-    "/api/0/organizations/{organization_slug}/scim/v2/Groups": {
-      "$ref": "paths/scim/team_index.json"
+    "/api/0/organizations/{organization_slug}/spike-protections/": {
+      "$ref": "paths/projects/spike-protection.json"
     }
   },
   "components": {

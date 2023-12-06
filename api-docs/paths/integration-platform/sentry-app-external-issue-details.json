@@ -16,7 +16,7 @@
       {
         "name": "external_issue_id",
         "in": "path",
-        "description": "The id of the external issue.",
+        "description": "The ID of the external issue.",
         "required": true,
         "schema": {
           "type": "string"

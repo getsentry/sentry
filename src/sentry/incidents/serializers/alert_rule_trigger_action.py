@@ -15,7 +15,8 @@ from sentry.incidents.serializers import (
     STRING_TO_ACTION_TYPE,
 )
 from sentry.integrations.slack.utils import validate_channel_id
-from sentry.models import OrganizationMember, Team
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.team import Team
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 
 
@@ -115,6 +116,11 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             if not attrs.get("integration_id"):
                 raise serializers.ValidationError(
                     {"integration": "Integration must be provided for slack"}
+                )
+        elif attrs.get("type") == AlertRuleTriggerAction.Type.DISCORD:
+            if not attrs.get("integration_id"):
+                raise serializers.ValidationError(
+                    {"integration": "Integration must be provided for discord"}
                 )
 
         elif attrs.get("type") == AlertRuleTriggerAction.Type.SENTRY_APP:

@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {isMac} from '@react-aria/utils';
+import xor from 'lodash/xor';
 
 import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
@@ -22,26 +23,47 @@ export interface HybridFilterProps<Value extends React.Key>
     MultipleSelectProps<Value>,
     | 'grid'
     | 'multiple'
-    | 'clearable'
     | 'value'
     | 'defaultValue'
     | 'onChange'
+    | 'clearable'
+    | 'onClear'
     | 'onInteractOutside'
     | 'closeOnSelect'
     | 'onKeyDown'
     | 'onKeyUp'
   > {
+  /**
+   * Default selection value. When the user clicks "Reset", the selection value will
+   * return to this value.
+   */
+  defaultValue: Value[];
   onChange: (selected: Value[]) => void;
   value: Value[];
   checkboxWrapper?: (
     renderCheckbox: (props: React.ComponentProps<typeof Checkbox>) => React.ReactNode
   ) => React.ReactNode;
   /**
+   * Whether to disable the commit action in multiple selection mode. When true, the
+   * apply button will be disabled and clicking outside will revert to previous value.
+   * Useful for things like enforcing a selection count limit.
+   */
+  disableCommit?: boolean;
+  /**
    * Message to show in the menu footer
    */
-  menuFooterMessage?: React.ReactNode;
+  menuFooterMessage?: ((hasStagedChanges) => React.ReactNode) | React.ReactNode;
   multiple?: boolean;
   onReplace?: (selected: Value) => void;
+  /**
+   * Called when the reset button is clicked.
+   */
+  onReset?: () => void;
+  /**
+   * Similar to onChange, but is called when the internal staged value changes (see
+   * `stagedValue` below).
+   */
+  onStagedValueChange?: (selected: Value[]) => void;
   onToggle?: (selected: Value[]) => void;
 }
 
@@ -58,14 +80,17 @@ export function HybridFilter<Value extends React.Key>({
   options,
   multiple,
   value,
-  onClear,
+  defaultValue,
+  onReset,
   onChange,
+  onStagedValueChange,
   onSectionToggle,
   onReplace,
   onToggle,
   menuFooter,
   menuFooterMessage,
   checkboxWrapper,
+  disableCommit,
   ...selectProps
 }: HybridFilterProps<Value>) {
   /**
@@ -78,6 +103,10 @@ export function HybridFilter<Value extends React.Key>({
 
   // Update `stagedValue` whenever the external `value` changes
   useEffect(() => setStagedValue(value), [value]);
+
+  useEffect(() => {
+    onStagedValueChange?.(stagedValue);
+  }, [onStagedValueChange, stagedValue]);
 
   /**
    * Whether there are staged, uncommitted changes. Used to determine whether we should
@@ -96,10 +125,14 @@ export function HybridFilter<Value extends React.Key>({
 
   const removeStagedChanges = useCallback(() => setStagedValue(value), [value]);
 
-  const commitStagedChanges = useCallback(
-    () => commit(stagedValue),
-    [commit, stagedValue]
-  );
+  const commitStagedChanges = useCallback(() => {
+    if (disableCommit) {
+      removeStagedChanges();
+      return;
+    }
+
+    commit(stagedValue);
+  }, [disableCommit, removeStagedChanges, commit, stagedValue]);
 
   const toggleOption = useCallback(
     (val: Value) => {
@@ -187,13 +220,19 @@ export function HybridFilter<Value extends React.Key>({
     'hybrid-filter:modifier-tip-seen',
     false
   );
+
   const renderFooter = useMemo(() => {
     const showModifierTip =
       multiple && options.length > 1 && !hasStagedChanges && !modifierTipSeen;
-    return menuFooter || hasStagedChanges || showModifierTip
+    const footerMessage =
+      typeof menuFooterMessage === 'function'
+        ? menuFooterMessage(hasStagedChanges)
+        : menuFooterMessage;
+
+    return menuFooter || footerMessage || hasStagedChanges || showModifierTip
       ? ({closeOverlay}) => (
           <Fragment>
-            {menuFooterMessage && <FooterMessage>{menuFooterMessage}</FooterMessage>}
+            {footerMessage && <FooterMessage>{footerMessage}</FooterMessage>}
             <FooterWrap>
               <FooterInnerWrap>{menuFooter}</FooterInnerWrap>
               {showModifierTip && (
@@ -222,6 +261,7 @@ export function HybridFilter<Value extends React.Key>({
                     borderless
                     size="xs"
                     priority="primary"
+                    disabled={disableCommit}
                     onClick={() => {
                       closeOverlay();
                       commit(stagedValue);
@@ -244,6 +284,7 @@ export function HybridFilter<Value extends React.Key>({
     menuFooterMessage,
     hasStagedChanges,
     multiple,
+    disableCommit,
     modifierTipSeen,
   ]);
 
@@ -302,21 +343,39 @@ export function HybridFilter<Value extends React.Key>({
     ]
   );
 
-  const handleClear = useCallback(() => {
-    onClear?.();
-    commit([]);
-  }, [onClear, commit]);
+  const menuHeaderTrailingItems = useCallback(
+    ({closeOverlay}) => {
+      // Don't show reset button if current value is already equal to the default one.
+      if (!xor(stagedValue, defaultValue).length) {
+        return null;
+      }
+
+      return (
+        <ResetButton
+          onClick={() => {
+            commit(defaultValue);
+            onReset?.();
+            closeOverlay();
+          }}
+          size="zero"
+          borderless
+        >
+          {t('Reset')}
+        </ResetButton>
+      );
+    },
+    [onReset, commit, stagedValue, defaultValue]
+  );
 
   return (
     <CompactSelect
       grid
       multiple
-      clearable={multiple}
       closeOnSelect={!(multiple && modifierKeyPressed)}
+      menuHeaderTrailingItems={menuHeaderTrailingItems}
       options={mappedOptions}
       value={stagedValue}
       onChange={handleChange}
-      onClear={handleClear}
       onSectionToggle={handleSectionToggle}
       onInteractOutside={commitStagedChanges}
       menuFooter={renderFooter}
@@ -326,6 +385,14 @@ export function HybridFilter<Value extends React.Key>({
     />
   );
 }
+
+const ResetButton = styled(Button)`
+  font-size: inherit; /* Inherit font size from MenuHeader */
+  font-weight: 400;
+  color: ${p => p.theme.subText};
+  padding: 0 ${space(0.5)};
+  margin: -${space(0.25)} -${space(0.5)};
+`;
 
 const TrailingWrap = styled('div')`
   display: grid;
@@ -346,13 +413,20 @@ const FooterWrap = styled('div')`
   display: grid;
   grid-auto-flow: column;
   gap: ${space(2)};
+
+  /* If there's FooterMessage above */
+  &:not(:first-child) {
+    margin-top: ${space(1)};
+  }
 `;
 
 const FooterMessage = styled('p')`
-  padding-bottom: ${space(1)};
-  margin-bottom: ${space(1)};
-  border-bottom: solid 1px ${p => p.theme.innerBorder};
-  color: ${p => p.theme.subText};
+  padding: ${space(0.75)} ${space(1)};
+  margin: ${space(0.5)} 0;
+  border-radius: ${p => p.theme.borderRadius};
+  border: solid 1px ${p => p.theme.alert.warning.border};
+  background: ${p => p.theme.alert.warning.backgroundLight};
+  color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 

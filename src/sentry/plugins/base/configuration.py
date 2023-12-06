@@ -7,7 +7,7 @@ from django.utils.translation import gettext as _
 from sentry import options
 from sentry.api import client
 from sentry.api.serializers import serialize
-from sentry.models import ProjectOption
+from sentry.models.options.project_option import ProjectOption
 from sentry.utils import json
 from sentry.web.helpers import render_to_string
 

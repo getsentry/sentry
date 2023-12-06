@@ -3,12 +3,12 @@ from unittest import mock
 from django.urls import reverse
 
 from sentry.constants import SentryAppStatus
-from sentry.models import SentryAppAvatar
+from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class SentryAppPublishRequestTest(APITestCase):
     def upload_logo(self):
         SentryAppAvatar.objects.create(sentry_app=self.sentry_app, avatar_type=1, color=True)

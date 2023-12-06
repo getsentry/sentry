@@ -1,5 +1,6 @@
 from sentry.db.models.query import in_iexact
-from sentry.models import Organization, User
+from sentry.models.organization import Organization
+from sentry.models.user import User
 from sentry.models.userreport import UserReport
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
@@ -53,12 +54,12 @@ class RangeQuerySetWrapperTest(TestCase):
         assert len(list(self.range_wrapper(qs, step=2))) == 0
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class RangeQuerySetWrapperWithProgressBarTest(RangeQuerySetWrapperTest):
     range_wrapper = RangeQuerySetWrapperWithProgressBar
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class RangeQuerySetWrapperWithProgressBarApproxTest(RangeQuerySetWrapperTest):
     range_wrapper = RangeQuerySetWrapperWithProgressBarApprox
 
@@ -66,14 +67,13 @@ class RangeQuerySetWrapperWithProgressBarApproxTest(RangeQuerySetWrapperTest):
 class BulkDeleteObjectsTest(TestCase):
     def setUp(self):
         super().setUp()
-        self.group = self.create_group(project=self.project, message="Foo bar")
         UserReport.objects.all().delete()
 
     def test_basic(self):
         total = 10
         records = []
         for i in range(total):
-            records.append(self.create_userreport(group=self.group, event_id=i))
+            records.append(self.create_userreport(project=self.project, event_id=str(i) * 32))
 
         result = bulk_delete_objects(UserReport, id__in=[r.id for r in records])
         assert result, "Could be more work to do"
@@ -83,7 +83,7 @@ class BulkDeleteObjectsTest(TestCase):
         total = 10
         records = []
         for i in range(total):
-            records.append(self.create_userreport(group=self.group, event_id=i))
+            records.append(self.create_userreport(project=self.project, event_id=str(i) * 32))
 
         result = bulk_delete_objects(UserReport, id__in=[r.id for r in records], limit=5)
         assert result, "Still more work to do"

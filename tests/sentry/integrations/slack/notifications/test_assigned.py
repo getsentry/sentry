@@ -3,13 +3,18 @@ from urllib.parse import parse_qs
 
 import responses
 
-from sentry.models import Activity, Identity, IdentityProvider, IdentityStatus, Integration
+from sentry.models.activity import Activity
+from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.models.integrations.integration import Integration
 from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
-from sentry.testutils.helpers.slack import get_attachment, send_notification
+from sentry.testutils.helpers.slack import get_attachment
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
+
+pytestmark = [requires_snuba]
 
 
 class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIssueTestCase):
@@ -25,8 +30,7 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         )
 
     @responses.activate
-    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
-    def test_multiple_identities(self, mock_func):
+    def test_multiple_identities(self):
         """
         Test that we notify a user with multiple Identities in each place
         """
@@ -72,8 +76,7 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         assert channel == identity2.external_id
 
     @responses.activate
-    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
-    def test_multiple_orgs(self, mock_func):
+    def test_multiple_orgs(self):
         """
         Test that if a user is in 2 orgs with Slack and has an Identity linked in each,
         we're only going to notify them for the relevant org
@@ -116,8 +119,7 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         assert channel == self.identity.external_id
 
     @responses.activate
-    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
-    def test_assignment(self, mock_func):
+    def test_assignment(self):
         """
         Test that a Slack message is sent with the expected payload when an issue is assigned
         """
@@ -126,9 +128,10 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         attachment, text = get_attachment()
         assert text == f"Issue assigned to {self.name} by themselves"
         assert attachment["title"] == self.group.title
+        notification_uuid = self.get_notification_uuid(attachment["title_link"])
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=assigned_activity-slack-user|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=assigned_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
     @responses.activate
@@ -137,8 +140,7 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
-    def test_assignment_generic_issue(self, mock_func, occurrence):
+    def test_assignment_generic_issue(self, occurrence):
         """
         Test that a Slack message is sent with the expected payload when a generic issue type is assigned
         """
@@ -161,8 +163,7 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
-    def test_assignment_performance_issue(self, mock_func, occurrence):
+    def test_assignment_performance_issue(self, occurrence):
         """
         Test that a Slack message is sent with the expected payload when a performance issue is assigned
         """

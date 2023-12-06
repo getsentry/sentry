@@ -1,5 +1,5 @@
 from sentry.integrations.github.repository import GitHubRepositoryProvider
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 

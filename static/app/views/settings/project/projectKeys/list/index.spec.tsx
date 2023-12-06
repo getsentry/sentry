@@ -1,3 +1,6 @@
+import {Project} from 'sentry-fixture/project';
+import {ProjectKeys as ProjectKeysFixture} from 'sentry-fixture/projectKeys';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -11,7 +14,7 @@ import ProjectKeys from 'sentry/views/settings/project/projectKeys/list';
 
 describe('ProjectKeys', function () {
   const {organization, project, routerProps} = initializeOrg();
-  const projectKeys = TestStubs.ProjectKeys();
+  const projectKeys = ProjectKeysFixture();
   let deleteMock: jest.Mock;
 
   beforeEach(function () {
@@ -55,7 +58,7 @@ describe('ProjectKeys', function () {
         {...routerProps}
         organization={organization}
         params={{projectId: project.slug}}
-        project={TestStubs.Project()}
+        project={Project()}
       />
     );
 
@@ -71,7 +74,7 @@ describe('ProjectKeys', function () {
         {...routerProps}
         organization={organization}
         params={{projectId: project.slug}}
-        project={TestStubs.Project({platform: 'other'})}
+        project={Project({platform: 'other'})}
       />
     );
 
@@ -84,7 +87,7 @@ describe('ProjectKeys', function () {
       name: 'Minidump Endpoint URL',
     });
     const unrealEndpoint = screen.queryByRole('textbox', {
-      name: 'Unreal Engine 4 Endpoint URL',
+      name: 'Unreal Engine Endpoint URL',
     });
     const securityHeaderEndpoint = screen.queryByRole('textbox', {
       name: 'Security Header Endpoint URL',
@@ -104,7 +107,7 @@ describe('ProjectKeys', function () {
         {...routerProps}
         organization={organization}
         params={{projectId: project.slug}}
-        project={TestStubs.Project({platform: 'javascript'})}
+        project={Project({platform: 'javascript'})}
       />
     );
 
@@ -114,7 +117,7 @@ describe('ProjectKeys', function () {
       name: 'Minidump Endpoint URL',
     });
     const unrealEndpoint = screen.queryByRole('textbox', {
-      name: 'Unreal Engine 4 Endpoint URL',
+      name: 'Unreal Engine Endpoint URL',
     });
     const securityHeaderEndpoint = screen.queryByRole('textbox', {
       name: 'Security Header Endpoint URL',
@@ -142,7 +145,7 @@ describe('ProjectKeys', function () {
         {...routerProps}
         organization={organization}
         params={{projectId: project.slug}}
-        project={TestStubs.Project({platform: 'javascript-react'})}
+        project={Project({platform: 'javascript-react'})}
       />
     );
 
@@ -152,7 +155,7 @@ describe('ProjectKeys', function () {
       name: 'Minidump Endpoint URL',
     });
     const unrealEndpoint = screen.queryByRole('textbox', {
-      name: 'Unreal Engine 4 Endpoint URL',
+      name: 'Unreal Engine Endpoint URL',
     });
     const securityHeaderEndpoint = screen.queryByRole('textbox', {
       name: 'Security Header Endpoint URL',
@@ -167,7 +170,7 @@ describe('ProjectKeys', function () {
   });
 
   it('renders multiple keys', function () {
-    const multipleProjectKeys = TestStubs.ProjectKeys([
+    const multipleProjectKeys = ProjectKeysFixture([
       {
         dsn: {
           secret:
@@ -178,12 +181,14 @@ describe('ProjectKeys', function () {
           csp: 'http://dev.getsentry.net:8000/api/1/csp-report/?sentry_key=188ee45a58094d939428d8585aa6f662',
           security:
             'http://dev.getsentry.net:8000/api/1/security-report/?sentry_key=188ee45a58094d939428d8585aa6f662',
+          cdn: '',
+          unreal: '',
         },
         public: '188ee45a58094d939428d8585aa6f662',
         secret: 'a33bf9aba64c4bbdaf873bb9023b6d2c',
         name: 'Key 2',
         rateLimit: null,
-        projectId: 1,
+        projectId: '1',
         dateCreated: '2018-02-28T07:13:51.087Z',
         id: '188ee45a58094d939428d8585aa6f662',
         isActive: true,
@@ -217,7 +222,7 @@ describe('ProjectKeys', function () {
         {...routerProps}
         organization={organization}
         params={{projectId: project.slug}}
-        project={TestStubs.Project({platform: 'other'})}
+        project={Project({platform: 'other'})}
       />
     );
 
@@ -231,7 +236,7 @@ describe('ProjectKeys', function () {
         {...routerProps}
         organization={organization}
         params={{projectId: project.slug}}
-        project={TestStubs.Project()}
+        project={Project()}
       />
     );
 
@@ -248,7 +253,7 @@ describe('ProjectKeys', function () {
         {...routerProps}
         organization={organization}
         params={{projectId: project.slug}}
-        project={TestStubs.Project()}
+        project={Project()}
       />
     );
 

@@ -1,4 +1,4 @@
-import {memo, useMemo, useRef} from 'react';
+import {memo, useMemo, useRef, useState} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -7,10 +7,11 @@ import {
 } from 'react-virtualized';
 
 import Placeholder from 'sentry/components/placeholder';
+import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
-import type {BreadcrumbFrame} from 'sentry/utils/replays/types';
 import ConsoleFilters from 'sentry/views/replays/detail/console/consoleFilters';
 import ConsoleLogRow from 'sentry/views/replays/detail/console/consoleLogRow';
 import useConsoleFilters from 'sentry/views/replays/detail/console/useConsoleFilters';
@@ -21,11 +22,6 @@ import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 
 import useVirtualizedInspector from '../useVirtualizedInspector';
 
-interface Props {
-  frames: undefined | BreadcrumbFrame[];
-  startTimestampMs: number;
-}
-
 // Ensure this object is created once as it is an input to
 // `useVirtualizedList`'s memoization
 const cellMeasurer = {
@@ -33,13 +29,18 @@ const cellMeasurer = {
   minHeight: 24,
 };
 
-function Console({frames, startTimestampMs}: Props) {
+function Console() {
+  const {currentTime, currentHoverTime, replay} = useReplayContext();
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
+
+  const startTimestampMs = replay?.getReplay()?.started_at?.getTime() ?? 0;
+  const frames = replay?.getConsoleFrames();
+
+  const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
 
   const filterProps = useConsoleFilters({frames: frames || []});
   const {expandPathsRef, searchTerm, logLevel, items, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
-  const {currentTime, currentHoverTime} = useReplayContext();
 
   const listRef = useRef<ReactVirtualizedList>(null);
 
@@ -54,6 +55,18 @@ function Console({frames, startTimestampMs}: Props) {
     cache,
     listRef,
     expandPathsRef,
+  });
+
+  const {
+    handleClick: onClickToJump,
+    onRowsRendered,
+    showJumpDownButton,
+    showJumpUpButton,
+  } = useJumpButtons({
+    currentTime,
+    frames: items,
+    isTable: false,
+    setScrollToRow,
   });
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
@@ -104,11 +117,18 @@ function Console({frames, startTimestampMs}: Props) {
                     {t('No console logs recorded')}
                   </NoRowRenderer>
                 )}
+                onRowsRendered={onRowsRendered}
+                onScroll={() => {
+                  if (scrollToRow !== undefined) {
+                    setScrollToRow(undefined);
+                  }
+                }}
                 overscanRowCount={5}
                 ref={listRef}
                 rowCount={items.length}
                 rowHeight={cache.rowHeight}
                 rowRenderer={renderRow}
+                scrollToIndex={scrollToRow}
                 width={width}
               />
             )}
@@ -116,6 +136,13 @@ function Console({frames, startTimestampMs}: Props) {
         ) : (
           <Placeholder height="100%" />
         )}
+        {items?.length ? (
+          <JumpButtons
+            jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
+            onClick={onClickToJump}
+            tableHeaderHeight={0}
+          />
+        ) : null}
       </TabItemContainer>
     </FluidHeight>
   );

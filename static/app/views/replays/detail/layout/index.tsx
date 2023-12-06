@@ -1,26 +1,23 @@
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
+import ReplayController from 'sentry/components/replays/replayController';
 import ReplayView from 'sentry/components/replays/replayView';
 import {space} from 'sentry/styles/space';
-import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
 import {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
+import {useDimensions} from 'sentry/utils/useDimensions';
+import useFullscreen from 'sentry/utils/window/useFullscreen';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
 import FocusArea from 'sentry/views/replays/detail/layout/focusArea';
 import FocusTabs from 'sentry/views/replays/detail/layout/focusTabs';
-import MeasureSize from 'sentry/views/replays/detail/layout/measureSize';
-import SidebarArea from 'sentry/views/replays/detail/layout/sidebarArea';
-import SideTabs from 'sentry/views/replays/detail/layout/sideTabs';
 import SplitPanel from 'sentry/views/replays/detail/layout/splitPanel';
 
-const MIN_VIDEO_WIDTH = 325;
 const MIN_CONTENT_WIDTH = 340;
 const MIN_SIDEBAR_WIDTH = 325;
 const MIN_VIDEO_HEIGHT = 200;
 const MIN_CONTENT_HEIGHT = 180;
-const MIN_SIDEBAR_HEIGHT = 120;
 
 const DIVIDER_SIZE = 16;
 
@@ -29,13 +26,13 @@ type Props = {
 };
 
 function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
-  const {ref: fullscreenRef, toggle: toggleFullscreen} = useFullscreen();
+  const fullscreenRef = useRef(null);
+  const {toggle: toggleFullscreen} = useFullscreen({
+    elementRef: fullscreenRef,
+  });
 
-  const timeline = (
-    <ErrorBoundary mini>
-      <ReplayTimeline />
-    </ErrorBoundary>
-  );
+  const measureRef = useRef<HTMLDivElement>(null);
+  const {width, height} = useDimensions({elementRef: measureRef});
 
   const video = (
     <VideoSection ref={fullscreenRef}>
@@ -45,50 +42,37 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
     </VideoSection>
   );
 
+  const controller = (
+    <ErrorBoundary>
+      <ReplayController toggleFullscreen={toggleFullscreen} />
+    </ErrorBoundary>
+  );
+
   if (layout === LayoutKey.VIDEO_ONLY) {
     return (
       <BodyContent>
-        {timeline}
         {video}
+        {controller}
       </BodyContent>
     );
   }
 
   const focusArea = (
-    <ErrorBoundary mini>
-      <FluidPanel title={<SmallMarginFocusTabs />}>
+    <FluidPanel title={<SmallMarginFocusTabs />}>
+      <ErrorBoundary mini>
         <FocusArea />
-      </FluidPanel>
-    </ErrorBoundary>
+      </ErrorBoundary>
+    </FluidPanel>
   );
 
-  const sidebarArea = (
-    <ErrorBoundary mini>
-      <FluidPanel title={<SmallMarginSideTabs />}>
-        <SidebarArea />
-      </FluidPanel>
-    </ErrorBoundary>
-  );
+  const hasSize = width + height > 0;
 
   if (layout === LayoutKey.NO_VIDEO) {
     return (
       <BodyContent>
-        {timeline}
-        <MeasureSize>
-          {({width}) => (
-            <SplitPanel
-              key={layout}
-              availableSize={width}
-              left={{
-                content: focusArea,
-                default: (width - DIVIDER_SIZE) * 0.9,
-                min: 0,
-                max: width - DIVIDER_SIZE,
-              }}
-              right={sidebarArea}
-            />
-          )}
-        </MeasureSize>
+        <FluidHeight ref={measureRef}>
+          {hasSize ? <PanelContainer key={layout}>{focusArea}</PanelContainer> : null}
+        </FluidHeight>
       </BodyContent>
     );
   }
@@ -96,34 +80,22 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
   if (layout === LayoutKey.SIDEBAR_LEFT) {
     return (
       <BodyContent>
-        {timeline}
-        <MeasureSize>
-          {({height, width}) => (
+        <FluidHeight ref={measureRef}>
+          {hasSize ? (
             <SplitPanel
               key={layout}
               availableSize={width}
               left={{
-                content: (
-                  <SplitPanel
-                    key={layout}
-                    availableSize={height}
-                    top={{
-                      content: video,
-                      default: (height - DIVIDER_SIZE) * 0.65,
-                      min: MIN_CONTENT_HEIGHT,
-                      max: height - DIVIDER_SIZE - MIN_SIDEBAR_HEIGHT,
-                    }}
-                    bottom={sidebarArea}
-                  />
-                ),
-                default: (width - DIVIDER_SIZE) * 0.5,
+                content: <PanelContainer key={layout}>{video}</PanelContainer>,
+                default: width * 0.5,
                 min: MIN_SIDEBAR_WIDTH,
-                max: width - DIVIDER_SIZE - MIN_CONTENT_WIDTH,
+                max: width - MIN_CONTENT_WIDTH,
               }}
               right={focusArea}
             />
-          )}
-        </MeasureSize>
+          ) : null}
+        </FluidHeight>
+        {controller}
       </BodyContent>
     );
   }
@@ -131,33 +103,22 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
   // layout === 'topbar'
   return (
     <BodyContent>
-      {timeline}
-      <MeasureSize>
-        {({height, width}) => (
+      <FluidHeight ref={measureRef}>
+        {hasSize ? (
           <SplitPanel
             key={layout}
             availableSize={height}
             top={{
-              content: (
-                <SplitPanel
-                  availableSize={width}
-                  left={{
-                    content: video,
-                    default: (width - DIVIDER_SIZE) * 0.5,
-                    min: MIN_VIDEO_WIDTH,
-                    max: width - DIVIDER_SIZE - MIN_SIDEBAR_WIDTH,
-                  }}
-                  right={sidebarArea}
-                />
-              ),
+              content: <PanelContainer>{video}</PanelContainer>,
               default: (height - DIVIDER_SIZE) * 0.5,
               min: MIN_VIDEO_HEIGHT,
               max: height - DIVIDER_SIZE - MIN_CONTENT_HEIGHT,
             }}
             bottom={focusArea}
           />
-        )}
-      </MeasureSize>
+        ) : null}
+      </FluidHeight>
+      {controller}
     </BodyContent>
   );
 }
@@ -167,15 +128,13 @@ const BodyContent = styled('main')`
   width: 100%;
   height: 100%;
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: 1fr auto;
+  gap: ${space(2)};
   overflow: hidden;
   padding: ${space(2)};
 `;
 
 const SmallMarginFocusTabs = styled(FocusTabs)`
-  margin-bottom: ${space(1)};
-`;
-const SmallMarginSideTabs = styled(SideTabs)`
   margin-bottom: ${space(1)};
 `;
 
@@ -188,4 +147,16 @@ const VideoSection = styled(FluidHeight)`
   }
 `;
 
+const PanelContainer = styled('div')`
+  width: 100%;
+  height: 100%;
+
+  position: relative;
+  display: grid;
+  overflow: auto;
+
+  &.disable-iframe-pointer iframe {
+    pointer-events: none !important;
+  }
+`;
 export default ReplayLayout;

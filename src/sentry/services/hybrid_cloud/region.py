@@ -26,7 +26,7 @@ class RegionResolutionStrategy(ABC):
 
     @staticmethod
     def _get_from_mapping(**query: Any) -> Region:
-        from sentry.models import OrganizationMapping
+        from sentry.models.organizationmapping import OrganizationMapping
 
         try:
             mapping = OrganizationMapping.objects.get(**query)
@@ -102,7 +102,7 @@ class RequireSingleOrganization(RegionResolutionStrategy):
     """
 
     def resolve(self, arguments: ArgumentDict) -> Region:
-        from sentry.models import OrganizationMapping
+        from sentry.models.organizationmapping import OrganizationMapping
 
         if not settings.SENTRY_SINGLE_ORGANIZATION:
             raise RegionResolutionError("Method is available only in single-org environment")
@@ -127,5 +127,11 @@ class UnimplementedRegionResolution(RegionResolutionStrategy):
     documentation for details.
     """
 
+    def __init__(self, service_name: str, method_name: str) -> None:
+        self.service_name = service_name
+        self.method_name = method_name
+
     def resolve(self, arguments: ArgumentDict) -> Region:
-        raise RpcServiceUnimplementedException("Need to resolve to remote region silo")
+        raise RpcServiceUnimplementedException(
+            self.service_name, self.method_name, "Need to resolve to remote region silo"
+        )

@@ -1,12 +1,13 @@
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from sentry.models import Project
+from sentry.models.project import Project
 
 ValidationError = serializers.ValidationError
 
 
-@extend_schema_field(str)
+@extend_schema_field(field=OpenApiTypes.STR)
 class ProjectField(serializers.Field):
     def __init__(self, scope="project:write"):
         self.scope = scope

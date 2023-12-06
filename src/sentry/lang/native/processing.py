@@ -20,7 +20,7 @@ from sentry.lang.native.utils import (
     native_images_from_data,
     signal_from_data,
 )
-from sentry.models import EventError
+from sentry.models.eventerror import EventError
 from sentry.stacktraces.functions import trim_function_name
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils.in_app import is_known_third_party, is_optional_package

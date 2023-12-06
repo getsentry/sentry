@@ -1,12 +1,12 @@
 from django.utils import timezone
 
-from sentry.models import Activity
+from sentry.models.activity import Activity
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 from sentry.types.activity import ActivityType
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class OrganizationActivityTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -32,9 +32,7 @@ class OrganizationActivityTest(AcceptanceTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not(".loading-indicator", timeout=100000)
         self.browser.wait_until('[data-test-id="activity-feed-list"]')
-        self.browser.snapshot("organization activity feed")
 
     def test_empty(self):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        self.browser.snapshot("organization activity feed - empty")

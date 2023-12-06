@@ -35,6 +35,7 @@ export type TraceError = {
   event_type?: string;
   generation?: number;
   timestamp?: number;
+  type?: number;
 };
 
 export type TracePerformanceIssue = Omit<TraceError, 'issue' | 'span'> & {
@@ -46,6 +47,7 @@ export type TracePerformanceIssue = Omit<TraceError, 'issue' | 'span'> & {
   type: number;
   issue_short_id?: string;
 };
+export type TraceErrorOrIssue = TracePerformanceIssue | TraceError;
 
 export type TraceLite = EventLite[];
 
@@ -83,7 +85,7 @@ export type TraceFullDetailed = Omit<TraceFull, 'children'> & {
   tags?: EventTag[];
 };
 
-export type TraceSplitResults<U extends TraceFull | TraceFullDetailed> = {
+export type TraceSplitResults<U extends TraceFull | TraceFullDetailed | EventLite> = {
   orphan_errors: TraceError[];
   transactions: U[];
 };

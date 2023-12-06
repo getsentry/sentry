@@ -2,7 +2,7 @@ from rest_framework.request import Request
 
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Team, TeamStatus
+from sentry.models.team import Team, TeamStatus
 from sentry.utils.sdk import bind_organization_context
 
 from .organization import OrganizationPermission

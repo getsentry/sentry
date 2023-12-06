@@ -15,9 +15,14 @@ from .client import OpsgenieClient
 
 
 def build_incident_attachment(
-    incident: Incident, new_status: IncidentStatus, metric_value: int | None = None
+    incident: Incident,
+    new_status: IncidentStatus,
+    metric_value: float | None = None,
+    notification_uuid: str | None = None,
 ) -> dict[str, Any]:
-    data = incident_attachment_info(incident, new_status, metric_value)
+    data = incident_attachment_info(
+        incident, new_status, metric_value, notification_uuid, referrer="metric_alert_opsgenie"
+    )
     alert_key = f"incident_{incident.organization_id}_{incident.identifier}"
     if new_status == IncidentStatus.CLOSED:
         payload = {"identifier": alert_key}
@@ -54,21 +59,22 @@ def get_team(team_id: Optional[str], org_integration: Optional[RpcOrganizationIn
 def send_incident_alert_notification(
     action: AlertRuleTriggerAction,
     incident: Incident,
-    metric_value: int,
+    metric_value: float,
     new_status: IncidentStatus,
-) -> None:
+    notification_uuid: str | None = None,
+) -> bool:
     integration, org_integration = integration_service.get_organization_context(
         organization_id=incident.organization_id, integration_id=action.integration_id
     )
     if org_integration is None or integration is None or integration.status != ObjectStatus.ACTIVE:
         logger.info("Opsgenie integration removed, but the rule is still active.")
-        return
+        return False
 
     team = get_team(org_integration=org_integration, team_id=action.target_identifier)
     if not team:
         # team removed, but the rule is still active
         logger.info("Opsgenie team removed, but the rule is still active.")
-        return
+        return False
 
     integration_key = team["integration_key"]
     client = OpsgenieClient(
@@ -76,14 +82,28 @@ def send_incident_alert_notification(
         integration_key=integration_key,
         org_integration_id=incident.organization_id,
     )
-    attachment = build_incident_attachment(incident, new_status, metric_value)
+    attachment = build_incident_attachment(incident, new_status, metric_value, notification_uuid)
     try:
-        client.send_notification(attachment)
+        resp = client.send_notification(attachment)
+        logger.info(
+            "rule.success.opsgenie_incident_alert",
+            extra={
+                "status_code": resp.status_code,
+                "organization_id": incident.organization_id,
+                "data": attachment,
+                "status": new_status.value,
+                "team_name": team["team"],
+                "team_id": team["id"],
+                "integration_id": action.integration_id,
+            },
+        )
+        return True
     except ApiError as e:
         logger.info(
             "rule.fail.opsgenie_notification",
             extra={
                 "error": str(e),
+                "data": attachment,
                 "team_name": team["team"],
                 "team_id": team["id"],
                 "integration_id": action.integration_id,

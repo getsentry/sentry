@@ -5,7 +5,7 @@ from django.urls import reverse
 from sentry_relay.auth import generate_key_pair
 
 from sentry.auth import system
-from sentry.models import Relay
+from sentry.models.relay import Relay
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
@@ -15,7 +15,7 @@ def disable_internal_networks():
     return mock.patch.object(system, "INTERNAL_NETWORKS", ())
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class RelayPublicKeysConfigTest(APITestCase):
     def setUp(self):
         super().setUp()

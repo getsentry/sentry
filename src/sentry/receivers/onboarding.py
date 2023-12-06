@@ -7,13 +7,13 @@ from django.db.models import F
 from django.utils import timezone as django_timezone
 
 from sentry import analytics
-from sentry.models import (
+from sentry.models.organization import Organization
+from sentry.models.organizationonboardingtask import (
     OnboardingTask,
     OnboardingTaskStatus,
-    Organization,
     OrganizationOnboardingTask,
-    Project,
 )
+from sentry.models.project import Project
 from sentry.onboarding_tasks import try_mark_onboarding_complete
 from sentry.plugins.bases.issue import IssueTrackingPlugin
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
@@ -21,12 +21,13 @@ from sentry.services.hybrid_cloud.integration import RpcIntegration, integration
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import (
     alert_rule_created,
+    cron_monitor_created,
     event_processed,
     first_cron_checkin_received,
     first_cron_monitor_created,
-    first_event_pending,
     first_event_received,
     first_event_with_minified_stack_trace_received,
+    first_feedback_received,
     first_profile_received,
     first_replay_received,
     first_transaction_received,
@@ -40,6 +41,7 @@ from sentry.signals import (
 )
 from sentry.utils.event import has_event_minified_stack_trace
 from sentry.utils.javascript import has_sourcemap
+from sentry.utils.safe import get_path
 
 logger = logging.getLogger("sentry")
 
@@ -48,6 +50,9 @@ logger = logging.getLogger("sentry")
 START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ = datetime(
     2022, 12, 14, tzinfo=timezone.utc
 )
+# Used to determine if we should or not record an analytic data
+# for a first sourcemap of a project
+START_DATE_TRACKING_FIRST_SOURCEMAP_PER_PROJ = datetime(2023, 11, 16, tzinfo=timezone.utc)
 
 
 @project_created.connect(weak=False)
@@ -96,17 +101,6 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
         )
 
 
-@first_event_pending.connect(weak=False)
-def record_raven_installed(project, user, **kwargs):
-    OrganizationOnboardingTask.objects.record(
-        organization_id=project.organization_id,
-        task=OnboardingTask.FIRST_EVENT,
-        status=OnboardingTaskStatus.PENDING,
-        user_id=user.id if user else None,
-        project_id=project.id,
-    )
-
-
 @first_event_received.connect(weak=False)
 def record_first_event(project, event, **kwargs):
     """
@@ -147,6 +141,7 @@ def record_first_event(project, event, **kwargs):
         project_platform=project.platform,
         url=dict(event.tags).get("url", None),
         has_minified_stack_trace=has_event_minified_stack_trace(event),
+        sdk_name=get_path(event, "sdk", "name"),
     )
 
     if rows_affected or created:
@@ -251,6 +246,19 @@ def record_first_replay(project, **kwargs):
         try_mark_onboarding_complete(project.organization_id)
 
 
+@first_feedback_received.connect(weak=False)
+def record_first_feedback(project, **kwargs):
+    project.update(flags=F("flags").bitor(Project.flags.has_feedbacks))
+
+    analytics.record(
+        "first_feedback.sent",
+        user_id=project.organization.default_owner_id,
+        organization_id=project.organization_id,
+        project_id=project.id,
+        platform=project.platform,
+    )
+
+
 @first_cron_monitor_created.connect(weak=False)
 def record_first_cron_monitor(project, user, from_upsert, **kwargs):
     updated = project.update(flags=F("flags").bitor(Project.flags.has_cron_monitors))
@@ -263,6 +271,17 @@ def record_first_cron_monitor(project, user, from_upsert, **kwargs):
             project_id=project.id,
             from_upsert=from_upsert,
         )
+
+
+@cron_monitor_created.connect(weak=False)
+def record_cron_monitor_created(project, user, from_upsert, **kwargs):
+    analytics.record(
+        "cron_monitor.created",
+        user_id=user.id if user else project.organization.default_owner_id,
+        organization_id=project.organization_id,
+        project_id=project.id,
+        from_upsert=from_upsert,
+    )
 
 
 @first_cron_checkin_received.connect(weak=False)
@@ -397,7 +416,6 @@ def record_event_with_first_minified_stack_trace_for_project(project, event, **k
 
     # First, only enter this logic if we've never seen a minified stack trace before
     if not project.flags.has_minified_stack_trace:
-
         # Next, attempt to update the flag, but ONLY if the flag is currently not set.
         # The number of affected rows tells us whether we succeeded or not. If we didn't, then skip sending the event.
         # This guarantees us that this analytics event will only be ever sent once.
@@ -448,8 +466,46 @@ def record_sourcemaps_received(project, event, **kwargs):
             user_id=user.id if user else None,
             organization_id=project.organization_id,
             project_id=project.id,
+            platform=event.platform,
+            project_platform=project.platform,
+            url=dict(event.tags).get("url", None),
         )
         try_mark_onboarding_complete(project.organization_id)
+
+
+@event_processed.connect(weak=False)
+def record_sourcemaps_received_for_project(project, event, **kwargs):
+    if not has_sourcemap(event):
+        return
+
+    try:
+        user: RpcUser = Organization.objects.get(id=project.organization_id).get_default_owner()
+    except IndexError:
+        logger.warning(
+            "Cannot record sourcemaps received for organization (%s) due to missing owners",
+            project.organization_id,
+        )
+        return
+
+    # First, only enter this logic if we've never seen a minified stack trace before
+    if not project.flags.has_sourcemaps:
+        # Next, attempt to update the flag, but ONLY if the flag is currently not set.
+        # The number of affected rows tells us whether we succeeded or not. If we didn't, then skip sending the event.
+        # This guarantees us that this analytics event will only be ever sent once.
+        affected = Project.objects.filter(
+            id=project.id, flags=F("flags").bitand(~Project.flags.has_sourcemaps)
+        ).update(flags=F("flags").bitor(Project.flags.has_sourcemaps))
+
+        if project.date_added > START_DATE_TRACKING_FIRST_SOURCEMAP_PER_PROJ and affected > 0:
+            analytics.record(
+                "first_sourcemaps_for_project.sent",
+                user_id=user.id if user else None,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                platform=event.platform,
+                project_platform=project.platform,
+                url=dict(event.tags).get("url", None),
+            )
 
 
 @plugin_enabled.connect(weak=False)

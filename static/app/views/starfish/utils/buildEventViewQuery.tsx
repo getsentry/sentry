@@ -1,12 +1,12 @@
 import {Location} from 'history';
 
 import {defined} from 'sentry/utils';
-import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {EMPTY_OPTION_VALUE} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 const {SPAN_DESCRIPTION, SPAN_OP, SPAN_DOMAIN, SPAN_ACTION, SPAN_MODULE} =
-  SpanMetricsFields;
+  SpanMetricsField;
 
 const SPAN_FILTER_KEYS = [
   SPAN_OP,
@@ -57,10 +57,6 @@ export function buildEventViewQuery({
 
   if (moduleName !== ModuleName.ALL) {
     result.push(`${SPAN_MODULE}:${moduleName}`);
-  }
-
-  if (moduleName === ModuleName.DB) {
-    result.push(`!${SPAN_OP}:db.redis`);
   }
 
   if (defined(spanCategory)) {

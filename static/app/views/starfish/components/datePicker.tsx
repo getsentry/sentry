@@ -1,4 +1,4 @@
-import DatePageFilter from 'sentry/components/datePageFilter';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -7,7 +7,6 @@ function StarfishDatePicker() {
   return (
     <DatePageFilter
       defaultPeriod="24h"
-      alignDropdown="left"
       storageNamespace="starfish"
       onChange={({start, end, relative}) => {
         trackAnalytics('starfish.page_filter.data_change', {

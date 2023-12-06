@@ -2,16 +2,17 @@ from typing import List
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
-from django.utils.translation import gettext_lazy as _
-from drf_spectacular.utils import OpenApiResponse, extend_schema
+from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.fields.sentry_slug import SentrySlugField
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamSerializer, TeamSerializerResponse
@@ -19,13 +20,10 @@ from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, R
 from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, TeamParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import (
-    ExternalActor,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Team,
-    TeamStatus,
-)
+from sentry.models.integrations.external_actor import ExternalActor
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.team import Team, TeamStatus
 from sentry.search.utils import tokenize_query
 from sentry.signals import team_created
 from sentry.utils.snowflake import MaxSnowflakeRetryError
@@ -43,19 +41,22 @@ class OrganizationTeamsPermission(OrganizationPermission):
     }
 
 
+@extend_schema_serializer(exclude_fields=["idp_provisioned"], deprecate_fields=["name"])
 class TeamPostSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=64, required=False, allow_null=True, allow_blank=True)
-    slug = serializers.RegexField(
-        r"^[a-z0-9_\-]+$",
+    slug = SentrySlugField(
+        help_text="""Uniquely identifies a team and is used for the interface. If not
+        provided, it is automatically generated from the name.""",
         max_length=50,
         required=False,
         allow_null=True,
-        error_messages={
-            "invalid": _(
-                "Enter a valid slug consisting of lowercase letters, "
-                "numbers, underscores or hyphens."
-            )
-        },
+    )
+    name = serializers.CharField(
+        help_text="""**`[DEPRECATED]`** The name for the team. If not provided, it is
+        automatically generated from the slug""",
+        max_length=64,
+        required=False,
+        allow_null=True,
+        allow_blank=True,
     )
     idp_provisioned = serializers.BooleanField(required=False, default=False)
 
@@ -68,7 +69,10 @@ class TeamPostSerializer(serializers.Serializer):
 @extend_schema(tags=["Teams"])
 @region_silo_endpoint
 class OrganizationTeamsEndpoint(OrganizationEndpoint):
-    public = {"GET", "POST"}
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
+    }
     permission_classes = (OrganizationTeamsPermission,)
 
     def team_serializer_for_post(self):
@@ -116,15 +120,15 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                     has_external_teams = "true" in value
                     if has_external_teams:
                         queryset = queryset.filter(
-                            actor_id__in=ExternalActor.objects.filter(
+                            id__in=ExternalActor.objects.filter(
                                 organization=organization
-                            ).values_list("actor_id")
+                            ).values_list("team_id")
                         )
                     else:
                         queryset = queryset.exclude(
-                            actor_id__in=ExternalActor.objects.filter(
+                            id__in=ExternalActor.objects.filter(
                                 organization=organization
-                            ).values_list("actor_id")
+                            ).values_list("team_id")
                         )
 
                 elif key == "query":
@@ -160,10 +164,6 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         operation_id="Create a New Team",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.name("The name for the team.", required=True),
-            GlobalParams.slug(
-                "Optional slug for the team. If not provided a slug is generated from the name."
-            ),
         ],
         request=TeamPostSerializer,
         responses={
@@ -176,7 +176,8 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
     )
     def post(self, request: Request, organization, **kwargs) -> Response:
         """
-        Create a new team bound to an organization.
+        Create a new team bound to an organization. Requires at least one of the `name`
+        or `slug` body params to be set.
         """
         serializer = TeamPostSerializer(data=request.data)
 

@@ -1,3 +1,5 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
+
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
@@ -11,7 +13,7 @@ describe('QuickTraceMeta', function () {
   const routerContext = TestStubs.routerContext();
   const location = routerContext.context.location;
   const project = TestStubs.Project({platform: 'javascript'});
-  const event = TestStubs.Event({contexts: {trace: {trace_id: 'a'.repeat(32)}}});
+  const event = EventFixture({contexts: {trace: {trace_id: 'a'.repeat(32)}}});
   const emptyQuickTrace: QuickTraceQueryChildrenProps = {
     isLoading: false,
     error: null,
@@ -42,9 +44,6 @@ describe('QuickTraceMeta', function () {
 
     expect(screen.getByRole('heading', {name: 'Trace Navigator'})).toBeInTheDocument();
     expect(screen.getByTestId('quick-trace-body')).toBeInTheDocument();
-    expect(screen.getByTestId('quick-trace-footer')).toHaveTextContent(
-      `View Full Trace: ${'a'.repeat(8)} (0 events)`
-    );
   });
 
   it('renders placeholder while loading', function () {
@@ -67,9 +66,6 @@ describe('QuickTraceMeta', function () {
     expect(screen.getByRole('heading', {name: 'Trace Navigator'})).toBeInTheDocument();
     const qtBody = screen.getByTestId('quick-trace-body');
     expect(within(qtBody).getByTestId('loading-placeholder')).toBeInTheDocument();
-    expect(screen.getByTestId('quick-trace-footer')).toHaveTextContent(
-      `View Full Trace: ${'a'.repeat(8)} (0 events)`
-    );
   });
 
   it('renders errors', function () {
@@ -91,13 +87,54 @@ describe('QuickTraceMeta', function () {
 
     expect(screen.getByRole('heading', {name: 'Trace Navigator'})).toBeInTheDocument();
     expect(screen.getByTestId('quick-trace-body')).toHaveTextContent('\u2014');
+  });
+
+  it('renders footer', function () {
+    render(
+      <QuickTraceMeta
+        event={event}
+        project={project}
+        location={location}
+        quickTrace={{
+          ...emptyQuickTrace,
+          type: 'full',
+          trace: [
+            {
+              event_id: '6c2fa0db524a41b784db2de220f9754c',
+              span_id: '9f4d8db340e5b9c2',
+              transaction: '/api/0/internal/health/',
+              'transaction.duration': 15,
+              project_id: 1,
+              project_slug: 'sentry',
+              parent_span_id: '87a45c44efdf60d5',
+              parent_event_id: null,
+              generation: 0,
+              errors: [],
+              performance_issues: [],
+            },
+          ],
+        }}
+        traceMeta={{
+          projects: 0,
+          transactions: 1,
+          errors: 0,
+          performance_issues: 0,
+        }}
+        anchor="left"
+        errorDest="issue"
+        transactionDest="performance"
+      />
+    );
+
+    expect(screen.getByRole('heading', {name: 'Trace Navigator'})).toBeInTheDocument();
+    expect(screen.getByTestId('quick-trace-body')).toBeInTheDocument();
     expect(screen.getByTestId('quick-trace-footer')).toHaveTextContent(
-      `View Full Trace: ${'a'.repeat(8)} (0 events)`
+      `View Full Trace: ${'a'.repeat(8)} (1 event)`
     );
   });
 
   it('renders missing trace when trace id is not present', function () {
-    const newEvent = TestStubs.Event();
+    const newEvent = EventFixture();
     render(
       <QuickTraceMeta
         event={newEvent}
@@ -117,7 +154,7 @@ describe('QuickTraceMeta', function () {
   });
 
   it('renders missing trace with hover card when feature disabled', async function () {
-    const newEvent = TestStubs.Event();
+    const newEvent = EventFixture();
     render(
       <QuickTraceMeta
         event={newEvent}
@@ -149,7 +186,7 @@ describe('QuickTraceMeta', function () {
 
   it('does not render when platform does not support tracing', function () {
     const newProject = TestStubs.Project();
-    const newEvent = TestStubs.Event();
+    const newEvent = EventFixture();
     const result = render(
       <QuickTraceMeta
         event={newEvent}

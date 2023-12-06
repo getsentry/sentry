@@ -1,9 +1,16 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
 import ReplayController from 'sentry/components/replays/replayController';
 import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
+import {IconChevron} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
+import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
+import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 type Props = {
@@ -11,13 +18,37 @@ type Props = {
 };
 
 function ReplayView({toggleFullscreen}: Props) {
+  const isFullscreen = useIsFullscreen();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
   return (
     <Fragment>
-      <ReplayCurrentUrl />
-      <Panel>
-        <ReplayPlayer />
-      </Panel>
-      <ReplayController toggleFullscreen={toggleFullscreen} />
+      <PlayerBreadcrumbContainer>
+        <PlayerContainer>
+          <ContextContainer>
+            <ReplayCurrentUrl />
+            <BrowserOSIcons />
+            {isFullscreen ? (
+              <Button
+                size="sm"
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                icon={<IconChevron direction={isSidebarOpen ? 'right' : 'left'} />}
+              >
+                {isSidebarOpen ? t('Collapse Sidebar') : t('Open Sidebar')}
+              </Button>
+            ) : null}
+          </ContextContainer>
+          <Panel>
+            <ReplayPlayer />
+          </Panel>
+        </PlayerContainer>
+        {isFullscreen && isSidebarOpen ? (
+          <BreadcrumbContainer>
+            <Breadcrumbs />
+          </BreadcrumbContainer>
+        ) : null}
+      </PlayerBreadcrumbContainer>
+      {isFullscreen ? <ReplayController toggleFullscreen={toggleFullscreen} /> : null}
     </Fragment>
   );
 }
@@ -27,6 +58,33 @@ const Panel = styled(FluidHeight)`
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
   box-shadow: ${p => p.theme.dropShadowMedium};
+`;
+
+const ContextContainer = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-columns: 1fr max-content max-content;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const PlayerContainer = styled('div')`
+  display: grid;
+  grid-auto-flow: row;
+  grid-template-rows: auto 1fr;
+  gap: ${space(1)};
+  flex-grow: 1;
+`;
+
+const BreadcrumbContainer = styled('div')`
+  width: 25%;
+`;
+
+const PlayerBreadcrumbContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+  gap: ${space(1)};
 `;
 
 export default ReplayView;

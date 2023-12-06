@@ -32,21 +32,18 @@ def merge_groups(
     **kwargs,
 ):
     # TODO(mattrobenolt): Write tests for all of this
-    from sentry.models import (
-        Activity,
-        Environment,
-        EventAttachment,
-        Group,
-        GroupAssignee,
-        GroupEnvironment,
-        GroupHash,
-        GroupMeta,
-        GroupRedirect,
-        GroupRuleStatus,
-        GroupSubscription,
-        UserReport,
-        get_group_with_redirect,
-    )
+    from sentry.models.activity import Activity
+    from sentry.models.environment import Environment
+    from sentry.models.eventattachment import EventAttachment
+    from sentry.models.group import Group, get_group_with_redirect
+    from sentry.models.groupassignee import GroupAssignee
+    from sentry.models.groupenvironment import GroupEnvironment
+    from sentry.models.grouphash import GroupHash
+    from sentry.models.groupmeta import GroupMeta
+    from sentry.models.groupredirect import GroupRedirect
+    from sentry.models.grouprulestatus import GroupRuleStatus
+    from sentry.models.groupsubscription import GroupSubscription
+    from sentry.models.userreport import UserReport
 
     if not (from_object_ids and to_object_id):
         logger.error("group.malformed.missing_params", extra={"transaction_id": transaction_id})
@@ -193,28 +190,6 @@ def merge_groups(
     elif eventstream_state:
         # All `from_object_ids` have been merged!
         eventstream.backend.end_merge(eventstream_state)
-
-
-def _get_event_environment(event, project, cache):
-    from sentry.models import Environment
-
-    environment_name = event.get_tag("environment")
-
-    if environment_name not in cache:
-        try:
-            environment = Environment.get_for_organization_id(
-                project.organization_id, environment_name
-            )
-        except Environment.DoesNotExist:
-            logger.warning(
-                "event.environment.does_not_exist",
-                extra={"project_id": project.id, "environment_name": environment_name},
-            )
-            environment = Environment.get_or_create(project, environment_name)
-
-        cache[environment_name] = environment
-
-    return cache[environment_name]
 
 
 def merge_objects(models, group, new_group, limit=1000, logger=None, transaction_id=None):

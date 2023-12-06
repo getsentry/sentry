@@ -6,14 +6,14 @@ import responses
 
 import sentry
 from sentry import options
-from sentry.models import Broadcast
+from sentry.models.broadcast import Broadcast
 from sentry.tasks.beacon import BEACON_URL, send_beacon, send_beacon_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import no_silo_test
 from sentry.utils import json
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class SendBeaconTest(TestCase):
     @patch("sentry.tasks.beacon.get_all_package_versions")
     @patch("sentry.tasks.beacon.safe_urlopen")

@@ -8,7 +8,7 @@ from django import forms
 from django.utils import timezone
 
 from sentry.eventstore.models import GroupEvent
-from sentry.models import Group
+from sentry.models.group import Group
 from sentry.rules import EventState
 from sentry.rules.filters.base import EventFilter
 from sentry.types.condition_activity import ConditionActivity

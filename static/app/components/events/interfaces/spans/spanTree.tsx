@@ -610,6 +610,7 @@ class SpanTree extends Component<PropType> {
             addContentSpanBarRef,
             removeContentSpanBarRef,
             storeSpanBar,
+            isSpanInEmbeddedTree: waterfallModel.isEmbeddedSpanTree,
             getCurrentLeftPos: this.props.getCurrentLeftPos,
             resetCellMeasureCache: () => this.cache.clear(index, 0),
           },

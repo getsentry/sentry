@@ -1,8 +1,12 @@
 from unittest.mock import patch
 
 from sentry import eventstore, eventstream
-from sentry.models import Group, GroupEnvironment, GroupMeta, GroupRedirect, UserReport
-from sentry.similarity import _make_index_backend
+from sentry.models.group import Group
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.groupmeta import GroupMeta
+from sentry.models.groupredirect import GroupRedirect
+from sentry.models.userreport import UserReport
+from sentry.similarity import _make_index_backend, features
 from sentry.tasks.merge import merge_groups
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -13,7 +17,7 @@ from sentry.utils import redis
 index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
 
 
-@patch("sentry.similarity.features.index", new=index)
+@patch.object(features, "index", new=index)
 @region_silo_test
 class MergeGroupTest(TestCase, SnubaTestCase):
     @patch("sentry.eventstream.backend")

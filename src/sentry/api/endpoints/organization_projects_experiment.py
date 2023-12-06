@@ -11,16 +11,17 @@ from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 
 from sentry import audit_log, features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.endpoints.team_projects import ProjectPostSerializer
 from sentry.api.exceptions import ConflictError, ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.experiments import manager as expt_manager
-from sentry.models import Project
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.signals import project_created, team_created
 from sentry.utils.snowflake import MaxSnowflakeRetryError
@@ -50,8 +51,12 @@ class OrgProjectPermission(OrganizationPermission):
 
 @region_silo_endpoint
 class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.EXPERIMENTAL,
+    }
     permission_classes = (OrgProjectPermission,)
     logger = logging.getLogger("team-project.create")
+    owner = ApiOwner.ENTERPRISE
 
     def should_add_creator_to_team(self, request: Request):
         return request.user.is_authenticated
@@ -81,15 +86,8 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
             raise NotAuthenticated("User is not authenticated")
 
         result = serializer.validated_data
-        exposed = expt_manager.get(
-            "ProjectCreationForAllExperimentV2", org=organization, actor=request.user
-        )
 
-        if (
-            not features.has("organizations:team-roles", organization)
-            or not features.has("organizations:team-project-creation-all", organization)
-            or exposed != 1
-        ):
+        if not features.has("organizations:team-roles", organization):
             raise ResourceDoesNotExist(detail=MISSING_PERMISSION_ERROR_STRING)
 
         # parse the email to retrieve the username before the "@"

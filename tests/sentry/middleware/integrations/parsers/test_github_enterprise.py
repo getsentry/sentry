@@ -6,7 +6,7 @@ from django.test import RequestFactory, override_settings
 from django.urls import reverse
 
 from sentry.middleware.integrations.parsers.github_enterprise import GithubEnterpriseRequestParser
-from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
+from sentry.models.outbox import ControlOutbox, OutboxCategory, WebhookProviderIdentifier
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import assert_webhook_outboxes
@@ -14,12 +14,12 @@ from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class GithubEnterpriseRequestParserTest(TestCase):
     get_response = MagicMock(return_value=HttpResponse(content=b"no-error", status=200))
     factory = RequestFactory()
     path = reverse("sentry-integration-github-enterprise-webhook")
-    region = Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT)
+    region = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
     external_host = "12.345.678.901"
     external_identifier = "github_enterprise:1"
     external_id = f"{external_host}:{external_identifier}"
@@ -39,8 +39,7 @@ class GithubEnterpriseRequestParserTest(TestCase):
         )
         parser = GithubEnterpriseRequestParser(request=request, response_handler=self.get_response)
         response = parser.get_response()
-        assert response.status_code == 200
-        assert response.content == b"no-error"
+        assert response.status_code == 400
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_routing_properly(self):
@@ -100,7 +99,7 @@ class GithubEnterpriseRequestParserTest(TestCase):
         )
         parser = GithubEnterpriseRequestParser(request=request, response_handler=self.get_response)
 
-        assert ControlOutbox.objects.count() == 0
+        assert ControlOutbox.objects.filter(category=OutboxCategory.WEBHOOK_PROXY).count() == 0
         with mock.patch.object(
             parser, "get_regions_from_organizations", return_value=[self.region]
         ):

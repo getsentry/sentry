@@ -16,7 +16,7 @@ type Section = {
 
 // TODO(epurkhiser): This should really use the types from the form system, but
 // they're still pretty bad so that's difficult I guess?
-type Field = {
+export type Field = {
   key: string;
   label: React.ReactNode;
   allowEmpty?: boolean;
@@ -26,6 +26,7 @@ type Field = {
   disabled?: boolean;
   disabledReason?: string;
   help?: React.ReactNode;
+  isSet?: boolean;
   max?: number;
   min?: number;
   placeholder?: string;

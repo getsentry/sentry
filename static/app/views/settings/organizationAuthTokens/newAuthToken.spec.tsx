@@ -71,7 +71,7 @@ describe('OrganizationAuthTokensNewAuthToken', function () {
       url: ENDPOINT,
       method: 'POST',
       body: {
-        details: ['Test API error occurred.'],
+        detail: 'Test API error occurred.',
       },
       statusCode: 400,
     });
@@ -85,6 +85,39 @@ describe('OrganizationAuthTokensNewAuthToken', function () {
 
     expect(indicators.addErrorMessage).toHaveBeenCalledWith(
       'Failed to create a new auth token.'
+    );
+
+    expect(mock).toHaveBeenCalledWith(
+      ENDPOINT,
+      expect.objectContaining({
+        data: {name: 'My Token'},
+      })
+    );
+  });
+
+  it('handles missing_system_url_prefix API error when creating token', async function () {
+    jest.spyOn(indicators, 'addErrorMessage');
+
+    render(<OrganizationAuthTokensNewAuthToken {...defaultProps} />);
+
+    const mock = MockApiClient.addMockResponse({
+      url: ENDPOINT,
+      method: 'POST',
+      body: {
+        detail: {message: 'test message', code: 'missing_system_url_prefix'},
+      },
+      statusCode: 400,
+    });
+
+    expect(screen.queryByLabelText('Generated token')).not.toBeInTheDocument();
+
+    await userEvent.type(screen.getByLabelText('Name'), 'My Token');
+    await userEvent.click(screen.getByRole('button', {name: 'Create Auth Token'}));
+
+    expect(screen.queryByLabelText('Generated token')).not.toBeInTheDocument();
+
+    expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+      'You have to configure `system.url-prefix` in your Sentry instance in order to generate tokens.'
     );
 
     expect(mock).toHaveBeenCalledWith(

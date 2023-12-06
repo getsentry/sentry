@@ -1,6 +1,6 @@
 from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.models.integration import serialize_provider
-from sentry.models import RepositoryProjectPathConfig
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.services.hybrid_cloud.integration import integration_service
 
 

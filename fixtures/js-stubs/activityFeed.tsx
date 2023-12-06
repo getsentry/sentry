@@ -1,3 +1,7 @@
+import {Event} from 'sentry-fixture/event';
+import {Project} from 'sentry-fixture/project';
+import {User} from 'sentry-fixture/user';
+
 import {
   type Activity,
   EventOrGroupType,
@@ -10,7 +14,7 @@ export function ActivityFeed(params: Partial<Activity> = {}): Activity {
   return {
     data: {text: 'Very interesting comment'},
     dateCreated: '2019-04-29T21:43:32.280Z',
-    project: TestStubs.Project({
+    project: Project({
       features: [
         'releases',
         'sample-events',
@@ -31,7 +35,7 @@ export function ActivityFeed(params: Partial<Activity> = {}): Activity {
       firstEvent: '2019-03-09T06:56:15Z',
       isMember: true,
     }),
-    user: TestStubs.User({
+    user: User({
       username: 'billy@sentry.io',
       lastLogin: '2019-04-23T00:10:19.787Z',
       isSuperuser: true,
@@ -47,11 +51,13 @@ export function ActivityFeed(params: Partial<Activity> = {}): Activity {
         'https://secure.gravatar.com/avatar/7b544e8eb9d08ed777be5aa82121155a?s=32&d=mm',
       dateJoined: '2019-03-09T06:52:42.836Z',
       options: {
-        timezone: 'America/Los_Angeles',
-        stacktraceOrder: -1,
-        language: 'en',
+        theme: 'system',
+        avatarType: 'letter_avatar',
         clock24Hours: false,
         defaultIssueEvent: 'recommended',
+        language: 'en',
+        stacktraceOrder: -1,
+        timezone: 'America/Los_Angeles',
       },
       flags: {newsletter_consent_prompt: false},
       avatar: {avatarUuid: null, avatarType: 'letter_avatar'},
@@ -75,7 +81,7 @@ export function ActivityFeed(params: Partial<Activity> = {}): Activity {
       issueCategory: IssueCategory.ERROR,
       issueType: IssueType.ERROR,
       participants: [],
-      latestEvent: TestStubs.Event(),
+      latestEvent: Event(),
       isUnhandled: true,
       pluginActions: [],
       pluginContexts: [],
@@ -103,7 +109,7 @@ export function ActivityFeed(params: Partial<Activity> = {}): Activity {
       level: 'error',
       isSubscribed: true,
       isBookmarked: false,
-      project: TestStubs.Project({
+      project: Project({
         platform: undefined,
         slug: 'internal',
         id: '1',

@@ -6,7 +6,8 @@ from typing import Callable, Dict, List, Optional, Tuple
 
 from sentry.dynamic_sampling.rules.helpers.time_to_adoptions import Platform
 from sentry.dynamic_sampling.rules.utils import BOOSTED_RELEASES_LIMIT, get_redis_client_for_ds
-from sentry.models import Project, Release
+from sentry.models.project import Project
+from sentry.models.release import Release
 
 ENVIRONMENT_SEPARATOR = ":e:"
 BOOSTED_RELEASE_CACHE_KEY_REGEX = re.compile(

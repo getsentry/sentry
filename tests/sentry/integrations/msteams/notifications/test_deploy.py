@@ -3,7 +3,8 @@ from unittest.mock import MagicMock, Mock, patch
 
 from django.utils import timezone
 
-from sentry.models import Activity, Deploy
+from sentry.models.activity import Activity
+from sentry.models.deploy import Deploy
 from sentry.notifications.notifications.activity.release import ReleaseActivityNotification
 from sentry.testutils.cases import MSTeamsActivityNotificationTest
 from sentry.types.activity import ActivityType

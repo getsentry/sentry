@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -10,7 +12,7 @@ jest.mock('sentry/utils/analytics', () => ({
 jest.mock('sentry/actionCreators/indicator');
 
 describe('OrganizationJoinRequest', function () {
-  const org = TestStubs.Organization({slug: 'test-org'});
+  const org = Organization({slug: 'test-org'});
   const endpoint = `/organizations/${org.slug}/join-request/`;
 
   beforeEach(function () {

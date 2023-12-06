@@ -8,14 +8,19 @@ from rest_framework.response import Response
 from sentry.constants import ObjectStatus
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations import IntegrationInstallation
-from sentry.models import ExternalIssue, GroupLink, Integration
+from sentry.models.grouplink import GroupLink
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.services.hybrid_cloud.integration.model import RpcIntegration
+from sentry.services.hybrid_cloud.integration.service import integration_service
+from sentry.services.hybrid_cloud.util import region_silo_function
 from sentry.types.rules import RuleFuture
 
 logger = logging.getLogger("sentry.rules")
 
 
+@region_silo_function
 def create_link(
-    integration: Integration,
+    integration: RpcIntegration,
     installation: IntegrationInstallation,
     event: GroupEvent,
     response: Response,
@@ -77,14 +82,13 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
         integration_id = future.kwargs.get("integration_id")
         generate_footer = future.kwargs.get("generate_footer")
 
-        try:
-            integration = Integration.objects.get(
-                id=integration_id,
-                provider=provider,
-                organizationintegration__organization_id=organization.id,
-                status=ObjectStatus.ACTIVE,
-            )
-        except Integration.DoesNotExist:
+        integration = integration_service.get_integration(
+            integration_id=integration_id,
+            provider=provider,
+            organization_id=organization.id,
+            status=ObjectStatus.ACTIVE,
+        )
+        if not integration:
             # Integration removed, rule still active.
             return
 
@@ -106,4 +110,6 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             )
             return
         response = installation.create_issue(data)
-        create_link(integration, installation, event, response)
+
+        if not event.get_tag("sample_event") == "yes":
+            create_link(integration, installation, event, response)

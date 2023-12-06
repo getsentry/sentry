@@ -19,6 +19,7 @@ from sentry.web.frontend.debug.debug_incident_trigger_email import DebugIncident
 from sentry.web.frontend.debug.debug_invalid_identity_email import DebugInvalidIdentityEmailView
 from sentry.web.frontend.debug.debug_mfa_added_email import DebugMfaAddedEmailView
 from sentry.web.frontend.debug.debug_mfa_removed_email import DebugMfaRemovedEmailView
+from sentry.web.frontend.debug.debug_missing_member_nudge_email import DebugMissingMembersNudgeView
 from sentry.web.frontend.debug.debug_new_processing_issues_email import (
     DebugNewProcessingIssuesEmailView,
     DebugNewProcessingIssuesNoReprocessingEmailView,
@@ -117,9 +118,16 @@ urlpatterns = [
     ),
     re_path(r"^debug/mail/access-approved/$", sentry.web.frontend.debug.mail.access_approved),
     re_path(r"^debug/mail/invitation/$", sentry.web.frontend.debug.mail.invitation),
+    re_path(r"^debug/mail/missing-members-nudge/$", DebugMissingMembersNudgeView.as_view()),
     re_path(r"^debug/mail/invalid-identity/$", DebugInvalidIdentityEmailView.as_view()),
     re_path(r"^debug/mail/confirm-email/$", sentry.web.frontend.debug.mail.confirm_email),
     re_path(r"^debug/mail/recover-account/$", sentry.web.frontend.debug.mail.recover_account),
+    re_path(r"^debug/mail/relocate-account/$", sentry.web.frontend.debug.mail.relocate_account),
+    re_path(r"^debug/mail/relocation-failed/$", sentry.web.frontend.debug.mail.relocation_failed),
+    re_path(r"^debug/mail/relocation-started/$", sentry.web.frontend.debug.mail.relocation_started),
+    re_path(
+        r"^debug/mail/relocation-succeeded/$", sentry.web.frontend.debug.mail.relocation_succeeded
+    ),
     re_path(r"^debug/mail/unable-to-delete-repo/$", DebugUnableToDeleteRepository.as_view()),
     re_path(r"^debug/mail/unable-to-fetch-commits/$", DebugUnableToFetchCommitsEmailView.as_view()),
     re_path(r"^debug/mail/unassigned/$", DebugUnassignedEmailView.as_view()),

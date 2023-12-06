@@ -4,18 +4,9 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 import abc
-from typing import Any, List, Mapping, Optional, cast
+from typing import Any, List, Mapping, Optional
 
-from sentry.services.hybrid_cloud.auth import (
-    AuthenticationContext,
-    AuthenticationRequest,
-    MiddlewareAuthenticationResponse,
-    RpcAuthenticatorType,
-    RpcAuthProvider,
-    RpcAuthState,
-    RpcOrganizationAuthConfig,
-)
-from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberSummary
+from sentry.services.hybrid_cloud.auth import RpcApiKey, RpcAuthProvider, RpcOrganizationAuthConfig
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
 
@@ -32,33 +23,9 @@ class AuthService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
-    def authenticate(self, *, request: AuthenticationRequest) -> MiddlewareAuthenticationResponse:
-        pass
-
-    @rpc_method
-    @abc.abstractmethod
-    def authenticate_with(
-        self, *, request: AuthenticationRequest, authenticator_types: List[RpcAuthenticatorType]
-    ) -> AuthenticationContext:
-        pass
-
-    @rpc_method
-    @abc.abstractmethod
     def get_org_auth_config(
         self, *, organization_ids: List[int]
     ) -> List[RpcOrganizationAuthConfig]:
-        pass
-
-    @rpc_method
-    @abc.abstractmethod
-    def get_user_auth_state(
-        self,
-        *,
-        user_id: int,
-        is_superuser: bool,
-        organization_id: Optional[int],
-        org_member: Optional[RpcOrganizationMemberSummary],
-    ) -> RpcAuthState:
         pass
 
     # TODO: Denormalize this scim enabled flag onto organizations?
@@ -74,10 +41,9 @@ class AuthService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
-    def get_auth_providers(self, *, organization_id: int) -> List[RpcAuthProvider]:
+    def get_auth_provider(self, *, organization_id: int) -> Optional[RpcAuthProvider]:
         """
-        This method returns a list of auth providers for an org
-        :return:
+        This method returns the auth provider for an org, if one exists
         """
         pass
 
@@ -100,5 +66,42 @@ class AuthService(RpcService):
     ) -> None:
         pass
 
+    @rpc_method
+    @abc.abstractmethod
+    def get_organization_api_keys(self, *, organization_id: int) -> List[RpcApiKey]:
+        pass
 
-auth_service: AuthService = cast(AuthService, AuthService.create_delegation())
+    @rpc_method
+    @abc.abstractmethod
+    def get_organization_key(self, *, key: str) -> Optional[RpcApiKey]:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def enable_partner_sso(
+        self,
+        *,
+        organization_id: int,
+        provider_key: str,
+        provider_config: Mapping[str, Any],
+        user_id: Optional[int] = None,
+        sender: Optional[str] = None,
+    ) -> None:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def create_auth_identity(
+        self, *, provider: str, config: Mapping[str, Any], user_id: int, ident: str
+    ) -> None:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def get_auth_provider_with_config(
+        self, *, provider: str, config: Mapping[str, Any]
+    ) -> Optional[RpcAuthProvider]:
+        pass
+
+
+auth_service = AuthService.create_delegation()

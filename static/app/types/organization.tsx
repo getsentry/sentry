@@ -1,3 +1,4 @@
+import {Project} from 'sentry/types/project';
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
@@ -17,6 +18,7 @@ export interface OrganizationSummary {
   codecovAccess: boolean;
   dateCreated: string;
   features: string[];
+  githubNudgeInvite: boolean;
   githubOpenPRBot: boolean;
   githubPRBot: boolean;
   id: string;
@@ -76,6 +78,11 @@ export interface Organization extends OrganizationSummary {
   orgRole?: string;
 }
 
+export interface DetailedOrganization extends Organization {
+  projects: Project[];
+  teams: Team[];
+}
+
 export interface Team {
   access: Scope[];
   avatar: Avatar;
@@ -89,9 +96,13 @@ export interface Team {
   isPending: boolean;
   memberCount: number;
   name: string;
-  orgRole: string | null;
   slug: string;
   teamRole: string | null;
+  orgRole?: string | null;
+}
+
+export interface DetailedTeam extends Team {
+  projects: Project[];
 }
 
 // TODO: Rename to BaseRole
@@ -123,6 +134,7 @@ export interface Member {
     'idp:provisioned': boolean;
     'idp:role-restricted': boolean;
     'member-limit:restricted': boolean;
+    'partnership:restricted': boolean;
     'sso:invalid': boolean;
     'sso:linked': boolean;
   };
@@ -265,11 +277,13 @@ export type EventsStats = {
   end?: number;
   isExtrapolatedData?: boolean;
   isMetricsData?: boolean;
+  isMetricsExtractedData?: boolean;
   meta?: {
     fields: Record<string, AggregationOutputType>;
     isMetricsData: boolean;
     tips: {columns?: string; query?: string};
     units: Record<string, string>;
+    isMetricsExtractedData?: boolean;
   };
   order?: number;
   start?: number;
@@ -285,6 +299,7 @@ export type EventsStatsSeries<F extends string> = {
   data: {
     axis: F;
     values: number[];
+    label?: string;
   }[];
   meta: {
     dataset: string;
@@ -317,6 +332,8 @@ export enum SessionFieldWithOperation {
   SESSIONS = 'sum(session)',
   USERS = 'count_unique(user)',
   DURATION = 'p50(session.duration)',
+  CRASH_FREE_RATE_USERS = 'crash_free_rate(user)',
+  CRASH_FREE_RATE_SESSIONS = 'crash_free_rate(session)',
 }
 
 export enum SessionStatus {

@@ -4,11 +4,14 @@ from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
 from sentry.incidents.models import AlertRule
-from sentry.models import AuditLogEntry
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
 class AlertRuleDetailsBase(APITestCase):
@@ -26,7 +29,7 @@ class AlertRuleDetailsBase(APITestCase):
         self.login_as(self.user)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
     def test_simple(self):
         # self.login_as(self.owner_user)
@@ -37,7 +40,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         assert resp.data == serialize(self.alert_rule, serializer=DetailedAlertRuleSerializer())
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     method = "put"
 
@@ -100,7 +103,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
     method = "delete"
 

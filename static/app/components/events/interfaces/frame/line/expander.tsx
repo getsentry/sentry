@@ -5,12 +5,12 @@ import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {PlatformType} from 'sentry/types';
+import {PlatformKey} from 'sentry/types';
 
 type Props = {
   isExpandable: boolean;
   onToggleContext: (evt: React.MouseEvent) => void;
-  platform: PlatformType;
+  platform: PlatformKey;
   isExpanded?: boolean;
   isHoverPreviewed?: boolean;
 };

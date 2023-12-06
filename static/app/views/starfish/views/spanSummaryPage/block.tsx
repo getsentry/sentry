@@ -5,15 +5,16 @@ import {space} from 'sentry/styles/space';
 
 interface Props {
   children: React.ReactNode;
+  alignment?: 'left' | 'right';
   description?: React.ReactNode;
   title?: React.ReactNode;
 }
 
-export function Block({title, description, children}: Props) {
+export function Block({title, description, alignment = 'right', children}: Props) {
   return (
     <BlockWrapper>
       {title && (
-        <BlockTitle>
+        <BlockTitle alignment={alignment}>
           {title}
           {description && (
             <BlockTooltipContainer>
@@ -22,7 +23,7 @@ export function Block({title, description, children}: Props) {
           )}
         </BlockTitle>
       )}
-      <BlockContent>{children}</BlockContent>
+      <BlockContent alignment={alignment}>{children}</BlockContent>
     </BlockWrapper>
   );
 }
@@ -30,7 +31,7 @@ export function Block({title, description, children}: Props) {
 export const BlockContainer = styled('div')`
   display: flex;
   flex-wrap: wrap;
-  gap: ${space(2)};
+  gap: ${space(4)};
 `;
 
 const BlockWrapper = styled('div')`
@@ -40,19 +41,19 @@ const BlockWrapper = styled('div')`
   padding-bottom: ${space(2)};
 `;
 
-const BlockTitle = styled('h3')`
+const BlockTitle = styled('h3')<{alignment: 'left' | 'right'}>`
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0;
-  margin-bottom: ${space(1)};
   white-space: nowrap;
-  display: flex;
   height: ${space(3)};
+  text-align: ${p => p.alignment};
 `;
 
-const BlockContent = styled('h4')`
+const BlockContent = styled('h4')<{alignment: 'left' | 'right'}>`
   margin: 0;
   font-weight: normal;
+  text-align: ${p => p.alignment};
 `;
 
 const BlockTooltipContainer = styled('span')`

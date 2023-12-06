@@ -157,6 +157,7 @@ export function getTitle(
       };
     }
     case EventOrGroupType.CSP:
+    case EventOrGroupType.NEL:
       return {
         title: customTitle ?? metadata.directive ?? '',
         subtitle: metadata.uri ?? '',
@@ -395,8 +396,8 @@ function getNumberOfThreadsWithNames(event: Event) {
 
 export function eventHasExceptionGroup(event: Event) {
   const exceptionEntries = getExceptionEntries(event);
-  return exceptionEntries.some(entry =>
-    entry.data.values?.some(({mechanism}) => mechanism?.is_exception_group)
+  return exceptionEntries.some(
+    entry => entry.data.values?.some(({mechanism}) => mechanism?.is_exception_group)
   );
 }
 
@@ -432,6 +433,7 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
   return {
     event_id: event?.eventID || '-1',
     num_commits: event?.release?.commitCount || 0,
+    num_event_tags: event?.tags?.length ?? 0,
     num_stack_frames: event ? getNumberOfStackFrames(event) : 0,
     num_in_app_stack_frames: event ? getNumberOfInAppStackFrames(event) : 0,
     num_threads_with_names: event ? getNumberOfThreadsWithNames(event) : 0,
@@ -455,9 +457,12 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
     sdk_name: event?.sdk?.name,
     sdk_version: event?.sdk?.version,
     release_user_agent: event?.release?.userAgent,
+    resolved_with: event?.resolvedWith ?? [],
     error_has_replay: Boolean(getReplayIdFromEvent(event)),
     error_has_user_feedback: defined(event?.userReport),
     has_otel: event?.contexts?.otel !== undefined,
+    event_mechanism:
+      event?.tags?.find(tag => tag.key === 'mechanism')?.value || undefined,
   };
 }
 

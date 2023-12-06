@@ -1,3 +1,7 @@
+import {Organization} from 'sentry-fixture/organization';
+import {MOCK_RESP_VERBOSE} from 'sentry-fixture/ruleConditions';
+import {Team} from 'sentry-fixture/team';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -11,8 +15,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {tct} from 'sentry/locale';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {Organization} from 'sentry/types';
-import * as useExperiment from 'sentry/utils/useExperiment';
+import {Organization as TOrganization} from 'sentry/types';
 import {CreateProject} from 'sentry/views/projectInstall/createProject';
 
 jest.mock('sentry/actionCreators/indicator');
@@ -21,7 +24,7 @@ function renderFrameworkModalMockRequests({
   organization,
   teamSlug,
 }: {
-  organization: Organization;
+  organization: TOrganization;
   teamSlug: string;
 }) {
   MockApiClient.addMockResponse({
@@ -31,7 +34,7 @@ function renderFrameworkModalMockRequests({
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/teams/`,
-    body: [TestStubs.Team({slug: teamSlug})],
+    body: [Team({slug: teamSlug})],
   });
 
   MockApiClient.addMockResponse({
@@ -60,14 +63,14 @@ function renderFrameworkModalMockRequests({
 }
 
 describe('CreateProject', function () {
-  const teamNoAccess = TestStubs.Team({
+  const teamNoAccess = Team({
     slug: 'test',
     id: '1',
     name: 'test',
     access: ['team:read'],
   });
 
-  const teamWithAccess = TestStubs.Team({
+  const teamWithAccess = Team({
     access: ['team:admin', 'team:write', 'team:read'],
   });
 
@@ -87,66 +90,24 @@ describe('CreateProject', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('should block if you have access to no teams', function () {
-    const {container} = render(<CreateProject />, {
+  it('should block if you have access to no teams without team-roles', function () {
+    render(<CreateProject />, {
       context: TestStubs.routerContext([
         {organization: {id: '1', slug: 'testOrg', access: ['project:read']}},
       ]),
     });
-    expect(container).toSnapshot();
   });
 
-  it('can create a new team as admin', async function () {
-    const {organization} = initializeOrg({
-      organization: {
-        access: ['project:admin'],
-      },
-    });
-    renderFrameworkModalMockRequests({organization, teamSlug: 'team-two'});
-    TeamStore.loadUserTeams([
-      TestStubs.Team({id: 2, slug: 'team-two', access: ['team:admin']}),
-    ]);
-
-    render(<CreateProject />, {
-      context: TestStubs.routerContext([
-        {
-          organization: {
-            id: '1',
-            slug: 'testOrg',
-            access: ['project:read'],
-          },
-        },
-      ]),
-      organization,
-    });
-
-    renderGlobalModal();
-
-    await userEvent.click(screen.getByRole('button', {name: 'Create a team'}));
-
-    expect(
-      await screen.findByText(
-        'Members of a team have access to specific areas, such as a new release or a new application feature.'
-      )
-    ).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
-  });
-
-  it('can create a new project without team as org member', async function () {
+  it('can create a new project as member with team-roles', async function () {
     const {organization} = initializeOrg({
       organization: {
         access: ['project:read'],
-        features: ['team-project-creation-all'],
+        features: ['team-roles'],
       },
     });
 
-    jest.spyOn(useExperiment, 'useExperiment').mockReturnValue({
-      experimentAssignment: 1,
-      logExperiment: jest.fn(),
-    });
     renderFrameworkModalMockRequests({organization, teamSlug: 'team-two'});
-    TeamStore.loadUserTeams([TestStubs.Team({id: 2, slug: 'team-two', access: []})]);
+    TeamStore.loadUserTeams([Team({id: '2', slug: 'team-two', access: []})]);
 
     render(<CreateProject />, {
       context: TestStubs.routerContext([
@@ -168,68 +129,19 @@ describe('CreateProject', function () {
     expect(screen.getByRole('button', {name: 'Create Project'})).toBeEnabled();
   });
 
-  it('can create a new team before project creation if org owner', async function () {
-    const {organization} = initializeOrg({
-      organization: {
-        access: ['project:admin'],
-      },
-    });
-
-    render(<CreateProject />, {
-      context: TestStubs.routerContext([
-        {
-          organization: {
-            id: '1',
-            slug: 'testOrg',
-            access: ['project:read'],
-          },
-        },
-      ]),
-      organization,
-    });
-
-    renderGlobalModal();
-    await userEvent.click(screen.getByRole('button', {name: 'Create a team'}));
-
-    expect(
-      await screen.findByText(
-        'Members of a team have access to specific areas, such as a new release or a new application feature.'
-      )
-    ).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
-  });
-
-  it('should not show create team button to team-admin with no org access', function () {
-    const {organization} = initializeOrg({
-      organization: {
-        access: ['project:read'],
-      },
-    });
-    renderFrameworkModalMockRequests({organization, teamSlug: 'team-two'});
-
-    OrganizationStore.onUpdate(organization);
-    TeamStore.loadUserTeams([
-      TestStubs.Team({id: 2, slug: 'team-two', access: ['team:admin']}),
-    ]);
-    render(<CreateProject />, {
-      context: TestStubs.routerContext([{organization}]),
-      organization,
-    });
-
-    const createTeamButton = screen.queryByRole('button', {name: 'Create a team'});
-    expect(createTeamButton).not.toBeInTheDocument();
-  });
-
   it('should only allow teams which the user is a team-admin', async function () {
-    const organization = TestStubs.Organization();
+    const {organization} = initializeOrg({
+      organization: {
+        features: ['team-roles'],
+      },
+    });
     renderFrameworkModalMockRequests({organization, teamSlug: 'team-two'});
 
     OrganizationStore.onUpdate(organization);
     TeamStore.loadUserTeams([
-      TestStubs.Team({id: 1, slug: 'team-one', access: []}),
-      TestStubs.Team({id: 2, slug: 'team-two', access: ['team:admin']}),
-      TestStubs.Team({id: 3, slug: 'team-three', access: ['team:admin']}),
+      Team({id: '1', slug: 'team-one', access: []}),
+      Team({id: '2', slug: 'team-two', access: ['team:admin']}),
+      Team({id: '3', slug: 'team-three', access: ['team:admin']}),
     ]);
     render(<CreateProject />, {
       context: TestStubs.routerContext([{organization}]),
@@ -249,7 +161,7 @@ describe('CreateProject', function () {
       },
     });
 
-    const {container} = render(<CreateProject />, {
+    render(<CreateProject />, {
       context: TestStubs.routerContext([
         {
           organization: {
@@ -274,14 +186,13 @@ describe('CreateProject', function () {
 
     await userEvent.click(screen.getByTestId('platform-apple-ios'));
     expect(screen.getByPlaceholderText('project-name')).toHaveValue('another');
-
-    expect(container).toSnapshot();
   });
 
   it('should display success message on proj creation', async function () {
     const {organization} = initializeOrg({
       organization: {
         access: ['project:read'],
+        features: ['team-roles'],
       },
     });
 
@@ -313,6 +224,7 @@ describe('CreateProject', function () {
     const {organization} = initializeOrg({
       organization: {
         access: ['project:read'],
+        features: ['team-roles'],
       },
     });
 
@@ -348,11 +260,11 @@ describe('CreateProject', function () {
     );
   });
 
-  it('should display success message when using experimental endpoint', async function () {
+  it('should display success message when using member endpoint', async function () {
     const {organization} = initializeOrg({
       organization: {
         access: ['project:read'],
-        features: ['team-project-creation-all'],
+        features: ['team-roles'],
       },
     });
 
@@ -391,7 +303,7 @@ describe('CreateProject', function () {
   it('does not render framework selection modal if vanilla js is NOT selected', async function () {
     const {organization} = initializeOrg({
       organization: {
-        features: ['onboarding-sdk-selection'],
+        features: ['onboarding-sdk-selection', 'team-roles'],
         access: ['project:read', 'project:write'],
       },
     });
@@ -473,13 +385,13 @@ describe('CreateProject', function () {
   });
 
   describe('Issue Alerts Options', function () {
-    const organization = TestStubs.Organization();
+    const organization = Organization();
     beforeEach(() => {
       TeamStore.loadUserTeams([teamWithAccess]);
 
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/rule-conditions/`,
-        body: TestStubs.MOCK_RESP_VERBOSE,
+        body: MOCK_RESP_VERBOSE,
       });
     });
 

@@ -1,5 +1,5 @@
 from sentry.api.serializers import Serializer, register
-from sentry.models import Repository
+from sentry.models.repository import Repository
 
 
 @register(Repository)
@@ -25,4 +25,5 @@ class RepositorySerializer(Serializer):
             "dateCreated": obj.date_added,
             "integrationId": integration_id,
             "externalSlug": external_slug,
+            "externalId": obj.external_id,
         }

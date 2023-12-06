@@ -6,14 +6,16 @@ from typing import Callable, List, Type
 from django.http import HttpRequest
 from django.http.response import HttpResponseBase
 
+from sentry.silo import SiloMode
+
+logger = logging.getLogger(__name__)
+
+
 from sentry.middleware.integrations.classifications import (
     BaseClassification,
     IntegrationClassification,
     PluginClassification,
 )
-from sentry.silo import SiloMode
-
-logger = logging.getLogger(__name__)
 
 ResponseHandler = Callable[[HttpRequest], HttpResponseBase]
 
@@ -23,7 +25,10 @@ class IntegrationControlMiddleware:
         IntegrationClassification,
         PluginClassification,
     ]
-    """Classifications to determine whether request must be parsed, sorted in priority order."""
+    """
+    Classifications to determine whether request must be parsed, sorted in priority order.
+    getsentry expands this list on django initialization.
+    """
 
     def __init__(self, get_response: ResponseHandler):
         self.get_response = get_response
@@ -33,6 +38,14 @@ class IntegrationControlMiddleware:
         Determines whether this middleware will operate or just pass the request along.
         """
         return SiloMode.get_current_mode() == SiloMode.CONTROL
+
+    @classmethod
+    def register_classifications(cls, classifications: List[Type[BaseClassification]]):
+        """
+        Add new classifications for middleware to determine request parsing dynamically.
+        Used in getsentry to expand scope of parsing.
+        """
+        cls.classifications += classifications
 
     def __call__(self, request: HttpRequest):
         if not self._should_operate(request):

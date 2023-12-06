@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta
 from typing import Any, Mapping, Optional
 
 import pytest
@@ -7,20 +8,17 @@ from django.utils.functional import cached_property
 
 from sentry.eventstore.models import Event
 from sentry.incidents.models import IncidentActivityType
-from sentry.models import (
-    Activity,
-    Integration,
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    User,
-)
+from sentry.models.activity import Activity
 from sentry.models.actor import Actor, get_actor_id_for_user
+from sentry.models.integrations.integration import Integration
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 
 # XXX(dcramer): this is a compatibility layer to transition to pytest-based fixtures
@@ -102,7 +100,13 @@ class Fixtures:
     @assume_test_silo_mode(SiloMode.CONTROL)
     def integration(self):
         integration = Integration.objects.create(
-            provider="github", name="GitHub", external_id="github:1"
+            provider="github",
+            name="GitHub",
+            external_id="github:1",
+            metadata={
+                "access_token": "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "expires_at": iso_format(datetime.utcnow() + timedelta(days=14)),
+            },
         )
         integration.add_organization(self.organization, self.user)
         return integration
@@ -131,8 +135,7 @@ class Fixtures:
         if organization is None:
             organization = self.organization
 
-        with outbox_runner():
-            return Factories.create_team(organization=organization, **kwargs)
+        return Factories.create_team(organization=organization, **kwargs)
 
     def create_environment(self, project=None, **kwargs):
         if project is None:
@@ -140,7 +143,8 @@ class Fixtures:
         return Factories.create_environment(project=project, **kwargs)
 
     def create_project(self, **kwargs):
-        kwargs.setdefault("teams", [self.team])
+        if "teams" not in kwargs:
+            kwargs["teams"] = [self.team]
         return Factories.create_project(**kwargs)
 
     def create_project_bookmark(self, project=None, *args, **kwargs):

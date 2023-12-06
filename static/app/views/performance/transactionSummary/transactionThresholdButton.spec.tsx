@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {
   render,
   renderGlobalModal,
@@ -22,7 +24,7 @@ function renderComponent(eventView, organization, onChangeThreshold) {
 }
 
 describe('TransactionThresholdButton', function () {
-  const organization = TestStubs.Organization({features: ['performance-view']});
+  const organization = Organization({features: ['performance-view']});
   const project = TestStubs.Project();
   const eventView = new EventView({
     id: '1',

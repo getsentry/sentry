@@ -1,3 +1,6 @@
+import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -18,7 +21,7 @@ describe('AcceptProjectTransfer', function () {
       method: 'GET',
       body: {
         project: TestStubs.Project(),
-        organizations: [TestStubs.Organization({teams: [TestStubs.Team()]})],
+        organizations: [Organization({teams: [Team()]})],
       },
     });
 
@@ -35,6 +38,29 @@ describe('AcceptProjectTransfer', function () {
     expect(getMock).toHaveBeenCalled();
   });
 
+  it('renders and fetches data from the region url', function () {
+    window.__initialData = {
+      ...window.__initialData,
+      links: {
+        regionUrl: 'http://us.sentry.io',
+        sentryUrl: 'http://sentry.io',
+        organizationUrl: 'http://acme.sentry.io',
+      },
+    };
+    getMock = MockApiClient.addMockResponse({
+      url: '/accept-transfer/',
+      method: 'GET',
+      body: {
+        project: TestStubs.Project(),
+        organizations: [Organization({teams: [Team()]})],
+      },
+      match: [(_url, options) => options.host === 'http://us.sentry.io'],
+    });
+    render(<AcceptProjectTransfer {...routerProps} />);
+
+    expect(getMock).toHaveBeenCalled();
+  });
+
   it('submits', async function () {
     render(<AcceptProjectTransfer {...routerProps} />);
 
@@ -44,6 +70,7 @@ describe('AcceptProjectTransfer', function () {
       endpoint,
       expect.objectContaining({
         method: 'POST',
+        host: 'http://us.sentry.io',
       })
     );
   });

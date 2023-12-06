@@ -4,27 +4,21 @@ import DetailedError from 'sentry/components/errors/detailedError';
 
 describe('DetailedError', function () {
   it('renders', function () {
-    const {container} = render(
-      <DetailedError heading="Error heading" message={<div>Message</div>} />
-    );
-
-    expect(container).toSnapshot();
+    render(<DetailedError heading="Error heading" message={<div>Message</div>} />);
   });
 
   it('renders with "Retry" button', function () {
-    const {container} = render(
+    render(
       <DetailedError
         onRetry={() => {}}
         heading="Error heading"
         message={<div>Message</div>}
       />
     );
-
-    expect(container).toSnapshot();
   });
 
   it('can hide support links', function () {
-    const {container} = render(
+    render(
       <DetailedError
         hideSupportLinks
         onRetry={() => {}}
@@ -32,19 +26,15 @@ describe('DetailedError', function () {
         message={<div>Message</div>}
       />
     );
-
-    expect(container).toSnapshot();
   });
 
   it('hides footer when no "Retry" and no support links', function () {
-    const {container} = render(
+    render(
       <DetailedError
         hideSupportLinks
         heading="Error heading"
         message={<div>Message</div>}
       />
     );
-
-    expect(container).toSnapshot();
   });
 });

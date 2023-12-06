@@ -7,27 +7,26 @@ from django.urls import reverse
 from sentry.api.endpoints.organization_release_details import OrganizationReleaseSerializer
 from sentry.constants import MAX_VERSION_LENGTH
 from sentry.locks import locks
-from sentry.models import (
-    Activity,
-    Environment,
-    File,
-    Release,
-    ReleaseCommit,
-    ReleaseFile,
-    ReleaseProject,
-    ReleaseProjectEnvironment,
-    ReleaseStatus,
-    Repository,
-)
+from sentry.models.activity import Activity
+from sentry.models.environment import Environment
+from sentry.models.files.file import File
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.release import Release, ReleaseProject, ReleaseStatus
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releasefile import ReleaseFile
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.repository import Repository
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
+pytestmark = [requires_snuba]
 
-@region_silo_test(stable=True)
+
+@region_silo_test
 class ReleaseDetailsTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -626,7 +625,7 @@ class ReleaseDetailsTest(APITestCase):
         assert "adoptionStages" in response.data
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class UpdateReleaseDetailsTest(APITestCase):
     @patch("sentry.tasks.commits.fetch_commits")
     def test_simple(self, mock_fetch_commits):
@@ -1095,7 +1094,7 @@ class UpdateReleaseDetailsTest(APITestCase):
         assert release.ref == "master"
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ReleaseDeleteTest(APITestCase):
     def test_simple(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -1223,7 +1222,7 @@ class ReleaseDeleteTest(APITestCase):
         assert response.json() == {"commits": {"id": ["This field is required."]}}
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ReleaseSerializerTest(unittest.TestCase):
     def setUp(self):
         super().setUp()

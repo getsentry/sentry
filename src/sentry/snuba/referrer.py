@@ -35,15 +35,33 @@ class Referrer(Enum):
     API_DASHBOARDS_WIDGET_AREA_CHART_METRICS_ENHANCED = (
         "api.dashboards.widget.area-chart.metrics-enhanced"
     )
+    API_DASHBOARDS_WIDGET_AREA_CHART_FIND_TOPN_METRICS_ENHANCED = (
+        "api.dashboards.widget.area-chart.find-topn.metrics-enhanced"
+    )
+    API_DASHBOARDS_WIDGET_AREA_CHART_FIND_TOPN_METRICS_ENHANCED_PRIMARY = (
+        "api.dashboards.widget.area-chart.find-topn.metrics-enhanced.primary"
+    )
     API_DASHBOARDS_WIDGET_AREA_CHART = "api.dashboards.widget.area-chart"
     API_DASHBOARDS_WIDGET_BAR_CHART_FIND_TOPN = "api.dashboards.widget.bar-chart.find-topn"
     API_DASHBOARDS_WIDGET_BAR_CHART_METRICS_ENHANCED = (
         "api.dashboards.widget.bar-chart.metrics-enhanced"
     )
+    API_DASHBOARDS_WIDGET_BAR_CHART_FIND_TOPN_METRICS_ENHANCED = (
+        "api.dashboards.widget.bar-chart.find-topn.metrics-enhanced"
+    )
+    API_DASHBOARDS_WIDGET_BAR_CHART_FIND_TOPN_METRICS_ENHANCED_PRIMARY = (
+        "api.dashboards.widget.bar-chart.find-topn.metrics-enhanced.primary"
+    )
     API_DASHBOARDS_WIDGET_BAR_CHART = "api.dashboards.widget.bar-chart"
     API_DASHBOARDS_WIDGET_LINE_CHART_FIND_TOPN = "api.dashboards.widget.line-chart.find-topn"
     API_DASHBOARDS_WIDGET_LINE_CHART_METRICS_ENHANCED = (
         "api.dashboards.widget.line-chart.metrics-enhanced"
+    )
+    API_DASHBOARDS_WIDGET_LINE_CHART_FIND_TOPN_METRICS_ENHANCED = (
+        "api.dashboards.widget.line-chart.find-topn.metrics-enhanced"
+    )
+    API_DASHBOARDS_WIDGET_LINE_CHART_FIND_TOPN_METRICS_ENHANCED_PRIMARY = (
+        "api.dashboards.widget.line-chart.find-topn.metrics-enhanced.primary"
     )
     API_DASHBOARDS_WIDGET_LINE_CHART = "api.dashboards.widget.line-chart"
     API_DISCOVER_TOTAL_COUNT_FIELD = "api.discover.total-events-field"
@@ -123,6 +141,7 @@ class Referrer(Enum):
     API_ORGANIZATION_EVENTS_SPANS_PERFORMANCE_EXAMPLES = (
         "api.organization-events-spans-performance-examples"
     )
+    API_ORGANIZATION_SPANS_AGGREGATION = "api.organization-spans-aggregation"
     API_ORGANIZATION_EVENTS_SPANS_PERFORMANCE_STATS = (
         "api.organization-events-spans-performance-stats"
     )
@@ -321,6 +340,9 @@ class Referrer(Enum):
         "api.performance.transaction-summary.vitals-chart"
     )
     API_PERFORMANCE_TRANSACTION_SUMMARY = "api.performance.transaction-summary"
+    API_PERFORMANCE_TRANSACTIONS_STATISTICAL_DETECTOR_STATS = (
+        "api.performance.transactions.statistical-detector-stats"
+    )
     API_PERFORMANCE_VITAL_DETAIL = "api.performance.vital-detail"
     API_PERFORMANCE_VITALS_CARDS = "api.performance.vitals-cards"
     API_PROFILING_LANDING_CHART = "api.profiling.landing-chart"
@@ -332,6 +354,7 @@ class Referrer(Enum):
     API_PROFILING_PROFILE_SUMMARY_TABLE = "api.profiling.profile-summary-table"
     API_PROFILING_PROFILE_SUMMARY_FUNCTIONS_TABLE = "api.profiling.profile-summary-functions-table"
     API_PROFILING_PROFILE_FLAMEGRAPH = "api.profiling.profile-flamegraph"
+    API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH = "api.profiling.function-scoped-flamegraph"
     API_PROFILING_TRANSACTION_HOVERCARD_FUNCTIONS = "api.profiling.transaction-hovercard.functions"
     API_PROFILING_TRANSACTION_HOVERCARD_LATEST = "api.profiling.transaction-hovercard.latest"
     API_PROFILING_TRANSACTION_HOVERCARD_SLOWEST = "api.profiling.transaction-hovercard.slowest"
@@ -341,6 +364,21 @@ class Referrer(Enum):
     API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS = "api.profiling.function-trends.top-events"
     API_PROFILING_FUNCTION_TRENDS_STATS = "api.profiling.function-trends.stats"
     API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR = "api.profiling.functions.statistical-detector"
+    API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_STATS = (
+        "api.profiling.functions.statistical-detector.stats"
+    )
+    API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_EXAMPLE = (
+        "api.profiling.functions.statistical-detector.example"
+    )
+    API_PROFILING_FUNCTIONS_REGRESSION_EXAMPLES = "api.profiling.functions.regression.examples"
+    API_PROFILING_FUNCTIONS_REGRESSION_LIST = "api.profiling.functions.regression.list"
+    API_PROFILING_FUNCTIONS_REGRESSION_STATS = "api.profiling.functions.regression.stats"
+    API_PROFILING_FUNCTIONS_REGRESSION_TRANSACTIONS = (
+        "api.profiling.functions.regression.transactions"
+    )
+    API_PROFILING_FUNCTIONS_REGRESSION_TRANSACTION_STATS = (
+        "api.profiling.functions.regression.transaction-stats"
+    )
     API_PROJECT_EVENTS = "api.project-events"
     API_RELEASES_RELEASE_DETAILS_CHART = "api.releases.release-details-chart"
     API_REPLAY_DETAILS_PAGE = "api.replay.details-page"
@@ -371,6 +409,16 @@ class Referrer(Enum):
     API_STARFISH_SPAN_SUMMARY_PAGE_CHART = "api.starfish.span-summary-page-metrics-chart"
     API_STARFISH_SIDEBAR_SPAN_METRICS_CHART = "api.starfish.sidebar-span-metrics-chart"
     API_STARFISH_SPAN_TIME_CHARTS = "api.starfish.span-time-charts"
+
+    # Mobile Starfish
+    API_STARFISH_MOBILE_SCREEN_METRICS_SERIES = "api.starfish.mobile-screen-series"
+    API_STARFISH_MOBILE_SCREEN_TABLE = "api.starfish.mobile-screen-table"
+    API_STARFISH_MOBILE_SCREEN_BAR_CHART = "api.starfish.mobile-screen-bar-chart"
+    API_STARFISH_MOBILE_RELEASE_SELECTOR = "api.starfish.mobile-release-selector"
+    API_STARFISH_MOBILE_DEVICE_BREAKDOWN = "api.starfish.mobile-device-breakdown"
+    API_STARFISH_MOBILE_EVENT_SAMPLES = "api.starfish.mobile-event-samples"
+    API_STARFISH_MOBILE_SCREEN_TOTALS = "api.starfish.mobile-screen-totals"
+    API_STARFISH_MOBILE_SPAN_TABLE = "api.starfish.mobile-span-table"
 
     API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
     API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"
@@ -437,6 +485,9 @@ class Referrer(Enum):
         "dynamic_sampling.counters.fetch_projects_with_transaction_totals"
     )
     DYNAMIC_SAMPLING_COUNTERS_FETCH_ACTIVE_ORGS = "dynamic_sampling.counters.fetch_active_orgs"
+    DYNAMIC_SAMPLING_TASKS_CUSTOM_RULE_NOTIFICATIONS = (
+        "dynamic_sampling.tasks.custom_rule_notifications"
+    )
     ESCALATING_GROUPS = "sentry.issues.escalating"
     EVENTSTORE_GET_EVENT_BY_ID_NODESTORE = "eventstore.backend.get_event_by_id_nodestore"
     EVENTSTORE_GET_EVENTS = "eventstore.get_events"
@@ -459,6 +510,7 @@ class Referrer(Enum):
     INCIDENTS_GET_INCIDENT_AGGREGATES_PRIMARY = "incidents.get_incident_aggregates.primary"
     INCIDENTS_GET_INCIDENT_AGGREGATES = "incidents.get_incident_aggregates"
     IS_ESCALATING_GROUP = "sentry.issues.escalating.is_escalating"
+    METRIC_EXTRACTION_CARDINALITY_CHECK = "metric_extraction.cardinality_check"
     OUTCOMES_TIMESERIES = "outcomes.timeseries"
     OUTCOMES_TOTALS = "outcomes.totals"
     PREVIEW_GET_EVENTS = "preview.get_events"
@@ -593,9 +645,18 @@ class Referrer(Enum):
     SNUBA_SESSIONS_GET_PROJECT_RELEASES_COUNT = "snuba.sessions.get_project_releases_count"
     SPIKE_PROJECTIONS = "getsentry.get_spike_projections"
     SRC_SENTRY_INGEST_TRANSACTION_CLUSTERER = "src.sentry.ingest.transaction_clusterer"
+    STATISTICAL_DETECTORS_FETCH_TOP_TRANSACTION_NAMES = (
+        "statistical_detectors.distributions.fetch_top_transaction_names"
+    )
+    STATISTICAL_DETECTORS_FETCH_TRANSACTION_TIMESERIES = (
+        "statistical_detectors.distributions.fetch_transaction_timeseries"
+    )
     SUBSCRIPTION_PROCESSOR_COMPARISON_QUERY = "subscription_processor.comparison_query"
+    SUBSCRIPTION_PROCESSOR_COMPARISON_QUERY_PRIMARY = (
+        "subscription_processor.comparison_query.primary"
+    )
     SUBSCRIPTIONS_EXECUTOR = "subscriptions_executor"
-    TAGSTORE__GET_TAG_KEY_AND_TOP_VALUES = "tagstore._get_tag_key_and_top_values"
+    TAGSTORE__GET_TAG_KEY_AND_TOP_VALUES = "tagstore.__get_tag_key_and_top_values"
     TAGSTORE__GET_TAG_KEYS_AND_TOP_VALUES = "tagstore._get_tag_keys_and_top_values"
     TAGSTORE__GET_TAG_KEYS = "tagstore.__get_tag_keys"
     TAGSTORE_GET_GROUP_LIST_TAG_VALUE = "tagstore.get_group_list_tag_value"
@@ -661,12 +722,17 @@ class Referrer(Enum):
     WEEKLY_REPORTS_KEY_TRANSACTIONS_THIS_WEEK = "weekly_reports.key_transactions.this_week"
     WEEKLY_REPORTS_OUTCOMES = "weekly_reports.outcomes"
 
+    # Referrers used in the migration script for alerts
+    ALERTS_MIGRATION_SCRIPT = "alerts.migration_script"
+    ALERTS_MIGRATION_SCRIPT_METRICS_ENHANCED = "alerts.migration_script.metrics-enhanced"
+
     # Referrers in tests
     API_METRICS_TOTALS = "api.metrics.totals"
     TESTING_GET_FACETS_TEST = "testing.get-facets-test"
     TESTING_TEST = "testing.test"
     TEST_QUERY_PRIMARY = "test_query.primary"
     TEST_QUERY = "test_query"
+    METRIC_VALIDATION = "metric_validation"
 
 
 VALUES = {referrer.value for referrer in Referrer}

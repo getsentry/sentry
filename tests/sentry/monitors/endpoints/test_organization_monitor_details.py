@@ -1,13 +1,15 @@
 import pytest
 
-from sentry.constants import ObjectStatus
-from sentry.models import Environment, RegionScheduledDeletion, Rule, RuleActivity, RuleActivityType
-from sentry.monitors.models import Monitor, MonitorEnvironment, ScheduleType
+from sentry.api.fields.sentry_slug import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.models.environment import Environment
+from sentry.models.rule import Rule, RuleActivity, RuleActivityType
+from sentry.models.scheduledeletion import RegionScheduledDeletion
+from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorObjectStatus, ScheduleType
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationMonitorDetailsTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-details"
 
@@ -60,7 +62,7 @@ class OrganizationMonitorDetailsTest(MonitorTestCase):
         assert alert_rule["environment"] is not None
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class UpdateMonitorTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-details"
 
@@ -88,13 +90,24 @@ class UpdateMonitorTest(MonitorTestCase):
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.slug == "my-monitor"
 
-        # Validate error cases jsut to be safe
+        # Validate error cases just to be safe
         self.get_error_response(
             self.organization.slug, monitor.slug, method="PUT", status_code=400, **{"slug": ""}
         )
         self.get_error_response(
             self.organization.slug, monitor.slug, method="PUT", status_code=400, **{"slug": None}
         )
+
+    def test_invalid_numeric_slug(self):
+        monitor = self._create_monitor()
+        resp = self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            status_code=400,
+            **{"slug": "1234"},
+        )
+        assert resp.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
 
     def test_slug_exists(self):
         self._create_monitor(slug="my-test-monitor")
@@ -125,12 +138,12 @@ class UpdateMonitorTest(MonitorTestCase):
         assert resp.data["slug"] == monitor.slug
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == ObjectStatus.DISABLED
+        assert monitor.status == MonitorObjectStatus.DISABLED
 
     def test_can_enable(self):
         monitor = self._create_monitor()
 
-        monitor.update(status=ObjectStatus.DISABLED)
+        monitor.update(status=MonitorObjectStatus.DISABLED)
 
         resp = self.get_success_response(
             self.organization.slug, monitor.slug, method="PUT", **{"status": "active"}
@@ -138,7 +151,7 @@ class UpdateMonitorTest(MonitorTestCase):
         assert resp.data["slug"] == monitor.slug
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == ObjectStatus.ACTIVE
+        assert monitor.status == MonitorObjectStatus.ACTIVE
 
     def test_timezone(self):
         monitor = self._create_monitor()
@@ -216,6 +229,8 @@ class UpdateMonitorTest(MonitorTestCase):
         monitor_rule = monitor.get_alert_rule()
         assert monitor_rule.id == rule.id
         assert monitor_rule.data["actions"] != rule.data["actions"]
+        # Verify the conditions haven't changed
+        assert monitor_rule.data["conditions"] == rule.data["conditions"]
         rule_environment = Environment.objects.get(id=monitor_rule.environment_id)
         assert rule_environment.name == new_environment.name
 
@@ -304,6 +319,13 @@ class UpdateMonitorTest(MonitorTestCase):
             method="PUT",
             status_code=400,
             **{"config": {"schedule": "* * * *"}},
+        )
+        self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            status_code=400,
+            **{"config": {"schedule": "* * 31 9 *"}},
         )
 
     def test_crontab_unsupported(self):
@@ -428,7 +450,7 @@ class DeleteMonitorTest(MonitorTestCase):
         )
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == ObjectStatus.PENDING_DELETION
+        assert monitor.status == MonitorObjectStatus.PENDING_DELETION
         # Slug should update on deletion
         assert monitor.slug != old_slug
         assert RegionScheduledDeletion.objects.filter(
@@ -452,10 +474,10 @@ class DeleteMonitorTest(MonitorTestCase):
         )
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == ObjectStatus.ACTIVE
+        assert monitor.status == MonitorObjectStatus.ACTIVE
 
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
-        assert monitor_environment.status == ObjectStatus.PENDING_DELETION
+        assert monitor_environment.status == MonitorObjectStatus.PENDING_DELETION
         assert RegionScheduledDeletion.objects.filter(
             object_id=monitor_environment.id, model_name="MonitorEnvironment"
         ).exists()
@@ -474,16 +496,16 @@ class DeleteMonitorTest(MonitorTestCase):
         )
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == ObjectStatus.ACTIVE
+        assert monitor.status == MonitorObjectStatus.ACTIVE
 
         monitor_environment_a = MonitorEnvironment.objects.get(id=monitor_environment_a.id)
-        assert monitor_environment_a.status == ObjectStatus.PENDING_DELETION
+        assert monitor_environment_a.status == MonitorObjectStatus.PENDING_DELETION
         assert RegionScheduledDeletion.objects.filter(
             object_id=monitor_environment_a.id, model_name="MonitorEnvironment"
         ).exists()
 
         monitor_environment_b = MonitorEnvironment.objects.get(id=monitor_environment_b.id)
-        assert monitor_environment_b.status == ObjectStatus.PENDING_DELETION
+        assert monitor_environment_b.status == MonitorObjectStatus.PENDING_DELETION
         assert RegionScheduledDeletion.objects.filter(
             object_id=monitor_environment_b.id, model_name="MonitorEnvironment"
         ).exists()
@@ -508,7 +530,7 @@ class DeleteMonitorTest(MonitorTestCase):
         )
 
         rule = Rule.objects.get(project_id=monitor.project_id, id=monitor.config["alert_rule_id"])
-        assert rule.status == ObjectStatus.PENDING_DELETION
+        assert rule.status == MonitorObjectStatus.PENDING_DELETION
         assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.DELETED.value).exists()
 
     def test_simple_with_alert_rule_deleted(self):

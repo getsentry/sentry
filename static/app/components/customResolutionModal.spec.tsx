@@ -1,5 +1,6 @@
 import selectEvent from 'react-select-event';
 import styled from '@emotion/styled';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -9,7 +10,7 @@ import ConfigStore from 'sentry/stores/configStore';
 
 describe('CustomResolutionModal', () => {
   let releasesMock;
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   beforeEach(() => {
     ConfigStore.init();
     releasesMock = MockApiClient.addMockResponse({

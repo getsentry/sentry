@@ -79,7 +79,7 @@ export const BannerSummary = styled('p')`
   }
 `;
 
-export const CauseHeader = styled('div')`
+export const SuspectCommitHeader = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;

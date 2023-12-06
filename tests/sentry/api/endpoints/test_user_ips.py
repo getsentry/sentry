@@ -1,11 +1,11 @@
 from datetime import datetime, timezone
 
-from sentry.models import UserIP
+from sentry.models.userip import UserIP
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class UserEmailsTest(APITestCase):
     endpoint = "sentry-api-0-user-ips"
 

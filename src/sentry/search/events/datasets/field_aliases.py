@@ -10,6 +10,7 @@ from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.models.projectteam import ProjectTeam
 from sentry.search.events import builder, constants, fields
 from sentry.search.events.types import SelectType
+from sentry.search.utils import DEVICE_CLASS
 from sentry.utils.numbers import format_grouped_length
 
 
@@ -86,21 +87,53 @@ def resolve_project_slug_alias(builder: builder.QueryBuilder, alias: str) -> Sel
 
 
 def resolve_span_module(builder, alias: str) -> SelectType:
+    OP_MAPPING = {
+        "db.redis": "cache",
+        "db.sql.room": "other",
+    }
+    return Function(
+        "if",
+        [
+            Function("in", [builder.column("span.op"), list(OP_MAPPING.keys())]),
+            Function(
+                "transform",
+                [
+                    builder.column("span.op"),
+                    list(OP_MAPPING.keys()),
+                    list(OP_MAPPING.values()),
+                    "other",
+                ],
+            ),
+            Function(
+                "transform",
+                [
+                    builder.column("span.category"),
+                    [
+                        "cache",
+                        "db",
+                        "http",
+                    ],
+                    [
+                        "cache",
+                        "db",
+                        "http",
+                    ],
+                    "other",
+                ],
+            ),
+        ],
+        alias,
+    )
+
+
+def resolve_device_class(builder: builder.QueryBuilder, alias: str) -> SelectType:
+    values: List[str] = []
+    keys: List[str] = []
+    for device_key, device_values in DEVICE_CLASS.items():
+        values.extend(device_values)
+        keys.extend([device_key] * len(device_values))
     return Function(
         "transform",
-        [
-            builder.column("span.category"),
-            [
-                "cache",
-                "db",
-                "http",
-            ],
-            [
-                "cache",
-                "db",
-                "http",
-            ],
-            "other",
-        ],
+        [builder.column("device.class"), values, keys, "Unknown"],
         alias,
     )

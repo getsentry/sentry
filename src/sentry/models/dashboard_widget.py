@@ -6,6 +6,7 @@ from django.contrib.postgres.fields import ArrayField as DjangoArrayField
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     ArrayField,
     BoundedPositiveIntegerField,
@@ -44,11 +45,16 @@ class TypesClass:
 class DashboardWidgetTypes(TypesClass):
     DISCOVER = 0
     ISSUE = 1
-    METRICS = 2
+    RELEASE_HEALTH = 2
+    METRICS = 3
     TYPES = [
         (DISCOVER, "discover"),
         (ISSUE, "issue"),
-        (METRICS, "metrics"),
+        (
+            RELEASE_HEALTH,
+            "metrics",
+        ),  # TODO(ddm): rename RELEASE to 'release', and METRICS to 'metrics'
+        (METRICS, "custom-metrics"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 
@@ -79,7 +85,7 @@ class DashboardWidgetQuery(Model):
     A query in a dashboard widget.
     """
 
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     widget = FlexibleForeignKey("sentry.DashboardWidget")
     name = models.CharField(max_length=255)
@@ -114,12 +120,13 @@ class DashboardWidget(Model):
     A dashboard widget.
     """
 
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     dashboard = FlexibleForeignKey("sentry.Dashboard")
     order = BoundedPositiveIntegerField()
     title = models.CharField(max_length=255)
     description = models.CharField(max_length=255, null=True)
+    thresholds = JSONField(null=True)
     interval = models.CharField(max_length=10, null=True)
     display_type = BoundedPositiveIntegerField(choices=DashboardWidgetDisplayTypes.as_choices())
     date_added = models.DateTimeField(default=timezone.now)

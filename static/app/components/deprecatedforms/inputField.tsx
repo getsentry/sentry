@@ -19,7 +19,7 @@ type InputFieldProps = FormField['props'] & {
  */
 class InputField<
   Props extends InputFieldProps = InputFieldProps,
-  State extends FormField['state'] = FormField['state']
+  State extends FormField['state'] = FormField['state'],
 > extends FormField<Props, State> {
   getField() {
     return (

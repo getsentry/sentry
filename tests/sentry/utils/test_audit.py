@@ -2,14 +2,11 @@ from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
 
 from sentry import audit_log
-from sentry.models import (
-    AuditLogEntry,
-    DeletedOrganization,
-    DeletedProject,
-    DeletedTeam,
-    Organization,
-    OrganizationStatus,
-)
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.deletedorganization import DeletedOrganization
+from sentry.models.deletedproject import DeletedProject
+from sentry.models.deletedteam import DeletedTeam
+from sentry.models.organization import Organization, OrganizationStatus
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
@@ -30,7 +27,7 @@ def fake_http_request(user):
     return request
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class CreateAuditEntryTest(TestCase):
     def setUp(self):
         self.user = self.create_user(username=username)
@@ -300,6 +297,20 @@ class CreateAuditEntryTest(TestCase):
             audit_log_event.render(entry)
             == "edited project performance issue detector settings to enable detection of File IO on Main Thread issue"
         )
+
+    def test_audit_entry_project_ownership_rule_edit(self):
+        entry = create_audit_entry(
+            request=self.req,
+            organization=self.org,
+            target_object=self.project.id,
+            event=audit_log.get_event_id("PROJECT_OWNERSHIPRULE_EDIT"),
+        )
+        audit_log_event = audit_log.get(entry.event)
+
+        assert entry.actor == self.user
+        assert entry.target_object == self.project.id
+        assert entry.event == audit_log.get_event_id("PROJECT_OWNERSHIPRULE_EDIT")
+        assert audit_log_event.render(entry) == "modified ownership rules"
 
     def test_audit_entry_integration_log(self):
         project = self.create_project()

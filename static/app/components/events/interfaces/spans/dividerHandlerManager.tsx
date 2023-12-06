@@ -1,6 +1,7 @@
 import {Component, createContext, createRef} from 'react';
 
-import {clamp, rectOfContent} from 'sentry/components/performance/waterfall/utils';
+import {rectOfContent} from 'sentry/components/performance/waterfall/utils';
+import clamp from 'sentry/utils/number/clamp';
 import toPercent from 'sentry/utils/number/toPercent';
 import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
 

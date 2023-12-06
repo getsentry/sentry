@@ -156,7 +156,9 @@ function EventAttachmentsContent({event, projectSlug}: EventAttachmentsProps) {
         >
           {attachments.map(attachment => (
             <Fragment key={attachment.id}>
-              <Name>{attachment.name}</Name>
+              <FlexCenter>
+                <Name>{attachment.name}</Name>
+              </FlexCenter>
               <Size>
                 <FileSize bytes={attachment.size} />
               </Size>
@@ -221,12 +223,22 @@ const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr auto auto;
 `;
 
+const FlexCenter = styled('div')`
+  ${p => p.theme.overflowEllipsis};
+  display: flex;
+  align-items: center;
+`;
+
 const Name = styled('div')`
   ${p => p.theme.overflowEllipsis};
+  white-space: nowrap;
 `;
 
 const Size = styled('div')`
-  text-align: right;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  white-space: nowrap;
 `;
 
 const AttachmentPreviewWrapper = styled('div')`

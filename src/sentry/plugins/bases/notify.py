@@ -8,9 +8,11 @@ from requests.exceptions import HTTPError, SSLError
 
 from sentry import digests, ratelimits
 from sentry.exceptions import InvalidIdentity, PluginError
-from sentry.models import NotificationSetting
+from sentry.notifications.types import NotificationSettingEnum
 from sentry.plugins.base import Notification, Plugin
 from sentry.plugins.base.configuration import react_plugin_config
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.services.hybrid_cloud.notifications.service import notifications_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import ExternalProviders
 
@@ -108,7 +110,7 @@ class NotificationPlugin(Plugin):
         pass
 
     def get_notification_recipients(self, project, user_option: str) -> Set:
-        from sentry.models import UserOption
+        from sentry.models.options.user_option import UserOption
 
         alert_settings = {
             o.user_id: int(o.value)
@@ -141,9 +143,16 @@ class NotificationPlugin(Plugin):
         notifications for the provided project.
         """
         if self.get_conf_key() == "mail":
-            return NotificationSetting.objects.get_notification_recipients(project)[
-                ExternalProviders.EMAIL
-            ]
+            user_ids = list(project.member_set.values_list("user_id", flat=True))
+            actors = [RpcActor(id=uid, actor_type=ActorType.USER) for uid in user_ids]
+            recipients = notifications_service.get_notification_recipients(
+                recipients=actors,
+                type=NotificationSettingEnum.ISSUE_ALERTS,
+                project_ids=[project.id],
+                organization_id=project.organization_id,
+                actor_type=ActorType.USER,
+            )
+            return recipients.get(ExternalProviders.EMAIL.name)
 
         return self.get_notification_recipients(project, f"{self.get_conf_key()}:alert")
 

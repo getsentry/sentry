@@ -3,7 +3,7 @@ from unittest.mock import patch
 from sentry.api.serializers.base import serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.coreapi import APIError
-from sentry.models import SentryApp
+from sentry.models.integrations.sentry_app import SentryApp
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -12,7 +12,7 @@ def get_sentry_app_avatars(sentry_app: SentryApp):
     return [serialize(avatar) for avatar in sentry_app.avatar.all()]
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class SentryAppComponentsTest(APITestCase):
     endpoint = "sentry-api-0-sentry-app-components"
 
@@ -49,7 +49,7 @@ class SentryAppComponentsTest(APITestCase):
         }
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrganizationSentryAppComponentsTest(APITestCase):
     endpoint = "sentry-api-0-organization-sentry-app-components"
 

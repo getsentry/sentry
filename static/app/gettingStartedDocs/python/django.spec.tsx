@@ -6,7 +6,7 @@ import {GettingStartedWithDjango, steps} from './django';
 
 describe('GettingStartedWithDjango', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithDjango dsn="test-dsn" />);
+    render(<GettingStartedWithDjango dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithDjango', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

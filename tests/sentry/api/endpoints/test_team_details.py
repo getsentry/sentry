@@ -1,5 +1,9 @@
 from sentry import audit_log
-from sentry.models import AuditLogEntry, DeletedTeam, RegionScheduledDeletion, Team, TeamStatus
+from sentry.api.fields.sentry_slug import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.deletedteam import DeletedTeam
+from sentry.models.scheduledeletion import RegionScheduledDeletion
+from sentry.models.team import Team, TeamStatus
 from sentry.services.hybrid_cloud.log.service import log_rpc_service
 from sentry.silo import SiloMode
 from sentry.testutils.asserts import assert_org_audit_log_exists
@@ -60,7 +64,7 @@ class TeamDetailsTestBase(APITestCase):
         self.assert_team_status(team_id, TeamStatus.ACTIVE)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TeamDetailsTest(TeamDetailsTestBase):
     def test_simple(self):
         team = self.team  # force creation
@@ -69,7 +73,7 @@ class TeamDetailsTest(TeamDetailsTestBase):
         assert response.data["id"] == str(team.id)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TeamUpdateTest(TeamDetailsTestBase):
     method = "put"
 
@@ -83,6 +87,10 @@ class TeamUpdateTest(TeamDetailsTestBase):
         team = Team.objects.get(id=team.id)
         assert team.name == "hello world"
         assert team.slug == "foobar"
+
+    def test_invalid_numeric_slug(self):
+        response = self.get_error_response(self.organization.slug, self.team.slug, slug="1234")
+        assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
 
     def test_member_without_team_role(self):
         user = self.create_user("foo@example.com")
@@ -338,7 +346,7 @@ class TeamUpdateTest(TeamDetailsTestBase):
         assert team.org_role == "owner"
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TeamDeleteTest(TeamDetailsTestBase):
     method = "delete"
 

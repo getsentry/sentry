@@ -12,7 +12,8 @@ from django.utils.encoding import force_bytes
 from sentry import features
 from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models import Organization, Project
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.utils.performance_issues.detectors.utils import get_total_span_duration
 
 from ..base import (

@@ -77,7 +77,9 @@ const SliderThumbWrap = styled('div')<{
   color: ${p => p.theme.activeText};
   border: solid 2px ${p => p.theme.background};
   cursor: pointer;
-  transition: box-shadow 0.1s, background 0.1s;
+  transition:
+    box-shadow 0.1s,
+    background 0.1s;
 
   &:hover {
     background: ${p => p.theme.activeHover};

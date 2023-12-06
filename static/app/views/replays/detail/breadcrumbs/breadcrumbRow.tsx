@@ -1,17 +1,21 @@
-import {CSSProperties, MouseEvent} from 'react';
+import {CSSProperties, MouseEvent, useCallback} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
+import {ReplayTraceRow} from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
 
 interface Props {
+  extraction: Extraction | undefined;
   frame: ReplayFrame;
   index: number;
   onClick: ReturnType<typeof useCrumbHandlers>['onClickTimestamp'];
-  onDimensionChange: (
+  onDimensionChange: (index: number) => void;
+  onInspectorExpanded: (
     index: number,
     path: string,
     expandedState: Record<string, boolean>,
@@ -19,6 +23,7 @@ interface Props {
   ) => void;
   startTimestampMs: number;
   style: CSSProperties;
+  traces: ReplayTraceRow | undefined;
   breadcrumbIndex?: number[][];
   expandPaths?: string[];
 }
@@ -26,15 +31,27 @@ interface Props {
 function BreadcrumbRow({
   expandPaths,
   frame,
+  extraction,
   index,
   onClick,
   onDimensionChange,
+  onInspectorExpanded,
   startTimestampMs,
   style,
+  traces,
 }: Props) {
   const {currentTime, currentHoverTime} = useReplayContext();
 
   const {onMouseEnter, onMouseLeave} = useCrumbHandlers();
+  const handleDimensionChange = useCallback(
+    () => onDimensionChange(index),
+    [onDimensionChange, index]
+  );
+  const handleObjectInspectorExpanded = useCallback(
+    (path, expandedState, e) =>
+      onInspectorExpanded && onInspectorExpanded(index, path, expandedState, e),
+    [index, onInspectorExpanded]
+  );
 
   const hasOccurred = currentTime >= frame.offsetMs;
   const isBeforeHover =
@@ -51,14 +68,16 @@ function BreadcrumbRow({
       style={style}
     >
       <BreadcrumbItem
-        index={index}
         frame={frame}
+        traces={traces}
+        extraction={extraction}
         onClick={onClick}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
         startTimestampMs={startTimestampMs}
         expandPaths={expandPaths}
-        onDimensionChange={onDimensionChange}
+        onDimensionChange={handleDimensionChange}
+        onInspectorExpanded={handleObjectInspectorExpanded}
       />
     </StyledTimeBorder>
   );

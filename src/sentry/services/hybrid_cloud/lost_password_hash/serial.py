@@ -1,4 +1,4 @@
-from sentry.models import LostPasswordHash
+from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.services.hybrid_cloud.lost_password_hash import RpcLostPasswordHash
 
 

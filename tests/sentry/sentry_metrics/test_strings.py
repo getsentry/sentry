@@ -1,3 +1,5 @@
+from django.test import override_settings
+
 from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS, StaticStringIndexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -57,3 +59,24 @@ def test_reverse_resolve_shared_org_no_entry() -> None:
     # shared string start quite high 2^63 so anything smaller should return None
     actual = indexer.reverse_shared_org_resolve(5)
     assert actual is None
+
+
+REINDEXED_INTS = {12345678: "release"}
+
+
+@override_settings(SENTRY_METRICS_INDEXER_REINDEXED_INTS=REINDEXED_INTS)
+def test_reverse_resolve_reindexed():
+    """
+    If we have deleted a record accidentally and whose id still lives in
+    ClickHouse, then we need to account for the re-indexed id. Since the
+    indexer table has a unique contraint on the org and string, we have a
+    hardcoded setting that let's us patch reverse_resolve so that we don't
+    get MetricIndexNotFound and return a 500.
+    """
+    indexer = StaticStringIndexer(MockIndexer())
+    id = indexer.record(use_case_id, 2, "release")
+    # for mypy
+    assert id
+
+    assert indexer.reverse_resolve(UseCaseID.SESSIONS, 1, id) == "release"
+    assert indexer.reverse_resolve(UseCaseID.SESSIONS, 1, 12345678) == "release"

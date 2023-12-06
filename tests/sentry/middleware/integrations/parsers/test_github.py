@@ -6,7 +6,7 @@ from django.test import RequestFactory
 from django.urls import reverse
 
 from sentry.middleware.integrations.parsers.github import GithubRequestParser
-from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
+from sentry.models.outbox import ControlOutbox, OutboxCategory, WebhookProviderIdentifier
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import assert_webhook_outboxes
@@ -14,12 +14,12 @@ from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class GithubRequestParserTest(TestCase):
     get_response = MagicMock(return_value=HttpResponse(content=b"no-error", status=200))
     factory = RequestFactory()
     path = reverse("sentry-integration-github-webhook")
-    region = Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT)
+    region = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
 
     def setUp(self):
         super().setUp()
@@ -36,8 +36,7 @@ class GithubRequestParserTest(TestCase):
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
         response = parser.get_response()
-        assert response.status_code == 200
-        assert response.content == b"no-error"
+        assert response.status_code == 400
 
     def test_routing_webhook_properly(self):
         request = self.factory.post(self.path, data={}, content_type="application/json")
@@ -97,7 +96,7 @@ class GithubRequestParserTest(TestCase):
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
-        assert ControlOutbox.objects.count() == 0
+        assert ControlOutbox.objects.filter(category=OutboxCategory.WEBHOOK_PROXY).count() == 0
         with mock.patch.object(
             parser, "get_regions_from_organizations", return_value=[self.region]
         ):
@@ -107,3 +106,19 @@ class GithubRequestParserTest(TestCase):
                 webhook_identifier=WebhookProviderIdentifier.GITHUB,
                 region_names=[self.region.name],
             )
+
+    def test_installation_created_routing(self):
+        request = self.factory.post(
+            reverse("sentry-integration-github-webhook"),
+            data={"installation": {"id": "github:1"}, "action": "created"},
+            content_type="application/json",
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+        with mock.patch.object(
+            parser, "get_response_from_outbox_creation"
+        ) as get_response_from_outbox_creation, mock.patch.object(
+            parser, "get_response_from_control_silo"
+        ) as get_response_from_control_silo:
+            parser.get_response()
+            assert get_response_from_control_silo.called
+            assert not get_response_from_outbox_creation.called

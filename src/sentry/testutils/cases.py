@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.metadata
 import inspect
 import os.path
+import re
 import time
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
-from typing import Dict, List, Literal, Optional, Sequence, Union
+from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence, Union
 from unittest import mock
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -30,10 +32,10 @@ from django.test import TestCase as DjangoTestCase
 from django.test import TransactionTestCase as DjangoTransactionTestCase
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
-from django.urls import reverse
+from django.urls import resolve, reverse
 from django.utils import timezone as django_timezone
 from django.utils.functional import cached_property
-from pkg_resources import iter_entry_points
+from requests.utils import CaseInsensitiveDict, get_encoding_from_headers
 from rest_framework import status
 from rest_framework.test import APITestCase as BaseAPITestCase
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
@@ -58,41 +60,41 @@ from sentry.eventstream.snuba import SnubaEventStream
 from sentry.issues.grouptype import NoiseConfig, PerformanceNPlusOneGroupType
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.mail import mail_adapter
-from sentry.mediators.project_rules import Creator
-from sentry.models import ApiToken
-from sentry.models import AuthProvider as AuthProviderModel
-from sentry.models import (
-    Commit,
-    CommitAuthor,
-    Dashboard,
+from sentry.mediators.project_rules.creator import Creator
+from sentry.models.apitoken import ApiToken
+from sentry.models.authprovider import AuthProvider as AuthProviderModel
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
-    DeletedOrganization,
-    Deploy,
-    Environment,
-    File,
-    GroupMeta,
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    NotificationSetting,
-    Organization,
-    OrganizationMember,
-    Project,
-    ProjectOption,
-    Release,
-    ReleaseCommit,
-    Repository,
-    RuleSource,
-    User,
-    UserEmail,
-    UserOption,
 )
+from sentry.models.deletedorganization import DeletedOrganization
+from sentry.models.deploy import Deploy
+from sentry.models.environment import Environment
+from sentry.models.files.file import File
+from sentry.models.groupmeta import GroupMeta
+from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.options.user_option import UserOption
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.repository import Repository
+from sentry.models.rule import RuleSource
+from sentry.models.user import User
+from sentry.models.useremail import UserEmail
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import plugins
+from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.models import ReplayRecordingSegment
+from sentry.rules.base import RuleBase
 from sentry.search.events.constants import (
     METRIC_FRUSTRATED_TAG_VALUE,
     METRIC_SATISFACTION_TAG_KEY,
@@ -106,14 +108,17 @@ from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
 from sentry.silo import SiloMode
+from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.datasource import get_series
-from sentry.tagstore.snuba import SnubaTagStorage
+from sentry.snuba.metrics.extraction import OnDemandMetricSpec
+from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
+from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.pytest.selenium import Browser
-from sentry.types.integrations import ExternalProviders
+from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
 from sentry.utils.dates import to_timestamp
@@ -124,6 +129,7 @@ from sentry.utils.samples import load_data
 from sentry.utils.snuba import _snuba_pool
 
 from ..services.hybrid_cloud.organization.serial import serialize_rpc_organization
+from ..shared_integrations.client.proxy import IntegrationProxyClient
 from ..snuba.metrics import (
     MetricConditionField,
     MetricField,
@@ -171,6 +177,8 @@ __all__ = (
     "MonitorTestCase",
     "MonitorIngestTestCase",
 )
+
+from ..types.region import get_region_by_name
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
 
@@ -443,6 +451,39 @@ class TestCase(BaseTestCase, DjangoTestCase):
     # We need Django to flush all databases.
     databases: set[str] | str = "__all__"
 
+    @contextmanager
+    def auto_select_silo_mode_on_redirects(self):
+        """
+        Tests that utilize follow=True may follow redirects between silo modes.  This isn't ideal but convenient for
+        testing certain work flows.  Using this context manager, the silo mode in the test will swap automatically
+        for each view's decorator in order to prevent otherwise unavoidable SiloAvailability errors.
+        """
+        old_request = self.client.request
+
+        def request(**request: Any) -> Any:
+            resolved = resolve(request["PATH_INFO"])
+            view_class = getattr(resolved.func, "view_class", None)
+            if view_class is not None:
+                endpoint_silo_limit = getattr(view_class, "silo_limit", None)
+                if endpoint_silo_limit:
+                    for mode in endpoint_silo_limit.modes:
+                        if mode is SiloMode.MONOLITH or mode is SiloMode.get_current_mode():
+                            continue
+                        region = None
+                        if mode is SiloMode.REGION:
+                            # TODO: Can we infer the correct region here?  would need to package up the
+                            # the request dictionary into a higher level object, which also involves invoking
+                            # _base_environ and maybe other logic buried in Client.....
+                            region = get_region_by_name(settings.SENTRY_MONOLITH_REGION)
+                        with SiloMode.exit_single_process_silo_context(), SiloMode.enter_single_process_silo_context(
+                            mode, region
+                        ):
+                            return old_request(**request)
+            return old_request(**request)
+
+        with mock.patch.object(self.client, "request", new=request):
+            yield
+
     # Ensure that testcases that ask for DB setup actually make use of the
     # DB. If they don't, they're wasting CI time.
     if DETECT_TESTCASE_MISUSE:
@@ -498,8 +539,8 @@ class TestCase(BaseTestCase, DjangoTestCase):
                     # good enough as we do not expect subclasses, secondly however because
                     # it turns out doing an isinstance check on untrusted input can cause
                     # bad things to happen because it's hookable.  In particular this
-                    # blows through max recursion limits here if it encounters certain
-                    # types of broken lazy proxy objects.
+                    # blows through max recursion limits here if it encounters certain types
+                    # of broken lazy proxy objects.
                     if type(first_arg) is state.base and info.function in state.used_db:
                         state.used_db[info.function] = True
                         break
@@ -573,10 +614,6 @@ class PerformanceIssueTestCase(BaseTestCase):
             issue_type, "noise_config", new=NoiseConfig(noise_limit, timedelta(minutes=1))
         ), override_options(
             {"performance.issues.all.problem-detection": 1.0, detector_option: 1.0}
-        ), self.feature(
-            [
-                "projects:performance-suspect-spans-ingestion",
-            ]
         ):
             event = perf_event_manager.save(project_id)
             if mock_eventstream.call_args:
@@ -702,6 +739,51 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
             )
         ]
 
+    # The analytics event `name` was called with `kwargs` being a subset of its properties
+    def analytics_called_with_args(self, fn, name, **kwargs):
+        for call_args, call_kwargs in fn.call_args_list:
+            event_name = call_args[0]
+            if event_name == name:
+                assert all(call_kwargs.get(key, None) == val for key, val in kwargs.items())
+                return True
+        return False
+
+    @contextmanager
+    def api_gateway_proxy_stubbed(self):
+        """Mocks a fake api gateway proxy that redirects via Client objects"""
+
+        def proxy_raw_request(
+            method: str,
+            url: str,
+            headers: Mapping[str, str],
+            params: Mapping[str, str] | None,
+            data: Any,
+            **kwds: Any,
+        ) -> requests.Response:
+            from django.test.client import Client
+
+            client = Client()
+            extra: Mapping[str, Any] = {
+                f"HTTP_{k.replace('-', '_').upper()}": v for k, v in headers.items()
+            }
+            if params:
+                url += "?" + urlencode(params)
+            with assume_test_silo_mode(SiloMode.REGION):
+                resp = getattr(client, method.lower())(
+                    url, b"".join(data), headers["Content-Type"], **extra
+                )
+            response = requests.Response()
+            response.status_code = resp.status_code
+            response.headers = CaseInsensitiveDict(resp.headers)
+            response.encoding = get_encoding_from_headers(response.headers)
+            response.raw = BytesIO(resp.content)
+            return response
+
+        with mock.patch(
+            "sentry.hybridcloud.apigateway.proxy.external_request", new=proxy_raw_request
+        ):
+            yield
+
 
 class TwoFactorAPITestCase(APITestCase):
     @cached_property
@@ -788,7 +870,26 @@ class RuleTestCase(TestCase):
         kwargs.setdefault("is_regression", True)
         kwargs.setdefault("is_new_group_environment", True)
         kwargs.setdefault("has_reappeared", True)
+        kwargs.setdefault("has_escalated", False)
         return EventState(**kwargs)
+
+    def get_condition_activity(self, **kwargs) -> ConditionActivity:
+        kwargs.setdefault("group_id", self.event.group.id)
+        kwargs.setdefault("type", ConditionActivityType.CREATE_ISSUE)
+        kwargs.setdefault("timestamp", self.event.datetime)
+        return ConditionActivity(**kwargs)
+
+    def passes_activity(
+        self,
+        rule: RuleBase,
+        condition_activity: Optional[ConditionActivity] = None,
+        event_map: Optional[Dict[str, Any]] = None,
+    ):
+        if condition_activity is None:
+            condition_activity = self.get_condition_activity()
+        if event_map is None:
+            event_map = {}
+        return rule.passes_activity(condition_activity, event_map)
 
     def assertPasses(self, rule, event=None, **kwargs):
         if event is None:
@@ -891,6 +992,7 @@ class PermissionTestCase(TestCase):
         self.assert_cannot_access(user, path, **kwargs)
 
 
+@requires_snuba
 class PluginTestCase(TestCase):
     @property
     def plugin(self):
@@ -906,29 +1008,21 @@ class PluginTestCase(TestCase):
             self.addCleanup(plugins.unregister, self.plugin)
 
     def assertAppInstalled(self, name, path):
-        for ep in iter_entry_points("sentry.apps"):
-            if ep.name == name:
-                ep_path = ep.module_name
-                if ep_path == path:
-                    return
-                self.fail(
-                    "Found app in entry_points, but wrong class. Got %r, expected %r"
-                    % (ep_path, path)
-                )
-        self.fail(f"Missing app from entry_points: {name!r}")
+        for ep in importlib.metadata.distribution("sentry").entry_points:
+            if ep.group == "sentry.apps" and ep.name == name:
+                assert ep.value == path
+                return
+        else:
+            self.fail(f"Missing app from entry_points: {name!r}")
 
     def assertPluginInstalled(self, name, plugin):
         path = type(plugin).__module__ + ":" + type(plugin).__name__
-        for ep in iter_entry_points("sentry.plugins"):
-            if ep.name == name:
-                ep_path = ep.module_name + ":" + ".".join(ep.attrs)
-                if ep_path == path:
-                    return
-                self.fail(
-                    "Found plugin in entry_points, but wrong class. Got %r, expected %r"
-                    % (ep_path, path)
-                )
-        self.fail(f"Missing plugin from entry_points: {name!r}")
+        for ep in importlib.metadata.distribution("sentry").entry_points:
+            if ep.group == "sentry.plugins" and ep.name == name:
+                assert ep.value == path
+                return
+        else:
+            self.fail(f"Missing plugin from entry_points: {name!r}")
 
 
 class CliTestCase(TestCase):
@@ -1291,22 +1385,22 @@ class BaseMetricsTestCase(SnubaTestCase):
         # seq=0 is equivalent to relay's session.init, init=True is transformed
         # to seq=0 in Relay.
         if session["seq"] == 0:  # init
-            push("counter", SessionMRI.SESSION.value, {"session.status": "init"}, +1)
+            push("counter", SessionMRI.RAW_SESSION.value, {"session.status": "init"}, +1)
 
         status = session["status"]
 
         # Mark the session as errored, which includes fatal sessions.
         if session.get("errors", 0) > 0 or status not in ("ok", "exited"):
-            push("set", SessionMRI.ERROR.value, {}, session["session_id"])
+            push("set", SessionMRI.RAW_ERROR.value, {}, session["session_id"])
             if not user_is_nil:
-                push("set", SessionMRI.USER.value, {"session.status": "errored"}, user)
+                push("set", SessionMRI.RAW_USER.value, {"session.status": "errored"}, user)
         elif not user_is_nil:
-            push("set", SessionMRI.USER.value, {}, user)
+            push("set", SessionMRI.RAW_USER.value, {}, user)
 
         if status in ("abnormal", "crashed"):  # fatal
-            push("counter", SessionMRI.SESSION.value, {"session.status": status}, +1)
+            push("counter", SessionMRI.RAW_SESSION.value, {"session.status": status}, +1)
             if not user_is_nil:
-                push("set", SessionMRI.USER.value, {"session.status": status}, user)
+                push("set", SessionMRI.RAW_USER.value, {"session.status": status}, user)
 
         if status == "exited":
             if session["duration"] is not None:
@@ -1326,14 +1420,14 @@ class BaseMetricsTestCase(SnubaTestCase):
         cls,
         org_id: int,
         project_id: int,
-        type: Literal["counter", "set", "distribution"],
+        type: Literal["counter", "set", "distribution", "gauge"],
         name: str,
         tags: Dict[str, str],
         timestamp: int,
-        value,
+        value: Any,
         use_case_id: UseCaseID,
         aggregation_option: Optional[AggregationOption] = None,
-    ):
+    ) -> None:
         mapping_meta = {}
 
         def metric_id(key: str):
@@ -1380,6 +1474,16 @@ class BaseMetricsTestCase(SnubaTestCase):
             value = [int.from_bytes(hashlib.md5(str(value).encode()).digest()[:8], "big")]
         elif type == "distribution":
             value = [value]
+        elif type == "gauge":
+            # In case we pass either an int or float, we will emit a gauge with all the same values.
+            if not isinstance(value, Dict):
+                value = {
+                    "min": value,
+                    "max": value,
+                    "sum": value,
+                    "count": int(value),
+                    "last": value,
+                }
 
         msg = {
             "org_id": org_id,
@@ -1387,7 +1491,7 @@ class BaseMetricsTestCase(SnubaTestCase):
             "metric_id": metric_id(name),
             "timestamp": timestamp,
             "tags": {tag_key(key): tag_value(value) for key, value in tags.items()},
-            "type": {"counter": "c", "set": "s", "distribution": "d"}[type],
+            "type": {"counter": "c", "set": "s", "distribution": "d", "gauge": "g"}[type],
             "value": value,
             "retention_days": 90,
             "use_case_id": use_case_id.value,
@@ -1474,7 +1578,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         self,
         name: str,
         tags: Dict[str, str],
-        value: int,
+        value: int | float | Dict[str, int | float],
         use_case_id: UseCaseID,
         type: Optional[str] = None,
         org_id: Optional[int] = None,
@@ -1551,7 +1655,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         self,
         name: str,
         tags: Dict[str, str],
-        value: int | float,
+        value: int | float | Dict[str, int | float],
         type: Optional[str] = None,
         org_id: Optional[int] = None,
         project_id: Optional[int] = None,
@@ -1603,6 +1707,35 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
             seconds_before_now=seconds_before_now,
         )
 
+    def store_custom_metric(
+        self,
+        name: str,
+        tags: Dict[str, str],
+        value: int | float | Dict[str, int | float],
+        type: Optional[str] = None,
+        org_id: Optional[int] = None,
+        project_id: Optional[int] = None,
+        days_before_now: int = 0,
+        hours_before_now: int = 0,
+        minutes_before_now: int = 0,
+        seconds_before_now: int = 0,
+        aggregation_option: Optional[AggregationOption] = None,
+    ):
+        self._store_metric(
+            type=type,
+            name=name,
+            tags=tags,
+            value=value,
+            org_id=org_id,
+            project_id=project_id,
+            use_case_id=UseCaseID.CUSTOM,
+            days_before_now=days_before_now,
+            hours_before_now=hours_before_now,
+            minutes_before_now=minutes_before_now,
+            seconds_before_now=seconds_before_now,
+            aggregation_option=aggregation_option,
+        )
+
     def build_metrics_query(
         self,
         select: Sequence[MetricField],
@@ -1646,11 +1779,15 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "metrics_distributions": "distribution",
         "metrics_sets": "set",
         "metrics_counters": "counter",
+        "metrics_gauges": "gauge",
     }
     ENTITY_MAP = {
         "transaction.duration": "metrics_distributions",
         "span.duration": "metrics_distributions",
         "span.self_time": "metrics_distributions",
+        "http.response_content_length": "metrics_distributions",
+        "http.decoded_response_content_length": "metrics_distributions",
+        "http.response_transfer_size": "metrics_distributions",
         "measurements.lcp": "metrics_distributions",
         "measurements.fp": "metrics_distributions",
         "measurements.fcp": "metrics_distributions",
@@ -1658,8 +1795,36 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "measurements.cls": "metrics_distributions",
         "measurements.frames_frozen_rate": "metrics_distributions",
         "measurements.time_to_initial_display": "metrics_distributions",
+        "measurements.score.lcp": "metrics_distributions",
+        "measurements.score.fcp": "metrics_distributions",
+        "measurements.score.fid": "metrics_distributions",
+        "measurements.score.cls": "metrics_distributions",
+        "measurements.score.ttfb": "metrics_distributions",
+        "measurements.score.total": "metrics_distributions",
+        "measurements.score.weight.lcp": "metrics_distributions",
+        "measurements.score.weight.fcp": "metrics_distributions",
+        "measurements.score.weight.fid": "metrics_distributions",
+        "measurements.score.weight.cls": "metrics_distributions",
+        "measurements.score.weight.ttfb": "metrics_distributions",
+        "measurements.app_start_cold": "metrics_distributions",
+        "measurements.app_start_warm": "metrics_distributions",
         "spans.http": "metrics_distributions",
         "user": "metrics_sets",
+    }
+    ON_DEMAND_KEY_MAP = {
+        "c": TransactionMetricKey.COUNT_ON_DEMAND.value,
+        "d": TransactionMetricKey.DIST_ON_DEMAND.value,
+        "s": TransactionMetricKey.SET_ON_DEMAND.value,
+    }
+    ON_DEMAND_MRI_MAP = {
+        "c": TransactionMRI.COUNT_ON_DEMAND.value,
+        "d": TransactionMRI.DIST_ON_DEMAND.value,
+        "s": TransactionMRI.SET_ON_DEMAND.value,
+    }
+    ON_DEMAND_ENTITY_MAP = {
+        "c": EntityKey.MetricsCounters.value,
+        "d": EntityKey.MetricsDistributions.value,
+        "s": EntityKey.MetricsSets.value,
     }
     METRIC_STRINGS = []
     DEFAULT_METRIC_TIMESTAMP = datetime(2015, 1, 1, 10, 15, 0, tzinfo=timezone.utc)
@@ -1687,7 +1852,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def store_transaction_metric(
         self,
-        value: List[float] | float,
+        value: list[Any] | Any,
         metric: str = "transaction.duration",
         internal_metric: Optional[str] = None,
         entity: Optional[str] = None,
@@ -1696,7 +1861,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         project: Optional[int] = None,
         use_case_id: UseCaseID = UseCaseID.TRANSACTIONS,
         aggregation_option: Optional[AggregationOption] = None,
-    ):
+    ) -> None:
         internal_metric = METRICS_MAP[metric] if internal_metric is None else internal_metric
         entity = self.ENTITY_MAP[metric] if entity is None else entity
         org_id = self.organization.id
@@ -1723,9 +1888,35 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
                 tags,
                 int(metric_timestamp),
                 subvalue,
-                use_case_id=UseCaseID.TRANSACTIONS,
+                use_case_id=use_case_id,
                 aggregation_option=aggregation_option,
             )
+
+    def store_on_demand_metric(
+        self,
+        value: int | float,
+        spec: OnDemandMetricSpec,
+        additional_tags: Optional[Dict[str, str]] = None,
+        timestamp: Optional[datetime] = None,
+    ) -> None:
+        """Convert on-demand metric and store it"""
+        relay_metric_spec = spec.to_metric_spec(self.project)
+        metric_spec_tags = relay_metric_spec["tags"] or [] if relay_metric_spec else []
+        tags = {i["key"]: i.get("value") or i.get("field") for i in metric_spec_tags}
+
+        metric_type = spec.metric_type
+        if additional_tags:
+            # Additional tags might be needed to override field values from the spec.
+            tags.update(additional_tags)
+
+        self.store_transaction_metric(
+            value,
+            metric=self.ON_DEMAND_KEY_MAP[metric_type],
+            internal_metric=self.ON_DEMAND_MRI_MAP[metric_type],
+            entity=self.ON_DEMAND_ENTITY_MAP[metric_type],
+            tags=tags,
+            timestamp=timestamp,
+        )
 
     def store_span_metric(
         self,
@@ -1736,7 +1927,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         tags: Optional[Dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
         project: Optional[int] = None,
-        use_case_id: UseCaseID = UseCaseID.TRANSACTIONS,  # TODO(wmak): this needs to be the span id
+        use_case_id: UseCaseID = UseCaseID.SPANS,
     ):
         internal_metric = SPAN_METRICS_MAP[metric] if internal_metric is None else internal_metric
         entity = self.ENTITY_MAP[metric] if entity is None else entity
@@ -1764,7 +1955,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
                 tags,
                 int(metric_timestamp),
                 subvalue,
-                use_case_id=UseCaseID.TRANSACTIONS,
+                use_case_id=use_case_id,
             )
 
     def wait_for_metric_count(
@@ -1941,6 +2132,19 @@ class ReplaysSnubaTestCase(TestCase):
         )
         assert response.status_code == 200
 
+    def mock_event_links(self, timestamp, project_id, level, replay_id, event_id):
+        event = self.store_event(
+            data={
+                "timestamp": int(timestamp.timestamp()),
+                "event_id": event_id,
+                "level": level,
+                "message": "testing",
+                "contexts": {"replay": {"replay_id": replay_id}},
+            },
+            project_id=project_id,
+        )
+        return transform_event_for_linking_payload(replay_id, event)
+
 
 # AcceptanceTestCase and TestCase are mutually exclusive base classses
 class ReplaysAcceptanceTestCase(AcceptanceTestCase, SnubaTestCase):
@@ -1985,6 +2189,11 @@ class IntegrationRepositoryTestCase(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
+
+    @pytest.fixture(autouse=True)
+    def responses_context(self):
+        with responses.mock:
+            yield
 
     def add_create_repository_responses(self, repository_config):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
@@ -2221,12 +2430,10 @@ class TestMigrations(TransactionTestCase):
     def setUp(self):
         super().setUp()
 
-        self.migrate_from = [(self.app, self.migrate_from)]
-        self.migrate_to = [(self.app, self.migrate_to)]
+        migrate_from = [(self.app, self.migrate_from)]
+        migrate_to = [(self.app, self.migrate_to)]
 
         connection = connections[self.connection]
-        with connection.cursor() as cursor:
-            cursor.execute("SET ROLE 'postgres'")
 
         self.setup_initial_state()
 
@@ -2238,19 +2445,19 @@ class TestMigrations(TransactionTestCase):
                 "try running this test with `MIGRATIONS_TEST_MIGRATE=1 pytest ...`"
             )
         self.current_migration = [max(matching_migrations)]
-        old_apps = executor.loader.project_state(self.migrate_from).apps
+        old_apps = executor.loader.project_state(migrate_from).apps
 
         # Reverse to the original migration
-        executor.migrate(self.migrate_from)
+        executor.migrate(migrate_from)
 
         self.setup_before_migration(old_apps)
 
         # Run the migration to test
         executor = MigrationExecutor(connection)
         executor.loader.build_graph()  # reload.
-        executor.migrate(self.migrate_to)
+        executor.migrate(migrate_to)
 
-        self.apps = executor.loader.project_state(self.migrate_to).apps
+        self.apps = executor.loader.project_state(migrate_to).apps
 
     def tearDown(self):
         super().tearDown()
@@ -2347,6 +2554,12 @@ class ActivityTestCase(TestCase):
 
         return release, deploy
 
+    def get_notification_uuid(self, text: str) -> str:
+        # Allow notification\\_uuid and notification_uuid
+        result = re.search("notification.*_uuid=([a-zA-Z0-9-]+)", text)
+        assert result is not None
+        return result[1]
+
 
 class SlackActivityNotificationTest(ActivityTestCase):
     @cached_property
@@ -2355,24 +2568,17 @@ class SlackActivityNotificationTest(ActivityTestCase):
 
     def setUp(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.SLACK,
-                NotificationSettingTypes.WORKFLOW,
-                NotificationSettingOptionValues.ALWAYS,
-                user_id=self.user.id,
-            )
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.SLACK,
-                NotificationSettingTypes.DEPLOY,
-                NotificationSettingOptionValues.ALWAYS,
-                user_id=self.user.id,
-            )
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.SLACK,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                NotificationSettingOptionValues.ALWAYS,
-                user_id=self.user.id,
-            )
+            base_params = {
+                "user_id": self.user.id,
+                "scope_identifier": self.user.id,
+                "scope_type": "user",
+                "value": "always",
+            }
+            for type in ["workflow", "deploy", "alerts"]:
+                NotificationSettingOption.objects.create(
+                    type=type,
+                    **base_params,
+                )
             UserOption.objects.create(user=self.user, key="self_notifications", value="1")
             self.integration = install_slack(self.organization)
             self.idp = IdentityProvider.objects.create(
@@ -2395,6 +2601,11 @@ class SlackActivityNotificationTest(ActivityTestCase):
         self.name = self.user.get_display_name()
         self.short_id = self.group.qualified_short_id
 
+    @pytest.fixture(autouse=True)
+    def responses_context(self):
+        with responses.mock:
+            yield
+
     def assert_performance_issue_attachments(
         self, attachment, project_slug, referrer, alert_type="workflow"
     ):
@@ -2403,9 +2614,10 @@ class SlackActivityNotificationTest(ActivityTestCase):
             attachment["text"]
             == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
         )
+        notification_uuid = self.get_notification_uuid(attachment["title_link"])
         assert (
             attachment["footer"]
-            == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}|Notification Settings>"
+            == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
     def assert_generic_issue_attachments(
@@ -2413,33 +2625,35 @@ class SlackActivityNotificationTest(ActivityTestCase):
     ):
         assert attachment["title"] == TEST_ISSUE_OCCURRENCE.issue_title
         assert attachment["text"] == TEST_ISSUE_OCCURRENCE.evidence_display[0].value
+        notification_uuid = self.get_notification_uuid(attachment["title_link"])
         assert (
             attachment["footer"]
-            == f"{project_slug} | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}|Notification Settings>"
+            == f"{project_slug} | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
 
 class MSTeamsActivityNotificationTest(ActivityTestCase):
     def setUp(self):
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.MSTEAMS,
-            NotificationSettingTypes.WORKFLOW,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=self.user.id,
-        )
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.MSTEAMS,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=self.user.id,
-        )
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.MSTEAMS,
-            NotificationSettingTypes.DEPLOY,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=self.user.id,
-        )
-        UserOption.objects.create(user=self.user, key="self_notifications", value="1")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            base_params = {
+                "user_id": self.user.id,
+                "scope_identifier": self.user.id,
+                "scope_type": "user",
+                "value": "always",
+            }
+            for type in ["workflow", "deploy", "alerts"]:
+                NotificationSettingOption.objects.create(
+                    type=type,
+                    **base_params,
+                )
+                # need to enable the provider options since msteams is disabled by default
+                NotificationSettingProvider.objects.create(
+                    provider="msteams",
+                    type=type,
+                    **base_params,
+                )
+
+            UserOption.objects.create(user=self.user, key="self_notifications", value="1")
 
         self.tenant_id = "50cccd00-7c9c-4b32-8cda-58a084f9334a"
         self.integration = self.create_integration(
@@ -2576,13 +2790,23 @@ class MonitorTestCase(APITestCase):
         )
 
     def _create_alert_rule(self, monitor):
+        conditions = [
+            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
+            {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"},
+            {
+                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                "key": "monitor.slug",
+                "match": "eq",
+                "value": monitor.slug,
+            },
+        ]
         rule = Creator(
             name="New Cool Rule",
             owner=None,
             project=self.project,
-            action_match="all",
-            filter_match="any",
-            conditions=[],
+            action_match="any",
+            filter_match="all",
+            conditions=conditions,
             actions=[],
             frequency=5,
             environment=self.environment.id,
@@ -2640,3 +2864,8 @@ class MonitorIngestTestCase(MonitorTestCase):
                 self.endpoint_with_org, args=[self.organization.slug, monitor_slug]
             ),
         )
+
+
+class IntegratedApiTestCase(BaseTestCase):
+    def should_call_api_without_proxying(self) -> bool:
+        return not IntegrationProxyClient.determine_whether_should_proxy_to_control()

@@ -1,6 +1,7 @@
 from sentry.integrations.example import ExampleIntegrationProvider
 from sentry.mediators.plugins.migrator import Migrator
-from sentry.models import Integration, Repository
+from sentry.models.integrations.integration import Integration
+from sentry.models.repository import Repository
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssuePlugin2
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration

@@ -1,7 +1,7 @@
-import type {Member as MemberType} from 'sentry/types';
+import {Member} from 'sentry-fixture/member';
+import {User} from 'sentry-fixture/user';
 
-import {Member} from './member';
-import {User} from './user';
+import type {Member as MemberType} from 'sentry/types';
 
 export function Members(params: MemberType[] = []): MemberType[] {
   return [
@@ -23,6 +23,7 @@ export function Members(params: MemberType[] = []): MemberType[] {
         'idp:provisioned': false,
         'idp:role-restricted': false,
         'member-limit:restricted': false,
+        'partnership:restricted': false,
       },
       user: null,
       expired: false,
@@ -63,6 +64,7 @@ export function Members(params: MemberType[] = []): MemberType[] {
         'idp:provisioned': false,
         'idp:role-restricted': false,
         'member-limit:restricted': false,
+        'partnership:restricted': false,
       },
       user: User(),
     },
@@ -83,6 +85,7 @@ export function Members(params: MemberType[] = []): MemberType[] {
         'idp:provisioned': false,
         'idp:role-restricted': false,
         'member-limit:restricted': false,
+        'partnership:restricted': false,
       },
       user: null,
       expired: false,

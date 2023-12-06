@@ -39,7 +39,7 @@ def _indexer_record(org_id: int, string: str) -> None:
     indexer.record(use_case_id=UseCaseID.SESSIONS, org_id=org_id, string=string)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegrationTestCase):
 
     endpoint = "sentry-api-0-organization-metric-details"
@@ -125,7 +125,7 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         )
         assert response.status_code == 404
 
-        _indexer_record(self.organization.id, SessionMRI.SESSION.value)
+        _indexer_record(self.organization.id, SessionMRI.RAW_SESSION.value)
         response = self.get_response(
             self.organization.slug,
             SessionMetricKey.CRASH_FREE_RATE.value,

@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
@@ -131,7 +133,7 @@ describe('ReleasesList', () => {
       name: 'test-name-2',
       features: [],
     });
-    const org = TestStubs.Organization({projects: [project, projectWithouReleases]});
+    const org = Organization({projects: [project, projectWithouReleases]});
     ProjectsStore.loadInitialData(org.projects);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
@@ -264,8 +266,8 @@ describe('ReleasesList', () => {
       organization,
     });
 
-    const input = await screen.findByRole('textbox');
-    expect(input).toHaveValue('derp ');
+    const input = await screen.findByDisplayValue('derp');
+    expect(input).toBeInTheDocument();
 
     expect(endpointMock).toHaveBeenCalledWith(
       '/organizations/org-slug/releases/',

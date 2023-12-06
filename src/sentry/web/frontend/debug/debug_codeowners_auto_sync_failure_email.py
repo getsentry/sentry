@@ -1,7 +1,10 @@
 from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
 
-from sentry.models import Organization, OrganizationMember, Project, User
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
+from sentry.models.user import User
 from sentry.notifications.notifications.codeowners_auto_sync import AutoSyncNotification
 
 from .mail import render_preview_email_for_notification

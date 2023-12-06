@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {
   render,
   renderGlobalModal,
@@ -5,6 +7,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
+import {IssueTitle} from 'sentry/types';
 import * as utils from 'sentry/utils/isActiveSuperuser';
 import ProjectPerformance, {
   allowedDurationValues,
@@ -14,16 +17,12 @@ import ProjectPerformance, {
 } from 'sentry/views/settings/projectPerformance/projectPerformance';
 
 describe('projectPerformance', function () {
-  const org = TestStubs.Organization({
-    features: [
-      'performance-view',
-      'performance-issues-dev',
-      'project-performance-settings-admin',
-    ],
+  const org = Organization({
+    features: ['performance-view', 'performance-issues-dev'],
   });
-  const project = TestStubs.ProjectDetails();
+  const project = TestStubs.Project();
   const configUrl = '/projects/org-slug/project-slug/transaction-threshold/configure/';
-  let getMock, postMock, deleteMock, performanceIssuesMock;
+  let getMock, postMock, deleteMock;
 
   const router = TestStubs.router();
   const routerProps = {
@@ -67,7 +66,7 @@ describe('projectPerformance', function () {
       body: {},
       statusCode: 200,
     });
-    performanceIssuesMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/performance-issues/configure/',
       method: 'GET',
       body: {},
@@ -132,23 +131,6 @@ describe('projectPerformance', function () {
     expect(deleteMock).toHaveBeenCalled();
   });
 
-  it('does not get performance issues settings without the feature flag', function () {
-    const orgWithoutPerfIssues = TestStubs.Organization({
-      features: ['performance-view', 'performance-issues-dev'],
-    });
-
-    render(
-      <ProjectPerformance
-        params={{projectId: project.slug}}
-        organization={orgWithoutPerfIssues}
-        project={project}
-        {...routerProps}
-      />
-    );
-
-    expect(performanceIssuesMock).not.toHaveBeenCalled();
-  });
-
   it('renders detector threshold configuration - admin ui', async function () {
     jest.spyOn(utils, 'isActiveSuperuser').mockReturnValue(true);
     MockApiClient.addMockResponse({
@@ -192,7 +174,7 @@ describe('projectPerformance', function () {
 
   it.each([
     {
-      title: 'N+1 DB Queries',
+      title: IssueTitle.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
       threshold: DetectorConfigCustomer.N_PLUS_DB_DURATION,
       allowedValues: allowedDurationValues,
       defaultValue: 100,
@@ -200,7 +182,7 @@ describe('projectPerformance', function () {
       sliderIndex: 1,
     },
     {
-      title: 'Slow DB Queries',
+      title: IssueTitle.PERFORMANCE_SLOW_DB_QUERY,
       threshold: DetectorConfigCustomer.SLOW_DB_DURATION,
       allowedValues: allowedDurationValues.slice(5),
       defaultValue: 1000,
@@ -208,7 +190,7 @@ describe('projectPerformance', function () {
       sliderIndex: 2,
     },
     {
-      title: 'N+1 API Calls',
+      title: IssueTitle.PERFORMANCE_N_PLUS_ONE_API_CALLS,
       threshold: DetectorConfigCustomer.N_PLUS_API_CALLS_DURATION,
       allowedValues: allowedDurationValues.slice(5),
       defaultValue: 300,
@@ -216,7 +198,7 @@ describe('projectPerformance', function () {
       sliderIndex: 3,
     },
     {
-      title: 'Large Render Blocking Asset',
+      title: IssueTitle.PERFORMANCE_RENDER_BLOCKING_ASSET,
       threshold: DetectorConfigCustomer.RENDER_BLOCKING_ASSET_RATIO,
       allowedValues: allowedPercentageValues,
       defaultValue: 0.33,
@@ -224,7 +206,7 @@ describe('projectPerformance', function () {
       sliderIndex: 4,
     },
     {
-      title: 'Large HTTP Payload',
+      title: IssueTitle.PERFORMANCE_LARGE_HTTP_PAYLOAD,
       threshold: DetectorConfigCustomer.LARGE_HTT_PAYLOAD_SIZE,
       allowedValues: allowedSizeValues.slice(1),
       defaultValue: 1000000,
@@ -232,7 +214,7 @@ describe('projectPerformance', function () {
       sliderIndex: 5,
     },
     {
-      title: 'DB on Main Thread',
+      title: IssueTitle.PERFORMANCE_DB_MAIN_THREAD,
       threshold: DetectorConfigCustomer.DB_ON_MAIN_THREAD_DURATION,
       allowedValues: [10, 16, 33, 50],
       defaultValue: 16,
@@ -240,7 +222,7 @@ describe('projectPerformance', function () {
       sliderIndex: 6,
     },
     {
-      title: 'File I/O on Main Thread',
+      title: IssueTitle.PERFORMANCE_FILE_IO_MAIN_THREAD,
       threshold: DetectorConfigCustomer.FILE_IO_MAIN_THREAD_DURATION,
       allowedValues: [10, 16, 33, 50],
       defaultValue: 16,
@@ -248,7 +230,7 @@ describe('projectPerformance', function () {
       sliderIndex: 7,
     },
     {
-      title: 'Consecutive DB Queries',
+      title: IssueTitle.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
       threshold: DetectorConfigCustomer.CONSECUTIVE_DB_MIN_TIME_SAVED,
       allowedValues: allowedDurationValues.slice(0, 23),
       defaultValue: 100,
@@ -256,7 +238,7 @@ describe('projectPerformance', function () {
       sliderIndex: 8,
     },
     {
-      title: 'Uncompressed Asset',
+      title: IssueTitle.PERFORMANCE_UNCOMPRESSED_ASSET,
       threshold: DetectorConfigCustomer.UNCOMPRESSED_ASSET_SIZE,
       allowedValues: allowedSizeValues.slice(1),
       defaultValue: 512000,
@@ -264,7 +246,7 @@ describe('projectPerformance', function () {
       sliderIndex: 9,
     },
     {
-      title: 'Uncompressed Asset',
+      title: IssueTitle.PERFORMANCE_UNCOMPRESSED_ASSET,
       threshold: DetectorConfigCustomer.UNCOMPRESSED_ASSET_DURATION,
       allowedValues: allowedDurationValues.slice(5),
       defaultValue: 500,
@@ -272,7 +254,7 @@ describe('projectPerformance', function () {
       sliderIndex: 10,
     },
     {
-      title: 'Consecutive HTTP',
+      title: IssueTitle.PERFORMANCE_CONSECUTIVE_HTTP,
       threshold: DetectorConfigCustomer.CONSECUTIVE_HTTP_MIN_TIME_SAVED,
       allowedValues: allowedDurationValues.slice(14),
       defaultValue: 2000,

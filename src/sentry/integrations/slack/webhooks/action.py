@@ -10,8 +10,11 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
-from sentry.api import ApiClient, client
+from sentry.api import client
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.client import ApiClient
 from sentry.api.helpers.group_index import update_groups
 from sentry.auth.access import from_member
 from sentry.exceptions import UnableToAcceptMemberInvitationException
@@ -23,15 +26,15 @@ from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 from sentry.integrations.utils.scope import bind_org_context_from_integration
-from sentry.models import Group, InviteStatus, OrganizationMember
 from sentry.models.activity import ActivityIntegration
-from sentry.notifications.defaults import NOTIFICATION_SETTINGS_ALL_SOMETIMES
+from sentry.models.group import Group
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.notifications.utils.actions import MessageAction
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import ExternalProviderEnum
 from sentry.utils import json
 from sentry.web.decorators import transaction_start
 
@@ -130,6 +133,10 @@ def _is_message(data: Mapping[str, Any]) -> bool:
 
 @region_silo_endpoint
 class SlackActionEndpoint(Endpoint):
+    owner = ApiOwner.ECOSYSTEM
+    publish_status = {
+        "POST": ApiPublishStatus.PRIVATE,
+    }
     authentication_classes = ()
     permission_classes = ()
     slack_request_class = SlackActionRequest
@@ -461,10 +468,9 @@ class SlackActionEndpoint(Endpoint):
         if not identity_user:
             return self.respond_with_text(NO_IDENTITY_MESSAGE)
 
-        notifications_service.bulk_update_settings(
-            external_provider=ExternalProviders.SLACK,
+        notifications_service.enable_all_settings_for_provider(
+            external_provider=ExternalProviderEnum.SLACK,
             user_id=identity_user.id,
-            notification_type_to_value_map=NOTIFICATION_SETTINGS_ALL_SOMETIMES,
         )
         return self.respond_with_text(ENABLE_SLACK_SUCCESS_MESSAGE)
 

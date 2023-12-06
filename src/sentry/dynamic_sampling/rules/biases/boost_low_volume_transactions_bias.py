@@ -5,7 +5,7 @@ from sentry.dynamic_sampling.rules.utils import RESERVED_IDS, PolymorphicRule, R
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
     get_transactions_resampling_rates,
 )
-from sentry.models import Project
+from sentry.models.project import Project
 
 
 class BoostLowVolumeTransactionsBias(Bias):

@@ -1,5 +1,8 @@
 import type {Location} from 'history';
+import {Event as EventFixture} from 'sentry-fixture/event';
+import {Organization} from 'sentry-fixture/organization';
 
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
@@ -13,18 +16,9 @@ import {
   Frame,
 } from 'sentry/types/event';
 import EventView, {EventData} from 'sentry/utils/discover/eventView';
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
+import {QueryClientProvider} from 'sentry/utils/queryClient';
 
 import EventContext from './eventContext';
-
-const makeEvent = (event: Partial<Event> = {}): Event => {
-  const evt: Event = {
-    ...TestStubs.Event(),
-    ...event,
-  };
-
-  return evt;
-};
 
 const mockedLocation = TestStubs.location({
   query: {
@@ -40,18 +34,10 @@ const dataRow: EventData = {
   'project.name': 'sentry',
 };
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-    },
-  },
-});
-
 const renderEventContext = (location?: Location, eventView?: EventView) => {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   render(
-    <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={makeTestQueryClient()}>
       <EventContext
         dataRow={dataRow}
         organization={organization}
@@ -65,7 +51,6 @@ const renderEventContext = (location?: Location, eventView?: EventView) => {
 
 describe('Quick Context Content: Event ID Column', function () {
   afterEach(() => {
-    queryClient.clear();
     MockApiClient.clearMockResponses();
   });
 
@@ -74,7 +59,7 @@ describe('Quick Context Content: Event ID Column', function () {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
-      body: makeEvent({
+      body: EventFixture({
         type: EventOrGroupType.TRANSACTION,
         entries: [],
         endTimestamp: currentTime,
@@ -92,7 +77,7 @@ describe('Quick Context Content: Event ID Column', function () {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
-      body: makeEvent({
+      body: EventFixture({
         type: EventOrGroupType.TRANSACTION,
         entries: [],
         endTimestamp: currentTime,
@@ -121,7 +106,7 @@ describe('Quick Context Content: Event ID Column', function () {
     jest.spyOn(ConfigStore, 'get').mockImplementation(() => null);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
-      body: makeEvent({type: EventOrGroupType.ERROR, entries: []}),
+      body: EventFixture({type: EventOrGroupType.ERROR, entries: []}),
     });
 
     renderEventContext();
@@ -139,7 +124,6 @@ describe('Quick Context Content: Event ID Column', function () {
       lineNo: 0,
       absPath: null,
       context: [],
-      errors: null,
       inApp: false,
       instructionAddr: null,
       module: null,
@@ -186,7 +170,7 @@ describe('Quick Context Content: Event ID Column', function () {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/sentry:6b43e285de834ec5b5fe30d62d549b20/',
-      body: makeEvent(errorEvent),
+      body: EventFixture(errorEvent),
     });
 
     renderEventContext(mockedLocation);

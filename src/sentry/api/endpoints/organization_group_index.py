@@ -9,6 +9,8 @@ from rest_framework.response import Response
 from sentry_sdk import start_span
 
 from sentry import features, search
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventPermission, OrganizationEventsEndpointBase
 from sentry.api.event_search import SearchFilter
@@ -27,15 +29,11 @@ from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnub
 from sentry.api.utils import InvalidParams, get_date_range_from_stats_period
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import (
-    QUERY_STATUS_LOOKUP,
-    Environment,
-    Group,
-    GroupEnvironment,
-    GroupInbox,
-    GroupStatus,
-    Project,
-)
+from sentry.models.environment import Environment
+from sentry.models.group import QUERY_STATUS_LOOKUP, Group, GroupStatus
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.groupinbox import GroupInbox
+from sentry.models.project import Project
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.snuba.backend import assigned_or_suggested_filter
 from sentry.search.snuba.executors import get_search_filter
@@ -139,6 +137,12 @@ def inbox_search(
 
 @region_silo_endpoint
 class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.ISSUES
     permission_classes = (OrganizationEventPermission,)
     enforce_rate_limit = True
 
@@ -220,11 +224,14 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         :qparam querystring query: an optional Sentry structured search
                                    query.  If not provided an implied
                                    ``"is:unresolved"`` is assumed.)
+        :qparam bool savedSearch:  if this is set to False, then we are making the request without
+                                   a saved search and will look for the default search from this endpoint.
+        :qparam string searchId:   if passed in, this is the selected search
         :pparam string organization_slug: the slug of the organization the
                                           issues belong to.
         :auth: required
         :qparam list expand: an optional list of strings to opt in to additional data. Supports `inbox`
-        :qparam list collapse: an optional list of strings to opt out of certain pieces of data. Supports `stats`, `lifetime`, `base`
+        :qparam list collapse: an optional list of strings to opt out of certain pieces of data. Supports `stats`, `lifetime`, `base`, `unhandled`
         """
         stats_period = request.GET.get("groupStatsPeriod")
         try:
@@ -292,7 +299,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                     )
                 )
                 if len(groups) == 1:
-                    serialized_groups = serialize(groups, request.user, serializer())
+                    serialized_groups = serialize(
+                        groups, request.user, serializer(), request=request
+                    )
                     if event_id:
                         serialized_groups[0]["matchingEventId"] = event_id
                     response = Response(serialized_groups)
@@ -300,13 +309,15 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                     return response
 
                 if groups:
-                    return Response(serialize(groups, request.user, serializer()))
+                    return Response(serialize(groups, request.user, serializer(), request=request))
 
             group = get_by_short_id(organization.id, request.GET.get("shortIdLookup"), query)
             if group is not None:
                 # check all projects user has access to
                 if request.access.has_project_access(group.project):
-                    response = Response(serialize([group], request.user, serializer()))
+                    response = Response(
+                        serialize([group], request.user, serializer(), request=request)
+                    )
                     response["X-Sentry-Direct-Hit"] = "1"
                     return response
 
@@ -320,7 +331,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             groups = list(Group.objects.filter(id__in=group_ids, project_id__in=project_ids))
             if any(g for g in groups if not request.access.has_project_access(g.project)):
                 raise PermissionDenied
-            return Response(serialize(groups, request.user, serializer()))
+            return Response(serialize(groups, request.user, serializer(), request=request))
 
         try:
             cursor_result, query_kwargs = self._search(
@@ -346,6 +357,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 else None,
                 organization_id=organization.id,
             ),
+            request=request,
         )
 
         # HACK: remove auto resolved entries
@@ -467,11 +479,13 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         Only queries by 'id' are accepted.
 
-        If any ids are out of scope this operation will succeed without
+        If any IDs are out of scope this operation will succeed without
         any data mutation.
 
         :qparam int id: a list of IDs of the issues to be removed.  This
-                        parameter shall be repeated for each issue.
+                        parameter shall be repeated for each issue, e.g.
+                        `?id=1&id=2&id=3`. If this parameter is not provided,
+                        it will attempt to remove the first 1000 issues.
         :pparam string organization_slug: the slug of the organization the
                                           issues belong to.
         :auth: required

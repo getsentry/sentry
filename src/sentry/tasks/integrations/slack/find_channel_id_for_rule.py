@@ -8,9 +8,11 @@ from sentry.integrations.slack.utils import (
     get_channel_id_with_timeout,
     strip_channel_name,
 )
-from sentry.mediators import project_rules
-from sentry.models import Project, Rule, RuleActivity, RuleActivityType
-from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
+from sentry.mediators.project_rules.creator import Creator
+from sentry.mediators.project_rules.updater import Updater
+from sentry.models.project import Project
+from sentry.models.rule import Rule, RuleActivity, RuleActivityType
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -51,7 +53,6 @@ def find_channel_id_for_rule(
             channel_name = strip_channel_name(action["channel"])
             break
 
-    integration: RpcIntegration
     integrations = integration_service.get_integrations(
         organization_id=organization.id, providers=["slack"], integration_ids=[integration_id]
     )
@@ -98,9 +99,9 @@ def find_channel_id_for_rule(
 
         if rule_id:
             rule = Rule.objects.get(id=rule_id)
-            rule = project_rules.Updater.run(rule=rule, pending_save=False, **kwargs)
+            rule = Updater.run(rule=rule, pending_save=False, **kwargs)
         else:
-            rule = project_rules.Creator.run(pending_save=False, **kwargs)
+            rule = Creator.run(pending_save=False, **kwargs)
             if user_id:
                 RuleActivity.objects.create(
                     rule=rule, user_id=user_id, type=RuleActivityType.CREATED.value

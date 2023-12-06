@@ -1,0 +1,29 @@
+Performance based alerts just got a lot more accurate
+-----------------------------------------------------------
+
+Starting from November 30th, alerts will be based on all the events you send to Sentry, not just the ones that are stored.
+
+How does this affect me, and my team?
+
+Because we're potentially extracting metrics from a significantly larger number of events, existing thresholds could
+result in a spammy experience. Instead of waiting until November 30th, we recommend that you take action now by
+reviewing the thresholds of each affected alert. This will allow you to migrate alerts ahead of time with the
+assurance that they will work as expected.
+
+How do I review my thresholds?
+
+It's pretty simple really, but unfortunately, also pretty tedious (sorry about that)...
+
+We’ve marked all your affected alerts with a "⚠" sign, so that you can quickly identify the ones that need your
+attention. In order to perform the review:
+
+- open each rule marked with a "⚠" sign and click “Review Thresholds”
+- verify whether current thresholds are still valid or make adjustments as needed
+- save the changes to finish the review
+
+To get the ball rolling, we've included a shortlist of alerts that need review below, but click on "View Performance
+Alerts" to see the list of affected ones in Sentry.
+
+You can view all of your impacted alerts here {{ alerts_url }}
+
+If you need any assistance, please reply to this email or contact support@sentry.io.

@@ -1,30 +1,44 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import Feature from 'sentry/components/acl/feature';
 import {CommitRow} from 'sentry/components/commitRow';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventDevice} from 'sentry/components/events/device';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
-import {EventCause} from 'sentry/components/events/eventCause';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {EventEntry} from 'sentry/components/events/eventEntry';
-import {EventErrors} from 'sentry/components/events/eventErrors';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
 import EventReplay from 'sentry/components/events/eventReplay';
 import {EventSdk} from 'sentry/components/events/eventSdk';
+import AggregateSpanDiff from 'sentry/components/events/eventStatisticalDetector/aggregateSpanDiff';
+import EventBreakpointChart from 'sentry/components/events/eventStatisticalDetector/breakpointChart';
+import {EventAffectedTransactions} from 'sentry/components/events/eventStatisticalDetector/eventAffectedTransactions';
+import EventComparison from 'sentry/components/events/eventStatisticalDetector/eventComparison';
+import {EventDifferentialFlamegraph} from 'sentry/components/events/eventStatisticalDetector/eventDifferentialFlamegraph';
+import {EventFunctionComparisonList} from 'sentry/components/events/eventStatisticalDetector/eventFunctionComparisonList';
+import {EventRegressionSummary} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
+import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
+import {TransactionsDeltaProvider} from 'sentry/components/events/eventStatisticalDetector/transactionsDeltaProvider';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
+import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
+import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {CronTimelineSection} from 'sentry/components/events/interfaces/crons/cronTimelineSection';
 import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
 import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
 import {EventPackageData} from 'sentry/components/events/packageData';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
+import {DataSection} from 'sentry/components/events/styles';
+import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
+import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Group, IssueCategory, Project} from 'sentry/types';
+import {Event, Group, IssueCategory, IssueType, Project} from 'sentry/types';
 import {EntryType, EventTransaction} from 'sentry/types/event';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -61,32 +75,33 @@ function GroupEventEntry({event, entryType, group, project}: GroupEventEntryProp
   );
 }
 
-function GroupEventDetailsContent({
+function DefaultGroupEventDetailsContent({
   group,
   event,
   project,
-}: GroupEventDetailsContentProps) {
+}: Required<GroupEventDetailsContentProps>) {
   const organization = useOrganization();
   const location = useLocation();
-  const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
-  const mechanism = event?.tags?.find(({key}) => key === 'mechanism')?.value;
+  const projectSlug = project.slug;
+  const hasReplay = Boolean(event.tags?.find(({key}) => key === 'replayId')?.value);
+  const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
   const hasAnrImprovementsFeature = organization.features.includes('anr-improvements');
 
-  if (!event) {
-    return (
-      <NotFoundMessage>
-        <h3>{t('Latest event not available')}</h3>
-      </NotFoundMessage>
-    );
-  }
-
   const eventEntryProps = {group, event, project};
+
+  const hasActionableItems = actionableItemsEnabled({
+    eventId: event.id,
+    organization,
+    projectSlug,
+  });
 
   return (
     <Fragment>
-      <EventErrors event={event} project={project} isShare={false} />
-      <EventCause
+      {hasActionableItems && (
+        <ActionableItems event={event} project={project} isShare={false} />
+      )}
+      <SuspectCommits
         project={project}
         eventId={event.id}
         group={group}
@@ -167,6 +182,113 @@ function GroupEventDetailsContent({
       )}
     </Fragment>
   );
+}
+
+function PerformanceDurationRegressionIssueDetailsContent({
+  group,
+  event,
+  project,
+}: Required<GroupEventDetailsContentProps>) {
+  return (
+    <Fragment>
+      <ErrorBoundary mini>
+        <EventRegressionSummary event={event} group={group} />
+      </ErrorBoundary>
+      <ErrorBoundary mini>
+        <EventBreakpointChart event={event} />
+      </ErrorBoundary>
+      <ErrorBoundary mini>
+        <AggregateSpanDiff event={event} project={project} />
+      </ErrorBoundary>
+      <ErrorBoundary mini>
+        <EventComparison event={event} project={project} />
+      </ErrorBoundary>
+    </Fragment>
+  );
+}
+
+function ProfilingDurationRegressionIssueDetailsContent({
+  group,
+  event,
+  project,
+}: Required<GroupEventDetailsContentProps>) {
+  const organization = useOrganization();
+
+  return (
+    <TransactionsDeltaProvider event={event} project={project}>
+      <Fragment>
+        <ErrorBoundary mini>
+          <EventRegressionSummary event={event} group={group} />
+        </ErrorBoundary>
+        <ErrorBoundary mini>
+          <EventFunctionBreakpointChart event={event} />
+        </ErrorBoundary>
+        <Feature features="profiling-differential-flamegraph" organization={organization}>
+          <ErrorBoundary mini>
+            <DataSection>
+              <b>{t('Largest Changes in Call Stack Frequency')}</b>
+              <p>
+                {t(`See which functions changed the most before and after the regression. The
+                frame with the largest increase in call stack population likely
+                contributed to the cause for the duration regression.`)}
+              </p>
+              <Panel>
+                <EventDifferentialFlamegraph event={event} />
+              </Panel>
+            </DataSection>
+          </ErrorBoundary>
+        </Feature>
+        <ErrorBoundary mini>
+          <EventAffectedTransactions event={event} group={group} project={project} />
+        </ErrorBoundary>
+        <ErrorBoundary mini>
+          <EventFunctionComparisonList event={event} group={group} project={project} />
+        </ErrorBoundary>
+      </Fragment>
+    </TransactionsDeltaProvider>
+  );
+}
+
+function GroupEventDetailsContent({
+  group,
+  event,
+  project,
+}: GroupEventDetailsContentProps) {
+  if (!event) {
+    return (
+      <NotFoundMessage>
+        <h3>{t('Latest event not available')}</h3>
+      </NotFoundMessage>
+    );
+  }
+
+  switch (group.issueType) {
+    case IssueType.PERFORMANCE_DURATION_REGRESSION:
+    case IssueType.PERFORMANCE_ENDPOINT_REGRESSION: {
+      return (
+        <PerformanceDurationRegressionIssueDetailsContent
+          group={group}
+          event={event}
+          project={project}
+        />
+      );
+    }
+    case IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL:
+    case IssueType.PROFILE_FUNCTION_REGRESSION: {
+      return (
+        <ProfilingDurationRegressionIssueDetailsContent
+          group={group}
+          event={event}
+          project={project}
+        />
+      );
+    }
+    default: {
+      return (
+        <DefaultGroupEventDetailsContent group={group} event={event} project={project} />
+      );
+    }
+  }
 }
 
 const NotFoundMessage = styled('div')`

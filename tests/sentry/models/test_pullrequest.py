@@ -1,12 +1,15 @@
 from hashlib import sha1
 from uuid import uuid4
 
-from sentry.models import Commit, GroupHistory, GroupHistoryStatus, PullRequest, Repository
+from sentry.models.commit import Commit
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
+from sentry.models.pullrequest import PullRequest
+from sentry.models.repository import Repository
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class FindReferencedGroupsTest(TestCase):
     def test_multiple_matches_basic(self):
         group = self.create_group()

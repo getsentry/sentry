@@ -8,8 +8,10 @@ from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils.auth import is_valid_redirect
 from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
+from sentry.web.frontend.base import control_silo_view
 
 
+@control_silo_view
 class AuthChannelLoginView(AuthOrganizationLoginView):
     @method_decorator(never_cache)
     def handle(self, request, channel, resource_id):

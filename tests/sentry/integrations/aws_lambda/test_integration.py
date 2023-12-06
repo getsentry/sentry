@@ -6,7 +6,9 @@ from django.http import HttpResponse
 
 from sentry.integrations.aws_lambda import AwsLambdaIntegrationProvider
 from sentry.integrations.aws_lambda.utils import ALL_AWS_REGIONS
-from sentry.models import Integration, OrganizationIntegration, ProjectKey
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.projectkey import ProjectKey
 from sentry.pipeline import PipelineView
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.project import project_service
@@ -24,7 +26,7 @@ account_number = "599817902985"
 region = "us-east-2"
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class AwsLambdaIntegrationTest(IntegrationTestCase):
     provider = AwsLambdaIntegrationProvider
 
@@ -189,13 +191,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
         # having issues with reading json data
         # request.POST looks like {"lambdaB": "True"}
         # string instead of boolean
-        resp = self.client.post(
-            self.setup_path,
-            data={"lambdaB": "true", "lambdaA": "false"},
-            format="json",
-            HTTP_ACCEPT="application/json",
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
-        )
+        resp = self.client.post(self.setup_path, {"lambdaB": "true", "lambdaA": "false"})
 
         assert resp.status_code == 200
 
@@ -253,13 +249,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             sentry_project_dsn = ProjectKey.get_default(project=self.projectA).get_dsn(public=True)
 
-        resp = self.client.post(
-            self.setup_path,
-            data={"lambdaA": "true"},
-            format="json",
-            HTTP_ACCEPT="application/json",
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
-        )
+        resp = self.client.post(self.setup_path, {"lambdaA": "true"})
 
         assert resp.status_code == 200
 
@@ -328,13 +318,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
             "project_id": self.projectA.id,
         }
 
-        resp = self.client.post(
-            self.setup_path,
-            {"lambdaB": "true"},
-            format="json",
-            HTTP_ACCEPT="application/json",
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
-        )
+        resp = self.client.post(self.setup_path, {"lambdaB": "true"})
 
         assert resp.status_code == 200
         assert not Integration.objects.filter(provider=self.provider.key).exists()
@@ -385,13 +369,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
             "project_id": self.projectA.id,
         }
 
-        resp = self.client.post(
-            self.setup_path,
-            {"lambdaB": "true"},
-            format="json",
-            HTTP_ACCEPT="application/json",
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
-        )
+        resp = self.client.post(self.setup_path, {"lambdaB": "true"})
 
         assert resp.status_code == 200
         assert not Integration.objects.filter(provider=self.provider.key).exists()
@@ -443,13 +421,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
             "project_id": self.projectA.id,
         }
 
-        resp = self.client.post(
-            self.setup_path,
-            {"lambdaB": "true"},
-            format="json",
-            HTTP_ACCEPT="application/json",
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
-        )
+        resp = self.client.post(self.setup_path, {"lambdaB": "true"})
 
         assert resp.status_code == 200
         assert not Integration.objects.filter(provider=self.provider.key).exists()
@@ -506,13 +478,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
             "project_id": self.projectA.id,
         }
 
-        resp = self.client.post(
-            self.setup_path,
-            {"lambdaB": "true"},
-            format="json",
-            HTTP_ACCEPT="application/json",
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
-        )
+        resp = self.client.post(self.setup_path, {"lambdaB": "true"})
 
         assert resp.status_code == 200
         assert not Integration.objects.filter(provider=self.provider.key).exists()

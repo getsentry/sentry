@@ -176,7 +176,7 @@ export class VirtualizedTree<T extends TreeLike> {
   }
 
   getAllExpandedNodes(previouslyExpandedNodes: Set<T>): Set<T> {
-    const expandedNodes = new Set<T>([...previouslyExpandedNodes]);
+    const expandedNodes = new Set<T>(previouslyExpandedNodes);
 
     function visit(node: VirtualizedTreeNode<T>) {
       if (node.expanded) {

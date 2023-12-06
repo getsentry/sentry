@@ -4,12 +4,13 @@ import itertools
 from collections import defaultdict
 from datetime import timedelta
 from enum import Enum
-from typing import Any, List, TypedDict
+from typing import Any, List, Optional, TypedDict
 
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
@@ -54,7 +55,7 @@ class GroupOwner(Model):
     Tracks the "owners" or "suggested assignees" of a group.
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     group = FlexibleForeignKey("sentry.Group", db_constraint=False)
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
@@ -66,8 +67,10 @@ class GroupOwner(Model):
             (GroupOwnerType.CODEOWNERS, "Codeowners"),
         )
     )
-    context = JSONField(null=True)
-    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True)
+    context: models.Field[dict[str, Any], dict[str, Any]] = JSONField(null=True)
+    user_id: models.Field[Optional[int], Optional[int]] = HybridCloudForeignKey(
+        settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True
+    )
     team = FlexibleForeignKey("sentry.Team", null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -93,7 +96,7 @@ class GroupOwner(Model):
         raise NotImplementedError("Unknown Owner")
 
     def owner(self):
-        from sentry.models import ActorTuple
+        from sentry.models.actor import ActorTuple
 
         if not self.owner_id():
             return None

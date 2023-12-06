@@ -1,12 +1,17 @@
 import selectEvent from 'react-select-event';
+import {EventsStats} from 'sentry-fixture/events';
+import {IncidentTrigger} from 'sentry-fixture/incidentTrigger';
+import {MetricRule} from 'sentry-fixture/metricRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import FormModel from 'sentry/components/forms/model';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {metric} from 'sentry/utils/analytics';
 import RuleFormContainer from 'sentry/views/alerts/rules/metric/ruleForm';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {permissionAlertText} from 'sentry/views/settings/project/permissionAlert';
 
 jest.mock('sentry/actionCreators/indicator');
@@ -21,12 +26,13 @@ jest.mock('sentry/utils/analytics', () => ({
 }));
 
 describe('Incident Rules Form', () => {
-  let organization, project, routerContext;
+  let organization, project, routerContext, location;
   const createWrapper = props =>
     render(
       <RuleFormContainer
         params={{orgId: organization.slug, projectId: project.slug}}
         organization={organization}
+        location={location}
         project={project}
         {...props}
       />,
@@ -39,6 +45,7 @@ describe('Incident Rules Form', () => {
     });
     organization = initialData.organization;
     project = initialData.project;
+    location = initialData.router.location;
     ProjectsStore.loadInitialData([project]);
     routerContext = initialData.routerContext;
     MockApiClient.addMockResponse({
@@ -55,7 +62,7 @@ describe('Incident Rules Form', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: TestStubs.EventsStats({
+      body: EventsStats({
         isMetricsData: true,
       }),
     });
@@ -76,7 +83,7 @@ describe('Incident Rules Form', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics-estimation-stats/',
-      body: TestStubs.EventsStats(),
+      body: EventsStats(),
     });
   });
 
@@ -86,7 +93,7 @@ describe('Incident Rules Form', () => {
   });
 
   describe('Viewing the rule', () => {
-    const rule = TestStubs.MetricRule();
+    const rule = MetricRule();
 
     it('is enabled without org-level alerts:write', () => {
       organization.access = [];
@@ -141,7 +148,7 @@ describe('Incident Rules Form', () => {
      * Note this isn't necessarily the desired behavior, as it is just documenting the behavior
      */
     it('creates a rule', async () => {
-      const rule = TestStubs.MetricRule();
+      const rule = MetricRule();
       createWrapper({
         rule: {
           ...rule,
@@ -179,7 +186,7 @@ describe('Incident Rules Form', () => {
     });
 
     it('can create a rule for a different project', async () => {
-      const rule = TestStubs.MetricRule();
+      const rule = MetricRule();
       createWrapper({
         rule: {
           ...rule,
@@ -217,7 +224,7 @@ describe('Incident Rules Form', () => {
 
     it('creates a rule with generic_metrics dataset', async () => {
       organization.features = [...organization.features, 'mep-rollout-flag'];
-      const rule = TestStubs.MetricRule();
+      const rule = MetricRule();
       createWrapper({
         rule: {
           ...rule,
@@ -228,11 +235,7 @@ describe('Incident Rules Form', () => {
         },
       });
 
-      await waitFor(() =>
-        expect(screen.getByTestId('alert-total-events')).toHaveTextContent(
-          'Total Events5'
-        )
-      );
+      expect(await screen.findByTestId('alert-total-events')).toHaveTextContent('Total5');
 
       await userEvent.click(screen.getByLabelText('Save Rule'));
 
@@ -253,7 +256,7 @@ describe('Incident Rules Form', () => {
 
     it('switches to custom metric and selects event.type:error', async () => {
       organization.features = [...organization.features, 'performance-view'];
-      const rule = TestStubs.MetricRule();
+      const rule = MetricRule();
       createWrapper({
         rule: {
           ...rule,
@@ -263,11 +266,11 @@ describe('Incident Rules Form', () => {
       });
 
       await userEvent.click(screen.getAllByText('Number of Errors').at(1)!);
-      await userEvent.click(await screen.findByText('Custom Metric'));
+      await userEvent.click(await screen.findByText('Custom Measurement'));
 
       await userEvent.click(screen.getAllByText('event.type:transaction').at(1)!);
       await userEvent.click(await screen.findByText('event.type:error'));
-      expect(screen.getAllByText('Custom Metric')).toHaveLength(2);
+      expect(screen.getAllByText('Custom Measurement')).toHaveLength(2);
       await userEvent.click(screen.getByLabelText('Save Rule'));
 
       expect(createRule).toHaveBeenLastCalledWith(
@@ -275,7 +278,7 @@ describe('Incident Rules Form', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             aggregate: 'count()',
-            alertType: 'custom',
+            alertType: 'custom_transactions',
             dataset: 'events',
             datasource: 'error',
             environment: null,
@@ -293,7 +296,7 @@ describe('Incident Rules Form', () => {
   describe('Editing a rule', () => {
     let editRule;
     let editTrigger;
-    const rule = TestStubs.MetricRule();
+    const rule = MetricRule();
 
     beforeEach(() => {
       editRule = MockApiClient.addMockResponse({
@@ -304,7 +307,7 @@ describe('Incident Rules Form', () => {
       editTrigger = MockApiClient.addMockResponse({
         url: `/organizations/org-slug/alert-rules/${rule.id}/triggers/1/`,
         method: 'PUT',
-        body: TestStubs.IncidentTrigger({id: '1'}),
+        body: IncidentTrigger({id: '1'}),
       });
     });
     afterEach(() => {
@@ -392,7 +395,7 @@ describe('Incident Rules Form', () => {
     });
 
     it('saves a valid on demand metric rule', async () => {
-      const validOnDemandMetricRule = TestStubs.MetricRule({
+      const validOnDemandMetricRule = MetricRule({
         query: 'transaction.duration:<1s',
       });
 
@@ -432,6 +435,38 @@ describe('Incident Rules Form', () => {
       await userEvent.click(screen.getByLabelText('Save Rule'), {delay: null});
       expect(onSubmitSuccess).not.toHaveBeenCalled();
     });
+
+    it('hides fields when migrating error metric alerts to filter archived issues', async () => {
+      const errorAlert = MetricRule({
+        dataset: Dataset.ERRORS,
+        query: 'example-error',
+      });
+      organization.features = [...organization.features, 'metric-alert-ignore-archived'];
+      location = {...location, query: {migration: '1'}};
+
+      const onSubmitSuccess = jest.fn();
+
+      createWrapper({
+        ruleId: errorAlert.id,
+        rule: {
+          ...errorAlert,
+          eventTypes: ['transaction'],
+        },
+        onSubmitSuccess,
+      });
+
+      expect(
+        await screen.findByText(
+          /Check the chart above and make sure the current thresholds are still valid/
+        )
+      ).toBeInTheDocument();
+      await userEvent.click(screen.getByLabelText('Looks good to me!'), {delay: null});
+      expect(onSubmitSuccess).toHaveBeenCalled();
+      const formModel = onSubmitSuccess.mock.calls[0][1] as FormModel;
+      expect(formModel.getData()).toEqual(
+        expect.objectContaining({query: 'is:unresolved example-error'})
+      );
+    });
   });
 
   describe('Slack async lookup', () => {
@@ -447,7 +482,7 @@ describe('Incident Rules Form', () => {
     });
 
     it('success status updates the rule', async () => {
-      const alertRule = TestStubs.MetricRule({name: 'Slack Alert Rule'});
+      const alertRule = MetricRule({name: 'Slack Alert Rule'});
       MockApiClient.addMockResponse({
         url: `/organizations/org-slug/alert-rules/${alertRule.id}/`,
         method: 'PUT',
@@ -494,7 +529,7 @@ describe('Incident Rules Form', () => {
     });
 
     it('pending status keeps loading true', () => {
-      const alertRule = TestStubs.MetricRule({name: 'Slack Alert Rule'});
+      const alertRule = MetricRule({name: 'Slack Alert Rule'});
       MockApiClient.addMockResponse({
         url: `/organizations/org-slug/alert-rules/${alertRule.id}/`,
         method: 'PUT',
@@ -520,7 +555,7 @@ describe('Incident Rules Form', () => {
     });
 
     it('failed status renders error message', async () => {
-      const alertRule = TestStubs.MetricRule({name: 'Slack Alert Rule'});
+      const alertRule = MetricRule({name: 'Slack Alert Rule'});
       MockApiClient.addMockResponse({
         url: `/organizations/org-slug/alert-rules/${alertRule.id}/`,
         method: 'PUT',

@@ -12,7 +12,9 @@ from .assistant import *  # NOQA
 from .auditlogentry import *  # NOQA
 from .authenticator import *  # NOQA
 from .authidentity import *  # NOQA
+from .authidentityreplica import *  # NOQA
 from .authprovider import *  # NOQA
+from .authproviderreplica import *  # NOQA
 from .avatars import *  # NOQA
 from .broadcast import *  # NOQA
 from .commit import *  # NOQA
@@ -28,6 +30,7 @@ from .deletedproject import *  # NOQA
 from .deletedteam import *  # NOQA
 from .deploy import *  # NOQA
 from .distribution import *  # NOQA
+from .dynamicsampling import *  # NOQA
 from .email import *  # NOQA
 from .environment import *  # NOQA
 from .event import *  # NOQA
@@ -58,11 +61,11 @@ from .groupsnooze import *  # NOQA
 from .groupsubscription import *  # NOQA
 from .grouptombstone import *  # NOQA
 from .identity import *  # NOQA
+from .importchunk import *  # NOQA
 from .integrations import *  # NOQA
 from .latestappconnectbuildscheck import *  # NOQA
 from .latestreporeleaseenvironment import *  # NOQA
 from .lostpasswordhash import *  # NOQA
-from .notificationsetting import *  # NOQA
 from .notificationsettingoption import *  # NOQA
 from .notificationsettingprovider import *  # NOQA
 from .options import *  # NOQA
@@ -72,7 +75,10 @@ from .organizationmapping import *  # NOQA
 from .organizationmember import *  # NOQA
 from .organizationmembermapping import *  # NOQA
 from .organizationmemberteam import *  # NOQA
+from .organizationmemberteamreplica import *  # NOQA
 from .organizationonboardingtask import *  # NOQA
+from .organizationslugreservation import *  # NOQA
+from .organizationslugreservationreplica import *  # NOQA
 from .orgauthtoken import *  # NOQA
 from .outbox import *  # NOQA
 from .platformexternalissue import *  # NOQA
@@ -91,12 +97,14 @@ from .rawevent import *  # NOQA
 from .recentsearch import *  # NOQA
 from .relay import *  # NOQA
 from .release import *  # NOQA
+from .release_threshold import *  # NOQA
 from .releaseactivity import *  # NOQA
 from .releasecommit import *  # NOQA
 from .releaseenvironment import *  # NOQA
 from .releasefile import *  # NOQA
 from .releaseheadcommit import *  # NOQA
 from .releaseprojectenvironment import *  # NOQA
+from .relocation import *  # NOQA
 from .repository import *  # NOQA
 from .reprocessingreport import *  # NOQA
 from .rule import *  # NOQA
@@ -108,7 +116,9 @@ from .search_common import *  # NOQA
 from .sentryfunction import *  # NOQA
 from .servicehook import *  # NOQA
 from .sourcemapprocessingissue import *  # NOQA
+from .statistical_detectors import *  # NOQA
 from .team import *  # NOQA
+from .teamreplica import *  # NOQA
 from .tombstone import *  # NOQA
 from .transaction_threshold import *  # NOQA
 from .user import *  # NOQA

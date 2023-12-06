@@ -1,10 +1,12 @@
 import logging
-from typing import Any
+from typing import Any, ClassVar
 
 from django.conf import settings
 from django.db import connections, models, router
 from django.utils import timezone
+from typing_extensions import Self
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, region_silo_only_model
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.db.models.manager.base import BaseManager
@@ -17,12 +19,12 @@ from typing import Mapping, Type
 
 @region_silo_only_model
 class MetricsKeyIndexer(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     string = models.CharField(max_length=200)
     date_added = models.DateTimeField(default=timezone.now)
 
-    objects = BaseManager(
+    objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=("pk", "string"), cache_ttl=settings.SENTRY_METRICS_INDEXER_CACHE_TTL
     )
 
@@ -51,7 +53,9 @@ class BaseIndexer(Model):
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     retention_days = models.IntegerField(default=90)
 
-    objects = BaseManager(cache_fields=("pk",), cache_ttl=settings.SENTRY_METRICS_INDEXER_CACHE_TTL)
+    objects: ClassVar[BaseManager[Self]] = BaseManager(
+        cache_fields=("pk",), cache_ttl=settings.SENTRY_METRICS_INDEXER_CACHE_TTL
+    )
 
     class Meta:
         abstract = True
@@ -59,7 +63,7 @@ class BaseIndexer(Model):
 
 @region_silo_only_model
 class StringIndexer(BaseIndexer):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     class Meta:
         db_table = "sentry_stringindexer"
@@ -71,7 +75,7 @@ class StringIndexer(BaseIndexer):
 
 @region_silo_only_model
 class PerfStringIndexer(BaseIndexer):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
     use_case_id = models.CharField(max_length=120)
 
     class Meta:

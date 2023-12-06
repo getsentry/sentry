@@ -11,7 +11,8 @@ from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, User
+    from sentry.models.organization import Organization
+    from sentry.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -107,9 +108,6 @@ class IntegrationNudgeNotification(BaseNotification):
 
     def build_notification_footer(self, recipient: RpcActor, provider: ExternalProviders) -> str:
         return ""
-
-    def record_notification_sent(self, recipient: RpcActor, provider: ExternalProviders) -> None:
-        pass
 
     def get_log_params(self, recipient: RpcActor) -> Mapping[str, Any]:
         return {"seed": self.seed, **super().get_log_params(recipient)}

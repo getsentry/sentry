@@ -1,39 +1,26 @@
 from copy import deepcopy
 from datetime import timezone
-from functools import cached_property
 
 import requests
-from freezegun import freeze_time
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.incidents.models import AlertRule
-from sentry.models import AuditLogEntry
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
-
-class AlertRuleBase:
-    @cached_property
-    def organization(self):
-        return self.create_organization()
-
-    @cached_property
-    def project(self):
-        return self.create_project(organization=self.organization)
-
-    @cached_property
-    def user(self):
-        return self.create_user()
+pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class AlertRuleListEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-alert-rules"
 
@@ -70,7 +57,7 @@ class AlertRuleListEndpointTest(APITestCase):
         assert resp.status_code == 404
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time()
 class AlertRuleCreateEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-alert-rules"
@@ -137,6 +124,27 @@ class AlertRuleCreateEndpointTest(APITestCase):
             == list(audit_log_entry)[0].ip_address
         )
 
+    def test_status_filter(self):
+        with outbox_runner(), self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:metric-alert-ignore-archived",
+            ]
+        ):
+            data = deepcopy(self.valid_alert_rule)
+            data["query"] = "is:unresolved"
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                status_code=201,
+                **data,
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+        assert alert_rule.snuba_query.query == "is:unresolved"
+
     def test_project_not_in_request(self):
         """Test that if you don't provide the project data in the request, we grab it from the URL"""
         data = deepcopy(self.valid_alert_rule)
@@ -165,7 +173,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestCase):
     endpoint = "sentry-api-0-project-combined-rules"
 

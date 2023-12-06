@@ -6,12 +6,15 @@ from django.apps import apps
 
 from sentry.db.models import Model
 from sentry.notifications.class_manager import NotificationClassNotSetException, get
+from sentry.services.hybrid_cloud.util import region_silo_function
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 
 if TYPE_CHECKING:
     from sentry.notifications.notifications.base import BaseNotification
 
 
+@region_silo_function
 def async_send_notification(
     NotificationClass: type[BaseNotification], *args: Any, **kwargs: Any
 ) -> None:
@@ -61,7 +64,8 @@ def async_send_notification(
 
 @instrumented_task(
     name="src.sentry.notifications.utils.async_send_notification",
-    queue="email",
+    silo_mode=SiloMode.REGION,
+    queue="notifications",
 )
 def _send_notification(notification_class_name: str, arg_list: Iterable[Mapping[str, Any]]) -> None:
     NotificationClass = get(notification_class_name)

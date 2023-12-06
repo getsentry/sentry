@@ -6,13 +6,15 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.dashboard import DashboardListSerializer
 from sentry.api.serializers.rest_framework import DashboardSerializer
-from sentry.models import Dashboard
+from sentry.models.dashboard import Dashboard
 
 MAX_RETRIES = 10
 DUPLICATE_TITLE_PATTERN = r"(.*) copy(?:$|\s(\d+))"
@@ -29,6 +31,11 @@ class OrganizationDashboardsPermission(OrganizationPermission):
 
 @region_silo_endpoint
 class OrganizationDashboardsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.DISCOVER_N_DASHBOARDS
     permission_classes = (OrganizationDashboardsPermission,)
 
     def get(self, request: Request, organization) -> Response:
@@ -147,6 +154,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 "organization": organization,
                 "request": request,
                 "projects": self.get_projects(request, organization),
+                "environment": self.request.GET.getlist("environment"),
             },
         )
 

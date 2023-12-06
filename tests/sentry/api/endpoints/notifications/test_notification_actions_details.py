@@ -20,7 +20,7 @@ from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class NotificationActionsDetailsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-notification-actions-details"
 
@@ -95,7 +95,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         )
 
     def test_put_missing_fields(self):
-        required_fields = ["serviceType", "triggerType", "targetType"]
+        required_fields = ["serviceType", "triggerType"]
         response = self.get_error_response(
             self.organization.slug,
             self.notif_action.id,

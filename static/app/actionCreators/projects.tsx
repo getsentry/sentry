@@ -8,12 +8,11 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import LatestContextStore from 'sentry/stores/latestContextStore';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {Project, Team} from 'sentry/types';
+import {PlatformKey, Project, Team} from 'sentry/types';
 
 type UpdateParams = {
   orgId: string;
@@ -368,7 +367,7 @@ export function loadDocs({
 }: {
   api: Client;
   orgSlug: string;
-  platform: PlatformKey;
+  platform: PlatformKey | 'python-tracing' | 'node-tracing' | 'react-native-tracing';
   projectSlug: string;
 }) {
   return api.requestPromise(`/projects/${orgSlug}/${projectSlug}/docs/${platform}/`);

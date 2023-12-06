@@ -13,6 +13,7 @@ type Props = DeprecatedAsyncComponent['props'] & {
   configId: string;
   eventConfigId: string;
   onSelect: (selection: any) => void;
+  organizationSlug: string;
 };
 
 type State = DeprecatedAsyncComponent['state'] & {
@@ -28,7 +29,8 @@ class GroupingConfigSelect extends DeprecatedAsyncComponent<Props, State> {
   }
 
   getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    return [['configs', '/grouping-configs/']];
+    const {organizationSlug} = this.props;
+    return [['configs', `/organizations/${organizationSlug}/grouping-configs/`]];
   }
 
   renderLoading() {

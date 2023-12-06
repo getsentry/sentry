@@ -1,3 +1,7 @@
+import {Organization} from 'sentry-fixture/organization';
+import {Repository} from 'sentry-fixture/repository';
+import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
+
 import {
   act,
   renderGlobalModal,
@@ -13,12 +17,12 @@ import * as analytics from 'sentry/utils/analytics';
 jest.mock('sentry/utils/analytics');
 
 describe('StacktraceLinkModal', () => {
-  const org = TestStubs.Organization();
+  const org = Organization();
   const project = TestStubs.Project();
   const integration = TestStubs.GitHubIntegration();
   const filename = '/sentry/app.py';
-  const repo = TestStubs.Repository({integrationId: integration.id});
-  const config = TestStubs.RepositoryProjectPathConfig({project, repo, integration});
+  const repo = Repository({integrationId: integration.id});
+  const config = RepositoryProjectPathConfig({project, repo, integration});
   const sourceUrl = 'https://github.com/getsentry/sentry/blob/master/src/sentry/app.py';
   const configData = {
     stackRoot: '',
@@ -74,7 +78,6 @@ describe('StacktraceLinkModal', () => {
       'href',
       'https://github.com/test-integration'
     );
-    expect(screen.getByRole('dialog')).toSnapshot();
   });
 
   it('closes modal after successful quick setup', async () => {
@@ -199,7 +202,6 @@ describe('StacktraceLinkModal', () => {
     const suggestion =
       'https://github.com/getsentry/codemap/blob/master/stack/root/file.py';
     expect(screen.getByText(suggestion)).toBeInTheDocument();
-    expect(screen.getByRole('dialog')).toSnapshot();
 
     // Paste and save suggestion
     await userEvent.type(

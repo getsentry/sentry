@@ -40,13 +40,16 @@ function DetailsPageBreadcrumbs({orgSlug, replayRecord}: Props) {
           label: t('Session Replay'),
         },
         {
-          label: (
-            <Fragment>
-              {project ? (
-                <ProjectBadge disableLink project={project} avatarSize={16} />
-              ) : null}
-            </Fragment>
-          ),
+          to: {
+            pathname: normalizeUrl(`/organizations/${orgSlug}/replays/`),
+            query: {
+              ...eventView.generateQueryStringObject(),
+              project: replayRecord?.project_id,
+            },
+          },
+          label: project ? (
+            <ProjectBadge disableLink project={project} avatarSize={16} />
+          ) : null,
         },
         {
           label: labelTitle,

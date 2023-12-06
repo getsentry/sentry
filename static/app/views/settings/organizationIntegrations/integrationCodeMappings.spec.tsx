@@ -1,4 +1,7 @@
 import selectEvent from 'react-select-event';
+import {Organization} from 'sentry-fixture/organization';
+import {Repository} from 'sentry-fixture/repository';
+import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
 
 import {
   render,
@@ -22,21 +25,21 @@ describe('IntegrationCodeMappings', function () {
     }),
   ];
 
-  const org = TestStubs.Organization();
+  const org = Organization();
   const integration = TestStubs.GitHubIntegration();
   const repos = [
-    TestStubs.Repository({
+    Repository({
       integrationId: integration.id,
     }),
 
-    TestStubs.Repository({
+    Repository({
       integrationId: integration.id,
       id: '5',
       name: 'example/hello-there',
     }),
   ];
 
-  const pathConfig1 = TestStubs.RepositoryProjectPathConfig({
+  const pathConfig1 = RepositoryProjectPathConfig({
     project: projects[0],
     repo: repos[0],
     integration,
@@ -44,7 +47,7 @@ describe('IntegrationCodeMappings', function () {
     sourceRoot: 'source/root',
   });
 
-  const pathConfig2 = TestStubs.RepositoryProjectPathConfig({
+  const pathConfig2 = RepositoryProjectPathConfig({
     project: projects[1],
     repo: repos[1],
     integration,
@@ -94,7 +97,7 @@ describe('IntegrationCodeMappings', function () {
     const createMock = MockApiClient.addMockResponse({
       url,
       method: 'POST',
-      body: TestStubs.RepositoryProjectPathConfig({
+      body: RepositoryProjectPathConfig({
         project: projects[1],
         repo: repos[1],
         integration,
@@ -149,7 +152,7 @@ describe('IntegrationCodeMappings', function () {
     const editMock = MockApiClient.addMockResponse({
       url,
       method: 'PUT',
-      body: TestStubs.RepositoryProjectPathConfig({
+      body: RepositoryProjectPathConfig({
         project: projects[0],
         repo: repos[0],
         integration,

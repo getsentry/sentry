@@ -1,6 +1,7 @@
 from unittest import mock
 
-from sentry.models import AuditLogEntry, ProjectOption
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.options.project_option import ProjectOption
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.silo import SiloMode
@@ -20,7 +21,7 @@ class ProjectPluginDetailsTestBase(APITestCase):
             assert not AuditLogEntry.objects.filter(target_object=self.project.id).exists()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectPluginDetailsTest(ProjectPluginDetailsTestBase):
     def test_simple(self):
         response = self.get_success_response(
@@ -53,7 +54,7 @@ class ProjectPluginDetailsTest(ProjectPluginDetailsTestBase):
         assert "social/associate/asana" in response.data["auth_url"]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class UpdateProjectPluginTest(ProjectPluginDetailsTestBase):
     method = "put"
 
@@ -75,7 +76,7 @@ class UpdateProjectPluginTest(ProjectPluginDetailsTestBase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class EnableProjectPluginTest(ProjectPluginDetailsTestBase):
     method = "post"
 
@@ -115,7 +116,7 @@ class EnableProjectPluginTest(ProjectPluginDetailsTestBase):
             assert config.get("value") is None
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class DisableProjectPluginTest(ProjectPluginDetailsTestBase):
     method = "delete"
 

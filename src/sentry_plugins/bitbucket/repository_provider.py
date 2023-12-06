@@ -1,7 +1,7 @@
 import secrets
 
 from sentry.locks import locks
-from sentry.models import OrganizationOption
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.plugins.providers import RepositoryProvider
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.email import parse_email, parse_user_name

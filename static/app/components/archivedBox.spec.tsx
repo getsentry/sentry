@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {GroupSubstatus} from 'sentry/types';
@@ -6,7 +8,7 @@ import * as analytics from 'sentry/utils/analytics';
 import ArchivedBox from './archivedBox';
 
 describe('ArchivedBox', function () {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
   it('handles ignoreUntil', function () {
@@ -78,7 +80,7 @@ describe('ArchivedBox', function () {
     expect(screen.getByText(/This issue has been archived forever/)).toBeInTheDocument();
   });
   it('handles archived until escalating', function () {
-    const org_with_escalating = TestStubs.Organization({
+    const org_with_escalating = Organization({
       features: ['escalating-issues'],
     });
     render(
@@ -98,7 +100,7 @@ describe('ArchivedBox', function () {
     ).toBeInTheDocument();
   });
   it('tracks analytics when issue status docs is clicks', async function () {
-    const org_with_escalating = TestStubs.Organization({
+    const org_with_escalating = Organization({
       features: ['escalating-issues'],
     });
     render(

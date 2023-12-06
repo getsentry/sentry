@@ -1,4 +1,3 @@
-import React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -101,12 +100,7 @@ export function DropdownAddTeam({
       alignMenu="right"
     >
       {({isOpen}) => (
-        <DropdownButton
-          aria-label={t('Add Team')}
-          isOpen={isOpen}
-          size="xs"
-          disabled={disabled}
-        >
+        <DropdownButton isOpen={isOpen} size="xs" disabled={disabled}>
           {t('Add Team')}
         </DropdownButton>
       )}
@@ -130,7 +124,7 @@ function renderDropdownOption({
 }) {
   const hasOrgAdmin = organization.access.includes('org:admin');
   const isIdpProvisioned = isAddingTeamToMember && team.flags['idp:provisioned'];
-  const isPermissionGroup = isAddingTeamToMember && team.orgRole !== null && !hasOrgAdmin;
+  const isPermissionGroup = isAddingTeamToMember && !!team.orgRole && !hasOrgAdmin;
   const buttonHelpText = getButtonHelpText(isIdpProvisioned, isPermissionGroup);
 
   return {

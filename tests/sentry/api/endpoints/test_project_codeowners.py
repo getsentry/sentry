@@ -2,12 +2,12 @@ from unittest.mock import patch
 
 from django.urls import reverse
 
-from sentry.models import ProjectCodeOwners
+from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectCodeOwnersEndpointTestCase(APITestCase):
     def setUp(self):
         self.user = self.create_user("admin@sentry.io", is_superuser=True)

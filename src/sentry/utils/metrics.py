@@ -82,15 +82,14 @@ class InternalMetrics:
                 else:
                     full_key = key
                 try:
-                    tsdb.incr(TSDBModel.internal, full_key, count=amount)
+                    tsdb.backend.incr(TSDBModel.internal, full_key, count=amount)
                 except Exception:
                     logger = logging.getLogger("sentry.errors")
                     logger.exception("Unable to incr internal metric")
                 finally:
                     q.task_done()
 
-        t = Thread(target=worker)
-        t.setDaemon(True)
+        t = Thread(target=worker, daemon=True)
         t.start()
 
         self._started = True
@@ -118,6 +117,8 @@ def incr(
     tags: Optional[Tags] = None,
     skip_internal: bool = True,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
+    unit: Optional[str] = None,
+    stacklevel: int = 0,
 ) -> None:
     should_send_internal = (
         not metrics_skip_all_internal
@@ -130,7 +131,7 @@ def incr(
         internal.incr(key, instance, tags, amount, sample_rate)
 
     try:
-        backend.incr(key, instance, tags, amount, sample_rate)
+        backend.incr(key, instance, tags, amount, sample_rate, unit, stacklevel + 1)
         if should_send_internal:
             backend.incr("internal_metrics.incr", key, None, 1, sample_rate)
     except Exception:
@@ -144,9 +145,11 @@ def gauge(
     instance: Optional[str] = None,
     tags: Optional[Tags] = None,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
+    unit: Optional[str] = None,
+    stacklevel: int = 0,
 ) -> None:
     try:
-        backend.gauge(key, value, instance, tags, sample_rate)
+        backend.gauge(key, value, instance, tags, sample_rate, unit, stacklevel + 1)
     except Exception:
         logger = logging.getLogger("sentry.errors")
         logger.exception("Unable to record backend metric")
@@ -158,9 +161,26 @@ def timing(
     instance: Optional[str] = None,
     tags: Optional[Tags] = None,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
+    stacklevel: int = 0,
 ) -> None:
     try:
-        backend.timing(key, value, instance, tags, sample_rate)
+        backend.timing(key, value, instance, tags, sample_rate, stacklevel + 1)
+    except Exception:
+        logger = logging.getLogger("sentry.errors")
+        logger.exception("Unable to record backend metric")
+
+
+def distribution(
+    key: str,
+    value: Union[int, float],
+    instance: Optional[str] = None,
+    tags: Optional[Tags] = None,
+    sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
+    unit: Optional[str] = None,
+    stacklevel: int = 0,
+) -> None:
+    try:
+        backend.distribution(key, value, instance, tags, sample_rate, unit, stacklevel + 1)
     except Exception:
         logger = logging.getLogger("sentry.errors")
         logger.exception("Unable to record backend metric")
@@ -172,6 +192,7 @@ def timer(
     instance: Optional[str] = None,
     tags: Optional[Tags] = None,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
+    stacklevel: int = 0,
 ) -> Generator[MutableTags, None, None]:
     start = time.monotonic()
     current_tags: MutableTags = dict(tags or ())
@@ -183,7 +204,8 @@ def timer(
     else:
         current_tags["result"] = "success"
     finally:
-        timing(key, time.monotonic() - start, instance, current_tags, sample_rate)
+        # stacklevel must be increased by 2 because of the contextmanager indirection
+        timing(key, time.monotonic() - start, instance, current_tags, sample_rate, stacklevel + 2)
 
 
 def wraps(
@@ -191,11 +213,18 @@ def wraps(
     instance: Optional[str] = None,
     tags: Optional[Tags] = None,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
+    stacklevel: int = 0,
 ) -> Callable[[F], F]:
     def wrapper(f: F) -> F:
         @functools.wraps(f)
         def inner(*args: Any, **kwargs: Any) -> Any:
-            with timer(key, instance=instance, tags=tags, sample_rate=sample_rate):
+            with timer(
+                key,
+                instance=instance,
+                tags=tags,
+                sample_rate=sample_rate,
+                stacklevel=stacklevel + 1,
+            ):
                 return f(*args, **kwargs)
 
         return inner  # type: ignore

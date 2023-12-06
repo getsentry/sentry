@@ -6,6 +6,7 @@ from unittest import mock
 
 from sentry.replays.usecases.ingest.dom_index import (
     _get_testid,
+    _parse_classes,
     encode_as_uuid,
     get_user_actions,
     parse_replay_actions,
@@ -409,11 +410,11 @@ def test_parse_request_response_latest():
             },
         }
     ]
-    with mock.patch("sentry.utils.metrics.timing") as timing:
+    with mock.patch("sentry.utils.metrics.distribution") as timing:
         parse_replay_actions(1, "1", 30, events)
         assert timing.call_args_list == [
-            mock.call("replays.usecases.ingest.request_body_size", 2949),
-            mock.call("replays.usecases.ingest.response_body_size", 94),
+            mock.call("replays.usecases.ingest.request_body_size", 2949, unit="byte"),
+            mock.call("replays.usecases.ingest.response_body_size", 94, unit="byte"),
         ]
 
 
@@ -462,10 +463,10 @@ def test_parse_request_response_old_format_request_only():
             },
         },
     ]
-    with mock.patch("sentry.utils.metrics.timing") as timing:
+    with mock.patch("sentry.utils.metrics.distribution") as timing:
         parse_replay_actions(1, "1", 30, events)
         assert timing.call_args_list == [
-            mock.call("replays.usecases.ingest.request_body_size", 1002),
+            mock.call("replays.usecases.ingest.request_body_size", 1002, unit="byte"),
         ]
 
 
@@ -490,10 +491,10 @@ def test_parse_request_response_old_format_response_only():
             },
         },
     ]
-    with mock.patch("sentry.utils.metrics.timing") as timing:
+    with mock.patch("sentry.utils.metrics.distribution") as timing:
         parse_replay_actions(1, "1", 30, events)
         assert timing.call_args_list == [
-            mock.call("replays.usecases.ingest.response_body_size", 1002),
+            mock.call("replays.usecases.ingest.response_body_size", 1002, unit="byte"),
         ]
 
 
@@ -519,11 +520,11 @@ def test_parse_request_response_old_format_request_and_response():
             },
         },
     ]
-    with mock.patch("sentry.utils.metrics.timing") as timing:
+    with mock.patch("sentry.utils.metrics.distribution") as timing:
         parse_replay_actions(1, "1", 30, events)
         assert timing.call_args_list == [
-            mock.call("replays.usecases.ingest.request_body_size", 1002),
-            mock.call("replays.usecases.ingest.response_body_size", 8001),
+            mock.call("replays.usecases.ingest.request_body_size", 1002, unit="byte"),
+            mock.call("replays.usecases.ingest.response_body_size", 8001, unit="byte"),
         ]
 
 
@@ -613,3 +614,11 @@ def test_get_testid():
 
     # Defaults to empty string.
     assert _get_testid({}) == ""
+
+
+def test_parse_classes():
+    assert _parse_classes("") == []
+    assert _parse_classes("   ") == []
+    assert _parse_classes("  a b ") == ["a", "b"]
+    assert _parse_classes("a  ") == ["a"]
+    assert _parse_classes("  a") == ["a"]

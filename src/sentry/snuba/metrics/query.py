@@ -7,12 +7,11 @@ from datetime import datetime, timedelta
 from functools import cached_property
 from typing import Dict, Literal, Optional, Sequence, Set, Tuple, Union
 
-from django.db.models import QuerySet
 from snuba_sdk import Column, Direction, Granularity, Limit, Offset, Op
 from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
 from sentry.api.utils import InvalidParams
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.fields import metric_object_factory
 from sentry.snuba.metrics.fields.base import get_derived_metrics
@@ -28,6 +27,7 @@ from .utils import (
     OPERATIONS,
     UNALLOWED_TAGS,
     DerivedMetricParseException,
+    MetricEntity,
     MetricOperationType,
     get_num_intervals,
 )
@@ -41,7 +41,6 @@ class MetricField:
         Dict[str, Union[None, str, int, float, Sequence[Tuple[Union[str, int], ...]]]]
     ] = None
     alias: Optional[str] = None
-    allow_private: bool = False
 
     def __post_init__(self) -> None:
         # Validate that it is a valid MRI format
@@ -49,18 +48,18 @@ class MetricField:
         if parsed_mri is None:
             raise InvalidParams(f"Invalid Metric MRI: {self.metric_mri}")
 
-        # Validates that the MRI requested is an MRI the metrics layer exposes
-        metric_name = f"pm_{self.metric_mri}"
-        if not self.allow_private:
-            metric_name = get_public_name_from_mri(self.metric_mri)
-
+        # We compute the metric name before the alias, since we want to make sure it's a public facing metric.
+        metric_name = self._metric_name
         if not self.alias:
             key = f"{self.op}({metric_name})" if self.op is not None else metric_name
             object.__setattr__(self, "alias", key)
 
+    @property
+    def _metric_name(self) -> str:
+        return get_public_name_from_mri(self.metric_mri)
+
     def __str__(self) -> str:
-        metric_name = get_public_name_from_mri(self.metric_mri)
-        return f"{self.op}({metric_name})" if self.op else metric_name
+        return f"{self.op}({self._metric_name})" if self.op else self._metric_name
 
     def __eq__(self, other: object) -> bool:
         # The equal method is called after the hash method to verify for equality of objects to insert
@@ -70,7 +69,7 @@ class MetricField:
         return bool(self.__hash__() == other.__hash__())
 
     def __hash__(self) -> int:
-        hashable_list = []
+        hashable_list: list[MetricOperationType | str] = []
         if self.op is not None:
             hashable_list.append(self.op)
         hashable_list.append(self.metric_mri)
@@ -125,8 +124,7 @@ class MetricConditionField:
     rhs: Union[int, float, str]
 
 
-Tag = str
-Groupable = Union[Tag, Literal["project_id"]]
+Groupable = Union[str, Literal["project_id"]]
 
 
 class MetricsQueryValidationRunner:
@@ -160,6 +158,8 @@ class MetricsQuery(MetricsQueryValidationRunner):
     groupby: Optional[Sequence[MetricGroupByField]] = None
     orderby: Optional[Sequence[MetricOrderByField]] = None
     limit: Optional[Limit] = None
+    # In cases where limit involves calculation (eg. top N series), we want to cap the limit since it'll be blocked otherwise.
+    max_limit: Optional[Limit] = None
     offset: Optional[Offset] = None
     include_totals: bool = True
     include_series: bool = True
@@ -170,7 +170,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
     is_alerts_query: bool = False
 
     @cached_property
-    def projects(self) -> QuerySet:
+    def projects(self) -> list[Project]:
         return Project.objects.filter(id__in=self.project_ids)
 
     @cached_property
@@ -189,7 +189,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
 
     @staticmethod
     def _validate_field(field: MetricField) -> None:
-        derived_metrics_mri = get_derived_metrics(exclude_private=True)
+        all_derived_metrics = get_derived_metrics()
 
         # Validate the validity of the expression meaning that if an operation is present, then it needs to be one of
         # of the supported operations and that the metric mri should be one of the aggregated derived metrics
@@ -198,7 +198,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
                 raise InvalidParams(
                     f"Invalid operation '{field.op}'. Must be one of {', '.join(OPERATIONS)}"
                 )
-            if field.metric_mri in derived_metrics_mri:
+            if field.metric_mri in all_derived_metrics:
                 raise DerivedMetricParseException(
                     f"Failed to parse {field.op}({get_public_name_from_mri(field.metric_mri)}). No operations can be "
                     f"applied on this field as it is already a derived metric with an "
@@ -243,7 +243,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
                 self._validate_field(metric_order_by_field.field)
 
         orderby_metric_fields: Set[MetricField] = set()
-        metric_entities: Set[MetricField] = set()
+        metric_entities: Set[MetricEntity] = set()
         group_by_str_fields: Set[str] = self.action_by_str_fields(on_group_by=True)
         for metric_order_by_field in self.orderby:
             if isinstance(metric_order_by_field.field, MetricField):
@@ -296,6 +296,8 @@ class MetricsQuery(MetricsQueryValidationRunner):
             granularity=self.granularity.granularity,
             interval=self.interval,
         )
+        if self.max_limit and self.max_limit < MAX_POINTS:
+            return
         if self.limit.limit > MAX_POINTS:
             raise InvalidParams(
                 f"Requested limit exceeds the maximum allowed limit of {MAX_POINTS}"
@@ -303,7 +305,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
         if self.start and self.end and self.include_series:
             if intervals_len * self.limit.limit > MAX_POINTS:
                 raise InvalidParams(
-                    f"Requested interval of timedelta of "
+                    f"Requested intervals ({intervals_len}) of timedelta of "
                     f"{timedelta(seconds=self.granularity.granularity)} with statsPeriod "
                     f"timedelta of {self.end - self.start} is too granular for a per_page of "
                     f"{self.limit.limit} elements. Increase your interval, decrease your "
@@ -412,7 +414,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
             object.__setattr__(self, "limit", Limit(self.get_default_limit()))
 
         if (
-            self.use_case_id is UseCaseID.TRANSACTIONS
+            self.use_case_id in [UseCaseID.TRANSACTIONS, UseCaseID.CUSTOM]
             and self.include_series
             and self.interval is None
         ):

@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import string
+from typing import ClassVar, TypeVar
 
 from django.utils.encoding import force_str
 
@@ -8,7 +11,9 @@ from sentry.utils.safe import get_path
 
 __all__ = ("Contexts",)
 
-context_types = {}
+ContextTypeT = TypeVar("ContextTypeT", bound="ContextType")
+
+context_types: dict[str, type[ContextType]] = {}
 
 
 class _IndexFormatter(string.Formatter):
@@ -22,7 +27,7 @@ def format_index_expr(format_string, data):
     return str(_IndexFormatter().vformat(str(format_string), (), data).strip())
 
 
-def contexttype(cls):
+def contexttype(cls: type[ContextTypeT]) -> type[ContextTypeT]:
     context_types[cls.type] = cls
     return cls
 
@@ -34,7 +39,7 @@ def contexttype(cls):
 
 
 class ContextType:
-    context_to_tag_mapping = None
+    context_to_tag_mapping: ClassVar[dict[str, str]] = {}
     """
     This indicates which fields should be promoted into tags during event
     normalization. (See EventManager)
@@ -74,7 +79,7 @@ class ContextType:
      - myContext.subkey: "whatever"
     """
 
-    type = None
+    type: str
     """This should match the `type` key in context object"""
 
     def __init__(self, alias, data):

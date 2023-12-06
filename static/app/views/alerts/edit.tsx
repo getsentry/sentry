@@ -1,6 +1,5 @@
 import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
-import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -60,8 +59,11 @@ class ProjectAlertsEditor extends Component<Props, State> {
   }
 
   render() {
-    const {hasMetricAlerts, organization, project, members} = this.props;
+    const {hasMetricAlerts, organization, project, members, location} = this.props;
     const alertType = this.getAlertType();
+
+    // TODO(telemetry-experience): Remove once the migration is complete
+    const isMigration = location?.query?.migration === '1';
 
     return (
       <Fragment>
@@ -74,13 +76,13 @@ class ProjectAlertsEditor extends Component<Props, State> {
           <Layout.HeaderContent>
             <BuilderBreadCrumbs
               organization={organization}
-              title={t('Edit Alert Rule')}
+              title={isMigration ? t('Review Thresholds') : t('Edit Alert Rule')}
               projectSlug={project.slug}
             />
             <Layout.Title>{this.getTitle()}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
-        <EditConditionsBody>
+        <Layout.Body>
           <Teams provideUserTeams>
             {({teams, initiallyLoaded}) =>
               initiallyLoaded ? (
@@ -108,16 +110,10 @@ class ProjectAlertsEditor extends Component<Props, State> {
               )
             }
           </Teams>
-        </EditConditionsBody>
+        </Layout.Body>
       </Fragment>
     );
   }
 }
-
-const EditConditionsBody = styled(Layout.Body)`
-  *:not(img) {
-    max-width: 1000px;
-  }
-`;
 
 export default ProjectAlertsEditor;

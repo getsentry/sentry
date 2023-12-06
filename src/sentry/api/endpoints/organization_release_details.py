@@ -4,6 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import release_health
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ReleaseAnalyticsMixin, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.endpoints.organization_releases import (
@@ -19,8 +20,9 @@ from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializerDeprecated,
     ReleaseSerializer,
 )
-from sentry.models import Activity, Project, Release, ReleaseCommitError, ReleaseStatus
-from sentry.models.release import UnsafeReleaseDeletion
+from sentry.models.activity import Activity
+from sentry.models.project import Project
+from sentry.models.release import Release, ReleaseCommitError, ReleaseStatus, UnsafeReleaseDeletion
 from sentry.snuba.sessions import STATS_PERIODS
 from sentry.types.activity import ActivityType
 from sentry.utils.sdk import bind_organization_context, configure_scope
@@ -272,6 +274,12 @@ class OrganizationReleaseDetailsEndpoint(
     ReleaseAnalyticsMixin,
     OrganizationReleaseDetailsPaginationMixin,
 ):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization, version) -> Response:
         """
         Retrieve an Organization's Release

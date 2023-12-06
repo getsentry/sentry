@@ -42,10 +42,10 @@ class SessionsV2QueryBuilder(QueryBuilder):
             return []
         return list({self.resolve_column(column) for column in groupby_columns})
 
-    def _default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         name = search_filter.key.name
         if name in self.filter_allowlist_fields or name in self._extra_filter_allowlist_fields:
-            return super()._default_filter_converter(search_filter)
+            return super().default_filter_converter(search_filter)
         raise InvalidSearchQuery(f"Invalid search filter: {name}")
 
 

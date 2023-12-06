@@ -168,7 +168,9 @@ const DropdownWrapper = styled('div')`
   /* Adapted from the dropdown-menu class */
   border: none;
   border-radius: 2px;
-  box-shadow: 0 0 0 1px rgba(52, 60, 69, 0.2), 0 1px 3px rgba(70, 82, 98, 0.25);
+  box-shadow:
+    0 0 0 1px rgba(52, 60, 69, 0.2),
+    0 1px 3px rgba(70, 82, 98, 0.25);
   background-clip: padding-box;
   background-color: ${p => p.theme.background};
   width: 220px;

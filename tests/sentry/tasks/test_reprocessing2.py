@@ -13,15 +13,13 @@ from sentry.event_manager import EventManager
 from sentry.eventstore.processing import event_processing_store
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.fingerprinting import FingerprintingRules
-from sentry.models import (
-    Activity,
-    EventAttachment,
-    File,
-    Group,
-    GroupAssignee,
-    GroupRedirect,
-    UserReport,
-)
+from sentry.models.activity import Activity
+from sentry.models.eventattachment import EventAttachment
+from sentry.models.files.file import File
+from sentry.models.group import Group
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupredirect import GroupRedirect
+from sentry.models.userreport import UserReport
 from sentry.plugins.base.v2 import Plugin2
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.reprocessing2 import is_group_finished
@@ -30,8 +28,11 @@ from sentry.tasks.store import preprocess_event
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.utils.cache import cache_key_for_event
+
+pytestmark = [requires_snuba]
 
 
 def _create_event_attachment(evt, type):
@@ -423,7 +424,9 @@ def test_attachments_and_userfeedback(
 @django_db_all
 @pytest.mark.snuba
 @pytest.mark.parametrize("remaining_events", ["keep", "delete"])
+@mock.patch("sentry.reprocessing2.logger")
 def test_nodestore_missing(
+    mock_logger,
     default_project,
     reset_snuba,
     process_and_save,
@@ -432,9 +435,6 @@ def test_nodestore_missing(
     remaining_events,
     django_cache,
 ):
-    logs: list[str] = []
-    monkeypatch.setattr("sentry.reprocessing2.logger.error", logs.append)
-
     event_id = process_and_save({"message": "hello world", "platform": "python"})
     event = eventstore.backend.get_event_by_id(default_project.id, event_id)
     old_group = event.group
@@ -463,7 +463,7 @@ def test_nodestore_missing(
             GroupRedirect.objects.get(previous_group_id=old_group.id).group_id == new_event.group_id
         )
 
-    assert logs == ["reprocessing2.unprocessed_event.not_found"]
+    assert mock_logger.error.called_with("reprocessing2.unprocessed_event.not_found")
 
 
 @django_db_all

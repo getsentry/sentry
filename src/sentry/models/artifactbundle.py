@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import zipfile
 from enum import Enum
-from typing import IO, Callable, Dict, List, Mapping, Optional, Set, Tuple
+from typing import IO, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
 
 import sentry_sdk
 from django.conf import settings
@@ -12,6 +12,7 @@ from django.utils import timezone
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
@@ -28,8 +29,6 @@ from sentry.utils.services import LazyServiceWrapper
 # always different from `NULL`.
 NULL_UUID = "00000000-00000000-00000000-00000000"
 NULL_STRING = ""
-# Number of bundles that have to be associated to a release/dist pair before indexing takes place.
-INDEXING_THRESHOLD = 1
 
 
 class SourceFileType(Enum):
@@ -65,7 +64,7 @@ class ArtifactBundleIndexingState(Enum):
 
 @region_silo_only_model
 class ArtifactBundle(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
     # We use 00000000-00000000-00000000-00000000 in place of NULL because the uniqueness constraint doesn't play well
@@ -93,9 +92,11 @@ class ArtifactBundle(Model):
     def get_release_associations(
         cls, organization_id: int, artifact_bundle: ArtifactBundle
     ) -> List[Mapping[str, str | None]]:
+        # We sort by id, since it's the best (already existing) field to define total order of
+        # release associations that is somehow consistent with upload sequence.
         release_artifact_bundles = ReleaseArtifactBundle.objects.filter(
             organization_id=organization_id, artifact_bundle=artifact_bundle
-        )
+        ).order_by("-id")
 
         return [
             {
@@ -113,7 +114,24 @@ class ArtifactBundle(Model):
 
 
 def delete_file_for_artifact_bundle(instance, **kwargs):
-    instance.file.delete()
+    from sentry.models.files import File
+    from sentry.tasks.assemble import AssembleTask, delete_assemble_status
+
+    checksum = None
+    try:
+        checksum = instance.file.checksum
+    except File.DoesNotExist:
+        pass
+    else:
+        if instance.organization_id is not None and checksum is not None:
+            delete_assemble_status(
+                AssembleTask.ARTIFACT_BUNDLE,
+                instance.organization_id,
+                checksum,
+            )
+
+    finally:
+        instance.file.delete()
 
 
 def delete_bundle_from_index(instance, **kwargs):
@@ -138,22 +156,18 @@ indexstore = LazyServiceWrapper(
 
 @region_silo_only_model
 class ArtifactBundleFlatFileIndex(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     project_id = BoundedBigIntegerField(db_index=True)
     release_name = models.CharField(max_length=250)
     dist_name = models.CharField(max_length=64, default=NULL_STRING)
     date_added = models.DateTimeField(default=timezone.now)
 
-    # TODO: This column is in the process of being removed.
-    # For now, it still exists only to facilitate deleting all existing files.
-    flat_file_index = FlexibleForeignKey("sentry.File", null=True)
-
     class Meta:
         app_label = "sentry"
         db_table = "sentry_artifactbundleflatfileindex"
 
-        index_together = (("project_id", "release_name", "dist_name"),)
+        unique_together = (("project_id", "release_name", "dist_name"),)
 
     def _indexstore_id(self) -> str:
         return f"bundle_index:{self.project_id}:{self.id}"
@@ -161,10 +175,11 @@ class ArtifactBundleFlatFileIndex(Model):
     def update_flat_file_index(self, data: str):
         encoded_data = data.encode()
 
-        metric_name = "debug_id_index" if self.dist_name == NULL_STRING else "url_index"
-        metrics.timing(
+        metric_name = "debug_id_index" if self.release_name == NULL_STRING else "url_index"
+        metrics.distribution(
             f"artifact_bundle_flat_file_indexing.{metric_name}.size_in_bytes",
             value=len(encoded_data),
+            unit="byte",
         )
 
         indexstore.set_bytes(self._indexstore_id(), encoded_data)
@@ -176,16 +191,20 @@ class ArtifactBundleFlatFileIndex(Model):
 
 @region_silo_only_model
 class FlatFileIndexState(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     flat_file_index = FlexibleForeignKey("sentry.ArtifactBundleFlatFileIndex")
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
-    indexing_state = models.IntegerField(choices=ArtifactBundleIndexingState.choices())
+    indexing_state = models.IntegerField(
+        choices=ArtifactBundleIndexingState.choices(), db_index=True
+    )
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_flatfileindexstate"
+
+        unique_together = (("flat_file_index", "artifact_bundle"),)
 
     @staticmethod
     def mark_as_indexed(
@@ -206,7 +225,7 @@ class FlatFileIndexState(Model):
 
 @region_silo_only_model
 class ArtifactBundleIndex(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
@@ -229,7 +248,7 @@ class ArtifactBundleIndex(Model):
 
 @region_silo_only_model
 class ReleaseArtifactBundle(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
     release_name = models.CharField(max_length=250)
@@ -250,7 +269,7 @@ class ReleaseArtifactBundle(Model):
 
 @region_silo_only_model
 class DebugIdArtifactBundle(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
     debug_id = models.UUIDField()
@@ -267,7 +286,7 @@ class DebugIdArtifactBundle(Model):
 
 @region_silo_only_model
 class ProjectArtifactBundle(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
     project_id = BoundedBigIntegerField()
@@ -359,33 +378,11 @@ class ArtifactBundleArchive:
     def get_all_urls(self) -> List[str]:
         return [url for url in self._entries_by_url.keys()]
 
-    def get_all_debug_ids(self) -> List[str]:
-        return list({debug_id for debug_id, _ty in self._entries_by_debug_id.keys()})
+    def get_all_debug_ids(self) -> Sequence[Tuple[str, SourceFileType]]:
+        return self._entries_by_debug_id.keys()
 
     def has_debug_ids(self):
         return len(self._entries_by_debug_id) > 0
-
-    def extract_debug_ids_from_manifest(
-        self,
-    ) -> Set[Tuple[SourceFileType, str]]:
-        # We use a set, since we might have the same debug_id and file_type.
-        debug_ids_with_types = set()
-
-        files = self.manifest.get("files", {})
-        for info in files.values():
-            headers = self.normalize_headers(info.get("headers", {}))
-            if (debug_id := headers.get("debug-id")) is not None:
-                debug_id = self.normalize_debug_id(debug_id)
-                file_type = info.get("type")
-                if (
-                    debug_id is not None
-                    and file_type is not None
-                    and (source_file_type := SourceFileType.from_lowercase_key(file_type))
-                    is not None
-                ):
-                    debug_ids_with_types.add((source_file_type, debug_id))
-
-        return debug_ids_with_types
 
     def extract_bundle_id(self) -> Optional[str]:
         bundle_id = self.manifest.get("debug_id")

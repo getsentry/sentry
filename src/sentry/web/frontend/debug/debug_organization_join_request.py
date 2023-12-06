@@ -1,7 +1,9 @@
 from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
 
-from sentry.models import InviteStatus, Organization, OrganizationMember, User
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.user import User
 from sentry.notifications.notifications.organization_request import JoinRequestNotification
 
 from .mail import render_preview_email_for_notification

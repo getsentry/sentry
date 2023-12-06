@@ -2,18 +2,21 @@ from unittest import mock
 
 import responses
 
-from sentry.models import Activity
+from sentry.models.activity import Activity
 from sentry.notifications.notifications.activity.resolved_in_release import (
     ResolvedInReleaseActivityNotification,
 )
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
-from sentry.testutils.helpers.slack import get_attachment, send_notification
+from sentry.testutils.helpers.slack import get_attachment
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 
+pytestmark = [requires_snuba]
 
-@region_silo_test(stable=True)
+
+@region_silo_test
 class SlackResolvedInReleaseNotificationTest(
     SlackActivityNotificationTest, PerformanceIssueTestCase
 ):
@@ -29,8 +32,7 @@ class SlackResolvedInReleaseNotificationTest(
         )
 
     @responses.activate
-    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
-    def test_resolved_in_release(self, mock_func):
+    def test_resolved_in_release(self):
         """
         Test that a Slack message is sent with the expected payload when an issue is resolved in a release
         """
@@ -41,9 +43,10 @@ class SlackResolvedInReleaseNotificationTest(
         attachment, text = get_attachment()
         release_name = notification.activity.data["version"]
         assert text == f"Issue marked as resolved in {release_name} by {self.name}"
+        notification_uuid = self.get_notification_uuid(attachment["title_link"])
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_in_release_activity-slack-user|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_in_release_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
     @responses.activate
@@ -52,8 +55,7 @@ class SlackResolvedInReleaseNotificationTest(
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
-    def test_resolved_in_release_performance_issue(self, mock_func, occurrence):
+    def test_resolved_in_release_performance_issue(self, occurrence):
         """
         Test that a Slack message is sent with the expected payload when a performance issue is resolved in a release
         """
@@ -75,8 +77,7 @@ class SlackResolvedInReleaseNotificationTest(
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
-    def test_resolved_in_release_generic_issue(self, mock_func, occurrence):
+    def test_resolved_in_release_generic_issue(self, occurrence):
         """
         Test that a Slack message is sent with the expected payload when a generic issue type is resolved in a release
         """
@@ -96,8 +97,7 @@ class SlackResolvedInReleaseNotificationTest(
         )
 
     @responses.activate
-    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
-    def test_resolved_in_release_parsed_version(self, mock_func):
+    def test_resolved_in_release_parsed_version(self):
         """
         Test that the release version is formatted to the short version
         """
@@ -107,7 +107,8 @@ class SlackResolvedInReleaseNotificationTest(
 
         attachment, text = get_attachment()
         assert text == f"Issue marked as resolved in 1.0.0 by {self.name}"
+        notification_uuid = self.get_notification_uuid(attachment["title_link"])
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_in_release_activity-slack-user|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_in_release_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )

@@ -7,7 +7,11 @@ from sentry import features
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SLACK_URL_FORMAT
 from sentry.issues.grouptype import GroupCategory
-from sentry.models import Group, Project, Rule, Team
+from sentry.models.environment import Environment
+from sentry.models.group import Group
+from sentry.models.project import Project
+from sentry.models.rule import Rule
+from sentry.models.team import Team
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -65,10 +69,24 @@ def get_title_link(
     notification: BaseNotification | None,
     provider: ExternalProviders = ExternalProviders.SLACK,
     rule_id: int | None = None,
+    notification_uuid: str | None = None,
 ) -> str:
     other_params = {}
     # add in rule id if we have it
     if rule_id:
+        try:
+            rule = Rule.objects.get(id=rule_id)
+        except Rule.DoesNotExist:
+            rule_env = None
+        else:
+            rule_env = rule.environment_id
+        try:
+            env = Environment.objects.get(id=rule_env)
+        except Environment.DoesNotExist:
+            pass
+        else:
+            other_params["environment"] = env.name
+
         other_params["alert_rule_id"] = rule_id
         # hard code for issue alerts
         other_params["alert_type"] = "issue"
@@ -81,7 +99,18 @@ def get_title_link(
 
     elif issue_details and notification:
         referrer = notification.get_referrer(provider)
-        url = group.get_absolute_url(params={"referrer": referrer, **other_params})
+        notification_uuid = notification.notification_uuid
+        url = group.get_absolute_url(
+            params={"referrer": referrer, "notification_uuid": notification_uuid, **other_params}
+        )
+    elif notification_uuid:
+        url = group.get_absolute_url(
+            params={
+                "referrer": EXTERNAL_PROVIDERS[provider],
+                "notification_uuid": notification_uuid,
+                **other_params,
+            }
+        )
     else:
         url = group.get_absolute_url(
             params={"referrer": EXTERNAL_PROVIDERS[provider], **other_params}

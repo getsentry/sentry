@@ -1,32 +1,31 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, List, Mapping, Optional, Set, Union, cast
+from typing import Any, Iterable, List, Mapping, Optional, Union
 
 from django.db import IntegrityError, models, router, transaction
+from django.db.models.expressions import CombinedExpression, F
 from django.dispatch import Signal
 
 from sentry import roles
 from sentry.api.serializers import serialize
-from sentry.models import (
-    Activity,
-    ControlOutbox,
-    GroupAssignee,
-    GroupBookmark,
-    GroupSeen,
-    GroupShare,
-    GroupSubscription,
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    OrganizationStatus,
-    OutboxCategory,
-    OutboxScope,
-    Team,
-    outbox_context,
-)
-from sentry.models.organizationmember import InviteStatus
+from sentry.db.postgres.transactions import enforce_constraints
+from sentry.models.activity import Activity
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupbookmark import GroupBookmark
+from sentry.models.groupseen import GroupSeen
+from sentry.models.groupshare import GroupShare
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
+from sentry.models.scheduledeletion import RegionScheduledDeletion
+from sentry.models.team import Team, TeamStatus
 from sentry.services.hybrid_cloud import OptionValue, logger
+from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.organization import (
+    OrganizationCheckService,
     OrganizationService,
     OrganizationSignalService,
     RpcOrganization,
@@ -37,18 +36,30 @@ from sentry.services.hybrid_cloud.organization import (
     RpcOrganizationSignal,
     RpcOrganizationSummary,
     RpcRegionUser,
+    RpcTeam,
     RpcUserInviteContext,
     RpcUserOrganizationContext,
+)
+from sentry.services.hybrid_cloud.organization.model import (
+    OrganizationMemberUpdateArgs,
+    RpcAuditLogEntryActor,
+    RpcOrganizationDeleteResponse,
+    RpcOrganizationDeleteState,
 )
 from sentry.services.hybrid_cloud.organization.serial import (
     serialize_member,
     serialize_organization_summary,
     serialize_rpc_organization,
+    serialize_rpc_team,
+)
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    mark_organization_as_pending_deletion_with_outbox_message,
 )
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.util import flags_to_bits
 from sentry.silo import unguarded_write
 from sentry.types.region import find_regions_for_orgs
+from sentry.utils.audit import create_org_delete_log
 
 
 class DatabaseBackedOrganizationService(OrganizationService):
@@ -107,6 +118,12 @@ class DatabaseBackedOrganizationService(OrganizationService):
             return serialize_organization_summary(query.get())
         except Organization.DoesNotExist:
             return None
+
+    def get_organizations_by_user_and_scope(
+        self, *, region_name: str, user: RpcUser, scope: str
+    ) -> List[RpcOrganization]:
+        organizations = Organization.objects.get_for_user(user=user, scope=scope)
+        return list(map(serialize_rpc_organization, organizations))
 
     def get_default_organization(self) -> RpcOrganization:
         return serialize_rpc_organization(Organization.get_default())
@@ -243,17 +260,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
                     return None
         return serialize_member(org_member)
 
-    def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
-        try:
-            org = Organization.objects.get_from_cache(slug=slug)
-            if only_visible and org.status != OrganizationStatus.ACTIVE:
-                raise Organization.DoesNotExist
-            return cast(int, org.id)
-        except Organization.DoesNotExist:
-            logger.info("Organization by slug [%s] not found", slug)
-
-        return None
-
     def _query_organizations(
         self, user_id: int, scope: Optional[str], only_visible: bool
     ) -> List[Organization]:
@@ -279,7 +285,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         return [r.organization for r in results]
 
     def update_flags(self, *, organization_id: int, flags: RpcOrganizationFlagsUpdate) -> None:
-        updates: models.F | models.CombinedExpression = models.F("flags")
+        updates: F | CombinedExpression = models.F("flags")
         for (name, value) in flags.items():
             if value is True:
                 updates = updates.bitor(getattr(Organization.flags, name))
@@ -290,7 +296,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         with outbox_context(transaction.atomic(router.db_for_write(Organization))):
             Organization.objects.filter(id=organization_id).update(flags=updates)
-            Organization.outbox_for_update(org_id=organization_id).save()
+            Organization(id=organization_id).outbox_for_update().save()
 
     @staticmethod
     def _deserialize_member_flags(flags: RpcOrganizationMemberFlags) -> int:
@@ -343,10 +349,71 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 )
         return serialize_member(org_member)
 
-    def add_team_member(self, *, team_id: int, organization_member: RpcOrganizationMember) -> None:
+    def update_organization_member(
+        self, *, organization_id: int, member_id: int, attrs: OrganizationMemberUpdateArgs
+    ) -> Optional[RpcOrganizationMember]:
+        member = OrganizationMember.objects.get(id=member_id)
+        with outbox_context(transaction.atomic(router.db_for_write(OrganizationMember))):
+            if len(attrs):
+                for k, v in attrs.items():
+                    setattr(member, k, v)
+                member.save()
+
+        return serialize_member(member)
+
+    def get_single_team(self, *, organization_id: int) -> Optional[RpcTeam]:
+        teams = list(Team.objects.filter(organization_id=organization_id)[0:2])
+        if len(teams) == 1:
+            (team,) = teams
+            return serialize_rpc_team(team)
+        return None
+
+    def add_team_member(
+        self, *, organization_id: int, team_id: int, organization_member_id: int
+    ) -> None:
         OrganizationMemberTeam.objects.create(
-            team_id=team_id, organizationmember_id=organization_member.id
+            team_id=team_id, organizationmember_id=organization_member_id
         )
+        # It might be nice to return an RpcTeamMember to represent what we just
+        # created, but doing so would require a list of project IDs. We can implement
+        # that if a return value is needed in the future.
+
+    def get_or_create_default_team(
+        self,
+        *,
+        organization_id: int,
+        new_team_slug: str,
+    ) -> RpcTeam:
+        team_query = Team.objects.filter(
+            organization_id=organization_id, status=TeamStatus.ACTIVE
+        ).order_by("date_added")
+        if team_query.exists():
+            team = team_query[0]
+        else:
+            team = Team.objects.create(
+                organization_id=organization_id, slug=new_team_slug, name=new_team_slug
+            )
+        return serialize_rpc_team(team)
+
+    def get_or_create_team_member(
+        self,
+        *,
+        organization_id: int,
+        team_id: int,
+        organization_member_id: int,
+        role: Optional[str] = "contributor",
+    ) -> None:
+        team_member_query = OrganizationMemberTeam.objects.filter(
+            team_id=team_id, organizationmember_id=organization_member_id
+        )
+        if team_member_query.exists():
+            team_member = team_member_query[0]
+            if role and team_member.role != role:
+                team_member.update(role=role)
+        else:
+            team_member = OrganizationMemberTeam.objects.create(
+                team_id=team_id, organizationmember_id=organization_member_id, role=role
+            )
         # It might be nice to return an RpcTeamMember to represent what we just
         # created, but doing so would require a list of project IDs. We can implement
         # that if a return value is needed in the future.
@@ -363,39 +430,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
     @classmethod
     def _serialize_invite(cls, om: OrganizationMember) -> RpcOrganizationInvite:
         return RpcOrganizationInvite(id=om.id, token=om.token, email=om.email)
-
-    def get_all_org_roles(
-        self,
-        *,
-        organization_id: int,
-        member_id: int,
-    ) -> List[str]:
-        member = OrganizationMember.objects.get(id=member_id)
-        organization_member = serialize_member(member)
-
-        org_roles: List[str] = []
-        if organization_member:
-            team_ids = [mt.team_id for mt in organization_member.member_teams]
-            all_roles: Set[str] = set(
-                Team.objects.filter(id__in=team_ids)
-                .exclude(org_role=None)
-                .values_list("org_role", flat=True)
-            )
-            all_roles.add(organization_member.role)
-            org_roles.extend(list(all_roles))
-        return org_roles
-
-    def get_top_dog_team_member_ids(self, organization_id: int) -> List[int]:
-        owner_teams = list(
-            Team.objects.filter(
-                organization_id=organization_id, org_role=roles.get_top_dog().id
-            ).values_list("id", flat=True)
-        )
-        return list(
-            OrganizationMemberTeam.objects.filter(team_id__in=owner_teams).values_list(
-                "organizationmember_id", flat=True
-            )
-        )
 
     def update_default_role(self, *, organization_id: int, default_role: str) -> RpcOrganization:
         org = Organization.objects.get(id=organization_id)
@@ -449,7 +483,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         for team in from_member.teams.all():
             try:
-                with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
+                with enforce_constraints(
+                    transaction.atomic(router.db_for_write(OrganizationMemberTeam))
+                ):
                     OrganizationMemberTeam.objects.create(organizationmember=to_member, team=team)
             except IntegrityError:
                 pass
@@ -468,7 +504,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 user_id=from_user_id, project__organization_id=organization_id
             ):
                 try:
-                    with transaction.atomic(router.db_for_write(model)):
+                    with enforce_constraints(transaction.atomic(router.db_for_write(model))):
                         obj.update(user_id=to_user_id)
                 except IntegrityError:
                     pass
@@ -509,6 +545,66 @@ class DatabaseBackedOrganizationService(OrganizationService):
         orm_organization = Organization.objects.get_from_cache(id=organization_id)
         orm_organization.delete_option(key)
 
+    def send_sso_link_emails(
+        self, *, organization_id: int, sending_user_email: str, provider_key: str
+    ) -> None:
+        from sentry.auth import manager
+        from sentry.auth.exceptions import ProviderNotRegistered
+
+        try:
+            provider = manager.get(provider_key)
+        except ProviderNotRegistered as e:
+            logger.warning("Could not send SSO link emails: %s", e)
+            return
+
+        member_list = OrganizationMember.objects.filter(
+            organization_id=organization_id,
+            flags=F("flags").bitand(~OrganizationMember.flags["sso:linked"]),
+        ).select_related("organization")
+
+        provider = manager.get(provider_key)
+        for member in member_list:
+            member.send_sso_link_email(sending_user_email, provider)
+
+    def delete_organization(
+        self, *, organization_id: int, user: RpcUser
+    ) -> RpcOrganizationDeleteResponse:
+        orm_organization = Organization.objects.get(id=organization_id)
+        if orm_organization.is_default:
+            return RpcOrganizationDeleteResponse(
+                response_state=RpcOrganizationDeleteState.CANNOT_REMOVE_DEFAULT_ORG
+            )
+
+        published_sentry_apps = app_service.get_published_sentry_apps_for_organization(
+            organization_id=orm_organization.id
+        )
+
+        if len(published_sentry_apps) > 0:
+            return RpcOrganizationDeleteResponse(
+                response_state=RpcOrganizationDeleteState.OWNS_PUBLISHED_INTEGRATION
+            )
+
+        with transaction.atomic(router.db_for_write(RegionScheduledDeletion)):
+            updated_organization = mark_organization_as_pending_deletion_with_outbox_message(
+                org_id=orm_organization.id
+            )
+
+            if updated_organization is not None:
+                schedule = RegionScheduledDeletion.schedule(orm_organization, days=1, actor=user)
+
+                Organization.objects.uncache_object(updated_organization.id)
+                return RpcOrganizationDeleteResponse(
+                    response_state=RpcOrganizationDeleteState.PENDING_DELETION,
+                    updated_organization=serialize_rpc_organization(updated_organization),
+                    schedule_guid=schedule.guid,
+                )
+        return RpcOrganizationDeleteResponse(response_state=RpcOrganizationDeleteState.NO_OP)
+
+    def create_org_delete_log(
+        self, *, organization_id: int, audit_log_actor: RpcAuditLogEntryActor
+    ) -> None:
+        create_org_delete_log(organization_id=organization_id, audit_log_actor=audit_log_actor)
+
     def send_signal(
         self,
         *,
@@ -517,6 +613,42 @@ class DatabaseBackedOrganizationService(OrganizationService):
         args: Mapping[str, str | int | None],
     ) -> None:
         signal.signal.send_robust(None, organization_id=organization_id, **args)
+
+    def get_organization_owner_members(
+        self, *, organization_id: int
+    ) -> List[RpcOrganizationMember]:
+        org: Organization = Organization.objects.get(id=organization_id)
+        owner_members = org.get_members_with_org_roles(roles=[roles.get_top_dog().id])
+
+        return list(map(serialize_member, owner_members))
+
+
+class ControlOrganizationCheckService(OrganizationCheckService):
+    def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
+        # See RegionOrganizationCheckService below
+        try:
+            org = OrganizationMapping.objects.get(slug=slug)
+            if only_visible and org.status != OrganizationStatus.ACTIVE:
+                raise OrganizationMapping.DoesNotExist
+            return org.organization_id
+        except OrganizationMapping.DoesNotExist:
+            logger.info("OrganizationMapping by slug [%s] not found", slug)
+
+        return None
+
+
+class RegionOrganizationCheckService(OrganizationCheckService):
+    def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
+        # See ControlOrganizationCheckService above
+        try:
+            org = Organization.objects.get_from_cache(slug=slug)
+            if only_visible and org.status != OrganizationStatus.ACTIVE:
+                raise Organization.DoesNotExist
+            return org.id
+        except Organization.DoesNotExist:
+            logger.info("Organization by slug [%s] not found", slug)
+
+        return None
 
 
 class OutboxBackedOrganizationSignalService(OrganizationSignalService):

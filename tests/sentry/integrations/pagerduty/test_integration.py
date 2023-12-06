@@ -5,14 +5,15 @@ import responses
 
 from sentry import options
 from sentry.integrations.pagerduty.integration import PagerDutyIntegrationProvider
-from sentry.models import Integration, OrganizationIntegration
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class PagerDutyIntegrationTest(IntegrationTestCase):
     provider = PagerDutyIntegrationProvider
     base_url = "https://app.pagerduty.com"

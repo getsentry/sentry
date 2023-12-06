@@ -30,24 +30,32 @@ class Add extends ModalManager {
     return (
       <StyledList symbol="colored-numeric">
         <Item
-          title={tct('Initialize the configuration. [link: Learn how]', {
-            link: (
-              <ExternalLink href="https://docs.sentry.io/product/relay/getting-started/#initializing-configuration" />
-            ),
-          })}
+          title={
+            <div>
+              {tct('Initialize the configuration. [link: Learn how]', {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/relay/getting-started/#initializing-configuration" />
+                ),
+              })}
+            </div>
+          }
           subtitle={t('Within your terminal:')}
         >
           <Terminal command="relay config init" />
         </Item>
         <Item
-          title={tct(
-            'Go to the file [jsonFile: credentials.json] to find the public key and enter it below.',
-            {
-              jsonFile: (
-                <ExternalLink href="https://docs.sentry.io/product/relay/getting-started/#registering-relay-with-sentry" />
-              ),
-            }
-          )}
+          title={
+            <div>
+              {tct(
+                'Go to the file [jsonFile: credentials.json] to find the public key and enter it below.',
+                {
+                  jsonFile: (
+                    <ExternalLink href="https://docs.sentry.io/product/relay/getting-started/#registering-relay-with-sentry" />
+                  ),
+                }
+              )}
+            </div>
+          }
         >
           {super.getForm()}
         </Item>

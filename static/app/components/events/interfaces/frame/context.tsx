@@ -15,6 +15,7 @@ import {
   LineCoverage,
   Organization,
   SentryAppComponent,
+  SentryAppSchemaStacktraceLink,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -32,13 +33,12 @@ import {OpenInContextLine} from './openInContextLine';
 import useStacktraceLink from './useStacktraceLink';
 
 type Props = {
-  components: Array<SentryAppComponent>;
+  components: SentryAppComponent<SentryAppSchemaStacktraceLink>[];
   event: Event;
   frame: Frame;
   registers: {[key: string]: string};
   className?: string;
   emptySourceNotation?: boolean;
-  expandable?: boolean;
   frameMeta?: Record<any, any>;
   hasAssembly?: boolean;
   hasContextRegisters?: boolean;
@@ -71,7 +71,6 @@ function Context({
   hasContextRegisters = false,
   isExpanded = false,
   hasAssembly = false,
-  expandable = false,
   emptySourceNotation = false,
   registers,
   components,
@@ -138,12 +137,7 @@ function Context({
   }
 
   const startLineNo = hasContextSource ? frame.context[0][0] : 0;
-  const hasStacktraceLink =
-    frame.inApp &&
-    !!frame.filename &&
-    isExpanded &&
-    organization?.features.includes('integrations-stacktrace-link');
-
+  const hasStacktraceLink = frame.inApp && !!frame.filename && isExpanded;
   return (
     <Wrapper
       start={startLineNo}
@@ -151,12 +145,6 @@ function Context({
       className={`${className} context ${isExpanded ? 'expanded' : ''}`}
       data-test-id="frame-context"
     >
-      {defined(frame.errors) && (
-        <li className={expandable ? 'expandable error' : 'error'} key="errors">
-          {frame.errors.join(', ')}
-        </li>
-      )}
-
       {frame.context &&
         contextLines.map((line, index) => {
           const isActive = activeLineNumber === line[0];

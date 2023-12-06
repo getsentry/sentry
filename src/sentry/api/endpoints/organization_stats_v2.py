@@ -9,6 +9,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from typing_extensions import TypedDict
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.utils import InvalidParams as InvalidParamsApi
@@ -130,6 +132,10 @@ class StatsApiResponse(TypedDict):
 @extend_schema(tags=["Organizations"])
 @region_silo_endpoint
 class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+    }
+    owner = ApiOwner.ENTERPRISE
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
@@ -138,7 +144,6 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
             RateLimitCategory.ORGANIZATION: RateLimit(20, 1),
         }
     }
-    public = {"GET"}
 
     @extend_schema(
         operation_id="Retrieve Event Counts for an Organization (v2)",

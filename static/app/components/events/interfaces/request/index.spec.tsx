@@ -1,13 +1,17 @@
+import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+import {Event as EventFixture} from 'sentry-fixture/event';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Request} from 'sentry/components/events/interfaces/request';
 import {EntryRequest, EntryType} from 'sentry/types/event';
 
+jest.unmock('prismjs');
+
 describe('Request entry', function () {
   it('display redacted data', async function () {
-    const event = {
-      ...TestStubs.Event(),
+    const event = EventFixture({
       entries: [
         {
           type: 'request',
@@ -157,11 +161,11 @@ describe('Request entry', function () {
           },
         },
       },
-    };
+    });
 
     render(<Request event={event} data={event.entries[0].data} />, {
       organization: {
-        relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+        relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
       },
     });
 
@@ -197,19 +201,18 @@ describe('Request entry', function () {
         fragment: null,
       };
 
-      const event = {
-        ...TestStubs.Event(),
+      const event = EventFixture({
         entries: [
           {
             type: EntryType.REQUEST,
             data,
           },
         ],
-      };
+      });
 
       render(<Request event={event} data={event.entries[0].data} />, {
         organization: {
-          relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+          relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
         },
       });
 
@@ -232,19 +235,18 @@ describe('Request entry', function () {
         fragment: null,
       };
 
-      const event = {
-        ...TestStubs.Event(),
+      const event = EventFixture({
         entries: [
           {
             type: EntryType.REQUEST,
             data,
           },
         ],
-      };
+      });
 
       render(<Request event={event} data={event.entries[0].data} />, {
         organization: {
-          relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+          relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
         },
       });
 
@@ -267,19 +269,18 @@ describe('Request entry', function () {
         fragment: null,
       };
 
-      const event = {
-        ...TestStubs.Event(),
+      const event = EventFixture({
         entries: [
           {
             type: EntryType.REQUEST,
             data,
           },
         ],
-      };
+      });
 
       render(<Request event={event} data={event.entries[0].data} />, {
         organization: {
-          relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+          relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
         },
       });
 
@@ -303,20 +304,19 @@ describe('Request entry', function () {
         fragment: null,
       };
 
-      const event = {
-        ...TestStubs.Event(),
+      const event = EventFixture({
         entries: [
           {
             type: EntryType.REQUEST,
             data,
           },
         ],
-      };
+      });
 
       expect(() =>
         render(<Request event={event} data={event.entries[0].data} />, {
           organization: {
-            relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+            relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
           },
         })
       ).not.toThrow();
@@ -335,20 +335,19 @@ describe('Request entry', function () {
         fragment: null,
       };
 
-      const event = {
-        ...TestStubs.Event(),
+      const event = EventFixture({
         entries: [
           {
             type: EntryType.REQUEST,
             data,
           },
         ],
-      };
+      });
 
       expect(() =>
         render(<Request event={event} data={event.entries[0].data} />, {
           organization: {
-            relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+            relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
           },
         })
       ).not.toThrow();
@@ -367,15 +366,14 @@ describe('Request entry', function () {
           },
         };
 
-        const event = {
-          ...TestStubs.Event(),
+        const event = EventFixture({
           entries: [
             {
               type: EntryType.REQUEST,
               data,
             },
           ],
-        };
+        });
 
         render(<Request event={event} data={event.entries[0].data} />);
 
@@ -398,8 +396,7 @@ describe('Request entry', function () {
           },
         };
 
-        const event = {
-          ...TestStubs.Event(),
+        const event = EventFixture({
           entries: [
             {
               type: EntryType.REQUEST,
@@ -413,7 +410,7 @@ describe('Request entry', function () {
               },
             },
           },
-        };
+        });
 
         const {container} = render(
           <Request event={event} data={event.entries[0].data} />

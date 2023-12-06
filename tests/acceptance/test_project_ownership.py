@@ -2,7 +2,7 @@ from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class ProjectOwnershipTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -13,7 +13,6 @@ class ProjectOwnershipTest(AcceptanceTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not(".loading")
         self.browser.wait_until_test_id("issueowners-panel")
-        self.browser.snapshot("project ownership")
 
     def test_open_modal(self):
         self.browser.get(self.path)
@@ -22,4 +21,3 @@ class ProjectOwnershipTest(AcceptanceTestCase):
         self.browser.click('[aria-label="Edit"]')
         self.browser.wait_until("[role='dialog']")
         self.browser.wait_until_not("div[class$='loadingIndicator']")
-        self.browser.snapshot("project ownership modal")

@@ -1,4 +1,4 @@
-import {IssueType, PlatformType} from 'sentry/types';
+import {IssueType, PlatformKey} from 'sentry/types';
 
 export type ResourceLink = {
   link: string;
@@ -15,16 +15,26 @@ export type IssueTypeConfig = {
    * Enable/disable actions for an issue type
    */
   actions: {
+    archiveUntilOccurrence: DisabledWithReasonConfig;
     delete: DisabledWithReasonConfig;
     deleteAndDiscard: DisabledWithReasonConfig;
     ignore: DisabledWithReasonConfig;
     merge: DisabledWithReasonConfig;
+    resolveInRelease: DisabledWithReasonConfig;
     share: DisabledWithReasonConfig;
   };
   /**
    * Is the Attachments tab shown for this issue
    */
   attachments: DisabledWithReasonConfig;
+  /**
+   * Is the "Open in Discover" button available for this issue
+   */
+  discover: DisabledWithReasonConfig;
+  /**
+   * Is the Events tab show for this issue
+   */
+  events: DisabledWithReasonConfig;
   /**
    * Options for rendering the Evidence section - pass null to disable
    */
@@ -36,6 +46,10 @@ export type IssueTypeConfig = {
    * Is the Merged Issues tab shown for this issue
    */
   mergedIssues: DisabledWithReasonConfig;
+  /**
+   * Enables various regression related supporting data for an issue type.
+   */
+  regression: DisabledWithReasonConfig;
   /**
    * Is the Replays tab shown for this issue
    */
@@ -53,12 +67,20 @@ export type IssueTypeConfig = {
     /**
      * Platform-specific resource links
      */
-    linksByPlatform: Partial<Record<PlatformType, ResourceLink[]>>;
+    linksByPlatform: Partial<Record<PlatformKey, ResourceLink[]>>;
   } | null;
   /**
    * Is the Similar Issues tab shown for this issue
    */
   similarIssues: DisabledWithReasonConfig;
+  /**
+   * Are group stats (counts/time series) shown for this issue.
+   */
+  stats: DisabledWithReasonConfig;
+  /**
+   * Is the Tags tab show for this issue
+   */
+  tags: DisabledWithReasonConfig;
   /**
    * Is the User Feedback tab shown for this issue
    */

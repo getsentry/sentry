@@ -2,12 +2,12 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.models import GroupResolution
+from sentry.models.groupresolution import GroupResolution
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupResolutionTest(TestCase):
     def setUp(self):
         super().setUp()

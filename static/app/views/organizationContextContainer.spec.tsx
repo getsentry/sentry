@@ -1,8 +1,11 @@
+import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {openSudo} from 'sentry/actionCreators/modal';
 import * as OrganizationActionCreator from 'sentry/actionCreators/organization';
+import * as openSudo from 'sentry/actionCreators/sudoModal';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -13,13 +16,10 @@ import {OrganizationLegacyContext} from 'sentry/views/organizationContextContain
 jest.mock('sentry/stores/configStore', () => ({
   get: jest.fn(),
 }));
-jest.mock('sentry/actionCreators/modal', () => ({
-  openSudo: jest.fn(),
-}));
 
 describe('OrganizationContextContainer', function () {
   const {organization, projects, routerProps} = initializeOrg();
-  const teams = [TestStubs.Team()];
+  const teams = [Team()];
 
   const api = new MockApiClient();
   let getOrgMock: jest.Mock;
@@ -105,7 +105,7 @@ describe('OrganizationContextContainer', function () {
   });
 
   it('fetches new org when router params change', async function () {
-    const newOrg = TestStubs.Organization({slug: 'new-slug'});
+    const newOrg = Organization({slug: 'new-slug'});
 
     const {rerender} = renderComponent();
     expect(await screen.findByText(organization.slug)).toBeInTheDocument();
@@ -154,6 +154,7 @@ describe('OrganizationContextContainer', function () {
   });
 
   it('opens sudo modal for superusers on 403s', async function () {
+    const openSudoSpy = jest.spyOn(openSudo, 'openSudo');
     jest
       .mocked(ConfigStore.get)
       .mockImplementation(() => TestStubs.Config({isSuperuser: true}));
@@ -164,7 +165,7 @@ describe('OrganizationContextContainer', function () {
 
     renderComponent();
 
-    await waitFor(() => expect(openSudo).toHaveBeenCalled());
+    await waitFor(() => expect(openSudoSpy).toHaveBeenCalled());
   });
 
   it('uses last organization from ConfigStore', function () {
@@ -225,10 +226,7 @@ describe('OrganizationContextContainer', function () {
         params: {orgId: ''},
         useLastOrganization: true,
         organizationsLoading: false,
-        organizations: [
-          TestStubs.Organization({slug: 'foo'}),
-          TestStubs.Organization({slug: 'bar'}),
-        ],
+        organizations: [Organization({slug: 'foo'}), Organization({slug: 'bar'})],
       })
     );
 
@@ -243,7 +241,7 @@ describe('OrganizationContextContainer', function () {
     jest.mocked(ConfigStore.get).mockImplementation(() => 'my-last-org');
     getOrgMock = MockApiClient.addMockResponse({
       url: '/organizations/my-last-org/',
-      body: TestStubs.Organization({slug: 'my-last-org'}),
+      body: Organization({slug: 'my-last-org'}),
     });
     getProjectsMock = MockApiClient.addMockResponse({
       url: '/organizations/my-last-org/projects/',
@@ -270,10 +268,7 @@ describe('OrganizationContextContainer', function () {
         params: {orgId: ''},
         useLastOrganization: true,
         organizationsLoading: false,
-        organizations: [
-          TestStubs.Organization({slug: 'foo'}),
-          TestStubs.Organization({slug: 'bar'}),
-        ],
+        organizations: [Organization({slug: 'foo'}), Organization({slug: 'bar'})],
       })
     );
 
@@ -298,10 +293,7 @@ describe('OrganizationContextContainer', function () {
       makeComponent({
         params: {orgId: 'org-slug'},
         organizationsLoading: false,
-        organizations: [
-          TestStubs.Organization({slug: 'foo'}),
-          TestStubs.Organization({slug: 'bar'}),
-        ],
+        organizations: [Organization({slug: 'foo'}), Organization({slug: 'bar'})],
       })
     );
 

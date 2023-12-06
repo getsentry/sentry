@@ -4,13 +4,13 @@ import pytest
 
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.token_exchange.validator import Validator
-from sentry.models import SentryApp
+from sentry.models.integrations.sentry_app import SentryApp
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestValidator(TestCase):
     def setUp(self):
         self.install = self.create_sentry_app_installation()

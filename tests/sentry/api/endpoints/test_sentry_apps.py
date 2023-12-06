@@ -9,25 +9,30 @@ from rest_framework.response import Response
 
 from sentry import deletions
 from sentry.constants import SentryAppStatus
-from sentry.models import (
-    ApiToken,
-    Organization,
-    OrganizationMember,
-    SentryApp,
-    SentryAppInstallation,
-    SentryAppInstallationToken,
-)
-from sentry.models.integrations.sentry_app import MASKED_VALUE
+from sentry.models.apitoken import ApiToken
+from sentry.models.integrations.sentry_app import MASKED_VALUE, SentryApp
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
 POPULARITY = 27
 EXPECTED = {
     "events": ["issue"],
     "name": "MyApp",
-    "scopes": ["project:read", "event:read"],
+    "scopes": [
+        "event:read",
+        "project:read",
+        "org:read",
+        "org:write",
+        "org:admin",
+        "org:integrations",
+    ],
     "webhookUrl": "https://example.com",
 }
 
@@ -36,6 +41,7 @@ class SentryAppsTest(APITestCase):
     endpoint = "sentry-api-0-sentry-apps"
 
     def setUp(self):
+        super().setUp()
         self.default_popularity = SentryApp._meta.get_field("popularity").default
 
     def set_up_apps(self):
@@ -89,6 +95,7 @@ class SentryAppsTest(APITestCase):
             "uuid": sentry_app.uuid,
             "verifyInstall": sentry_app.verify_install,
             "webhookUrl": sentry_app.webhook_url,
+            "metadata": {},
         }
 
         if mask_secret:
@@ -119,7 +126,14 @@ class SentryAppsTest(APITestCase):
             "organization": self.organization.slug,
             "redirectUrl": "",
             "schema": None,
-            "scopes": ("project:read", "event:read"),
+            "scopes": (
+                "project:read",
+                "event:read",
+                "org:read",
+                "org:write",
+                "org:admin",
+                "org:integrations",
+            ),
             "verifyInstall": True,
             "webhookUrl": "https://example.com",
             **kwargs,
@@ -141,7 +155,7 @@ class SentryAppsTest(APITestCase):
         )
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class SuperUserGetSentryAppsTest(SentryAppsTest):
     def setUp(self):
         super().setUp()
@@ -300,6 +314,7 @@ class SuperUserPostSentryAppsTest(SentryAppsTest):
         assert {"popularity": POPULARITY}.items() <= json.loads(response.content).items()
 
 
+@control_silo_test
 class PostWithTokenSentryAppsTest(SentryAppsTest):
     def setUp(self):
         super().setUp()
@@ -347,6 +362,7 @@ class PostWithTokenSentryAppsTest(SentryAppsTest):
         )
 
 
+@control_silo_test
 class PostSentryAppsTest(SentryAppsTest):
     method = "post"
 
@@ -357,15 +373,22 @@ class PostSentryAppsTest(SentryAppsTest):
     def assert_sentry_app_status_code(self, sentry_app: SentryApp, status_code: int):
         token = ApiToken.objects.get(application=sentry_app.application)
 
-        url = reverse("sentry-api-0-organization-projects", args=[self.organization.slug])
-        response = self.client.get(
-            url, HTTP_ORIGIN="http://example.com", HTTP_AUTHORIZATION=f"Bearer {token.token}"
-        )
-        assert response.status_code == status_code
+        with assume_test_silo_mode(SiloMode.REGION):
+            url = reverse("sentry-api-0-organization-projects", args=[self.organization.slug])
+            response = self.client.get(
+                url, HTTP_ORIGIN="http://example.com", HTTP_AUTHORIZATION=f"Bearer {token.token}"
+            )
+            assert response.status_code == status_code
 
     def test_creates_sentry_app(self):
         response = self.get_success_response(**self.get_data())
-        assert EXPECTED.items() <= json.loads(response.content).items()
+        content = json.loads(response.content)
+        for key, value in EXPECTED.items():
+            assert key in content
+            if isinstance(value, list):
+                assert sorted(content[key]) == sorted(value)
+            else:
+                assert content[key] == value
 
     def test_non_unique_app_slug_fails(self):
         sentry_app = self.create_sentry_app(name="Foo Bar", organization=self.organization)
@@ -440,7 +463,13 @@ class PostSentryAppsTest(SentryAppsTest):
 
         data = self.get_data(schema={"elements": [self.create_alert_rule_action_schema()]})
         response = self.get_success_response(**data)
-        assert expected.items() <= json.loads(response.content).items()
+        content = json.loads(response.content)
+        for key, value in expected.items():
+            assert key in content
+            if isinstance(value, list):
+                assert sorted(content[key]) == sorted(value)
+            else:
+                assert content[key] == value
 
     @patch("sentry.analytics.record")
     def test_wrong_schema_format(self, record):
@@ -492,7 +521,13 @@ class PostSentryAppsTest(SentryAppsTest):
     def test_can_create_with_error_created_hook_with_flag(self):
         expected = {**EXPECTED, "events": ["error"]}
         response = self.get_success_response(**self.get_data(events=("error",)))
-        assert expected.items() <= json.loads(response.content).items()
+        content = json.loads(response.content)
+        for key, value in expected.items():
+            assert key in content
+            if isinstance(value, list):
+                assert sorted(content[key]) == sorted(value)
+            else:
+                assert content[key] == value
 
     def test_cannot_create_with_error_created_hook_without_flag(self):
         with Feature({"organizations:integrations-event-hooks": False}):
@@ -505,6 +540,12 @@ class PostSentryAppsTest(SentryAppsTest):
 
     def test_allows_empty_schema(self):
         self.get_success_response(**self.get_data(shema={}))
+
+    def test_generated_slug_not_entirely_numeric(self):
+        response = self.get_success_response(**self.get_data(name="1234"), status_code=201)
+        slug = response.data["slug"]
+        assert slug.startswith("1234-")
+        assert not slug.isdecimal()
 
     def test_missing_name(self):
         response = self.get_error_response(**self.get_data(name=None), status_code=400)
@@ -588,22 +629,24 @@ class PostSentryAppsTest(SentryAppsTest):
     def test_members_cant_create(self):
         # create extra owner because we are demoting one
         self.create_member(organization=self.organization, user=self.create_user(), role="owner")
-        member_om = OrganizationMember.objects.get(
-            user_id=self.user.id, organization=self.organization
-        )
-        member_om.role = "member"
-        member_om.save()
+        with assume_test_silo_mode(SiloMode.REGION):
+            member_om = OrganizationMember.objects.get(
+                user_id=self.user.id, organization=self.organization
+            )
+            member_om.role = "member"
+            member_om.save()
 
         self.get_error_response(**self.get_data(), status_code=403)
 
     def test_create_integration_exceeding_scopes(self):
         # create extra owner because we are demoting one
         self.create_member(organization=self.organization, user=self.create_user(), role="owner")
-        member_om = OrganizationMember.objects.get(
-            user_id=self.user.id, organization=self.organization
-        )
-        member_om.role = "manager"
-        member_om.save()
+        with assume_test_silo_mode(SiloMode.REGION):
+            member_om = OrganizationMember.objects.get(
+                user_id=self.user.id, organization=self.organization
+            )
+            member_om.role = "manager"
+            member_om.save()
 
         data = self.get_data(events=(), scopes=("org:read", "org:write", "org:admin"))
         response = self.get_error_response(**data, status_code=400)

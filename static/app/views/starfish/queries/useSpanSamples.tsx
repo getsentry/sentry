@@ -9,25 +9,34 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {computeAxisMax} from 'sentry/views/starfish/components/chart';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
-import {SpanIndexedFields, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
+import {
+  SpanIndexedField,
+  SpanIndexedFieldTypes,
+  SpanMetricsQueryFilters,
+} from 'sentry/views/starfish/types';
 import {getDateConditions} from 'sentry/views/starfish/utils/getDateConditions';
 import {DATE_FORMAT} from 'sentry/views/starfish/utils/useSpansQuery';
 
-const {SPAN_SELF_TIME, SPAN_GROUP} = SpanIndexedFields;
+const {SPAN_SELF_TIME, SPAN_GROUP} = SpanIndexedField;
 
 type Options = {
   groupId: string;
-  transactionMethod: string;
   transactionName: string;
+  additionalFields?: string[];
+  query?: string[];
+  release?: string;
+  transactionMethod?: string;
 };
 
 export type SpanSample = Pick<
   SpanIndexedFieldTypes,
-  | SpanIndexedFields.SPAN_SELF_TIME
-  | SpanIndexedFields.TRANSACTION_ID
-  | SpanIndexedFields.PROJECT
-  | SpanIndexedFields.TIMESTAMP
-  | SpanIndexedFields.ID
+  | SpanIndexedField.SPAN_SELF_TIME
+  | SpanIndexedField.TRANSACTION_ID
+  | SpanIndexedField.PROJECT
+  | SpanIndexedField.TIMESTAMP
+  | SpanIndexedField.ID
+  | SpanIndexedField.PROFILE_ID
+  | SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH
 >;
 
 export const useSpanSamples = (options: Options) => {
@@ -35,29 +44,51 @@ export const useSpanSamples = (options: Options) => {
   const url = `/api/0/organizations/${organization.slug}/spans-samples/`;
   const api = useApi();
   const pageFilter = usePageFilters();
-  const {groupId, transactionName, transactionMethod} = options;
+  const {
+    groupId,
+    transactionName,
+    transactionMethod,
+    release,
+    query: extraQuery = [],
+    additionalFields,
+  } = options;
   const location = useLocation();
 
   const query = new MutableSearch([
     `${SPAN_GROUP}:${groupId}`,
     `transaction:"${transactionName}"`,
-    `transaction.method:${transactionMethod}`,
+    ...extraQuery,
   ]);
+
+  const filters: SpanMetricsQueryFilters = {
+    transaction: transactionName,
+  };
+
+  if (transactionMethod) {
+    query.addFilterValue('transaction.method', transactionMethod);
+    filters['transaction.method'] = transactionMethod;
+  }
+
+  if (release) {
+    query.addFilterValue('release', release);
+    filters.release = release;
+  }
 
   const dateCondtions = getDateConditions(pageFilter.selection);
 
   const {isLoading: isLoadingSeries, data: spanMetricsSeriesData} = useSpanMetricsSeries(
-    groupId,
-    {transactionName, 'transaction.method': transactionMethod},
-    [`p95(${SPAN_SELF_TIME})`],
+    {'span.group': groupId, ...filters},
+    [`avg(${SPAN_SELF_TIME})`],
     'api.starfish.sidebar-span-metrics'
   );
 
-  const maxYValue = computeAxisMax([spanMetricsSeriesData?.[`p95(${SPAN_SELF_TIME})`]]);
+  const maxYValue = computeAxisMax([spanMetricsSeriesData?.[`avg(${SPAN_SELF_TIME})`]]);
 
   const enabled = Boolean(
     groupId && transactionName && !isLoadingSeries && pageFilter.isReady
   );
+
+  const queryString = query.formatString();
 
   const result = useQuery<SpanSample[]>({
     queryKey: [
@@ -67,6 +98,8 @@ export const useSpanSamples = (options: Options) => {
       dateCondtions.statsPeriod,
       dateCondtions.start,
       dateCondtions.end,
+      queryString,
+      additionalFields?.join(','),
     ],
     queryFn: async () => {
       const {data} = await api.requestPromise(
@@ -78,7 +111,8 @@ export const useSpanSamples = (options: Options) => {
           secondBound: maxYValue * (2 / 3),
           upperBound: maxYValue,
           project: pageFilter.selection.projects,
-          query: query.formatString(),
+          query: queryString,
+          ...(additionalFields?.length ? {additionalFields} : {}),
         })}`
       );
       return data

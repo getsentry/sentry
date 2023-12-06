@@ -15,10 +15,10 @@ import NotAvailable from 'sentry/components/notAvailable';
 import Panel from 'sentry/components/panels/panel';
 import PanelTable from 'sentry/components/panels/panelTable';
 import {Tooltip} from 'sentry/components/tooltip';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconArrow, IconChevron, IconList, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {PlatformKey} from 'sentry/types';
 import {
   Organization,
   ReleaseComparisonChartType,
@@ -30,6 +30,7 @@ import {
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatPercentage} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
@@ -190,6 +191,7 @@ function ReleaseComparisonChart({
               'event.type:transaction',
               `release:${release.version}`,
             ]).formatString(),
+            dataset: DiscoverDatasets.METRICS_ENHANCED,
             ...commonQuery,
           },
         }),
@@ -197,6 +199,7 @@ function ReleaseComparisonChart({
           query: {
             field: ['failure_rate()', 'count()'],
             query: new MutableSearch(['event.type:transaction']).formatString(),
+            dataset: DiscoverDatasets.METRICS_ENHANCED,
             ...commonQuery,
           },
         }),

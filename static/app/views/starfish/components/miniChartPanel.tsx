@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import Panel from 'sentry/components/panels/panel';
@@ -16,13 +15,15 @@ export default function MiniChartPanel({title, children, button, subtitle}: Prop
   return (
     <Panel>
       <PanelBody>
-        <HeaderContainer>
-          <Header>
-            {title && <ChartLabel>{title}</ChartLabel>}
-            {button}
-          </Header>
-          {subtitle && <Subtitle>{subtitle}</Subtitle>}
-        </HeaderContainer>
+        {(title || button || subtitle) && (
+          <HeaderContainer>
+            <Header>
+              {title && <ChartLabel>{title}</ChartLabel>}
+              {button}
+            </Header>
+            {subtitle && <Subtitle>{subtitle}</Subtitle>}
+          </HeaderContainer>
+        )}
         {children}
       </PanelBody>
     </Panel>
@@ -34,7 +35,7 @@ const ChartLabel = styled('p')`
 `;
 
 const HeaderContainer = styled('div')`
-  padding: 0 ${space(1)} ${space(1)} 0;
+  padding: 0 ${space(1)} 0 0;
 `;
 
 const Header = styled('div')`
@@ -52,6 +53,6 @@ const PanelBody = styled('div')`
 
 const Subtitle = styled('span')`
   color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSizeSmall};
   display: inline-block;
 `;

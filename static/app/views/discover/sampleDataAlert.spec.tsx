@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import useDismissAlert from 'sentry/utils/useDismissAlert';
@@ -44,8 +46,21 @@ describe('SampleDataAlert', function () {
       };
     });
     const {container} = render(<SampleDataAlert />, {
-      organization: {...TestStubs.Organization, isDynamicallySampled: false},
+      organization: {...Organization, isDynamicallySampled: false},
     });
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("doesn't render when event.type:error", function () {
+    const dismiss = jest.fn();
+    mockUseDismissAlert.mockImplementation(() => {
+      return {
+        dismiss,
+        isDismissed: false,
+      };
+    });
+    const {container} = render(<SampleDataAlert query="event.type:error" />);
 
     expect(container).toBeEmptyDOMElement();
   });

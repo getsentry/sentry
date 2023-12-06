@@ -13,7 +13,7 @@ FEATURE_NAME = ["organizations:incidents", "organizations:performance-view"]
 event_time = before_now(days=3).replace(tzinfo=timezone.utc)
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -24,7 +24,6 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-            self.browser.snapshot("incidents - empty state")
 
     def test_incidents_list(self):
         alert_rule = self.create_alert_rule(name="Alert Rule #1")
@@ -45,7 +44,6 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
-            self.browser.snapshot("incidents - list")
 
             details_url = f'[href="/organizations/{self.organization.slug}/alerts/rules/details/{alert_rule.id}/?alert={incident.id}'
             self.browser.wait_until(details_url)
@@ -54,5 +52,3 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.wait_until_test_id("incident-rule-title")
 
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
-            self.browser.blur()
-            self.browser.snapshot("incidents - details")

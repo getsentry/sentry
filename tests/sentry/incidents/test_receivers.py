@@ -7,12 +7,12 @@ from sentry.incidents.models import (
     IncidentTrigger,
     TriggerStatus,
 )
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class AddProjectToIncludeAllRulesTest(TestCase):
     def test_include_all_projects_enabled(self):
         alert_rule = self.create_alert_rule(include_all_projects=True)

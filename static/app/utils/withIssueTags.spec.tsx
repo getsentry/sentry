@@ -1,3 +1,6 @@
+import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
+
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
@@ -35,7 +38,7 @@ describe('withIssueTags HoC', function () {
 
   it('forwards loaded tags to the wrapped component', async function () {
     const Container = withIssueTags(MyComponent);
-    render(<Container organization={TestStubs.Organization()} forwardedValue="value" />);
+    render(<Container organization={Organization()} forwardedValue="value" />);
 
     // Should forward props.
     expect(await screen.findByText(/ForwardedValue: value/)).toBeInTheDocument();
@@ -60,7 +63,7 @@ describe('withIssueTags HoC', function () {
 
   it('updates the assigned tags with users and teams, and bookmark tags with users', function () {
     const Container = withIssueTags(MyComponent);
-    render(<Container organization={TestStubs.Organization()} forwardedValue="value" />);
+    render(<Container organization={Organization()} forwardedValue="value" />);
 
     act(() => {
       TagStore.loadTagsSuccess([
@@ -74,7 +77,7 @@ describe('withIssueTags HoC', function () {
 
     act(() => {
       TeamStore.loadInitialData([
-        TestStubs.Team({slug: 'best-team-na', name: 'Best Team NA', isMember: true}),
+        Team({slug: 'best-team-na', name: 'Best Team NA', isMember: true}),
       ]);
       MemberListStore.loadInitialData([
         TestStubs.User(),
@@ -96,15 +99,15 @@ describe('withIssueTags HoC', function () {
   it('groups assignees and puts suggestions first', function () {
     const Container = withIssueTags(MyComponent);
     TeamStore.loadInitialData([
-      TestStubs.Team({id: 1, slug: 'best-team', name: 'Best Team', isMember: true}),
-      TestStubs.Team({id: 2, slug: 'worst-team', name: 'Worst Team', isMember: false}),
+      Team({id: '1', slug: 'best-team', name: 'Best Team', isMember: true}),
+      Team({id: '2', slug: 'worst-team', name: 'Worst Team', isMember: false}),
     ]);
     MemberListStore.loadInitialData([
       TestStubs.User(),
       TestStubs.User({username: 'joe@example.com'}),
     ]);
     const {container} = render(
-      <Container organization={TestStubs.Organization()} forwardedValue="value" />
+      <Container organization={Organization()} forwardedValue="value" />
     );
 
     expect(container).toHaveTextContent(

@@ -66,7 +66,7 @@ type ObserverdPropNames = (typeof propsToObserve)[number];
 
 type ObservedPropResolver = [
   ObserverdPropNames,
-  () => ResolvedObservableProps[ObserverdPropNames]
+  () => ResolvedObservableProps[ObserverdPropNames],
 ];
 
 /**

@@ -7,6 +7,7 @@ export enum AppKnownDataType {
   NAME = 'app_name',
   VERSION = 'app_version',
   BUILD = 'app_build',
+  IN_FOREGROUND = 'in_foreground',
 }
 
 export type AppData = {
@@ -19,4 +20,5 @@ export type AppData = {
   app_version?: string;
   build_type?: string;
   device_app_hash?: string;
+  in_foreground?: boolean;
 };

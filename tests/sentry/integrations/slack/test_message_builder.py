@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from django.urls import reverse
 
@@ -13,18 +13,29 @@ from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.integrations.slack.message_builder.issues import (
     SlackIssuesMessageBuilder,
+    build_actions,
     get_option_groups,
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
-from sentry.models import Group, Team, User
+from sentry.issues.grouptype import (
+    FeedbackGroup,
+    PerformanceNPlusOneGroupType,
+    ProfileFileIOGroupType,
+)
+from sentry.models.group import Group, GroupStatus
+from sentry.models.team import Team
+from sentry.models.user import User
+from sentry.notifications.utils.actions import MessageAction
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
+
+pytestmark = [requires_snuba]
 
 
 def build_test_message(
@@ -88,7 +99,7 @@ def build_test_message(
     }
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTestMixin):
     def test_build_group_attachment(self):
         group = self.create_group(project=self.project)
@@ -294,7 +305,7 @@ class BuildGroupAttachmentReplaysTest(TestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class BuildIncidentAttachmentTest(TestCase):
     def test_simple(self):
         alert_rule = self.create_alert_rule()
@@ -317,7 +328,7 @@ class BuildIncidentAttachmentTest(TestCase):
                     },
                 )
             )
-            + f"?alert={incident.identifier}&referrer=slack"
+            + f"?alert={incident.identifier}&referrer=metric_alert_slack"
         )
         assert SlackIncidentsMessageBuilder(incident, IncidentStatus.CLOSED).build() == {
             "blocks": [
@@ -357,7 +368,7 @@ class BuildIncidentAttachmentTest(TestCase):
                     },
                 )
             )
-            + f"?alert={incident.identifier}&referrer=slack"
+            + f"?alert={incident.identifier}&referrer=metric_alert_slack"
         )
         # This should fail because it pulls status from `action` instead of `incident`
         assert SlackIncidentsMessageBuilder(
@@ -397,7 +408,7 @@ class BuildIncidentAttachmentTest(TestCase):
                     },
                 )
             )
-            + f"?alert={incident.identifier}&referrer=slack"
+            + f"?alert={incident.identifier}&referrer=metric_alert_slack"
         )
         assert SlackIncidentsMessageBuilder(
             incident, IncidentStatus.CLOSED, chart_url="chart-url"
@@ -417,7 +428,7 @@ class BuildIncidentAttachmentTest(TestCase):
         }
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class BuildMetricAlertAttachmentTest(TestCase):
     def test_metric_alert_without_incidents(self):
         alert_rule = self.create_alert_rule()
@@ -568,3 +579,183 @@ class BuildMetricAlertAttachmentTest(TestCase):
                 {"alt_text": "Metric Alert Chart", "image_url": "chart_url", "type": "image"},
             ],
         }
+
+
+@region_silo_test
+class ActionsTest(TestCase):
+    def test_identity_and_action(self):
+        group = self.create_group(project=self.project)
+        MOCKIDENTITY = Mock()
+
+        assert build_actions(
+            group, self.project, "test txt", "red", [MessageAction(name="TEST")], MOCKIDENTITY
+        ) == ([], "test txt\n", "_actioned_issue")
+
+    def _assert_message_actions_list(self, actions, expected):
+        actions_dict = [
+            {"name": a.name, "label": a.label, "type": a.type, "value": a.value} for a in actions
+        ]
+        assert expected in actions_dict
+
+    def test_ignore_has_escalating(self):
+        group = self.create_group(project=self.project)
+        group.status = GroupStatus.IGNORED
+        group.save()
+
+        res = build_actions(
+            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
+        )
+
+        self._assert_message_actions_list(
+            res[0],
+            {
+                "label": "Stop Ignoring",
+                "name": "status",
+                "type": "button",
+                "value": "unresolved:ongoing",
+            },
+        )
+
+    def test_ignore_does_not_have_escalating(self):
+        group = self.create_group(project=self.project)
+        group.status = GroupStatus.IGNORED
+        group.save()
+
+        with self.feature({"organizations:escalating-issues": True}):
+            res = build_actions(
+                group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
+            )
+
+        self._assert_message_actions_list(
+            res[0],
+            {
+                "label": "Mark as Ongoing",
+                "name": "status",
+                "type": "button",
+                "value": "unresolved:ongoing",
+            },
+        )
+
+    def test_ignore_unresolved_no_escalating(self):
+        group = self.create_group(project=self.project)
+        group.status = GroupStatus.UNRESOLVED
+        group.save()
+
+        res = build_actions(
+            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
+        )
+
+        self._assert_message_actions_list(
+            res[0],
+            {
+                "label": "Ignore",
+                "name": "status",
+                "type": "button",
+                "value": "ignored:forever",
+            },
+        )
+
+    def test_ignore_unresolved_has_escalating(self):
+        group = self.create_group(project=self.project)
+        group.status = GroupStatus.UNRESOLVED
+        group.save()
+
+        with self.feature({"organizations:escalating-issues": True}):
+            res = build_actions(
+                group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
+            )
+
+        self._assert_message_actions_list(
+            res[0],
+            {
+                "label": "Archive",
+                "name": "status",
+                "type": "button",
+                "value": "ignored:until_escalating",
+            },
+        )
+
+    def test_no_ignore_if_feedback(self):
+        group = self.create_group(project=self.project, type=FeedbackGroup.type_id)
+        res = build_actions(
+            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
+        )
+        # no ignore action if feedback issue, so only assign and resolve
+        assert len(res[0]) == 2
+
+    def test_resolve_resolved(self):
+        group = self.create_group(project=self.project)
+        group.status = GroupStatus.RESOLVED
+        group.save()
+
+        res = build_actions(
+            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
+        )
+
+        self._assert_message_actions_list(
+            res[0],
+            {
+                "label": "Unresolve",
+                "name": "status",
+                "type": "button",
+                "value": "unresolved:ongoing",
+            },
+        )
+
+    def test_resolve_unresolved_no_releases(self):
+        group = self.create_group(project=self.project)
+        group.status = GroupStatus.UNRESOLVED
+        group.save()
+        self.project.flags.has_releases = False
+        self.project.save()
+
+        res = build_actions(
+            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
+        )
+
+        self._assert_message_actions_list(
+            res[0],
+            {
+                "label": "Resolve",
+                "name": "status",
+                "type": "button",
+                "value": "resolved",
+            },
+        )
+
+    def test_resolve_unresolved_has_releases(self):
+        group = self.create_group(project=self.project)
+        group.status = GroupStatus.UNRESOLVED
+        group.save()
+        self.project.flags.has_releases = True
+        self.project.save()
+
+        res = build_actions(
+            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
+        )
+
+        self._assert_message_actions_list(
+            res[0],
+            {
+                "label": "Resolve...",
+                "name": "resolve_dialog",
+                "type": "button",
+                "value": "resolve_dialog",
+            },
+        )
+
+    def test_assign(self):
+        group = self.create_group(project=self.project)
+        group.status = GroupStatus.UNRESOLVED
+        group.save()
+        self.project.flags.has_releases = True
+        self.project.save()
+
+        res = build_actions(
+            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
+        )
+
+        self._assert_message_actions_list(
+            res[0],
+            {"label": "Select Assignee...", "name": "assign", "type": "select", "value": None},
+        )

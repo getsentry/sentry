@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Collection, Container, Iterable, List, Optional, Set
+from typing import Any, Collection, Container, Dict, Iterable, List, Optional, Set
 from urllib.parse import urljoin
 
 import sentry_sdk
 from django.conf import settings
+from django.http import HttpRequest
 from pydantic.dataclasses import dataclass
 from pydantic.tools import parse_obj_as
 
@@ -70,11 +71,24 @@ class Region:
     def to_url(self, path: str) -> str:
         """Resolve a path into a customer facing URL on this region's silo.
 
-        (This method is a placeholder. See the `address` attribute.)
+        In monolith mode, there is likely only the historical simulated
+        region. The public URL of the simulated region is the same
+        as the application base URL.
         """
         from sentry.api.utils import generate_region_url
 
-        return urljoin(generate_region_url(self.name), path)
+        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+            base_url = options.get("system.url-prefix")
+        else:
+            base_url = generate_region_url(self.name)
+
+        return urljoin(base_url, path)
+
+    def api_serialize(self) -> Dict[str, Any]:
+        return {
+            "name": self.name,
+            "url": self.to_url(""),
+        }
 
     def is_historic_monolith_region(self) -> bool:
         """Check whether this is a historic monolith region.
@@ -205,6 +219,13 @@ def is_region_name(name: str) -> bool:
     return name in load_global_regions().by_name
 
 
+def subdomain_is_region(request: HttpRequest) -> bool:
+    subdomain = getattr(request, "subdomain", None)
+    if subdomain is None:
+        return False
+    return is_region_name(subdomain)
+
+
 @control_silo_function
 def get_region_for_organization(organization_slug: str) -> Region:
     """Resolve an organization to the region where its data is stored."""
@@ -244,7 +265,7 @@ def get_local_region() -> Region:
 
 @control_silo_function
 def _find_orgs_for_user(user_id: int) -> Set[int]:
-    from sentry.models import OrganizationMemberMapping
+    from sentry.models.organizationmembermapping import OrganizationMemberMapping
 
     return {
         m["organization_id"]
@@ -252,8 +273,9 @@ def _find_orgs_for_user(user_id: int) -> Set[int]:
     }
 
 
+@control_silo_function
 def find_regions_for_orgs(org_ids: Container[int]) -> Set[str]:
-    from sentry.models import OrganizationMapping
+    from sentry.models.organizationmapping import OrganizationMapping
 
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
         return {settings.SENTRY_MONOLITH_REGION}
@@ -276,3 +298,20 @@ def find_regions_for_user(user_id: int) -> Set[str]:
 
 def find_all_region_names() -> Iterable[str]:
     return load_global_regions().by_name.keys()
+
+
+def find_all_multitenant_region_names() -> List[str]:
+    return [
+        region.name
+        for region in load_global_regions().regions
+        if region.category == RegionCategory.MULTI_TENANT
+    ]
+
+
+def get_region_display_name(region_name: str) -> str:
+    if region_name == "us":
+        return "🇺🇸 United States of America (US)"
+    if region_name == "de":
+        return "🇪🇺 European Union (EU)"
+
+    return region_name

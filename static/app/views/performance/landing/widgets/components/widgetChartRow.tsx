@@ -83,7 +83,7 @@ export function DoubleChartRow(props: ChartRowProps) {
 
 DoubleChartRow.defaultProps = {
   chartCount: 2,
-  chartHeight: 180,
+  chartHeight: 150,
 };
 
 const StyledRow = styled(PerformanceLayoutBodyRow)`

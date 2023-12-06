@@ -3,8 +3,8 @@ from django.views.generic import View
 
 from sentry.incidents.models import Incident, IncidentActivity, IncidentActivityType
 from sentry.incidents.tasks import generate_incident_activity_email
-from sentry.models import User
 from sentry.models.organization import Organization
+from sentry.models.user import User
 
 from .mail import MailPreview
 

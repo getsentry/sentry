@@ -74,10 +74,10 @@ class SimpleMovingAverage(MovingAverage):
 
 
 class ExponentialMovingAverage(MovingAverage):
-    def __init__(self, smoothing: int, period: int):
+    def __init__(self, weight: float):
         super().__init__()
-        self.weight = smoothing / (1 + period)
-        assert self.weight < 1
+        assert weight < 1
+        self.weight = weight
 
     def get_weight(self, n: int) -> float:
         return self.weight

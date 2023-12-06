@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import BookmarkStar from 'sentry/components/projects/bookmarkStar';
@@ -16,15 +18,11 @@ describe('BookmarkStar', function () {
   });
 
   it('renders', function () {
-    const {container} = render(
-      <BookmarkStar organization={TestStubs.Organization()} project={project} />
-    );
-
-    expect(container).toSnapshot();
+    render(<BookmarkStar organization={Organization()} project={project} />);
   });
 
   it('can star', async function () {
-    render(<BookmarkStar organization={TestStubs.Organization()} project={project} />);
+    render(<BookmarkStar organization={Organization()} project={project} />);
 
     const projectMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
@@ -49,7 +47,7 @@ describe('BookmarkStar', function () {
   it('can unstar', async function () {
     render(
       <BookmarkStar
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         project={TestStubs.Project({isBookmarked: true})}
       />
     );

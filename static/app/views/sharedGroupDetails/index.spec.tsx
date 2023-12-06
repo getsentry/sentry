@@ -1,3 +1,5 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
+
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import {RouteContext} from 'sentry/views/routeContext';
@@ -14,7 +16,7 @@ describe('SharedGroupDetails', function () {
       url: '/organizations/org-slug/shared/issues/a/',
       body: TestStubs.Group({
         title: 'ZeroDivisionError',
-        latestEvent: TestStubs.Event({
+        latestEvent: EventFixture({
           entries: [eventEntry, exception],
         }),
         project: TestStubs.Project({organization: {slug: 'test-org'}}),
@@ -24,7 +26,7 @@ describe('SharedGroupDetails', function () {
       url: '/shared/issues/a/',
       body: TestStubs.Group({
         title: 'ZeroDivisionError',
-        latestEvent: TestStubs.Event({
+        latestEvent: EventFixture({
           entries: [eventEntry, exception],
         }),
         project: TestStubs.Project({organization: {slug: 'test-org'}}),
@@ -37,7 +39,7 @@ describe('SharedGroupDetails', function () {
   });
 
   it('renders', function () {
-    const {container} = render(
+    render(
       <RouteContext.Provider value={{router, ...router}}>
         <SharedGroupDetails
           params={params}
@@ -50,14 +52,12 @@ describe('SharedGroupDetails', function () {
         />
       </RouteContext.Provider>
     );
-
-    expect(container).toSnapshot();
   });
 
   it('renders with org slug in path', function () {
     const params_with_slug = {shareId: 'a', orgId: 'test-org'};
     const router_with_slug = TestStubs.router({params_with_slug});
-    const {container} = render(
+    render(
       <RouteContext.Provider value={{router, ...router}}>
         <SharedGroupDetails
           params={params}
@@ -70,7 +70,5 @@ describe('SharedGroupDetails', function () {
         />
       </RouteContext.Provider>
     );
-
-    expect(container).toSnapshot();
   });
 });

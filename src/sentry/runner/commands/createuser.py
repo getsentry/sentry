@@ -4,7 +4,7 @@ from sentry.runner.decorators import configuration
 
 
 def _get_field(field_name):
-    from sentry.models import User
+    from sentry.models.user import User
 
     return User._meta.get_field(field_name)
 
@@ -40,7 +40,7 @@ def _set_superadmin(user):
     superadmin role approximates superuser (model attribute) but leveraging
     Sentry's role system.
     """
-    from sentry.models import UserRole, UserRoleUser
+    from sentry.models.userrole import UserRole, UserRoleUser
 
     role = UserRole.objects.get(name="Super Admin")
     UserRoleUser.objects.create(user=user, role=role)
@@ -113,7 +113,7 @@ def createuser(emails, org_id, password, superuser, staff, no_password, no_input
         raise click.ClickException("No password set and --no-password not passed.")
 
     from sentry import roles
-    from sentry.models import User
+    from sentry.models.user import User
 
     # Loop through the email list provided.
     for email in emails:
@@ -137,7 +137,9 @@ def createuser(emails, org_id, password, superuser, staff, no_password, no_input
                 user.update(**fields)
                 verb = "updated"
             else:
-                raise click.ClickException(f"User: {email} exists, use --force-update to force.")
+                click.echo(f"User: {email} exists, use --force-update to force.")
+                continue
+
         # Create a new user if they don't already exist.
         else:
             user = User.objects.create(**fields)
@@ -145,32 +147,35 @@ def createuser(emails, org_id, password, superuser, staff, no_password, no_input
 
             # TODO(dcramer): kill this when we improve flows
             if settings.SENTRY_SINGLE_ORGANIZATION:
-                from sentry.models import (
-                    Organization,
-                    OrganizationMember,
-                    OrganizationMemberTeam,
-                    Team,
-                )
+                from sentry.services.hybrid_cloud.organization import organization_service
 
                 # Get the org if specified, otherwise use the default.
                 if org_id:
-                    org = Organization.objects.get(id=org_id)
+                    org_context = organization_service.get_organization_by_id(id=org_id)
+                    if org_context is None:
+                        raise Exception("Organization ID not found")
+                    org = org_context.organization
                 else:
-                    org = Organization.get_default()
+                    org = organization_service.get_default_organization()
 
                 if superuser:
                     role = roles.get_top_dog().id
                 else:
                     role = org.default_role
-                member = OrganizationMember.objects.create(
-                    organization=org, user_id=user.id, role=role
+                member = organization_service.add_organization_member(
+                    organization_id=org.id,
+                    default_org_role=org.default_role,
+                    user_id=user.id,
+                    role=role,
                 )
 
                 # if we've only got a single team let's go ahead and give
                 # access to that team as its likely the desired outcome
-                teams = list(Team.objects.filter(organization=org)[0:2])
-                if len(teams) == 1:
-                    OrganizationMemberTeam.objects.create(team=teams[0], organizationmember=member)
+                team = organization_service.get_single_team(organization_id=org.id)
+                if team is not None:
+                    organization_service.add_team_member(
+                        organization_id=org.id, team_id=team.id, organization_member_id=member.id
+                    )
                 click.echo(f"Added to organization: {org.slug}")
 
         if password:

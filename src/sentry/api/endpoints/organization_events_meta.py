@@ -6,6 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import search
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.event_search import parse_search_query
@@ -18,6 +19,10 @@ from sentry.snuba.referrer import Referrer
 
 @region_silo_endpoint
 class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization) -> Response:
         try:
             params = self.get_snuba_params(request, organization)
@@ -42,6 +47,10 @@ UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')
 
 @region_silo_endpoint
 class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, EnvironmentMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization) -> Response:
         try:
             # events-meta is still used by events v1 which doesn't require global views
@@ -101,6 +110,10 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
 
 @region_silo_endpoint
 class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization) -> Response:
         try:
             params = self.get_snuba_params(request, organization)
@@ -113,6 +126,14 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
         second_bound = request.GET.get("secondBound")
         upper_bound = request.GET.get("upperBound")
         column = request.GET.get("column", "span.self_time")
+        selected_columns = request.GET.getlist("additionalFields", []) + [
+            "project",
+            "transaction.id",
+            column,
+            "timestamp",
+            "span_id",
+            "profile_id",
+        ]
 
         if lower_bound is None or upper_bound is None:
             bound_results = spans_metrics.query(
@@ -138,7 +159,9 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
                 f"bounded_sample({column}, {first_bound}, {second_bound}) as middle",
                 f"bounded_sample({column}, {second_bound}{', ' if upper_bound else ''}{upper_bound}) as top",
                 f"rounded_time({buckets})",
+                "profile_id",
             ],
+            orderby=["-profile_id"],
             params=params,
             query=request.query_params.get("query"),
             referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_IDS.value,
@@ -152,14 +175,18 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
                 span_ids.append(middle)
             if top:
                 span_ids.append(top)
-        if len(span_ids) == 0:
-            return Response({"data": []})
+
+        if len(span_ids) > 0:
+            query = f"span_id:[{','.join(span_ids)}] {request.query_params.get('query')}"
+        else:
+            query = request.query_params.get("query")
 
         result = spans_indexed.query(
-            selected_columns=["project", "transaction.id", column, "timestamp", "span_id"],
+            selected_columns=selected_columns,
             orderby=["timestamp"],
             params=params,
-            query=f"span_id:[{','.join(span_ids)}] {request.query_params.get('query')}",
+            query=query,
+            limit=9,
             referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
         )
         return Response({"data": result["data"]})

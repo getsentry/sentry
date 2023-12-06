@@ -8,7 +8,10 @@ from django.http.request import HttpRequest
 from django.utils.crypto import constant_time_compare
 
 from sentry import audit_log, features
-from sentry.models import AuthIdentity, AuthProvider, User, UserEmail
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
+from sentry.models.user import User
+from sentry.models.useremail import UserEmail
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganizationMember,
     RpcUserInviteContext,
@@ -114,7 +117,7 @@ class ApiInviteHelper:
         )
         if invite_context is None:
             if logger:
-                logger.error("Invalid pending invite cookie", exc_info=True)
+                logger.exception("Invalid pending invite cookie")
             return None
 
         api_invite_helper = ApiInviteHelper(

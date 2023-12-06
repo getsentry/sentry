@@ -91,7 +91,6 @@ class EventFrequencyForm(forms.Form):
 class BaseEventFrequencyCondition(EventCondition, abc.ABC):
     intervals = standard_intervals
     form_cls = EventFrequencyForm
-    label: str
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.tsdb = kwargs.pop("tsdb", tsdb)
@@ -123,6 +122,10 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
     def passes(self, event: GroupEvent, state: EventState) -> bool:
         interval, value = self._get_options()
         if not (interval and value is not None):
+            return False
+
+        # Assumes that the first event in a group will always be below the threshold.
+        if state.is_new and value > 1:
             return False
 
         # TODO(mgaeta): Bug: Rule is optional.

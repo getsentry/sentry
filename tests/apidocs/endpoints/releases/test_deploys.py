@@ -4,7 +4,8 @@ from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
-from sentry.models import Deploy, Environment
+from sentry.models.deploy import Deploy
+from sentry.models.environment import Environment
 
 
 class ReleaseDeploysDocs(APIDocsTestCase):

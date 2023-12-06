@@ -9,6 +9,7 @@ from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 from sentry.utils import metrics
 
 from . import is_frontend_request
@@ -36,6 +37,8 @@ def _get_request_auth(request: Request) -> RequestAuth | None:
 def _get_token_name(auth: RequestAuth) -> str | None:
     if not auth:
         return None
+    if isinstance(auth, AuthenticatedToken):
+        return auth.kind
     token_class = getattr(auth, "__class__", None)
     return token_class.__name__ if token_class else None
 

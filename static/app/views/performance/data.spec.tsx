@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {
   MEPState,
   METRIC_SEARCH_SETTING_PARAM,
@@ -8,7 +10,7 @@ import {
 } from 'sentry/views/performance/data';
 
 describe('generatePerformanceEventView()', function () {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
 
   it('generates default values', function () {
     const result = generatePerformanceEventView(

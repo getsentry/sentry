@@ -1,4 +1,5 @@
-import {Component, createRef, Fragment} from 'react';
+import {createRef, Fragment, useCallback, useEffect, useState} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -88,86 +89,92 @@ type Props = {
   isOrphanError?: boolean;
   measurements?: Map<number, VerticalMark>;
   numOfOrphanErrors?: number;
-  traceHasSingleOrphanError?: boolean;
+  onlyOrphanErrors?: boolean;
 };
 
-type State = {
-  showDetail: boolean;
-};
+function TransactionBar(props: Props) {
+  const [showDetail, setShowDetail] = useState(false);
+  const transactionRowDOMRef = createRef<HTMLDivElement>();
+  const transactionTitleRef = createRef<HTMLDivElement>();
+  let spanContentRef: HTMLDivElement | null = null;
 
-class TransactionBar extends Component<Props, State> {
-  state: State = {
-    showDetail: false,
-  };
+  const handleWheel = useCallback(
+    (event: WheelEvent) => {
+      // https://stackoverflow.com/q/57358640
+      // https://github.com/facebook/react/issues/14856
+      if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+        return;
+      }
 
-  componentDidMount() {
-    const {location, transaction} = this.props;
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (Math.abs(event.deltaY) === Math.abs(event.deltaX)) {
+        return;
+      }
+
+      const {onWheel} = props;
+      onWheel(event.deltaX);
+    },
+    [props]
+  );
+
+  const scrollIntoView = useCallback(() => {
+    const element = transactionRowDOMRef.current;
+    if (!element) {
+      return;
+    }
+    const boundingRect = element.getBoundingClientRect();
+    const offset = boundingRect.top + window.scrollY;
+    setShowDetail(true);
+    window.scrollTo(0, offset);
+  }, [transactionRowDOMRef]);
+
+  useEffect(() => {
+    const {location, transaction} = props;
+    const transactionTitleRefCurrentCopy = transactionTitleRef.current;
 
     if (
       'event_id' in transaction &&
       transactionTargetHash(transaction.event_id) === location.hash
     ) {
-      this.scrollIntoView();
+      scrollIntoView();
     }
 
-    if (this.transactionTitleRef.current) {
-      this.transactionTitleRef.current.addEventListener('wheel', this.handleWheel, {
+    if (transactionTitleRefCurrentCopy) {
+      transactionTitleRefCurrentCopy.addEventListener('wheel', handleWheel, {
         passive: false,
       });
     }
-  }
 
-  componentWillUnmount() {
-    if (this.transactionTitleRef.current) {
-      this.transactionTitleRef.current.removeEventListener('wheel', this.handleWheel);
-    }
-  }
+    return () => {
+      if (transactionTitleRefCurrentCopy) {
+        transactionTitleRefCurrentCopy.removeEventListener('wheel', handleWheel);
+      }
+    };
+  }, [handleWheel, props, scrollIntoView, transactionTitleRef]);
 
-  transactionRowDOMRef = createRef<HTMLDivElement>();
-  transactionTitleRef = createRef<HTMLDivElement>();
-  spanContentRef: HTMLDivElement | null = null;
-
-  toggleDisplayDetail = () => {
-    const {transaction} = this.props;
+  const handleRowCellClick = () => {
+    const {transaction, organization} = props;
 
     if (isTraceError(transaction)) {
-      return;
+      browserHistory.push(generateIssueEventTarget(transaction, organization));
     }
 
     if (isTraceTransaction<TraceFullDetailed>(transaction)) {
-      this.setState(state => ({
-        showDetail: !state.showDetail,
-      }));
+      setShowDetail(prev => !prev);
     }
   };
 
-  getCurrentOffset() {
-    const {transaction} = this.props;
+  const getCurrentOffset = () => {
+    const {transaction} = props;
     const {generation} = transaction;
 
     return getOffset(generation);
-  }
-
-  handleWheel = (event: WheelEvent) => {
-    // https://stackoverflow.com/q/57358640
-    // https://github.com/facebook/react/issues/14856
-    if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
-      return;
-    }
-
-    event.preventDefault();
-    event.stopPropagation();
-
-    if (Math.abs(event.deltaY) === Math.abs(event.deltaX)) {
-      return;
-    }
-
-    const {onWheel} = this.props;
-    onWheel(event.deltaX);
   };
 
-  renderMeasurements() {
-    const {measurements, generateBounds} = this.props;
+  const renderMeasurements = () => {
+    const {measurements, generateBounds} = props;
     if (!measurements) {
       return null;
     }
@@ -197,10 +204,10 @@ class TransactionBar extends Component<Props, State> {
         })}
       </Fragment>
     );
-  }
+  };
 
-  renderConnector(hasToggle: boolean) {
-    const {continuingDepths, isExpanded, isOrphan, isLast, transaction} = this.props;
+  const renderConnector = (hasToggle: boolean) => {
+    const {continuingDepths, isExpanded, isOrphan, isLast, transaction} = props;
 
     const {generation = 0} = transaction;
     const eventId =
@@ -261,11 +268,11 @@ class TransactionBar extends Component<Props, State> {
         {connectorBars}
       </TreeConnector>
     );
-  }
+  };
 
-  renderToggle(errored: boolean) {
-    const {isExpanded, transaction, toggleExpandedState, numOfOrphanErrors} = this.props;
-    const left = this.getCurrentOffset();
+  const renderToggle = (errored: boolean) => {
+    const {isExpanded, transaction, toggleExpandedState, numOfOrphanErrors} = props;
+    const left = getCurrentOffset();
 
     const hasOrphanErrors = numOfOrphanErrors && numOfOrphanErrors > 0;
     const childrenLength =
@@ -274,7 +281,7 @@ class TransactionBar extends Component<Props, State> {
     if (childrenLength <= 0 && !hasOrphanErrors) {
       return (
         <TreeToggleContainer style={{left: `${left}px`}}>
-          {this.renderConnector(false)}
+          {renderConnector(false)}
         </TreeToggleContainer>
       );
     }
@@ -283,7 +290,7 @@ class TransactionBar extends Component<Props, State> {
 
     return (
       <TreeToggleContainer style={{left: `${left}px`}} hasToggler>
-        {this.renderConnector(true)}
+        {renderConnector(true)}
         <TreeToggle
           disabled={isRoot}
           isExpanded={isExpanded}
@@ -307,13 +314,12 @@ class TransactionBar extends Component<Props, State> {
         </TreeToggle>
       </TreeToggleContainer>
     );
-  }
+  };
 
-  // TODO: Use ScrollbarManager to bring autoscrolling here
-  renderTitle(_: ScrollbarManager.ScrollbarManagerChildrenProps) {
+  const renderTitle = (_: ScrollbarManager.ScrollbarManagerChildrenProps) => {
     const {organization, transaction, addContentSpanBarRef, removeContentSpanBarRef} =
-      this.props;
-    const left = this.getCurrentOffset();
+      props;
+    const left = getCurrentOffset();
     const errored = isTraceTransaction<TraceFullDetailed>(transaction)
       ? transaction.errors &&
         transaction.errors.length + transaction.performance_issues.length > 0
@@ -371,15 +377,15 @@ class TransactionBar extends Component<Props, State> {
       <RowTitleContainer
         ref={ref => {
           if (!ref) {
-            removeContentSpanBarRef(this.spanContentRef);
+            removeContentSpanBarRef(spanContentRef);
             return;
           }
 
           addContentSpanBarRef(ref);
-          this.spanContentRef = ref;
+          spanContentRef = ref;
         }}
       >
-        {this.renderToggle(errored)}
+        {renderToggle(errored)}
         <RowTitle
           style={{
             left: `${left}px`,
@@ -390,12 +396,12 @@ class TransactionBar extends Component<Props, State> {
         </RowTitle>
       </RowTitleContainer>
     );
-  }
+  };
 
-  renderDivider(
+  const renderDivider = (
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-  ) {
-    if (this.state.showDetail) {
+  ) => {
+    if (showDetail) {
       // Mock component to preserve layout spacing
       return (
         <DividerLine
@@ -432,11 +438,11 @@ class TransactionBar extends Component<Props, State> {
         }}
       />
     );
-  }
+  };
 
-  renderGhostDivider(
+  const renderGhostDivider = (
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-  ) {
+  ) => {
     const {dividerPosition, addGhostDividerLineRef} = dividerHandlerChildrenProps;
 
     return (
@@ -461,10 +467,10 @@ class TransactionBar extends Component<Props, State> {
         />
       </DividerLineGhostContainer>
     );
-  }
+  };
 
-  renderErrorBadge() {
-    const {transaction} = this.props;
+  const renderErrorBadge = () => {
+    const {transaction} = props;
 
     if (
       isTraceRoot(transaction) ||
@@ -475,15 +481,10 @@ class TransactionBar extends Component<Props, State> {
     }
 
     return <ErrorBadge />;
-  }
+  };
 
-  renderRectangle() {
-    if (this.props.traceHasSingleOrphanError) {
-      return null;
-    }
-
-    const {transaction, traceInfo, barColor} = this.props;
-    const {showDetail} = this.state;
+  const renderRectangle = () => {
+    const {transaction, traceInfo, barColor} = props;
 
     // Use 1 as the difference in the case that startTimestamp === endTimestamp
     const delta = Math.abs(traceInfo.endTimestamp - traceInfo.startTimestamp) || 1;
@@ -508,12 +509,12 @@ class TransactionBar extends Component<Props, State> {
           width: toPercent(widthPercentage || 0),
         }}
       >
-        {this.renderPerformanceIssues()}
+        {renderPerformanceIssues()}
         {isTraceError(transaction) ? (
           <ErrorBadge />
         ) : (
           <Fragment>
-            {this.renderErrorBadge()}
+            {renderErrorBadge()}
             <DurationPill
               durationDisplay={getDurationDisplay({
                 left: startPercentage,
@@ -527,10 +528,10 @@ class TransactionBar extends Component<Props, State> {
         )}
       </StyledRowRectangle>
     );
-  }
+  };
 
-  renderPerformanceIssues() {
-    const {transaction, barColor} = this.props;
+  const renderPerformanceIssues = () => {
+    const {transaction, barColor} = props;
     if (isTraceError(transaction) || isTraceRoot(transaction)) {
       return null;
     }
@@ -556,18 +557,18 @@ class TransactionBar extends Component<Props, State> {
       );
     }
     return rows;
-  }
+  };
 
-  renderHeader({
+  const renderHeader = ({
     dividerHandlerChildrenProps,
     scrollbarManagerChildrenProps,
   }: {
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps;
     scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps;
-  }) {
-    const {hasGuideAnchor, index} = this.props;
-    const {showDetail} = this.state;
+  }) => {
+    const {hasGuideAnchor, index, transaction, onlyOrphanErrors = false} = props;
     const {dividerPosition} = dividerHandlerChildrenProps;
+    const hideDurationRectangle = isTraceRoot(transaction) && onlyOrphanErrors;
 
     return (
       <RowCellContainer showDetail={showDetail}>
@@ -579,16 +580,14 @@ class TransactionBar extends Component<Props, State> {
             paddingTop: 0,
           }}
           showDetail={showDetail}
-          onClick={this.toggleDisplayDetail}
-          ref={this.transactionTitleRef}
+          onClick={handleRowCellClick}
+          ref={transactionTitleRef}
         >
           <GuideAnchor target="trace_view_guide_row" disabled={!hasGuideAnchor}>
-            {this.renderTitle(scrollbarManagerChildrenProps)}
+            {renderTitle(scrollbarManagerChildrenProps)}
           </GuideAnchor>
         </RowCell>
-        <DividerContainer>
-          {this.renderDivider(dividerHandlerChildrenProps)}
-        </DividerContainer>
+        <DividerContainer>{renderDivider(dividerHandlerChildrenProps)}</DividerContainer>
         <RowCell
           data-test-id="transaction-row-duration"
           data-type="span-row-cell"
@@ -599,32 +598,21 @@ class TransactionBar extends Component<Props, State> {
             overflow: 'visible',
           }}
           showDetail={showDetail}
-          onClick={this.toggleDisplayDetail}
+          onClick={handleRowCellClick}
         >
           <RowReplayTimeIndicators />
           <GuideAnchor target="trace_view_guide_row_details" disabled={!hasGuideAnchor}>
-            {this.renderRectangle()}
-            {this.renderMeasurements()}
+            {!hideDurationRectangle && renderRectangle()}
+            {renderMeasurements()}
           </GuideAnchor>
         </RowCell>
-        {!showDetail && this.renderGhostDivider(dividerHandlerChildrenProps)}
+        {!showDetail && renderGhostDivider(dividerHandlerChildrenProps)}
       </RowCellContainer>
     );
-  }
-
-  scrollIntoView = () => {
-    const element = this.transactionRowDOMRef.current;
-    if (!element) {
-      return;
-    }
-    const boundingRect = element.getBoundingClientRect();
-    const offset = boundingRect.top + window.scrollY;
-    this.setState({showDetail: true}, () => window.scrollTo(0, offset));
   };
 
-  renderDetail() {
-    const {location, organization, isVisible, transaction} = this.props;
-    const {showDetail} = this.state;
+  const renderDetail = () => {
+    const {location, organization, isVisible, transaction} = props;
 
     if (isTraceError(transaction) || isTraceRoot(transaction)) {
       return null;
@@ -639,39 +627,35 @@ class TransactionBar extends Component<Props, State> {
         location={location}
         organization={organization}
         transaction={transaction}
-        scrollIntoView={this.scrollIntoView}
+        scrollIntoView={scrollIntoView}
       />
     );
-  }
+  };
 
-  render() {
-    const {isVisible, transaction} = this.props;
-    const {showDetail} = this.state;
-    return (
-      <StyledRow
-        ref={this.transactionRowDOMRef}
-        visible={isVisible}
-        showBorder={showDetail}
-        cursor={
-          isTraceTransaction<TraceFullDetailed>(transaction) ? 'pointer' : 'default'
-        }
-      >
-        <ScrollbarManager.Consumer>
-          {scrollbarManagerChildrenProps => (
-            <DividerHandlerManager.Consumer>
-              {dividerHandlerChildrenProps =>
-                this.renderHeader({
-                  dividerHandlerChildrenProps,
-                  scrollbarManagerChildrenProps,
-                })
-              }
-            </DividerHandlerManager.Consumer>
-          )}
-        </ScrollbarManager.Consumer>
-        {this.renderDetail()}
-      </StyledRow>
-    );
-  }
+  const {isVisible, transaction} = props;
+
+  return (
+    <StyledRow
+      ref={transactionRowDOMRef}
+      visible={isVisible}
+      showBorder={showDetail}
+      cursor={isTraceTransaction<TraceFullDetailed>(transaction) ? 'pointer' : 'default'}
+    >
+      <ScrollbarManager.Consumer>
+        {scrollbarManagerChildrenProps => (
+          <DividerHandlerManager.Consumer>
+            {dividerHandlerChildrenProps =>
+              renderHeader({
+                dividerHandlerChildrenProps,
+                scrollbarManagerChildrenProps,
+              })
+            }
+          </DividerHandlerManager.Consumer>
+        )}
+      </ScrollbarManager.Consumer>
+      {renderDetail()}
+    </StyledRow>
+  );
 }
 
 function getOffset(generation) {

@@ -5,8 +5,8 @@ from sentry.mediators.external_issues.creator import Creator
 from sentry.mediators.external_requests.issue_link_requester import IssueLinkRequester
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
-from sentry.models import PlatformExternalIssue
 from sentry.models.group import Group
+from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils.cache import memoize

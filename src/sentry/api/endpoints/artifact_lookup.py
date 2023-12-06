@@ -8,6 +8,8 @@ from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
 
 from sentry import ratelimits
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.endpoints.debug_files import has_download_permission
@@ -18,8 +20,11 @@ from sentry.debug_files.artifact_bundles import (
     query_artifact_bundles_containing_file,
 )
 from sentry.lang.native.sources import get_internal_artifact_lookup_source_url
-from sentry.models import ArtifactBundle, Distribution, Project, Release, ReleaseFile
-from sentry.models.artifactbundle import NULL_STRING, ArtifactBundleFlatFileIndex
+from sentry.models.artifactbundle import NULL_STRING, ArtifactBundle, ArtifactBundleFlatFileIndex
+from sentry.models.distribution import Distribution
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.releasefile import ReleaseFile
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.api")
@@ -32,6 +37,10 @@ MAX_RELEASEFILES_QUERY = 10
 
 @region_silo_endpoint
 class ProjectArtifactLookupEndpoint(ProjectEndpoint):
+    owner = ApiOwner.WEB_FRONTEND_SDKS
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def download_file(self, download_id, project: Project):
@@ -156,7 +165,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         url_constructor = UrlConstructor(request, project)
 
         found_artifacts = []
-        for (download_id, resolved_with) in all_bundles.items():
+        for download_id, resolved_with in all_bundles.items():
             found_artifacts.append(
                 {
                     "id": download_id,
@@ -214,8 +223,8 @@ def try_resolve_release_dist(
             dist = Distribution.objects.get(release=release, name=dist_name)
     except (Release.DoesNotExist, Distribution.DoesNotExist):
         pass
-    except Exception as exc:
-        logger.error("Failed to read", exc_info=exc)
+    except Exception:
+        logger.exception("Failed to read")
 
     return release, dist
 

@@ -33,6 +33,7 @@ from sentry.replays.lib.new_query.conditions import (
     StringArray,
     StringScalar,
     UUIDArray,
+    UUIDScalar,
 )
 from sentry.replays.lib.new_query.utils import contains, does_not_contain
 
@@ -123,3 +124,21 @@ class SumOfUUIDArray(GenericBase):
     @staticmethod
     def visit_not_in(expression: Expression, value: list[UUID]) -> Condition:
         return does_not_contain(UUIDArray.visit_in(expression, value))
+
+
+class SumOfUUIDScalar(GenericBase):
+    @staticmethod
+    def visit_eq(expression: Expression, value: UUID) -> Condition:
+        return contains(UUIDScalar.visit_eq(expression, value))
+
+    @staticmethod
+    def visit_neq(expression: Expression, value: UUID) -> Condition:
+        return does_not_contain(UUIDScalar.visit_eq(expression, value))
+
+    @staticmethod
+    def visit_in(expression: Expression, value: list[UUID]) -> Condition:
+        return contains(UUIDScalar.visit_in(expression, value))
+
+    @staticmethod
+    def visit_not_in(expression: Expression, value: list[UUID]) -> Condition:
+        return does_not_contain(UUIDScalar.visit_in(expression, value))

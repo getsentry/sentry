@@ -1,6 +1,6 @@
-import React from 'react';
 import {browserHistory} from 'react-router';
 import type {Location} from 'history';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -38,7 +38,7 @@ const renderActionDropdown = (
   value: React.ReactText | string[],
   contextValueType: ContextValueType
 ) => {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   render(
     <ActionDropDown
       dataRow={dataRow}

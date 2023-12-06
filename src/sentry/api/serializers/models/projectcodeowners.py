@@ -6,7 +6,7 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.repository_project_path_config import (
     RepositoryProjectPathConfigSerializer,
 )
-from sentry.models import ProjectCodeOwners
+from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.ownership.grammar import convert_schema_to_rules_text
 from sentry.services.hybrid_cloud.integration import integration_service
 

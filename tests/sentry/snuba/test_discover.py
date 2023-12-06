@@ -4,8 +4,8 @@ from unittest.mock import patch
 import pytest
 
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import ProjectTransactionThreshold
 from sentry.models.transaction_threshold import (
+    ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )

@@ -6,15 +6,13 @@ import {GettingStartedWithBottle, steps} from './bottle';
 
 describe('GettingStartedWithBottle', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithBottle dsn="test-dsn" />);
+    render(<GettingStartedWithBottle dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
-    for (const step of steps()) {
+    for (const step of steps({sentryInitContent: 'test-init-content'})) {
       expect(
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

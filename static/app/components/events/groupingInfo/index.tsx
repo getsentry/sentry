@@ -129,7 +129,7 @@ class GroupingInfo extends DeprecatedAsyncComponent<Props, State> {
 
   renderGroupConfigSelect() {
     const {configOverride} = this.state;
-    const {event} = this.props;
+    const {event, organization} = this.props;
 
     if (!event.groupingConfig) {
       return null;
@@ -139,6 +139,7 @@ class GroupingInfo extends DeprecatedAsyncComponent<Props, State> {
 
     return (
       <GroupingConfigSelect
+        organizationSlug={organization.slug}
         eventConfigId={event.groupingConfig.id}
         configId={configId}
         onSelect={this.handleConfigSelect}

@@ -1,9 +1,12 @@
 from django.urls import reverse
 
-from sentry.models import ApiKey
+from sentry.models.apikey import ApiKey
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
 class OrganizationProjectsTestBase(APITestCase):
@@ -31,7 +34,7 @@ class OrganizationProjectsTestBase(APITestCase):
         self.check_valid_response(response, [project])
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationProjectsTest(OrganizationProjectsTestBase):
     def setUp(self):
         super().setUp()
@@ -223,7 +226,7 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         assert not response.data[1].get("options")
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationProjectsCountTest(APITestCase):
     endpoint = "sentry-api-0-organization-projects-count"
 

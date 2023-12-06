@@ -1,5 +1,5 @@
 from sentry.audit_log.manager import AuditLogEvent
-from sentry.models import AuditLogEntry
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.utils.strings import truncatechars
 
 # AuditLogEvents with custom render functions
@@ -168,6 +168,16 @@ class ProjectDisableAuditLogEvent(AuditLogEvent):
         return render_project_action(audit_log_entry, "disable")
 
 
+class ProjectOwnershipRuleEditAuditLogEvent(AuditLogEvent):
+    def __init__(self):
+        super().__init__(
+            event_id=179, name="PROJECT_OWNERSHIPRULE_EDIT", api_name="project.ownership-rule.edit"
+        )
+
+    def render(self, audit_log_entry: AuditLogEntry):
+        return "modified ownership rules"
+
+
 class SSOEditAuditLogEvent(AuditLogEvent):
     def __init__(self):
         super().__init__(event_id=62, name="SSO_EDIT", api_name="sso.edit")
@@ -202,6 +212,15 @@ class ServiceHookRemoveAuditLogEvent(AuditLogEvent):
     def render(self, audit_log_entry: AuditLogEntry):
         full_url = audit_log_entry.data.get("url")
         return f'removed the service hook for "{truncatechars(full_url, 64)}"'
+
+
+class IntegrationDisabledAuditLogEvent(AuditLogEvent):
+    def __init__(self):
+        super().__init__(event_id=108, name="INTEGRATION_DISABLED", api_name="integration.disable")
+
+    def render(self, audit_log_entry: AuditLogEntry):
+        provider = audit_log_entry.data.get("provider") or ""
+        return f"disabled {provider} integration".format(**audit_log_entry.data)
 
 
 class IntegrationUpgradeAuditLogEvent(AuditLogEvent):
@@ -261,3 +280,16 @@ class InternalIntegrationAddAuditLogEvent(AuditLogEvent):
     def render(self, audit_log_entry: AuditLogEntry):
         integration_name = audit_log_entry.data.get("name") or ""
         return f"created internal integration {integration_name}"
+
+
+class InternalIntegrationDisabledAuditLogEvent(AuditLogEvent):
+    def __init__(self):
+        super().__init__(
+            event_id=131,
+            name="INTERNAL_INTEGRATION_DISABLED",
+            api_name="internal-integration.disable",
+        )
+
+    def render(self, audit_log_entry: AuditLogEntry):
+        integration_name = audit_log_entry.data.get("name") or ""
+        return f"disabled internal integration {integration_name}".format(**audit_log_entry.data)

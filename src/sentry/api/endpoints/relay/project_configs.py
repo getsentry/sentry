@@ -7,13 +7,17 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Hub, set_tag, start_span, start_transaction
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import RelayAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import RelayPermission
-from sentry.models import Organization, OrganizationOption, Project, ProjectKey, ProjectKeyStatus
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 from sentry.relay import config, projectconfig_cache
-from sentry.relay.config.measurements import get_measurements_config
-from sentry.relay.config.metric_extraction import HISTOGRAM_OUTLIER_RULES
+from sentry.relay.globalconfig import get_global_config
 from sentry.tasks.relay import schedule_build_project_config
 from sentry.utils import metrics
 
@@ -25,20 +29,16 @@ PROJECT_CONFIG_SIZE_THRESHOLD = 10000
 ProjectConfig = MutableMapping[str, Any]
 
 
-def get_global_config():
-    return {
-        "measurements": get_measurements_config(),
-        # Subset of conditional tagging rules that does not depend on the project:
-        "metricsConditionalTagging": HISTOGRAM_OUTLIER_RULES,
-    }
-
-
 def _sample_apm():
     return random.random() < getattr(settings, "SENTRY_RELAY_ENDPOINT_APM_SAMPLING", 0)
 
 
 @region_silo_endpoint
 class RelayProjectConfigsEndpoint(Endpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.OWNERS_INGEST
     authentication_classes = (RelayAuthentication,)
     permission_classes = (RelayPermission,)
     enforce_rate_limit = False
@@ -54,11 +54,6 @@ class RelayProjectConfigsEndpoint(Endpoint):
         assert relay is not None  # should be provided during Authentication
         response = {}
 
-        if request.relay_request_data.get("globalConfig"):
-            metrics.incr("relay.project_configs.global.fetched")
-            global_config = get_global_config()
-            response["global_config"] = global_config
-
         full_config_requested = request.relay_request_data.get("fullConfig")
 
         if full_config_requested and not relay.is_internal:
@@ -67,7 +62,11 @@ class RelayProjectConfigsEndpoint(Endpoint):
         version = request.GET.get("version") or "1"
         set_tag("relay_protocol_version", version)
 
-        if self._should_use_v3(version, request):
+        if version == "3" and request.relay_request_data.get("global"):
+            response["global"] = get_global_config()
+            response["global_status"] = "ready"
+
+        if self._should_post_or_schedule(version, request):
             # Always compute the full config. It's invalid to send partial
             # configs to processing relays, and these validate the requests they
             # get with permissions and trim configs down accordingly.
@@ -87,34 +86,40 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         return Response(response, status=200)
 
-    def _should_use_v3(self, version, request):
+    def _should_post_or_schedule(self, version, request):
+        """Determine whether the `_post_or_schedule_by_key` function should be
+        used for project configs.
+
+        `_post_or_schedule_by_key` should be used for v3 requests with full
+        config.
+
+        By default, Relay requests full configs and the number of partial config
+        requests should be low enough to handle them per-request, instead of
+        considering them for the full build.
+        """
         set_tag("relay_endpoint_version", version)
         no_cache = request.relay_request_data.get("noCache") or False
         set_tag("relay_no_cache", no_cache)
         is_full_config = request.relay_request_data.get("fullConfig")
         set_tag("relay_full_config", is_full_config)
 
-        use_v3 = True
+        post_or_schedule = True
         reason = "version"
 
         if version != "3":
-            use_v3 = False
+            post_or_schedule = False
             reason = "version"
         elif not is_full_config:
-            # The v3 implementation can't handle partial configs. Relay by
-            # default request full configs and the amount of partial configs
-            # should be low, so we handle them per request instead of
-            # considering them v3.
-            use_v3 = False
+            post_or_schedule = False
             reason = "fullConfig"
             version = "2"  # Downgrade to 2 for reporting metrics
         elif no_cache:
-            use_v3 = False
+            post_or_schedule = False
             reason = "noCache"
             version = "2"  # Downgrade to 2 for reporting metrics
 
-        set_tag("relay_use_v3", use_v3)
-        set_tag("relay_use_v3_rejected", reason)
+        set_tag("relay_use_post_or_schedule", post_or_schedule)
+        set_tag("relay_use_post_or_schedule_rejected", reason)
         if version == "2":
             metrics.incr(
                 "api.endpoints.relay.project_configs.post",
@@ -127,7 +132,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
                 tags={"version": version, "reason": reason},
             )
 
-        return use_v3
+        return post_or_schedule
 
     def _post_or_schedule_by_key(self, request: Request):
         public_keys = set(request.relay_request_data.get("publicKeys") or ())
@@ -141,6 +146,10 @@ class RelayProjectConfigsEndpoint(Endpoint):
             else:
                 proj_configs[key] = computed
 
+        # Originally, these metrics were emitted for the latest endpoint version
+        # at the time, v3. Since there's no effective way to know where these
+        # metrics are used, changing the name can result in empty data. As a
+        # result, we're keeping the same name.
         metrics.incr("relay.project_configs.post_v3.pending", amount=len(pending))
         metrics.incr("relay.project_configs.post_v3.fetched", amount=len(proj_configs))
         return {"configs": proj_configs, "pending": pending}
@@ -202,9 +211,9 @@ class RelayProjectConfigsEndpoint(Endpoint):
                 for org_id in orgs:
                     OrganizationOption.objects.get_all_values(org_id)
 
-        metrics.timing("relay_project_configs.projects_requested", len(project_ids))
-        metrics.timing("relay_project_configs.projects_fetched", len(projects))
-        metrics.timing("relay_project_configs.orgs_fetched", len(orgs))
+        metrics.distribution("relay_project_configs.projects_requested", len(project_ids))
+        metrics.distribution("relay_project_configs.projects_fetched", len(projects))
+        metrics.distribution("relay_project_configs.orgs_fetched", len(orgs))
 
         configs: MutableMapping[str, ProjectConfig] = {}
         for public_key in public_keys:
@@ -272,9 +281,9 @@ class RelayProjectConfigsEndpoint(Endpoint):
             for key in ProjectKey.objects.filter(project_id__in=project_ids):
                 project_keys.setdefault(key.project_id, []).append(key)
 
-        metrics.timing("relay_project_configs.projects_requested", len(project_ids))
-        metrics.timing("relay_project_configs.projects_fetched", len(projects))
-        metrics.timing("relay_project_configs.orgs_fetched", len(orgs))
+        metrics.distribution("relay_project_configs.projects_requested", len(project_ids))
+        metrics.distribution("relay_project_configs.projects_fetched", len(projects))
+        metrics.distribution("relay_project_configs.orgs_fetched", len(orgs))
 
         configs: MutableMapping[str, ProjectConfig] = {}
         for project_id in project_ids:

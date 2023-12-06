@@ -5,14 +5,17 @@ from django.utils import timezone
 
 from sentry.constants import SentryAppStatus
 from sentry.coreapi import APIError
-from sentry.models import ApiToken, SentryApp, SentryAppComponent, ServiceHook
+from sentry.models.apitoken import ApiToken
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.integrations.sentry_app_component import SentryAppComponent
+from sentry.models.servicehook import ServiceHook
 from sentry.sentry_apps.apps import SentryAppUpdater, expand_events
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestUpdater(TestCase):
     def setUp(self):
         self.user = self.create_user()

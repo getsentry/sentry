@@ -21,7 +21,7 @@ class JiraServerRequestParser(BaseRequestParser):
         try:
             integration = get_integration_from_token(token)
         except ValueError as e:
-            logger.error("no_integration", extra={"error": str(e)})
+            logger.info(f"{self.provider}.no_integration", extra={"error": str(e)})
             return self.get_response_from_control_silo()
         organizations = self.get_organizations_from_integration(integration=integration)
         regions = self.get_regions_from_organizations(organizations=organizations)

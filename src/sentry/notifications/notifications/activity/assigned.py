@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from typing import Any, Mapping, Optional
 
-from sentry.models import Activity, NotificationSetting, Organization, Team
-from sentry.notifications.types import GroupSubscriptionReason
+from sentry.models.activity import Activity
+from sentry.models.organization import Organization
+from sentry.models.team import Team
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.integrations import ExternalProviders
 
-from ...utils.participants import ParticipantMap
 from .base import GroupActivityNotification
 
 
@@ -58,8 +58,8 @@ class AssignedActivityNotification(GroupActivityNotification):
     def get_assignee(self) -> str:
         return get_assignee_str(self.activity, self.organization)
 
-    def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
-        return "{author} assigned {an issue} to {assignee}", {"assignee": self.get_assignee()}, {}
+    def get_description(self) -> tuple[str, Optional[str], Mapping[str, Any]]:
+        return "{author} assigned {an issue} to {assignee}", None, {"assignee": self.get_assignee()}
 
     def get_notification_title(
         self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
@@ -74,25 +74,3 @@ class AssignedActivityNotification(GroupActivityNotification):
             author, assignee = assignee, author
 
         return f"Issue assigned to {assignee} by {author}"
-
-    def get_participants_with_group_subscription_reason(self) -> ParticipantMap:
-        """Hack to tack on the assigned team to the list of users subscribed to the group."""
-        users_by_provider = super().get_participants_with_group_subscription_reason()
-        if is_team_assignee(self.activity):
-            assignee_id = self.activity.data.get("assignee")
-            assignee_team = _get_team_option(assignee_id, self.organization)
-
-            if assignee_team:
-                teams_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
-                    parent=self.project,
-                    recipients=[assignee_team],
-                    type=self.notification_setting_type,
-                )
-                actors_by_provider = ParticipantMap()
-                actors_by_provider.update(users_by_provider)
-                for provider, teams in teams_by_provider.items():
-                    for team in teams:
-                        actors_by_provider.add(provider, team, GroupSubscriptionReason.assigned)
-                return actors_by_provider
-
-        return users_by_provider

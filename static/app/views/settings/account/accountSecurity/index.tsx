@@ -18,6 +18,7 @@ import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Authenticator, OrganizationSummary} from 'sentry/types';
+import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
@@ -66,9 +67,7 @@ class AccountSecurity extends DeprecatedAsyncView<Props> {
     const {orgsRequire2fa} = this.props;
     const slugs = orgsRequire2fa.map(({slug}) => slug);
 
-    return [slugs.slice(0, -1).join(', '), slugs.slice(-1)[0]].join(
-      slugs.length > 1 ? ' and ' : ''
-    );
+    return oxfordizeArray(slugs);
   };
 
   handleAdd2FAClicked = () => {

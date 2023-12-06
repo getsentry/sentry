@@ -42,10 +42,8 @@ import {
   isEquation,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
-import {
-  createOnDemandFilterWarning,
-  hasOnDemandMetricWidgetFeature,
-} from 'sentry/utils/onDemandMetrics';
+import {createOnDemandFilterWarning} from 'sentry/utils/onDemandMetrics';
+import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -64,8 +62,10 @@ import {
 import {
   dashboardFiltersToString,
   eventViewFromWidget,
+  getColoredWidgetIndicator,
   getFieldsFromEquations,
   getNumEquations,
+  getWidgetDDMUrl,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
@@ -85,12 +85,15 @@ import {
 } from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import IssueWidgetQueries from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
+import MetricWidgetQueries from 'sentry/views/dashboards/widgetCard/metricWidgetQueries';
 import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
+
+import {Tooltip} from '../tooltip';
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
 import {
@@ -789,6 +792,32 @@ function WidgetViewerModal(props: Props) {
             {renderReleaseTable}
           </ReleaseWidgetQueries>
         );
+      case WidgetType.METRICS:
+        if (tableData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
+          return renderReleaseTable({
+            tableResults: tableData,
+            loading: false,
+            pageLinks: defaultPageLinks,
+          });
+        }
+        return (
+          <MetricWidgetQueries
+            api={api}
+            organization={organization}
+            widget={tableWidget}
+            selection={modalTableSelection}
+            limit={
+              widget.displayType === DisplayType.TABLE
+                ? FULL_TABLE_ITEM_LIMIT
+                : HALF_TABLE_ITEM_LIMIT
+            }
+            cursor={cursor}
+            dashboardFilters={dashboardFilters}
+          >
+            {/* TODO(ddm): Check if we need to use a diffrent implementation, for now we fallback to release table */}
+            {renderReleaseTable}
+          </MetricWidgetQueries>
+        );
       case WidgetType.DISCOVER:
       default:
         if (tableData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
@@ -1005,10 +1034,24 @@ function WidgetViewerModal(props: Props) {
                   forceTransactions={metricsDataSide.forceTransactionsOnly}
                 >
                   <Header closeButton>
-                    <WidgetTitle>
-                      <h3>{widget.title}</h3>
+                    <WidgetHeader>
+                      <WidgetTitleRow>
+                        <h3>{widget.title}</h3>
+                        {widget.thresholds &&
+                          tableData &&
+                          organization.features.includes('dashboard-widget-indicators') &&
+                          getColoredWidgetIndicator(widget.thresholds, tableData)}
+                      </WidgetTitleRow>
                       {widget.description && (
-                        <WidgetDescription>{widget.description}</WidgetDescription>
+                        <Tooltip
+                          title={widget.description}
+                          containerDisplayMode="grid"
+                          showOnlyOnOverflow
+                          isHoverable
+                          position="bottom"
+                        >
+                          <WidgetDescription>{widget.description}</WidgetDescription>
+                        </Tooltip>
                       )}
                       <DashboardsMEPConsumer>
                         {({}) => {
@@ -1033,7 +1076,7 @@ function WidgetViewerModal(props: Props) {
                           return null;
                         }}
                       </DashboardsMEPConsumer>
-                    </WidgetTitle>
+                    </WidgetHeader>
                   </Header>
                   <Body>{renderWidgetViewer()}</Body>
                   <Footer>
@@ -1102,6 +1145,10 @@ function OpenButton({
       openLabel = t('Open in Releases');
       path = getWidgetReleasesUrl(widget, selection, organization);
       break;
+    case WidgetType.METRICS:
+      openLabel = t('Open in DDM');
+      path = getWidgetDDMUrl(widget, selection, organization);
+      break;
     case WidgetType.DISCOVER:
     default:
       openLabel = t('Open in Discover');
@@ -1149,7 +1196,7 @@ function renderTotalResults(totalResults?: string, widgetType?: WidgetType) {
     case WidgetType.DISCOVER:
       return (
         <span>
-          {tct('[description:Total Events:] [total]', {
+          {tct('[description:Sampled Events:] [total]', {
             description: <strong />,
             total: totalResults,
           })}
@@ -1208,10 +1255,16 @@ const EmptyQueryContainer = styled('span')`
   color: ${p => p.theme.disabled};
 `;
 
-const WidgetTitle = styled('div')`
+const WidgetHeader = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
+`;
+
+const WidgetTitleRow = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.75)};
 `;
 
 export default withPageFilters(WidgetViewerModal);

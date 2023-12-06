@@ -17,7 +17,8 @@ from sentry.integrations import (
 )
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
+from sentry.models.repository import Repository
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.repository import RpcRepository, repository_service
@@ -59,6 +60,13 @@ FEATURES = [
         Link Sentry issues to existing Bitbucket issues
         """,
         IntegrationFeatures.ISSUE_BASIC,
+    ),
+    FeatureDescription(
+        """
+        Link your Sentry stack traces back to your Bitbucket source code with stack
+        trace linking.
+        """,
+        IntegrationFeatures.STACKTRACE_LINK,
     ),
 ]
 
@@ -136,6 +144,24 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
     def reinstall(self):
         self.reinstall_repositories()
 
+    def source_url_matches(self, url: str) -> bool:
+        return url.startswith(f'https://{self.model.metadata["domain_name"]}') or url.startswith(
+            "https://bitbucket.org",
+        )
+
+    def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
+        return f"https://bitbucket.org/{repo.name}/src/{branch}/{filepath}"
+
+    def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
+        url = url.replace(f"{repo.url}/src/", "")
+        branch, _, _ = url.partition("/")
+        return branch
+
+    def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
+        url = url.replace(f"{repo.url}/src/", "")
+        _, _, source_path = url.partition("/")
+        return source_path
+
 
 class BitbucketIntegrationProvider(IntegrationProvider):
     key = "bitbucket"
@@ -143,7 +169,13 @@ class BitbucketIntegrationProvider(IntegrationProvider):
     metadata = metadata
     scopes = scopes
     integration_cls = BitbucketIntegration
-    features = frozenset([IntegrationFeatures.ISSUE_BASIC, IntegrationFeatures.COMMITS])
+    features = frozenset(
+        [
+            IntegrationFeatures.ISSUE_BASIC,
+            IntegrationFeatures.COMMITS,
+            IntegrationFeatures.STACKTRACE_LINK,
+        ]
+    )
 
     def get_pipeline_views(self):
         identity_pipeline_config = {"redirect_url": absolute_uri("/extensions/bitbucket/setup/")}

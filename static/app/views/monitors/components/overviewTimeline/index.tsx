@@ -1,10 +1,12 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {deleteMonitorEnvironment} from 'sentry/actionCreators/monitors';
 import Panel from 'sentry/components/panels/panel';
 import {Sticky} from 'sentry/components/sticky';
 import {space} from 'sentry/styles/space';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -12,13 +14,14 @@ import {
   GridLineOverlay,
   GridLineTimeLabels,
 } from 'sentry/views/monitors/components/overviewTimeline/gridLines';
+import {makeMonitorListQueryKey} from 'sentry/views/monitors/utils';
 
 import {Monitor} from '../../types';
 
 import {ResolutionSelector} from './resolutionSelector';
 import {TimelineTableRow} from './timelineTableRow';
 import {MonitorBucketData, TimeWindow} from './types';
-import {getStartFromTimeWindow, timeWindowConfig} from './utils';
+import {getConfigFromTimeRange, getStartFromTimeWindow} from './utils';
 
 interface Props {
   monitorList: Monitor[];
@@ -27,6 +30,9 @@ interface Props {
 export function OverviewTimeline({monitorList}: Props) {
   const {location} = useRouter();
   const organization = useOrganization();
+  const api = useApi();
+  const queryClient = useQueryClient();
+  const router = useRouter();
 
   const timeWindow: TimeWindow = location.query?.timeWindow ?? '24h';
   const nowRef = useRef<Date>(new Date());
@@ -34,9 +40,8 @@ export function OverviewTimeline({monitorList}: Props) {
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
 
-  const rollup = Math.floor(
-    (timeWindowConfig[timeWindow].elapsedMinutes * 60) / timelineWidth
-  );
+  const timeWindowConfig = getConfigFromTimeRange(start, nowRef.current, timelineWidth);
+  const rollup = Math.floor((timeWindowConfig.elapsedMinutes * 60) / timelineWidth);
   const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
   const {data: monitorStats, isLoading} = useApiQuery<Record<string, MonitorBucketData>>(
     [
@@ -57,6 +62,39 @@ export function OverviewTimeline({monitorList}: Props) {
     }
   );
 
+  const handleDeleteEnvironment = async (monitor: Monitor, env: string) => {
+    const success = await deleteMonitorEnvironment(
+      api,
+      organization.slug,
+      monitor.slug,
+      env
+    );
+    if (!success) {
+      return;
+    }
+
+    const queryKey = makeMonitorListQueryKey(organization, router.location);
+    setApiQueryData(queryClient, queryKey, (oldMonitorList: Monitor[]) => {
+      const oldMonitorIdx = oldMonitorList.findIndex(m => m.slug === monitor.slug);
+      if (oldMonitorIdx < 0) {
+        return oldMonitorList;
+      }
+
+      const oldMonitor = oldMonitorList[oldMonitorIdx];
+      const newEnvList = oldMonitor.environments.filter(e => e.name !== env);
+      const newMonitor = {
+        ...oldMonitor,
+        environments: newEnvList,
+      };
+
+      return [
+        ...oldMonitorList.slice(0, oldMonitorIdx),
+        newMonitor,
+        ...oldMonitorList.slice(oldMonitorIdx + 1),
+      ];
+    });
+  };
+
   return (
     <MonitorListPanel>
       <TimelineWidthTracker ref={elementRef} />
@@ -65,7 +103,8 @@ export function OverviewTimeline({monitorList}: Props) {
       </StickyResolutionSelector>
       <StickyGridLineTimeLabels>
         <BorderlessGridLineTimeLabels
-          timeWindow={timeWindow}
+          timeWindowConfig={timeWindowConfig}
+          start={start}
           end={nowRef.current}
           width={timelineWidth}
         />
@@ -73,7 +112,8 @@ export function OverviewTimeline({monitorList}: Props) {
       <GridLineOverlay
         stickyCursor
         showCursor={!isLoading}
-        timeWindow={timeWindow}
+        timeWindowConfig={timeWindowConfig}
+        start={start}
         end={nowRef.current}
         width={timelineWidth}
       />
@@ -82,11 +122,12 @@ export function OverviewTimeline({monitorList}: Props) {
         <TimelineTableRow
           key={monitor.id}
           monitor={monitor}
-          timeWindow={timeWindow}
+          timeWindowConfig={timeWindowConfig}
+          start={start}
           bucketedData={monitorStats?.[monitor.slug]}
           end={nowRef.current}
-          start={start}
           width={timelineWidth}
+          onDeleteEnvironment={env => handleDeleteEnvironment(monitor, env)}
         />
       ))}
     </MonitorListPanel>

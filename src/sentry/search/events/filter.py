@@ -18,8 +18,9 @@ from sentry.api.event_search import (
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
 from sentry.constants import SEMVER_FAKE_PACKAGE
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Project, Release, SemverFilter
 from sentry.models.group import Group
+from sentry.models.project import Project
+from sentry.models.release import Release, SemverFilter
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
     EQUALITY_OPERATORS,
@@ -946,5 +947,5 @@ def format_search_filter(term, params):
 
 
 # Not a part of search.events.types to avoid a circular loop
-ParsedTerm = Union[SearchFilter, AggregateFilter]
+ParsedTerm = Union[SearchFilter, AggregateFilter, ParenExpression]
 ParsedTerms = Sequence[ParsedTerm]

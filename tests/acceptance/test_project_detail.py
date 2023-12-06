@@ -7,7 +7,7 @@ from sentry.testutils.silo import no_silo_test
 FEATURE_NAME = ["organizations:incidents"]
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class ProjectDetailTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -73,9 +73,7 @@ class ProjectDetailTest(AcceptanceTestCase):
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
-            self.browser.snapshot("project detail")
 
     def test_no_feature(self):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        self.browser.snapshot("project detail no feature")

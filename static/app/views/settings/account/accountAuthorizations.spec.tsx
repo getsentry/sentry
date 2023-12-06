@@ -15,7 +15,7 @@ describe('AccountAuthorizations', function () {
     });
 
     const router = TestStubs.router({});
-    const wrapper = render(
+    render(
       <AccountAuthorizations
         location={TestStubs.location()}
         routeParams={router.params}
@@ -28,7 +28,5 @@ describe('AccountAuthorizations', function () {
         context: TestStubs.routerContext(),
       }
     );
-
-    expect(wrapper.container).toSnapshot();
   });
 });

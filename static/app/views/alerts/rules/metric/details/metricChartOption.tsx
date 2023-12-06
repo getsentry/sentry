@@ -12,6 +12,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {SessionApiResponse} from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
+import {formatMRIField} from 'sentry/utils/metrics/mri';
 import {getCrashFreeRateSeries} from 'sentry/utils/sessions';
 import {lightTheme as theme} from 'sentry/utils/theme';
 import {
@@ -144,12 +145,14 @@ export type MetricChartData = {
   handleIncidentClick?: (incident: Incident) => void;
   incidents?: Incident[];
   selectedIncident?: Incident | null;
+  showWaitingForData?: boolean;
 };
 
 type MetricChartOption = {
   chartOption: AreaChartProps;
   criticalDuration: number;
   totalDuration: number;
+  waitingForDataDuration: number;
   warningDuration: number;
 };
 
@@ -159,6 +162,7 @@ export function getMetricAlertChartOption({
   incidents,
   selectedIncident,
   handleIncidentClick,
+  showWaitingForData,
 }: MetricChartData): MetricChartOption {
   const criticalTrigger = rule.triggers.find(
     ({label}) => label === AlertRuleTriggerType.CRITICAL
@@ -167,7 +171,10 @@ export function getMetricAlertChartOption({
     ({label}) => label === AlertRuleTriggerType.WARNING
   );
 
-  const series: AreaChartSeries[] = [...timeseriesData];
+  const series: AreaChartSeries[] = timeseriesData.map(s => ({
+    ...s,
+    seriesName: s.seriesName && formatMRIField(s.seriesName),
+  }));
   const areaSeries: AreaChartSeries[] = [];
   // Ensure series data appears below incident/mark lines
   series[0].z = 1;
@@ -196,12 +203,23 @@ export function getMetricAlertChartOption({
   const firstPoint = new Date(dataArr[0]?.name).getTime();
   const lastPoint = new Date(dataArr[dataArr.length - 1]?.name).getTime();
   const totalDuration = lastPoint - firstPoint;
+  let waitingForDataDuration = 0;
   let criticalDuration = 0;
   let warningDuration = 0;
 
   series.push(
     createStatusAreaSeries(theme.green300, firstPoint, lastPoint, minChartValue)
   );
+
+  if (showWaitingForData) {
+    const {startIndex, endIndex} = getWaitingForDataRange(dataArr);
+    const startTime = new Date(dataArr[startIndex]?.name).getTime();
+    const endTime = new Date(dataArr[endIndex]?.name).getTime();
+
+    waitingForDataDuration = Math.abs(endTime - startTime);
+
+    series.push(createStatusAreaSeries(theme.gray200, startTime, endTime, minChartValue));
+  }
 
   if (incidents) {
     // select incidents that fall within the graph range
@@ -362,6 +380,7 @@ export function getMetricAlertChartOption({
   return {
     criticalDuration,
     warningDuration,
+    waitingForDataDuration,
     totalDuration,
     chartOption: {
       isGroupedByDate: true,
@@ -375,6 +394,21 @@ export function getMetricAlertChartOption({
       },
     },
   };
+}
+
+function getWaitingForDataRange(dataArr) {
+  if (dataArr[0].value > 0) {
+    return {startIndex: 0, endIndex: 0};
+  }
+
+  for (let i = 0; i < dataArr.length; i++) {
+    const dataPoint = dataArr[i];
+    if (dataPoint.value > 0) {
+      return {startIndex: 0, endIndex: i - 1};
+    }
+  }
+
+  return {startIndex: 0, endIndex: dataArr.length - 1};
 }
 
 export function transformSessionResponseToSeries(

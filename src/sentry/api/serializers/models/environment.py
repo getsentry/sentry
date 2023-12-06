@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from sentry import tsdb
 from sentry.api.serializers import Serializer, register
-from sentry.models import Environment, EnvironmentProject
+from sentry.models.environment import Environment, EnvironmentProject
 from sentry.tsdb.base import TSDBModel
 
 StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))

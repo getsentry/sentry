@@ -1,5 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 
+import Accordion from 'sentry/components/accordion/accordion';
 import {Button} from 'sentry/components/button';
 import Truncate from 'sentry/components/truncate';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
@@ -25,7 +26,6 @@ import {
 import {Chart} from '../../../trends/chart';
 import {TrendChangeType, TrendFunctionField} from '../../../trends/types';
 import {excludeTransaction} from '../../utils';
-import Accordion from '../components/accordion';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import SelectableList, {
   GrowLink,
@@ -36,6 +36,7 @@ import SelectableList, {
 } from '../components/selectableList';
 import {transformTrendsDiscover} from '../transforms/transformTrendsDiscover';
 import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
+import {QUERY_LIMIT_PARAM, TOTAL_EXPANDABLE_ROWS_HEIGHT} from '../utils';
 import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type DataType = {
@@ -100,7 +101,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
           location={location}
           trendChangeType={derivedTrendChangeType}
           trendFunctionField={trendFunctionField}
-          limit={3}
+          limit={QUERY_LIMIT_PARAM}
           cursor="0:0:1"
           noPagination
           withBreakpoint={withBreakpoint}
@@ -212,7 +213,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
             />
           ),
           // accordion items height + chart height
-          height: 120 + props.chartHeight,
+          height: TOTAL_EXPANDABLE_ROWS_HEIGHT + props.chartHeight,
           noPadding: true,
         },
       ]
@@ -292,4 +293,4 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
   );
 }
 
-const TrendsChart = withProjects(Chart);
+export const TrendsChart = withProjects(Chart);

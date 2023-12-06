@@ -3,7 +3,7 @@ from functools import cached_property
 import responses
 
 from sentry.interfaces.base import Interface
-from sentry.models import Rule
+from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
 from sentry.testutils.cases import PluginTestCase
 from sentry.utils import json
@@ -75,8 +75,7 @@ class VictorOpsPluginTest(PluginTestCase):
 
         notification = Notification(event=event, rule=rule)
 
-        with self.options({"system.url-prefix": "http://example.com"}):
-            self.plugin.notify(notification)
+        self.plugin.notify(notification)
 
         request = responses.calls[0].request
         payload = json.loads(request.body)
@@ -87,7 +86,7 @@ class VictorOpsPluginTest(PluginTestCase):
             "monitoring_tool": "sentry",
             "state_message": 'Stacktrace\n-----------\n\nStacktrace (most recent call last):\n\n  File "sentry/models/foo.py", line 29, in build_msg\n    string_max_length=self.string_max_length)\n\nMessage\n-----------\n\nHello world',
             "timestamp": int(event.datetime.strftime("%s")),
-            "issue_url": "http://example.com/organizations/baz/issues/%s/" % group.id,
+            "issue_url": group.get_absolute_url(),
             "issue_id": group.id,
             "project_id": group.project.id,
         } == payload

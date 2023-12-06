@@ -4,19 +4,23 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 import abc
 from abc import abstractmethod
-from typing import Any, Iterable, List, Mapping, Optional, Union, cast
+from typing import Any, Iterable, List, Mapping, Optional, Union
 
 from django.dispatch import Signal
 
 from sentry.services.hybrid_cloud import OptionValue, silo_mode_delegation
 from sentry.services.hybrid_cloud.organization.model import (
+    OrganizationMemberUpdateArgs,
+    RpcAuditLogEntryActor,
     RpcOrganization,
+    RpcOrganizationDeleteResponse,
     RpcOrganizationFlagsUpdate,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
     RpcOrganizationSignal,
     RpcOrganizationSummary,
     RpcRegionUser,
+    RpcTeam,
     RpcUserInviteContext,
     RpcUserOrganizationContext,
 )
@@ -85,6 +89,16 @@ class OrganizationService(RpcService):
         Fetches the organization, by an organization slug. If user_id is passed, it will enforce visibility
         rules. This method is differentiated from get_organization_by_slug by not being cached and returning
         RpcOrganizationSummary instead of org contexts
+        """
+        pass
+
+    @regional_rpc_method(resolve=ByRegionName())
+    @abstractmethod
+    def get_organizations_by_user_and_scope(
+        self, *, region_name: str, user: RpcUser, scope: str
+    ) -> List[RpcOrganization]:
+        """
+        Fetches organizations for the given user, with the given organization member scope.
         """
         pass
 
@@ -161,13 +175,13 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationSlug(), return_none_if_mapping_not_found=True)
-    @abstractmethod
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
         """
         If exists and matches the only_visible requirement, returns an organization's id by the slug.
         """
-        pass
+        return _organization_check_service.check_organization_by_slug(
+            slug=slug, only_visible=only_visible
+        )
 
     def get_organization_by_slug(
         self, *, slug: str, only_visible: bool, user_id: Optional[int] = None
@@ -175,7 +189,7 @@ class OrganizationService(RpcService):
         """
         Defers to check_organization_by_slug -> get_organization_by_id
         """
-        from sentry.models import OrganizationStatus
+        from sentry.models.organization import OrganizationStatus
 
         org_id = self.check_organization_by_slug(slug=slug, only_visible=only_visible)
         if org_id is None:
@@ -211,12 +225,51 @@ class OrganizationService(RpcService):
     ) -> RpcOrganizationMember:
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationIdAttribute("organization_member"))
+    @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
-    def add_team_member(self, *, team_id: int, organization_member: RpcOrganizationMember) -> None:
+    def update_organization_member(
+        self, *, organization_id: int, member_id: int, attrs: OrganizationMemberUpdateArgs
+    ) -> Optional[RpcOrganizationMember]:
         pass
 
-    @regional_rpc_method(resolve=UnimplementedRegionResolution())
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_single_team(self, *, organization_id: int) -> Optional[RpcTeam]:
+        """If the organization has exactly one team, return it.
+
+        Return None if the organization has no teams or more than one.
+        """
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def add_team_member(
+        self, *, organization_id: int, team_id: int, organization_member_id: int
+    ) -> None:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_or_create_team_member(
+        self,
+        organization_id: int,
+        *,
+        team_id: int,
+        organization_member_id: int,
+        role: Optional[str],
+    ) -> None:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_or_create_default_team(
+        self,
+        *,
+        organization_id: int,
+        new_team_slug: str,
+    ) -> RpcTeam:
+        pass
+
+    @regional_rpc_method(resolve=UnimplementedRegionResolution("organization", "get_team_members"))
     @abstractmethod
     def get_team_members(self, *, team_id: int) -> Iterable[RpcOrganizationMember]:
         pass
@@ -229,21 +282,6 @@ class OrganizationService(RpcService):
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def merge_users(self, *, organization_id: int, from_user_id: int, to_user_id: int) -> None:
-        pass
-
-    @regional_rpc_method(resolve=ByOrganizationId())
-    @abstractmethod
-    def get_all_org_roles(
-        self,
-        *,
-        organization_id: int,
-        member_id: int,
-    ) -> List[str]:
-        pass
-
-    @regional_rpc_method(resolve=ByOrganizationId())
-    @abstractmethod
-    def get_top_dog_team_member_ids(self, *, organization_id: int) -> List[int]:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationId())
@@ -283,6 +321,27 @@ class OrganizationService(RpcService):
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
+    def send_sso_link_emails(
+        self, *, organization_id: int, sending_user_email: str, provider_key: str
+    ) -> None:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def delete_organization(
+        self, *, organization_id: int, user: RpcUser
+    ) -> RpcOrganizationDeleteResponse:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def create_org_delete_log(
+        self, *, organization_id: int, audit_log_actor: RpcAuditLogEntryActor
+    ) -> None:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
     def send_signal(
         self,
         *,
@@ -301,6 +360,34 @@ class OrganizationService(RpcService):
         _organization_signal_service.schedule_signal(
             signal=signal, organization_id=organization_id, args=args
         )
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_organization_owner_members(
+        self, *, organization_id: int
+    ) -> List[RpcOrganizationMember]:
+        pass
+
+
+class OrganizationCheckService(abc.ABC):
+    @abstractmethod
+    def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
+        """
+        If exists and matches the only_visible requirement, returns an organization's id by the slug.
+        """
+        pass
+
+
+def _control_check_organization() -> OrganizationCheckService:
+    from sentry.services.hybrid_cloud.organization.impl import ControlOrganizationCheckService
+
+    return ControlOrganizationCheckService()
+
+
+def _region_check_organization() -> OrganizationCheckService:
+    from sentry.services.hybrid_cloud.organization.impl import RegionOrganizationCheckService
+
+    return RegionOrganizationCheckService()
 
 
 class OrganizationSignalService(abc.ABC):
@@ -328,6 +415,15 @@ def _signal_from_on_commit() -> OrganizationSignalService:
     return OnCommitBackedOrganizationSignalService()
 
 
+_organization_check_service: OrganizationCheckService = silo_mode_delegation(
+    {
+        SiloMode.REGION: _region_check_organization,
+        SiloMode.CONTROL: _control_check_organization,
+        SiloMode.MONOLITH: _region_check_organization,
+    }
+)
+
+
 _organization_signal_service: OrganizationSignalService = silo_mode_delegation(
     {
         SiloMode.REGION: _signal_from_on_commit,
@@ -336,4 +432,4 @@ _organization_signal_service: OrganizationSignalService = silo_mode_delegation(
     }
 )
 
-organization_service = cast(OrganizationService, OrganizationService.create_delegation())
+organization_service = OrganizationService.create_delegation()

@@ -1,6 +1,6 @@
 from unittest import mock
 
-from sentry.models import ProjectOption
+from sentry.models.options.project_option import ProjectOption
 from sentry.projectoptions import default_manager, defaults
 from sentry.projectoptions.manager import WellKnownProjectOption
 from sentry.testutils.pytest.fixtures import django_db_all

@@ -1,3 +1,7 @@
+import {Organization} from 'sentry-fixture/organization';
+import {RRWebInitFrameEvents} from 'sentry-fixture/replay/rrweb';
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render as baseRender, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -17,12 +21,9 @@ const mockOrgSlug = 'sentry-emerging-tech';
 const mockReplaySlug = 'replays:761104e184c64d439ee1014b72b4d83b';
 const mockReplayId = '761104e184c64d439ee1014b72b4d83b';
 
-const mockEvent = {
-  ...TestStubs.Event(),
-  dateCreated: '2022-09-22T16:59:41.596000Z',
-};
+const mockEventTimestampMs = new Date('2022-09-22T16:59:41Z').getTime();
 
-const mockButtonHref = `/organizations/${mockOrgSlug}/replays/761104e184c64d439ee1014b72b4d83b/?referrer=%2Forganizations%2F%3AorgId%2Fissues%2F%3AgroupId%2Freplays%2F&t=62&t_main=console`;
+const mockButtonHref = `/organizations/${mockOrgSlug}/replays/761104e184c64d439ee1014b72b4d83b/?referrer=%2Forganizations%2F%3AorgId%2Fissues%2F%3AgroupId%2Freplays%2F&t=62&t_main=errors`;
 
 // Mock screenfull library
 jest.mock('screenfull', () => ({
@@ -36,14 +37,14 @@ jest.mock('screenfull', () => ({
 
 // Get replay data with the mocked replay reader params
 const mockReplay = ReplayReader.factory({
-  replayRecord: TestStubs.ReplayRecord({
+  replayRecord: ReplayRecordFixture({
     browser: {
       name: 'Chrome',
       version: '110.0.0',
     },
   }),
   errors: [],
-  attachments: TestStubs.Replay.RRWebInitFrameEvents({
+  attachments: RRWebInitFrameEvents({
     timestamp: new Date('Sep 22, 2022 4:58:39 PM UTC'),
   }),
 });
@@ -58,7 +59,7 @@ mockUseReplayReader.mockImplementation(() => {
     projectSlug: TestStubs.Project().slug,
     replay: mockReplay,
     replayId: mockReplayId,
-    replayRecord: TestStubs.ReplayRecord(),
+    replayRecord: ReplayRecordFixture(),
   };
 });
 
@@ -86,7 +87,7 @@ const render: typeof baseRender = children => {
         routes: router.routes,
       }}
     >
-      <OrganizationContext.Provider value={TestStubs.Organization()}>
+      <OrganizationContext.Provider value={Organization()}>
         {children}
       </OrganizationContext.Provider>
     </RouteContext.Provider>,
@@ -107,7 +108,7 @@ describe('ReplayPreview', () => {
         projectSlug: TestStubs.Project().slug,
         replay: mockReplay,
         replayId: mockReplayId,
-        replayRecord: TestStubs.ReplayRecord(),
+        replayRecord: ReplayRecordFixture(),
       };
     });
 
@@ -115,7 +116,7 @@ describe('ReplayPreview', () => {
       <ReplayPreview
         orgSlug={mockOrgSlug}
         replaySlug={mockReplaySlug}
-        event={mockEvent}
+        eventTimestampMs={mockEventTimestampMs}
       />
     );
 
@@ -134,7 +135,7 @@ describe('ReplayPreview', () => {
         projectSlug: TestStubs.Project().slug,
         replay: null,
         replayId: mockReplayId,
-        replayRecord: TestStubs.ReplayRecord(),
+        replayRecord: ReplayRecordFixture(),
       };
     });
 
@@ -142,7 +143,7 @@ describe('ReplayPreview', () => {
       <ReplayPreview
         orgSlug={mockOrgSlug}
         replaySlug={mockReplaySlug}
-        event={mockEvent}
+        eventTimestampMs={mockEventTimestampMs}
       />
     );
 
@@ -154,7 +155,7 @@ describe('ReplayPreview', () => {
       <ReplayPreview
         orgSlug={mockOrgSlug}
         replaySlug={mockReplaySlug}
-        event={mockEvent}
+        eventTimestampMs={mockEventTimestampMs}
       />
     );
 
@@ -167,12 +168,11 @@ describe('ReplayPreview', () => {
       <ReplayPreview
         orgSlug={mockOrgSlug}
         replaySlug={mockReplaySlug}
-        event={mockEvent}
+        eventTimestampMs={mockEventTimestampMs}
       />
     );
 
     // Expect replay view to be rendered
-    expect(screen.getByText('Replays')).toBeVisible();
     expect(screen.getByTestId('player-container')).toBeInTheDocument();
   });
 });

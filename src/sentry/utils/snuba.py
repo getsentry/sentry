@@ -34,16 +34,13 @@ from sentry_sdk import Hub
 from snuba_sdk import Request
 from snuba_sdk.legacy import json_to_snql
 
-from sentry.models import (
-    Environment,
-    Group,
-    GroupRelease,
-    Organization,
-    Project,
-    ProjectKey,
-    Release,
-    ReleaseProject,
-)
+from sentry.models.environment import Environment
+from sentry.models.group import Group
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
+from sentry.models.release import Release, ReleaseProject
 from sentry.net.http import connection_from_url
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
@@ -127,6 +124,7 @@ SPAN_COLUMN_MAP = {
     "transaction.id": "transaction_id",
     "transaction.op": "transaction_op",
     "user": "user",
+    "profile_id": "profile_id",
 }
 
 SESSIONS_FIELD_LIST = [
@@ -812,7 +810,7 @@ def bulk_snql_query(
     requests: List[Request],
     referrer: Optional[str] = None,
     use_cache: bool = False,
-) -> Mapping[str, Any]:
+) -> ResultSet:
     # XXX (evanh): This function does none of the extra processing that the
     # other functions do here. It does not add any automatic conditions, format
     # results, nothing. Use at your own risk.
@@ -1052,7 +1050,6 @@ def query(
     use_cache=False,
     **kwargs,
 ):
-
     aggregations = aggregations or [["count()", "", "aggregate"]]
     filter_keys = filter_keys or {}
     selected_columns = selected_columns or []
@@ -1192,7 +1189,7 @@ def resolve_condition(cond, column_resolver):
             return cond
 
         func_args = cond[index + 1]
-        for (i, arg) in enumerate(func_args):
+        for i, arg in enumerate(func_args):
             # Nested function
             try:
                 if isinstance(arg, (list, tuple)):
@@ -1276,7 +1273,7 @@ def aliased_query_params(
     derived_columns = []
     resolve_func = resolve_column(dataset)
     if selected_columns:
-        for (i, col) in enumerate(selected_columns):
+        for i, col in enumerate(selected_columns):
             if isinstance(col, (list, tuple)):
                 derived_columns.append(col[2])
             else:
@@ -1300,7 +1297,7 @@ def aliased_query_params(
     if orderby:
         # Don't mutate in case we have a default order passed.
         updated_order = []
-        for (i, order) in enumerate(orderby):
+        for i, order in enumerate(orderby):
             order_field = order.lstrip("-")
             if order_field not in derived_columns:
                 order_field = resolve_func(order_field)

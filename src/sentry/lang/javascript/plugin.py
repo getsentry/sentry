@@ -4,6 +4,7 @@ from sentry.utils.safe import get_path
 
 from .errorlocale import translate_exception
 from .errormapping import rewrite_exception
+from .utils import generate_module
 
 
 # TODO: We still need `preprocess_event` tasks and the remaining, non-symbolication specific
@@ -17,8 +18,6 @@ def preprocess_event(data):
 
 
 def generate_modules(data):
-    from sentry.lang.javascript.processor import generate_module
-
     for info in find_stacktraces_in_data(data):
         for frame in get_path(info.stacktrace, "frames", filter=True, default=()):
             platform = frame.get("platform") or data["platform"]

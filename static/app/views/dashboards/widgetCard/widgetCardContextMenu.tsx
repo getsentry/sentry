@@ -20,7 +20,11 @@ import {
   MEPConsumer,
   MEPState,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {getWidgetDiscoverUrl, getWidgetIssueUrl} from 'sentry/views/dashboards/utils';
+import {
+  getWidgetDDMUrl,
+  getWidgetDiscoverUrl,
+  getWidgetIssueUrl,
+} from 'sentry/views/dashboards/utils';
 
 import {Widget, WidgetType} from '../types';
 import {WidgetViewerContext} from '../widgetViewer/widgetViewerContext';
@@ -93,8 +97,6 @@ function WidgetCardContextMenu({
             {metricSettingContext => (
               <ContextWrapper>
                 {!organization.features.includes('performance-mep-bannerless-ui') &&
-                  (organization.features.includes('dashboards-mep') ||
-                    organization.features.includes('mep-rollout-flag')) &&
                   isMetricsData === false &&
                   metricSettingContext &&
                   metricSettingContext.metricSettingState !==
@@ -195,6 +197,16 @@ function WidgetCardContextMenu({
     });
   }
 
+  if (widget.widgetType === WidgetType.METRICS) {
+    const ddmLocation = getWidgetDDMUrl(widget, selection, organization);
+
+    menuOptions.push({
+      key: 'open-in-ddm',
+      label: t('Open in DDM'),
+      to: ddmLocation,
+    });
+  }
+
   if (organization.features.includes('dashboards-edit')) {
     menuOptions.push({
       key: 'duplicate-widget',
@@ -234,8 +246,6 @@ function WidgetCardContextMenu({
           {metricSettingContext => (
             <ContextWrapper>
               {!organization.features.includes('performance-mep-bannerless-ui') &&
-                (organization.features.includes('dashboards-mep') ||
-                  organization.features.includes('mep-rollout-flag')) &&
                 isMetricsData === false &&
                 metricSettingContext &&
                 metricSettingContext.metricSettingState !==

@@ -1,4 +1,4 @@
-from sentry.models import ServiceHook
+from sentry.models.servicehook import ServiceHook
 from sentry.services.hybrid_cloud.hook import RpcServiceHook
 
 

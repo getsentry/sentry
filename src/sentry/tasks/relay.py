@@ -38,7 +38,7 @@ def build_project_config(public_key=None, **kwargs):
     sentry_sdk.set_tag("public_key", public_key)
 
     try:
-        from sentry.models import ProjectKey
+        from sentry.models.projectkey import ProjectKey
 
         try:
             key = ProjectKey.objects.get(public_key=public_key)
@@ -111,7 +111,8 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
     :returns: A dict mapping all affected public keys to their config.  The dict will not
        contain keys which should be retained in the cache unchanged.
     """
-    from sentry.models import Project, ProjectKey
+    from sentry.models.project import Project
+    from sentry.models.projectkey import ProjectKey
 
     validate_args(organization_id, project_id, public_key)
     configs = {}
@@ -183,7 +184,7 @@ def compute_projectkey_config(key):
 
     :returns: A dict with the project config.
     """
-    from sentry.models import ProjectKeyStatus
+    from sentry.models.projectkey import ProjectKeyStatus
     from sentry.relay.config import get_project_config
 
     if key.status != ProjectKeyStatus.ACTIVE:
@@ -251,6 +252,7 @@ def schedule_invalidate_project_config(
     project_id=None,
     public_key=None,
     countdown=5,
+    transaction_db=None,
 ):
     """Schedules the :func:`invalidate_project_config` task.
 
@@ -259,11 +261,23 @@ def schedule_invalidate_project_config(
 
     If an invalidation task is already scheduled, this task will not schedule another one.
 
-    If this function is called from within a database transaction, scheduling
-    the project config is delayed until that ongoing transaction is finished, to
-    ensure the invalidation builds the most up-to-date project config.  If no
-    database transaction is ongoing, the invalidation task is executed
-    immediately.
+    If this function is called from within a database transaction, the caller must
+    supply the database associated with the transaction via the ``transaction_db``
+    parameter. This delays the project config until that ongoing transaction is
+    committed to ensure the invalidation builds the most up-to-date project config.
+
+    ``transaction_db`` should match the wrapping transaction's `using` parameter,
+     which is already required to open a transaction:
+
+    >>> from django.db import router, transaction
+    >>> using_db = router.db_for_write(<ModelClass>)
+    >>> with transaction.atomic(using=using_db):
+    >>>     schedule_invalidate_project_config(
+    >>>         transaction_db=using_db
+    >>>     )
+
+    If there is no active database transaction open for the provided ``transaction_db``,
+    the project config task is executed immediately.
 
     :param trigger: The reason for the invalidation.  This is used to tag metrics.
     :param organization_id: Invalidates all project keys for all projects in an organization.
@@ -272,12 +286,20 @@ def schedule_invalidate_project_config(
     :param countdown: The time to delay running this task in seconds.  Normally there is a
         slight delay to increase the likelihood of deduplicating invalidations but you can
         tweak this, like e.g. the :func:`invalidate_all` task does.
+    :param transaction_db: The database currently being used by an active transaction.
+        This directs the on_commit handler for the task to the correct transaction.
     """
-    from sentry.models import Project
+
+    from sentry.models.project import Project
+
+    if transaction_db is None:
+        transaction_db = router.db_for_write(Project)
 
     with sentry_sdk.start_span(
         op="relay.projectconfig_cache.invalidation.schedule_after_db_transaction",
-    ):
+    ) as span:
+        span.set_tag("transaction_db", transaction_db)
+
         # XXX(iker): updating a lot of organizations or projects in a single
         # database transaction causes the `on_commit` list to grow considerably
         # and may cause memory leaks.
@@ -289,7 +311,7 @@ def schedule_invalidate_project_config(
                 public_key=public_key,
                 countdown=countdown,
             ),
-            router.db_for_write(Project),
+            using=transaction_db,
         )
 
 
@@ -302,7 +324,8 @@ def _schedule_invalidate_project_config(
     countdown=5,
 ):
     """For param docs, see :func:`schedule_invalidate_project_config`."""
-    from sentry.models import Project, ProjectKey
+    from sentry.models.project import Project
+    from sentry.models.projectkey import ProjectKey
 
     validate_args(organization_id, project_id, public_key)
 

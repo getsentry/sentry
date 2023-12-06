@@ -26,22 +26,21 @@ from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 if TYPE_CHECKING:
     from sentry.api.event_search import SearchFilter
 
-from sentry.models import (
-    KEYWORD_MAP,
-    Environment,
-    EventUser,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Project,
-    Release,
-    Team,
-    User,
-    follows_semver_versioning_scheme,
-)
+from sentry import features
+from sentry.models.environment import Environment
+from sentry.models.eventuser import KEYWORD_MAP
+from sentry.models.eventuser import EventUser as EventUser_model
 from sentry.models.group import STATUS_QUERY_CHOICES
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
+from sentry.models.release import Release, follows_semver_versioning_scheme
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.search.base import ANY
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES
+from sentry.utils.eventuser import EventUser
 
 
 class InvalidQuery(Exception):
@@ -51,14 +50,18 @@ class InvalidQuery(Exception):
 def get_user_tag(projects: Sequence[Project], key: str, value: str) -> str:
     # TODO(dcramer): do something with case of multiple matches
     try:
-        lookup = EventUser.attr_from_keyword(key)
-        euser = EventUser.objects.filter(
-            project_id__in=[p.id for p in projects], **{lookup: value}
-        )[0]
+        if features.has("organizations:eventuser-from-snuba", projects[0].organization):
+            euser = EventUser.for_projects(projects, {key: [value]}, result_limit=1)[0]
+        else:
+            lookup = EventUser_model.attr_from_keyword(key)
+            euser = EventUser_model.objects.filter(
+                project_id__in=[p.id for p in projects], **{lookup: value}
+            )[0]
     except (KeyError, IndexError):
         return f"{key}:{value}"
     except DataError:
         raise InvalidQuery(f"malformed '{key}:' query '{value}'.")
+
     return euser.tag_value
 
 

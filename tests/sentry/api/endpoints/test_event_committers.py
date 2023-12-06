@@ -9,11 +9,14 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
+
+pytestmark = [requires_snuba]
 
 
 # TODO(dcramer): These tests rely too much on implicit fixtures
-@region_silo_test(stable=True)
+@region_silo_test
 class EventCommittersTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)

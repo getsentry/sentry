@@ -1,3 +1,6 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
+import {EventAttachment} from 'sentry-fixture/eventAttachment';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -18,7 +21,7 @@ describe('EventAttachments', function () {
       attachmentsRole: 'member',
     },
   } as any);
-  const event = TestStubs.Event({metadata: {stripped_crash: false}});
+  const event = EventFixture({metadata: {stripped_crash: false}});
 
   const props = {
     projectSlug: project.slug,
@@ -92,7 +95,7 @@ describe('EventAttachments', function () {
           attachmentsRole: 'admin',
         },
       } as any);
-    const attachment = TestStubs.EventAttachment({
+    const attachment = EventAttachment({
       name: 'some_file.txt',
       headers: {
         'Content-Type': 'text/plain',
@@ -124,7 +127,7 @@ describe('EventAttachments', function () {
   });
 
   it('can open attachment previews', async function () {
-    const attachment = TestStubs.EventAttachment({
+    const attachment = EventAttachment({
       name: 'some_file.txt',
       headers: {
         'Content-Type': 'text/plain',
@@ -152,11 +155,11 @@ describe('EventAttachments', function () {
   });
 
   it('can delete attachments', async function () {
-    const attachment1 = TestStubs.EventAttachment({
+    const attachment1 = EventAttachment({
       id: '1',
       name: 'pic_1.png',
     });
-    const attachment2 = TestStubs.EventAttachment({
+    const attachment2 = EventAttachment({
       id: '2',
       name: 'pic_2.png',
     });

@@ -9,11 +9,11 @@ from zipfile import ZipFile
 import pytest
 
 from sentry import options
-from sentry.models import ReleaseFile
 from sentry.models.distribution import Distribution
 from sentry.models.files.file import File
 from sentry.models.releasefile import (
     ARTIFACT_INDEX_FILENAME,
+    ReleaseFile,
     _ArtifactIndexGuard,
     delete_from_artifact_index,
     read_artifact_index,
@@ -24,7 +24,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ReleaseFileTestCase(TestCase):
     def test_normalize(self):
         n = ReleaseFile.normalize

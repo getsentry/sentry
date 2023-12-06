@@ -1,5 +1,5 @@
 from sentry.api.serializers import Serializer, register
-from sentry.models import RelayUsage
+from sentry.models.relay import RelayUsage
 
 
 @register(RelayUsage)

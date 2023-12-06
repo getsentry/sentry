@@ -2,15 +2,20 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tagstore
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import Environment
+from sentry.models.environment import Environment
 
 
 @region_silo_endpoint
 class GroupTagKeyDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, group, key) -> Response:
         """
         Retrieve Tag Details

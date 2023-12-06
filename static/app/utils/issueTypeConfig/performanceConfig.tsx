@@ -5,6 +5,7 @@ import {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 const performanceConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
     actions: {
+      archiveUntilOccurrence: {enabled: true},
       delete: {
         enabled: false,
         disabledReason: t('Not yet supported for performance issues'),
@@ -18,11 +19,12 @@ const performanceConfig: IssueCategoryConfigMapping = {
         disabledReason: t('Not yet supported for performance issues'),
       },
       ignore: {enabled: true},
+      resolveInRelease: {enabled: true},
       share: {enabled: true},
     },
     attachments: {enabled: false},
     mergedIssues: {enabled: false},
-    replays: {enabled: false},
+    replays: {enabled: true},
     similarIssues: {enabled: false},
     userFeedback: {enabled: false},
     // Performance issues render a custom SpanEvidence component
@@ -46,7 +48,7 @@ const performanceConfig: IssueCategoryConfigMapping = {
   [IssueType.PERFORMANCE_CONSECUTIVE_HTTP]: {
     resources: {
       description: t(
-        'A Consecutive HTTP issue occurs when at least 3 consecutive HTTP calls occur sequentially, each taking over 1000ms of time.'
+        'A Consecutive HTTP issue occurs when at least 2000ms of time can be saved by parallelizing at least 3 consecutive HTTP calls occur sequentially.'
       ),
       links: [
         {
@@ -153,7 +155,7 @@ const performanceConfig: IssueCategoryConfigMapping = {
   [IssueType.PERFORMANCE_SLOW_DB_QUERY]: {
     resources: {
       description: t(
-        'Slow DB Queries are SELECT query spans that are consistently taking longer than 1s. A quick method to understand why this may be the case is running an EXPLAIN command on the query itself. To learn more about how to fix slow DB queries, check out these resources:'
+        'Slow DB Queries are SELECT query spans that are consistently taking longer than 500ms. A quick method to understand why this may be the case is running an EXPLAIN command on the query itself. To learn more about how to fix slow DB queries, check out these resources:'
       ),
       links: [
         {
@@ -167,7 +169,7 @@ const performanceConfig: IssueCategoryConfigMapping = {
   [IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD]: {
     resources: {
       description: t(
-        'A Large HTTP Payload issue occurs when an http payload size consistently exceeds a threshold of 500KB'
+        'A Large HTTP Payload issue occurs when an http payload size consistently exceeds a threshold of 300KB'
       ),
       links: [
         {
@@ -181,11 +183,49 @@ const performanceConfig: IssueCategoryConfigMapping = {
   [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: {
     resources: {
       description: t(
-        'Uncompressed assets are asset spans that take over 500ms and are larger than 512kB which can usually be made faster with compression. Check that your server or CDN serving your assets is accepting the content encoding header from the browser and is returning them compressed.'
+        'Uncompressed assets are asset spans that take over 300ms and are larger than 512kB which can usually be made faster with compression. Check that your server or CDN serving your assets is accepting the content encoding header from the browser and is returning them compressed.'
       ),
       links: [],
       linksByPlatform: {},
     },
+  },
+  [IssueType.PERFORMANCE_DURATION_REGRESSION]: {
+    discover: {enabled: false},
+    regression: {enabled: true},
+    replays: {enabled: false},
+    stats: {enabled: false},
+    tags: {enabled: false},
+  },
+  [IssueType.PERFORMANCE_ENDPOINT_REGRESSION]: {
+    actions: {
+      archiveUntilOccurrence: {
+        enabled: false,
+        disabledReason: t('Not yet supported for regression issues'),
+      },
+      delete: {
+        enabled: false,
+        disabledReason: t('Not yet supported for performance issues'),
+      },
+      deleteAndDiscard: {
+        enabled: false,
+        disabledReason: t('Not yet supported for performance issues'),
+      },
+      merge: {
+        enabled: false,
+        disabledReason: t('Not yet supported for performance issues'),
+      },
+      ignore: {enabled: true},
+      resolveInRelease: {
+        enabled: false,
+        disabledReason: t('Not yet supported for regression issues'),
+      },
+      share: {enabled: true},
+    },
+    discover: {enabled: false},
+    regression: {enabled: true},
+    replays: {enabled: false},
+    stats: {enabled: false},
+    tags: {enabled: false},
   },
   [IssueType.PROFILE_FILE_IO_MAIN_THREAD]: {
     resources: {
@@ -242,6 +282,74 @@ const performanceConfig: IssueCategoryConfigMapping = {
       ],
       linksByPlatform: {},
     },
+  },
+  [IssueType.PROFILE_FRAME_DROP]: {
+    resources: {
+      description: t(
+        'The main (or UI) thread in a mobile app is responsible for handling all user interaction and needs to be able to respond to gestures and taps in real time. If a long-running operation blocks the main thread, the app becomes unresponsive, impacting the quality of the user experience. To learn more, read our documentation:'
+      ),
+      links: [
+        {
+          text: t('Frame Drop'),
+          link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/frame-drop/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [IssueType.PROFILE_FRAME_DROP_EXPERIMENTAL]: {
+    resources: {
+      description: t(
+        'The main (or UI) thread in a mobile app is responsible for handling all user interaction and needs to be able to respond to gestures and taps in real time. If a long-running operation blocks the main thread, the app becomes unresponsive, impacting the quality of the user experience. To learn more, read our documentation:'
+      ),
+      links: [
+        {
+          text: t('Frame Drop'),
+          link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/frame-drop/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL]: {
+    discover: {enabled: false},
+    events: {enabled: false},
+    regression: {enabled: true},
+    replays: {enabled: false},
+    stats: {enabled: false},
+    tags: {enabled: false},
+  },
+  [IssueType.PROFILE_FUNCTION_REGRESSION]: {
+    actions: {
+      archiveUntilOccurrence: {
+        enabled: false,
+        disabledReason: t('Not yet supported for regression issues'),
+      },
+      delete: {
+        enabled: false,
+        disabledReason: t('Not yet supported for performance issues'),
+      },
+      deleteAndDiscard: {
+        enabled: false,
+        disabledReason: t('Not yet supported for performance issues'),
+      },
+      merge: {
+        enabled: false,
+        disabledReason: t('Not yet supported for performance issues'),
+      },
+      ignore: {enabled: true},
+      resolveInRelease: {
+        enabled: false,
+        disabledReason: t('Not yet supported for regression issues'),
+      },
+      share: {enabled: true},
+    },
+    discover: {enabled: false},
+    events: {enabled: false},
+    regression: {enabled: true},
+    replays: {enabled: false},
+    stats: {enabled: false},
+    tags: {enabled: false},
   },
 };
 

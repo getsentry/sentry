@@ -1,5 +1,6 @@
 from fnmatch import fnmatch
 
+import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.http import HttpResponse, HttpResponseRedirect
@@ -9,9 +10,7 @@ from rest_framework.request import Request
 
 from sentry import features, options
 from sentry.api.utils import customer_domain_path, generate_organization_url
-from sentry.models import Project
 from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.signals import first_event_pending
 from sentry.utils.http import is_using_customer_domain, query_string
 from sentry.web.frontend.base import BaseView, ControlSiloOrganizationView
 from sentry.web.helpers import render_to_response
@@ -47,6 +46,10 @@ class ReactMixin:
                 {"property": key, "content": value}
                 for key, value in self.meta_tags(request, **kwargs).items()
             ],
+            # Rendering the layout requires serializing the active organization.
+            # Since we already have it here from the OrganizationMixin, we can
+            # save some work and render it faster.
+            "org_context": getattr(self, "active_organization", None),
         }
 
         # Force a new CSRF token to be generated and set in user's
@@ -90,8 +93,16 @@ class ReactMixin:
                             return HttpResponseRedirect(redirect_url)
 
         response = render_to_response("sentry/base-react.html", context=context, request=request)
-        if "x-sentry-browser-profiling" in request.headers:
-            response["Document-Policy"] = "js-profiling"
+
+        try:
+            if "x-sentry-browser-profiling" in request.headers or (
+                getattr(request, "organization", None) is not None
+                and features.has("organizations:profiling-browser", request.organization)
+            ):
+                response["Document-Policy"] = "js-profiling"
+        except Exception as error:
+            sentry_sdk.capture_exception(error)
+
         return response
 
 
@@ -108,11 +119,6 @@ class ReactPageView(ControlSiloOrganizationView, ReactMixin):
         return super().handle_auth_required(request, *args, **kwargs)
 
     def handle(self, request: Request, organization, **kwargs) -> HttpResponse:
-        if "project_id" in kwargs and request.GET.get("onboarding"):
-            project = Project.objects.filter(
-                organization=organization, slug=kwargs["project_id"]
-            ).first()
-            first_event_pending.send(project=project, user=request.user, sender=self)
         request.organization = organization
         return self.handle_react(request)
 

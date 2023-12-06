@@ -1,3 +1,6 @@
+import {Organization} from 'sentry-fixture/organization';
+import {UserFeedback as UserFeedbackFixture} from 'sentry-fixture/userFeedback';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -25,7 +28,7 @@ describe('UserFeedback', function () {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/user-feedback/',
-      body: [TestStubs.UserFeedback()],
+      body: [UserFeedbackFixture()],
       headers: {Link: pageLinks},
     });
 
@@ -41,7 +44,7 @@ describe('UserFeedback', function () {
 
   it('renders', function () {
     const params = {
-      organization: TestStubs.Organization(),
+      organization: Organization(),
       params: {
         orgId: organization.slug,
       },
@@ -63,7 +66,7 @@ describe('UserFeedback', function () {
     ProjectsStore.loadInitialData([]);
 
     const params = {
-      organization: TestStubs.Organization(),
+      organization: Organization(),
       params: {
         orgId: organization.slug,
       },
@@ -83,7 +86,7 @@ describe('UserFeedback', function () {
     });
 
     const params = {
-      organization: TestStubs.Organization({
+      organization: Organization({
         projects: [TestStubs.Project({isMember: true})],
       }),
       params: {
@@ -104,7 +107,7 @@ describe('UserFeedback', function () {
 
     const params = {
       ...routeProps,
-      organization: TestStubs.Organization({
+      organization: Organization({
         projects: [TestStubs.Project({isMember: true})],
       }),
       location: {
@@ -124,7 +127,7 @@ describe('UserFeedback', function () {
 
   it('renders issue status filter', async function () {
     const params = {
-      organization: TestStubs.Organization({
+      organization: Organization({
         projects: [TestStubs.Project({isMember: true})],
       }),
       params: {
@@ -158,7 +161,7 @@ describe('UserFeedback', function () {
 
     const params = {
       ...routeProps,
-      organization: TestStubs.Organization({
+      organization: Organization({
         projects: [TestStubs.Project({isMember: true})],
       }),
       location: {

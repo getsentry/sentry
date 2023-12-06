@@ -1,0 +1,108 @@
+{
+  "post": {
+    "tags": ["Projects"],
+    "description": "Enables Spike Protection feature for some of the projects within the organization.",
+    "operationId": "Enable Spike Protection",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the projects belong to",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": {
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "description": "Django Rest Framework serializer for incoming Spike Protection API payloads",
+            "properties": {
+              "projects": {
+                "description": "Slugs of projects to enable Spike Protection for. Set to `$all` to enable Spike Protection for all the projects in the organization.",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": ["projects"]
+          }
+        }
+      },
+      "required": true
+    },
+    "responses": {
+      "201": {
+        "description": "Success"
+      },
+      "400": {
+        "description": "Bad Request"
+      },
+      "403": {
+        "description": "Forbidden"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:read", "project:write", "project:admin"]
+      }
+    ]
+  },
+  "delete": {
+    "tags": ["Projects"],
+    "description": "Disables Spike Protection feature for some of the projects within the organization.",
+    "operationId": "Disable Spike Protection",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the projects belong to",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": {
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "description": "Django Rest Framework serializer for incoming Spike Protection API payloads",
+            "properties": {
+              "projects": {
+                "description": "Slugs of projects to disable Spike Protection for. Set to `$all` to disable Spike Protection for all the projects in the organization.",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": ["projects"]
+          }
+        }
+      },
+      "required": true
+    },
+    "responses": {
+      "200": {
+        "description": "Success"
+      },
+      "400": {
+        "description": "Bad Request"
+      },
+      "403": {
+        "description": "Forbidden"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:read", "project:write", "project:admin"]
+      }
+    ]
+  }
+}

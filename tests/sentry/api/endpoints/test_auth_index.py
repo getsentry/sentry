@@ -4,15 +4,16 @@ from urllib.parse import urlencode
 
 from django.test import override_settings
 
-from sentry.models import Authenticator, AuthProvider
+from sentry.models.authenticator import Authenticator
 from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
 from sentry.testutils.cases import APITestCase, AuthProviderTestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.auth import SSO_EXPIRY_TIME, SsoSession
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class AuthDetailsEndpointTest(APITestCase):
     path = "/api/0/auth/"
 
@@ -28,7 +29,7 @@ class AuthDetailsEndpointTest(APITestCase):
         assert response.status_code == 400
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class AuthLoginEndpointTest(APITestCase):
     path = "/api/0/auth/"
 
@@ -50,7 +51,7 @@ class AuthLoginEndpointTest(APITestCase):
         assert response.status_code == 401
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class AuthVerifyEndpointTest(APITestCase):
     path = "/api/0/auth/"
 
@@ -160,7 +161,7 @@ class AuthVerifyEndpointTest(APITestCase):
         )
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
     path = "/api/0/auth/"
 
@@ -623,7 +624,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             assert self.client.session.get("_next") is None
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class AuthLogoutEndpointTest(APITestCase):
     path = "/api/0/auth/"
 

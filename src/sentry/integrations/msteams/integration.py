@@ -15,7 +15,7 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.pipeline import PipelineView
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 
@@ -72,7 +72,8 @@ metadata = IntegrationMetadata(
 
 
 class MsTeamsIntegration(IntegrationInstallation):
-    pass
+    def get_client(self) -> MsTeamsClient:
+        return MsTeamsClient(self.model)
 
 
 class MsTeamsIntegrationProvider(IntegrationProvider):

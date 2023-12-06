@@ -5,19 +5,21 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils import timezone
 
-from sentry.models import Environment, File
+from sentry.models.environment import Environment
+from sentry.models.files.file import File
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorType,
+    ScheduleType,
 )
 from sentry.testutils.cases import MonitorIngestTestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class MonitorIngestCheckinAttachmentEndpointTest(MonitorIngestTestCase):
     endpoint = "sentry-api-0-organization-monitor-check-in-attachment"
 
@@ -29,7 +31,12 @@ class MonitorIngestCheckinAttachmentEndpointTest(MonitorIngestTestCase):
             organization_id=self.organization.id,
             project_id=self.project.id,
             type=MonitorType.CRON_JOB,
-            config={"schedule": "* * * * *"},
+            config={
+                "schedule_type": ScheduleType.CRONTAB,
+                "schedule": "* * * * *",
+                "max_runtime": None,
+                "checkin_margin": None,
+            },
             date_added=timezone.now() - timedelta(minutes=1),
         )
 

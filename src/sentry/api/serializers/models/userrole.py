@@ -1,5 +1,5 @@
 from sentry.api.serializers import Serializer, register
-from sentry.models import UserRole
+from sentry.models.userrole import UserRole
 
 
 @register(UserRole)

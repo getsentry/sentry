@@ -17,7 +17,6 @@ from typing import (
 )
 
 import sentry_sdk
-from django.contrib.auth.models import AnonymousUser
 from django.db import connection
 from django.db.models import prefetch_related_objects
 from django.db.models.aggregates import Count
@@ -39,29 +38,18 @@ from sentry.features.base import ProjectFeature
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.lang.native.sources import parse_sources, redact_source_secrets
 from sentry.lang.native.utils import convert_crashreport_count
-from sentry.models import (
-    EnvironmentProject,
-    OrganizationMemberTeam,
-    Project,
-    ProjectAvatar,
-    ProjectBookmark,
-    ProjectOption,
-    ProjectPlatform,
-    Release,
-    Team,
-    User,
-    UserReport,
-)
-from sentry.models.options.project_option import OPTION_KEYS
+from sentry.models.environment import EnvironmentProject
+from sentry.models.options.project_option import OPTION_KEYS, ProjectOption
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
+from sentry.models.projectbookmark import ProjectBookmark
+from sentry.models.projectplatform import ProjectPlatform
 from sentry.models.projectteam import ProjectTeam
-from sentry.notifications.helpers import (
-    get_most_specific_notification_setting_value,
-    transform_to_notification_settings_by_scope,
-)
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.models.release import Release
+from sentry.models.team import Team
+from sentry.models.user import User
+from sentry.models.userreport import UserReport
 from sentry.roles import organization_roles
-from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.snuba import discover
 from sentry.tasks.symbolication import should_demote_symbolication
 from sentry.utils import json
@@ -170,7 +158,7 @@ def get_features_for_projects(
     ]
 
     batch_checked = set()
-    for (organization, projects) in projects_by_org.items():
+    for organization, projects in projects_by_org.items():
         batch_features = features.batch_has(
             project_features, actor=user, projects=projects, organization=organization
         )
@@ -190,9 +178,9 @@ def get_features_for_projects(
         if feature_name in batch_checked:
             continue
         abbreviated_feature = feature_name[len(_PROJECT_SCOPE_PREFIX) :]
-        for (organization, projects) in projects_by_org.items():
+        for organization, projects in projects_by_org.items():
             result = features.has_for_batch(feature_name, organization, projects, user)
-            for (project, flag) in result.items():
+            for project, flag in result.items():
                 if flag:
                     features_by_project[project].append(abbreviated_feature)
 
@@ -214,7 +202,12 @@ def format_options(attrs: dict[str, Any]) -> dict[str, Any]:
         ),
         "sentry:reprocessing_active": bool(options.get("sentry:reprocessing_active", False)),
         "filters:blacklisted_ips": "\n".join(options.get("sentry:blacklisted_ips", [])),
-        "filters:react-hydration-errors": bool(options.get("filters:react-hydration-errors", True)),
+        # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
+        # implementation. In order to bring it back to a string, we need to repair on read stored options. This is
+        # why the value true is determined by either "1" or True.
+        "filters:react-hydration-errors": options.get("filters:react-hydration-errors", "1")
+        in ("1", True),
+        "filters:chunk-load-error": options.get("filters:chunk-load-error", "1") == "1",
         f"filters:{FilterTypes.RELEASES}": "\n".join(
             options.get(f"sentry:{FilterTypes.RELEASES}", [])
         ),
@@ -222,6 +215,7 @@ def format_options(attrs: dict[str, Any]) -> dict[str, Any]:
             options.get(f"sentry:{FilterTypes.ERROR_MESSAGES}", [])
         ),
         "feedback:branding": options.get("feedback:branding", "1") == "1",
+        "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
     }
 
 
@@ -273,9 +267,15 @@ class ProjectSerializer(Serializer):
         expand: Iterable[str] | None = None,
         expand_context: Mapping[str, Any] | None = None,
         collapse: Iterable[str] | None = None,
+        dataset: Any | None = None,
     ) -> None:
         if stats_period is not None:
             assert stats_period in STATS_PERIOD_CHOICES
+
+        if dataset is None:
+            self.dataset = discover
+        else:
+            self.dataset = dataset
 
         self.environment_id = environment_id
         self.stats_period = stats_period
@@ -310,17 +310,8 @@ class ProjectSerializer(Serializer):
                         user_id=user.id, project_id__in=project_ids
                     ).values_list("project_id", flat=True)
                 )
-
-                notification_settings_by_scope = transform_to_notification_settings_by_scope(
-                    notifications_service.get_settings_for_user_by_projects(
-                        type=NotificationSettingTypes.ISSUE_ALERTS,
-                        user_id=user.id,
-                        parent_ids=project_ids,
-                    )
-                )
             else:
                 bookmarks = set()
-                notification_settings_by_scope = {}
 
         with measure_span("stats"):
             stats = None
@@ -340,7 +331,6 @@ class ProjectSerializer(Serializer):
             if self._expand("options"):
                 options = self.get_options(item_list)
 
-        avatars = {a.project_id: a for a in ProjectAvatar.objects.filter(project__in=item_list)}
         project_ids = [i.id for i in item_list]
         platforms = ProjectPlatform.objects.filter(project_id__in=project_ids).values_list(
             "project_id", "platform"
@@ -358,24 +348,10 @@ class ProjectSerializer(Serializer):
                 serialized["features"] = features_by_project[project]
 
         with measure_span("other"):
-            # Avoid duplicate queries for actors.
-            if isinstance(user, AnonymousUser):
-                recipient_actor = user
-            else:
-                recipient_actor = RpcActor.from_object(user)
             for project, serialized in result.items():
-                value = get_most_specific_notification_setting_value(
-                    notification_settings_by_scope,
-                    recipient=recipient_actor,
-                    parent_id=project.id,
-                    type=NotificationSettingTypes.ISSUE_ALERTS,
-                )
-                is_subscribed = value == NotificationSettingOptionValues.ALWAYS
                 serialized.update(
                     {
                         "is_bookmarked": project.id in bookmarks,
-                        "is_subscribed": is_subscribed,
-                        "avatar": avatars.get(project.id),
                         "platforms": platforms_by_project[project.id],
                     }
                 )
@@ -404,7 +380,7 @@ class ProjectSerializer(Serializer):
 
         # Generate a query result to skip the top_events.find query
         top_events = {"data": [{"project_id": p} for p in project_ids]}
-        stats = discover.top_events_timeseries(
+        stats = self.dataset.top_events_timeseries(
             timeseries_columns=["count()"],
             selected_columns=["project_id"],
             user_query=query,
@@ -491,14 +467,6 @@ class ProjectSerializer(Serializer):
     ) -> ProjectSerializerResponse:
         status_label = STATUS_LABELS.get(obj.status, "unknown")
 
-        if attrs.get("avatar"):
-            avatar = {
-                "avatarType": attrs["avatar"].get_avatar_type_display(),
-                "avatarUuid": attrs["avatar"].ident if attrs["avatar"].file_id else None,
-            }
-        else:
-            avatar = {"avatarType": "letter_avatar", "avatarUuid": None}
-
         context: ProjectSerializerResponse = {
             "id": str(obj.id),
             "slug": obj.slug,
@@ -516,10 +484,13 @@ class ProjectSerializer(Serializer):
             "hasMonitors": bool(obj.flags.has_cron_monitors),
             "hasProfiles": bool(obj.flags.has_profiles),
             "hasReplays": bool(obj.flags.has_replays),
+            "hasFeedbacks": bool(obj.flags.has_feedbacks),
             "hasSessions": bool(obj.flags.has_sessions),
             "isInternal": obj.is_internal_project(),
             "isPublic": obj.public,
-            "avatar": avatar,
+            # Projects don't have avatar uploads, but we need to maintain the payload shape for
+            # compatibility.
+            "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
             "color": obj.color,
             "status": status_label,
         }
@@ -744,6 +715,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             hasSessions=bool(obj.flags.has_sessions),
             hasProfiles=bool(obj.flags.has_profiles),
             hasReplays=bool(obj.flags.has_replays),
+            hasFeedbacks=bool(obj.flags.has_feedbacks),
             hasMonitors=bool(obj.flags.has_cron_monitors),
             hasMinifiedStackTrace=bool(obj.flags.has_minified_stack_trace),
             platform=obj.platform,
@@ -946,11 +918,10 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             )
 
         data = super().serialize(obj, attrs, user)
-        attrs["options"].update(format_options(attrs))
         data.update(
             {
                 "latestRelease": attrs["latest_release"],
-                "options": attrs["options"],
+                "options": format_options(attrs),
                 "digestsMinDelay": attrs["options"].get(
                     "digests:mail:minimum_delay", digests.minimum_delay
                 ),

@@ -4,10 +4,13 @@ from rest_framework import serializers
 from rest_framework.request import Request
 
 from sentry import analytics
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
-from sentry.models import Organization, User
+from sentry.models.organization import Organization
+from sentry.models.user import User
 from sentry.utils.email import MessageBuilder
 from sentry.utils.strings import oxfordize_list
 
@@ -40,7 +43,10 @@ def get_request_builder_args(user: User, organization: Organization, platforms: 
 
 @region_silo_endpoint
 class OrganizationOnboardingContinuationEmail(OrganizationEndpoint):
-
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
     # let anyone in the org use this endpoint
     permission_classes = ()
 

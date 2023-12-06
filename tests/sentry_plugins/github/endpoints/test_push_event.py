@@ -1,13 +1,16 @@
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from sentry.models import Commit, CommitAuthor, OrganizationOption, Repository
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry_plugins.github.testutils import PUSH_EVENT_EXAMPLE
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class PushEventWebhookTest(APITestCase):
     def test_simple(self):
         project = self.project  # force creation

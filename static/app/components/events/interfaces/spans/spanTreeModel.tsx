@@ -2,7 +2,7 @@ import {action, computed, makeObservable, observable} from 'mobx';
 
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {EventTransaction} from 'sentry/types/event';
+import {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
 
 import {ActiveOperationFilter} from './filter';
 import {
@@ -145,7 +145,7 @@ class SpanTreeModel {
   };
 
   generateSpanGap(
-    event: Readonly<EventTransaction>,
+    event: Readonly<EventTransaction | AggregateEventTransaction>,
     previousSiblingEndTimestamp: number | undefined,
     treeDepth: number,
     continuingTreeDepths: Array<TreeDepthType>
@@ -189,7 +189,7 @@ class SpanTreeModel {
     addTraceBounds: (bounds: TraceBound) => void;
     continuingTreeDepths: Array<TreeDepthType>;
     directParent: SpanTreeModel | null;
-    event: Readonly<EventTransaction>;
+    event: Readonly<EventTransaction | AggregateEventTransaction>;
     filterSpans: FilterSpans | undefined;
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
     hiddenSpanSubTrees: Set<string>;

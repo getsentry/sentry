@@ -16,6 +16,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ORG_ROLES} from 'sentry/constants';
 import {IconAdd, IconCheckmark, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
+import SentryTypes from 'sentry/sentryTypes';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -40,18 +41,24 @@ interface State extends AsyncComponentState {
 
 const DEFAULT_ROLE = 'member';
 
-const InviteModalHook = HookOrDefault({
+export const InviteModalHook = HookOrDefault({
   hookName: 'member-invite-modal:customization',
   defaultComponent: ({onSendInvites, children}) =>
     children({sendInvites: onSendInvites, canSend: true}),
 });
 
-type InviteModalRenderFunc = React.ComponentProps<typeof InviteModalHook>['children'];
+export type InviteModalRenderFunc = React.ComponentProps<
+  typeof InviteModalHook
+>['children'];
 
 class InviteMembersModal extends DeprecatedAsyncComponent<
   InviteMembersModalProps,
   State
 > {
+  static childContextTypes = {
+    organization: SentryTypes.Organization,
+  };
+
   get inviteTemplate(): InviteRow {
     return {
       emails: new Set(),
@@ -64,6 +71,14 @@ class InviteMembersModal extends DeprecatedAsyncComponent<
    * Used for analytics tracking of the modals usage.
    */
   sessionId = '';
+
+  getChildContext() {
+    // Expose organization via context to descendants
+    // e.g. TeamSelector relies on it being present
+    return {
+      organization: this.props.organization,
+    };
+  }
 
   componentDidMount() {
     super.componentDidMount();
@@ -348,6 +363,7 @@ class InviteMembersModal extends DeprecatedAsyncComponent<
           <div>{t('Email addresses')}</div>
           <div>{t('Role')}</div>
           <div>{t('Add to team')}</div>
+          <div />
         </InviteeHeadings>
 
         <Rows>
@@ -459,7 +475,7 @@ const Subtext = styled('p')`
 const inviteRowGrid = css`
   display: grid;
   gap: ${space(1.5)};
-  grid-template-columns: 3fr 180px 2fr max-content;
+  grid-template-columns: 3fr 180px 2fr 0.5fr;
   align-items: start;
 `;
 
@@ -495,7 +511,7 @@ const FooterContent = styled('div')`
   flex: 1;
 `;
 
-const StatusMessage = styled('div')<{status?: 'success' | 'error'}>`
+export const StatusMessage = styled('div')<{status?: 'success' | 'error'}>`
   display: flex;
   gap: ${space(1)};
   align-items: center;

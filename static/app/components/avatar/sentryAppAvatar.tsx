@@ -25,8 +25,7 @@ function SentryAppAvatar({isColor = true, sentryApp, isDefault, ...props}: Props
     <BaseAvatar
       {...props}
       type="upload"
-      uploadPath="sentry-app-avatar"
-      uploadId={avatarDetails?.avatarUuid}
+      uploadUrl={avatarDetails?.avatarUrl}
       title={sentryApp?.name}
       backupAvatar={defaultSentryAppAvatar}
     />

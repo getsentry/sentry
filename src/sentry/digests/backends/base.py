@@ -6,7 +6,7 @@ from sentry.utils.services import Service
 
 if TYPE_CHECKING:
     from sentry.digests import Record, ScheduleEntry
-    from sentry.models import Project
+    from sentry.models.project import Project
 
 logger = logging.getLogger("sentry.digests")
 

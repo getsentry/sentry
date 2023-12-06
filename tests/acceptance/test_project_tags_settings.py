@@ -9,7 +9,7 @@ event_time = before_now(days=3).replace(tzinfo=timezone.utc)
 current_time = datetime.utcnow().replace(tzinfo=timezone.utc)
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class ProjectTagsSettingsTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -37,7 +37,6 @@ class ProjectTagsSettingsTest(AcceptanceTestCase, SnubaTestCase):
 
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        self.browser.snapshot("project settings - tags")
 
         self.browser.wait_until_test_id("tag-row")
         self.browser.click('[data-test-id="tag-row"] [data-test-id="delete"]')
@@ -45,4 +44,3 @@ class ProjectTagsSettingsTest(AcceptanceTestCase, SnubaTestCase):
 
         self.browser.click("[role='dialog'] [data-test-id='confirm-button']")
         self.browser.wait_until_not('[data-test-id="tag-row"]')
-        self.browser.snapshot("project settings - tags - after remove")

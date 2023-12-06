@@ -18,7 +18,7 @@ from sentry.tasks.deletion.scheduled import MAX_RETRIES, logger
 @track_group_async_operation
 def delete_groups(object_ids, transaction_id=None, eventstream_state=None, **kwargs):
     from sentry import deletions, eventstream
-    from sentry.models import Group
+    from sentry.models.group import Group
 
     logger.info(
         "delete_groups.started",

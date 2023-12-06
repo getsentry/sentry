@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Any, Callable, Mapping, NamedTuple, Optional, Sequence
+from typing import Any, Callable, Mapping, MutableMapping, NamedTuple, Optional, Sequence
 
 import sentry_sdk
 
-from sentry.models import Project, Release
+from sentry.models.project import Project
+from sentry.models.release import Release
 from sentry.stacktraces.functions import set_in_app, trim_function_name
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
@@ -261,18 +262,6 @@ def _get_frames_metadata(frames: Sequence[dict[str, Any]], fallback_platform: st
     return {frame.get("platform", fallback_platform) for frame in frames}
 
 
-def _has_system_frames(frames):
-    """
-    Determines whether there are any frames in the stacktrace with in_app=false.
-    """
-
-    system_frames = 0
-    for frame in frames:
-        if not frame.get("in_app"):
-            system_frames += 1
-    return bool(system_frames) and len(frames) != system_frames
-
-
 def _normalize_in_app(stacktrace: Sequence[dict[str, str]]) -> str:
     """
     Ensures consistent values of in_app across a stacktrace. Returns a classification of the
@@ -300,7 +289,9 @@ def _normalize_in_app(stacktrace: Sequence[dict[str, str]]) -> str:
         return "system-only"
 
 
-def normalize_stacktraces_for_grouping(data, grouping_config=None) -> None:
+def normalize_stacktraces_for_grouping(
+    data: MutableMapping[str, Any], grouping_config=None
+) -> None:
     """
     Applies grouping enhancement rules and ensure in_app is set on all frames.
     This also trims functions if necessary.
@@ -336,9 +327,10 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None) -> None:
     # If a grouping config is available, run grouping enhancers
     if grouping_config is not None:
         with sentry_sdk.start_span(op=op, description="apply_modifications_to_frame"):
-            for frames, exception_data in zip(stacktrace_frames, stacktrace_containers):
+            for frames, stacktrace_container in zip(stacktrace_frames, stacktrace_containers):
+                # This call has a caching mechanism when the same stacktrace and rules are used
                 grouping_config.enhancements.apply_modifications_to_frame(
-                    frames, platform, exception_data
+                    frames, platform, stacktrace_container, extra_fingerprint=grouping_config.id
                 )
 
     # normalize `in_app` values, noting and storing the event's mix of in-app and system frames, so

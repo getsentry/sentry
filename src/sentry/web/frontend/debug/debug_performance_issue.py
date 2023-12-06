@@ -1,7 +1,8 @@
 from django.utils.safestring import mark_safe
 from django.views.generic import View
 
-from sentry.models import Project, Rule
+from sentry.models.project import Project
+from sentry.models.rule import Rule
 from sentry.notifications.utils import (
     get_interface_list,
     get_performance_issue_alert_subtitle,

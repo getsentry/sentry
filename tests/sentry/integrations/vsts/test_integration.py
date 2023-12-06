@@ -9,16 +9,14 @@ import responses
 
 from fixtures.vsts import CREATE_SUBSCRIPTION, VstsIntegrationTestCase
 from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider
-from sentry.models import (
-    Identity,
-    Integration,
-    IntegrationExternalProject,
-    OrganizationIntegration,
-    Repository,
-)
+from sentry.models.identity import Identity
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.integration_external_project import IntegrationExternalProject
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
 from sentry.silo import SiloMode
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
 
 FULL_SCOPES = ["vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
 LIMITED_SCOPES = ["vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
@@ -27,12 +25,6 @@ LIMITED_SCOPES = ["vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
 @control_silo_test
 class VstsIntegrationProviderTest(VstsIntegrationTestCase):
     # Test data setup in ``VstsIntegrationTestCase``
-
-    def setUp(self):
-        super().setUp()
-
-    def tearDown(self):
-        super().tearDown()
 
     def test_basic_flow(self):
         self.assert_installation()
@@ -151,8 +143,97 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         subscription = data["metadata"]["subscription"]
         assert subscription["id"] is not None and subscription["secret"] is not None
 
+    @responses.activate
+    def test_source_url_matches(self):
+        self.assert_installation()
+        integration = Integration.objects.get(provider="vsts")
+        installation = integration.get_installation(
+            integration.organizationintegration_set.first().organization_id
+        )
 
-@control_silo_test(stable=True)
+        test_cases = [
+            (
+                "https://MyVSTSAccount.visualstudio.com/sentry-backend-monitoring/_git/sentry-backend-monitoring?path=%2Fmyapp%2Fviews.py&version=GBmaster&_a=contents",
+                True,
+            ),
+            (
+                "https://MyVSTSAccount.visualstudio.com/DefaultCollection/sentry-backend-monitoring/_git/sentry-backend-monitoring?path=%2Fmyapp%2Fviews.py&version=GBmaster&_a=contents",
+                True,
+            ),
+            (
+                "https://MyVSTSAccount.visualstudio.com/sentry-backend-monitoring/_git/sentry-backend-monitoring?path=%2Fmyapp%2Fviews.py&version=GBmaster&_a=contents",
+                True,
+            ),
+            (
+                "https://MyVSTSAccount.notvisualstudio.com/sentry-backend-monitoring/_git/sentry-backend-monitoring?path=%2Fmyapp%2Fviews.py&version=GBmaster&_a=contents",
+                False,
+            ),
+            (
+                "https://MyVSTSAccount.notvisualstudio.com/DefaultCollection/sentry-backend-monitoring/_git/sentry-backend-monitoring?path=%2Fmyapp%2Fviews.py&version=GBmaster&_a=contents",
+                False,
+            ),
+            ("https://jianyuan.io", False),
+        ]
+        for source_url, matches in test_cases:
+            assert installation.source_url_matches(source_url) == matches
+
+    @responses.activate
+    def test_extract_branch_from_source_url(self):
+        self.assert_installation()
+        integration = Integration.objects.get(provider="vsts")
+        installation = integration.get_installation(
+            integration.organizationintegration_set.first().organization_id
+        )
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name=self.project_a["name"],
+                url=f"{self.vsts_base_url}/_git/{self.repo_name}",
+                provider="visualstudio",
+                external_id=self.repo_id,
+                config={"name": self.project_a["name"], "project": self.project_a["name"]},
+            )
+
+        test_cases = [
+            f'{self.vsts_base_url}/{self.project_a["name"]}/_git/{self.repo_name}?path=%2Fmyapp%2Fviews.py&version=GBmaster&_a=contents',
+            f"{self.vsts_base_url}/DefaultCollection/_git/{self.repo_name}?path=%2Fmyapp%2Fviews.py&version=GBmaster&_a=contents",
+            f"{self.vsts_base_url}/_git/{self.repo_name}?path=%2Fmyapp%2Fviews.py&version=GBmaster&_a=contents",
+        ]
+        for source_url in test_cases:
+            assert installation.extract_branch_from_source_url(repo, source_url) == "master"
+
+    @responses.activate
+    def test_extract_source_path_from_source_url(self):
+        self.assert_installation()
+        integration = Integration.objects.get(provider="vsts")
+        installation = integration.get_installation(
+            integration.organizationintegration_set.first().organization_id
+        )
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name=self.project_a["name"],
+                url=f"{self.vsts_base_url}/_git/{self.repo_name}",
+                provider="visualstudio",
+                external_id=self.repo_id,
+                config={"name": self.project_a["name"], "project": self.project_a["name"]},
+            )
+
+        test_cases = [
+            f'{self.vsts_base_url}/{self.project_a["name"]}/_git/{self.repo_name}?path=%2Fmyapp%2Fviews.py&version=GBmaster&_a=contents',
+            f"{self.vsts_base_url}/DefaultCollection/_git/{self.repo_name}?path=%2Fmyapp%2Fviews.py&version=GBmaster&_a=contents",
+            f"{self.vsts_base_url}/_git/{self.repo_name}?path=%2Fmyapp%2Fviews.py&version=GBmaster&_a=contents",
+        ]
+        for source_url in test_cases:
+            assert (
+                installation.extract_source_path_from_source_url(repo, source_url)
+                == "myapp/views.py"
+            )
+
+
+@control_silo_test
 class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
     @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
     def test_success(self, mock_get_scopes):
@@ -416,27 +497,6 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
         assert domain_name == account_uri
         assert Integration.objects.get(provider="vsts").metadata["domain_name"] == account_uri
 
-    @patch("sentry.integrations.vsts.client.VstsApiClient.update_work_item")
-    def test_create_comment(self, mock_update_work_item):
-        self.assert_installation()
-        integration = Integration.objects.get(provider="vsts")
-        installation = integration.get_installation(self.organization.id)
-
-        self.user.name = "Sentry Admin"
-        self.user.save()
-
-        comment_text = "hello world\nThis is a comment.\n\n\n    Glad it's quoted"
-        comment = Mock()
-        comment.data = {"text": comment_text}
-
-        work_item = installation.create_comment(1, self.user.id, comment)
-
-        assert work_item and work_item["id"]
-        assert (
-            mock_update_work_item.call_args[1]["comment"]
-            == "Sentry Admin wrote:\n\n<blockquote>%s</blockquote>" % comment_text
-        )
-
     def test_get_repositories(self):
         self.assert_installation()
         integration = Integration.objects.get(provider="vsts")
@@ -466,10 +526,35 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
         with pytest.raises(IntegrationError):
             installation.get_repositories()
 
+
+@region_silo_test
+class RegionVstsIntegrationTest(VstsIntegrationTestCase):
+    def setUp(self):
+        super().setUp()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.assert_installation()
+            self.integration = Integration.objects.get(provider="vsts")
+            self.user.name = "Sentry Admin"
+            self.user.save()
+
+    @patch("sentry.integrations.vsts.client.VstsApiClient.update_work_item")
+    def test_create_comment(self, mock_update_work_item):
+        installation = self.integration.get_installation(self.organization.id)
+
+        comment_text = "hello world\nThis is a comment.\n\n\n    Glad it's quoted"
+        comment = Mock()
+        comment.data = {"text": comment_text}
+
+        work_item = installation.create_comment(1, self.user.id, comment)
+
+        assert work_item and work_item["id"]
+        assert (
+            mock_update_work_item.call_args[1]["comment"]
+            == "Sentry Admin wrote:\n\n<blockquote>%s</blockquote>" % comment_text
+        )
+
     def test_update_comment(self):
-        self.assert_installation()
-        integration = Integration.objects.get(provider="vsts")
-        installation = integration.get_installation(self.organization.id)
+        installation = self.integration.get_installation(self.organization.id)
 
         group_note = Mock()
         comment = "hello world\nThis is a comment.\n\n\n    I've changed it"

@@ -1,7 +1,10 @@
 from typing import Optional
 
 from sentry import analytics, features
-from sentry.models import ExternalIssue, Integration, Organization, User
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
+from sentry.models.organization import Organization
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
