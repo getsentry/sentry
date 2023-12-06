@@ -1355,7 +1355,10 @@ def detect_new_escalation(job: PostProcessJob):
     If we detect that the group has escalated, set has_escalated to True in the
     job.
     """
+    from sentry.models.activity import Activity
+    from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
     from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
+    from sentry.types.activity import ActivityType
 
     group = job["event"].group
     if not group or not features.has(
@@ -1372,10 +1375,17 @@ def detect_new_escalation(job: PostProcessJob):
         with lock.acquire():
             project_escalation_rate = get_project_counts(group.project)
             group_hourly_event_rate = group.times_seen_with_pending / group_age_hours
+            # TODO(snigdha): reuse manage_issue_states when we allow escalating from other statuses
             if group_hourly_event_rate > project_escalation_rate:
                 job["has_escalated"] = True
                 group.update(substatus=GroupSubStatus.ESCALATING)
                 add_group_to_inbox(group, GroupInboxReason.ESCALATING)
+                record_group_history(group, GroupHistoryStatus.ESCALATING)
+                Activity.objects.create_group_activity(
+                    group=group,
+                    type=ActivityType.SET_ESCALATING,
+                    data={"event_id": job["event"].event_id},
+                )
     except UnableToAcquireLock:
         return
 
