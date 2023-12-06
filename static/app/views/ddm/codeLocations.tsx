@@ -1,13 +1,11 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import isArray from 'lodash/isArray';
-import {PlatformIcon} from 'platformicons';
 
 import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import ContextLine from 'sentry/components/events/interfaces/frame/contextLine';
 import DefaultTitle from 'sentry/components/events/interfaces/frame/defaultTitle';
-import {stackTracePlatformIcon} from 'sentry/components/events/interfaces/utils';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -17,7 +15,7 @@ import {useMetricsCodeLocations} from 'sentry/utils/metrics/useMetricsCodeLocati
 import useOrganization from 'sentry/utils/useOrganization';
 
 import Collapsible from '../../components/collapsible';
-import {MetricCodeLocationFrame} from '../../utils/metrics/index';
+import {MetricCodeLocationFrame, MetricMetaCodeLocation} from '../../utils/metrics/index';
 
 export function CodeLocations({mri}: {mri: string}) {
   const {data} = useMetricsCodeLocations(mri);
@@ -96,20 +94,31 @@ export function CodeLocations({mri}: {mri: string}) {
   );
 }
 
-function CodeLocation({codeLocation, showContext, handleShowContext, isFirst, isLast}) {
+type CodeLocationProps = {
+  codeLocation: MetricMetaCodeLocation;
+  handleShowContext: () => void;
+  showContext: boolean;
+  isFirst?: boolean;
+  isLast?: boolean;
+};
+
+function CodeLocation({
+  codeLocation,
+  showContext,
+  handleShowContext,
+  isFirst,
+  isLast,
+}: CodeLocationProps) {
   const frameToShow = codeLocation.frames[0];
 
   if (!frameToShow) {
     return null;
   }
 
-  const platformIcon = stackTracePlatformIcon(frameToShow.platform, codeLocation.frames);
-
   const hasContext = !!frameToShow.contextLine;
 
   return (
     <CodeLocationWrapper>
-      <PlatformIcon size="20px" radius={null} platform={platformIcon} />
       <DefaultLineWrapper
         onClick={() => {
           if (!hasContext) {
@@ -119,14 +128,15 @@ function CodeLocation({codeLocation, showContext, handleShowContext, isFirst, is
         }}
         isFirst={isFirst}
         isLast={isLast}
+        hasContext={hasContext}
       >
         <DefaultLine className="title" showContext={showContext}>
           <DefaultLineTitleWrapper>
             <LeftLineTitle>
               <DefaultTitle
                 frame={frameToShow as Frame}
-                platform={frameToShow.platform}
                 isHoverPreviewed={false}
+                platform="other"
               />
             </LeftLineTitle>
             <DefaultLineActionButtons>
@@ -136,20 +146,11 @@ function CodeLocation({codeLocation, showContext, handleShowContext, isFirst, is
                 iconSize="xs"
                 borderless
               />
-
-              <Button
-                title={hasContext ? t('Toggle Context') : undefined}
-                size="zero"
-                onClick={handleShowContext}
+              <ToggleCodeLocationContextButton
                 disabled={!hasContext}
-              >
-                {/* legacy size is deprecated but the icon is too big without it */}
-                <IconChevron
-                  direction={showContext ? 'up' : 'down'}
-                  size="xs"
-                  legacySize="8px"
-                />
-              </Button>
+                isToggled={showContext}
+                handleToggle={handleShowContext}
+              />
             </DefaultLineActionButtons>
           </DefaultLineTitleWrapper>
         </DefaultLine>
@@ -161,20 +162,47 @@ function CodeLocation({codeLocation, showContext, handleShowContext, isFirst, is
   );
 }
 
-function CodeLocationContext({
-  frame,
-  isLast,
-}: {
+type ToggleCodeLocationContextButtonProps = {
+  disabled: boolean;
+  handleToggle: () => void;
+  isToggled: boolean;
+};
+
+function ToggleCodeLocationContextButton({
+  disabled,
+  isToggled,
+  handleToggle,
+}: ToggleCodeLocationContextButtonProps) {
+  return (
+    <Button
+      title={disabled ? t('No context available') : t('Toggle Context')}
+      size="zero"
+      onClick={handleToggle}
+      disabled={disabled}
+    >
+      {/* legacy size is deprecated but the icon is too big without it */}
+      <IconChevron direction={isToggled ? 'up' : 'down'} size="xs" legacySize="8px" />
+    </Button>
+  );
+}
+
+type CodeLocationContextProps = {
   frame: MetricCodeLocationFrame;
-  isLast: boolean;
-}) {
+  isLast?: boolean;
+};
+
+function CodeLocationContext({frame, isLast}: CodeLocationContextProps) {
   const lineNo = frame.lineNo ?? 0;
 
-  const preContextLines: [number, string][] =
-    frame.preContext?.map((line, index) => [lineNo - 5 + index, line]) ?? [];
+  const preContextLines: [number, string][] = useMemo(
+    () => frame.preContext?.map((line, index) => [lineNo - 5 + index, line]) ?? [],
+    [frame.preContext, lineNo]
+  );
 
-  const postContextLines: [number, string][] =
-    frame.postContext?.map((line, index) => [lineNo + index, line]) ?? [];
+  const postContextLines: [number, string][] = useMemo(
+    () => frame.postContext?.map((line, index) => [lineNo + index, line]) ?? [],
+    [frame.postContext, lineNo]
+  );
 
   return (
     <SourceContextWrapper isLast={isLast}>
@@ -220,13 +248,17 @@ const SourceContextWrapper = styled('div')<{isLast?: boolean}>`
   background-color: ${p => p.theme.background};
 `;
 
-const DefaultLineWrapper = styled('div')<{isFirst?: boolean; isLast?: boolean}>`
+const DefaultLineWrapper = styled('div')<{
+  hasContext?: boolean;
+  isFirst?: boolean;
+  isLast?: boolean;
+}>`
   :hover {
-    cursor: pointer;
+    cursor: ${p => p.hasContext && 'pointer'};
   }
   flex-grow: 1;
 
-  border-top-left-radius: 0;
+  border-top-left-radius: ${p => (p.isFirst ? p.theme.borderRadius : 0)};
   border-top-right-radius: ${p => (p.isFirst ? p.theme.borderRadius : 0)};
   border-bottom-left-radius: ${p => (p.isLast ? p.theme.borderRadius : 0)};
   border-bottom-right-radius: ${p => (p.isLast ? p.theme.borderRadius : 0)};
@@ -254,17 +286,19 @@ const DefaultLineTitleWrapper = styled('div')`
   line-height: ${p => p.theme.fontSizeLarge};
   font-style: normal;
 
-  padding: ${space(0.75)} ${space(2)} ${space(0.75)} ${space(1.5)};
+  padding: ${space(0.75)} ${space(3)} ${space(0.75)} ${space(1.5)};
   word-break: break-all;
   word-break: break-word;
 `;
 
 const LeftLineTitle = styled('div')`
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
 `;
 
 // done to align the collapsible button with the text in default line title
 const CollapsibleButton = styled(Button)`
-  margin-left: 36px;
+  margin-top: ${space(0.25)};
+  margin-left: ${space(2)};
 `;
