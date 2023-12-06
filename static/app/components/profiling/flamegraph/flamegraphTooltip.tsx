@@ -95,20 +95,22 @@ interface DifferentialFlamegraphTooltipProps extends FlamegraphTooltipProps {
 }
 function DifferentialFlamegraphTooltip(props: DifferentialFlamegraphTooltipProps) {
   const countAfter = useMemo(() => {
-    return (
-      props.flamegraph.afterCounts.get(DifferentialFlamegraph.FrameKey(props.frame)) ?? 0
-    );
+    return props.flamegraph.afterCounts.get(DifferentialFlamegraph.FrameKey(props.frame));
   }, [props.frame, props.flamegraph]);
+
   const countBefore = useMemo(() => {
-    return (
-      props.flamegraph.beforeCounts.get(DifferentialFlamegraph.FrameKey(props.frame)) ?? 0
+    return props.flamegraph.beforeCounts.get(
+      DifferentialFlamegraph.FrameKey(props.frame)
     );
   }, [props.frame, props.flamegraph]);
 
-  const change = relativeChange(countAfter, countBefore);
-  const formattedChange = isNaN(change)
-    ? ''
-    : `${countAfter > countBefore ? '+' : ''}${formatPercentage(change)}`;
+  // A change can only happen if a frame was present in previous and current profiles
+  const shouldShowChange = countAfter !== undefined && countBefore !== undefined;
+
+  const change = shouldShowChange ? relativeChange(countAfter, countBefore) : 0;
+  const formattedChange = shouldShowChange
+    ? `${countAfter > countBefore ? '+' : ''}${formatPercentage(change)}`
+    : `new function`;
 
   return (
     <BoundTooltip
