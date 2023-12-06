@@ -110,6 +110,7 @@ def get_tags(
     event_for_tags: Any,
     tags: set[str] | None = None,
 ) -> Sequence[Mapping[str, str | bool]]:
+    """Get tag keys and values for block kit"""
     fields = []
     if tags:
         event_tags = event_for_tags.tags if event_for_tags else []
@@ -123,7 +124,6 @@ def get_tags(
                 {
                     "title": std_key,
                     "value": labeled_value,
-                    # "short": True,
                 }
             )
     return fields
@@ -145,6 +145,7 @@ def get_option_groups(group: Group) -> Sequence[Mapping[str, Any]]:
 
 
 def get_group_assignees(group: Group) -> Sequence[Mapping[str, Any]]:
+    """Get teams and users that can be issue assignees for block kit"""
     all_members = group.project.get_members_as_rpc_users()
     members = list({m.id: m for m in all_members}.values())
     teams = group.project.teams.all()
@@ -484,6 +485,7 @@ class SlackIssueAlertMessageBuilder(BlockSlackMessageBuilder):
             timestamp = max(ts, self.event.datetime) if self.event else ts
         blocks.append(self.get_context_block(text=footer, timestamp=timestamp))
 
+        # build actions
         actions = []
         for action in payload_actions:
             if action.label in ("Archive", "Ignore", "Mark as Ongoing", "Stop Ignoring"):

@@ -440,38 +440,42 @@ class SlackActionEndpoint(Endpoint):
     def get_action_list(
         cls, slack_request: SlackActionRequest, use_block_kit: bool
     ) -> List[MessageAction]:
-        if use_block_kit:
-            action_list = []
-            for action_data in slack_request.data.get("actions"):
-                if action_data.get("type") == "static_select":
-                    action = BlockKitMessageAction(
-                        name=action_data["action_id"],
-                        label=action_data["selected_option"]["text"]["text"],
-                        type=action_data["type"],
-                        value=action_data["selected_option"]["value"],
-                        action_id=action_data["action_id"],
-                        block_id=action_data["block_id"],
-                        selected_options=[
-                            {"value": action_data.get("selected_option", {}).get("value")}
-                        ],
-                    )
-                    # TODO: selected_options is kinda ridiculous, I think this is built to handle multi-select?
-                else:
-                    action = BlockKitMessageAction(
-                        name=action_data["action_id"],
-                        label=action_data["text"]["text"],
-                        type=action_data["type"],
-                        value=action_data["value"],
-                        action_id=action_data["action_id"],
-                        block_id=action_data["block_id"],
-                    )
-                action_list.append(action)
+        action_data = slack_request.data.get("actions")
+        if use_block_kit and action_data:
+            # XXX(CEO): this is here for backwards compatibility - if a user performs an action with an "older"
+            # style issue alert but the block kit flag is enabled, we don't want to fall into this code path
+            if action_data[0].get("action_id"):
+                action_list = []
+                for action_data in action_data:
+                    if action_data.get("type") == "static_select":
+                        action = BlockKitMessageAction(
+                            name=action_data["action_id"],
+                            label=action_data["selected_option"]["text"]["text"],
+                            type=action_data["type"],
+                            value=action_data["selected_option"]["value"],
+                            action_id=action_data["action_id"],
+                            block_id=action_data["block_id"],
+                            selected_options=[
+                                {"value": action_data.get("selected_option", {}).get("value")}
+                            ],
+                        )
+                        # TODO: selected_options is kinda ridiculous, I think this is built to handle multi-select?
+                    else:
+                        action = BlockKitMessageAction(
+                            name=action_data["action_id"],
+                            label=action_data["text"]["text"],
+                            type=action_data["type"],
+                            value=action_data["value"],
+                            action_id=action_data["action_id"],
+                            block_id=action_data["block_id"],
+                        )
+                    action_list.append(action)
 
-            return action_list
+                return action_list
 
         return [
             MessageAction(**action_data)
-            for action_data in slack_request.data.get("actions", [])
+            for action_data in action_data or []
             if "name" in action_data
         ]
 
