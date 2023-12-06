@@ -7,7 +7,7 @@ type Props = {
   type?: undefined | 'error' | 'warning';
 };
 
-export const ReleaseDetailsTable = styled('dl')<{noMargin?: boolean}>`
+export const ReleaseDetailsTable = styled('div')<{noMargin?: boolean}>`
   ${p => (p.noMargin ? 'margin-bottom: 0;' : null)}
 `;
 
