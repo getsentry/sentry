@@ -1,4 +1,4 @@
-import {CSSProperties, forwardRef, ReactNode} from 'react';
+import {CSSProperties, forwardRef} from 'react';
 import {browserHistory} from 'react-router';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -37,22 +37,6 @@ interface Props {
   style?: CSSProperties;
 }
 
-export function FeedbackIcon({
-  tooltipText,
-  icon,
-}: {
-  icon: ReactNode;
-  tooltipText: string;
-}) {
-  return (
-    <StyledTooltip
-      title={<span style={{textTransform: 'capitalize'}}>{tooltipText}</span>}
-    >
-      {icon}
-    </StyledTooltip>
-  );
-}
-
 function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackIssue}) {
   const {feedbackSlug} = useLocationQuery({
     fields: {feedbackSlug: decodeScalar},
@@ -61,129 +45,105 @@ function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackIssue}) {
   return feedbackId === feedbackItem.id;
 }
 
-function MutedText({children, isOpen}: {children: ReactNode; isOpen: boolean}) {
-  const config = useLegacyStore(ConfigStore);
-
-  return (
-    <ThemeProvider theme={isOpen || config.theme === 'dark' ? lightTheme : darkTheme}>
-      <StyledText>{children}</StyledText>
-    </ThemeProvider>
-  );
-}
-
 const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
   ({className, feedbackItem, isSelected, onSelect, style}: Props, ref) => {
+    const config = useLegacyStore(ConfigStore);
     const organization = useOrganization();
     const isOpen = useIsSelectedFeedback({feedbackItem});
     const hasReplayId = useFeedbackHasReplayId({feedbackId: feedbackItem.id});
+
     const isCrashReport = feedbackItem.metadata.source === 'crash_report_embed_form';
+    const theme = isOpen || config.theme === 'dark' ? darkTheme : lightTheme;
 
     return (
       <CardSpacing className={className} style={style} ref={ref}>
-        <LinkedFeedbackCard
-          data-selected={isOpen}
-          to={() => {
-            const location = browserHistory.getCurrentLocation();
-            return {
-              pathname: normalizeUrl(`/organizations/${organization.slug}/feedback/`),
-              query: {
-                ...location.query,
-                referrer: 'feedback_list_page',
-                feedbackSlug: `${feedbackItem.project.slug}:${feedbackItem.id}`,
-              },
-            };
-          }}
-          onClick={() => {
-            trackAnalytics('feedback.list-item-selected', {organization});
-          }}
-        >
-          <InteractionStateLayer />
-          <Flex column style={{gridArea: 'checkbox'}}>
-            <Checkbox
-              disabled={isSelected === 'all-selected'}
-              checked={isSelected !== false}
-              onChange={e => onSelect(e.target.checked)}
-              onClick={e => e.stopPropagation()}
-              invertColors={isOpen}
-            />
-          </Flex>
-          <TextOverflow>
-            <span style={{gridArea: 'user'}}>
-              <FeedbackItemUsername feedbackIssue={feedbackItem} detailDisplay={false} />
-            </span>
-          </TextOverflow>
-          <span style={{gridArea: 'time'}}>
-            <StyledTimeSince date={feedbackItem.firstSeen} />
-          </span>
-          <Flex justify="center" style={{gridArea: 'unread'}}>
-            {feedbackItem.hasSeen ? null : (
-              <IconCircleFill size="xs" color={isOpen ? 'white' : 'purple400'} />
-            )}
-          </Flex>
-          <div style={{gridArea: 'message'}}>
-            <MutedText isOpen={isOpen}>
-              <TextOverflow>{feedbackItem.metadata.message}</TextOverflow>
-            </MutedText>
-          </div>
-          <RightAlignedIcons
-            style={{
-              gridArea: 'icons',
+        <ThemeProvider theme={theme}>
+          <LinkedFeedbackCard
+            data-selected={isOpen}
+            to={() => {
+              const location = browserHistory.getCurrentLocation();
+              return {
+                pathname: normalizeUrl(`/organizations/${organization.slug}/feedback/`),
+                query: {
+                  ...location.query,
+                  referrer: 'feedback_list_page',
+                  feedbackSlug: `${feedbackItem.project.slug}:${feedbackItem.id}`,
+                },
+              };
+            }}
+            onClick={() => {
+              trackAnalytics('feedback.list-item-selected', {organization});
             }}
           >
-            <IssueTrackingSignals group={feedbackItem as unknown as Group} />
-            {isCrashReport && (
-              <FeedbackIcon
-                tooltipText={t('Linked Issue')}
-                icon={<IconIssues size="xs" />}
+            <InteractionStateLayer />
+
+            <Row style={{gridArea: 'checkbox'}}>
+              <Checkbox
+                style={{gridArea: 'checkbox'}}
+                disabled={isSelected === 'all-selected'}
+                checked={isSelected !== false}
+                onChange={e => onSelect(e.target.checked)}
+                onClick={e => e.stopPropagation()}
+                invertColors={isOpen}
               />
+            </Row>
+
+            <TextOverflow style={{gridArea: 'user'}}>
+              <FeedbackItemUsername feedbackIssue={feedbackItem} detailDisplay={false} />
+            </TextOverflow>
+
+            <TimeSince date={feedbackItem.firstSeen} style={{gridArea: 'time'}} />
+
+            {feedbackItem.hasSeen ? null : (
+              <Row style={{gridArea: 'unread'}}>
+                <IconCircleFill size="xs" color={isOpen ? 'white' : 'purple400'} />
+              </Row>
             )}
-            {hasReplayId && (
-              <FeedbackIcon
-                tooltipText={t('Linked Replay')}
-                icon={<IconPlay size="xs" />}
-              />
-            )}
-            {feedbackItem.assignedTo && (
-              <StyledAvatar actor={feedbackItem.assignedTo} size={16} />
-            )}
-          </RightAlignedIcons>
-          <Flex style={{gridArea: 'proj'}} gap={space(1)} align="center">
-            <ProjectAvatar project={feedbackItem.project} size={12} />
-            <MutedText isOpen={isOpen}>
-              <ProjectOverflow>{feedbackItem.project.slug}</ProjectOverflow>
-            </MutedText>
-          </Flex>
-        </LinkedFeedbackCard>
+
+            <Row align="flex-start" justify="flex-start" style={{gridArea: 'message'}}>
+              <TextOverflow>{feedbackItem.metadata.message}</TextOverflow>
+            </Row>
+
+            <BottomGrid style={{gridArea: 'bottom'}}>
+              <Row justify="flex-start" gap={space(0.75)}>
+                <ProjectAvatar
+                  project={feedbackItem.project}
+                  size={12}
+                  title={feedbackItem.project.slug}
+                />
+                <TextOverflow>{feedbackItem.shortId}</TextOverflow>
+              </Row>
+
+              <Row justify="flex-end" gap={space(1)}>
+                <IssueTrackingSignals group={feedbackItem as unknown as Group} />
+
+                {isCrashReport && (
+                  <Tooltip title={t('Linked Issue')} containerDisplayMode="flex">
+                    <IconIssues size="xs" />
+                  </Tooltip>
+                )}
+
+                {hasReplayId && (
+                  <Tooltip title={t('Linked Replay')} containerDisplayMode="flex">
+                    {<IconPlay size="xs" />}
+                  </Tooltip>
+                )}
+
+                {feedbackItem.assignedTo && (
+                  <ActorAvatar
+                    actor={feedbackItem.assignedTo}
+                    size={16}
+                    tooltipOptions={{containerDisplayMode: 'flex'}}
+                  />
+                )}
+              </Row>
+            </BottomGrid>
+          </LinkedFeedbackCard>
+        </ThemeProvider>
       </CardSpacing>
     );
   }
 );
-
-const StyledText = styled('div')`
-  color: ${p => p.theme.gray200};
-`;
-
-const StyledTooltip = styled(Tooltip)`
-  display: flex;
-  align-items: center;
-`;
-
-const StyledAvatar = styled(ActorAvatar)`
-  display: flex;
-  align-items: center;
-`;
-
-const StyledTimeSince = styled(TimeSince)`
-  display: flex;
-  justify-content: end;
-`;
-
-const RightAlignedIcons = styled('div')`
-  display: flex;
-  justify-content: end;
-  gap: ${space(0.75)};
-  align-items: center;
-`;
 
 const CardSpacing = styled('div')`
   padding: ${space(0.25)} ${space(0.5)};
@@ -209,17 +169,23 @@ const LinkedFeedbackCard = styled(Link)`
   grid-template-areas:
     'checkbox user time'
     'unread message message'
-    '. proj icons';
+    '. bottom bottom';
   gap: ${space(1)};
   place-items: stretch;
   align-items: center;
 `;
 
-const ProjectOverflow = styled('span')`
-  text-overflow: ellipsis;
+const Row = styled(Flex)`
+  place-items: center;
   overflow: hidden;
-  white-space: nowrap;
-  max-width: 150px;
+`;
+
+const BottomGrid = styled('div')`
+  display: grid;
+  grid-template-columns: auto max-content;
+  gap: ${space(1)};
+
+  overflow: hidden;
 `;
 
 export default FeedbackListItem;
