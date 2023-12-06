@@ -72,6 +72,20 @@ export type StackTraceEventParameters = {
     project_slug: string;
     platform?: string;
   };
+  'stack_trace.threads.thread_selected': {
+    has_stacktrace: boolean;
+    num_in_app_frames: number;
+    num_threads: number;
+    thread_index: number;
+    thread_state: string;
+    is_crashed_thread?: boolean;
+    is_current_thread?: boolean;
+    platform?: string;
+  };
+  'stack_trace.threads.thread_selector_opened': {
+    num_threads: number;
+    platform?: string;
+  };
 };
 
 export const stackTraceEventMap: Record<keyof StackTraceEventParameters, string> = {
@@ -98,4 +112,6 @@ export const stackTraceEventMap: Record<keyof StackTraceEventParameters, string>
     'Stack Trace: Sort Option - Recent First - Clicked',
   'stack-trace.sort_option_recent_last_clicked':
     'Stack Trace: Sort Option - Recent Last - Clicked',
+  'stack_trace.threads.thread_selected': 'Stack Trace: Thread Selected',
+  'stack_trace.threads.thread_selector_opened': 'Stack Trace: Thread Selector Opened',
 };
