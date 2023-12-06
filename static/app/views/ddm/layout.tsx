@@ -12,6 +12,8 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import SplitPanel, {DividerProps} from 'sentry/components/splitPanel';
+import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
@@ -21,7 +23,6 @@ import {MetricScratchpad} from 'sentry/views/ddm/scratchpad';
 import {ScratchpadSelector} from 'sentry/views/ddm/scratchpadSelector';
 import {TraceTable} from 'sentry/views/ddm/traceTable';
 import {TrayContent} from 'sentry/views/ddm/trayContent';
-import SplitPanel from 'sentry/views/replays/detail/layout/splitPanel';
 
 function MainContent({showTraceTable}: {showTraceTable?: boolean}) {
   return (
@@ -93,6 +94,7 @@ export const DDMLayout = memo(() => {
       {hasSize && (
         <SplitPanel
           availableSize={height}
+          SplitDivider={SplitDivider}
           top={{
             content: (
               <ScrollingPage>
@@ -101,8 +103,7 @@ export const DDMLayout = memo(() => {
             ),
             default: height * 0.7,
             min: 100,
-            // TODO: adjust to accomodate final tray header
-            max: height - 16,
+            max: height - 58,
           }}
           bottom={<TrayContent />}
         />
@@ -110,6 +111,29 @@ export const DDMLayout = memo(() => {
     </FullViewport>
   );
 });
+
+const SplitDivider = styled((props: DividerProps) => (
+  <div {...props}>
+    <IconGrabbable size="xs" />
+  </div>
+))<DividerProps>`
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 16px;
+  user-select: none;
+  cursor: ns-resize;
+  border-top: 1px solid ${$p => $p.theme.border};
+
+  & > svg {
+    transform: rotate(90deg);
+  }
+
+  &:hover,
+  &[data-is-held='true'] {
+    background: ${p => p.theme.hover};
+  }
+`;
 
 const ScrollingPage = styled(Layout.Page)`
   height: 100%;
