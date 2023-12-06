@@ -111,31 +111,6 @@ export function getAlertInterval(metricsQuery, period: TimePeriod) {
   return toInterval(TimeWindow.ONE_HOUR);
 }
 
-export function getAlertFormPath({
-  organizationSlug,
-  interval,
-  statsPeriod,
-  environment,
-  project,
-  aggregate,
-  query,
-}) {
-  return `/organizations/${organizationSlug}/alerts/new/metric/?${qs.stringify({
-    // Needed, so alerts-create also collects environment via event view
-    createFromDiscover: true,
-    dataset: Dataset.GENERIC_METRICS,
-    eventTypes: EventTypes.TRANSACTION,
-    aggregate,
-    interval,
-    statsPeriod,
-    referrer: 'ddm',
-    // Event type also needs to be added to the query
-    query,
-    environment,
-    project,
-  })}`;
-}
-
 interface Props extends ModalRenderProps {
   metricsQuery: MetricsQuery;
 }
@@ -235,8 +210,6 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
   const handleSubmit = useCallback(() => {
     router.push(
       `/organizations/${organization.slug}/alerts/new/metric/?${qs.stringify({
-        // Needed, so alerts-create also collects environment via event view
-
         aggregate,
         query: `${metricsQuery.query} event.type:transaction`.trim(),
         createFromDiscover: true,
