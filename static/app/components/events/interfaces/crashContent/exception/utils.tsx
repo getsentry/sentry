@@ -1,4 +1,4 @@
-import {Fragment, ReactElement, useEffect, useState} from 'react';
+import {Fragment, ReactElement, ReactNode, useEffect, useState} from 'react';
 
 import type {Frame} from 'sentry/types';
 import {getFileExtension} from 'sentry/utils/fileExtension';
@@ -45,23 +45,23 @@ export function Linkify({exceptionText}: {exceptionText?: string}): ReactElement
   //    i makes the regex match both upper and lower case characters
 
   const parts = exceptionText.split(urlRegex);
+  const urls = exceptionText.match(urlRegex);
 
-  const elements: React.ReactNode[] = parts.map((part, index) => {
-    const isUrl = urlRegex.test(part);
+  const elements: ReactNode[] = parts.flatMap((part, index) => {
+    const link =
+      urls && urls[index] ? (
+        <a
+          key={`link-${index}`}
+          href={window.location.href + '/redirect'}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => RedirectExternalLink(part)}
+        >
+          {urls[index]}{' '}
+        </a>
+      ) : null;
 
-    return isUrl ? (
-      <a
-        key={`url-${index}`}
-        href={window.location.href + '/redirect'}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={() => RedirectExternalLink(part)}
-      >
-        {part}
-      </a>
-    ) : (
-      <Fragment key={`text-${index}`}>{part}</Fragment>
-    );
+    return [<Fragment key={`text-${index}`}>{part}</Fragment>, link];
   });
 
   return <Fragment>{elements}</Fragment>;
