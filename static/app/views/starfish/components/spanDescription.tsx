@@ -3,13 +3,24 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {StackTraceMiniFrame} from 'sentry/views/starfish/components/stackTraceMiniFrame';
-import {SpanIndexedFieldTypes, SpanMetricsField} from 'sentry/views/starfish/types';
+import {MetricsResponse, SpanMetricsField} from 'sentry/views/starfish/types';
 import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 
 type Props = {
-  span: SpanIndexedFieldTypes & RawSpanType;
+  span: Pick<
+    MetricsResponse,
+    SpanMetricsField.SPAN_OP | SpanMetricsField.SPAN_DESCRIPTION
+  > & {
+    project_id?: number;
+    'transaction.id'?: string;
+  } & {
+    data?: {
+      'code.filepath'?: string;
+      'code.function'?: string;
+      'code.lineno'?: number;
+    };
+  };
 };
 
 export function SpanDescription({span}: Props) {
