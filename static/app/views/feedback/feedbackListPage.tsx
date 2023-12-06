@@ -14,11 +14,10 @@ import {FeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys
 import useHaveSelectedProjectsSetupFeedback from 'sentry/components/feedback/useHaveSelectedProjectsSetupFeedback';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {Tooltip} from 'sentry/components/tooltip';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
@@ -38,20 +37,18 @@ export default function FeedbackListPage({}: Props) {
         <FeedbackQueryKeys organization={organization}>
           <Layout.Header>
             <Layout.HeaderContent>
-              <Layout.Title>{t('User Feedback')}</Layout.Title>
+              <Layout.Title>
+                {t('User Feedback')}
+                <PageHeadingQuestionTooltip
+                  title={t(
+                    'The User Feedback Widget allows users to submit feedback quickly and easily any time they encounter something that isn’t working as expected.'
+                  )}
+                  docsUrl="https://docs.sentry.io/product/user-feedback/"
+                />
+              </Layout.Title>
             </Layout.HeaderContent>
             <Layout.HeaderActions>
-              <Tooltip
-                title={tct('View [link:error-associated feedback reports].', {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/product/user-feedback/" />
-                  ),
-                })}
-                position="left"
-                isHoverable
-              >
-                <OldFeedbackButton />
-              </Tooltip>
+              <OldFeedbackButton />
             </Layout.HeaderActions>
           </Layout.Header>
           <PageFiltersContainer>
