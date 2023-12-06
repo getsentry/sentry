@@ -8,6 +8,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import Button from 'sentry/components/actions/button';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import CrashReportSection from 'sentry/components/feedback/feedbackItem/crashReportSection';
 import FeedbackAssignedTo from 'sentry/components/feedback/feedbackItem/feedbackAssignedTo';
@@ -23,7 +24,7 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import TextOverflow from 'sentry/components/textOverflow';
-import {IconLink} from 'sentry/icons';
+import {IconChevron, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Group} from 'sentry/types';
@@ -61,15 +62,21 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
 
   const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
 
-  const {onClick: copyLink} = useCopyToClipboard({
-    successMessage: t('Feedback URL copied to clipboard'),
-    text:
-      window.location.origin +
-      normalizeUrl(
-        `/organizations/${organization.slug}/feedback/?feedbackSlug=${feedbackItem.project.slug}:${feedbackItem.id}&project=${feedbackItem.project.id}`
-      ),
+  const feedbackUrl =
+    window.location.origin +
+    normalizeUrl(
+      `/organizations/${organization.slug}/feedback/?feedbackSlug=${feedbackItem.project.slug}:${feedbackItem.id}&project=${feedbackItem.project.id}`
+    );
+
+  const {onClick: handleCopyUrl} = useCopyToClipboard({
+    successMessage: t('Copied Feedback URL to clipboard'),
+    text: feedbackUrl,
   });
 
+  const {onClick: handleCopyShortId} = useCopyToClipboard({
+    successMessage: t('Copied Short-ID to clipboard'),
+    text: feedbackItem.shortId,
+  });
   return (
     <Fragment>
       <HeaderPanelItem>
@@ -84,17 +91,33 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
                 size={12}
                 title={feedbackItem.project.slug}
               />
-              <TextOverflow>{feedbackItem.project.slug}</TextOverflow>
+              <TextOverflow>{feedbackItem.shortId}</TextOverflow>
+              <DropdownMenu
+                triggerProps={{
+                  'aria-label': t('Short-ID copy actions'),
+                  icon: <IconChevron direction="down" size="xs" />,
+                  size: 'zero',
+                  borderless: true,
+                  showChevron: false,
+                }}
+                position="bottom"
+                size="xs"
+                items={[
+                  {
+                    key: 'copy-url',
+                    label: t('Copy Issue URL'),
+                    onAction: handleCopyUrl,
+                  },
+                  {
+                    key: 'copy-short-id',
+                    label: t('Copy Short-ID'),
+                    onAction: handleCopyShortId,
+                  },
+                ]}
+              />
             </Flex>
           </Flex>
           <Flex gap={space(1)} align="center" wrap="wrap">
-            <Button
-              title={t('Copy link to this feedback')}
-              size="xs"
-              onClick={copyLink}
-              aria-label={t('Copy Link')}
-              icon={<IconLink />}
-            />
             <ErrorBoundary mini>
               <FeedbackAssignedTo
                 feedbackIssue={feedbackItem}
