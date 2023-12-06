@@ -1,5 +1,6 @@
 import {Organization} from 'sentry-fixture/organization';
 import {SentryApp} from 'sentry-fixture/sentryApp';
+import {Team} from 'sentry-fixture/team';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -134,7 +135,7 @@ describe('Avatar', function () {
     });
 
     it('can display a team Avatar', function () {
-      const team = TestStubs.Team({slug: 'test-team_test'});
+      const team = Team({slug: 'test-team_test'});
 
       render(<AvatarComponent team={team} />);
 

@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -46,7 +47,7 @@ describe('Access', function () {
       const org = Organization({access: []});
       const nextRouterContext = TestStubs.routerContext([{organization: org}]);
 
-      const team1 = TestStubs.Team({access: []});
+      const team1 = Team({access: []});
       render(
         <Access access={['team:admin']} team={team1}>
           {childrenMock}
@@ -61,7 +62,7 @@ describe('Access', function () {
         })
       );
 
-      const team2 = TestStubs.Team({
+      const team2 = Team({
         access: ['team:read', 'team:write', 'team:admin'],
       });
       render(

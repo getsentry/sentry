@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -11,7 +12,7 @@ describe('OrganizationTeamProjects', function () {
   let postMock!: jest.Mock;
   let deleteMock!: jest.Mock;
 
-  const team = TestStubs.Team({slug: 'team-slug'});
+  const team = Team({slug: 'team-slug'});
   const project = TestStubs.Project({
     teams: [team],
     access: ['project:read', 'project:write', 'project:admin'],

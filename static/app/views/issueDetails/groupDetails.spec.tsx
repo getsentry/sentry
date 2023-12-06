@@ -1,4 +1,5 @@
 import {Event as EventFixture} from 'sentry-fixture/event';
+import {Team} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -19,7 +20,7 @@ const SAMPLE_EVENT_ALERT_TEXT =
 describe('groupDetails', () => {
   const group = TestStubs.Group({issueCategory: IssueCategory.ERROR});
   const event = EventFixture();
-  const project = TestStubs.Project({teams: [TestStubs.Team()]});
+  const project = TestStubs.Project({teams: [Team()]});
 
   const routes = [
     {path: '/', childRoutes: []},

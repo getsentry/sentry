@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -11,7 +12,7 @@ describe('groupDetails', () => {
   const baseUrl = 'BASE_URL/';
   const organization = Organization();
   const project = TestStubs.Project({
-    teams: [TestStubs.Team()],
+    teams: [Team()],
   });
 
   describe('issue category: error, js project', () => {

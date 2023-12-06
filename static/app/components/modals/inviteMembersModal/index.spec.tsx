@@ -1,6 +1,7 @@
 import selectEvent from 'react-select-event';
 import styled from '@emotion/styled';
 import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -12,7 +13,7 @@ import InviteMembersModal, {
 import TeamStore from 'sentry/stores/teamStore';
 
 describe('InviteMembersModal', function () {
-  const team = TestStubs.Team();
+  const team = Team();
   const org = Organization({access: ['member:write'], teams: [team]});
   TeamStore.loadInitialData([team]);
 
