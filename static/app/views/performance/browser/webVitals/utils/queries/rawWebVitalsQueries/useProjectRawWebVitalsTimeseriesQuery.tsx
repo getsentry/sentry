@@ -94,7 +94,7 @@ export const useProjectRawWebVitalsTimeseriesQuery = ({
     total: [],
   };
 
-  result?.data?.['p75(measurements.lcp)']?.data.forEach((interval, index) => {
+  result?.data?.['avg(measurements.lcp)']?.data.forEach((interval, index) => {
     const [lcp, fcp, cls, ttfb, fid] = ['lcp', 'fcp', 'cls', 'ttfb', 'fid'].map(
       webVital => {
         return result?.data?.[`avg(measurements.${webVital})`]?.data[index][1][0].count;
