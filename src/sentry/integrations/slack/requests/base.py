@@ -11,7 +11,6 @@ from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo.base import SiloMode
 
 from ..utils import check_signing_secret, logger
 
@@ -168,18 +167,6 @@ class SlackRequest:
         elif verification_token and self._check_verification_token(verification_token):
             return
 
-        # HACK(Leander): Dangerous logging, only used for testing hybrid cloud proxying
-        if SiloMode.get_current_mode() == SiloMode.REGION:
-            logger.error(
-                "slack-region-auth-failure",
-                extra={
-                    "signing_secret_opt": signing_secret,
-                    "verification_token_opt": verification_token,
-                    "request_data": self.request.data,
-                    **self.logging_data,
-                },
-            )
-
         # unfortunately, we can't know which auth was supposed to succeed
         self._error("slack.action.auth")
         raise SlackRequestError(status=status_.HTTP_401_UNAUTHORIZED)
@@ -189,9 +176,6 @@ class SlackRequest:
         timestamp = self.request.META.get("HTTP_X_SLACK_REQUEST_TIMESTAMP")
         if not (signature and timestamp):
             return False
-
-        if SiloMode.get_current_mode() == SiloMode.REGION:
-            self._info("slack-region-valid-headers")
 
         return check_signing_secret(signing_secret, self.request.body, timestamp, signature)
 

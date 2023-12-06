@@ -4,10 +4,6 @@ from datetime import datetime
 from hashlib import sha256
 from typing import TYPE_CHECKING, TypedDict
 
-from sentry.silo.base import SiloMode
-
-from . import logger
-
 if TYPE_CHECKING:
     from sentry.models.organizationmember import OrganizationMember
 
@@ -43,14 +39,4 @@ def check_signing_secret(signing_secret: str, data: bytes, timestamp: str, signa
     # Taken from: https://github.com/slackapi/python-slack-events-api/blob/master/slackeventsapi/server.py#L47
     # Slack docs on this here: https://api.slack.com/authentication/verifying-requests-from-slack#about
     request_hash = _encode_data(signing_secret, data, timestamp)
-    if SiloMode.get_current_mode() == SiloMode.REGION:
-        logger.info(
-            "slack-region-valid-headers",
-            extra={
-                "request_hash": request_hash,
-                "data": data,
-                "timestamp": timestamp,
-                "signature": signature,
-            },
-        )
     return hmac.compare_digest(request_hash.encode("utf-8"), signature.encode("utf-8"))
