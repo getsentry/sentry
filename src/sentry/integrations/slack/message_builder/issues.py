@@ -86,7 +86,6 @@ def build_action_text(
 def build_tag_fields(
     event_for_tags: Any,
     tags: set[str] | None = None,
-    use_block_kit: bool = False,
 ) -> Sequence[Mapping[str, str | bool]]:
     fields = []
     if tags:
@@ -99,9 +98,32 @@ def build_tag_fields(
             labeled_value = tagstore.get_tag_value_label(key, value)
             fields.append(
                 {
-                    "title": std_key if use_block_kit else std_key.encode("utf-8"),
-                    "value": labeled_value if use_block_kit else labeled_value.encode("utf-8"),
+                    "title": std_key.encode("utf-8"),
+                    "value": labeled_value.encode("utf-8"),
                     "short": True,
+                }
+            )
+    return fields
+
+
+def get_tags(
+    event_for_tags: Any,
+    tags: set[str] | None = None,
+) -> Sequence[Mapping[str, str | bool]]:
+    fields = []
+    if tags:
+        event_tags = event_for_tags.tags if event_for_tags else []
+        for key, value in event_tags:
+            std_key = tagstore.get_standardized_key(key)
+            if std_key not in tags:
+                continue
+
+            labeled_value = tagstore.get_tag_value_label(key, value)
+            fields.append(
+                {
+                    "title": std_key,
+                    "value": labeled_value,
+                    # "short": True,
                 }
             )
     return fields
@@ -250,7 +272,7 @@ def build_actions(
         a
         for a in [
             _resolve_button(use_block_kit),
-            _ignore_button(use_block_kit),
+            _ignore_button(),
             _assign_button(use_block_kit),
         ]
         if a is not None
@@ -398,9 +420,6 @@ class SlackIssueAlertMessageBuilder(BlockSlackMessageBuilder):
 
     def build(self, notification_uuid: str | None = None) -> SlackBody:
         # XXX(dcramer): options are limited to 100 choices, even when nested
-        use_block_kit = features.has(
-            "organizations:slack-block-kit", self.group.project.organization
-        )
         text = build_attachment_text(self.group, self.event) or ""
 
         if self.escape_text:
@@ -417,7 +436,7 @@ class SlackIssueAlertMessageBuilder(BlockSlackMessageBuilder):
 
         # If an event is unspecified, use the tags of the latest event (if one exists).
         event_for_tags = self.event or self.group.get_latest_event()
-        fields = build_tag_fields(event_for_tags, self.tags, use_block_kit)
+        tags = get_tags(event_for_tags, self.tags)
         color = get_color(event_for_tags, self.notification, self.group)
         obj = self.event if self.event is not None else self.group
         if not self.issue_details or (
@@ -450,8 +469,8 @@ class SlackIssueAlertMessageBuilder(BlockSlackMessageBuilder):
             )
         ]
         # build tags block
-        if fields:
-            blocks.append(self.get_tags_block(fields))
+        if tags:
+            blocks.append(self.get_tags_block(tags))
 
         # build footer block
         footer = (

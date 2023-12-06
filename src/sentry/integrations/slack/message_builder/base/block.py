@@ -36,7 +36,6 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
 
     @staticmethod
     def get_tags_block(tags) -> SlackBlock:
-        # TODO: rewrite build_tag_fields instead of doing this
         fields = []
         for tag in tags:
             title = tag["title"]
