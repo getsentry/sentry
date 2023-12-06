@@ -105,6 +105,11 @@ function DifferentialFlamegraphTooltip(props: DifferentialFlamegraphTooltipProps
     );
   }, [props.frame, props.flamegraph]);
 
+  const change = relativeChange(countAfter, countBefore);
+  const formattedChange = isNaN(change)
+    ? ''
+    : `${countAfter > countBefore ? '+' : ''}${formatPercentage(change)}`;
+
   return (
     <BoundTooltip
       bounds={props.canvasBounds}
@@ -117,10 +122,7 @@ function DifferentialFlamegraphTooltip(props: DifferentialFlamegraphTooltipProps
           backgroundColor={formatColorForFrame(props.frame, props.flamegraphRenderer)}
         />
         {props.flamegraphRenderer.flamegraph.formatter(props.frame.node.totalWeight)}{' '}
-        {t('samples, ') +
-          `${countAfter > countBefore ? '+' : ''}${formatPercentage(
-            relativeChange(countAfter, countBefore)
-          )}`}{' '}
+        {t('samples, ') + formattedChange}{' '}
         {`(${formatWeightToProfileDuration(
           props.frame.node,
           props.flamegraphRenderer.flamegraph
