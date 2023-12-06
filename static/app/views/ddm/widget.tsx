@@ -274,7 +274,7 @@ const MetricWidgetBody = memo(
             setHoveredLegend={focusedSeries ? undefined : setHoveredLegend}
           />
         )}
-        <CodeLocations mri={metricsQuery.mri} projects={projects} />
+        <CodeLocations mri={metricsQuery.mri} />
       </StyledMetricWidgetBody>
     );
   }
