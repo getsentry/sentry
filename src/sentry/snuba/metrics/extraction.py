@@ -238,10 +238,10 @@ _STANDARD_METRIC_FIELDS = [
     "browser.name",
     "os.name",
     "geo.country_code",
-    # These are skipped during on demand spec generation and will not be converted to metric extraction conditions
-    "event.type",
-    "project",
 ]
+
+# Query fields that we do not consider for the extraction since they are not needed.
+_BLACKLISTED_METRIC_FIELDS = ["event.type", "project"]
 
 # Operators used in ``ComparingRuleCondition``.
 CompareOp = Literal["eq", "gt", "gte", "lt", "lte", "glob"]
@@ -356,12 +356,21 @@ def _transform_search_query(query: Sequence[QueryToken]) -> Sequence[QueryToken]
     return transformed_query
 
 
-def _parse_search_query(query: Optional[str]) -> Sequence[QueryToken]:
+def _parse_search_query(
+    query: Optional[str], removed_blacklisted: bool = False
+) -> Sequence[QueryToken]:
     """
     Parses a search query with the discover grammar and performs some transformations on the AST in order to account for
     edge cases.
     """
-    return _transform_search_query(event_search.parse_search_query(query))
+    tokens = event_search.parse_search_query(query)
+    # As first step, we transform the search query by applying basic transformations.
+    tokens = _transform_search_query(tokens)
+    if removed_blacklisted:
+        # As second step, if enabled, we remove elements from the query which are redundant.
+        tokens = _cleanup_query(_remove_blacklisted_search_filters(tokens))
+
+    return tokens
 
 
 @dataclass(frozen=True)
@@ -528,7 +537,7 @@ def _get_groupbys_support(groupbys: Sequence[str]) -> SupportedBy:
 
 def _get_query_supported_by(query: Optional[str]) -> SupportedBy:
     try:
-        parsed_query = _parse_search_query(query)
+        parsed_query = _parse_search_query(query=query, removed_blacklisted=False)
 
         standard_metrics = _is_standard_metrics_query(parsed_query)
         on_demand_metrics = _is_on_demand_supported_query(parsed_query)
@@ -543,7 +552,6 @@ def _is_standard_metrics_query(tokens: Sequence[QueryToken]) -> bool:
     """
     Recursively checks if any of the supplied token contain search filters that can't be handled by standard metrics.
     """
-
     for token in tokens:
         if not _is_standard_metrics_search_filter(token):
             return False
@@ -565,7 +573,6 @@ def _is_on_demand_supported_query(tokens: Sequence[QueryToken]) -> bool:
     """
     Recursively checks if any of the supplied token contain search filters that can't be handled by standard metrics.
     """
-
     for token in tokens:
         if not _is_on_demand_supported_search_filter(token):
             return False
@@ -621,6 +628,9 @@ def _is_standard_metrics_search_term(field: str) -> bool:
 
 
 def _is_on_demand_supported_field(field: str) -> bool:
+    if field in _BLACKLISTED_METRIC_FIELDS:
+        return True
+
     try:
         _map_field_name(field)
         return True
@@ -646,7 +656,7 @@ def to_standard_metrics_query(query: str) -> str:
         "transaction.duration:>=1s AND browser.version:1" -> ""
     """
     try:
-        tokens = _parse_search_query(query)
+        tokens = _parse_search_query(query=query, removed_blacklisted=False)
     except InvalidSearchQuery:
         logger.error(f"Failed to parse search query: {query}", exc_info=True)
         raise
@@ -661,7 +671,7 @@ def to_standard_metrics_tokens(tokens: Sequence[QueryToken]) -> Sequence[QueryTo
     that has all on-demand filters removed and can be run using only standard metrics.
     """
     remaining_tokens = _remove_on_demand_search_filters(tokens)
-    cleaned_query = cleanup_query(remaining_tokens)
+    cleaned_query = _cleanup_query(remaining_tokens)
     return cleaned_query
 
 
@@ -680,7 +690,7 @@ def query_tokens_to_string(tokens: Sequence[QueryToken]) -> str:
 
 def _remove_on_demand_search_filters(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
     """
-    removes tokens that contain filters that can only be handled by on demand metrics.
+    Removes tokens that contain filters that can only be handled by on demand metrics.
     """
     ret_val: List[QueryToken] = []
     for token in tokens:
@@ -691,26 +701,28 @@ def _remove_on_demand_search_filters(tokens: Sequence[QueryToken]) -> Sequence[Q
             ret_val.append(ParenExpression(_remove_on_demand_search_filters(token.children)))
         else:
             ret_val.append(token)
+
     return ret_val
 
 
-def _remove_event_type_and_project_filter(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
+def _remove_blacklisted_search_filters(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
     """
-    removes event.type: transaction and project:* from the query
+    Removes tokens that contain filters that are blacklisted.
     """
     ret_val: List[QueryToken] = []
     for token in tokens:
         if isinstance(token, SearchFilter):
-            if token.key.name not in ["event.type", "project"]:
+            if token.key.name not in _BLACKLISTED_METRIC_FIELDS:
                 ret_val.append(token)
         elif isinstance(token, ParenExpression):
-            ret_val.append(ParenExpression(_remove_event_type_and_project_filter(token.children)))
+            ret_val.append(ParenExpression(_remove_blacklisted_search_filters(token.children)))
         else:
             ret_val.append(token)
+
     return ret_val
 
 
-def cleanup_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
+def _cleanup_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
     """
     Recreates a valid query from an original query that has had on demand search filters removed.
 
@@ -729,9 +741,10 @@ def cleanup_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
         if not isinstance(token, ParenExpression):
             removed_empty_parens.append(token)
         else:
-            children = cleanup_query(token.children)
+            children = _cleanup_query(token.children)
             if len(children) > 0:
                 removed_empty_parens.append(ParenExpression(children))
+
     # remove AND and OR operators at the start of the query
     while len(removed_empty_parens) > 0 and isinstance(removed_empty_parens[0], str):
         removed_empty_parens.pop(0)
@@ -761,6 +774,7 @@ def cleanup_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
         elif previous_token is not None:
             ret_val.append(previous_token)
         previous_token = token
+
     # take care of the last token (if any)
     if previous_token is not None:
         ret_val.append(previous_token)
@@ -1249,9 +1263,8 @@ class OnDemandMetricSpec:
     def _parse_query(value: str) -> QueryParsingResult:
         """Parse query string into our internal AST format."""
         try:
-            conditions = _parse_search_query(value)
-            clean_conditions = cleanup_query(_remove_event_type_and_project_filter(conditions))
-            return QueryParsingResult(conditions=clean_conditions)
+            conditions = _parse_search_query(query=value, removed_blacklisted=True)
+            return QueryParsingResult(conditions=conditions)
         except InvalidSearchQuery as e:
             raise Exception(f"Invalid search query '{value}' in on demand spec: {e}")
 

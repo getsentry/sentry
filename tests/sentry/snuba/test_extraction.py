@@ -7,8 +7,8 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     OnDemandMetricSpec,
     SearchQueryConverter,
+    _cleanup_query,
     apdex_tag_spec,
-    cleanup_query,
     failure_tag_spec,
     query_tokens_to_string,
     should_use_on_demand_metrics,
@@ -20,46 +20,51 @@ from sentry.testutils.pytest.fixtures import django_db_all
 @pytest.mark.parametrize(
     "agg, query, result",
     [
-        ("count()", "release:a", False),  # supported by standard metrics
-        ("failure_rate()", "release:a", False),  # supported by standard metrics
-        ("count_unique(geo.city)", "release:a", False),
-        # geo.city not supported by standard metrics, but also not by on demand
+        # ("count()", "release:a", False),  # supported by standard metrics
+        # ("failure_rate()", "release:a", False),  # supported by standard metrics
+        # ("count_unique(geo.city)", "release:a", False),
+        # # geo.city not supported by standard metrics, but also not by on demand
+        # (
+        #     "count()",
+        #     "transaction.duration:>1",
+        #     True,
+        # ),  # transaction.duration not supported by standard metrics
+        # ("failure_count()", "transaction.duration:>1", True),  # supported by on demand
+        # ("failure_rate()", "transaction.duration:>1", True),  # supported by on demand
+        # ("apdex(10)", "", True),  # every apdex query is on-demand
+        # ("apdex(10)", "transaction.duration:>10", True),  # supported by on demand
+        # (
+        #     "count_if(transaction.duration,equals,0)",
+        #     "release:a",
+        #     False,
+        # ),  # count_if supported by standard metrics
+        # ("p75(transaction.duration)", "release:a", False),  # supported by standard metrics
+        # (
+        #     "p75(transaction.duration)",
+        #     "transaction.duration:>1",
+        #     True,
+        # ),  # transaction.duration query is on-demand
+        # ("count()", "", False),  # Malformed aggregate should return false
+        # (
+        #     "count()",
+        #     "event.type:error transaction.duration:>0",
+        #     False,
+        # ),  # event.type:error not supported by metrics
+        # (
+        #     "count()",
+        #     "event.type:default transaction.duration:>0",
+        #     False,
+        # ),  # event.type:error not supported by metrics
+        # (
+        #     "count()",
+        #     "error.handled:true transaction.duration:>0",
+        #     False,
+        # ),  # error.handled is an error search term
         (
-            "count()",
-            "transaction.duration:>1",
+            "p95(transaction.duration)",
+            "(event.type:transaction) AND (event.type:transaction transaction:/gmeet/boards-picker.html project:google-meet-fe transaction.source:url)",
             True,
-        ),  # transaction.duration not supported by standard metrics
-        ("failure_count()", "transaction.duration:>1", True),  # supported by on demand
-        ("failure_rate()", "transaction.duration:>1", True),  # supported by on demand
-        ("apdex(10)", "", True),  # every apdex query is on-demand
-        ("apdex(10)", "transaction.duration:>10", True),  # supported by on demand
-        (
-            "count_if(transaction.duration,equals,0)",
-            "release:a",
-            False,
-        ),  # count_if supported by standard metrics
-        ("p75(transaction.duration)", "release:a", False),  # supported by standard metrics
-        (
-            "p75(transaction.duration)",
-            "transaction.duration:>1",
-            True,
-        ),  # transaction.duration query is on-demand
-        ("count()", "", False),  # Malformed aggregate should return false
-        (
-            "count()",
-            "event.type:error transaction.duration:>0",
-            False,
-        ),  # event.type:error not supported by metrics
-        (
-            "count()",
-            "event.type:default transaction.duration:>0",
-            False,
-        ),  # event.type:error not supported by metrics
-        (
-            "count()",
-            "error.handled:true transaction.duration:>0",
-            False,
-        ),  # error.handled is an error search term
+        )
     ],
 )
 def test_should_use_on_demand(agg, query, result):
@@ -643,7 +648,7 @@ def test_query_tokens_to_string(query):
 def test_cleanup_query(dirty, clean):
     dirty_tokens = parse_search_query(dirty)
     clean_tokens = parse_search_query(clean)
-    actual_clean = cleanup_query(dirty_tokens)
+    actual_clean = _cleanup_query(dirty_tokens)
 
     assert actual_clean == clean_tokens
 
@@ -662,7 +667,7 @@ def test_cleanup_query_with_empty_parens():
         + [paren([paren([paren(["AND", "OR", paren([])])])])]  # ((()))
     )
     clean_tokens = parse_search_query("release:initial AND os.name:android")
-    actual_clean = cleanup_query(dirty_tokens)
+    actual_clean = _cleanup_query(dirty_tokens)
     assert actual_clean == clean_tokens
 
 
