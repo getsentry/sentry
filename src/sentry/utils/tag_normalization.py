@@ -1,5 +1,10 @@
 import functools
+import logging
 import re
+
+from sentry.eventstore.models import Event
+
+logger = logging.getLogger(__name__)
 
 _KNOWN_TAGS = {
     "sentry.cocoa",
@@ -92,3 +97,23 @@ def normalize_sdk_tag(tag: str) -> str:
         tag = "other"
 
     return tag
+
+
+def normalized_sdk_tag_from_event(event: Event) -> str:
+    """
+     Normalize tags coming from SDKs to more manageable canonical form, by:
+
+     - combining synonymous tags (`sentry.react` -> `sentry.javascript.react`),
+     - ignoring framework differences (`sentry.python.flask` and `sentry.python.django` -> `sentry.python`)
+     - collapsing all community/third-party SDKs into a single `other` category
+
+    Note: Some platforms may keep their framework-specific values, as needed for analytics.
+
+    This is done to reduce the cardinality of the `sdk.name` tag, while keeping
+    the ones interesinting to us as granual as possible.
+    """
+    try:
+        return normalize_sdk_tag((event.data.get("sdk") or {}).get("name") or "other")
+    except Exception:
+        logger.warning("failed to get SDK name", exc_info=True)
+        return "other"
