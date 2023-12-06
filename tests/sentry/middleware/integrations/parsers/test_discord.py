@@ -112,7 +112,7 @@ class DiscordRequestParserTest(TestCase):
         mock_verify_signature.return_value = None
         data = {
             "guild_id": self.integration.external_id,
-            "name": "command_name",
+            "data": {"name": "command_name"},
             "type": int(DiscordRequestTypes.COMMAND),
         }
         parser = self.get_parser(reverse("sentry-integration-discord-interactions"), data=data)
@@ -125,6 +125,26 @@ class DiscordRequestParserTest(TestCase):
             assert mock_respond_from_first_region.called
         integration = parser.get_integration_from_request()
         assert integration == self.integration
+
+    @patch("sentry.integrations.discord.requests.base.verify_signature")
+    def test_interactions_endpoint_routing_command_no_integration(self, mock_verify_signature):
+        mock_verify_signature.return_value = None
+        data = {
+            "data": {"name": "command_name"},
+            "type": int(DiscordRequestTypes.COMMAND),
+        }
+        parser = self.get_parser(reverse("sentry-integration-discord-interactions"), data=data)
+        with patch.object(parser, "get_regions_from_organizations", return_value=[]), patch.object(
+            parser, "get_response_from_first_region"
+        ) as mock_respond_from_first_region, patch.object(
+            parser, "get_response_from_control_silo"
+        ) as mock_response_from_control, assume_test_silo_mode(
+            SiloMode.CONTROL, can_be_monolith=False
+        ):
+            parser.get_response()
+            assert not mock_respond_from_first_region.called
+            assert mock_response_from_control.called
+        assert parser.get_integration_from_request() is None
 
     @patch("sentry.integrations.discord.requests.base.verify_signature")
     def test_interactions_endpoint_routing_message_component(self, mock_verify_signature):

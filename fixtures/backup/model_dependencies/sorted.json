@@ -36,6 +36,7 @@
   "sentry.regionoutbox",
   "sentry.regionscheduleddeletion",
   "sentry.regiontombstone",
+  "sentry.regressiongroup",
   "sentry.relay",
   "sentry.relayusage",
   "sentry.repository",

@@ -257,7 +257,7 @@ function CreateProject() {
   }
 
   const {shouldCreateCustomRule, conditions} = alertRuleConfig || {};
-  const {canCreateProject} = useProjectCreationAccess({organization, teams: accessTeams});
+  const {canCreateProject} = useProjectCreationAccess({organization});
 
   const canCreateTeam = organization.access.includes('project:admin');
   const isOrgMemberWithNoAccess = accessTeams.length === 0 && !canCreateTeam;

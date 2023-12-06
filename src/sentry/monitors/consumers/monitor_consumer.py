@@ -544,6 +544,14 @@ def _process_checkin(
             else:
                 mark_ok(check_in, ts=start_time)
 
+            # track how much time it took for the message to make it through
+            # relay into kafka. This should help us understand when missed
+            # check-ins may be slipping in, since we use the `item.ts` to click
+            # the clock forward, if that is delayed it's possible for the
+            # check-in to come in late
+            kafka_delay = message_ts - start_time.replace(tzinfo=None)
+            metrics.gauge("monitors.checkin.relay_kafka_delay", kafka_delay.total_seconds())
+
             # how long in wall-clock time did it take for us to process this
             # check-in. This records from when the message was first appended
             # into the Kafka topic until we just completed processing.
@@ -563,7 +571,7 @@ def _process_checkin(
             tags={**metric_kwargs, "status": "error"},
         )
         txn.set_tag("result", "error")
-        logger.exception("Failed to process check-in", exc_info=True)
+        logger.exception("Failed to process check-in")
 
 
 def _process_message(
@@ -574,7 +582,7 @@ def _process_message(
     try:
         try_monitor_tasks_trigger(ts, partition)
     except Exception:
-        logger.exception("Failed to trigger monitor tasks", exc_info=True)
+        logger.exception("Failed to trigger monitor tasks")
 
     # Nothing else to do with clock pulses
     if wrapper["message_type"] == "clock_pulse":

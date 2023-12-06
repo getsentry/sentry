@@ -543,8 +543,8 @@ def test_detect_function_trends_ratelimit(
 
 
 @mock.patch("sentry.tasks.statistical_detectors.emit_function_regression_issue")
-@mock.patch("sentry.tasks.statistical_detectors.detect_breakpoints")
-@mock.patch("sentry.tasks.statistical_detectors.raw_snql_query")
+@mock.patch("sentry.statistical_detectors.detector.detect_breakpoints")
+@mock.patch("sentry.search.events.builder.discover.raw_snql_query")
 @django_db_all
 def test_detect_function_change_points(
     mock_raw_snql_query,
@@ -954,7 +954,7 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
         assert len(results) == 1
 
     @mock.patch("sentry.tasks.statistical_detectors.send_regression_to_platform")
-    @mock.patch("sentry.tasks.statistical_detectors.detect_breakpoints")
+    @mock.patch("sentry.statistical_detectors.detector.detect_breakpoints")
     def test_transaction_change_point_detection(
         self, mock_detect_breakpoints, mock_send_regression_to_platform
     ) -> None:

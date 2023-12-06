@@ -35,6 +35,7 @@ from django.db.models.signals import post_save
 from django.utils.encoding import force_str
 from urllib3 import Retry
 from urllib3.exceptions import MaxRetryError
+from usageaccountant import UsageUnit
 
 from sentry import (
     eventstore,
@@ -122,6 +123,7 @@ from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
+from sentry.usage_accountant import record
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
@@ -144,7 +146,7 @@ SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple", "nel")
 # Timeout for cached group crash report counts
 CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 
-NON_TITLE_EVENT_TITLES = ["<untitled>", "<unknown>", "<unlabeled event>"]
+NON_TITLE_EVENT_TITLES = ["<untitled>", "<unknown>", "<unlabeled event>", "Error"]
 
 
 @dataclass
@@ -683,7 +685,7 @@ class EventManager:
             old_bytes = job["event_metrics"].get(key) or 0
             job["event_metrics"][key] = old_bytes + attachment.size
 
-        _nodestore_save_many(jobs)
+        _nodestore_save_many(jobs=jobs, app_feature="errors")
         save_unprocessed_event(project, job["event"].event_id)
 
         if not raw:
@@ -1345,7 +1347,7 @@ def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
 
 
 @metrics.wraps("save_event.nodestore_save_many")
-def _nodestore_save_many(jobs: Sequence[Job]) -> None:
+def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
     inserted_time = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
     for job in jobs:
         # Write the event to Nodestore
@@ -1361,6 +1363,17 @@ def _nodestore_save_many(jobs: Sequence[Job]) -> None:
             if unprocessed is not None:
                 subkeys["unprocessed"] = unprocessed
 
+        if app_feature:
+            event_size = 0
+            event_metrics = job.get("event_metrics")
+            if event_metrics:
+                event_size = event_metrics.get("bytes.stored.event", 0)
+            record(
+                resource_id=settings.COGS_EVENT_STORE_LABEL,
+                app_feature=app_feature,
+                amount=event_size,
+                usage_type=UsageUnit.BYTES,
+            )
         job["event"].data["nodestore_insert"] = inserted_time
         job["event"].data.save(subkeys=subkeys)
 
@@ -2127,29 +2140,38 @@ severity_connection_pool = connection_from_url(
 
 
 def _get_severity_score(event: Event) -> float | None:
-    # If the event is info-level or lower, auto-mark as low severity
-    if LOG_LEVELS_MAP[event.data["level"]] <= logging.INFO:
-        return 0
+    # Short circuit the severity value if we know the event is fatal or info/debug
+    level = str(event.data.get("level", "error"))
+    if LOG_LEVELS_MAP[level] == logging.FATAL:
+        return 1.0
+    if LOG_LEVELS_MAP[level] <= logging.INFO:
+        return 0.0
 
     op = "event_manager._get_severity_score"
     logger_data = {"event_id": event.data["event_id"], "op": op}
     severity = None
 
-    # We're using the title (which truncates the error message) rather than the full error type and
-    # message here because the `exception` property in event data (where they live) isn't mirrored
-    # to BigQuery for storage space reasons (stacktraces can be enormous). Since the ML model is
-    # trained on BQ data, we have to use the title to match.
-    #
-    # TODO: Figure out if there's a way to get the full error message to the model. (If we do that,
-    # though, it'll only work for `ErrorEvent`-type events. We'll still have to use `title` for
-    # `DefaultEvent`-type events - like those which come from `capture_message` calls - or find the
-    # message data elsewhere in the event.)
-    title = event.title
     event_type = get_event_type(event.data)
+    metadata = event_type.get_metadata(event.data)
+
+    exception_type = metadata.get("type")
+    exception_value = metadata.get("value")
+
+    if exception_type:
+        title = exception_type
+        if exception_value:
+            title += f": {exception_value}"
+
+        # We truncate the title to 128 characters as any more than that is unlikely to be helpful
+        # and would slow down the model.
+        title = trim(title, 128)
+    else:
+        # Fall back to using just the title for events without an exception.
+        title = event.title
 
     # If the event hasn't yet been given a helpful title, attempt to calculate one
     if title in NON_TITLE_EVENT_TITLES:
-        title = event_type.get_title(event_type.get_metadata(event.data))
+        title = event_type.get_title(metadata)
 
     # If there's still nothing helpful to be had, bail
     if title in NON_TITLE_EVENT_TITLES:
@@ -2165,10 +2187,7 @@ def _get_severity_score(event: Event) -> float | None:
     payload = {
         "message": title,
         "has_stacktrace": int(has_stacktrace(event.data)),
-        "log_level": event.data.get("level"),
-        # TODO: For now we're counting not having a `handled` value as being handled, but
-        # we should update the model to account for three values: True, False, and None
-        "handled": 0 if is_handled(event.data) is False else 1,
+        "handled": is_handled(event.data),
     }
 
     if options.get("processing.severity-backlog-test.timeout"):
@@ -2183,7 +2202,7 @@ def _get_severity_score(event: Event) -> float | None:
             try:
                 response = severity_connection_pool.urlopen(
                     "POST",
-                    "/issues/severity-score",
+                    "/v0/issues/severity-score",
                     body=json.dumps(payload),
                     headers={"content-type": "application/json;charset=utf-8"},
                 )
@@ -2744,7 +2763,7 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
     _get_or_create_release_associated_models(jobs, projects)
     _tsdb_record_all_metrics(jobs)
     _materialize_event_metrics(jobs)
-    _nodestore_save_many(jobs)
+    _nodestore_save_many(jobs=jobs, app_feature="transactions")
     _eventstream_insert_many(jobs)
     _track_outcome_accepted_many(jobs)
     _detect_performance_problems(jobs, projects)
@@ -2778,6 +2797,6 @@ def save_generic_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Seque
     _materialize_metadata_many(jobs)
     _get_or_create_environment_many(jobs, projects)
     _materialize_event_metrics(jobs)
-    _nodestore_save_many(jobs)
+    _nodestore_save_many(jobs=jobs, app_feature="issue_platform")
 
     return jobs
