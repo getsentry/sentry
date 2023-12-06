@@ -13,6 +13,8 @@ import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 
+import {CanvasReplayerPlugin} from './canvasReplayerPlugin';
+
 enum ReplayLocalstorageKeys {
   REPLAY_CONFIG = 'replay-config',
 }
@@ -365,16 +367,13 @@ export function Provider({
       const inst = new Replayer(events, {
         root,
         blockClass: 'sentry-block',
-        // liveMode: false,
-        // triggerFocus: false,
         mouseTail: {
           duration: 0.75 * 1000,
           lineCap: 'round',
           lineWidth: 2,
           strokeStyle: theme.purple200,
         },
-        // unpackFn: _ => _,
-        // plugins: [],
+        plugins: [CanvasReplayerPlugin(events)],
         skipInactive: savedReplayConfigRef.current.skip ?? true,
         speed: savedReplayConfigRef.current.speed || 1,
       });
