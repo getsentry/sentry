@@ -59,7 +59,9 @@ export function ScreenLoadSpansTable({
   const spanOp = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
   const truncatedPrimary = formatVersionAndCenterTruncate(primaryRelease ?? '', 15);
   const truncatedSecondary = formatVersionAndCenterTruncate(secondaryRelease ?? '', 15);
-  const {hasTTFD} = useTTFDConfigured([`transaction:"${transaction}"`]);
+  const {hasTTFD, isLoading: hasTTFDLoading} = useTTFDConfigured([
+    `transaction:"${transaction}"`,
+  ]);
 
   const searchQuery = new MutableSearch([
     'transaction.op:ui.load',
@@ -124,7 +126,7 @@ export function ScreenLoadSpansTable({
     [SPAN_OP]: t('Operation'),
     [SPAN_DESCRIPTION]: t('Span Description'),
     'count()': t('Total Count'),
-    'ttid_count()': t('Affects'),
+    'ttid_count()': hasTTFD ? t('Affects') : t('Affects TTID'),
     'time_spent_percentage()': t('Total Time Spent'),
     [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t(
       'Duration (%s)',
@@ -311,7 +313,7 @@ export function ScreenLoadSpansTable({
         secondaryRelease={secondaryRelease}
       />
       <GridEditable
-        isLoading={isLoading}
+        isLoading={isLoading || hasTTFDLoading}
         data={data?.data as TableDataRow[]}
         columnOrder={eventViewColumns
           .filter(
