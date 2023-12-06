@@ -1400,13 +1400,6 @@ def detect_new_escalation(job: PostProcessJob):
             "tasks.post_process.detect_new_escalation.unable_to_acquire_lock", extra=extra
         )
         return
-    except Exception as error:
-        metrics.incr("tasks.post_process.detect_new_escalation.failed")
-        extra["error"] = error
-        logger.exception(
-            "Unexpected error type while calling `get_latest_threshold()`", extra=extra
-        )
-        return
 
 
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
