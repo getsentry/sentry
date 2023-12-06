@@ -17,6 +17,7 @@ import {
 import useOrganization from 'sentry/utils/useOrganization';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
+import AppStartup from 'sentry/views/starfish/views/appStartup';
 
 export default function InitializationModule() {
   const organization = useOrganization();
@@ -45,7 +46,7 @@ export default function InitializationModule() {
                     <ReleaseComparisonSelector />
                   </Container>
                   <ErrorBoundary mini>
-                    <div>App Start Content</div>
+                    <AppStartup />
                   </ErrorBoundary>
                 </PageFiltersContainer>
               </Layout.Main>
