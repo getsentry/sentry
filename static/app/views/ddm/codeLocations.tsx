@@ -39,11 +39,11 @@ export function CodeLocations({mri}: {mri: string}) {
     return null;
   }
 
-  const codeLocations = data?.codeLocations;
-
   if (!Array.isArray(data?.codeLocations) || data?.codeLocations.length === 0) {
     return null;
   }
+
+  const codeLocations = data?.codeLocations ?? [];
 
   // We only want to show the first 5 code locations
   const reversedCodeLocations = codeLocations.slice(0, 5);
