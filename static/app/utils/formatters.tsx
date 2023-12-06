@@ -289,25 +289,16 @@ type ParsedLargestSuffix = [val: number, suffix: moment.unitOfTime.DurationConst
  */
 export function parseLargestSuffix(
   seconds: number,
-  maxSuffix: string = 'days',
-  abbreviation: boolean = false
+  maxSuffix: string = 'days'
 ): ParsedLargestSuffix {
-  let levels: Level[] = [
+  const levels: Level[] = [
     ['minutes', SEC_IN_MIN],
     ['hours', SEC_IN_HR],
     ['days', SEC_IN_DAY],
     ['weeks', SEC_IN_WK],
   ];
-  if (abbreviation) {
-    levels = [
-      ['m', SEC_IN_MIN],
-      ['h', SEC_IN_HR],
-      ['d', SEC_IN_DAY],
-      ['w', SEC_IN_WK],
-    ];
-  }
   let val = seconds;
-  let suffix: moment.unitOfTime.DurationConstructor = abbreviation ? 's' : 'seconds';
+  let suffix: moment.unitOfTime.DurationConstructor = 'seconds';
   if (val === 0) {
     return [val, suffix];
   }

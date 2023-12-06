@@ -397,15 +397,6 @@ describe('parseLargestSuffix', () => {
     expect(parseLargestSuffix(SEC_IN_WK, 'hours')).toEqual([168, 'hours']);
     expect(parseLargestSuffix(SEC_IN_WK, 'days')).toEqual([7, 'days']);
   });
-
-  it('abbreviates values', () => {
-    expect(parseLargestSuffix(0, 'weeks', true)).toEqual([0, 's']);
-    expect(parseLargestSuffix(SEC_IN_MIN, 'weeks', true)).toEqual([1, 'm']);
-    expect(parseLargestSuffix(SEC_IN_MIN * 2, 'weeks', true)).toEqual([2, 'm']);
-    expect(parseLargestSuffix(SEC_IN_HR, 'weeks', true)).toEqual([1, 'h']);
-    expect(parseLargestSuffix(SEC_IN_DAY, 'weeks', true)).toEqual([1, 'd']);
-    expect(parseLargestSuffix(SEC_IN_WK, 'weeks', true)).toEqual([1, 'wk']);
-  });
 });
 
 describe('formatNumberWithDynamicDecimals', () => {
