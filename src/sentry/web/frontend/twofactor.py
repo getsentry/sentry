@@ -147,9 +147,11 @@ class TwoFactorAuthView(BaseView):
         challenge = activation = None
         interface = self.negotiate_interface(request, interfaces)
 
-        if request.method == "POST" and ratelimiter.is_limited(
-            f"auth-2fa:user:{user.id}", limit=5, window=60
-        ):
+        is_rate_limited = ratelimiter.is_limited(
+            f"auth-2fa:user:{user.id}", limit=5, window=20
+        ) or ratelimiter.is_limited(f"auth-2fa-long:user:{user.id}", limit=20, window=60 * 60)
+
+        if request.method == "POST" and is_rate_limited:
             # prevent spamming due to failed 2FA attempts
             if not ratelimiter.is_limited(
                 f"auth-2fa-failed-notification:user:{user.id}", limit=1, window=30 * 60
