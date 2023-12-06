@@ -1003,7 +1003,7 @@ class Factories:
         if install is None:
             assert org
             sentry_app = Factories.create_sentry_app(
-                name="Org Token",
+                name="Integration Token",
                 organization=org,
                 scopes=scopes,
             )
