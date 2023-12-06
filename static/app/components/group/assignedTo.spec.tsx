@@ -16,14 +16,14 @@ import type {
   Group,
   Organization as TOrganization,
   Project,
-  Team as TTeam,
+  Team as TeamType,
   User,
 } from 'sentry/types';
 
 describe('Group > AssignedTo', () => {
   let USER_1!: User;
   let USER_2!: User;
-  let TEAM_1!: TTeam;
+  let TEAM_1!: TeamType;
   let PROJECT_1!: Project;
   let GROUP_1!: Group;
   let event!: Event;
