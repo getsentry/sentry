@@ -40,7 +40,7 @@ AGGREGATE_ALIASES = {
     "p90": ("quantiles", [0.9]),
     "p95": ("quantiles", [0.95]),
     "p99": ("quantiles", [0.99]),
-    "count_unique": ("uniq", None),
+    "count_unique": ("uniq", []),
 }
 
 
@@ -411,7 +411,7 @@ def _resolve_aggregate_aliases(metrics_query: MetricsQuery) -> MetricsQuery:
         series = metrics_query.query
         if series.aggregate in AGGREGATE_ALIASES:
             aggregate, parameters = AGGREGATE_ALIASES[series.aggregate]
-            series = series.set_aggregate(aggregate, parameters)
+            series = series.set_aggregate(aggregate, parameters or None)
             return metrics_query.set_query(series)
 
     elif isinstance(metrics_query.query, Formula):
@@ -420,8 +420,8 @@ def _resolve_aggregate_aliases(metrics_query: MetricsQuery) -> MetricsQuery:
             if isinstance(p, Timeseries):
                 if p.aggregate in AGGREGATE_ALIASES:
                     aggregate, parameters = AGGREGATE_ALIASES[p.aggregate]
-                    parameters[i] = p.set_aggregate(aggregate, parameters)
+                    parameters[i] = p.set_aggregate(aggregate, parameters or None)
 
-        return metrics_query.set_query(metrics_query.query.set_parameters(parameters))
+        return metrics_query.set_query(metrics_query.query.set_parameters(parameters or None))
 
     return metrics_query
