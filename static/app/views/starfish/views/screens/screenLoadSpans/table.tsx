@@ -328,7 +328,7 @@ export function ScreenLoadSpansTable({
               ].includes(col.name)
           )
           .map((col: TableColumn<React.ReactText>) => {
-            return {...col, name: columnNameMap[col.key]};
+            return {...col, name: columnNameMap[col.key] ?? col.key};
           })}
         columnSortBy={columnSortBy}
         location={location}
