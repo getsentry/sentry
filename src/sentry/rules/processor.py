@@ -64,6 +64,7 @@ class RuleProcessor:
         is_regression: bool,
         is_new_group_environment: bool,
         has_reappeared: bool,
+        has_escalated: bool = False,
     ) -> None:
         self.event = event
         self.group = event.group
@@ -73,6 +74,7 @@ class RuleProcessor:
         self.is_regression = is_regression
         self.is_new_group_environment = is_new_group_environment
         self.has_reappeared = has_reappeared
+        self.has_escalated = has_escalated
 
         self.grouped_futures: MutableMapping[
             str, Tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], List[RuleFuture]]
@@ -179,6 +181,7 @@ class RuleProcessor:
             is_regression=self.is_regression,
             is_new_group_environment=self.is_new_group_environment,
             has_reappeared=self.has_reappeared,
+            has_escalated=self.has_escalated,
         )
 
     def apply_rule(self, rule: Rule, status: GroupRuleStatus) -> None:
@@ -196,6 +199,7 @@ class RuleProcessor:
             "is_new": self.is_new,
             "is_regression": self.is_regression,
             "has_reappeared": self.has_reappeared,
+            "has_escalated": self.has_escalated,
             "new_group_environment": self.is_new_group_environment,
         }
 

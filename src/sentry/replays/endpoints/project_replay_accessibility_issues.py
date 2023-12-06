@@ -76,7 +76,7 @@ class ProjectReplayAccessibilityIssuesEndpoint(ProjectEndpoint):
             timestamp = None
         else:
             try:
-                timestamp = int(timestamp_param)
+                timestamp = float(timestamp_param)
             except TypeError:
                 timestamp = None
             except ValueError:
@@ -109,6 +109,9 @@ class ProjectReplayAccessibilityIssuesEndpoint(ProjectEndpoint):
                     segment_row_to_storage_meta(project.id, replay_id, row)
                     for row in results["data"]
                 ]
+
+            if len(segments) == 0:
+                return {"meta": {"total": 0}, "data": []}
 
             # Make a POST request to the replay-analyzer service. The files will be downloaded
             # and evaluated on the remote system. The accessibility output is then redirected to

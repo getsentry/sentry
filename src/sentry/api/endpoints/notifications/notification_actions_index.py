@@ -50,12 +50,11 @@ class NotificationActionsPermission(OrganizationPermission):
 @region_silo_endpoint
 @extend_schema(tags=["Alerts"])
 class NotificationActionsIndexEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.ECOSYSTEM
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
-
-    owner = ApiOwner.ENTERPRISE
 
     """
     View existing NotificationActions or create a new one.

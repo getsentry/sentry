@@ -35,6 +35,7 @@ from django.db.models.signals import post_save
 from django.utils.encoding import force_str
 from urllib3 import Retry
 from urllib3.exceptions import MaxRetryError
+from usageaccountant import UsageUnit
 
 from sentry import (
     eventstore,
@@ -122,6 +123,7 @@ from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
+from sentry.usage_accountant import record
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
@@ -132,7 +134,7 @@ from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
-from sentry.utils.tag_normalization import normalize_sdk_tag
+from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import BaseEvent, Event
@@ -178,26 +180,6 @@ def get_tag(data: dict[str, Any], key: str) -> Optional[Any]:
 
 def is_sample_event(job):
     return get_tag(job["data"], "sample_event") == "yes"
-
-
-def normalized_sdk_tag_from_event(event: Event) -> str:
-    """
-     Normalize tags coming from SDKs to more manageable canonical form, by:
-
-     - combining synonymous tags (`sentry.react` -> `sentry.javascript.react`),
-     - ignoring framework differences (`sentry.python.flask` and `sentry.python.django` -> `sentry.python`)
-     - collapsing all community/third-party SDKs into a single `other` category
-
-    Note: Some platforms may keep their framework-specific values, as needed for analytics.
-
-    This is done to reduce the cardinality of the `sdk.name` tag, while keeping
-    the ones interesinting to us as granual as possible.
-    """
-    try:
-        return normalize_sdk_tag((event.data.get("sdk") or {}).get("name") or "other")
-    except Exception:
-        logger.warning("failed to get SDK name", exc_info=True)
-        return "other"
 
 
 def sdk_metadata_from_event(event: Event) -> Mapping[str, Any]:
@@ -683,7 +665,7 @@ class EventManager:
             old_bytes = job["event_metrics"].get(key) or 0
             job["event_metrics"][key] = old_bytes + attachment.size
 
-        _nodestore_save_many(jobs)
+        _nodestore_save_many(jobs=jobs, app_feature="errors")
         save_unprocessed_event(project, job["event"].event_id)
 
         if not raw:
@@ -1345,7 +1327,7 @@ def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
 
 
 @metrics.wraps("save_event.nodestore_save_many")
-def _nodestore_save_many(jobs: Sequence[Job]) -> None:
+def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
     inserted_time = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
     for job in jobs:
         # Write the event to Nodestore
@@ -1361,6 +1343,17 @@ def _nodestore_save_many(jobs: Sequence[Job]) -> None:
             if unprocessed is not None:
                 subkeys["unprocessed"] = unprocessed
 
+        if app_feature:
+            event_size = 0
+            event_metrics = job.get("event_metrics")
+            if event_metrics:
+                event_size = event_metrics.get("bytes.stored.event", 0)
+            record(
+                resource_id=settings.COGS_EVENT_STORE_LABEL,
+                app_feature=app_feature,
+                amount=event_size,
+                usage_type=UsageUnit.BYTES,
+            )
         job["event"].data["nodestore_insert"] = inserted_time
         job["event"].data.save(subkeys=subkeys)
 
@@ -2750,7 +2743,7 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
     _get_or_create_release_associated_models(jobs, projects)
     _tsdb_record_all_metrics(jobs)
     _materialize_event_metrics(jobs)
-    _nodestore_save_many(jobs)
+    _nodestore_save_many(jobs=jobs, app_feature="transactions")
     _eventstream_insert_many(jobs)
     _track_outcome_accepted_many(jobs)
     _detect_performance_problems(jobs, projects)
@@ -2784,6 +2777,6 @@ def save_generic_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Seque
     _materialize_metadata_many(jobs)
     _get_or_create_environment_many(jobs, projects)
     _materialize_event_metrics(jobs)
-    _nodestore_save_many(jobs)
+    _nodestore_save_many(jobs=jobs, app_feature="issue_platform")
 
     return jobs

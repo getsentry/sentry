@@ -583,6 +583,7 @@ def post_process_group(
                     occurrence.event_id,
                     group_id=group_id,
                     skip_transaction_groupevent=True,
+                    occurrence_id=occurrence_id,
                 )
                 if retrieved is None:
                     raise EventLookupError(
@@ -1018,12 +1019,18 @@ def process_rules(job: PostProcessJob) -> None:
     is_regression = job["group_state"]["is_regression"]
     is_new_group_environment = job["group_state"]["is_new_group_environment"]
     has_reappeared = job["has_reappeared"]
+    has_escalated = job["has_escalated"]
 
     has_alert = False
 
     with metrics.timer("post_process.process_rules.duration"):
         rp = RuleProcessor(
-            group_event, is_new, is_regression, is_new_group_environment, has_reappeared
+            group_event,
+            is_new,
+            is_regression,
+            is_new_group_environment,
+            has_reappeared,
+            has_escalated,
         )
         with sentry_sdk.start_span(op="tasks.post_process_group.rule_processor_callbacks"):
             # TODO(dcramer): ideally this would fanout, but serializing giant
@@ -1325,7 +1332,7 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
         and event.occurrence.evidence_data.get("source")
         in [
             FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE.value,
-            FeedbackCreationSource.USER_REPORT_DJANGO_ENDPOINT.value,
+            FeedbackCreationSource.NEW_FEEDBACK_DJANGO_ENDPOINT.value,
         ]
     ):
         return True

@@ -954,9 +954,9 @@ CELERYBEAT_SCHEDULE_CONTROL = {
     },
     "deliver-from-outbox-control": {
         "task": "sentry.tasks.enqueue_outbox_jobs_control",
-        # Run every 1 minute
-        "schedule": crontab(minute="*/1"),
-        "options": {"expires": 30, "queue": "outbox.control"},
+        # Run every 10 seconds as integration webhooks are delivered by this task
+        "schedule": timedelta(seconds=10),
+        "options": {"expires": 60, "queue": "outbox.control"},
     },
     "schedule-deletions-control": {
         "task": "sentry.tasks.deletion.run_scheduled_deletions_control",
@@ -1379,6 +1379,7 @@ if os.environ.get("OPENAPIGENERATE", False):
     from sentry.apidocs.build import OPENAPI_TAGS, get_old_json_components, get_old_json_paths
 
     SPECTACULAR_SETTINGS = {
+        "DEFAULT_GENERATOR_CLASS": "sentry.apidocs.hooks.CustomGenerator",
         "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
         "POSTPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_postprocessing_hook"],
         "DISABLE_ERRORS_AND_WARNINGS": False,
@@ -1506,6 +1507,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:higher-ownership-limit": False,
     # Enable Monitors (Crons) view
     "organizations:monitors": False,
+    # Enable rate-limiting via relay for Monitors (crons)
+    "organizations:monitors-quota-rate-limit": False,
     # Enable Performance view
     "organizations:performance-view": True,
     # Enable profiling
@@ -1790,6 +1793,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-accessibility-issues": False,
     # Enable the new zero state UI
     "organizations:session-replay-new-zero-state": False,
+    # Enable canvas recording
+    "organizations:session-replay-enable-canvas": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
@@ -3962,6 +3967,8 @@ REGION_PINNED_URL_NAMES = {
 
 # Shared resource ids for accounting
 EVENT_PROCESSING_STORE = "rc_processing_redis"
+COGS_EVENT_STORE_LABEL = "bigtable_nodestore"
+
 
 if SILO_DEVSERVER:
     # Add connections for the region & control silo databases.
