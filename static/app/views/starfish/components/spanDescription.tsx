@@ -1,11 +1,14 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
-import {StackTraceMiniFrame} from 'sentry/views/starfish/components/stackTraceMiniFrame';
+import {
+  MissingFrame,
+  StackTraceMiniFrame,
+} from 'sentry/views/starfish/components/stackTraceMiniFrame';
 import {useFullSpanFromTrace} from 'sentry/views/starfish/queries/useFullSpanFromTrace';
 import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
 import {SpanIndexedField, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
@@ -41,7 +44,9 @@ export function DatabaseSpanDescription({
   const indexedSpan = indexedSpans?.[0];
 
   // NOTE: We only need this for `span.data`! If this info existed in indexed spans, we could skip it
-  const {data: rawSpan} = useFullSpanFromTrace(groupId, [INDEXED_SPAN_SORT]);
+  const {data: rawSpan, isLoading: isRawSpanLoading} = useFullSpanFromTrace(groupId, [
+    INDEXED_SPAN_SORT,
+  ]);
 
   const rawDescription =
     rawSpan?.description || indexedSpan?.['span.description'] || preliminaryDescription;
@@ -63,16 +68,22 @@ export function DatabaseSpanDescription({
       )}
 
       <Feature features={['organizations:performance-database-view-query-source']}>
-        {rawSpan?.data?.['code.filepath'] && (
-          <StackTraceMiniFrame
-            projectId={indexedSpan?.project_id?.toString()}
-            eventId={indexedSpan?.['transaction.id']}
-            frame={{
-              filename: rawSpan?.data?.['code.filepath'],
-              lineNo: rawSpan?.data?.['code.lineno'],
-              function: rawSpan?.data?.['code.function'],
-            }}
-          />
+        {!areIndexedSpansLoading && !isRawSpanLoading && (
+          <Fragment>
+            {rawSpan?.data?.['code.filepath'] ? (
+              <StackTraceMiniFrame
+                projectId={indexedSpan?.project_id?.toString()}
+                eventId={indexedSpan?.['transaction.id']}
+                frame={{
+                  filename: rawSpan?.data?.['code.filepath'],
+                  lineNo: rawSpan?.data?.['code.lineno'],
+                  function: rawSpan?.data?.['code.function'],
+                }}
+              />
+            ) : (
+              <MissingFrame />
+            )}
+          </Fragment>
         )}
       </Feature>
     </Frame>
