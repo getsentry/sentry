@@ -8,7 +8,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
@@ -97,7 +97,7 @@ class RelocationIndexEndpoint(Endpoint):
         """
 
         logger.info("post.start", extra={"caller": request.user.id})
-        if not features.has("relocation:enabled"):
+        if not options.get("relocation.enabled"):
             return Response({"detail": ERR_FEATURE_DISABLED}, status=400)
 
         serializer = RelocationPostSerializer(data=request.data)

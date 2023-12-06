@@ -36,7 +36,7 @@ class RelocationPublicKeyTest(APITestCase):
     def test_success_simple(self, fake_kms_client: FakeKeyManagementServiceClient):
         self.mock_kms_client(fake_kms_client)
 
-        with self.feature("relocation:enabled"):
+        with self.options({"relocation.enabled": True}):
             response = self.client.get(reverse(self.endpoint), {})
 
         assert response.status_code == 200
@@ -57,7 +57,7 @@ class RelocationPublicKeyTest(APITestCase):
         fake_kms_client.get_public_key.return_value = None
         fake_kms_client.get_public_key.side_effect = GoogleAPIError("Test")
 
-        with self.feature("relocation:enabled"):
+        with self.options({"relocation.enabled": True}):
             response = self.client.get(reverse(self.endpoint), {})
 
         assert response.status_code == 500
