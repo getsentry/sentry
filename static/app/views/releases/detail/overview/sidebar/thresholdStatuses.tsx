@@ -8,6 +8,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Release, ReleaseProject} from 'sentry/types';
 import {getExactDuration} from 'sentry/utils/formatters';
+import useApi from 'sentry/utils/useApi';
 
 import {
   ReleaseDetailsTable,
@@ -17,14 +18,14 @@ import {fetchThresholdStatuses} from '../../../utils/fetchThresholdStatus';
 import {ThresholdStatus, ThresholdStatusesQuery} from '../../../utils/types';
 
 type Props = {
-  api: Client;
   organization: Organization;
   project: Required<ReleaseProject>;
   release: Release;
   selectedEnvs: string[];
 };
 
-function ThresholdStatuses({api, project, release, organization, selectedEnvs}: Props) {
+function ThresholdStatuses({project, release, organization, selectedEnvs}: Props) {
+  const api: Client = useApi();
   const [thresholdStatuses, setThresholdStatuses] = useState<ThresholdStatus[]>([]);
   const fetchThresholdStatusCallback = useCallback(async () => {
     const fuzzSec = 30;

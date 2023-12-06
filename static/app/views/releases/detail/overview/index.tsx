@@ -587,7 +587,6 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
                           />
                           {hasV2ReleaseUIEnabled && (
                             <ThresholdStatuses
-                              api={api}
                               project={project}
                               release={release}
                               organization={organization}
