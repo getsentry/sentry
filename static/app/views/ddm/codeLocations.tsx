@@ -20,20 +20,20 @@ import {MetricCodeLocationFrame, MetricMetaCodeLocation} from '../../utils/metri
 export function CodeLocations({mri}: {mri: string}) {
   const {data} = useMetricsCodeLocations(mri);
   // Keeps track of which code location has expanded source context
-  const [expanedCodeLocation, setExpandedCodeLocation] = useState(null);
+  const [expandedCodeLocation, setExpandedCodeLocation] = useState(null);
   // Keeps track of whether the code locations are collapsed or not
   const [collapsed, setCollapsed] = useState(true);
   const organization = useOrganization();
 
   const toggleExpandedLocation = useCallback(
     index => {
-      if (expanedCodeLocation === index) {
+      if (expandedCodeLocation === index) {
         setExpandedCodeLocation(null);
       } else {
         setExpandedCodeLocation(index);
       }
     },
-    [expanedCodeLocation]
+    [expandedCodeLocation]
   );
 
   if (!hasDDMExperimentalFeature(organization)) {
@@ -83,7 +83,7 @@ export function CodeLocations({mri}: {mri: string}) {
           <CodeLocation
             key={`location-${index}`}
             codeLocation={location}
-            showContext={expanedCodeLocation === index}
+            showContext={expandedCodeLocation === index}
             handleShowContext={() => toggleExpandedLocation(index)}
             isFirst={index === 0}
             isLast={collapsed || index === reversedCodeLocations.length - 1}
