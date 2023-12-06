@@ -365,6 +365,9 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
   render() {
     const {organization, selection, location, api} = this.props;
     const {start, end, period, utc} = this.pageDateTime;
+    const hasV2ReleaseUIEnabled =
+      organization.features.includes('releases-v2') ||
+      organization.features.includes('releases-v2-st');
 
     return (
       <ReleaseContext.Consumer>
@@ -376,7 +379,6 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
           refetchData,
           hasHealthData,
           releaseBounds,
-          thresholdStatuses,
         }) => {
           const {commitCount, version} = release;
           const hasDiscover = organization.features.includes('discover-basic');
@@ -384,14 +386,6 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
           const hasReleaseComparisonPerformance = organization.features.includes(
             'release-comparison-performance'
           );
-          const thresholdList =
-            (thresholdStatuses &&
-              thresholdStatuses[`${project.slug}-${release.version}`]) ||
-            [];
-          const lastDeploy = release.lastDeploy;
-          const filteredThresholdList = thresholdList?.filter(status => {
-            return status.environment?.name === lastDeploy?.environment;
-          });
           const {environments} = selection;
           const performanceType = platformToPerformanceType([project], [project.id]);
           const {selectedSort, sortOptions} = getTransactionsListSort(location);
@@ -591,9 +585,13 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
                             release={release}
                             project={project}
                           />
-                          {filteredThresholdList.length > 0 && (
+                          {hasV2ReleaseUIEnabled && (
                             <ThresholdStatuses
-                              thresholdStatuses={filteredThresholdList}
+                              api={api}
+                              project={project}
+                              release={release}
+                              organization={organization}
+                              selectedEnvs={selection.environments}
                             />
                           )}
                           {hasHealthData && (

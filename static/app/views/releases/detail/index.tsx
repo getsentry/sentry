@@ -40,8 +40,6 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import {getReleaseBounds, ReleaseBounds, searchReleaseVersion} from '../utils';
-import {fetchThresholdStatuses} from '../utils/fetchThresholdStatus';
-import {ThresholdStatus, ThresholdStatusesQuery} from '../utils/types';
 
 import ReleaseHeader from './header/releaseHeader';
 
@@ -53,7 +51,6 @@ type ReleaseContextType = {
   release: ReleaseWithHealth;
   releaseBounds: ReleaseBounds;
   releaseMeta: ReleaseMeta;
-  thresholdStatuses?: {[key: string]: ThresholdStatus[]};
 };
 const ReleaseContext = createContext<ReleaseContextType>({} as ReleaseContextType);
 
@@ -74,14 +71,10 @@ type State = {
   deploys: Deploy[];
   release: ReleaseWithHealth;
   sessions: SessionApiResponse | null;
-  thresholdStatuses?: {[key: string]: ThresholdStatus[]};
 } & DeprecatedAsyncView['state'];
 
 class ReleasesDetail extends DeprecatedAsyncView<Props, State> {
   shouldReload = true;
-  hasV2ReleaseUIEnabled =
-    this.props.organization.features.includes('releases-v2') ||
-    this.props.organization.features.includes('releases-v2-st');
 
   getTitle() {
     const {params, organization, selection} = this.props;
@@ -118,9 +111,6 @@ class ReleasesDetail extends DeprecatedAsyncView<Props, State> {
       )
     ) {
       super.componentDidUpdate(prevProps, prevState);
-    }
-    if (this.hasV2ReleaseUIEnabled && this.state.release !== prevState.release) {
-      this.fetchThresholdStatuses();
     }
   }
 
@@ -177,35 +167,6 @@ class ReleasesDetail extends DeprecatedAsyncView<Props, State> {
     ]);
   }
 
-  fetchThresholdStatuses() {
-    const {selection, organization, api} = this.props;
-    const {release} = this.state;
-    const project = release?.projects.find(p => p.id === selection.projects[0]);
-    if (!project || !release) {
-      return;
-    }
-
-    const fuzzSec = 30;
-    const start = new Date(new Date(release.dateCreated).getTime() - fuzzSec * 1000);
-    const end = new Date(new Date(release.dateCreated).getTime() + fuzzSec * 1000);
-
-    const releaseVersion: string = release.version;
-
-    const query: ThresholdStatusesQuery = {
-      start: start.toISOString(),
-      end: end.toISOString(),
-      release: [releaseVersion],
-      project: [project.slug],
-    };
-    if (selection.environments.length) {
-      query.environment = selection.environments;
-    }
-
-    fetchThresholdStatuses(organization, api, query).then(thresholdStatuses => {
-      this.setState({thresholdStatuses});
-    });
-  }
-
   renderError(...args) {
     const possiblyWrongProject = Object.values(this.state.errors).find(
       e => e?.status === 404 || e?.status === 403
@@ -234,7 +195,7 @@ class ReleasesDetail extends DeprecatedAsyncView<Props, State> {
 
   renderBody() {
     const {organization, location, selection, releaseMeta} = this.props;
-    const {release, deploys, sessions, reloading, thresholdStatuses} = this.state;
+    const {release, deploys, sessions, reloading} = this.state;
     const project = release?.projects.find(p => p.id === selection.projects[0]);
     const releaseBounds = getReleaseBounds(release);
 
@@ -267,7 +228,6 @@ class ReleasesDetail extends DeprecatedAsyncView<Props, State> {
               hasHealthData:
                 getCount(sessions?.groups, SessionFieldWithOperation.SESSIONS) > 0,
               releaseBounds,
-              thresholdStatuses,
             }}
           >
             {this.props.children}
