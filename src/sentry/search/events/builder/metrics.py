@@ -1166,18 +1166,6 @@ class MetricsQueryBuilder(QueryBuilder):
             return None
 
 
-class UnresolvedMetricsQuery(MetricsQueryBuilder):
-    def resolve_query(
-        self,
-        query: Optional[str] = None,
-        selected_columns: Optional[List[str]] = None,
-        groupby_columns: Optional[List[str]] = None,
-        equations: Optional[List[str]] = None,
-        orderby: list[str] | str | None = None,
-    ) -> None:
-        pass
-
-
 class AlertMetricsQueryBuilder(MetricsQueryBuilder):
     is_alerts_query = True
 
