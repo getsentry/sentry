@@ -115,7 +115,6 @@ export const DDMLayout = memo(() => {
 const SplitDivider = styled((props: DividerProps) => (
   <BaseSplitDivider {...props} icon={<IconGrabbable size="xs" />} />
 ))<DividerProps>`
-  height: 16px;
   border-top: 1px solid ${$p => $p.theme.border};
 `;
 
