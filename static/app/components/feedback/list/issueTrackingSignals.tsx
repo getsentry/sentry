@@ -35,6 +35,10 @@ function getPluginNames(pluginIssue) {
 }
 
 function getIntegrationNames(integrationIssue) {
+  if (!integrationIssue.props.configurations.length) {
+    return {name: '', icon: ''};
+  }
+
   return {
     name: integrationIssue.props.configurations[0].provider.name ?? '',
     icon: integrationIssue.key ?? '',
