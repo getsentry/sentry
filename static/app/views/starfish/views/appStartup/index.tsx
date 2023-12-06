@@ -60,7 +60,7 @@ function AppStartup({additionalFilters}: Props) {
 
   const query = new MutableSearch([
     'event.type:transaction',
-    'transaction.op:[app.start.cold,app.start.warm]',
+    'transaction.op:ui.load',
     ...(additionalFilters ?? []),
   ]);
 
@@ -123,7 +123,7 @@ function AppStartup({additionalFilters}: Props) {
 
   const tableSearchFilters = new MutableSearch([
     'event.type:transaction',
-    'transaction.op:[app.start.cold,app.start.warm]',
+    'transaction.op:ui.load',
   ]);
 
   return (
