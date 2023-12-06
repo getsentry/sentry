@@ -80,7 +80,7 @@ export const useTransactionSamplesWebVitalsQuery = ({
     location,
     orgSlug: organization.slug,
     options: {
-      enabled: enabled && pageFilters.isReady,
+      enabled,
       refetchOnWindowFocus: false,
     },
     referrer: 'api.performance.browser.web-vitals.transaction',

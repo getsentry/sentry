@@ -14,6 +14,7 @@ from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.organization import Organization
 from sentry.snuba import (
     discover,
+    errors,
     functions,
     metrics_enhanced_performance,
     metrics_performance,
@@ -189,6 +190,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     if dataset
                     in [
                         discover,
+                        errors,
                         functions,
                         metrics_performance,
                         metrics_enhanced_performance,

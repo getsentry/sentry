@@ -151,6 +151,13 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     title: 'Replay',
     icon: <IconWarning size="xs" />,
   }),
+  'replay.hydrate': frame => ({
+    color: 'red300',
+    description: frame.data.mutations,
+    tabKey: TabKey.BREADCRUMBS,
+    title: 'Hydration Error',
+    icon: <IconFire size="xs" />,
+  }),
   'ui.click': frame => ({
     color: 'purple300',
     description: frame.message ?? '',

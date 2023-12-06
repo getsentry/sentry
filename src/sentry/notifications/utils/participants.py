@@ -34,14 +34,12 @@ from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.types import (
-    NOTIFICATION_SETTING_TYPES,
     ActionTargetType,
     FallthroughChoiceType,
     GroupSubscriptionReason,
     NotificationSettingEnum,
     NotificationSettingOptionValues,
     NotificationSettingsOptionEnum,
-    NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
@@ -268,7 +266,6 @@ def get_owner_reason(
     project: Project,
     target_type: ActionTargetType,
     event: Event | None = None,
-    notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
     fallthrough_choice: FallthroughChoiceType | None = None,
 ) -> str | None:
     """
@@ -280,7 +277,7 @@ def get_owner_reason(
         return None
 
     # Not an issue alert
-    if event is None or notification_type != NotificationSettingTypes.ISSUE_ALERTS:
+    if event is None:
         return None
 
     # Describe why an issue owner was notified
@@ -394,7 +391,7 @@ def get_send_to(
     target_type: ActionTargetType,
     target_identifier: int | None = None,
     event: Event | None = None,
-    notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
+    notification_type_enum: NotificationSettingEnum = NotificationSettingEnum.ISSUE_ALERTS,
     fallthrough_choice: FallthroughChoiceType | None = None,
     rules: Iterable[Rule] | None = None,
     notification_uuid: str | None = None,
@@ -417,7 +414,12 @@ def get_send_to(
                 lambda x: x.actor_type != ActorType.USER or x.id not in muted_user_ids, recipients
             )
     return get_recipients_by_provider(
-        project, recipients, notification_type, target_type, target_identifier, notification_uuid
+        project,
+        recipients,
+        notification_type_enum,
+        target_type,
+        target_identifier,
+        notification_uuid,
     )
 
 
@@ -537,7 +539,7 @@ def combine_recipients_by_provider(
     return recipients_by_provider
 
 
-def get_notification_recipients_v2(
+def get_notification_recipients(
     recipients: Iterable[RpcActor],
     type: NotificationSettingEnum,
     organization_id: Optional[int] = None,
@@ -559,10 +561,27 @@ def get_notification_recipients_v2(
     return out
 
 
+# TODO(Steve): Remove once reference is gone from getsentry
+def get_notification_recipients_v2(
+    recipients: Iterable[RpcActor],
+    type: NotificationSettingEnum,
+    organization_id: Optional[int] = None,
+    project_ids: Optional[List[int]] = None,
+    actor_type: Optional[ActorType] = None,
+) -> Mapping[ExternalProviders, set[RpcActor]]:
+    return get_notification_recipients(
+        recipients=recipients,
+        type=type,
+        organization_id=organization_id,
+        project_ids=project_ids,
+        actor_type=actor_type,
+    )
+
+
 def get_recipients_by_provider(
     project: Project,
     recipients: Iterable[RpcActor],
-    notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
+    notification_type_enum: NotificationSettingEnum = NotificationSettingEnum.ISSUE_ALERTS,
     target_type: ActionTargetType | None = None,
     target_identifier: int | None = None,
     notification_uuid: str | None = None,
@@ -573,11 +592,11 @@ def get_recipients_by_provider(
     users = recipients_by_type[ActorType.USER]
 
     # First evaluate the teams.
-    setting_type = NotificationSettingEnum(NOTIFICATION_SETTING_TYPES[notification_type])
+    setting_type = notification_type_enum
     teams_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]] = {}
 
     # get by team
-    teams_by_provider = get_notification_recipients_v2(
+    teams_by_provider = get_notification_recipients(
         recipients=teams,
         type=setting_type,
         organization_id=project.organization_id,
@@ -598,7 +617,7 @@ def get_recipients_by_provider(
     # Repeat for users.
     users_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]] = {}
     # convert from string to enum
-    users_by_provider = get_notification_recipients_v2(
+    users_by_provider = get_notification_recipients(
         recipients=users,
         type=setting_type,
         organization_id=project.organization_id,

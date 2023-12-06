@@ -273,7 +273,7 @@ export function PageOverviewWebVitalsDetailPanel({
                   )
                 : (
                     projectData?.data[0][`avg(measurements.${webVital})`] as number
-                  ).toFixed(2)
+                  )?.toFixed(2)
             }
             webVital={webVital}
             score={webVitalScore}

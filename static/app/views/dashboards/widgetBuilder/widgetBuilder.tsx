@@ -34,6 +34,7 @@ import {
   getColumnsAndAggregatesAsStrings,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
+import {hasDDMFeature} from 'sentry/utils/metrics/features';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -180,7 +181,6 @@ function WidgetBuilder({
   }
 
   const hasReleaseHealthFeature = organization.features.includes('dashboards-rh-widget');
-  const hasCustomMetricsFeature = organization.features.includes('ddm-experimental');
 
   const filteredDashboardWidgets = dashboard.widgets.filter(({widgetType}) => {
     if (widgetType === WidgetType.RELEASE) {
@@ -1132,7 +1132,7 @@ function WidgetBuilder({
                                     displayType={state.displayType}
                                     onChange={handleDataSetChange}
                                     hasReleaseHealthFeature={hasReleaseHealthFeature}
-                                    hasCustomMetricsFeature={hasCustomMetricsFeature}
+                                    hasCustomMetricsFeature={hasDDMFeature(organization)}
                                   />
                                   {isTabularChart && (
                                     <DashboardsMEPConsumer>

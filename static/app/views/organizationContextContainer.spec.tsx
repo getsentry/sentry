@@ -1,10 +1,11 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {openSudo} from 'sentry/actionCreators/modal';
 import * as OrganizationActionCreator from 'sentry/actionCreators/organization';
+import * as openSudo from 'sentry/actionCreators/sudoModal';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -15,13 +16,10 @@ import {OrganizationLegacyContext} from 'sentry/views/organizationContextContain
 jest.mock('sentry/stores/configStore', () => ({
   get: jest.fn(),
 }));
-jest.mock('sentry/actionCreators/modal', () => ({
-  openSudo: jest.fn(),
-}));
 
 describe('OrganizationContextContainer', function () {
   const {organization, projects, routerProps} = initializeOrg();
-  const teams = [TestStubs.Team()];
+  const teams = [Team()];
 
   const api = new MockApiClient();
   let getOrgMock: jest.Mock;
@@ -156,6 +154,7 @@ describe('OrganizationContextContainer', function () {
   });
 
   it('opens sudo modal for superusers on 403s', async function () {
+    const openSudoSpy = jest.spyOn(openSudo, 'openSudo');
     jest
       .mocked(ConfigStore.get)
       .mockImplementation(() => TestStubs.Config({isSuperuser: true}));
@@ -166,7 +165,7 @@ describe('OrganizationContextContainer', function () {
 
     renderComponent();
 
-    await waitFor(() => expect(openSudo).toHaveBeenCalled());
+    await waitFor(() => expect(openSudoSpy).toHaveBeenCalled());
   });
 
   it('uses last organization from ConfigStore', function () {

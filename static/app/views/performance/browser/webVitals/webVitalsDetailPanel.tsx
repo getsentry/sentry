@@ -224,7 +224,7 @@ export function WebVitalsDetailPanel({
                   )
                 : (
                     projectData?.data?.[0]?.[mapWebVitalToColumn(webVital)] as number
-                  ).toFixed(2)
+                  )?.toFixed(2)
             }
             webVital={webVital}
             score={webVitalScore}

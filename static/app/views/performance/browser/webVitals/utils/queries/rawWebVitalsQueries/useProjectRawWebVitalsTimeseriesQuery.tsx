@@ -94,47 +94,27 @@ export const useProjectRawWebVitalsTimeseriesQuery = ({
     total: [],
   };
 
-  result?.data?.['avg(measurements.lcp)']?.data.forEach((interval, index) => {
-    const lcp: number = result?.data?.['avg(measurements.lcp)']?.data[index][1][0].count;
-    const fcp: number = result?.data?.['avg(measurements.fcp)']?.data[index][1][0].count;
-    const cls: number = result?.data?.['avg(measurements.cls)']?.data[index][1][0].count;
-    const ttfb: number =
-      result?.data?.['avg(measurements.ttfb)']?.data[index][1][0].count;
-    const fid: number = result?.data?.['avg(measurements.fid)']?.data[index][1][0].count;
+  result?.data?.['p75(measurements.lcp)']?.data.forEach((interval, index) => {
+    const [lcp, fcp, cls, ttfb, fid] = ['lcp', 'fcp', 'cls', 'ttfb', 'fid'].map(
+      webVital => {
+        return result?.data?.[`avg(measurements.${webVital})`]?.data[index][1][0].count;
+      }
+    );
     // This is kinda jank, but since events-stats zero fills, we need to assume that 0 values mean no data.
     // 0 value for a webvital is low frequency, but not impossible. We may need to figure out a better way to handle this in the future.
-    const {totalScore, lcpScore, fcpScore, fidScore, clsScore, ttfbScore} =
-      calculatePerformanceScore({
-        lcp: lcp === 0 ? Infinity : lcp,
-        fcp: fcp === 0 ? Infinity : fcp,
-        cls: cls === 0 ? Infinity : cls,
-        ttfb: ttfb === 0 ? Infinity : ttfb,
-        fid: fid === 0 ? Infinity : fid,
-      });
+    const scores = calculatePerformanceScore({
+      lcp: lcp === 0 ? Infinity : lcp,
+      fcp: fcp === 0 ? Infinity : fcp,
+      cls: cls === 0 ? Infinity : cls,
+      ttfb: ttfb === 0 ? Infinity : ttfb,
+      fid: fid === 0 ? Infinity : fid,
+    });
 
-    data.total.push({
-      value: totalScore ?? 0,
-      name: interval[0] * 1000,
-    });
-    data.cls.push({
-      value: clsScore ?? 0,
-      name: interval[0] * 1000,
-    });
-    data.lcp.push({
-      value: lcpScore ?? 0,
-      name: interval[0] * 1000,
-    });
-    data.fcp.push({
-      value: fcpScore ?? 0,
-      name: interval[0] * 1000,
-    });
-    data.ttfb.push({
-      value: ttfbScore ?? 0,
-      name: interval[0] * 1000,
-    });
-    data.fid.push({
-      value: fidScore ?? 0,
-      name: interval[0] * 1000,
+    ['total', 'lcp', 'fcp', 'fid', 'cls', 'ttfb'].forEach(webVital => {
+      data[webVital].push({
+        value: scores[`${webVital}Score`],
+        name: interval[0] * 1000,
+      });
     });
   });
 

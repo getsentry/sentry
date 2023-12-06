@@ -103,21 +103,26 @@ class VstsRequestParserTest(TestCase):
             },
         )
 
-        request = self.factory.post(
-            self.path,
-            HTTP_SHARED_SECRET=self.shared_secret,
-        )
-
         region_silo_payloads = [WORK_ITEM_UNASSIGNED, WORK_ITEM_UPDATED, WORK_ITEM_UPDATED_STATUS]
 
         for payload in region_silo_payloads:
-            request.data = payload  # type:ignore
+            request = self.factory.post(
+                self.path,
+                HTTP_SHARED_SECRET=self.shared_secret,
+                data=payload,
+                content_type="application/json",
+            )
             parser = VstsRequestParser(request=request, response_handler=self.get_response)
             integration = parser.get_integration_from_request()
             assert integration == expected_integration
 
-        # Invalid payload
-        request.data = {"nonsense": True}  # type:ignore
+        # Invalid payload or content-type
+        request = self.factory.post(
+            self.path,
+            HTTP_SHARED_SECRET=self.shared_secret,
+            data=payload,
+            content_type="multipart/form-data",
+        )
         parser = VstsRequestParser(request=request, response_handler=self.get_response)
         integration = parser.get_integration_from_request()
         assert integration is None

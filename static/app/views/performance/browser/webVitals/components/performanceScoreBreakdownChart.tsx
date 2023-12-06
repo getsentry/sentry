@@ -115,7 +115,7 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
         }}
         dataMax={100}
         chartColors={segmentColors}
-        fullSeries
+        preserveIncompletePoints
       />
     </ChartContainer>
   );
@@ -126,6 +126,7 @@ const ChartContainer = styled('div')`
   flex: 1;
   border: 1px solid ${p => p.theme.gray200};
   border-radius: ${p => p.theme.borderRadius};
+  position: relative;
 `;
 
 const PerformanceScoreLabel = styled('div')`

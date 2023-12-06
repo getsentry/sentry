@@ -65,7 +65,7 @@ export const useTransactionWebVitalsScoresQuery = ({
     location,
     orgSlug: organization.slug,
     options: {
-      enabled: pageFilters.isReady && enabled,
+      enabled,
       refetchOnWindowFocus: false,
     },
     referrer: 'api.performance.browser.web-vitals.transactions-scores',

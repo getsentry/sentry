@@ -1,9 +1,12 @@
 import type {Organization} from 'sentry/types';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
-// TODO(ddm): rename this since dashboards and code locations are also behind it
-export function hasDdmAlertsSupport(organization: Organization) {
+export function hasDDMExperimentalFeature(organization: Organization) {
   return organization.features.includes('ddm-experimental');
+}
+
+export function hasDDMFeature(organization: Organization) {
+  return organization.features.includes('ddm-ui');
 }
 
 /**
@@ -16,7 +19,8 @@ export function getForceMetricsLayerQueryExtras(
   organization: Organization,
   alertDataset: Dataset
 ): {forceMetricsLayer: 'true'} | Record<string, never> {
-  return hasDdmAlertsSupport(organization) && alertDataset === Dataset.GENERIC_METRICS
+  return hasDDMExperimentalFeature(organization) &&
+    alertDataset === Dataset.GENERIC_METRICS
     ? {forceMetricsLayer: 'true'}
     : {};
 }

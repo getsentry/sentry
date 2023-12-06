@@ -6,8 +6,6 @@ from typing import Any, Mapping
 # XXX(mdtro): backwards compatible imports for celery 4.4.7, remove after upgrade to 5.2.7
 import celery
 
-from sentry.services.hybrid_cloud.app import app_service
-from sentry.silo.base import SiloMode
 from sentry.tasks.sentry_functions import send_sentry_function_webhook
 
 if celery.version_info >= (5, 2):
@@ -30,9 +28,10 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.sentryfunction import SentryFunction
 from sentry.models.servicehook import ServiceHook, ServiceHookProject
-from sentry.models.user import User
+from sentry.services.hybrid_cloud.app.service import app_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
@@ -45,6 +44,7 @@ TASK_OPTIONS = {
     "default_retry_delay": (60 * 5),  # Five minutes.
     "max_retries": 3,
     "record_timing": True,
+    "silo_mode": SiloMode.REGION,
 }
 CONTROL_TASK_OPTIONS = {
     "queue": "app_platform.control",
@@ -92,9 +92,7 @@ def _webhook_event_data(event, group_id, project_id):
     return event_context
 
 
-@instrumented_task(
-    name="sentry.tasks.sentry_apps.send_alert_event", silo_mode=SiloMode.REGION, **TASK_OPTIONS
-)
+@instrumented_task(name="sentry.tasks.sentry_apps.send_alert_event", **TASK_OPTIONS)
 @retry_decorator
 def send_alert_event(
     event: Event,
@@ -316,13 +314,8 @@ def build_comment_webhook(installation_id, issue_id, type, user_id, *args, **kwa
 
 def get_webhook_data(installation_id, issue_id, user_id):
     extra = {"installation_id": installation_id, "issue_id": issue_id}
-    try:
-        # TODO(hybridcloud) This needs to use the sentryapp service
-        # as we call this from region silos
-        install = SentryAppInstallation.objects.get(
-            id=installation_id, status=SentryAppInstallationStatus.INSTALLED
-        )
-    except SentryAppInstallation.DoesNotExist:
+    install = app_service.get_installation_by_id(id=installation_id)
+    if not install:
         logger.info("workflow_notification.missing_installation", extra=extra)
         return
 
@@ -333,11 +326,10 @@ def get_webhook_data(installation_id, issue_id, user_id):
         return
 
     user = None
-
-    try:
-        user = User.objects.get(id=user_id) if user_id else None
-    except User.DoesNotExist:
-        logger.info("workflow_notification.missing_user", extra=extra)
+    if user_id:
+        user = user_service.get_user(user_id=user_id)
+        if not user:
+            logger.info("workflow_notification.missing_user", extra=extra)
 
     return (install, issue, user)
 
@@ -345,11 +337,8 @@ def get_webhook_data(installation_id, issue_id, user_id):
 @instrumented_task("sentry.tasks.send_process_resource_change_webhook", **TASK_OPTIONS)
 @retry_decorator
 def send_resource_change_webhook(installation_id, event, data, *args, **kwargs):
-    try:
-        installation = SentryAppInstallation.objects.get(
-            id=installation_id, status=SentryAppInstallationStatus.INSTALLED
-        )
-    except SentryAppInstallation.DoesNotExist:
+    installation = app_service.get_installation_by_id(id=installation_id)
+    if not installation:
         logger.info(
             "send_process_resource_change_webhook.missing_installation",
             extra={"installation_id": installation_id, "event": event},

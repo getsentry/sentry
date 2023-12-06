@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 
 type Props = ModalRenderProps & {
   featureName: string;
-  features: string[];
+  features: string | string[];
   message?: string;
 };
 

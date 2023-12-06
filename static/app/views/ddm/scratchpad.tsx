@@ -1,3 +1,4 @@
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import * as echarts from 'echarts/core';
 
@@ -6,16 +7,27 @@ import Panel from 'sentry/components/panels/panel';
 import {IconAdd} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {MetricWidgetQueryParams} from 'sentry/utils/metrics';
+import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DDM_CHART_GROUP, MIN_WIDGET_WIDTH} from 'sentry/views/ddm/constants';
+import {useDDMContext} from 'sentry/views/ddm/context';
 
-import {MetricWidget, useMetricWidgets} from './widget';
+import {MetricWidget} from './widget';
 
 export function MetricScratchpad() {
-  const {widgets, onChange, addWidget} = useMetricWidgets();
+  const {setSelectedWidgetIndex, selectedWidgetIndex, widgets, updateWidget, addWidget} =
+    useDDMContext();
   const {selection} = usePageFilters();
   const organization = useOrganization();
+
+  const handleChange = useCallback(
+    (index: number, widget: Partial<MetricWidgetQueryParams>) => {
+      updateWidget(index, widget);
+    },
+    [updateWidget]
+  );
 
   const Wrapper =
     widgets.length === 1 ? StyledSingleWidgetWrapper : StyledMetricDashboard;
@@ -24,15 +36,16 @@ export function MetricScratchpad() {
 
   return (
     <Wrapper>
-      {widgets.map(widget => (
+      {widgets.map((widget, index) => (
         <MetricWidget
-          key={widget.position}
-          widget={{
-            ...widget,
-            onChange: data => {
-              onChange(widget.position, data);
-            },
-          }}
+          key={index}
+          index={index}
+          onSelect={setSelectedWidgetIndex}
+          isSelected={
+            hasDDMExperimentalFeature(organization) && selectedWidgetIndex === index
+          }
+          onChange={handleChange}
+          widget={widget}
           datetime={selection.datetime}
           projects={selection.projects}
           environments={selection.environments}

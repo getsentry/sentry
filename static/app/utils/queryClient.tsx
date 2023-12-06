@@ -18,6 +18,21 @@ const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
   },
 };
 
+// XXX: We need to set persistInFlight to disable query cancellation on
+//      unmount. The current implementation of our API client does not
+//      reject on query cancellation, which causes React Query to never
+//      update from the isLoading state. This matches the library default
+//      as well [0].
+//
+//      This is slightly different from our typical usage of our api client
+//      in components, where we do not want it to resolve, since we would
+//      then have to guard our setState's against being unmounted.
+//
+//      This has the advantage of storing the result in the cache as well.
+//
+//      [0]: https://tanstack.com/query/v4/docs/guides/query-cancellation#default-behavior
+const PERSIST_IN_FLIGHT = true;
+
 type QueryKeyEndpointOptions<
   Headers = Record<string, string>,
   Query = Record<string, any>,
@@ -67,7 +82,10 @@ interface UseApiQueryOptions<TApiResponse, TError = RequestError>
   staleTime: number;
 }
 
-type UseApiQueryResult<TData, TError> = reactQuery.UseQueryResult<TData, TError> & {
+export type UseApiQueryResult<TData, TError> = reactQuery.UseQueryResult<
+  TData,
+  TError
+> & {
   /**
    * Get a header value from the response
    */
@@ -93,22 +111,7 @@ function useApiQuery<TResponseData, TError = RequestError>(
   queryKey: ApiQueryKey,
   options: UseApiQueryOptions<TResponseData, TError>
 ): UseApiQueryResult<TResponseData, TError> {
-  const api = useApi({
-    // XXX: We need to set persistInFlight to disable query cancellation on
-    //      unmount. The current implementation of our API client does not
-    //      reject on query cancellation, which causes React Query to never
-    //      update from the isLoading state. This matches the library default
-    //      as well [0].
-    //
-    //      This is slightly different from our typical usage of our api client
-    //      in components, where we do not want it to resolve, since we would
-    //      then have to guard our setState's against being unmounted.
-    //
-    //      This has the advantage of storing the result in the cache as well.
-    //
-    //      [0]: https://tanstack.com/query/v4/docs/guides/query-cancellation#default-behavior
-    persistInFlight: true,
-  });
+  const api = useApi({persistInFlight: PERSIST_IN_FLIGHT});
 
   const [path, endpointOptions] = queryKey;
 
@@ -203,7 +206,7 @@ function parsePageParam(dir: 'previous' | 'next') {
 }
 
 function useInfiniteApiQuery<TResponseData>({queryKey}: {queryKey: ApiQueryKey}) {
-  const api = useApi();
+  const api = useApi({persistInFlight: PERSIST_IN_FLIGHT});
   return useInfiniteQuery({
     queryKey,
     queryFn: fetchInfiniteQuery<TResponseData>(api),
