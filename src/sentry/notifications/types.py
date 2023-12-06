@@ -74,7 +74,6 @@ class NotificationSettingTypes(ValueEqualityEnum):
 
 
 class NotificationSettingEnum(ValueEqualityEnum):
-    DEFAULT = "default"
     DEPLOY = "deploy"
     ISSUE_ALERTS = "alerts"
     WORKFLOW = "workflow"
