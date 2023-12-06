@@ -219,7 +219,15 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def get_event_by_id(self, project_id, event_id, group_id=None, tenant_ids=None):
+    def get_event_by_id(
+        self,
+        project_id,
+        event_id,
+        group_id=None,
+        skip_transaction_groupevent=False,
+        tenant_ids=None,
+        occurrence_id=None,
+    ):
         """
         Gets a single event of any event type given a project_id and event_id.
         Returns None if an event cannot be found.
