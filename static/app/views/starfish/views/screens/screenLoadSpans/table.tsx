@@ -36,7 +36,6 @@ import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseCompariso
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {SpanOpSelector} from 'sentry/views/starfish/views/screens/screenLoadSpans/spanOpSelector';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
   SpanMetricsField;
@@ -95,7 +94,6 @@ export function ScreenLoadSpansTable({
       SPAN_DESCRIPTION,
       `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
       `avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`,
-      `avg_compare(${SPAN_SELF_TIME},release,${secondaryRelease},${primaryRelease})`,
       'ttid_contribution_rate()',
       'ttid_count()',
       'ttfd_contribution_rate()',
@@ -136,8 +134,6 @@ export function ScreenLoadSpansTable({
       'Duration (%s)',
       truncatedSecondary
     ),
-    [`avg_compare(${SPAN_SELF_TIME},release,${secondaryRelease},${primaryRelease})`]:
-      DataTitles.change,
   };
 
   function renderBodyCell(column, row): React.ReactNode {
@@ -260,10 +256,7 @@ export function ScreenLoadSpansTable({
     tableMeta?: MetaType
   ): React.ReactNode {
     const fieldType = tableMeta?.fields?.[column.key];
-    let alignment = fieldAlignment(column.key as string, fieldType);
-    if (column.key === 'ttid_count()') {
-      alignment = 'left';
-    }
+    const alignment = fieldAlignment(column.key as string, fieldType);
     const field = {
       field: column.key as string,
       width: column.width,
@@ -344,4 +337,5 @@ export function ScreenLoadSpansTable({
 
 const Container = styled('div')`
   ${p => p.theme.overflowEllipsis};
+  text-align: right;
 `;
