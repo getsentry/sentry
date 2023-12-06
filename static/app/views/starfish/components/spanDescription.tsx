@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {space} from 'sentry/styles/space';
 import {StackTraceMiniFrame} from 'sentry/views/starfish/components/stackTraceMiniFrame';
 import {useFullSpanFromTrace} from 'sentry/views/starfish/queries/useFullSpanFromTrace';
 import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
@@ -50,9 +52,15 @@ export function DatabaseSpanDescription({
 
   return (
     <Frame>
-      <CodeSnippet language="sql" isRounded={false}>
-        {formatterDescription}
-      </CodeSnippet>
+      {areIndexedSpansLoading ? (
+        <WithPadding>
+          <LoadingIndicator mini />
+        </WithPadding>
+      ) : (
+        <CodeSnippet language="sql" isRounded={false}>
+          {formatterDescription}
+        </CodeSnippet>
+      )}
 
       <Feature features={['organizations:performance-database-view-query-source']}>
         {rawSpan?.data?.['code.filepath'] && (
@@ -80,6 +88,11 @@ const Frame = styled('div')`
   border: solid 1px ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
+`;
+
+const WithPadding = styled('div')`
+  display: flex;
+  padding: ${space(1)} ${space(2)};
 `;
 
 const WordBreak = styled('div')`
