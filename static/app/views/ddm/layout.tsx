@@ -1,4 +1,4 @@
-import {Fragment, useRef} from 'react';
+import {Fragment, memo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import ButtonBar from 'sentry/components/buttonBar';
@@ -66,7 +66,7 @@ function MainContent({showTraceTable}: {showTraceTable?: boolean}) {
   );
 }
 
-export function DDMLayout() {
+export const DDMLayout = memo(() => {
   const organization = useOrganization();
   const hasNewLayout = hasDDMExperimentalFeature(organization);
 
@@ -109,7 +109,7 @@ export function DDMLayout() {
       )}
     </FullViewport>
   );
-}
+});
 
 const ScrollingPage = styled(Layout.Page)`
   height: 100%;
