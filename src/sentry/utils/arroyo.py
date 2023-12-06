@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import atexit
+import logging
 import pickle
 from functools import lru_cache, partial
 from typing import Any, Callable, Mapping, Optional, Union
-import logging
 
 from arroyo.processing.strategies.run_task_with_multiprocessing import (
-    RunTaskWithMultiprocessing as ArroyoRunTaskWithMultiprocessing,
     MultiprocessingPool as ArroyoMultiprocessingPool,
+)
+from arroyo.processing.strategies.run_task_with_multiprocessing import (
+    RunTaskWithMultiprocessing as ArroyoRunTaskWithMultiprocessing,
 )
 from arroyo.processing.strategies.run_task_with_multiprocessing import TResult
 from arroyo.types import TStrategyPayload
