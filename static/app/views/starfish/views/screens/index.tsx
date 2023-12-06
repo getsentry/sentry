@@ -275,9 +275,17 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
     primaryRelease ?? '',
     MAX_TABLE_RELEASE_CHARS
   );
+  const truncatedPrimaryChart = formatVersionAndCenterTruncate(
+    primaryRelease ?? '',
+    MAX_CHART_RELEASE_CHARS
+  );
   const truncatedSecondary = formatVersionAndCenterTruncate(
     secondaryRelease ?? '',
     MAX_TABLE_RELEASE_CHARS
+  );
+  const truncatedSecondaryChart = formatVersionAndCenterTruncate(
+    secondaryRelease ?? '',
+    MAX_CHART_RELEASE_CHARS
   );
   const derivedQuery = getTransactionSearchQuery(location, tableEventView.query);
 
@@ -300,16 +308,8 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
                   subtitle: primaryRelease
                     ? t(
                         '%s v. %s',
-                        formatVersionAndCenterTruncate(
-                          primaryRelease,
-                          MAX_CHART_RELEASE_CHARS
-                        ),
-                        secondaryRelease
-                          ? formatVersionAndCenterTruncate(
-                              secondaryRelease,
-                              MAX_CHART_RELEASE_CHARS
-                            )
-                          : ''
+                        truncatedPrimaryChart,
+                        secondaryRelease ? truncatedSecondaryChart : ''
                       )
                     : '',
                 },
@@ -340,16 +340,8 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
                     subtitle: primaryRelease
                       ? t(
                           '%s v. %s',
-                          formatVersionAndCenterTruncate(
-                            primaryRelease,
-                            MAX_CHART_RELEASE_CHARS
-                          ),
-                          secondaryRelease
-                            ? formatVersionAndCenterTruncate(
-                                secondaryRelease,
-                                MAX_CHART_RELEASE_CHARS
-                              )
-                            : ''
+                          truncatedPrimaryChart,
+                          secondaryRelease ? truncatedSecondaryChart : ''
                         )
                       : '',
                   },
