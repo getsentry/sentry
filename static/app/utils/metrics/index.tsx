@@ -28,7 +28,7 @@ import {
   UseCase,
 } from 'sentry/types/metrics';
 import {defined, formatBytesBase2, formatBytesBase10} from 'sentry/utils';
-import {isMeasurement as isMeasurementString} from 'sentry/utils/discover/fields';
+import {isMeasurement as isMeasurementName} from 'sentry/utils/discover/fields';
 import {
   DAY,
   formatNumberWithDynamicDecimalPoints,
@@ -46,7 +46,7 @@ import {
   parseField,
   parseMRI,
 } from 'sentry/utils/metrics/mri';
-import {isCustomMeasurement as isCustomMeasurementString} from 'sentry/views/dashboards/utils';
+import {isCustomMeasurement as isCustomMeasurementName} from 'sentry/views/dashboards/utils';
 
 import {DateString, PageFilters} from '../../types/core';
 
@@ -495,12 +495,12 @@ export function groupByOp(metrics: MetricMeta[]): Record<string, MetricMeta[]> {
 
 export function isMeasurement({mri}: {mri: MRI}) {
   const {name} = parseMRI(mri) ?? {name: ''};
-  return isMeasurementString(name);
+  return isMeasurementName(name);
 }
 
 export function isCustomMeasurement({mri}: {mri: MRI}) {
   const {name} = parseMRI(mri) ?? {name: ''};
-  return isCustomMeasurementString(name);
+  return isCustomMeasurementName(name);
 }
 
 export function isStandardMeasurement({mri}: {mri: MRI}) {

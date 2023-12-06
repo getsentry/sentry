@@ -22,18 +22,11 @@ import {parsePeriodToHours, statsPeriodToDays} from 'sentry/utils/dates';
 import {
   formatMetricUsingFixedUnit,
   getDDMInterval,
-  isCustomMetric,
-  isStandardMeasurement,
-  isTransactionDuration,
+  getFieldFromMetricsQuery as getAlertAggregate,
   MetricDisplayType,
   MetricsQuery,
 } from 'sentry/utils/metrics';
-import {
-  formatMRIField,
-  getUseCaseFromMRI,
-  MRIToField,
-  parseMRI,
-} from 'sentry/utils/metrics/mri';
+import {formatMRIField, getUseCaseFromMRI, parseMRI} from 'sentry/utils/metrics/mri';
 import {useMetricsData} from 'sentry/utils/metrics/useMetricsData';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -164,19 +157,7 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
     [metricsQuery, alertPeriod]
   );
 
-  const aggregate = useMemo(() => {
-    if (isCustomMetric(metricsQuery)) {
-      return MRIToField(metricsQuery.mri, metricsQuery.op!);
-    }
-    if (isTransactionDuration(metricsQuery)) {
-      return `${metricsQuery.op!}(transaction.duration)`;
-    }
-    if (isStandardMeasurement(metricsQuery)) {
-      return formatMRIField(MRIToField(metricsQuery.mri, metricsQuery.op!));
-    }
-
-    return '';
-  }, [metricsQuery]);
+  const aggregate = useMemo(() => getAlertAggregate(metricsQuery), [metricsQuery]);
 
   const {data, isLoading, refetch, isError} = useMetricsData(
     {
