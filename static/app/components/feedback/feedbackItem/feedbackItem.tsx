@@ -105,7 +105,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
                 items={[
                   {
                     key: 'copy-url',
-                    label: t('Copy Issue URL'),
+                    label: t('Copy Feedback URL'),
                     onAction: handleCopyUrl,
                   },
                   {
