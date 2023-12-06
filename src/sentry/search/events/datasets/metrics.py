@@ -598,7 +598,46 @@ class MetricsDatasetConfig(DatasetConfig):
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=self._resolve_web_vital_score_function,
-                    default_result_type="integer",
+                    default_result_type="number",
+                ),
+                fields.MetricsFunction(
+                    "weighted_performance_score",
+                    required_args=[
+                        fields.MetricArg(
+                            "column",
+                            allowed_columns=[
+                                "measurements.score.fcp",
+                                "measurements.score.lcp",
+                                "measurements.score.fid",
+                                "measurements.score.cls",
+                                "measurements.score.ttfb",
+                            ],
+                            allow_custom_measurements=False,
+                        )
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=self._resolve_weighted_web_vital_score_function,
+                    default_result_type="number",
+                ),
+                fields.MetricsFunction(
+                    "opportunity_score",
+                    required_args=[
+                        fields.MetricArg(
+                            "column",
+                            allowed_columns=[
+                                "measurements.score.fcp",
+                                "measurements.score.lcp",
+                                "measurements.score.fid",
+                                "measurements.score.cls",
+                                "measurements.score.ttfb",
+                                "measurements.score.total",
+                            ],
+                            allow_custom_measurements=False,
+                        )
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=self._resolve_web_vital_opportunity_score_function,
+                    default_result_type="number",
                 ),
                 fields.MetricsFunction(
                     "epm",
@@ -1326,6 +1365,125 @@ class MetricsDatasetConfig(DatasetConfig):
                     ],
                 ),
                 0.0,
+            ],
+            alias,
+        )
+
+    def _resolve_weighted_web_vital_score_function(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: str,
+    ) -> SelectType:
+        column = args["column"]
+        metric_id = args["metric_id"]
+
+        if column not in [
+            "measurements.score.lcp",
+            "measurements.score.fcp",
+            "measurements.score.fid",
+            "measurements.score.cls",
+            "measurements.score.ttfb",
+        ]:
+            raise InvalidSearchQuery("performance_score only supports measurements")
+
+        return Function(
+            "greatest",
+            [
+                Function(
+                    "least",
+                    [
+                        Function(
+                            "divide",
+                            [
+                                Function(
+                                    "sumIf",
+                                    [
+                                        Column("value"),
+                                        Function("equals", [Column("metric_id"), metric_id]),
+                                    ],
+                                ),
+                                Function(
+                                    "countIf",
+                                    [
+                                        Column("value"),
+                                        Function(
+                                            "equals",
+                                            [
+                                                Column("metric_id"),
+                                                self.resolve_metric("measurements.score.total"),
+                                            ],
+                                        ),
+                                    ],
+                                ),
+                            ],
+                        ),
+                        1.0,
+                    ],
+                ),
+                0.0,
+            ],
+            alias,
+        )
+
+    def _resolve_web_vital_opportunity_score_function(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: str,
+    ) -> SelectType:
+        column = args["column"]
+        metric_id = args["metric_id"]
+
+        if column not in [
+            "measurements.score.lcp",
+            "measurements.score.fcp",
+            "measurements.score.fid",
+            "measurements.score.cls",
+            "measurements.score.ttfb",
+            "measurements.score.total",
+        ]:
+            raise InvalidSearchQuery("performance_score only supports measurements")
+
+        weight_metric = (
+            Function(
+                "countIf",
+                [
+                    Column("value"),
+                    Function(
+                        "equals",
+                        [
+                            Column("metric_id"),
+                            metric_id,
+                        ],
+                    ),
+                ],
+            )
+            if column == "measurements.score.total"
+            else Function(
+                "sumIf",
+                [
+                    Column("value"),
+                    Function(
+                        "equals",
+                        [
+                            Column("metric_id"),
+                            self.resolve_metric(column.replace("score", "score.weight")),
+                        ],
+                    ),
+                ],
+            )
+        )
+
+        return Function(
+            "minus",
+            [
+                weight_metric,
+                Function(
+                    "sumIf",
+                    [
+                        Column("value"),
+                        Function("equals", [Column("metric_id"), metric_id]),
+                    ],
+                ),
             ],
             alias,
         )

@@ -101,6 +101,15 @@ def fix_for_issue_platform(event_data):
     if event_data.get("user", {}).get("id") is not None:
         event_data["user"]["id"] = str(event_data["user"]["id"])
 
+    # If no user email was provided specify the contact-email as the user-email.
+    feedback_obj = event_data.get("contexts", {}).get("feedback", {})
+    contact_email = feedback_obj.get("contact_email")
+    if not ret_event["user"].get("email", ""):
+        ret_event["user"]["email"] = contact_email
+
+    # Set the event message to the feedback message.
+    ret_event["logentry"] = {"message": feedback_obj.get("message")}
+
     return ret_event
 
 
@@ -219,6 +228,7 @@ def shim_to_feedback(
             feedback_event["level"] = event.data["level"]
             feedback_event["platform"] = event.platform
             feedback_event["level"] = event.data["level"]
+            feedback_event["environment"] = event.get_environment().name
         else:
             feedback_event["timestamp"] = datetime.utcnow().timestamp()
             feedback_event["platform"] = "other"

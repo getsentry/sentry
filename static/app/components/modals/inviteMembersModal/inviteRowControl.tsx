@@ -120,7 +120,7 @@ function InviteRowControl({
         aria-label={t('Add to Team')}
         data-test-id="select-teams"
         disabled={disabled}
-        placeholder={t('Add to teams\u2026')}
+        placeholder={t('None')}
         value={teams}
         onChange={onChangeTeams}
         multiple

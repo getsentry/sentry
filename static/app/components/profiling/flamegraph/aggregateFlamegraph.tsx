@@ -215,6 +215,7 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
 
   return (
     <FlamegraphZoomView
+      profileGroup={profileGroup}
       disableGrid
       disableCallOrderSort
       disableColorCoding

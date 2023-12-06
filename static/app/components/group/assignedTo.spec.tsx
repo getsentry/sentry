@@ -1,5 +1,6 @@
 import {Commit} from 'sentry-fixture/commit';
 import {CommitAuthor} from 'sentry-fixture/commitAuthor';
+import {Event as EventFixture} from 'sentry-fixture/event';
 import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -58,7 +59,7 @@ describe('Group > AssignedTo', () => {
         slug: PROJECT_1.slug,
       },
     });
-    event = TestStubs.Event();
+    event = EventFixture();
 
     TeamStore.loadInitialData([TEAM_1]);
     ProjectsStore.loadInitialData([PROJECT_1]);
