@@ -364,11 +364,12 @@ def _parse_search_query(
     Parses a search query with the discover grammar and performs some transformations on the AST in order to account for
     edge cases.
     """
-    tokens = event_search.parse_search_query(query)
+    tokens = cast(Sequence[QueryToken], event_search.parse_search_query(query))
     # As first step, we transform the search query by applying basic transformations.
     tokens = _transform_search_query(tokens)
+
+    # As second step, if enabled, we remove elements from the query which are blacklisted.
     if removed_blacklisted:
-        # As second step, if enabled, we remove elements from the query which are blacklisted.
         tokens = _cleanup_query(_remove_blacklisted_search_filters(tokens))
 
     return tokens
