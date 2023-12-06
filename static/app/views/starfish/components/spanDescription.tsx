@@ -36,7 +36,7 @@ export function DatabaseSpanDescription({
   groupId,
   preliminaryDescription,
 }: Omit<Props, 'op'>) {
-  const {data: indexedSpans, isLoading: areIndexedSpansLoading} = useIndexedSpans(
+  const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useIndexedSpans(
     {'span.group': groupId},
     [INDEXED_SPAN_SORT],
     1
@@ -44,9 +44,11 @@ export function DatabaseSpanDescription({
   const indexedSpan = indexedSpans?.[0];
 
   // NOTE: We only need this for `span.data`! If this info existed in indexed spans, we could skip it
-  const {data: rawSpan, isLoading: isRawSpanLoading} = useFullSpanFromTrace(groupId, [
-    INDEXED_SPAN_SORT,
-  ]);
+  const {data: rawSpan, isFetching: isRawSpanLoading} = useFullSpanFromTrace(
+    groupId,
+    [INDEXED_SPAN_SORT],
+    Boolean(indexedSpan)
+  );
 
   const rawDescription =
     rawSpan?.description || indexedSpan?.['span.description'] || preliminaryDescription;
