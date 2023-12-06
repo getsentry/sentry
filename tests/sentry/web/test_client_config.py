@@ -118,6 +118,48 @@ def clear_env_request():
     env.clear()
 
 
+@pytest.mark.parametrize(
+    "request_factory",
+    [
+        none_request,
+        make_request,
+        make_user_request,
+        make_user_request_from_org,
+        make_user_request_from_non_existant_org,
+        make_user_request_from_org_with_auth_identities,
+    ],
+)
+@django_db_all(transaction=True)
+def test_client_config_in_silo_modes(request_factory: RequestFactory):
+    request_ret = request_factory()
+    if request_ret is not None:
+        request, _ = request_ret
+    else:
+        request = None
+
+    base_line = get_client_config(request)
+
+    # Removing the region list as it varies based on silo mode.
+    # See Region.to_url()
+    base_line.pop("regions")
+    base_line["links"].pop("regionUrl")
+    cache.clear()
+
+    with override_settings(SILO_MODE=SiloMode.REGION):
+        result = get_client_config(request)
+        result.pop("regions")
+        result["links"].pop("regionUrl")
+        assert result == base_line
+        cache.clear()
+
+    with override_settings(SILO_MODE=SiloMode.CONTROL):
+        result = get_client_config(request)
+        result.pop("regions")
+        result["links"].pop("regionUrl")
+        assert result == base_line
+        cache.clear()
+
+
 @django_db_all(transaction=True)
 def test_client_config_deleted_user():
     request, user = make_user_request_from_org()
