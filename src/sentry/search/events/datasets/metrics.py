@@ -656,6 +656,26 @@ class MetricsDatasetConfig(DatasetConfig):
                     default_result_type="number",
                 ),
                 fields.MetricsFunction(
+                    "count_scores",
+                    required_args=[
+                        fields.MetricArg(
+                            "column",
+                            allowed_columns=[
+                                "measurements.score.total",
+                                "measurements.score.fcp",
+                                "measurements.score.lcp",
+                                "measurements.score.fid",
+                                "measurements.score.cls",
+                                "measurements.score.ttfb",
+                            ],
+                            allow_custom_measurements=False,
+                        ),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=self._resolve_count_scores_function,
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
                     "epm",
                     snql_distribution=self._resolve_epm,
                     optional_args=[fields.IntervalDefault("interval", 1, None)],
@@ -1523,6 +1543,33 @@ class MetricsDatasetConfig(DatasetConfig):
                         Function("equals", [Column("metric_id"), metric_id]),
                     ],
                 ),
+            ],
+            alias,
+        )
+
+    def _resolve_count_scores_function(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: str,
+    ) -> SelectType:
+        column = args["column"]
+        metric_id = args["metric_id"]
+
+        if column not in [
+            "measurements.score.total",
+            "measurements.score.lcp",
+            "measurements.score.fcp",
+            "measurements.score.fid",
+            "measurements.score.cls",
+            "measurements.score.ttfb",
+        ]:
+            raise InvalidSearchQuery("count_scores only supports performance score measurements")
+
+        return Function(
+            "countIf",
+            [
+                Column("value"),
+                Function("equals", [Column("metric_id"), metric_id]),
             ],
             alias,
         )
