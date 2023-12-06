@@ -1,15 +1,18 @@
+from __future__ import annotations
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.user import UserEndpoint
-from sentry.api.permissions import SentryPermission
+from sentry.api.bases.user import UserEndpoint, UserPermission
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.user import User
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.region import get_region_by_name
 
 
@@ -19,11 +22,11 @@ from sentry.types.region import get_region_by_name
 #
 # This will also grant access via user auth tokens assuming the
 # user ID matches the user that is being queried.
-class UserRegionEndpointPermissions(SentryPermission):
+class UserRegionEndpointPermissions(UserPermission):
     scope_map = {"GET": ["org:read"]}
 
-    def has_object_permission(self, request, view, user):
-        if user.id == request.user.id and request.user.is_authenticated:
+    def has_object_permission(self, request, view, user: User | RpcUser | None = None):
+        if user and user.id == request.user.id and request.user.is_authenticated:
             return True
         if is_system_auth(request.auth):
             return True
