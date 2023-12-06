@@ -1909,6 +1909,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:suspect-commits-all-frames": False,
     # Enables region provisioning for individual users
     "organizations:multi-region-selector": False,
+    # Enable the default alert at project creation to be the high priority alert
+    "organizations:default-high-priority-alerts": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
