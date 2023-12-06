@@ -238,7 +238,7 @@ describe('CreateProject', function () {
 
     const frameWorkModalMockRequests = renderFrameworkModalMockRequests({
       organization,
-      
+
       Slug: teamWithAccess.slug,
     });
     frameWorkModalMockRequests.projectCreationMockRequest = MockApiClient.addMockResponse(
