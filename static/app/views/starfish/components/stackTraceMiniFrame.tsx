@@ -59,7 +59,7 @@ export function MissingFrame() {
     <FrameContainer>
       <Deemphasize>
         {tct(
-          'Could not find query location in selected date range. Learn more in our [documentation:documentation].',
+          'Could not find query source in the selected date range. Learn more in our [documentation:documentation].',
           {
             documentation: (
               <ExternalLink href="https://docs.sentry.io/product/performance/queries/#query-sources" />
