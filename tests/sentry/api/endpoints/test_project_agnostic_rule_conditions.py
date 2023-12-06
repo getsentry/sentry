@@ -13,4 +13,4 @@ class ProjectAgnosticRuleConditionsTest(APITestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 10
+        assert len(response.data) == 11
