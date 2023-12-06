@@ -1495,7 +1495,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable emiting escalating data to the metrics backend
     "organizations:escalating-metrics-backend": False,
     # Enable querying Snuba to get the EventUser
-    "organizations:eventuser-from-snuba": False,
+    "organizations:eventuser-from-snuba": True,
     # Enable the frontend to request from region & control silo domains.
     "organizations:frontend-domainsplit": False,
     # Allows an org to have a larger set of project ownership rules per project
@@ -1794,6 +1794,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-view": False,
     # Enables the resource module ui
     "organizations:starfish-browser-resource-module-ui": False,
+    # Enables the resource module ui
+    "organizations:starfish-browser-resource-module-image-view": False,
     # Enable the aggregate span waterfall view
     "organizations:starfish-aggregate-span-waterfall": False,
     # Enable starfish endpoint that's used for regressing testing purposes
