@@ -1,6 +1,5 @@
 import {RouteComponentProps} from 'react-router';
 
-// Not sure if we need platform info to be passed down
 export type StepProps = Pick<
   RouteComponentProps<{}, {}>,
   'router' | 'route' | 'location'

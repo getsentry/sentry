@@ -1,7 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {RelocationOnboardingContextProvider} from 'sentry/components/onboarding/relocationOnboardingContext';
 import Relocation from 'sentry/views/relocation/relocation';
 
 describe('Relocation', function () {
@@ -16,15 +15,10 @@ describe('Relocation', function () {
       },
     });
 
-    render(
-      <RelocationOnboardingContextProvider>
-        <Relocation {...routerProps} />
-      </RelocationOnboardingContextProvider>,
-      {
-        context: routerContext,
-        organization,
-      }
-    );
+    render(<Relocation {...routerProps} />, {
+      context: routerContext,
+      organization,
+    });
   }
   describe('Get Started', function () {
     it('renders', async function () {
