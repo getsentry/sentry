@@ -1459,7 +1459,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:commit-context": False,
     # Enable alerting based on crash free sessions/users
     "organizations:crash-rate-alerts": True,
-    # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION is not enabled).
+    # Enable creating organizations within sentry
+    # (if SENTRY_SINGLE_ORGANIZATION is not enabled).
     "organizations:create": True,
     # Enable the new crons monitor form
     "organizations:crons-new-monitor-form": False,
@@ -1485,7 +1486,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:dashboards-rh-widget": False,
     # Enables experimental WIP ddm related features
     "organizations:ddm-experimental": False,
-    # Delightful Developer Metrics (DDM): Enable sidebar menu item and all UI (requires custom-metrics flag as well)
+    # Delightful Developer Metrics (DDM):
+    # Enable sidebar menu item and all UI (requires custom-metrics flag as well)
     "organizations:ddm-ui": False,
     # Enable the default alert at project creation to be the high priority alert
     "organizations:default-high-priority-alerts": False,
