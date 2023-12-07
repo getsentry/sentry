@@ -11,7 +11,7 @@ from sentry.notifications.helpers import (
     team_is_valid_recipient,
     validate,
 )
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.notifications.types import NotificationSettingEnum, NotificationSettingsOptionEnum
 from sentry.notifications.utils import (
     get_email_link_extra_params,
     get_group_settings_link,
@@ -48,43 +48,39 @@ class NotificationHelpersTest(TestCase):
 
     def test_validate(self):
         self.assertTrue(
-            validate(NotificationSettingTypes.ISSUE_ALERTS, NotificationSettingOptionValues.ALWAYS)
+            validate(NotificationSettingEnum.ISSUE_ALERTS, NotificationSettingsOptionEnum.ALWAYS)
         )
         self.assertTrue(
-            validate(NotificationSettingTypes.ISSUE_ALERTS, NotificationSettingOptionValues.NEVER)
+            validate(NotificationSettingEnum.ISSUE_ALERTS, NotificationSettingsOptionEnum.NEVER)
         )
 
         self.assertTrue(
-            validate(NotificationSettingTypes.DEPLOY, NotificationSettingOptionValues.ALWAYS)
+            validate(NotificationSettingEnum.DEPLOY, NotificationSettingsOptionEnum.ALWAYS)
         )
         self.assertTrue(
-            validate(NotificationSettingTypes.DEPLOY, NotificationSettingOptionValues.NEVER)
+            validate(NotificationSettingEnum.DEPLOY, NotificationSettingsOptionEnum.NEVER)
+        )
+        self.assertTrue(
+            validate(NotificationSettingEnum.DEPLOY, NotificationSettingsOptionEnum.COMMITTED_ONLY)
+        )
+        self.assertFalse(
+            validate(NotificationSettingEnum.DEPLOY, NotificationSettingsOptionEnum.SUBSCRIBE_ONLY)
+        )
+
+        self.assertTrue(
+            validate(NotificationSettingEnum.WORKFLOW, NotificationSettingsOptionEnum.ALWAYS)
+        )
+        self.assertTrue(
+            validate(NotificationSettingEnum.WORKFLOW, NotificationSettingsOptionEnum.NEVER)
         )
         self.assertTrue(
             validate(
-                NotificationSettingTypes.DEPLOY, NotificationSettingOptionValues.COMMITTED_ONLY
+                NotificationSettingEnum.WORKFLOW, NotificationSettingsOptionEnum.SUBSCRIBE_ONLY
             )
         )
         self.assertFalse(
             validate(
-                NotificationSettingTypes.DEPLOY, NotificationSettingOptionValues.SUBSCRIBE_ONLY
-            )
-        )
-
-        self.assertTrue(
-            validate(NotificationSettingTypes.WORKFLOW, NotificationSettingOptionValues.ALWAYS)
-        )
-        self.assertTrue(
-            validate(NotificationSettingTypes.WORKFLOW, NotificationSettingOptionValues.NEVER)
-        )
-        self.assertTrue(
-            validate(
-                NotificationSettingTypes.WORKFLOW, NotificationSettingOptionValues.SUBSCRIBE_ONLY
-            )
-        )
-        self.assertFalse(
-            validate(
-                NotificationSettingTypes.WORKFLOW, NotificationSettingOptionValues.COMMITTED_ONLY
+                NotificationSettingEnum.WORKFLOW, NotificationSettingsOptionEnum.COMMITTED_ONLY
             )
         )
 

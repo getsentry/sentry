@@ -1,5 +1,6 @@
 import selectEvent from 'react-select-event';
 import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
 
 import {
   render,
@@ -173,8 +174,8 @@ describe('InviteRequestRow', function () {
     });
 
     void TeamStore.loadInitialData([
-      TestStubs.Team({id: '1', slug: 'one'}),
-      TestStubs.Team({id: '2', slug: 'two'}),
+      Team({id: '1', slug: 'one'}),
+      Team({id: '2', slug: 'two'}),
     ]);
     const mockUpdate = jest.fn();
 

@@ -296,10 +296,13 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         )
 
         assert preprocessing_baseline_config_mock.call_count == 1
-        assert Relocation.objects.get(uuid=self.uuid).want_usernames == [
+
+        relocation: Relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.want_usernames == [
             "admin@example.com",
             "member@example.com",
         ]
+        assert relocation.latest_notified == Relocation.EmailKind.STARTED.value
 
     def test_success_self_service_relocation(
         self,
@@ -322,10 +325,12 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 
         assert preprocessing_baseline_config_mock.call_count == 1
 
-        assert Relocation.objects.get(uuid=self.uuid).want_usernames == [
+        relocation: Relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.want_usernames == [
             "admin@example.com",
             "member@example.com",
         ]
+        assert relocation.latest_notified == Relocation.EmailKind.STARTED.value
 
     def test_pause(
         self,
@@ -372,6 +377,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.IN_PROGRESS.value
+        assert relocation.latest_notified != Relocation.EmailKind.FAILED.value
         assert not relocation.failure_reason
 
     def test_fail_if_no_attempts_left(
@@ -403,6 +409,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
         assert relocation.failure_reason == ERR_PREPROCESSING_INTERNAL
 
     def test_fail_invalid_tarball(
@@ -429,6 +436,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
         assert relocation.failure_reason == ERR_PREPROCESSING_INVALID_TARBALL
 
     def test_fail_decryption_failure(
@@ -462,6 +470,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
         assert relocation.failure_reason == ERR_PREPROCESSING_DECRYPTION
 
     def test_fail_invalid_json(
@@ -487,6 +496,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
         assert relocation.failure_reason == ERR_PREPROCESSING_INVALID_JSON
 
     def test_fail_no_users(
@@ -512,6 +522,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
         assert relocation.failure_reason == ERR_PREPROCESSING_NO_USERS
 
     @patch("sentry.tasks.relocation.MAX_USERS_PER_RELOCATION", 0)
@@ -536,6 +547,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
         assert relocation.failure_reason == ERR_PREPROCESSING_TOO_MANY_USERS.substitute(count=2)
 
     def test_fail_no_orgs(
@@ -561,6 +573,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
         assert relocation.failure_reason == ERR_PREPROCESSING_NO_ORGS
 
     @patch("sentry.tasks.relocation.MAX_ORGS_PER_RELOCATION", 0)
@@ -585,6 +598,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
         assert relocation.failure_reason == ERR_PREPROCESSING_TOO_MANY_ORGS.substitute(count=1)
 
     def test_fail_missing_orgs(
@@ -612,6 +626,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
         assert relocation.failure_reason == ERR_PREPROCESSING_MISSING_ORGS.substitute(
             orgs=",".join(orgs)
         )
@@ -691,6 +706,7 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.IN_PROGRESS.value
+        assert relocation.latest_notified != Relocation.EmailKind.FAILED.value
         assert not relocation.failure_reason
 
     def test_fail_if_no_attempts_left(
@@ -724,6 +740,7 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
         assert relocation.failure_reason == ERR_PREPROCESSING_INTERNAL
 
 
@@ -806,6 +823,7 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.IN_PROGRESS.value
+        assert relocation.latest_notified != Relocation.EmailKind.FAILED.value
         assert not relocation.failure_reason
 
     def test_fail_if_no_attempts_left(
@@ -838,8 +856,9 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
         assert preprocessing_complete_mock.call_count == 0
 
         relocation = Relocation.objects.get(uuid=self.uuid)
-        assert relocation.failure_reason == ERR_PREPROCESSING_INTERNAL
         assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
+        assert relocation.failure_reason == ERR_PREPROCESSING_INTERNAL
 
 
 @region_silo_test
@@ -943,6 +962,7 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.IN_PROGRESS.value
+        assert relocation.latest_notified != Relocation.EmailKind.FAILED.value
         assert not relocation.failure_reason
 
     def test_fail_if_no_attempts_left(
@@ -969,6 +989,7 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
         assert relocation.failure_reason == ERR_PREPROCESSING_INTERNAL
 
 
@@ -1061,6 +1082,7 @@ class ValidatingStartTest(RelocationTaskTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.IN_PROGRESS.value
+        assert relocation.latest_notified != Relocation.EmailKind.FAILED.value
         assert not relocation.failure_reason
 
     def test_fail_if_no_attempts_left(
@@ -1086,6 +1108,7 @@ class ValidatingStartTest(RelocationTaskTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
         assert relocation.failure_reason == ERR_VALIDATING_INTERNAL
 
     def test_fail_if_max_runs_attempted(
@@ -1118,6 +1141,7 @@ class ValidatingStartTest(RelocationTaskTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
         assert relocation.failure_reason == ERR_VALIDATING_MAX_RUNS
 
 
@@ -1281,6 +1305,7 @@ class ValidatingPollTest(RelocationTaskTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.IN_PROGRESS.value
+        assert relocation.latest_notified != Relocation.EmailKind.FAILED.value
         assert not relocation.failure_reason
 
     @patch("sentry.tasks.relocation.validating_poll.apply_async")
@@ -1313,6 +1338,7 @@ class ValidatingPollTest(RelocationTaskTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
         assert relocation.failure_reason == ERR_VALIDATING_INTERNAL
 
 
@@ -1426,6 +1452,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
         assert self.relocation.latest_task == "VALIDATING_COMPLETE"
         assert self.relocation.step == Relocation.Step.VALIDATING.value
         assert self.relocation.failure_reason is not None
+        assert self.relocation.latest_notified == Relocation.EmailKind.FAILED.value
         assert self.relocation_validation.status == ValidationStatus.INVALID.value
         assert self.relocation_validation_attempt.status == ValidationStatus.INVALID.value
 
@@ -1449,6 +1476,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.IN_PROGRESS.value
+        assert relocation.latest_notified != Relocation.EmailKind.FAILED.value
         assert not relocation.failure_reason
 
     def test_fail_if_no_attempts_left(
@@ -1477,6 +1505,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
         assert relocation.failure_reason == ERR_VALIDATING_INTERNAL
 
 
@@ -1658,6 +1687,7 @@ class PostprocessingTest(RelocationTaskTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.IN_PROGRESS.value
+        assert relocation.latest_notified != Relocation.EmailKind.FAILED.value
         assert not relocation.failure_reason
 
     def test_fail_if_no_attempts_left(
@@ -1689,6 +1719,7 @@ class PostprocessingTest(RelocationTaskTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
         assert relocation.failure_reason == ERR_POSTPROCESSING_INTERNAL
 
 
@@ -1744,6 +1775,9 @@ class NotifyingUsersTest(RelocationTaskTestCase):
             assert fake_message_builder.call_count == 0
             assert notifying_owner_mock.call_count == 1
 
+            relocation: Relocation = Relocation.objects.get(uuid=self.uuid)
+            assert relocation.latest_unclaimed_emails_sent_at is not None
+
     def test_pause(
         self,
         notifying_owner_mock: Mock,
@@ -1781,6 +1815,7 @@ class NotifyingUsersTest(RelocationTaskTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.IN_PROGRESS.value
+        assert relocation.latest_notified != Relocation.EmailKind.FAILED.value
         assert not relocation.failure_reason
 
     def test_fail_if_no_attempts_left(
@@ -1806,6 +1841,7 @@ class NotifyingUsersTest(RelocationTaskTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
         assert relocation.failure_reason == ERR_NOTIFYING_INTERNAL
 
 
@@ -1837,6 +1873,9 @@ class NotifyingOwnerTest(RelocationTaskTestCase):
 
         assert completed_mock.call_count == 1
 
+        relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.latest_notified == Relocation.EmailKind.SUCCEEDED.value
+
     def test_success_self_serve_relocation(
         self,
         completed_mock: Mock,
@@ -1853,6 +1892,9 @@ class NotifyingOwnerTest(RelocationTaskTestCase):
         fake_message_builder.return_value.send_async.assert_called_once_with(to=[self.owner.email])
 
         assert completed_mock.call_count == 1
+
+        relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.latest_notified == Relocation.EmailKind.SUCCEEDED.value
 
     def test_retry_if_attempts_left(
         self,
@@ -1871,6 +1913,7 @@ class NotifyingOwnerTest(RelocationTaskTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.IN_PROGRESS.value
+        assert relocation.latest_notified != Relocation.EmailKind.FAILED.value
         assert not relocation.failure_reason
 
     def test_fail_if_no_attempts_left(
@@ -1899,6 +1942,7 @@ class NotifyingOwnerTest(RelocationTaskTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
         assert relocation.failure_reason == ERR_NOTIFYING_INTERNAL
 
 
@@ -2046,6 +2090,7 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.SUCCESS.value
+        assert relocation.latest_notified == Relocation.EmailKind.SUCCEEDED.value
         assert not relocation.failure_reason
 
         self.assert_success_database_state(org_count)
@@ -2085,6 +2130,7 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.SUCCESS.value
+        assert relocation.latest_notified == Relocation.EmailKind.SUCCEEDED.value
         assert not relocation.failure_reason
 
         self.assert_success_database_state(org_count)
@@ -2123,6 +2169,7 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
         assert relocation.failure_reason
 
         self.assert_failure_database_state(org_count)
@@ -2163,6 +2210,7 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
         assert relocation.failure_reason
 
         self.assert_failure_database_state(org_count)
