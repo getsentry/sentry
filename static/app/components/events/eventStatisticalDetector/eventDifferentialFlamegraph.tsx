@@ -298,7 +298,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
       <DifferentialFlamegraphFunctionsContainer>
         <DifferentialFlamegraphChangedFunctions
           loading={props.after.isLoading || props.before.isLoading}
-          title={t('Largest Increase')}
+          title={t('Slower functions')}
           subtitle={negated ? t('before regression') : t('after regression')}
           functions={differentialFlamegraph.increasedFrames}
           flamegraph={differentialFlamegraph}
@@ -306,7 +306,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
         />
         <DifferentialFlamegraphChangedFunctions
           loading={props.after.isLoading || props.before.isLoading}
-          title={t('Largest Decrease')}
+          title={t('Faster functions')}
           subtitle={negated ? t('before regression') : t('after regression')}
           functions={differentialFlamegraph.decreasedFrames}
           flamegraph={differentialFlamegraph}
