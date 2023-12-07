@@ -4,6 +4,7 @@ import {deleteMonitor, updateMonitor} from 'sentry/actionCreators/monitors';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {IconDelete, IconEdit, IconSubscribed, IconUnsubscribed} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import useApi from 'sentry/utils/useApi';
@@ -11,8 +12,6 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {Monitor, MonitorStatus} from '../types';
-
-import CronsFeedbackButton from './cronsFeedbackButton';
 
 type Props = {
   monitor: Monitor;
@@ -56,7 +55,7 @@ function MonitorHeaderActions({monitor, orgId, onUpdate}: Props) {
 
   return (
     <ButtonBar gap={1}>
-      <CronsFeedbackButton />
+      <FeedbackWidgetButton />
       <Confirm
         onConfirm={handleDelete}
         message={t('Are you sure you want to permanently delete this cron monitor?')}

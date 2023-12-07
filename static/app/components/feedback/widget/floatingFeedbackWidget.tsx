@@ -9,24 +9,33 @@ import theme from 'sentry/utils/theme';
 /**
  * Use this to display the Feedback widget in certain routes/components
  */
-export default function FeedbackWidget() {
+export default function FloatingFeedbackWidget() {
   const config = useLegacyStore(ConfigStore);
-  const widgetTheme = config.theme === 'dark' ? 'dark' : 'light';
+  const hub = getCurrentHub();
+  const feedback = hub.getIntegration(Feedback);
 
   useEffect(() => {
-    const hub = getCurrentHub();
-    const feedback = hub.getIntegration(Feedback);
+    if (!feedback) {
+      return undefined;
+    }
+
     const widget = feedback?.createWidget({
-      colorScheme: widgetTheme,
+      colorScheme: config.theme === 'dark' ? 'dark' : 'light',
       buttonLabel: 'Give Feedback',
       submitButtonLabel: 'Send Feedback',
       messagePlaceholder: 'What did you expect?',
       formTitle: 'Give Feedback',
     });
+
     return () => {
       feedback?.removeWidget(widget);
     };
-  }, [widgetTheme]);
+  }, [config.theme, feedback]);
+
+  // Do not do anything if Feedback integration is not enabled
+  if (!feedback) {
+    return null;
+  }
 
   // z-index needs to be below our indicators which is 10001
   return (

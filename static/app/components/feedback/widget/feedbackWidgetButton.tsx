@@ -7,8 +7,8 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
-function ProfilingFeedbackButton() {
-  const buttonRef = useRef<HTMLButtonElement | null>(null);
+export default function FeedbackWidgetButton() {
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const config = useLegacyStore(ConfigStore);
   const hub = getCurrentHub();
   const feedback = hub.getIntegration(Feedback);
@@ -30,17 +30,16 @@ function ProfilingFeedbackButton() {
         feedback.removeWidget(widget);
       }
     };
-  }, [feedback, config.theme]);
+  }, [config.theme, feedback]);
 
+  // Do not show button if Feedback integration is not enabled
   if (!feedback) {
     return null;
   }
 
   return (
-    <Button ref={buttonRef} data-feedback="profiling" size="sm" icon={<IconMegaphone />}>
+    <Button ref={buttonRef} size="sm" icon={<IconMegaphone />}>
       {t('Give Feedback')}
     </Button>
   );
 }
-
-export default ProfilingFeedbackButton;
