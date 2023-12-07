@@ -293,7 +293,7 @@ def add_experimental_config(
     try:
         subconfig = function(*args, **kwargs)
     except Exception:
-        logger.error("Exception while building Relay project config field", exc_info=True)
+        logger.exception("Exception while building Relay project config field")
     else:
         if subconfig is not None:
             config[key] = subconfig

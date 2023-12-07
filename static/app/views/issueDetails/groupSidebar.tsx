@@ -22,6 +22,7 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import {backend, frontend} from 'sentry/data/platformCategories';
 import {t, tn} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import {space} from 'sentry/styles/space';
 import {
   AvatarUser,
@@ -90,7 +91,7 @@ export default function GroupSidebar({
   const {data: currentRelease} = useFetchCurrentRelease(organization, group);
   const location = useLocation();
 
-  const trackAssign: OnAssignCallback = (type, _assignee, suggestedAssignee) => {
+  const onAssign: OnAssignCallback = (type, _assignee, suggestedAssignee) => {
     const {alert_date, alert_rule_id, alert_type} = location.query;
     trackAnalytics('issue_details.action_clicked', {
       organization,
@@ -104,6 +105,7 @@ export default function GroupSidebar({
       ...getAnalyticsDataForGroup(group),
       ...getAnalyicsDataForProject(project),
     });
+    IssueListCacheStore.reset();
   };
 
   const renderPluginIssue = () => {
@@ -254,7 +256,7 @@ export default function GroupSidebar({
 
   return (
     <Container>
-      <AssignedTo group={group} event={event} project={project} onAssign={trackAssign} />
+      <AssignedTo group={group} event={event} project={project} onAssign={onAssign} />
       {issueTypeConfig.stats.enabled && (
         <GroupReleaseStats
           organization={organization}
