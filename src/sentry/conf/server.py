@@ -124,19 +124,19 @@ SENTRY_ENSURE_FQDN = False
 # XXX [!!]: When adding a new key here BE SURE to configure it in getsentry, as
 #           it can not be `default`. The default cluster in sentry.io
 #           production is NOT a true redis cluster and WILL error in prod.
+SENTRY_ARTIFACT_BUNDLES_INDEXING_REDIS_CLUSTER = "default"
+SENTRY_DEBUG_FILES_REDIS_CLUSTER = "default"
 SENTRY_DYNAMIC_SAMPLING_RULES_REDIS_CLUSTER = "default"
+SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER = "default"
 SENTRY_INCIDENT_RULES_REDIS_CLUSTER = "default"
+SENTRY_INTEGRATION_ERROR_LOG_REDIS_CLUSTER = "default"
+SENTRY_METRIC_META_REDIS_CLUSTER = "default"
+SENTRY_MONITORS_REDIS_CLUSTER = "default"
 SENTRY_RATE_LIMIT_REDIS_CLUSTER = "default"
 SENTRY_RULE_TASK_REDIS_CLUSTER = "default"
+SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER = "default"
 SENTRY_TRANSACTION_NAMES_REDIS_CLUSTER = "default"
 SENTRY_WEBHOOK_LOG_REDIS_CLUSTER = "default"
-SENTRY_ARTIFACT_BUNDLES_INDEXING_REDIS_CLUSTER = "default"
-SENTRY_INTEGRATION_ERROR_LOG_REDIS_CLUSTER = "default"
-SENTRY_DEBUG_FILES_REDIS_CLUSTER = "default"
-SENTRY_MONITORS_REDIS_CLUSTER = "default"
-SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER = "default"
-SENTRY_METRIC_META_REDIS_CLUSTER = "default"
-SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -149,10 +149,10 @@ INTERNAL_SYSTEM_IPS = (
     "172.16.0.0/12",
     "192.0.0.0/29",
     "192.0.2.0/24",
-    "192.88.99.0/24",
-    "192.168.0.0/16",
     "198.18.0.0/15",
     "198.51.100.0/24",
+    "192.88.99.0/24",
+    "192.168.0.0/16",
     "224.0.0.0/4",
     "240.0.0.0/4",
     "255.255.255.255/32",
@@ -726,31 +726,46 @@ CELERY_RESULT_SERIALIZER = "pickle"
 CELERY_ACCEPT_CONTENT = {"pickle"}
 CELERY_IMPORTS = (
     "sentry.data_export.tasks",
+    "sentry.debug_files.tasks",
     "sentry.discover.tasks",
+    "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
+    "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
+    "sentry.dynamic_sampling.tasks.collect_orgs",
+    "sentry.dynamic_sampling.tasks.custom_rule_notifications",
+    "sentry.dynamic_sampling.tasks.recalibrate_orgs",
+    "sentry.dynamic_sampling.tasks.sliding_window_org",
+    "sentry.dynamic_sampling.tasks.utils",
     "sentry.incidents.tasks",
-    "sentry.snuba.tasks",
-    "sentry.replays.tasks",
+    "sentry.ingest.transaction_clusterer.tasks",
     "sentry.monitors.tasks",
+    "sentry.profiles.task",
+    "sentry.release_health.tasks",
+    "sentry.replays.tasks",
+    "sentry.snuba.tasks",
     "sentry.tasks.app_store_connect",
     "sentry.tasks.assemble",
     "sentry.tasks.auth",
+    "sentry.tasks.auto_enable_codecov",
+    "sentry.tasks.auto_ongoing_issues",
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.backfill_outboxes",
     "sentry.tasks.beacon",
+    "sentry.tasks.check_am2_compatibility",
     "sentry.tasks.check_auth",
-    "sentry.tasks.clear_expired_snoozes",
     "sentry.tasks.clear_expired_rulesnoozes",
+    "sentry.tasks.clear_expired_snoozes",
     "sentry.tasks.codeowners.code_owners_auto_sync",
     "sentry.tasks.codeowners.update_code_owners_schema",
     "sentry.tasks.collect_project_platforms",
-    "sentry.tasks.commits",
     "sentry.tasks.commit_context",
-    "sentry.tasks.deletion",
-    "sentry.tasks.deletion.scheduled",
+    "sentry.tasks.commits",
     "sentry.tasks.deletion.groups",
     "sentry.tasks.deletion.hybrid_cloud",
+    "sentry.tasks.deletion.scheduled",
+    "sentry.tasks.deletion",
     "sentry.tasks.deliver_from_outbox",
+    "sentry.tasks.derive_code_mappings",
     "sentry.tasks.digests",
     "sentry.tasks.email",
     "sentry.tasks.files",
@@ -767,35 +782,20 @@ CELERY_IMPORTS = (
     "sentry.tasks.relay",
     "sentry.tasks.release_registry",
     "sentry.tasks.relocation",
-    "sentry.tasks.weekly_reports",
     "sentry.tasks.reprocessing",
     "sentry.tasks.reprocessing2",
     "sentry.tasks.sentry_apps",
     "sentry.tasks.servicehooks",
+    "sentry.tasks.statistical_detectors",
     "sentry.tasks.store",
     "sentry.tasks.symbolication",
     "sentry.tasks.unmerge",
     "sentry.tasks.update_user_reports",
     "sentry.tasks.user_report",
-    "sentry.profiles.task",
-    "sentry.release_health.tasks",
-    "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
-    "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
-    "sentry.dynamic_sampling.tasks.recalibrate_orgs",
-    "sentry.dynamic_sampling.tasks.sliding_window_org",
-    "sentry.dynamic_sampling.tasks.utils",
-    "sentry.dynamic_sampling.tasks.custom_rule_notifications",
-    "sentry.utils.suspect_resolutions.get_suspect_resolutions",
-    "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
-    "sentry.tasks.derive_code_mappings",
-    "sentry.ingest.transaction_clusterer.tasks",
-    "sentry.tasks.auto_enable_codecov",
     "sentry.tasks.weekly_escalating_forecast",
-    "sentry.tasks.auto_ongoing_issues",
-    "sentry.tasks.check_am2_compatibility",
-    "sentry.dynamic_sampling.tasks.collect_orgs",
-    "sentry.tasks.statistical_detectors",
-    "sentry.debug_files.tasks",
+    "sentry.tasks.weekly_reports",
+    "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
+    "sentry.utils.suspect_resolutions.get_suspect_resolutions",
 )
 
 default_exchange = Exchange("default", type="direct")
@@ -1345,16 +1345,16 @@ LOGGING: LoggingConfig = {
 # django-rest-framework
 
 REST_FRAMEWORK = {
-    "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_PARSER_CLASSES": [
         "rest_framework.parsers.JSONParser",
         "rest_framework.parsers.MultiPartParser",
         "rest_framework.parsers.FormParser",
     ],
-    "TEST_REQUEST_DEFAULT_FORMAT": "json",
     "DEFAULT_PERMISSION_CLASSES": ("sentry.api.permissions.NoPermission",),
-    "EXCEPTION_HANDLER": "sentry.api.handlers.custom_exception_handler",
+    "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_SCHEMA_CLASS": "sentry.apidocs.schema.SentrySchema",
+    "EXCEPTION_HANDLER": "sentry.api.handlers.custom_exception_handler",
+    "TEST_REQUEST_DEFAULT_FORMAT": "json",
 }
 
 
@@ -1374,116 +1374,137 @@ if os.environ.get("OPENAPIGENERATE", False):
     from sentry.apidocs.build import OPENAPI_TAGS, get_old_json_components, get_old_json_paths
 
     SPECTACULAR_SETTINGS = {
-        "DEFAULT_GENERATOR_CLASS": "sentry.apidocs.hooks.CustomGenerator",
-        "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
-        "POSTPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_postprocessing_hook"],
-        "DISABLE_ERRORS_AND_WARNINGS": False,
-        "COMPONENT_SPLIT_REQUEST": False,
-        "COMPONENT_SPLIT_PATCH": False,
+        "APPEND_COMPONENTS": get_old_json_components(OLD_OPENAPI_JSON_PATH),
+        "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON_PATH),
         "AUTHENTICATION_WHITELIST": ["sentry.api.authentication.UserAuthTokenAuthentication"],
+        "COMPONENT_SPLIT_PATCH": False,
+        "COMPONENT_SPLIT_REQUEST": False,
+        "CONTACT": {"email": "partners@sentry.io"},
+        "DEFAULT_GENERATOR_CLASS": "sentry.apidocs.hooks.CustomGenerator",
+        "DESCRIPTION": "Sentry Public API",
+        "DISABLE_ERRORS_AND_WARNINGS": False,
+        "LICENSE": {"name": "Apache 2.0", "url": "http://www.apache.org/licenses/LICENSE-2.0.html"},
+        "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
+        "POSTPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_postprocessing_hook"],
+        "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
+        "SERVERS": [{"url": "https://sentry.io"}],
+        "SORT_OPERATION_PARAMETERS": custom_parameter_sort,
         "TAGS": OPENAPI_TAGS,
         "TITLE": "API Reference",
-        "DESCRIPTION": "Sentry Public API",
         "TOS": "http://sentry.io/terms/",
-        "CONTACT": {"email": "partners@sentry.io"},
-        "LICENSE": {"name": "Apache 2.0", "url": "http://www.apache.org/licenses/LICENSE-2.0.html"},
         "VERSION": "v0",
-        "SERVERS": [{"url": "https://sentry.io"}],
-        "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
-        "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON_PATH),
-        "APPEND_COMPONENTS": get_old_json_components(OLD_OPENAPI_JSON_PATH),
-        "SORT_OPERATION_PARAMETERS": custom_parameter_sort,
     }
 
 CRISPY_TEMPLATE_PACK = "bootstrap3"
 # Sentry and internal client configuration
 
 SENTRY_EARLY_FEATURES = {
-    "organizations:grouping-tree-ui": "Enable experimental new version of Merged Issues where sub-hashes are shown",
-    "organizations:sourcemaps-bundle-flat-file-indexing": "Enable the new flat file indexing system for sourcemaps.",
     "organizations:anr-analyze-frames": "Enable anr frame analysis",
-    "organizations:mobile-cpu-memory-in-transactions": "Display CPU and memory metrics in transactions with profiles",
-    "organizations:device-classification": "Enable device.class as a selectable column",
-    "organizations:streamline-targeting-context": "Enable the new suggested assignees feature",
-    "organizations:performance-new-widget-designs": "Enable updated landing page widget designs",
-    "organizations:performance-new-trends": "Enable new trends",
-    "organizations:grouping-stacktrace-ui": "Enable experimental new version of stacktrace component where additional data related to grouping is shown on each frame",
-    "organizations:user-feedback-ui": "Enable User Feedback v2 UI",
-    "organizations:performance-transaction-name-only-search-indexed": "Enable transaction name only search on indexed",
-    "organizations:sourcemaps-upload-release-as-artifact-bundle": "Upload release bundles as artifact bundles",
-    "organizations:integrations-opsgenie-migration": "Enable one-click migration from Opsgenie plugin",
-    "organizations:integrations-gh-invite": "Enables inviting new members based on GitHub commit activity",
-    "organizations:performance-metrics-backed-transaction-summary": "Enable metrics-backed transaction summary view",
-    "organizations:profiling-global-suspect-functions": "Enable global suspect functions in profiling",
-    "organizations:grouping-title-ui": "Enable tweaks to group title in relation to hierarchical grouping.",
-    "organizations:performance-span-histogram-view": "Enable histogram view in span details",
-    "organizations:gitlab-disable-on-broken": "Enable disabling gitlab integrations when broken is detected",
-    "organizations:issue-details-tag-improvements": "Enable tag improvements in the issue details page",
     "organizations:anr-improvements": "Enable anr improvements ui",
+    "organizations:device-classification": "Enable device.class as a selectable column",
+    "organizations:gitlab-disable-on-broken": "Enable disabling gitlab integrations when broken is detected",
+    "organizations:grouping-stacktrace-ui": "Enable experimental new version of stacktrace component where additional data related to grouping is shown on each frame",
+    "organizations:grouping-title-ui": "Enable tweaks to group title in relation to hierarchical grouping.",
+    "organizations:grouping-tree-ui": "Enable experimental new version of Merged Issues where sub-hashes are shown",
+    "organizations:integrations-gh-invite": "Enables inviting new members based on GitHub commit activity",
+    "organizations:integrations-opsgenie-migration": "Enable one-click migration from Opsgenie plugin",
+    "organizations:issue-details-tag-improvements": "Enable tag improvements in the issue details page",
+    "organizations:mobile-cpu-memory-in-transactions": "Display CPU and memory metrics in transactions with profiles",
+    "organizations:performance-metrics-backed-transaction-summary": "Enable metrics-backed transaction summary view",
+    "organizations:performance-new-trends": "Enable new trends",
+    "organizations:performance-new-widget-designs": "Enable updated landing page widget designs",
+    "organizations:performance-span-histogram-view": "Enable histogram view in span details",
+    "organizations:performance-transaction-name-only-search-indexed": "Enable transaction name only search on indexed",
+    "organizations:profiling-global-suspect-functions": "Enable global suspect functions in profiling",
     "organizations:source-maps-debugger-blue-thunder-edition": "Enable source maps debugger",
+    "organizations:sourcemaps-bundle-flat-file-indexing": "Enable the new flat file indexing system for sourcemaps.",
+    "organizations:sourcemaps-upload-release-as-artifact-bundle": "Upload release bundles as artifact bundles",
+    "organizations:streamline-targeting-context": "Enable the new suggested assignees feature",
+    "organizations:user-feedback-ui": "Enable User Feedback v2 UI",
 }
 
 SENTRY_FEATURES: dict[str, bool | None] = {
     # Enables user registration.
     "auth:register": True,
+    # Enable advanced search features, like negation and wildcard matching.
+    "organizations:advanced-search": True,
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
     "organizations:alert-allow-indexed": False,
+    # Use metrics as the dataset for crash free metric alerts
+    "organizations:alert-crash-free-metrics": False,
     # Enables transaction to metric dataset migration UI for alert rules
     "organizations:alert-migration-ui": False,
     # Enables the migration of alerts (checked in a migration script).
     "organizations:alerts-migration-enabled": False,
-    # Enables the cron job to auto-enable codecov integrations.
-    "organizations:auto-enable-codecov": False,
-    # The overall flag for codecov integration, gated by plans.
-    "organizations:codecov-integration": False,
-    # Enables getting commit sha from git blame for codecov.
-    "organizations:codecov-commit-sha-from-git-blame": False,
-    # Enables automatically deriving of code mappings
-    "organizations:derive-code-mappings": True,
-    # Enable advanced search features, like negation and wildcard matching.
-    "organizations:advanced-search": True,
-    # Use metrics as the dataset for crash free metric alerts
-    "organizations:alert-crash-free-metrics": False,
     # Enable auth provider configuration through api
     "organizations:api-auth-provider": False,
     "organizations:api-keys": False,
     # Enable multiple Apple app-store-connect sources per project.
     "organizations:app-store-connect-multiple": False,
-    # Removes extra fields from the project serializers
-    "organizations:cleanup-project-serializer": False,
+    # Enables the cron job to auto-enable codecov integrations.
+    "organizations:auto-enable-codecov": False,
     # Enable change alerts for an org
     "organizations:change-alerts": True,
-    # Enable alerting based on crash free sessions/users
-    "organizations:crash-rate-alerts": True,
+    # Removes extra fields from the project serializers
+    "organizations:cleanup-project-serializer": False,
+    # Enables getting commit sha from git blame for codecov.
+    "organizations:codecov-commit-sha-from-git-blame": False,
+    # The overall flag for codecov integration, gated by plans.
+    "organizations:codecov-integration": False,
     # Enable the Commit Context feature
     "organizations:commit-context": False,
-    # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
-    # is not enabled).
+    # Enable alerting based on crash free sessions/users
+    "organizations:crash-rate-alerts": True,
+    # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION is not enabled).
     "organizations:create": True,
     # Enable the new crons monitor form
     "organizations:crons-new-monitor-form": False,
-    # Enable usage of customer domains on the frontend
-    "organizations:customer-domains": False,
-    # Delightful Developer Metrics (DDM): Enable sidebar menu item and all UI (requires custom-metrics flag as well)
-    "organizations:ddm-ui": False,
-    # Enables experimental WIP ddm related features
-    "organizations:ddm-experimental": False,
-    # Enable the 'discover' interface.
-    "organizations:discover": False,
-    # Enables events endpoint rate limit
-    "organizations:discover-events-rate-limit": False,
-    # Enables import/export functionality for dashboards
-    "organizations:dashboards-import": False,
-    # Enable attaching arbitrary files to events.
-    "organizations:event-attachments": True,
-    # Allow organizations to configure all symbol sources.
-    "organizations:symbol-sources": True,
     # Allow organizations to configure custom external symbol sources.
     "organizations:custom-symbol-sources": True,
+    # Enable usage of customer domains on the frontend
+    "organizations:customer-domains": False,
+    # Enable data forwarding functionality for organizations.
+    "organizations:data-forwarding": True,
+    # Enable dashboard widget indicators.
+    "organizations:dashboard-widget-indicators": True,
+    # Enable readonly dashboards
+    "organizations:dashboards-basic": True,
+    # Enable custom editable dashboards
+    "organizations:dashboards-edit": True,
+    # Enables import/export functionality for dashboards
+    "organizations:dashboards-import": False,
+    # Enable metrics enhanced performance in dashboards
+    "organizations:dashboards-mep": False,
+    # Enable release health widget in dashboards
+    "organizations:dashboards-rh-widget": False,
+    # Enables experimental WIP ddm related features
+    "organizations:ddm-experimental": False,
+    # Delightful Developer Metrics (DDM): Enable sidebar menu item and all UI (requires custom-metrics flag as well)
+    "organizations:ddm-ui": False,
+    # Enable the default alert at project creation to be the high priority alert
+    "organizations:default-high-priority-alerts": False,
+    # Enables automatically deriving of code mappings
+    "organizations:derive-code-mappings": True,
+    # Enable device.class as a selectable column
+    "organizations:device-classification": False,
+    # Enables synthesis of device.class in ingest
+    "organizations:device-class-synthesis": False,
+    # Enable the 'discover' interface.
+    "organizations:discover": False,
     # Enable discover 2 basic functions
     "organizations:discover-basic": True,
+    # Enables events endpoint rate limit
+    "organizations:discover-events-rate-limit": False,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
+    # Enable the org recalibration
+    "organizations:ds-org-recalibration": False,
+    # Enable the sliding window per project
+    "organizations:ds-sliding-window": False,
+    # Enable the sliding window per org
+    "organizations:ds-sliding-window-org": False,
+    # Enable the new opinionated dynamic sampling
+    "organizations:dynamic-sampling": False,
     # Enables data secrecy mode
     "organizations:enterprise-data-secrecy": False,
     # Enable archive/escalating issue workflow
@@ -1496,6 +1517,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:escalating-metrics-backend": False,
     # Enable querying Snuba to get the EventUser
     "organizations:eventuser-from-snuba": True,
+    # Enable attaching arbitrary files to events.
+    "organizations:event-attachments": True,
     # Enable the frontend to request from region & control silo domains.
     "organizations:frontend-domainsplit": False,
     # Allows an org to have a larger set of project ownership rules per project
@@ -1594,6 +1617,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:on-demand-metrics-ui": False,
     # Normalize URL transaction names during ingestion.
     "organizations:transaction-name-normalize": True,
+    # Allow organizations to configure all symbol sources.
+    "organizations:symbol-sources": True,
     # Mark URL transactions scrubbed by regex patterns as "sanitized".
     # NOTE: This flag does not concern transactions rewritten by clusterer rules.
     # Those are always marked as "sanitized".
@@ -1640,16 +1665,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:integrations-stacktrace-link": True,
     # Limit project events endpoint to only query back a certain number of days
     "organizations:project-event-date-limit": False,
-    # Enable data forwarding functionality for organizations.
-    "organizations:data-forwarding": True,
-    # Enable readonly dashboards
-    "organizations:dashboards-basic": True,
-    # Enable custom editable dashboards
-    "organizations:dashboards-edit": True,
-    # Enable metrics enhanced performance in dashboards
-    "organizations:dashboards-mep": False,
-    # Enable release health widget in dashboards
-    "organizations:dashboards-rh-widget": False,
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
     # Enables inviting new members based on GitHub commit activity.
@@ -1818,8 +1833,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-issues-dev": False,
     # Enable feature to load more than 100 rows in performance trace view.
     "organizations:trace-view-load-more": False,
-    # Enable dashboard widget indicators.
-    "organizations:dashboard-widget-indicators": True,
     # Enables updated all events tab in a performance issue
     "organizations:performance-issues-all-events-tab": False,
     # Temporary flag to test search performance that's running slow in S4S
@@ -1841,24 +1854,12 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
-    # Enable the new opinionated dynamic sampling
-    "organizations:dynamic-sampling": False,
-    # Enable the sliding window per project
-    "organizations:ds-sliding-window": False,
-    # Enable the sliding window per org
-    "organizations:ds-sliding-window-org": False,
-    # Enable the org recalibration
-    "organizations:ds-org-recalibration": False,
     # Enable view hierarchies options
     "organizations:view-hierarchies-options-dev": False,
     # Enable anr improvements ui
     "organizations:anr-improvements": False,
     # Enable anr frame analysis
     "organizations:anr-analyze-frames": False,
-    # Enable device.class as a selectable column
-    "organizations:device-classification": False,
-    # Enables synthesis of device.class in ingest
-    "organizations:device-class-synthesis": False,
     # Enable the SDK selection feature in the onboarding
     "organizations:onboarding-sdk-selection": False,
     # Enable tag improvements in the issue details page
@@ -1909,8 +1910,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:suspect-commits-all-frames": False,
     # Enables region provisioning for individual users
     "organizations:multi-region-selector": False,
-    # Enable the default alert at project creation to be the high priority alert
-    "organizations:default-high-priority-alerts": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
