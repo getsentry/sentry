@@ -367,7 +367,7 @@ class ReleaseModelManager(BaseManager["Release"]):
     def create(self, **kwargs):
         metrics.incr("release.create")
         sentry_metrics.incr("release.create")
-        super().create(**kwargs)
+        return super().create(**kwargs)
 
     def get_queryset(self):
         return ReleaseQuerySet(self.model, using=self._db)
