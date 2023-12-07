@@ -33,7 +33,7 @@ export default function FeedbackListBulkSelection({
     mailbox === 'resolved' ? GroupStatus.UNRESOLVED : GroupStatus.RESOLVED;
 
   return (
-    <Flex gap={space(1)} align="center" justify="space-between" style={{flexGrow: 1}}>
+    <Flex gap={space(1)} align="center" justify="space-between" flex="1 0 auto">
       <span>
         <strong>
           {tct('[countSelected] Selected', {
