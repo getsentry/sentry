@@ -128,8 +128,8 @@ function SplitPanel(props: SplitPanelProps) {
     [onDragStart, sizePct, onMouseDown]
   );
 
-  const isMaximized = containerSize === max;
-  const isMinimized = containerSize === min;
+  const isMaximized = containerSize >= max;
+  const isMinimized = containerSize <= min;
 
   const contextValue = useMemo(
     () => ({
