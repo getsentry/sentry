@@ -34,13 +34,22 @@ DEFAULT_RULE_DATA_NEW = {
     ],
     "actions": DEFAULT_RULE_ACTIONS_NEW,
 }
+PLATFORMS_WITH_NEW_DEFAULT = ["python", "javascript"]
+
+
+def is_supported_platform(project):
+    return project.platform and any(
+        project.platform.startswith(base_platform) for base_platform in PLATFORMS_WITH_NEW_DEFAULT
+    )
 
 
 def create_default_rules(project, default_rules=True, RuleModel=Rule, **kwargs):
     if not default_rules:
         return
 
-    if features.has("organizations:default-high-priority-alerts", project.organization):
+    if features.has(
+        "organizations:default-high-priority-alerts", project.organization
+    ) and is_supported_platform(project):
         rule_data = DEFAULT_RULE_DATA_NEW
         RuleModel.objects.create(project=project, label=DEFAULT_RULE_LABEL_NEW, data=rule_data)
 
