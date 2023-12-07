@@ -345,13 +345,14 @@ class EventManagerGroupingTest(TestCase):
         )
 
     @with_feature("organizations:group-chunk-load-errors")
-    def test_group_chunk_load_errors(self):
+    def test_group_chunk_load_errors_flag_on(self):
+        """
+        Test that when `group-chunk-load-errors` flag is on, ChunkLoadErrors with different stack
+        traces and values are grouped together
+        """
         manager = EventManager(
             make_event(
-                title="something",
-                message="ChunkLoadError: Loading chunk 123 failed",
-                event_id="a" * 32,
-                platform="node",
+                platform="javascript",
                 exception={
                     "values": [
                         {
@@ -364,6 +365,7 @@ class EventManagerGroupingTest(TestCase):
                                 ]
                             },
                             "value": "ChunkLoadError: Loading chunk 123 failed",
+                            "in_app": True,
                         }
                     ]
                 },
@@ -375,10 +377,7 @@ class EventManagerGroupingTest(TestCase):
 
         manager = EventManager(
             make_event(
-                title="else",
-                message="ChunkLoadError: Loading chunk 321 failed",
-                event_id="b" * 32,
-                platform="node",
+                platform="javascript",
                 exception={
                     "values": [
                         {
@@ -391,6 +390,7 @@ class EventManagerGroupingTest(TestCase):
                                 ]
                             },
                             "value": "ChunkLoadError: Loading chunk 321 failed",
+                            "in_app": True,
                         }
                     ]
                 },
@@ -403,13 +403,15 @@ class EventManagerGroupingTest(TestCase):
 
         assert event.group_id == event2.group_id
 
-    def test_do_not_group_chunk_load_errors(self):
+    @with_feature({"organizations:group-chunk-load-errors": False})
+    def test_do_not_group_chunk_load_errors_flag_off(self):
+        """
+        Test that when `group-chunk-load-errors` flag is off, ChunkLoadErrors with different stack
+        traces and values are not grouped together
+        """
         manager = EventManager(
             make_event(
-                title="something",
-                message="ChunkLoadError: Loading chunk 123 failed",
-                event_id="a" * 32,
-                platform="node",
+                platform="javascript",
                 exception={
                     "values": [
                         {
@@ -422,6 +424,7 @@ class EventManagerGroupingTest(TestCase):
                                 ]
                             },
                             "value": "ChunkLoadError: Loading chunk 123 failed",
+                            "in_app": True,
                         }
                     ]
                 },
@@ -433,10 +436,7 @@ class EventManagerGroupingTest(TestCase):
 
         manager = EventManager(
             make_event(
-                title="else",
-                message="ChunkLoadError: Loading chunk 321 failed",
-                event_id="b" * 32,
-                platform="node",
+                platform="javascript",
                 exception={
                     "values": [
                         {
@@ -449,6 +449,7 @@ class EventManagerGroupingTest(TestCase):
                                 ]
                             },
                             "value": "ChunkLoadError: Loading chunk 321 failed",
+                            "in_app": True,
                         }
                     ]
                 },
@@ -462,12 +463,13 @@ class EventManagerGroupingTest(TestCase):
         assert event.group_id != event2.group_id
 
     def test_chunk_load_errors_exception(self):
+        """
+        Test that when an error does not have an exception, the `get_chunk_load_error_hash`
+        function catches the exception and does not stop execution
+        """
         manager = EventManager(
             make_event(
-                title="something",
-                message="",
-                event_id="a" * 32,
-                platform="node",
+                platform="javascript",
                 exception={},
             )
         )
