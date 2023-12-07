@@ -68,7 +68,7 @@ class EventUser:
     username: Optional[str]
     name: Optional[str]
     ip_address: Optional[str]
-    user_ident: Optional[int]
+    user_ident: Optional[int | str]
     id: Optional[int] = None  # EventUser model id
 
     def __hash__(self):

@@ -7,6 +7,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import CallbackPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.eventuser import EventUserSerializer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.eventuser import EventUser
 
@@ -66,5 +67,5 @@ class ProjectUsersEndpoint(ProjectEndpoint):
             request=request,
             paginator_cls=CallbackPaginator,
             callback=callback,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(x, request.user, EventUserSerializer()),
         )
