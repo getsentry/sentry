@@ -78,6 +78,11 @@ RESOLVE_SELECTOR = {
         {"label": "In the current release", "value": "resolved:inCurrentRelease"},
     ],
 }
+RESOLVE_OPTIONS = {
+    "Immediately": "resolved",
+    "In the next release": "resolved:inNextRelease",
+    "In the current release": "resolved:inCurrentRelease",
+}
 
 
 def update_group(
@@ -282,12 +287,23 @@ class SlackActionEndpoint(Endpoint):
             "trigger_id": slack_request.data["trigger_id"],
         }
         use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
-        # TODO: build this up somewhere else, like block.py
-        # TODO: generate the resolve options from RESOLVE_SELECTOR (or copy it and modify for the format needed)
         # XXX(CEO): idk if this is the default behavior, but instead of there being placeholder text it's an input field
         # that filters to options in the dropdown (if a match is found)
         # also, the second you make a selection (without hitting Submit) it sends a slightly different request
         # and I don't need it to nor do I know how to stop it, it's making stuff harder in requests/action.py
+        formatted_resolve_options = []
+        for text, value in RESOLVE_OPTIONS.items():
+            formatted_resolve_options.append(
+                {
+                    "text": {
+                        "type": "plain_text",
+                        "text": text,
+                        "emoji": True,
+                    },
+                    "value": value,
+                }
+            )
+
         block_kit_payload = {
             "type": "modal",
             "title": {"type": "plain_text", "text": "Resolve Issue"},
@@ -295,6 +311,14 @@ class SlackActionEndpoint(Endpoint):
                 {
                     "type": "section",
                     "text": {"type": "mrkdwn", "text": "Resolve in"},
+                    "initial_option": {
+                        "text": {
+                            "type": "plain_text",
+                            "text": "Immediately",
+                            "emoji": True,
+                        },
+                        "value": "resolved",
+                    },
                     "accessory": {
                         "type": "static_select",
                         "placeholder": {
@@ -302,38 +326,13 @@ class SlackActionEndpoint(Endpoint):
                             "text": "Select an item",
                             "emoji": True,
                         },
-                        "options": [
-                            {
-                                "text": {
-                                    "type": "plain_text",
-                                    "text": "Immediately",
-                                    "emoji": True,
-                                },
-                                "value": "resolved",
-                            },
-                            {
-                                "text": {
-                                    "type": "plain_text",
-                                    "text": "In the next release",
-                                    "emoji": True,
-                                },
-                                "value": "resolved:inNextRelease",
-                            },
-                            {
-                                "text": {
-                                    "type": "plain_text",
-                                    "text": "In the current release",
-                                    "emoji": True,
-                                },
-                                "value": "resolved:inCurrentRelease",
-                            },
-                        ],
+                        "options": formatted_resolve_options,
                         "action_id": "static_select-action",
                     },
                 }
             ],
             "close": {"type": "plain_text", "text": "Cancel"},
-            "submit": {"type": "plain_text", "text": "Save"},
+            "submit": {"type": "plain_text", "text": "Resolve"},
             "private_metadata": callback_id,
             "callback_id": callback_id,
         }

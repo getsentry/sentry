@@ -50,22 +50,10 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
 
     @staticmethod
     def get_static_action(action):
-        options = []
-        for option in action.option_groups:
-            opt = {
-                "text": {
-                    "type": "plain_text",
-                    "text": option["label"],
-                    "emoji": True,
-                },
-                "value": option["value"],
-            }
-            options.append(opt)
-
         return {
             "type": "static_select",
             "placeholder": {"type": "plain_text", "text": action.label, "emoji": True},
-            "options": options,
+            "option_groups": [option for option in action.option_groups],
             "action_id": action.name,
         }
 

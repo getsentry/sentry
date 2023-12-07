@@ -144,6 +144,27 @@ def get_option_groups(group: Group) -> Sequence[Mapping[str, Any]]:
     return option_groups
 
 
+def get_option_groups_block_kit(group: Group) -> Sequence[Mapping[str, Any]]:
+    all_members = group.project.get_members_as_rpc_users()
+    members = list({m.id: m for m in all_members}.values())
+    teams = group.project.teams.all()
+    use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
+
+    option_groups = []
+    if teams:
+        team_options = format_actor_options(teams, use_block_kit)
+        option_groups.append(
+            {"label": {"type": "plain_text", "text": "Teams"}, "options": team_options}
+        )
+
+    if members:
+        member_options = format_actor_options(members, use_block_kit)
+        option_groups.append(
+            {"label": {"type": "plain_text", "text": "People"}, "options": member_options}
+        )
+    return option_groups
+
+
 def get_group_assignees(group: Group) -> Sequence[Mapping[str, Any]]:
     """Get teams and users that can be issue assignees for block kit"""
     all_members = group.project.get_members_as_rpc_users()
@@ -216,7 +237,6 @@ def build_actions(
         )
 
     def _resolve_button(use_block_kit) -> MessageAction:
-
         if use_block_kit:
             return MessageAction(
                 name="status",
@@ -244,22 +264,15 @@ def build_actions(
         )
 
     def _assign_button(use_block_kit) -> MessageAction:
-        if use_block_kit:
-            assign_button = MessageAction(
-                name="assign",
-                label="Select Assignee...",
-                type="select",
-                option_groups=get_group_assignees(group),
-            )
-            return assign_button
-
         assignee = group.get_assignee()
         assign_button = MessageAction(
             name="assign",
             label="Select Assignee...",
             type="select",
             selected_options=format_actor_options([assignee]) if assignee else [],
-            option_groups=get_option_groups(group),
+            option_groups=get_option_groups(group)
+            if not use_block_kit
+            else get_option_groups_block_kit(group),
         )
         return assign_button
 
