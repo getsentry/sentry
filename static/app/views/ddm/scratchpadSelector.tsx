@@ -296,8 +296,8 @@ function SaveAsDropdown({
 
   return (
     <div>
-      <Button icon={<IconStar isSolid={isFork} />} {...triggerProps}>
-        {isFork ? t('Fork as ...') : t('Save as ...')}
+      <Button icon={isFork ? null : <IconStar isSolid={isFork} />} {...triggerProps}>
+        {isFork ? `${t('Duplicate as')}\u2026` : `${t('Save as')}\u2026`}
       </Button>
       <AnimatePresence>
         {isOpen && (
