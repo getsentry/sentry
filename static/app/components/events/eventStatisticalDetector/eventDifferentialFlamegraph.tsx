@@ -396,7 +396,7 @@ function paginationReducer(
     case 'next':
       return {
         ...state,
-        page: Math.min(state.page + 1, state.pageCount),
+        page: Math.min(state.page + 1, state.pageCount - 1),
       };
     case 'previous':
       return {
