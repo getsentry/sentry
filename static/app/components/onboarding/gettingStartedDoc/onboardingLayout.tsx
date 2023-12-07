@@ -32,13 +32,13 @@ const ProductSelectionAvailabilityHook = HookOrDefault({
 });
 
 export type OnboardingLayoutProps = {
-  configType: ConfigType;
   docsConfig: Docs<any>;
   dsn: string;
   platformKey: PlatformKey;
   projectId: Project['id'];
   projectSlug: Project['slug'];
   activeProductSelection?: ProductSolution[];
+  configType?: ConfigType;
   newOrg?: boolean;
 };
 

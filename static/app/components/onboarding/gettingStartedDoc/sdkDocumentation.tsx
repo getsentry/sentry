@@ -17,11 +17,11 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 
 type SdkDocumentationProps = {
   activeProductSelection: ProductSolution[];
-  configType: ConfigType;
   organization: Organization;
   platform: PlatformIntegration;
   projectId: Project['id'];
   projectSlug: Project['slug'];
+  configType?: ConfigType;
   newOrg?: boolean;
 };
 
