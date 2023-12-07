@@ -69,7 +69,7 @@ google-cloud-spanner==3.20.0
 google-cloud-storage==2.5.0
 google-crc32c==1.5.0
 google-resumable-media==2.3.3
-googleapis-common-protos==1.56.4
+googleapis-common-protos==1.62.0
 grpc-google-iam-v1==0.12.4
 grpcio==1.56.0
 grpcio-status==1.56.0
