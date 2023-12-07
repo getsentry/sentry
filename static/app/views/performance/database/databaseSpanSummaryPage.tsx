@@ -13,7 +13,6 @@ import {space} from 'sentry/styles/space';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {DurationChart} from 'sentry/views/performance/database/durationChart';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
@@ -69,8 +68,7 @@ function SpanSummaryPage({params}: Props) {
     1
   );
 
-  const {projects} = useProjects();
-  const project = projects.find(p => p.id === String(indexedSpans?.[0]?.project_id));
+  const indexedSpan = indexedSpans?.[0];
 
   if (endpoint) {
     filters.transaction = endpoint;
@@ -169,9 +167,9 @@ function SpanSummaryPage({params}: Props) {
           {span?.[SpanMetricsField.SPAN_DESCRIPTION] && (
             <DescriptionContainer>
               <SpanDescription
-                project={project}
                 span={{
                   ...span,
+                  ...indexedSpan,
                   ...fullSpan,
                   [SpanMetricsField.SPAN_DESCRIPTION]:
                     fullSpan?.description ??

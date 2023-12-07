@@ -1,7 +1,10 @@
 import json  # noqa: S003
 import os
+import re
 from collections import OrderedDict
 from typing import Any, Dict, List, Literal, Mapping, Set, Tuple, TypedDict
+
+from drf_spectacular.generators import EndpointEnumerator, SchemaGenerator
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -132,11 +135,23 @@ def __write_ownership_data(ownership_data: Dict[ApiOwner, Dict]):
     file_to_write.close()
 
 
+class CustomEndpointEnumerator(EndpointEnumerator):
+    _non_capturing = re.compile(r"\(\?:[a-z-]+\|[a-z-]+\)")
+
+    def get_path_from_regex(self, path_regex: str) -> str:
+        # django 4.x changes to simplify_regex breaks these urls
+        path_regex = self._non_capturing.sub("{var}", path_regex)
+        return super().get_path_from_regex(path_regex)
+
+
+class CustomGenerator(SchemaGenerator):
+    endpoint_inspector_cls = CustomEndpointEnumerator
+
+
 def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, rename
     filtered = []
     ownership_data: Dict[ApiOwner, Dict] = {}
     for (path, path_regex, method, callback) in endpoints:
-
         owner_team = callback.view_class.owner
         if owner_team not in ownership_data:
             ownership_data[owner_team] = {

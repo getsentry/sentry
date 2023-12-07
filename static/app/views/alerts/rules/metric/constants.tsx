@@ -1,7 +1,11 @@
 import {t} from 'sentry/locale';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
-import {AggregationKeyWithAlias, LooseFieldKey} from 'sentry/utils/discover/fields';
+import {
+  AggregationKeyWithAlias,
+  LooseFieldKey,
+  SPAN_OP_BREAKDOWN_FIELDS,
+} from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {
@@ -46,6 +50,7 @@ export type OptionConfig = {
   aggregations: AggregationKeyWithAlias[];
   fields: LooseFieldKey[];
   measurementKeys?: string[];
+  spanOperationBreakdownKeys?: string[];
 };
 
 /**
@@ -121,11 +126,18 @@ export function getWizardAlertFieldConfig(
     alertType === 'apdex' || alertType === 'custom_transactions'
       ? allAggregations
       : commonAggregations;
-  return {
+
+  const config: OptionConfig = {
     aggregations,
     fields: ['transaction.duration'],
     measurementKeys: Object.keys(WEB_VITAL_DETAILS),
   };
+
+  if ([Dataset.TRANSACTIONS, Dataset.GENERIC_METRICS].includes(dataset)) {
+    config.spanOperationBreakdownKeys = SPAN_OP_BREAKDOWN_FIELDS;
+  }
+
+  return config;
 }
 
 /**
@@ -134,6 +146,7 @@ export function getWizardAlertFieldConfig(
 export const transactionFieldConfig: OptionConfig = {
   aggregations: allAggregations,
   fields: ['transaction.duration'],
+  spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
   measurementKeys: Object.keys(WEB_VITAL_DETAILS),
 };
 
@@ -179,7 +192,7 @@ function getAlertTimeWindow(period: string | undefined): TimeWindow | undefined 
 
   const timeWindows = Object.values(TimeWindow)
     .filter((value): value is TimeWindow => typeof value === 'number')
-    .sort();
+    .sort((a, b) => a - b);
 
   for (let index = 0; index < timeWindows.length; index++) {
     const timeWindow = timeWindows[index];

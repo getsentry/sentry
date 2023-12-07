@@ -1,3 +1,5 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -57,8 +59,7 @@ const props: React.ComponentProps<typeof ExceptionStacktraceContent> = {
   newestFirst: true,
   chainedException: false,
   stackType: StackType.ORIGINAL,
-  event: {
-    ...TestStubs.Event(),
+  event: EventFixture({
     entries: [],
     crashFile: {
       sha1: 'sha1',
@@ -81,7 +82,7 @@ const props: React.ComponentProps<typeof ExceptionStacktraceContent> = {
     projectID: '123',
     tags: [{value: 'production', key: 'production'}],
     title: 'TestException',
-  },
+  }),
   data: stacktrace,
   stacktrace,
   hasHierarchicalGrouping: false,

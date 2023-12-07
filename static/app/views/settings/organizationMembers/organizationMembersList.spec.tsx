@@ -3,6 +3,7 @@ import selectEvent from 'react-select-event';
 import {AuthProvider} from 'sentry-fixture/authProvider';
 import {Members} from 'sentry-fixture/members';
 import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
 
 import {
   render,
@@ -55,7 +56,7 @@ const roles = [
 describe('OrganizationMembersList', function () {
   const members = TestStubs.Members();
 
-  const ownerTeam = TestStubs.Team({slug: 'owner-team', orgRole: 'owner'});
+  const ownerTeam = Team({slug: 'owner-team', orgRole: 'owner'});
   const member = TestStubs.Member({
     id: '5',
     email: 'member@sentry.io',
@@ -135,7 +136,7 @@ describe('OrganizationMembersList', function () {
               name: 'sentry@test.com',
             },
           },
-          team: TestStubs.Team(),
+          team: Team(),
         },
       ],
     });
@@ -150,7 +151,7 @@ describe('OrganizationMembersList', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/teams/',
       method: 'GET',
-      body: [TestStubs.Team(), ownerTeam],
+      body: [Team(), ownerTeam],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/invite-requests/',

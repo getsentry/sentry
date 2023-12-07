@@ -16,7 +16,7 @@ type Props = {
   transaction?: string | null;
 };
 
-export const useProjectWebVitalsValuesTimeseriesQuery = ({
+export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
   transaction,
   datetime,
 }: Props) => {
@@ -26,15 +26,12 @@ export const useProjectWebVitalsValuesTimeseriesQuery = ({
   const projectTimeSeriesEventView = EventView.fromNewQueryWithPageFilters(
     {
       yAxis: [
-        'p75(measurements.lcp)',
-        'p75(measurements.fcp)',
-        'p75(measurements.cls)',
-        'p75(measurements.ttfb)',
-        'p75(measurements.fid)',
+        'avg(measurements.lcp)',
+        'avg(measurements.fcp)',
+        'avg(measurements.cls)',
+        'avg(measurements.ttfb)',
+        'avg(measurements.fid)',
         'count()',
-        'p75(transaction.duration)',
-        'failure_count()',
-        'eps()',
       ],
       name: 'Web Vitals',
       query:
@@ -71,7 +68,6 @@ export const useProjectWebVitalsValuesTimeseriesQuery = ({
       interval: projectTimeSeriesEventView.interval,
     }),
     options: {
-      enabled: pageFilters.isReady,
       refetchOnWindowFocus: false,
     },
     referrer: 'api.performance.browser.web-vitals.timeseries',
@@ -80,9 +76,6 @@ export const useProjectWebVitalsValuesTimeseriesQuery = ({
   const data: {
     cls: SeriesDataUnit[];
     count: SeriesDataUnit[];
-    duration: SeriesDataUnit[];
-    eps: SeriesDataUnit[];
-    errors: SeriesDataUnit[];
     fcp: SeriesDataUnit[];
     fid: SeriesDataUnit[];
     lcp: SeriesDataUnit[];
@@ -94,22 +87,16 @@ export const useProjectWebVitalsValuesTimeseriesQuery = ({
     ttfb: [],
     fid: [],
     count: [],
-    duration: [],
-    errors: [],
-    eps: [],
   };
 
-  result?.data?.['p75(measurements.lcp)']?.data.forEach((interval, index) => {
+  result?.data?.['avg(measurements.lcp)']?.data.forEach((interval, index) => {
     const map: {key: string; series: SeriesDataUnit[]}[] = [
-      {key: 'p75(measurements.cls)', series: data.cls},
-      {key: 'p75(measurements.lcp)', series: data.lcp},
-      {key: 'p75(measurements.fcp)', series: data.fcp},
-      {key: 'p75(measurements.ttfb)', series: data.ttfb},
-      {key: 'p75(measurements.fid)', series: data.fid},
+      {key: 'avg(measurements.cls)', series: data.cls},
+      {key: 'avg(measurements.lcp)', series: data.lcp},
+      {key: 'avg(measurements.fcp)', series: data.fcp},
+      {key: 'avg(measurements.ttfb)', series: data.ttfb},
+      {key: 'avg(measurements.fid)', series: data.fid},
       {key: 'count()', series: data.count},
-      {key: 'p75(transaction.duration)', series: data.duration},
-      {key: 'failure_count()', series: data.errors},
-      {key: 'eps()', series: data.eps},
     ];
     map.forEach(({key, series}) => {
       if (result?.data?.[key].data[index][1][0].count !== null) {

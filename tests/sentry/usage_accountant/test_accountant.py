@@ -2,6 +2,7 @@ import atexit
 from typing import Optional
 from unittest import mock
 
+import pytest
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.backends.local.backend import LocalBroker
 from arroyo.backends.local.storages.memory import MemoryMessageStorage
@@ -35,6 +36,7 @@ def assert_msg(
     }
 
 
+@pytest.mark.skip(reason="usage of atexit breaks interpreter")
 @django_db_all
 @mock.patch("time.time")
 def test_accountant(mock_time: mock.Mock) -> None:

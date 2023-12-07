@@ -4,14 +4,18 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Generator, Generic, List, Mapping, Optional, Set, Tuple, TypeVar
+from typing import Any, Generator, Generic, Iterable, List, Mapping, Optional, Set, Tuple, TypeVar
 
 import sentry_sdk
 
 from sentry import options
+from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.models.project import Project
+from sentry.search.events.fields import get_function_alias
+from sentry.seer.utils import BreakpointData, detect_breakpoints
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
+from sentry.utils.snuba import SnubaTSResult
 
 
 class TrendType(Enum):
@@ -95,6 +99,7 @@ class RegressionDetector(ABC):
     store: DetectorStore
     state_cls: type[DetectorState]
     detector_cls: type[DetectorAlgorithm]
+    min_change: int
 
     @classmethod
     def all_payloads(
@@ -110,7 +115,6 @@ class RegressionDetector(ABC):
                 yield from cls.query_payloads(projects, start)
             except Exception as e:
                 sentry_sdk.capture_exception(e)
-                continue
 
     @classmethod
     @abstractmethod
@@ -118,7 +122,7 @@ class RegressionDetector(ABC):
         cls,
         projects: List[Project],
         start: datetime,
-    ) -> List[DetectorPayload]:
+    ) -> Iterable[DetectorPayload]:
         ...
 
     @classmethod
@@ -194,3 +198,70 @@ class RegressionDetector(ABC):
             tags={"source": cls.source, "kind": cls.kind},
             sample_rate=1.0,
         )
+
+    @classmethod
+    def all_timeseries(
+        cls, objects: List[Tuple[Project, int | str]], start: datetime, function: str, chunk_size=25
+    ) -> Generator[Tuple[int, int | str, SnubaTSResult], None, None]:
+        # Snuba allows 10,000 data points per request. 14 days * 1hr * 24hr =
+        # 336 data points per transaction name, so we can safely get 25 transaction
+        # timeseries.
+        for chunk in chunked(objects, chunk_size):
+            try:
+                yield from cls.query_timeseries(chunk, start, function)
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+
+    @classmethod
+    @abstractmethod
+    def query_timeseries(
+        cls,
+        objects: List[Tuple[Project, int | str]],
+        start: datetime,
+        function: str,
+    ) -> Iterable[Tuple[int, int | str, SnubaTSResult]]:
+        ...
+
+    @classmethod
+    def detect_regressions(
+        cls,
+        objects: List[Tuple[Project, int | str]],
+        start: datetime,
+        function: str,
+        timeseries_per_batch=10,
+    ) -> Generator[BreakpointData, None, None]:
+        serializer = SnubaTSResultSerializer(None, None, None)
+
+        for chunk in chunked(cls.all_timeseries(objects, start, function), timeseries_per_batch):
+            data = {}
+            for project_id, object_name, result in chunk:
+                serialized = serializer.serialize(result, get_function_alias(function))
+                data[f"{project_id},{object_name}"] = {
+                    "data": serialized["data"],
+                    "data_start": serialized["start"],
+                    "data_end": serialized["end"],
+                    # only look at the last 3 days of the request data
+                    "request_start": serialized["end"] - 3 * 24 * 60 * 60,
+                    "request_end": serialized["end"],
+                }
+
+            request = {
+                "data": data,
+                "sort": "-trend_percentage()",
+                "min_change()": cls.min_change,
+                # "trend_percentage()": 0.5,  # require a minimum 50% increase
+                # "validate_tail_hours": 6,
+                # Disable the fall back to use the midpoint as the breakpoint
+                # which was originally intended to detect a gradual regression
+                # for the trends use case. That does not apply here.
+                "allow_midpoint": "0",
+            }
+
+            try:
+                yield from detect_breakpoints(request)["data"]
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+                metrics.incr(
+                    "statistical_detectors.breakpoint.errors",
+                    tags={"source": cls.source, "kind": cls.kind},
+                )
