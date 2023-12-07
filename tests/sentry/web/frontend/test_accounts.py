@@ -5,6 +5,7 @@ from django.test import override_settings
 from django.urls import reverse
 
 from sentry.models.lostpasswordhash import LostPasswordHash
+from sentry.models.useremail import UserEmail
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -176,3 +177,28 @@ class TestAccounts(TestCase):
                 assert user.password == old_password
                 assert resp.status_code == 200
                 assert resp[header_name] == "strict-origin-when-cross-origin"
+
+    def test_confirm_email(self):
+        self.login_as(self.user)
+
+        useremail = UserEmail(user=self.user, email="new@example.com")
+        useremail.save()
+
+        assert not useremail.is_verified
+
+        resp = self.client.get(
+            reverse(
+                "sentry-account-confirm-email",
+                kwargs={"user_id": self.user.id, "hash": useremail.validation_hash},
+            ),
+            follow=True,
+        )
+        assert resp.status_code == 200
+        assert resp.redirect_chain == [("/settings/account/emails/", 302)]
+
+        useremail = UserEmail.objects.get(user=self.user, email="new@example.com")
+        assert useremail.is_verified
+
+        messages = list(resp.context["messages"])
+        assert len(messages) == 1
+        assert messages[0].message == "Thanks for confirming your email"
