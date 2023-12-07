@@ -497,8 +497,8 @@ function getReleasesRequest(
       orderBy: unsupportedOrderby
         ? ''
         : isDescending
-        ? `-${fieldsToDerivedMetrics(rawOrderby)}`
-        : fieldsToDerivedMetrics(rawOrderby),
+          ? `-${fieldsToDerivedMetrics(rawOrderby)}`
+          : fieldsToDerivedMetrics(rawOrderby),
       interval,
       project: projects,
       query: query.conditions,

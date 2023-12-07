@@ -1,10 +1,8 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
 
-import fs from 'node:fs';
-import path from 'node:path';
-
 import {WebpackReactSourcemapsPlugin} from '@acemarke/react-prod-sourcemaps';
+import {RsdoctorWebpackPlugin} from '@rsdoctor/webpack-plugin';
 import browserslist from 'browserslist';
 import CompressionPlugin from 'compression-webpack-plugin';
 import CopyPlugin from 'copy-webpack-plugin';
@@ -12,12 +10,13 @@ import CssMinimizerPlugin from 'css-minimizer-webpack-plugin';
 import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
 import lightningcss from 'lightningcss';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
+import fs from 'node:fs';
+import path from 'node:path';
 import TerserPlugin from 'terser-webpack-plugin';
 import webpack from 'webpack';
 import {Configuration as DevServerConfig} from 'webpack-dev-server';
 import WebpackHookPlugin from 'webpack-hook-plugin';
 import FixStyleOnlyEntriesPlugin from 'webpack-remove-empty-scripts';
-import { RsdoctorWebpackPlugin } from '@rsdoctor/webpack-plugin';
 
 import IntegrationDocsFetchPlugin from './build-utils/integration-docs-fetch-plugin';
 import LastBuiltPlugin from './build-utils/last-built-plugin';

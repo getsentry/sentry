@@ -1406,10 +1406,10 @@ function Flamegraph(): ReactElement {
                       'Upgrade to version 8.9.6 of sentry-cocoa SDK to enable memory usage collection'
                     )
                   : profileGroup.metadata.platform === 'node'
-                  ? t(
-                      'Upgrade to version 1.2.0 of @sentry/profiling-node to enable memory usage collection'
-                    )
-                  : ''
+                    ? t(
+                        'Upgrade to version 1.2.0 of @sentry/profiling-node to enable memory usage collection'
+                      )
+                    : ''
               }
             />
           ) : null
@@ -1430,10 +1430,10 @@ function Flamegraph(): ReactElement {
                       'Upgrade to version 8.9.6 of sentry-cocoa SDK to enable CPU usage collection'
                     )
                   : profileGroup.metadata.platform === 'node'
-                  ? t(
-                      'Upgrade to version 1.2.0 of @sentry/profiling-node to enable CPU usage collection'
-                    )
-                  : ''
+                    ? t(
+                        'Upgrade to version 1.2.0 of @sentry/profiling-node to enable CPU usage collection'
+                      )
+                    : ''
               }
             />
           ) : null

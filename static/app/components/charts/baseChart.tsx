@@ -403,26 +403,26 @@ function BaseChartUnwrapped({
             itemStyle: {...(s.areaStyle ?? {})},
           }))
         : hasSinglePoints && transformSinglePointToLine
-        ? (series as LineSeriesOption[] | undefined)?.map(s => ({
-            ...s,
-            type: 'line',
-            itemStyle: {...(s.lineStyle ?? {})},
-            markLine:
-              s?.data?.[0]?.[1] !== undefined
-                ? MarkLine({
-                    silent: true,
-                    lineStyle: {
-                      type: 'solid',
-                      width: 1.5,
-                    },
-                    data: [{yAxis: s?.data?.[0]?.[1]}],
-                    label: {
-                      show: false,
-                    },
-                  })
-                : undefined,
-          }))
-        : series) ?? [];
+          ? (series as LineSeriesOption[] | undefined)?.map(s => ({
+              ...s,
+              type: 'line',
+              itemStyle: {...(s.lineStyle ?? {})},
+              markLine:
+                s?.data?.[0]?.[1] !== undefined
+                  ? MarkLine({
+                      silent: true,
+                      lineStyle: {
+                        type: 'solid',
+                        width: 1.5,
+                      },
+                      data: [{yAxis: s?.data?.[0]?.[1]}],
+                      label: {
+                        show: false,
+                      },
+                    })
+                  : undefined,
+            }))
+          : series) ?? [];
 
     const transformedPreviousPeriod =
       previousPeriod?.map((previous, seriesIndex) =>
@@ -504,8 +504,8 @@ function BaseChartUnwrapped({
         ? YAxis({theme, ...yAxis})
         : undefined
       : Array.isArray(yAxes)
-      ? yAxes.map(axis => YAxis({...axis, theme}))
-      : [YAxis(defaultAxesProps), YAxis(defaultAxesProps)];
+        ? yAxes.map(axis => YAxis({...axis, theme}))
+        : [YAxis(defaultAxesProps), YAxis(defaultAxesProps)];
 
     const xAxisOrCustom = !xAxes
       ? xAxis !== null
@@ -522,20 +522,20 @@ function BaseChartUnwrapped({
           })
         : undefined
       : Array.isArray(xAxes)
-      ? xAxes.map(axis =>
-          XAxis({
-            ...axis,
-            theme,
-            useShortDate,
-            start,
-            end,
-            period,
-            isGroupedByDate,
-            addSecondsToTimeFormat,
-            utc,
-          })
-        )
-      : [XAxis(defaultAxesProps), XAxis(defaultAxesProps)];
+        ? xAxes.map(axis =>
+            XAxis({
+              ...axis,
+              theme,
+              useShortDate,
+              start,
+              end,
+              period,
+              isGroupedByDate,
+              addSecondsToTimeFormat,
+              utc,
+            })
+          )
+        : [XAxis(defaultAxesProps), XAxis(defaultAxesProps)];
 
     return {
       ...options,

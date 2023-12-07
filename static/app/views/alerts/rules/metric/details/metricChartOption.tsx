@@ -389,8 +389,8 @@ export function getMetricAlertChartOption({
     max: isCrashFreeAlert(rule.dataset)
       ? 100
       : maxThresholdValue > maxSeriesValue
-      ? maxThresholdValue
-      : undefined,
+        ? maxThresholdValue
+        : undefined,
     min: minChartValue || undefined,
   };
 

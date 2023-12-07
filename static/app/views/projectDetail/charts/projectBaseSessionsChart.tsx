@@ -319,13 +319,13 @@ class Chart extends Component<ChartProps, ChartState> {
             max: 100,
           }
         : this.isAnr
-        ? {
-            axisLabel: {
-              formatter: (value: number) => displayCrashFreePercent(value, 0, 3, false),
-            },
-            scale: true,
-          }
-        : {min: 0},
+          ? {
+              axisLabel: {
+                formatter: (value: number) => displayCrashFreePercent(value, 0, 3, false),
+              },
+              scale: true,
+            }
+          : {min: 0},
     };
   }
 
@@ -341,8 +341,8 @@ class Chart extends Component<ChartProps, ChartState> {
     const ChartComponent = this.isCrashFree
       ? LineChart
       : this.isAnr
-      ? BarChart
-      : StackedAreaChart;
+        ? BarChart
+        : StackedAreaChart;
     return (
       <ChartComponent
         {...zoomRenderProps}

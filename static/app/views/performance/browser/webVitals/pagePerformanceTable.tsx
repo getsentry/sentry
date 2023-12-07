@@ -114,8 +114,8 @@ export function PagePerformanceTable() {
         col.key === 'totalScore'
           ? 'avg(measurements.score.total)'
           : col.key === 'opportunity'
-          ? 'opportunity_score(measurements.score.total)'
-          : col.key;
+            ? 'opportunity_score(measurements.score.total)'
+            : col.key;
       let newSortDirection: Sort['kind'] = 'desc';
       if (sort?.field === key) {
         if (sort.kind === 'desc') {

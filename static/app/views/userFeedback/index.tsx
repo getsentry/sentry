@@ -65,8 +65,8 @@ class OrganizationUserFeedback extends DeprecatedAsyncView<Props, State> {
     return Array.isArray(project)
       ? project
       : typeof project === 'string'
-      ? [project]
-      : [];
+        ? [project]
+        : [];
   }
 
   renderResults() {

@@ -182,12 +182,12 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
                 !isSupportedPlatformForGitHubLink(props.profileGroup?.metadata?.platform)
                   ? t('Open in GitHub is not supported for this platform')
                   : sourceCodeLink.isLoading
-                  ? 'Resolving link'
-                  : sourceCodeLink.isSuccess &&
-                    (!sourceCodeLink.data.sourceUrl ||
-                      sourceCodeLink.data.config?.provider?.key !== 'github')
-                  ? t('Could not find source code location in GitHub')
-                  : undefined
+                    ? 'Resolving link'
+                    : sourceCodeLink.isSuccess &&
+                        (!sourceCodeLink.data.sourceUrl ||
+                          sourceCodeLink.data.config?.provider?.key !== 'github')
+                      ? t('Could not find source code location in GitHub')
+                      : undefined
               }
               {...props.contextMenu.getMenuItemProps({
                 onClick: onOpenInGithubClick,
@@ -284,8 +284,8 @@ export function DifferentialFlamegraphMenu(props: DifferentialFlamegraphMenuProp
             {filter === 'all'
               ? t('All frames')
               : filter === 'application'
-              ? t('Application frames')
-              : t('System frames')}
+                ? t('Application frames')
+                : t('System frames')}
           </ProfilingContextMenuItemCheckbox>
         ))}
       </ProfilingContextMenuGroup>

@@ -133,8 +133,8 @@ function CreateNewIntegrationModal({
               option === 'sentry-fx'
                 ? PlatformEvents.CHOSE_SENTRY_FX
                 : option === 'public'
-                ? PlatformEvents.CHOSE_PUBLIC
-                : PlatformEvents.CHOSE_INTERNAL,
+                  ? PlatformEvents.CHOSE_PUBLIC
+                  : PlatformEvents.CHOSE_INTERNAL,
               {
                 organization,
                 view: analyticsView,

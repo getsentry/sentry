@@ -425,8 +425,8 @@ class MetricChart extends PureComponent<Props, State> {
                           changeStatus === AlertRuleTriggerType.CRITICAL
                             ? theme.red300
                             : changeStatus === AlertRuleTriggerType.WARNING
-                            ? theme.yellow300
-                            : theme.green300;
+                              ? theme.yellow300
+                              : theme.green300;
 
                         return [
                           `<div class="tooltip-series">`,

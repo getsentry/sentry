@@ -145,8 +145,8 @@ export function fetchOrganizationDetails(
           typeof err.responseJSON?.detail === 'string'
             ? err.responseJSON?.detail
             : typeof err.responseJSON?.detail?.message === 'string'
-            ? err.responseJSON?.detail.message
-            : null;
+              ? err.responseJSON?.detail.message
+              : null;
 
         if (errMessage) {
           addErrorMessage(errMessage);

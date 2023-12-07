@@ -343,8 +343,8 @@ function FlamegraphZoomView({
     hoveredNode: hoveredNode
       ? hoveredNode
       : contextMenu.open
-      ? hoveredNodeOnContextMenuOpen.current
-      : null,
+        ? hoveredNodeOnContextMenuOpen.current
+        : null,
     canvas: flamegraphCanvas,
     view: flamegraphView,
     theme: flamegraphTheme,

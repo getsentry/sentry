@@ -335,8 +335,8 @@ class TriggersChart extends PureComponent<Props, State> {
     const totalCountLabel = isSessionAggregate(aggregate)
       ? SESSION_AGGREGATE_TO_HEADING[aggregate]
       : showExtrapolatedChartData
-      ? t('Estimated Transactions')
-      : t('Total');
+        ? t('Estimated Transactions')
+        : t('Total');
 
     return (
       <Fragment>
@@ -622,8 +622,8 @@ function ErrorChart({isAllowIndexed, isQueryValid, errorMessage}) {
         {!isAllowIndexed && !isQueryValid
           ? t('Your filter conditions contain an unsupported field - please review.')
           : typeof errorMessage === 'string'
-          ? errorMessage
-          : t('An error occurred while fetching data')}
+            ? errorMessage
+            : t('An error occurred while fetching data')}
       </PanelAlert>
 
       <StyledErrorPanel>

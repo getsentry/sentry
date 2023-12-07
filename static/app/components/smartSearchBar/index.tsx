@@ -885,8 +885,8 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
         key === 'ArrowUp'
           ? (currIndex - 1 + totalItems) % totalItems
           : isSelectingDropdownItems
-          ? (currIndex + 1) % totalItems
-          : 0;
+            ? (currIndex + 1) % totalItems
+            : 0;
 
       // Clear previous selection
       const prevItem = flatSearchItems[currIndex];
@@ -1018,8 +1018,8 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
           token.type !== Token.LOGIC_BOOLEAN
           ? null
           : token.invalid
-          ? returnResult(false)
-          : skipToken;
+            ? returnResult(false)
+            : skipToken;
       },
     });
   }
@@ -1184,8 +1184,8 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
         !matchedTokens.includes(token.type)
           ? null
           : isWithinToken(token, cursor)
-          ? returnResult(token)
-          : skipToken,
+            ? returnResult(token)
+            : skipToken,
     });
   }
 
@@ -1483,8 +1483,8 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       tag.key === 'firstRelease'
         ? this.getReleases
         : tag.predefined
-        ? this.getPredefinedTagValues
-        : this.getTagValues;
+          ? this.getPredefinedTagValues
+          : this.getTagValues;
 
     const [tagValues, recentSearches] = await Promise.all([
       fetchTagValuesFn(tag, preparedQuery),
