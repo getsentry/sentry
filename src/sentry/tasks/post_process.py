@@ -1395,9 +1395,7 @@ def detect_new_escalation(job: PostProcessJob):
             # a rate of 0 means there was no threshold that could be calculated
             if project_escalation_rate > 0 and group_hourly_event_rate > project_escalation_rate:
                 job["has_escalated"] = True
-                group.update(substatus=GroupSubStatus.ESCALATING)
-                if group.status == GroupStatus.IGNORED:
-                    group.update(status=GroupStatus.UNRESOLVED)
+                group.update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ESCALATING)
                 # TODO(snigdha): reuse manage_issue_states when we allow escalating from other statuses
                 add_group_to_inbox(group, GroupInboxReason.ESCALATING)
                 record_group_history(group, GroupHistoryStatus.ESCALATING)
