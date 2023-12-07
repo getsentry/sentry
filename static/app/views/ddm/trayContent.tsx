@@ -1,4 +1,4 @@
-import {useContext} from 'react';
+import {useContext, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -8,11 +8,18 @@ import {TabList, Tabs} from 'sentry/components/tabs';
 import {IconChevron, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {CodeLocations} from 'sentry/views/ddm/codeLocations';
 import {useDDMContext} from 'sentry/views/ddm/context';
 import {TraceTable} from 'sentry/views/ddm/traceTable';
 
+enum Tab {
+  SAMPLES = 'samples',
+  CODE_LOCATIONS = 'codeLocations',
+}
+
 export function TrayContent() {
   const {selectedWidgetIndex, widgets} = useDDMContext();
+  const [selectedTab, setSelectedTab] = useState(Tab.SAMPLES);
   const {isMaximized, maximiseSize, resetSize} = useContext(SplitPanelContext);
   // the tray is minimized when the main content is maximized
   const trayIsMinimized = isMaximized;
@@ -30,14 +37,14 @@ export function TrayContent() {
           aria-label={trayIsMinimized ? t('show') : t('hide')}
         />
       </Header>
-      <Tabs defaultValue="samples">
+      <Tabs value={selectedTab} onChange={setSelectedTab}>
         <StyledTabList>
-          <TabList.Item key="samples">{t('Samples')}</TabList.Item>
-          <TabList.Item key="codeLocations">{t('Code Location')}</TabList.Item>
+          <TabList.Item key={Tab.SAMPLES}>{t('Samples')}</TabList.Item>
+          <TabList.Item key={Tab.CODE_LOCATIONS}>{t('Code Location')}</TabList.Item>
         </StyledTabList>
       </Tabs>
       <ContentWrapper>
-        {!selectedWidget.mri ? (
+        {!selectedWidget?.mri ? (
           <CenterContent>
             <EmptyMessage
               style={{margin: 'auto'}}
@@ -46,12 +53,14 @@ export function TrayContent() {
               description={t('Choose a metric to display data.')}
             />
           </CenterContent>
-        ) : (
+        ) : selectedTab === Tab.SAMPLES ? (
           <TraceTable
             // Force re-render when selectedWidget changes so the mocked data updates
             // TODO: remove this when we have real data
             key={selectedWidget.mri}
           />
+        ) : (
+          <CodeLocations mri={selectedWidget.mri} />
         )}
       </ContentWrapper>
     </TrayWrapper>
@@ -94,7 +103,7 @@ const StyledTabList = styled(TabList)`
 
 const ContentWrapper = styled('div')`
   position: relative;
-  padding: ${space(0)} ${space(4)};
+  padding: ${space(2)} ${space(4)};
   overflow: auto;
 `;
 
