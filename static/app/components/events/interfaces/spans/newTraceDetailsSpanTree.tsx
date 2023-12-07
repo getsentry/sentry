@@ -21,8 +21,8 @@ import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {setGroupedEntityTag} from 'sentry/utils/performanceForSentry';
+import {TraceInfo} from 'sentry/views/performance/traceDetails/types';
 
-import {DragManagerChildrenProps} from './dragManager';
 import {ActiveOperationFilter} from './filter';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
 import {ProfiledSpanBar} from './spanBar';
@@ -38,17 +38,22 @@ import {
   SpanTreeNode,
   SpanTreeNodeType,
   SpanType,
+  TreeDepthType,
 } from './types';
 import {getSpanID, getSpanOperation, isGapSpan, spanTargetHash} from './utils';
 import WaterfallModel from './waterfallModel';
 
 type PropType = ScrollbarManagerChildrenProps & {
-  dragProps: DragManagerChildrenProps;
   filterSpans: FilterSpans | undefined;
   operationNameFilters: ActiveOperationFilter;
   organization: Organization;
+  parentGeneration: number;
+  parentHasContinuingDepths: boolean;
+  parentIsLast: boolean;
   spanContextProps: SpanContext.SpanContextProps;
   spans: EnhancedProcessedSpanType[];
+  traceHasMultipleRoots: boolean;
+  traceInfo: TraceInfo;
   traceViewHeaderRef: React.RefObject<HTMLDivElement>;
   traceViewRef: React.RefObject<HTMLDivElement>;
   waterfallModel: WaterfallModel;
@@ -62,7 +67,7 @@ type StateType = {
 
 const listRef = createRef<ReactVirtualizedList>();
 
-class SpanTree extends Component<PropType> {
+class NewTraceDetailsSpanTree extends Component<PropType> {
   state: StateType = {
     headerPos: 0,
     // Stores each visible span row ref along with its tree depth. This is used to calculate the
@@ -151,19 +156,7 @@ class SpanTree extends Component<PropType> {
   }
 
   shouldComponentUpdate(nextProps: PropType) {
-    if (
-      this.props.dragProps.isDragging !== nextProps.dragProps.isDragging ||
-      this.props.dragProps.isWindowSelectionDragging !==
-        nextProps.dragProps.isWindowSelectionDragging
-    ) {
-      return true;
-    }
-
-    if (
-      nextProps.dragProps.isDragging ||
-      nextProps.dragProps.isWindowSelectionDragging ||
-      isEqual(this.props.spans, nextProps.spans)
-    ) {
+    if (isEqual(this.props.spans, nextProps.spans)) {
       return false;
     }
 
@@ -171,11 +164,14 @@ class SpanTree extends Component<PropType> {
   }
 
   componentDidUpdate(prevProps: PropType) {
+    // TODO Abdullah Khan: A little bit hacky, but ensures that the embedded span tree
+    // aligns with the rest of the trace tree when first loaded.
+    this.props.updateHorizontalScrollState(0.5);
+
     // If the filters or minimap drag props have changed, we can't pinpoint the exact
     // spans that we need to recalculate the heights for, so recompute them all
     if (
       !isEqual(prevProps.filterSpans, this.props.filterSpans) ||
-      !isEqual(prevProps.dragProps, this.props.dragProps) ||
       !isEqual(prevProps.operationNameFilters, this.props.operationNameFilters)
     ) {
       this.cache.clearAll();
@@ -396,23 +392,18 @@ class SpanTree extends Component<PropType> {
       waterfallModel,
       spans,
       organization,
-      dragProps,
       onWheel,
       addContentSpanBarRef,
       removeContentSpanBarRef,
       storeSpanBar,
-      getCurrentLeftPos,
-      onDragStart,
-      onScroll,
-      scrollBarAreaRef,
-      updateHorizontalScrollState,
-      updateScrollState,
-      virtualScrollbarRef,
+      traceHasMultipleRoots,
+      traceInfo,
     } = this.props;
 
     const generateBounds = waterfallModel.generateBounds({
-      viewStart: dragProps.viewWindowStart,
-      viewEnd: dragProps.viewWindowEnd,
+      viewStart: 0,
+      viewEnd: 1,
+      traceInfo,
     });
 
     type AccType = {
@@ -474,6 +465,35 @@ class SpanTree extends Component<PropType> {
         const spanNumber = acc.spanNumber;
         const {span, treeDepth, continuingTreeDepths} = payload;
 
+        // Shift the continuing depth line to align the embedded span tree
+        // with the parent transaction from the trace row.
+        const continuingTreeDepthPastParent = continuingTreeDepths.map(c => {
+          if (typeof c === 'number') {
+            return c + this.props.parentGeneration;
+          }
+
+          return {...c, depth: c.depth + this.props.parentGeneration};
+        });
+
+        if (!this.props.parentIsLast) {
+          continuingTreeDepthPastParent.push(this.props.parentGeneration);
+        }
+
+        // Add continuing depths from the trace level to to span rows.
+        const minDepth = traceHasMultipleRoots ? 1 : 2;
+        if (
+          (this.props.parentGeneration > 2 || traceHasMultipleRoots) &&
+          this.props.parentHasContinuingDepths
+        ) {
+          let i = this.props.parentGeneration - 1;
+          while (i >= minDepth) {
+            const value: TreeDepthType =
+              traceHasMultipleRoots && i === 1 ? {depth: i, type: 'orphan'} : i;
+            continuingTreeDepthPastParent.push(value);
+            i = i - 1;
+          }
+        }
+
         if (payload.type === 'span_group_chain') {
           const groupingContainsAffectedSpan = payload.spanNestedGrouping?.find(
             ({span: s}) =>
@@ -490,8 +510,8 @@ class SpanTree extends Component<PropType> {
                 : SpanBarType.AUTOGROUPED,
               generateBounds,
               getCurrentLeftPos: this.props.getCurrentLeftPos,
-              treeDepth,
-              continuingTreeDepths,
+              treeDepth: treeDepth + this.props.parentGeneration,
+              continuingTreeDepths: continuingTreeDepthPastParent,
               spanNumber,
               spanGrouping: payload.spanNestedGrouping as EnhancedSpan[],
               toggleSpanGroup: payload.toggleNestedSpanGroup as () => void,
@@ -524,8 +544,8 @@ class SpanTree extends Component<PropType> {
                 : SpanBarType.AUTOGROUPED,
               generateBounds,
               getCurrentLeftPos: this.props.getCurrentLeftPos,
-              treeDepth,
-              continuingTreeDepths,
+              treeDepth: treeDepth + this.props.parentGeneration,
+              continuingTreeDepths: continuingTreeDepthPastParent,
               spanNumber,
               spanGrouping: payload.spanSiblingGrouping as EnhancedSpan[],
               toggleSiblingSpanGroup: payload.toggleSiblingSpanGroup,
@@ -589,13 +609,7 @@ class SpanTree extends Component<PropType> {
         acc.spanTree.push({
           type: SpanTreeNodeType.SPAN,
           props: {
-            getCurrentLeftPos,
-            onDragStart,
-            onScroll,
-            scrollBarAreaRef,
-            updateHorizontalScrollState,
-            updateScrollState,
-            virtualScrollbarRef,
+            ...this.props,
             organization,
             event: waterfallModel.event,
             spanBarColor,
@@ -606,8 +620,8 @@ class SpanTree extends Component<PropType> {
             trace: waterfallModel.parsedTrace,
             generateBounds,
             toggleSpanTree: this.toggleSpanTree(getSpanID(span)),
-            treeDepth,
-            continuingTreeDepths,
+            treeDepth: treeDepth + this.props.parentGeneration,
+            continuingTreeDepths: continuingTreeDepthPastParent,
             spanNumber,
             isLast,
             isRoot,
@@ -625,6 +639,7 @@ class SpanTree extends Component<PropType> {
             removeContentSpanBarRef,
             storeSpanBar,
             isSpanInEmbeddedTree: waterfallModel.isEmbeddedSpanTree,
+            getCurrentLeftPos: this.props.getCurrentLeftPos,
             resetCellMeasureCache: () => this.cache.clear(index, 0),
           },
         });
@@ -763,7 +778,7 @@ class SpanTree extends Component<PropType> {
       spanTree.push({type: SpanTreeNodeType.MESSAGE, element: limitExceededMessage});
 
     return (
-      <TraceViewContainer ref={this.props.traceViewRef}>
+      <TraceViewContainer>
         <WindowScroller onScroll={this.throttledOnScroll}>
           {({height, isScrolling, onChildScroll, scrollTop}) => (
             <AutoSizer disableHeight>
@@ -845,6 +860,7 @@ function SpanRow(props: SpanRowProps) {
       case SpanTreeNodeType.SPAN:
         return (
           <ProfiledSpanBar
+            fromTraceView
             key={getSpanID(node.props.span, `span-${node.props.spanNumber}`)}
             {...node.props}
             {...extraProps}
@@ -935,4 +951,4 @@ function hasAllSpans(trace: ParsedTraceType): boolean {
   return missingDuration < 0.1;
 }
 
-export default withProfiler(withScrollbarManager(SpanTree));
+export default withProfiler(withScrollbarManager(NewTraceDetailsSpanTree));
