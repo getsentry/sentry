@@ -69,7 +69,7 @@ class Login extends Component<Props, State> {
       };
 
       this.setState({authConfig});
-    } catch (e) {
+    } catch (_e) {
       this.setState({error: true});
     }
 

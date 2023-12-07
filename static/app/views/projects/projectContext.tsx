@@ -187,7 +187,7 @@ class ProjectContext extends Component<Props, State> {
 
         // assuming here that this means the project is considered the active project
         setActiveProject(project);
-      } catch (error) {
+      } catch (_error) {
         this.setState({
           loading: false,
           error: false,
@@ -218,7 +218,7 @@ class ProjectContext extends Component<Props, State> {
       await this.props.api.requestPromise(
         `/projects/${organization.slug}/${projectSlug}/`
       );
-    } catch (error) {
+    } catch (_error) {
       this.setState({
         loading: false,
         error: true,

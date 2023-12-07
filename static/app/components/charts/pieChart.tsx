@@ -87,7 +87,6 @@ class PieChart extends Component<Props> {
       return null;
     }
     if (series.length > 1) {
-      // eslint-disable-next-line no-console
       console.warn('PieChart only uses the first series!');
     }
 

@@ -37,9 +37,11 @@ export function getSpanInfoFromTransactionEvent(
   }
 
   // Let's dive into the event to pick off the span evidence data by using the IDs we know
-  const spanEntry = event.entries.find((entry: EntrySpans | any): entry is EntrySpans => {
-    return entry.type === EntryType.SPANS;
-  });
+  const spanEntry = event.entries.find(
+    (entry: EntrySpans | any): entry is EntrySpans => {
+      return entry.type === EntryType.SPANS;
+    }
+  );
 
   const spans: Array<RawSpanType | TraceContextSpanProxy> = spanEntry?.data
     ? [...spanEntry.data]

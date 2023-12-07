@@ -1,6 +1,4 @@
 /* eslint-env node */
-/* eslint import/no-nodejs-modules:0 */
-/* eslint import/no-unresolved:0 */
 
 import fs from 'fs';
 import https from 'https';
@@ -30,7 +28,7 @@ async function main() {
   const readFile = fs.readFileSync('tests/apidocs/openapi-derefed.json', 'utf8');
   const target = yaml.safeLoad(readFile);
 
-  // eslint-disable-next-line no-console
+  // biome-ignore lint/suspicious/noConsoleLog: Disable console
   console.log(jsonDiff.diffString(openApiData, target));
 }
 

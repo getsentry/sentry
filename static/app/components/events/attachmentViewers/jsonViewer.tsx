@@ -45,7 +45,7 @@ export default function JsonViewer(props: ViewerProps) {
      * The api might return a string or an object depending on headers and filename.
      */
     json = typeof query.data === 'object' ? query.data : JSON.parse(query.data as string);
-  } catch (e) {
+  } catch {
     json = null;
   }
 

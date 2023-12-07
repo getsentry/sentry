@@ -73,7 +73,7 @@ function DashboardList({
       });
       onDashboardsChange();
       addSuccessMessage(t('Dashboard duplicated'));
-    } catch (e) {
+    } catch (_e) {
       addErrorMessage(t('Error duplicating Dashboard'));
     }
   }

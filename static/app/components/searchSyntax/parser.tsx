@@ -1064,7 +1064,7 @@ export function parseSearch(
 
   try {
     return grammar.parse(query, {...options, config});
-  } catch (e) {
+  } catch (_e) {
     // TODO(epurkhiser): Should we capture these errors somewhere?
   }
 

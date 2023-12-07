@@ -58,8 +58,8 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
     siblingOption === SiblingOption.VUE2
       ? `Vue,`
       : siblingOption === SiblingOption.VUE3
-      ? 'app,'
-      : ''
+        ? 'app,'
+        : ''
   }dsn: "${params.dsn}",
   integrations: [${
     params.isPerformanceSelected
@@ -129,8 +129,8 @@ function getPerformanceIntegration(siblingOption: string): string {
     isVue(siblingOption)
       ? `routingInstrumentation: SentryVue.vueRouterInstrumentation(router),`
       : isAngular(siblingOption)
-      ? `routingInstrumentation: SentryAngular.routingInstrumentation,`
-      : ''
+        ? `routingInstrumentation: SentryAngular.routingInstrumentation,`
+        : ''
   }`;
 }
 

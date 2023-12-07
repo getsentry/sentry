@@ -56,7 +56,7 @@ type ANBPProps = {
 function AccountNotificationsByProject({projects, field}: ANBPProps) {
   const projectsByOrg = groupByOrganization(projects);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // biome-ignore lint/correctness/noUnusedVariables: Reason unknown.
   const {title, description, ...fieldConfig} = field;
 
   // Display as select box in this view regardless of the type specified in the config
@@ -105,7 +105,7 @@ type ANBOProps = {
 };
 
 function AccountNotificationsByOrganization({organizations, field}: ANBOProps) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // biome-ignore lint/correctness/noUnusedVariables: Reason unknown.
   const {title, description, ...fieldConfig} = field;
 
   // Display as select box in this view regardless of the type specified in the config

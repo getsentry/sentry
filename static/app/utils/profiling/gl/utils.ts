@@ -41,7 +41,7 @@ export function initializeFlamegraphRenderer(
       // type, even though they are.
       r = new renderer(...constructorArgs);
       // eslint-disable-next-line no-empty
-    } catch (e) {}
+    } catch (_e) {}
 
     // A renderer should only fail if the rendering context was unavailable
     if (r && r.ctx !== null) {
@@ -225,7 +225,7 @@ export const watchForResize = (
     canvas.forEach(c => {
       resizeObserver.observe(c, {box: 'device-pixel-content-box'});
     });
-  } catch (ex) {
+  } catch (_ex) {
     // device-pixel-content-box is not supported so fallback to this
     canvas.forEach(c => {
       resizeObserver.observe(c, {box: 'content-box'});
@@ -366,8 +366,8 @@ export function upperBound<T extends {end: number; start: number} | {x: number}>
         ? 1
         : 0
       : values[0].start < target
-      ? 1
-      : 0;
+        ? 1
+        : 0;
   }
 
   while (low !== high) {
@@ -418,8 +418,8 @@ export function lowerBound<T extends {end: number; start: number}>(
         ? 1
         : 0
       : values[0].end < target
-      ? 1
-      : 0;
+        ? 1
+        : 0;
   }
 
   while (low !== high) {

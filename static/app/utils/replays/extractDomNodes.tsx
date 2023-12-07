@@ -85,7 +85,7 @@ function removeNodesAtLevel(html: string, level: number): string {
     const doc = parser.parseFromString(html, 'text/html');
     removeChildLevel(level, doc.body.children);
     return doc.body.innerHTML;
-  } catch (err) {
+  } catch (_err) {
     // If we can't parse the HTML, just return the original
     return html;
   }

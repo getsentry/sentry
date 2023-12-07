@@ -229,19 +229,22 @@ function useThroughputStats({datetime, event, group}: UseThroughputStatsOptions)
 
     const rawData = functionStats?.data?.data?.find(({axis}) => axis === 'count()');
     const timestamps = functionStats?.data?.timestamps ?? [];
-    return timestamps.reduce((acc, timestamp, idx) => {
-      const bucket = Math.floor(timestamp / BUCKET_SIZE) * BUCKET_SIZE;
-      const prev: DataBucket = acc[acc.length - 1];
-      const value = rawData.values[idx];
+    return timestamps.reduce(
+      (acc, timestamp, idx) => {
+        const bucket = Math.floor(timestamp / BUCKET_SIZE) * BUCKET_SIZE;
+        const prev: DataBucket = acc[acc.length - 1];
+        const value = rawData.values[idx];
 
-      if (prev?.timestamp === bucket) {
-        prev.value += value;
-        prev.interval += functionInterval;
-      } else {
-        acc.push({timestamp: bucket, value, interval: functionInterval});
-      }
-      return acc;
-    }, [] as DataBucket[]);
+        if (prev?.timestamp === bucket) {
+          prev.value += value;
+          prev.interval += functionInterval;
+        } else {
+          acc.push({timestamp: bucket, value, interval: functionInterval});
+        }
+        return acc;
+      },
+      [] as DataBucket[]
+    );
   }, [functionStats?.data, functionInterval]);
 
   // END Functions ====================
@@ -299,21 +302,24 @@ function useThroughputStats({datetime, event, group}: UseThroughputStatsOptions)
       return [];
     }
 
-    return (transactionStats?.data?.data ?? []).reduce((acc, curr) => {
-      const timestamp = curr[0];
-      const bucket = Math.floor(timestamp / BUCKET_SIZE) * BUCKET_SIZE;
-      const prev = acc[acc.length - 1];
-      const value = curr[1][0].count;
+    return (transactionStats?.data?.data ?? []).reduce(
+      (acc, curr) => {
+        const timestamp = curr[0];
+        const bucket = Math.floor(timestamp / BUCKET_SIZE) * BUCKET_SIZE;
+        const prev = acc[acc.length - 1];
+        const value = curr[1][0].count;
 
-      if (prev?.timestamp === bucket) {
-        prev.value += value;
-        prev.interval += transactionInterval;
-      } else {
-        acc.push({timestamp: bucket, value, interval: transactionInterval});
-      }
+        if (prev?.timestamp === bucket) {
+          prev.value += value;
+          prev.interval += transactionInterval;
+        } else {
+          acc.push({timestamp: bucket, value, interval: transactionInterval});
+        }
 
-      return acc;
-    }, [] as DataBucket[]);
+        return acc;
+      },
+      [] as DataBucket[]
+    );
   }, [transactionInterval, transactionStats?.data]);
 
   // END Transactions ====================
@@ -380,6 +386,6 @@ const CompareLabel = styled('div')<{change?: 'increase' | 'decrease'}>`
     p.change === 'increase'
       ? p.theme.red300
       : p.change === 'decrease'
-      ? p.theme.green300
-      : p.theme.gray300};
+        ? p.theme.green300
+        : p.theme.gray300};
 `;

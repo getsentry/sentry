@@ -132,8 +132,8 @@ function ProjectTags(props: Props) {
                               enabled
                                 ? t('Remove tag')
                                 : hasAccess
-                                ? t('This tag cannot be deleted.')
-                                : t('You do not have permission to remove tags.')
+                                  ? t('This tag cannot be deleted.')
+                                  : t('You do not have permission to remove tags.')
                             }
                             aria-label={t('Remove tag')}
                             icon={<IconDelete />}

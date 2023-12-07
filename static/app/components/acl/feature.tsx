@@ -168,8 +168,8 @@ class Feature extends Component<Props> {
       renderDisabled === false
         ? false
         : typeof renderDisabled === 'function'
-        ? renderDisabled
-        : renderComingSoon;
+          ? renderDisabled
+          : renderComingSoon;
 
     // Override the renderDisabled function with a hook store function if there
     // is one registered for the feature.

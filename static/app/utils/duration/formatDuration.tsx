@@ -58,11 +58,13 @@ const PRECISION_FACTORS: Record<Unit, number> = {
  *
  * A timespan is expressed a `number` and a `unit` pair -> [value, unit]
  */
+// biome-ignore format: Waiting for https://github.com/biomejs/biome/issues/1112
 export default function formatDuration({
   precision,
   style,
   duration: [value, unit],
 }: Args): string {
+  // biome-ignore format: Waiting for https://github.com/biomejs/biome/issues/1112
   const ms = normalizeTimespanToMs(value, unit);
   const valueInUnit = msToPrecision(ms, precision);
 

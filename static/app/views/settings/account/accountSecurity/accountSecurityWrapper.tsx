@@ -28,7 +28,7 @@ class AccountSecurityWrapper extends DeprecatedAsyncComponent<Props, State> {
       this.setState({loadingOrganizations: true});
       const organizations = await fetchOrganizations(this.api);
       this.setState({organizations, loadingOrganizations: false});
-    } catch (e) {
+    } catch (_e) {
       this.setState({error: true, loadingOrganizations: false});
     }
   }

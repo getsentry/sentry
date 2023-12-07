@@ -46,7 +46,7 @@ function benchmark(name: string, callback: () => void) {
     .add(name, callback, {minSamples: 50})
     .on('cycle', event => {
       // well, we need to see the results somewhere
-      // eslint-disable-next-line
+      // biome-ignore lint/suspicious/noConsoleLog: Disable console
       console.log(event.target.toString(), (event.target.stats.mean * 1e3).toFixed(2));
     })
     .on('error', event => {

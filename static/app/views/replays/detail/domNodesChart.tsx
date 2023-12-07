@@ -90,7 +90,9 @@ function DomNodesChart({
           </div>`,
           `<div class="tooltip-footer" style="border: none;">${'Relative Time'}:
             ${showPlayerTime(
-              moment(values[0].axisValue).toDate().toUTCString(),
+              moment(values[0].axisValue)
+                .toDate()
+                .toUTCString(),
               startTimestampMs
             )}
           </div>`,

@@ -230,7 +230,7 @@ export class Results extends Component<Props, State> {
           } else {
             projectLength = results.allProjects;
           }
-        } catch (err) {
+        } catch (_err) {
           // do nothing, so the length is 0 or 1 and the query is assumed safe
         }
       }

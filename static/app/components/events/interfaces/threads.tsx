@@ -179,8 +179,8 @@ export function Threads({
             display.includes('raw-stack-trace')
               ? StackView.RAW
               : fullStackTrace
-              ? StackView.FULL
-              : StackView.APP
+                ? StackView.FULL
+                : StackView.APP
           }
           projectSlug={projectSlug}
           newestFirst={recentFirst}
@@ -208,8 +208,8 @@ export function Threads({
             display.includes('raw-stack-trace')
               ? StackView.RAW
               : fullStackTrace
-              ? StackView.FULL
-              : StackView.APP
+                ? StackView.FULL
+                : StackView.APP
           }
           newestFirst={recentFirst}
           event={event}

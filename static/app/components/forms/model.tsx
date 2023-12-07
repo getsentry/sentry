@@ -631,7 +631,6 @@ class FormModel {
           this.setError(id, 'Failed to save');
         }
 
-        // eslint-disable-next-line no-console
         console.error('Error saving form field', resp && resp.responseJSON);
       });
 

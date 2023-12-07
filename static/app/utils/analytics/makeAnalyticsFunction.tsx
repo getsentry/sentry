@@ -42,7 +42,7 @@ export default function makeAnalyticsFunction<
     };
 
     if (hasAnalyticsDebug()) {
-      // eslint-disable-next-line no-console
+      // biome-ignore lint/suspicious/noConsoleLog: Disable console
       console.log('analyticsEvent', params);
     }
 

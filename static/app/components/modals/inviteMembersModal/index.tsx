@@ -159,8 +159,8 @@ class InviteMembersModal extends DeprecatedAsyncComponent<
         !errorResponse || !errorResponse.email
           ? false
           : Array.isArray(errorResponse.email)
-          ? errorResponse.email[0]
-          : errorResponse.email;
+            ? errorResponse.email[0]
+            : errorResponse.email;
 
       const error = emailError || t('Could not invite user');
 

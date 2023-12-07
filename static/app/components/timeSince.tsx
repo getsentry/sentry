@@ -132,8 +132,8 @@ function TimeSince({
       liveUpdateInterval === 'minute'
         ? 60 * 1000
         : liveUpdateInterval === 'second'
-        ? 1000
-        : liveUpdateInterval;
+          ? 1000
+          : liveUpdateInterval;
 
     // Start a ticker to update the relative time
     tickerRef.current = window.setInterval(

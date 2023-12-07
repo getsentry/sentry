@@ -23,7 +23,7 @@ export default class EventDispatcher implements EventTarget {
     this.callbacks.get(event.type)?.forEach(cb => {
       try {
         'handleEvent' in cb ? cb.handleEvent(event) : cb(event);
-      } catch (err) {
+      } catch (_err) {
         // TODO: A callback failed, but we need to keep going
       }
     });

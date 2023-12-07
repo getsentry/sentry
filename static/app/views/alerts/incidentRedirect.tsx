@@ -42,7 +42,7 @@ function IncidentRedirect({organization, params}: Props) {
           query: {...location.query, alert: incident.identifier},
         })
       );
-    } catch (err) {
+    } catch (_err) {
       setHasError(true);
     }
   }, [setHasError, api, params.alertId, organization, location.query]);

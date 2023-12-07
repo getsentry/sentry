@@ -1027,15 +1027,15 @@ function WidgetViewerModal(props: Props) {
                             label: highlightedQuery,
                           }
                         : containerProps.label
-                        ? containerProps
-                        : {
-                            ...containerProps,
-                            label: (
-                              <EmptyQueryContainer>
-                                {EMPTY_QUERY_NAME}
-                              </EmptyQueryContainer>
-                            ),
-                          })}
+                          ? containerProps
+                          : {
+                              ...containerProps,
+                              label: (
+                                <EmptyQueryContainer>
+                                  {EMPTY_QUERY_NAME}
+                                </EmptyQueryContainer>
+                              ),
+                            })}
                     />
                   );
                 },

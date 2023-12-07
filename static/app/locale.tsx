@@ -25,7 +25,7 @@ export const DEFAULT_LOCALE_DATA = {
 
 export function setLocaleDebug(value: boolean) {
   localStorage.setItem('localeDebug', value ? '1' : '0');
-  // eslint-disable-next-line no-console
+  // biome-ignore lint/suspicious/noConsoleLog: Disable console
   console.log(`Locale debug is: ${value ? 'on' : 'off'}. Reload page to apply changes!`);
 }
 
@@ -370,7 +370,6 @@ export function ngettext(singular: string, plural: string, ...args: FormatArg[])
     // This would break under any locale that used different formatting and
     // other undesirable behaviors.
     if ((singular + plural).includes('%d')) {
-      // eslint-disable-next-line no-console
       console.error(new Error('You should not use %d within tn(), use %s instead'));
     } else {
       args = [countArg.toLocaleString(), ...args.slice(1)];

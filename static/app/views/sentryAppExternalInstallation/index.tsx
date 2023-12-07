@@ -152,7 +152,7 @@ export default class SentryAppExternalInstallation extends DeprecatedAsyncView<
         .includes(this.sentryAppSlug);
       // all state fields should be set at the same time so analytics in SentryAppDetailsModal works properly
       this.setState({organization, isInstalled, reloading: false});
-    } catch (err) {
+    } catch (_err) {
       addErrorMessage(t('Failed to retrieve organization or integration details'));
       this.setState({reloading: false});
     }

@@ -1,4 +1,3 @@
-// eslint-disable-next-line no-console
 export const originalConsoleWarn = console.warn;
 
 const ignoredWarnings = [

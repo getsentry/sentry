@@ -25,7 +25,6 @@ export default function errorHandler<P>(WrappedComponent: React.ComponentType<P>
     };
 
     componentDidCatch(_error: Error, info: React.ErrorInfo) {
-      // eslint-disable-next-line no-console
       console.error(
         'Component stack trace caught in <ErrorHandler />:',
         info.componentStack

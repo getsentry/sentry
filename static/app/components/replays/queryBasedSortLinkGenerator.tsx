@@ -13,8 +13,8 @@ export default function queryBasedSortLinkGenerator<Key extends ReactText>(
     currentSort.field !== column.key
       ? 'desc'
       : currentSort.kind === 'desc'
-      ? 'asc'
-      : 'desc';
+        ? 'asc'
+        : 'desc';
 
   return () => ({
     ...location,

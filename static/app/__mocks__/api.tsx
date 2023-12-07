@@ -72,7 +72,6 @@ afterEach(() => {
   const errors = Object.values(Client.errors);
   if (errors.length > 0) {
     for (const err of errors) {
-      // eslint-disable-next-line no-console
       console.error(err);
     }
     Client.errors = {};

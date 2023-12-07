@@ -515,40 +515,40 @@ function RuleNode({
                 }
               )
             : ownership.fallthrough
-            ? tct(
-                'If there are no matching [issueOwners], all project members will receive this alert. To change this behavior, see [ownershipSettings].',
-                {
-                  issueOwners: (
-                    <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/">
-                      {t('issue owners')}
-                    </ExternalLink>
-                  ),
-                  ownershipSettings: (
-                    <ExternalLink
-                      href={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
-                    >
-                      {t('ownership settings')}
-                    </ExternalLink>
-                  ),
-                }
-              )
-            : tct(
-                'If there are no matching [issueOwners], this action will have no effect. To change this behavior, see [ownershipSettings].',
-                {
-                  issueOwners: (
-                    <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/">
-                      {t('issue owners')}
-                    </ExternalLink>
-                  ),
-                  ownershipSettings: (
-                    <ExternalLink
-                      href={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
-                    >
-                      {t('ownership settings')}
-                    </ExternalLink>
-                  ),
-                }
-              )}
+              ? tct(
+                  'If there are no matching [issueOwners], all project members will receive this alert. To change this behavior, see [ownershipSettings].',
+                  {
+                    issueOwners: (
+                      <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/">
+                        {t('issue owners')}
+                      </ExternalLink>
+                    ),
+                    ownershipSettings: (
+                      <ExternalLink
+                        href={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
+                      >
+                        {t('ownership settings')}
+                      </ExternalLink>
+                    ),
+                  }
+                )
+              : tct(
+                  'If there are no matching [issueOwners], this action will have no effect. To change this behavior, see [ownershipSettings].',
+                  {
+                    issueOwners: (
+                      <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/">
+                        {t('issue owners')}
+                      </ExternalLink>
+                    ),
+                    ownershipSettings: (
+                      <ExternalLink
+                        href={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
+                      >
+                        {t('ownership settings')}
+                      </ExternalLink>
+                    ),
+                  }
+                )}
         </MarginlessAlert>
       );
     }

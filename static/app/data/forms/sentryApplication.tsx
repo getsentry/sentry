@@ -92,7 +92,7 @@ const getPublicFormFields = (): Field[] => [
 
       try {
         JSON.parse(form.schema);
-      } catch (e) {
+      } catch (_e) {
         return [[id, 'Invalid JSON']];
       }
       return [];

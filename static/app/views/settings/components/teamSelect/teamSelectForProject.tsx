@@ -59,10 +59,10 @@ function TeamSelect({
           "This is the last team that grants Team Admin access to you for this project. After removing this team, you will not be able to edit this project's configuration."
         )
       : isOnlyTeam
-      ? t(
-          'This is the last team with access to this project. After removing this team, only organization owners and managers will be able to access the project pages.'
-        )
-      : null;
+        ? t(
+            'This is the last team with access to this project. After removing this team, only organization owners and managers will be able to access the project pages.'
+          )
+        : null;
 
     return (
       <Fragment>

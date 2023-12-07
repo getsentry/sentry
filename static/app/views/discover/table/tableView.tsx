@@ -604,8 +604,8 @@ function TableView(props: TableViewProps) {
   const prependColumnWidths = eventView.hasAggregateField()
     ? ['40px']
     : eventView.hasIdField()
-    ? []
-    : [`minmax(${COL_WIDTH_MINIMUM}px, max-content)`];
+      ? []
+      : [`minmax(${COL_WIDTH_MINIMUM}px, max-content)`];
 
   const replayIds = tableData?.data?.map(row => String(row.replayId)).filter(Boolean);
 

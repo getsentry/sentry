@@ -22,9 +22,9 @@ export default styled('div')<Props>`
           p.status === CheckInStatus.ERROR || p.status === CheckInStatus.TIMEOUT
             ? p.theme.error
             : p.status === CheckInStatus.OK
-            ? p.theme.success
-            : p.status === CheckInStatus.MISSED
-            ? p.theme.warning
-            : p.theme.disabled
+              ? p.theme.success
+              : p.status === CheckInStatus.MISSED
+                ? p.theme.warning
+                : p.theme.disabled
         };`};
 `;

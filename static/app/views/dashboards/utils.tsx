@@ -138,8 +138,8 @@ function normalizeUnit(value: number, unit: string, dataType: string): number {
     dataType === 'rate'
       ? RATE_UNIT_MULTIPLIERS[unit]
       : dataType === 'duration'
-      ? DURATION_UNITS[unit]
-      : 1;
+        ? DURATION_UNITS[unit]
+        : 1;
   return value * multiplier;
 }
 
@@ -628,8 +628,8 @@ export function getCurrentPageFilters(
       project === undefined || project === null
         ? []
         : typeof project === 'string'
-        ? [Number(project)]
-        : project.map(Number),
+          ? [Number(project)]
+          : project.map(Number),
     environment:
       typeof environment === 'string' ? [environment] : environment ?? undefined,
     period: statsPeriod as string | undefined,

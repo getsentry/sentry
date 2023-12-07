@@ -58,7 +58,7 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
       // See https://github.com/getsentry/sentry/issues/16314 for more details.
       try {
         error.message = `${error.message}: ${route}`;
-      } catch (e) {
+      } catch (_e) {
         Sentry.withScope(scope => {
           enrichScopeContext(scope);
           scope.setExtra('cannotSetMessage', true);

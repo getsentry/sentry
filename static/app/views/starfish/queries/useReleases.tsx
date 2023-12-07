@@ -78,11 +78,10 @@ export function useReleases(searchTerm?: string) {
 
   const metricsStats: {[version: string]: {count: number}} = {};
   if (metricsFetched) {
-    releaseMetrics.forEach(
-      c =>
-        c.data?.data?.forEach(release => {
-          metricsStats[release.release] = {count: release['count()'] as number};
-        })
+    releaseMetrics.forEach(c =>
+      c.data?.data?.forEach(release => {
+        metricsStats[release.release] = {count: release['count()'] as number};
+      })
     );
   }
 

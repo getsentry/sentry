@@ -150,7 +150,7 @@ function NotificationActionItem({
       });
       addSuccessMessage(t('Successfully deleted notification action'));
       onDelete(index);
-    } catch (err) {
+    } catch (_err) {
       addErrorMessage(t('Unable to delete notification action'));
     }
   };
@@ -188,7 +188,7 @@ function NotificationActionItem({
       onUpdate(index, resp);
       setEditedAction(resp);
       setIsEditing(false);
-    } catch (err) {
+    } catch (_err) {
       addErrorMessage(errorMessage);
     }
   };

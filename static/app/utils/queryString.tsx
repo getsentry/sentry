@@ -90,8 +90,8 @@ export function decodeScalar(value: QueryValue, fallback?: string): string | und
     Array.isArray(value) && value.length > 0
       ? value[0]
       : isString(value)
-      ? value
-      : fallback;
+        ? value
+        : fallback;
   return isString(unwrapped) ? unwrapped : fallback;
 }
 

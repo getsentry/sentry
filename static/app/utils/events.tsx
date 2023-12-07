@@ -396,8 +396,8 @@ function getNumberOfThreadsWithNames(event: Event) {
 
 export function eventHasExceptionGroup(event: Event) {
   const exceptionEntries = getExceptionEntries(event);
-  return exceptionEntries.some(
-    entry => entry.data.values?.some(({mechanism}) => mechanism?.is_exception_group)
+  return exceptionEntries.some(entry =>
+    entry.data.values?.some(({mechanism}) => mechanism?.is_exception_group)
   );
 }
 

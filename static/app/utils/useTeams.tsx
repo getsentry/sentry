@@ -266,7 +266,6 @@ export function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
       const cursor = search ? state.nextCursor : store.cursor;
 
       if (orgId === undefined) {
-        // eslint-disable-next-line no-console
         console.error('Cannot fetch teams without an organization in context');
         return;
       }
@@ -365,8 +364,8 @@ export function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
     return slugs
       ? store.teams.filter(t => slugs.includes(t.slug))
       : provideUserTeams && !isSuperuser
-      ? store.teams.filter(t => t.isMember)
-      : store.teams;
+        ? store.teams.filter(t => t.isMember)
+        : store.teams;
   }, [store.teams, slugs, provideUserTeams, isSuperuser]);
 
   const result: Result = {

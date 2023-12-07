@@ -46,7 +46,7 @@ class CreateTeamAccessRequestModal extends Component<
         }
       );
       addSuccessMessage(t('Team request sent for approval'));
-    } catch (err) {
+    } catch (_err) {
       addErrorMessage(t('Unable to send team request'));
     }
     this.setState({createBusy: false});

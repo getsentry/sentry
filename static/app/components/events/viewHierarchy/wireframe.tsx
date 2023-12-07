@@ -83,11 +83,7 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, project}: WireframePr
     const yCenter = Math.abs(canvasSize.height - hierarchyData.maxHeight * scale) / 2;
 
     // prettier-ignore
-    return mat3.fromValues(
-      scale, 0, 0,
-      0, scale, 0,
-      xCenter, yCenter, 1
-    );
+    return mat3.fromValues(scale, 0, 0, 0, scale, 0, xCenter, yCenter, 1);
   }, [
     canvasSize.height,
     canvasSize.width,
@@ -250,8 +246,7 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, project}: WireframePr
     };
 
     const handleZoom =
-      (direction: 'in' | 'out', scalingFactor: number = 1.1, zoomOrigin?: vec2) =>
-      () => {
+      (direction: 'in' | 'out', scalingFactor: number = 1.1, zoomOrigin?: vec2) => () => {
         const newScale = direction === 'in' ? scalingFactor : 1 / scalingFactor;
 
         // Generate a scaling matrix that also accounts for the zoom origin

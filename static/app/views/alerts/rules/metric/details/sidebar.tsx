@@ -47,15 +47,15 @@ function TriggerDescription({
     label === AlertRuleTriggerType.CRITICAL
       ? t('Critical')
       : label === AlertRuleTriggerType.WARNING
-      ? t('Warning')
-      : t('Resolved');
+        ? t('Warning')
+        : t('Resolved');
 
   const statusIconColor =
     label === AlertRuleTriggerType.CRITICAL
       ? 'errorText'
       : label === AlertRuleTriggerType.WARNING
-      ? 'warningText'
-      : 'successText';
+        ? 'warningText'
+        : 'successText';
 
   const defaultAction = t('Change alert status to %s', status);
 
@@ -69,8 +69,8 @@ function TriggerDescription({
       ? t('higher')
       : t('above')
     : rule.comparisonDelta
-    ? t('lower')
-    : t('below');
+      ? t('lower')
+      : t('below');
   const timeWindow = <Duration seconds={rule.timeWindow * 60} />;
   const metricName = capitalize(
     AlertWizardAlertNames[getAlertTypeFromAggregateDataset(rule)]

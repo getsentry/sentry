@@ -97,18 +97,20 @@ function ContextSummary({event}: Props) {
     }))
     .slice(0, remaining);
 
-  const contexts = [...itemsWithData, ...itemsWithoutData].map(({context, key, data}) => {
-    const {Component, unknownTitle, omitUnknownVersion} = context;
+  const contexts = [...itemsWithData, ...itemsWithoutData].map(
+    ({context, key, data}) => {
+      const {Component, unknownTitle, omitUnknownVersion} = context;
 
-    const props = {
-      data,
-      unknownTitle,
-      omitUnknownVersion,
-      meta: event._meta?.contexts?.[key] ?? {},
-    };
+      const props = {
+        data,
+        unknownTitle,
+        omitUnknownVersion,
+        meta: event._meta?.contexts?.[key] ?? {},
+      };
 
-    return <Component key={key} {...props} />;
-  });
+      return <Component key={key} {...props} />;
+    }
+  );
 
   return <Wrapper>{contexts}</Wrapper>;
 }

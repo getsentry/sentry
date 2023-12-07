@@ -333,7 +333,7 @@ export default function getFrameDetails(frame: ReplayFrame): Details {
   const fn = MAPPER_FOR_FRAME[key] ?? MAPPER_DEFAULT;
   try {
     return fn(frame);
-  } catch (error) {
+  } catch (_error) {
     return MAPPER_DEFAULT(frame);
   }
 }

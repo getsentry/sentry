@@ -86,7 +86,6 @@ export async function loadPrismLanguage(
     // If Prism doesn't have any grammar file available for the language
     if (!language) {
       if (!suppressExistenceWarning) {
-        // eslint-disable-next-line no-console
         console.warn(
           `No Prism grammar file for \`${lang}\` exists. Check the \`lang\` argument passed to \`loadPrismLanguage()\`.`
         );
@@ -114,7 +113,6 @@ export async function loadPrismLanguage(
 
     onLoad?.();
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.warn(
       `Cannot download Prism grammar file for \`${lang}\`. Check the internet connection, and the \`lang\` argument passed to \`loadPrismLanguage()\`.`
     );

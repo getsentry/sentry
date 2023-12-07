@@ -1,6 +1,4 @@
 /* eslint-env node */
-/* eslint import/no-nodejs-modules:0 */
-
 import crypto from 'crypto';
 import https from 'https';
 import os from 'os';

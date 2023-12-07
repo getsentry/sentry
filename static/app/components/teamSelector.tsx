@@ -202,7 +202,7 @@ function TeamSelector(props: Props) {
 
       try {
         await addTeamToProject(api, organization.slug, project.slug, team);
-      } catch (err) {
+      } catch (_err) {
         // Unable to add team to project, revert select menu value
         onChange?.(oldValue);
       }
@@ -378,6 +378,6 @@ const AddToProjectButton = styled(Button)`
 export {TeamSelector};
 
 // TODO(davidenwang): this is broken due to incorrect types on react-select
-export default withOrganization(TeamSelector) as unknown as (
+export default (withOrganization(TeamSelector) as unknown as (
   p: Omit<Props, 'organization'>
-) => JSX.Element;
+) => JSX.Element);

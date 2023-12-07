@@ -335,7 +335,7 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
         return {notificationOptions: newNotificationOptions};
       });
       addSuccessMessage(t('Updated notification setting'));
-    } catch (err) {
+    } catch (_err) {
       addErrorMessage(t('Unable to update notification setting'));
     }
   };

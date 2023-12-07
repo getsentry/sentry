@@ -1,6 +1,4 @@
 /* eslint-env node */
-/* eslint import/no-nodejs-modules:0 */
-
 import fs from 'fs';
 import http from 'http';
 import https from 'https';

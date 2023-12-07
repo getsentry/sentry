@@ -187,7 +187,6 @@ function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
 
   async function loadProjectsBySlug() {
     if (orgId === undefined) {
-      // eslint-disable-next-line no-console
       console.error('Cannot use useProjects({slugs}) without an organization in context');
       return;
     }
@@ -230,7 +229,6 @@ function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
     }
 
     if (orgId === undefined) {
-      // eslint-disable-next-line no-console
       console.error('Cannot use useProjects.onSearch without an organization in context');
       return;
     }

@@ -277,7 +277,6 @@ export function useMembers({ids, emails, limit}: Options = {}) {
       const cursor = search ? state.nextCursor : store.cursor;
 
       if (orgId === undefined) {
-        // eslint-disable-next-line no-console
         console.error('Cannot fetch members without an organization in context');
         return;
       }

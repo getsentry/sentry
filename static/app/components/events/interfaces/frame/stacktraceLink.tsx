@@ -227,10 +227,10 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           stacktrace_link_status: match.sourceUrl
             ? 'match'
             : match.error || match.integrations.length
-            ? 'no_match'
-            : !isPromptDismissed
-            ? 'prompt'
-            : 'empty',
+              ? 'no_match'
+              : !isPromptDismissed
+                ? 'prompt'
+                : 'empty',
         }
       : {}
   );

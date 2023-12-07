@@ -150,14 +150,14 @@ const DifferentialFlamegraphGrid = styled('div')<{
     layout === 'table bottom'
       ? 'auto 1fr auto'
       : layout === 'table right'
-      ? 'min-content 1fr'
-      : 'min-content 1fr'};
+        ? 'min-content 1fr'
+        : 'min-content 1fr'};
   grid-template-columns: ${({layout}) =>
     layout === 'table bottom'
       ? '100%'
       : layout === 'table left'
-      ? `min-content min-content auto`
-      : `auto min-content min-content`};
+        ? `min-content min-content auto`
+        : `auto min-content min-content`};
 
   /* false positive for grid layout */
   /* stylelint-disable */
@@ -169,16 +169,16 @@ const DifferentialFlamegraphGrid = styled('div')<{
         'frame-stack'
         `
       : layout === 'table right'
-      ? `
+        ? `
         'minimap        frame-stack'
         'flamegraph     frame-stack'
       `
-      : layout === 'table left'
-      ? `
+        : layout === 'table left'
+          ? `
         'frame-stack minimap'
         'frame-stack flamegraph'
     `
-      : ''};
+          : ''};
 `;
 
 const MinimapContainer = styled('div')<{

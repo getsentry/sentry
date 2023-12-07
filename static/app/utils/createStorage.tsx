@@ -37,7 +37,7 @@ export default function createStorage(getStorage: () => Storage): Storage {
 
     // If we can set and remove a value, we can use it.
     return storage;
-  } catch (e) {
+  } catch (_e) {
     return noopStorage;
   }
 }

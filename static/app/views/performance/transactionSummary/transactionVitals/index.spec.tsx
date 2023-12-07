@@ -107,7 +107,6 @@ const vitals = [
 
 describe('Performance > Web Vitals', function () {
   beforeEach(function () {
-    // eslint-disable-next-line no-console
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
     MockApiClient.addMockResponse({

@@ -82,7 +82,7 @@ const getFileNameFromDescription = (description: string) => {
   try {
     const url = new URL(description);
     return url.pathname.split('/').pop() || '';
-  } catch (e) {
+  } catch (_e) {
     return description;
   }
 };

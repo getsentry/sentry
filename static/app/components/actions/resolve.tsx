@@ -203,10 +203,10 @@ function ResolveActions({
         details: actionTitle
           ? actionTitle
           : latestRelease
-          ? `${formatVersion(latestRelease.version)} (${
-              isSemver ? t('semver') : t('non-semver')
-            })`
-          : null,
+            ? `${formatVersion(latestRelease.version)} (${
+                isSemver ? t('semver') : t('non-semver')
+              })`
+            : null,
         onAction: () => onActionOrConfirm(handleCurrentReleaseResolution),
       },
       {
@@ -241,8 +241,8 @@ function ResolveActions({
           multipleProjectsSelected
             ? ['next-release', 'current-release', 'another-release', 'a-commit']
             : disabled || !hasRelease
-            ? ['next-release', 'current-release', 'another-release']
-            : []
+              ? ['next-release', 'current-release', 'another-release']
+              : []
         }
         menuTitle={shouldDisplayCta ? <SetupReleasesPrompt /> : t('Resolved In')}
         isDisabled={isDisabled}

@@ -16,7 +16,7 @@ export function parseMRI(mri?: unknown): ParsedMRI | null {
   }
   try {
     return _parseMRI(mri as MRI);
-  } catch (e) {
+  } catch (_e) {
     return null;
   }
 }

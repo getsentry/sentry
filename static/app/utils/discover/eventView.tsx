@@ -520,9 +520,9 @@ class EventView {
 
       const {start, end, statsPeriod, utc} = normalizeDateTimeParams(
         location.query.start ||
-          location.query.end ||
-          location.query.statsPeriod ||
-          location.query.utc
+        location.query.end ||
+        location.query.statsPeriod ||
+        location.query.utc
           ? location.query
           : {
               start: saved.start,
@@ -1184,8 +1184,8 @@ class EventView {
       this.sorts.length <= 0
         ? undefined
         : this.sorts.length > 1
-        ? encodeSorts(this.sorts)
-        : encodeSort(this.sorts[0]);
+          ? encodeSorts(this.sorts)
+          : encodeSort(this.sorts[0]);
     const fields = this.getFields();
     const team = this.team.map(proj => String(proj));
     const project = this.project.map(proj => String(proj));

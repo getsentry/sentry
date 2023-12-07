@@ -75,8 +75,8 @@ const HeaderButton = styled('button')`
   }
 `;
 
-export default forwardRef<HTMLButtonElement, Props<BaseRecord>>(HeaderCell) as <
+export default (forwardRef<HTMLButtonElement, Props<BaseRecord>>(HeaderCell) as <
   T extends BaseRecord,
 >(
   props: Props<T> & {ref?: React.ForwardedRef<HTMLButtonElement>}
-) => ReturnType<typeof HeaderCell>;
+) => ReturnType<typeof HeaderCell>);

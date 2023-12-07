@@ -31,7 +31,7 @@ function scheduleMicroTask(callback: () => void) {
 function tryParseStorage<T>(jsonEncodedValue: string): T | null {
   try {
     return JSON.parse(jsonEncodedValue);
-  } catch (e) {
+  } catch (_e) {
     return null;
   }
 }

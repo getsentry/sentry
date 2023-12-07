@@ -83,9 +83,7 @@ function MemoryChart({
         const seriesTooltips = values.map(
           value => `
             <div>
-              <span className="tooltip-label">${value.marker}<strong>${
-                value.seriesName
-              }</strong></span>
+              <span className="tooltip-label">${value.marker}<strong>${value.seriesName}</strong></span>
           ${formatBytesBase2(value.data[1])}
             </div>
           `
@@ -102,7 +100,9 @@ function MemoryChart({
           </div>`,
           `<div class="tooltip-footer" style="border: none;">${'Relative Time'}:
             ${showPlayerTime(
-              moment(values[0].axisValue).toDate().toUTCString(),
+              moment(values[0].axisValue)
+                .toDate()
+                .toUTCString(),
               startTimestampMs
             )}
           </div>`,

@@ -51,8 +51,8 @@ export default function WebVitalsLandingPage() {
     (shouldUseStoredScores && isProjectScoresLoading) || isLoading || noTransactions
       ? undefined
       : shouldUseStoredScores
-      ? calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0])
-      : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
+        ? calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0])
+        : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
 
   return (
     <ModulePageProviders title={[t('Performance'), t('Web Vitals')].join(' — ')}>

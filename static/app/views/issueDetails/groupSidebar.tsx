@@ -283,10 +283,10 @@ export default function GroupSidebar({
                 ? MOBILE_TAGS.filter(tag => tag !== 'device.class')
                 : MOBILE_TAGS
               : frontend.some(val => val === project?.platform)
-              ? FRONTEND_TAGS
-              : backend.some(val => val === project?.platform)
-              ? BACKEND_TAGS
-              : DEFAULT_TAGS
+                ? FRONTEND_TAGS
+                : backend.some(val => val === project?.platform)
+                  ? BACKEND_TAGS
+                  : DEFAULT_TAGS
           }
           event={event}
           tagFormatter={TAGS_FORMATTER}

@@ -48,7 +48,6 @@ describe('LazyLoad', function () {
   });
 
   it('renders with error message when promise is rejected', async function () {
-    // eslint-disable-next-line no-console
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
     const getComponent = jest.fn(
       () =>
@@ -59,7 +58,7 @@ describe('LazyLoad', function () {
 
     try {
       render(<LazyLoad component={getComponent} />);
-    } catch (err) {
+    } catch (_err) {
       // ignore
     }
 
@@ -67,7 +66,6 @@ describe('LazyLoad', function () {
       await screen.findByText('There was an error loading a component.')
     ).toBeInTheDocument();
 
-    // eslint-disable-next-line no-console
     expect(console.error).toHaveBeenCalled();
   });
 

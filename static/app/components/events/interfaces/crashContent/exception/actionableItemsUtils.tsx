@@ -147,20 +147,18 @@ const hasThreadOrExceptionMinifiedFrameData = (
     const exceptionValues: Array<ExceptionValue> =
       definedEvent.entries?.find(e => e.type === EntryType.EXCEPTION)?.data?.values ?? [];
 
-    return exceptionValues.some(
-      exceptionValue =>
-        exceptionValue.stacktrace?.frames?.some(frame => isDataMinified(frame.module))
+    return exceptionValues.some(exceptionValue =>
+      exceptionValue.stacktrace?.frames?.some(frame => isDataMinified(frame.module))
     );
   }
 
   const threadExceptionValues = getThreadException(definedEvent, bestThread)?.values;
 
   return threadExceptionValues
-    ? threadExceptionValues.some(
-        threadExceptionValue =>
-          threadExceptionValue.stacktrace?.frames?.some(frame =>
-            isDataMinified(frame.module)
-          )
+    ? threadExceptionValues.some(threadExceptionValue =>
+        threadExceptionValue.stacktrace?.frames?.some(frame =>
+          isDataMinified(frame.module)
+        )
       )
     : bestThread?.stacktrace?.frames?.some(frame => isDataMinified(frame.module));
 };

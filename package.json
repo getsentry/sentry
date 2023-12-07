@@ -175,6 +175,7 @@
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {
+    "@biomejs/biome": "^1.4.1",
     "@pmmmwh/react-refresh-webpack-plugin": "0.5.10",
     "@sentry/jest-environment": "^4.0.0",
     "@sentry/profiling-node": "^1.2.1",
@@ -222,8 +223,13 @@
     "test-debug": "node --inspect-brk scripts/test.js --runInBand",
     "test-precommit": "yarn test-wrap --bail --findRelatedTests -u",
     "test-staged": "yarn test-wrap --findRelatedTests $(git diff --name-only --cached)",
-    "lint": "yarn eslint static/app tests/js  --ext .js,.jsx,.ts,.tsx",
-    "lint:css": "yarn stylelint 'static/app/**/*.[jt]sx'",
+    "lint": "yarn lint:biome && yarn lint:js",
+    "lint:js": "eslint static/app tests/js --ext .js,.jsx,.ts,.tsx",
+    "lint:css": "stylelint 'static/app/**/*.[jt]sx'",
+    "lint:biome": "biome check .",
+    "fix": "yarn fix:biome && yarn fix:eslint",
+    "fix:eslint": "eslint static/app tests/js --ext .js,.jsx,.ts,.tsx --fix",
+    "fix:biome": "biome check . --apply",
     "dev": "(yarn check --verify-tree || yarn install --check-files) && sentry devserver",
     "dev-ui": "SENTRY_UI_DEV_ONLY=1 SENTRY_WEBPACK_PROXY_PORT=7999 yarn webpack serve",
     "dev-acceptance": "NO_DEV_SERVER=1 NODE_ENV=development yarn webpack --watch",

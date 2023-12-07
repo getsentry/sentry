@@ -8,7 +8,6 @@ export function renderMain() {
     renderDom(Main, `#${ROOT_ELEMENT}`);
   } catch (err) {
     if (err.message === 'URI malformed') {
-      // eslint-disable-next-line no-console
       console.error(
         new Error(
           'An unencoded "%" has appeared, it is super effective! (See https://github.com/ReactTraining/history/issues/505)'

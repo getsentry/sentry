@@ -213,7 +213,7 @@ class SelectOwners extends Component<Props, State> {
       // We can't control when `handleLoadOptions` gets called, but it gets called when select closes, so
       // wait for store to update before closing the menu. Otherwise, we'll have stale items in the select menu
       await addTeamToProject(api, organization.slug, project.slug, team);
-    } catch (err) {
+    } catch (_err) {
       // Unable to add team to project, revert select menu value
       this.props.onChange(oldValue);
       this.closeSelectMenu();

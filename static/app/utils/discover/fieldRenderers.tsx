@@ -287,8 +287,8 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       const value = Array.isArray(data[field])
         ? data[field].slice(-1)
         : defined(data[field])
-        ? data[field]
-        : emptyValue;
+          ? data[field]
+          : emptyValue;
       if (isUrl(value)) {
         return (
           <Container>

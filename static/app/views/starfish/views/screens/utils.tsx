@@ -52,7 +52,9 @@ export function transformReleaseEvents({
             itemStyle: {
               color: isPrimary
                 ? colorPalette[index]
-                : Color(colorPalette[index]).lighten(0.3).string(),
+                : Color(colorPalette[index])
+                    .lighten(0.3)
+                    .string(),
             },
           } as SeriesDataUnit;
         }

@@ -231,7 +231,7 @@ class AccountSecurityEnroll extends DeprecatedAsyncView<Props, State> {
 
     try {
       await this.api.requestPromise(this.enrollEndpoint, {data});
-    } catch (error) {
+    } catch (_error) {
       this.formModel.resetForm();
 
       addErrorMessage(
@@ -267,7 +267,7 @@ class AccountSecurityEnroll extends DeprecatedAsyncView<Props, State> {
 
     try {
       await this.api.requestPromise(this.enrollEndpoint, {data});
-    } catch (err) {
+    } catch (_err) {
       this.handleEnrollError();
       return;
     }
@@ -290,7 +290,7 @@ class AccountSecurityEnroll extends DeprecatedAsyncView<Props, State> {
 
     try {
       await this.api.requestPromise(this.enrollEndpoint, {method: 'POST', data});
-    } catch (err) {
+    } catch (_err) {
       this.handleEnrollError();
       return;
     }
@@ -349,7 +349,7 @@ class AccountSecurityEnroll extends DeprecatedAsyncView<Props, State> {
     // for backwards compatibility with API endpoint
     try {
       await this.api.requestPromise(this.authenticatorEndpoint, {method: 'DELETE'});
-    } catch (err) {
+    } catch (_err) {
       addErrorMessage(t('Error removing authenticator'));
       return;
     }

@@ -283,8 +283,8 @@ class WidgetCard extends Component<Props, State> {
         ERROR_FIELDS.some(
           errorField =>
             columns.includes(errorField) ||
-            aggregates.some(
-              aggregate => parseFunction(aggregate)?.arguments.includes(errorField)
+            aggregates.some(aggregate =>
+              parseFunction(aggregate)?.arguments.includes(errorField)
             ) ||
             parseSearch(conditions)?.some(
               filter => (filter as SearchFilterKey).key?.value === errorField

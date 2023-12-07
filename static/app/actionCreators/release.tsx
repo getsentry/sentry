@@ -25,8 +25,9 @@ export function getProjectRelease(api: Client, params: ParamsGet) {
   // the back of the event loop, allowing another getRelease for the same
   // release to be fired before the loading state is updated in store.
   // This hack short-circuits that and update the state immediately.
-  ReleaseStore.state.releaseLoading[getReleaseStoreKey(projectSlug, releaseVersion)] =
-    true;
+  ReleaseStore.state.releaseLoading[
+    getReleaseStoreKey(projectSlug, releaseVersion)
+  ] = true;
   ReleaseStore.loadRelease(orgSlug, projectSlug, releaseVersion);
 
   return api
@@ -59,8 +60,9 @@ export function getReleaseDeploys(api: Client, params: ParamsGet) {
   )}/deploys/`;
 
   // HACK(leedongwei): Same as above
-  ReleaseStore.state.deploysLoading[getReleaseStoreKey(projectSlug, releaseVersion)] =
-    true;
+  ReleaseStore.state.deploysLoading[
+    getReleaseStoreKey(projectSlug, releaseVersion)
+  ] = true;
   ReleaseStore.loadDeploys(orgSlug, projectSlug, releaseVersion);
 
   return api

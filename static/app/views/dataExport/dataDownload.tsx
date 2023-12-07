@@ -143,9 +143,7 @@ class DataDownload extends DeprecatedAsyncView<Props, State> {
 
   openInDiscover() {
     const {
-      download: {
-        query: {info},
-      },
+      download: {query: {info}},
     } = this.state;
     const {orgId} = this.props.params;
 

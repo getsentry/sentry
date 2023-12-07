@@ -663,7 +663,7 @@ export const extractSpanURLString = (span: Span, baseURL?: string): URL | null =
       }
 
       return new URL(url, baseURL);
-    } catch (e) {
+    } catch (_e) {
       // Ignore error
     }
   }
@@ -673,7 +673,7 @@ export const extractSpanURLString = (span: Span, baseURL?: string): URL | null =
 
   try {
     return new URL(_url, baseURL);
-  } catch (e) {
+  } catch (_e) {
     // Ignore error
   }
 

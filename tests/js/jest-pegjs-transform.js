@@ -1,6 +1,4 @@
 /* eslint-env node */
-
-// eslint-disable-next-line import/no-nodejs-modules
 const crypto = require('crypto');
 const peg = require('pegjs');
 

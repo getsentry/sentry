@@ -214,10 +214,10 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
               !sdkVersionSupportsPerformanceAndReplay(data.browserSdkVersion)
                 ? t('Only available in SDK version 7.x and above')
                 : data.dynamicSdkLoaderOptions.hasReplay
-                ? t(
-                    'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.'
-                  )
-                : undefined
+                  ? t(
+                      'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.'
+                    )
+                  : undefined
             }
             disabledReason={
               !hasAccess

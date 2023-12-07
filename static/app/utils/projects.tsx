@@ -289,8 +289,8 @@ class BaseProjects extends Component<Props, State> {
         projectsMap.has(slug)
           ? projectsMap.get(slug)
           : passthroughPlaceholderProject
-          ? {slug}
-          : null
+            ? {slug}
+            : null
       )
       .filter(defined);
 

@@ -62,7 +62,7 @@ type SearchFilter = {key: string; operator: string; value: string};
 function getSearchFilterKeys(query: string): string[] {
   try {
     return getSearchFilters(query).map(({key}) => key);
-  } catch (e) {
+  } catch (_e) {
     return [];
   }
 }
@@ -75,7 +75,7 @@ export function getSearchFilters(query: string): SearchFilter[] {
     }
 
     return getSearchFiltersFromTokens(tokens);
-  } catch (e) {
+  } catch (_e) {
     return [];
   }
 }

@@ -188,7 +188,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
         }
       );
       addSuccessMessage(t('Migration in progress.'));
-    } catch (error) {
+    } catch (_error) {
       addErrorMessage(t('Something went wrong! Please try again.'));
     }
   };
@@ -210,7 +210,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
         }
       );
       addSuccessMessage(t('Migration in progress.'));
-    } catch (error) {
+    } catch (_error) {
       addErrorMessage(t('Something went wrong! Please try again.'));
     }
   };

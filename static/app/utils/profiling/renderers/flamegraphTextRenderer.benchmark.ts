@@ -29,7 +29,7 @@ function benchmark(name: string, callback: () => void) {
     .add(name, callback)
     .on('cycle', event => {
       // well, we need to see the results somewhere
-      // eslint-disable-next-line
+      // biome-ignore lint/suspicious/noConsoleLog: Disable console
       console.log(event.target.toString());
     })
     .on('error', event => {

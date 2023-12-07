@@ -52,7 +52,7 @@ function promiseRequest(url: string): Promise<any> {
         this.status >= 200 && this.status < 300
           ? resolve([JSON.parse(xhr.response), this.statusText, xhr])
           : reject([this.status, this.statusText]);
-      } catch (e) {
+      } catch {
         reject();
       }
     };

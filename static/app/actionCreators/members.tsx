@@ -46,7 +46,7 @@ export async function fetchOrgMembers(
     MemberListStore.loadInitialData(memberUsers.map(getMemberUser));
 
     return members;
-  } catch (err) {
+  } catch {
     addErrorMessage(t('Unable to load organization members'));
   }
 

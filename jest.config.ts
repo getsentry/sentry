@@ -1,5 +1,4 @@
 /* eslint-env node */
-/* eslint import/no-nodejs-modules:0 */
 import path from 'path';
 import process from 'process';
 
@@ -173,7 +172,7 @@ if (
 
   try {
     balance = require(BALANCE_RESULTS_PATH);
-  } catch (err) {
+  } catch (_err) {
     // Just ignore if balance results doesn't exist
   }
   // Taken from https://github.com/facebook/jest/issues/6270#issue-326653779

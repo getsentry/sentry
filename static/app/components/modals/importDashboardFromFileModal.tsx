@@ -71,7 +71,7 @@ function ImportDashboardFromFileModal({
 
       addSuccessMessage(`${dashboard.title} dashboard template successfully added`);
       loadDashboard(newDashboard.id);
-    } catch (error) {
+    } catch (_error) {
       addErrorMessage('Could not upload dashboard, JSON may be invalid');
     }
   };

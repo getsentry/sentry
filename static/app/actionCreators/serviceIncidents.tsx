@@ -69,7 +69,7 @@ export async function loadIncidents(): Promise<SentryServiceStatus | null> {
     response = await fetch(
       `https://${cfg.id}.${cfg.api_host}/api/v2/incidents/unresolved.json`
     );
-  } catch (err) {
+  } catch {
     // No point in capturing this as we can't make statuspage come back.
     return null;
   }

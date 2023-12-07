@@ -411,8 +411,8 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
         {this.state.tab === 'overview'
           ? this.renderInformationCard()
           : this.state.tab === 'configurations'
-          ? this.renderConfigurations()
-          : this.renderFeatures()}
+            ? this.renderConfigurations()
+            : this.renderFeatures()}
       </Fragment>
     );
   }

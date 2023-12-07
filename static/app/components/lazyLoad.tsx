@@ -71,7 +71,6 @@ class ErrorBoundary extends Component<{}, ErrorBoundaryState> {
       Sentry.captureException(error);
     });
 
-    // eslint-disable-next-line no-console
     console.error(error);
   }
 

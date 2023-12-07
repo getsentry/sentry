@@ -261,8 +261,8 @@ export function TraceEventDataSection({
           tooltip: state.display.includes('raw-stack-trace')
             ? t('Not available on raw stack trace')
             : !hasAbsoluteAddresses
-            ? t('Absolute addresses not available')
-            : undefined,
+              ? t('Absolute addresses not available')
+              : undefined,
         },
         {
           label: displayOptions['absolute-file-paths'],
@@ -271,8 +271,8 @@ export function TraceEventDataSection({
           tooltip: state.display.includes('raw-stack-trace')
             ? t('Not available on raw stack trace')
             : !hasAbsoluteFilePaths
-            ? t('Absolute file paths not available')
-            : undefined,
+              ? t('Absolute file paths not available')
+              : undefined,
         },
         {
           label: displayOptions.minified,
@@ -291,8 +291,8 @@ export function TraceEventDataSection({
           tooltip: state.display.includes('raw-stack-trace')
             ? t('Not available on raw stack trace')
             : !hasVerboseFunctionNames
-            ? t('Verbose function names not available')
-            : undefined,
+              ? t('Verbose function names not available')
+              : undefined,
         },
       ];
     }
@@ -346,8 +346,8 @@ export function TraceEventDataSection({
   const sortByTooltip = !hasNewestFirst
     ? t('Not available on stack trace with single frame')
     : state.display.includes('raw-stack-trace')
-    ? t('Not available on raw stack trace')
-    : undefined;
+      ? t('Not available on raw stack trace')
+      : undefined;
 
   const childProps = {
     recentFirst: state.sortBy === 'recent-first',

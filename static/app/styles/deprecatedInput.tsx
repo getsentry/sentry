@@ -50,11 +50,13 @@ const inputStyles = (props: Props) => css`
 
   ${props.monospace ? `font-family: ${props.theme.text.familyMono}` : ''};
 
-  ${props.readOnly
-    ? css`
+  ${
+    props.readOnly
+      ? css`
         cursor: default;
       `
-    : ''};
+      : ''
+  };
 
   &::placeholder {
     color: ${props.theme.formPlaceholder};

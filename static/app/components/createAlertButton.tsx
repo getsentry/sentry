@@ -164,7 +164,7 @@ function CreateAlertButton({
         },
       });
       addSuccessMessage(t('Successfully updated organization settings'));
-    } catch (err) {
+    } catch (_err) {
       addErrorMessage(t('Unable to update organization settings'));
     }
   }

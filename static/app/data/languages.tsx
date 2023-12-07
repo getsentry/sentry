@@ -1,4 +1,4 @@
-export default [
+export default ([
   ['ja', 'Japanese'],
   ['it', 'Italian'],
   ['zh-tw', 'Traditional Chinese'],
@@ -11,4 +11,4 @@ export default [
   ['fr', 'French'],
   ['es', 'Spanish'],
   ['en', 'English'],
-] as const;
+] as const);

@@ -60,8 +60,8 @@ export const getComparisonMarkLines = (
               status === AlertRuleTriggerType.CRITICAL
                 ? theme.red300
                 : status === AlertRuleTriggerType.WARNING
-                ? theme.yellow300
-                : theme.green300,
+                  ? theme.yellow300
+                  : theme.green300,
             type: 'solid',
             width: 4,
           },

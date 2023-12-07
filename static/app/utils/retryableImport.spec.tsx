@@ -33,7 +33,7 @@ describe('retryableImport', function () {
 
     try {
       await retryableImport(importMock);
-    } catch (err) {
+    } catch (_err) {
       // do nothing
     }
     expect(importMock).toHaveBeenCalledTimes(1);

@@ -93,7 +93,7 @@ export function setPageFiltersStorage(
 
   try {
     localStorage.setItem(localStorageKey, JSON.stringify(dataToSave));
-  } catch (ex) {
+  } catch (_ex) {
     // Do nothing
   }
 }

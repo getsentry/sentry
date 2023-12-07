@@ -176,7 +176,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
         i => i.app.slug !== this.sentryApp.slug
       );
       return this.setState({appInstalls});
-    } catch (error) {
+    } catch (_error) {
       return addErrorMessage(t('Unable to uninstall %s', this.sentryApp.name));
     }
   };

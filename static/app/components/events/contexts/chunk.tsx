@@ -17,6 +17,7 @@ type Props = {
   value?: Record<string, any>;
 };
 
+// biome-ignore format: Waiting for https://github.com/biomejs/biome/issues/1112
 function getTitle({value = {}, alias, type}: Pick<Props, 'alias' | 'type' | 'value'>) {
   if (defined(value.title) && typeof value.title !== 'object') {
     return value.title;

@@ -1,5 +1,4 @@
 /* eslint-disable no-console */
-/* eslint import/no-nodejs-modules:0 */
 
 import fs from 'fs';
 

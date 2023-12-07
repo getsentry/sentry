@@ -28,7 +28,7 @@ async function exportDashboard() {
     normalized.projects = [];
 
     downloadObjectAsJson(normalized, cleanTitle(normalized.title));
-  } catch (error) {
+  } catch (_error) {
     addErrorMessage(
       'Could not export dashboard. Please wait or try again with a different dashboard'
     );

@@ -1,5 +1,4 @@
 /* eslint-env node */
-/* eslint import/no-nodejs-modules:0, import/no-unresolved:0, no-console:0 */
 import {spawn} from 'child_process';
 import {join} from 'path';
 import {stderr, stdout} from 'process';

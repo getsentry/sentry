@@ -150,7 +150,6 @@ describe('OrganizationContextContainer', function () {
       await screen.findByText('There was an error loading data.')
     ).toBeInTheDocument();
 
-    // eslint-disable-next-line no-console
     expect(console.error).toHaveBeenCalled();
   });
 

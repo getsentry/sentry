@@ -76,7 +76,6 @@ export class RenderField extends Component<RenderProps, State> {
     let nextUrl = Array.isArray(nextUrlOrArray) ? nextUrlOrArray[0] : nextUrlOrArray;
 
     if (nextUrl && !nextUrl.startsWith(allowedDomain)) {
-      // eslint-disable-next-line no-console
       console.warn(`Got unexpected next url: ${nextUrl}`);
       nextUrl = undefined;
     }

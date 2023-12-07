@@ -189,7 +189,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
       );
 
       addSuccessMessage(t('Successfully updated'));
-    } catch (err) {
+    } catch (_err) {
       addErrorMessage(t('Unable to update alert rule'));
     }
   }

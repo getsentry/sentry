@@ -216,24 +216,29 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
             ],
           }) as EventView)
         : performanceType === ProjectPerformanceType.BACKEND
-        ? (EventView.fromSavedQuery({
-            ...baseQuery,
-            fields: [...baseQuery.fields, 'apdex()', 'p75(spans.http)', 'p75(spans.db)'],
-          }) as EventView)
-        : performanceType === ProjectPerformanceType.MOBILE
-        ? (EventView.fromSavedQuery({
-            ...baseQuery,
-            fields: [
-              ...baseQuery.fields,
-              `p75(${MobileVital.APP_START_COLD})`,
-              `p75(${MobileVital.APP_START_WARM})`,
-              `p75(${MobileVital.FRAMES_SLOW})`,
-              `p75(${MobileVital.FRAMES_FROZEN})`,
-            ],
-          }) as EventView)
-        : (EventView.fromSavedQuery({
-            ...baseQuery,
-          }) as EventView);
+          ? (EventView.fromSavedQuery({
+              ...baseQuery,
+              fields: [
+                ...baseQuery.fields,
+                'apdex()',
+                'p75(spans.http)',
+                'p75(spans.db)',
+              ],
+            }) as EventView)
+          : performanceType === ProjectPerformanceType.MOBILE
+            ? (EventView.fromSavedQuery({
+                ...baseQuery,
+                fields: [
+                  ...baseQuery.fields,
+                  `p75(${MobileVital.APP_START_COLD})`,
+                  `p75(${MobileVital.APP_START_WARM})`,
+                  `p75(${MobileVital.FRAMES_SLOW})`,
+                  `p75(${MobileVital.FRAMES_FROZEN})`,
+                ],
+              }) as EventView)
+            : (EventView.fromSavedQuery({
+                ...baseQuery,
+              }) as EventView);
 
     return eventView;
   }
@@ -501,7 +506,8 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
                                             primary={defaultDateTimeSelected}
                                           >
                                             <DateTime date={releaseBounds.releaseStart} />
-                                            –<DateTime date={releaseBounds.releaseEnd} />
+                                            –
+                                            <DateTime date={releaseBounds.releaseEnd} />
                                           </ReleaseBoundsDescription>
                                         </Fragment>
                                       ),

@@ -29,7 +29,7 @@ export function parseCursor(
     const offset = parseInt(bits[1], 10);
     const isPrev = bits[2] === '1';
     return {isPrev, offset, value};
-  } catch (e) {
+  } catch (_e) {
     return undefined;
   }
 }

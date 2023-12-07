@@ -71,7 +71,7 @@ describe('InvestigationRule', function () {
     // wait for the button to appear (it shouldn't)
     try {
       await screen.findByText(buttonText);
-    } catch (e) {
+    } catch (_e) {
       // continue
     }
 

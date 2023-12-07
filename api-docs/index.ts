@@ -1,7 +1,5 @@
 /* global process */
 /* eslint-env node */
-/* eslint import/no-nodejs-modules:0 */
-/* eslint import/no-unresolved:0 */
 import fs from 'fs';
 import path from 'path';
 
@@ -64,17 +62,17 @@ function build(originalFile, _, bundleTo) {
       if (typeof bundleTo === 'string') {
         fs.writeFile(bundleTo, bundleString, function (err) {
           if (err) {
-            // eslint-disable-next-line no-console
+            // biome-ignore lint/suspicious/noConsoleLog: Disable console
             console.log(err);
             return;
           }
-          // eslint-disable-next-line no-console
+          // biome-ignore lint/suspicious/noConsoleLog: Disable console
           console.log('Saved bundle file at ' + bundleTo);
         });
       }
     },
     function (err) {
-      // eslint-disable-next-line no-console
+      // biome-ignore lint/suspicious/noConsoleLog: Disable console
       console.log(err);
     }
   );
@@ -94,7 +92,7 @@ try {
   }
   targetDirValue = path.dirname(originalFile);
 } catch (err) {
-  // eslint-disable-next-line no-console
+  // biome-ignore lint/suspicious/noConsoleLog: Disable console
   console.error(`Failed to resolve path to [targetDir].`);
   process.exit(1);
 }

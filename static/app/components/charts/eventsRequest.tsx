@@ -397,6 +397,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
       timestamp: number,
       countArray: {count: number}[],
       i: number
+      // biome-ignore format: Waiting for https://github.com/biomejs/biome/issues/1106
     ) => number = timestamp => timestamp * 1000
   ): SeriesDataUnit[] {
     return data.map(([timestamp, countArray], i) => ({

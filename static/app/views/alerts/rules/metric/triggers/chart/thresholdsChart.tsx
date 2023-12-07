@@ -279,8 +279,8 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
                 fill: isResolution
                   ? COLOR.RESOLUTION_FILL
                   : isCritical
-                  ? COLOR.CRITICAL_FILL
-                  : COLOR.WARNING_FILL,
+                    ? COLOR.CRITICAL_FILL
+                    : COLOR.WARNING_FILL,
               },
 
               // This needs to be below the draggable line
@@ -401,8 +401,8 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
             changeStatus === AlertRuleTriggerType.CRITICAL
               ? theme.red300
               : changeStatus === AlertRuleTriggerType.WARNING
-              ? theme.yellow300
-              : theme.green300;
+                ? theme.yellow300
+                : theme.green300;
 
           return `<span>${date}<span style="color:${changeStatusColor};margin-left:10px;">
             ${Math.sign(changePercentage) === 1 ? '+' : '-'}${Math.abs(
@@ -440,8 +440,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
         colors={CHART_PALETTE[0]}
         series={[...dataWithoutRecentBucket, ...comparisonMarkLines]}
         additionalSeries={comparisonDataWithoutRecentBucket.map(
-          ({data: _data, ...otherSeriesProps}) =>
-            LineSeries({
+          ({data: _data, ...otherSeriesProps}) => LineSeries({
               name: comparisonSeriesName,
               data: _data.map(({name, value}) => [name, value]),
               lineStyle: {color: theme.gray200, type: 'dashed', width: 1},

@@ -1,6 +1,4 @@
 /* eslint-env node */
-/* eslint import/no-nodejs-modules:0 */
-
 import childProcess from 'child_process';
 import path from 'path';
 

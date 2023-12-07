@@ -214,7 +214,9 @@ function TeamReleases({
 
               const dateFormat = 'MMM D';
               const startDate = moment(series.data[0]).format(dateFormat);
-              const endDate = moment(series.data[0]).add(7, 'days').format(dateFormat);
+              const endDate = moment(series.data[0])
+                .add(7, 'days')
+                .format(dateFormat);
               return [
                 '<div class="tooltip-series">',
                 `<div><span class="tooltip-label">${series.marker} <strong>${series.seriesName}</strong></span> ${series.data[1]}</div>`,

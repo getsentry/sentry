@@ -52,8 +52,8 @@ function getBadgeProperties(
         substatus === GroupSubstatus.ARCHIVED_FOREVER
           ? t('Archived forever')
           : substatus === GroupSubstatus.ARCHIVED_UNTIL_ESCALATING
-          ? t('Archived until escalating')
-          : t('Archived until condition met'),
+            ? t('Archived until escalating')
+            : t('Archived until condition met'),
     };
   }
   return undefined;

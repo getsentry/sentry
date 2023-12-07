@@ -2,7 +2,6 @@
 import failOnConsole from 'jest-fail-on-console';
 
 process.on('unhandledRejection', reason => {
-  // eslint-disable-next-line no-console
   console.error(reason);
 });
 

@@ -26,9 +26,9 @@ export default storyBook(CopyToClipboardButton, story => {
   story('useCopyToClipboard()', () => {
     const {onClick, label} = useCopyToClipboard({
       text: 'Hello World',
-      // eslint-disable-next-line no-console
+      // biome-ignore lint/suspicious/noConsoleLog: Disable console
       onCopy: () => console.log('Copy complete'),
-      // eslint-disable-next-line no-console
+      // biome-ignore lint/suspicious/noConsoleLog: Disable console
       onError: error => console.log('Something went wrong', error),
     });
 
