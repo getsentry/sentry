@@ -333,7 +333,7 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
         if policy == "subprocessor":
             policy_failure = "subprocessor"
         elif policy == "individual_consent":
-            if not pii_certified:
+            if request.GET.get("consent") != "yes":
                 policy_failure = "individual_consent"
         elif is_sentry_staff and not pii_certified:
             policy_failure = "pii_certification_missing"
