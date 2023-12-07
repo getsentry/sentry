@@ -7,22 +7,19 @@ import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import ContextLine from 'sentry/components/events/interfaces/frame/contextLine';
 import DefaultTitle from 'sentry/components/events/interfaces/frame/defaultTitle';
 import {IconChevron} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Frame} from 'sentry/types';
 import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
 import {useMetricsCodeLocations} from 'sentry/utils/metrics/useMetricsCodeLocations';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import Collapsible from '../../components/collapsible';
 import {MetricCodeLocationFrame, MetricMetaCodeLocation} from '../../utils/metrics/index';
 
 export function CodeLocations({mri}: {mri: string}) {
   const {data} = useMetricsCodeLocations(mri);
   // Keeps track of which code location has expanded source context
   const [expandedCodeLocation, setExpandedCodeLocation] = useState(null);
-  // Keeps track of whether the code locations are collapsed or not
-  const [collapsed, setCollapsed] = useState(true);
   const organization = useOrganization();
 
   const toggleExpandedLocation = useCallback(
@@ -50,46 +47,16 @@ export function CodeLocations({mri}: {mri: string}) {
 
   return (
     <CodeLocationsWrapper>
-      <Collapsible
-        maxVisibleItems={1}
-        expandButton={({onExpand, numberOfHiddenItems}) => (
-          <CollapsibleButton
-            priority="link"
-            onClick={() => {
-              setCollapsed(false);
-              onExpand();
-            }}
-          >
-            {tn(
-              'Show %s more code location',
-              'Show %s more code locations',
-              numberOfHiddenItems
-            )}
-          </CollapsibleButton>
-        )}
-        collapseButton={({onCollapse}) => (
-          <CollapsibleButton
-            priority="link"
-            onClick={() => {
-              setCollapsed(true);
-              onCollapse();
-            }}
-          >
-            {t('Collapse')}
-          </CollapsibleButton>
-        )}
-      >
-        {reversedCodeLocations.map((location, index) => (
-          <CodeLocation
-            key={`location-${index}`}
-            codeLocation={location}
-            showContext={expandedCodeLocation === index}
-            handleShowContext={() => toggleExpandedLocation(index)}
-            isFirst={index === 0}
-            isLast={collapsed || index === reversedCodeLocations.length - 1}
-          />
-        ))}
-      </Collapsible>
+      {reversedCodeLocations.map((location, index) => (
+        <CodeLocation
+          key={`location-${index}`}
+          codeLocation={location}
+          showContext={expandedCodeLocation === index}
+          handleShowContext={() => toggleExpandedLocation(index)}
+          isFirst={index === 0}
+          isLast={index === reversedCodeLocations.length - 1}
+        />
+      ))}
     </CodeLocationsWrapper>
   );
 }
@@ -227,8 +194,6 @@ const DefaultLineActionButtons = styled('div')`
 `;
 
 const CodeLocationsWrapper = styled('div')`
-  margin-top: ${space(1)};
-
   & code {
     font-family: inherit;
     font-size: inherit;
@@ -295,10 +260,4 @@ const LeftLineTitle = styled('div')`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-`;
-
-// done to align the collapsible button with the text in default line title
-const CollapsibleButton = styled(Button)`
-  margin-top: ${space(0.25)};
-  margin-left: ${space(2)};
 `;
