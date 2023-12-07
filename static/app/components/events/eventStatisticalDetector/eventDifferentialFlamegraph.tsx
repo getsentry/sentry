@@ -182,7 +182,6 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
       return null;
     }
 
-    // @TODO pass frame filter
     const profile = importProfile(props.before.data, '', 'flamegraph', frameFilter);
     return new Flamegraph(profile.profiles[0], {
       sort: flamegraphPreferences.sorting,
@@ -208,7 +207,6 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
       return null;
     }
 
-    // @TODO pass frame filter
     return new Flamegraph(afterProfileGroup.profiles[0], {
       sort: flamegraphPreferences.sorting,
       inverted: flamegraphPreferences.view === 'bottom up',
