@@ -247,9 +247,6 @@
     "sentry.processingissue",
     "sentry.rawevent"
   ],
-  "sentry.eventuser": [
-    "sentry.project"
-  ],
   "sentry.exporteddata": [
     "sentry.file",
     "sentry.organization",
@@ -832,7 +829,6 @@
   ],
   "sentry.userreport": [
     "sentry.environment",
-    "sentry.eventuser",
     "sentry.group",
     "sentry.project"
   ],

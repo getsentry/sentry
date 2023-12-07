@@ -320,7 +320,7 @@ def determine_eligible_recipients(
     owners as determined by rules for this project and event.
     """
     if not (project and project.teams.exists()):
-        logger.debug(f"Tried to send notification to invalid project: {project}")
+        logger.debug("Tried to send notification to invalid project: %s", project)
 
     elif target_type == ActionTargetType.MEMBER:
         user = get_user_from_identifier(project, target_identifier)
@@ -426,7 +426,7 @@ def get_fallthrough_recipients(
         return []
 
     if not fallthrough_choice:
-        logger.warning(f"Missing fallthrough type in project: {project}")
+        logger.warning("Missing fallthrough type in project: %s", project)
         return []
 
     if fallthrough_choice == FallthroughChoiceType.NO_ONE:
