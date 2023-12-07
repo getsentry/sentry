@@ -333,6 +333,8 @@ class SlackActionEndpoint(Endpoint):
             slack_request.type == "dialog_submission"
             and "resolve_type" in slack_request.data["submission"]
         ):
+            # Not an error, we should see this taper down as people use the select field flow
+            sentry_sdk.capture_message("slack-dialog-use")
             # Masquerade a status action
             action = MessageAction(
                 name="status",
