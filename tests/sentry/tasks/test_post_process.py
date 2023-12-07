@@ -2000,7 +2000,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
     def test_has_escalated(self, mock_run_post_process_job):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
-        group.update(first_seen=datetime.now() - timedelta(hours=1), times_seen=10000)
+        group.update(first_seen=django_timezone.now() - timedelta(hours=1), times_seen=10000)
         event.group = Group.objects.get(id=group.id)
 
         with self.feature("projects:first-event-severity-new-escalation"):
@@ -2021,7 +2021,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
     def test_has_escalated_no_flag(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
-        group.update(first_seen=datetime.now() - timedelta(hours=1), times_seen=10000)
+        group.update(first_seen=django_timezone.now() - timedelta(hours=1), times_seen=10000)
 
         self.call_post_process_group(
             is_new=True,
@@ -2039,7 +2039,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
     def test_has_escalated_old(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
-        group.update(first_seen=datetime.now() - timedelta(days=2), times_seen=10000)
+        group.update(first_seen=django_timezone.now() - timedelta(days=2), times_seen=10000)
 
         with self.feature("projects:first-event-severity-new-escalation"):
             self.call_post_process_group(
@@ -2058,7 +2058,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
     def test_has_not_escalated(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
-        group.update(first_seen=datetime.now() - timedelta(hours=1), times_seen=1)
+        group.update(first_seen=django_timezone.now() - timedelta(hours=1), times_seen=1)
 
         with self.feature("projects:first-event-severity-new-escalation"):
             self.call_post_process_group(
@@ -2077,7 +2077,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
     def test_has_escalated_locked(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
-        group.update(first_seen=datetime.now() - timedelta(hours=1), times_seen=10000)
+        group.update(first_seen=django_timezone.now() - timedelta(hours=1), times_seen=10000)
         lock = locks.get(f"detect_escalation:{group.id}", duration=10, name="detect_escalation")
         with self.feature("projects:first-event-severity-new-escalation"), lock.acquire():
             self.call_post_process_group(
@@ -2103,7 +2103,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
             event=event,
         )
         group.update(
-            first_seen=datetime.now() - timedelta(hours=1),
+            first_seen=django_timezone.now() - timedelta(hours=1),
             times_seen=10000,
             substatus=GroupSubStatus.ESCALATING,
         )
@@ -2124,7 +2124,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
     def test_has_escalated_archived(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
-        group.update(first_seen=datetime.now() - timedelta(hours=1), times_seen=10000)
+        group.update(first_seen=django_timezone.now() - timedelta(hours=1), times_seen=10000)
         group.status = GroupStatus.IGNORED
         group.substatus = GroupSubStatus.UNTIL_ESCALATING
         group.save()
@@ -2148,7 +2148,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
     def test_has_escalated_archived_old(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
-        group.update(first_seen=datetime.now() - timedelta(days=2), times_seen=10000)
+        group.update(first_seen=django_timezone.now() - timedelta(days=2), times_seen=10000)
         group.status = GroupStatus.IGNORED
         group.substatus = GroupSubStatus.UNTIL_ESCALATING
         group.save()
@@ -2172,7 +2172,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
     def test_has_escalated_ignored_not_archived(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
-        group.update(first_seen=datetime.now() - timedelta(days=1), times_seen=10000)
+        group.update(first_seen=django_timezone.now() - timedelta(days=1), times_seen=10000)
         group.status = GroupStatus.IGNORED
         group.substatus = GroupSubStatus.UNTIL_CONDITION_MET
         group.save()
@@ -2196,7 +2196,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
     def test_zero_escalation_rate(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
-        group.update(first_seen=datetime.now() - timedelta(hours=1), times_seen=10000)
+        group.update(first_seen=django_timezone.now() - timedelta(hours=1), times_seen=10000)
         with self.feature("projects:first-event-severity-new-escalation"):
             self.call_post_process_group(
                 is_new=True,

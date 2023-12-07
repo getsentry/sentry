@@ -875,9 +875,7 @@ def process_snoozes(job: PostProcessJob) -> None:
         return
 
     # groups less than a day old should use the new -> escalating logic
-    group_age_hours = (
-        timezone.now() - group.first_seen
-    ).total_seconds() / 3600  # TODO(before merge): confirm how timezone stuff works
+    group_age_hours = (timezone.now() - group.first_seen).total_seconds() / 3600
     should_use_new_escalation_logic = (
         group_age_hours < MAX_NEW_ESCALATION_AGE_HOURS
         and features.has("projects:first-event-severity-new-escalation", group.project)
@@ -1364,7 +1362,6 @@ def detect_new_escalation(job: PostProcessJob):
     If we detect that the group has escalated, set has_escalated to True in the
     job.
     """
-    from sentry.issues.escalating import manage_issue_states
     from sentry.issues.issue_velocity import get_latest_threshold
     from sentry.models.activity import Activity
     from sentry.models.group import GroupStatus
@@ -1377,7 +1374,7 @@ def detect_new_escalation(job: PostProcessJob):
         "projects:first-event-severity-new-escalation", job["event"].project
     ):
         return
-    group_age_hours = (datetime.now() - group.first_seen).total_seconds() / 3600
+    group_age_hours = (timezone.now() - group.first_seen).total_seconds() / 3600
     has_valid_status = group.substatus == GroupSubStatus.NEW or (
         group.status == GroupStatus.IGNORED and group.substatus == GroupSubStatus.UNTIL_ESCALATING
     )
@@ -1398,12 +1395,11 @@ def detect_new_escalation(job: PostProcessJob):
             # a rate of 0 means there was no threshold that could be calculated
             if project_escalation_rate > 0 and group_hourly_event_rate > project_escalation_rate:
                 job["has_escalated"] = True
-                if group.substatus == GroupSubStatus.NEW:
-                    add_group_to_inbox(group, GroupInboxReason.ESCALATING)
-                else:
-                    manage_issue_states(group, GroupInboxReason.ESCALATING)
-
                 group.update(substatus=GroupSubStatus.ESCALATING)
+                if group.status == GroupStatus.IGNORED:
+                    group.update(status=GroupStatus.UNRESOLVED)
+                # TODO(snigdha): reuse manage_issue_states when we allow escalating from other statuses
+                add_group_to_inbox(group, GroupInboxReason.ESCALATING)
                 record_group_history(group, GroupHistoryStatus.ESCALATING)
                 Activity.objects.create_group_activity(
                     group=group,
