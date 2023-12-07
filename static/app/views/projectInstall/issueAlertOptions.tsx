@@ -22,6 +22,7 @@ export enum MetricValues {
 }
 
 export enum RuleAction {
+  ALERT_ON_HIGH_PRIORITY_ISSUES,
   ALERT_ON_EVERY_ISSUE,
   CUSTOMIZED_ALERTS,
   CREATE_ALERT_LATER,
@@ -114,7 +115,11 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
       ...super.getDefaultState(),
       conditions: [],
       intervalChoices: [],
-      alertSetting: this.props.alertSetting ?? RuleAction.ALERT_ON_EVERY_ISSUE.toString(),
+      alertSetting:
+        this.props.alertSetting ??
+        (this.props.organization.features.includes('default-high-priority-alerts')
+          ? RuleAction.ALERT_ON_HIGH_PRIORITY_ISSUES.toString()
+          : RuleAction.ALERT_ON_EVERY_ISSUE.toString()),
       metric: this.props.metric ?? MetricValues.ERRORS,
       interval: this.props.interval ?? '',
       threshold: this.props.threshold ?? '10',
@@ -178,7 +183,12 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
     ];
 
     const options: [string, React.ReactNode][] = [
-      [RuleAction.ALERT_ON_EVERY_ISSUE.toString(), t('Alert me on every new issue')],
+      this.props.organization.features.includes('default-high-priority-alerts')
+        ? [
+            RuleAction.ALERT_ON_HIGH_PRIORITY_ISSUES.toString(),
+            t('Alert me on high priority issues'),
+          ]
+        : [RuleAction.ALERT_ON_EVERY_ISSUE.toString(), t('Alert me on every new issue')],
       ...(hasProperlyLoadedConditions ? [customizedAlertOption] : []),
       [RuleAction.CREATE_ALERT_LATER.toString(), t("I'll create my own alerts later")],
     ];
@@ -193,6 +203,10 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
     let shouldCreateCustomRule: boolean;
     const alertSetting: RuleAction = parseInt(this.state.alertSetting, 10);
     switch (alertSetting) {
+      case RuleAction.ALERT_ON_HIGH_PRIORITY_ISSUES:
+        defaultRules = true;
+        shouldCreateCustomRule = false;
+        break;
       case RuleAction.ALERT_ON_EVERY_ISSUE:
         defaultRules = true;
         shouldCreateCustomRule = false;
