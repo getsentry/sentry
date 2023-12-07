@@ -20,7 +20,7 @@ from sentry_kafka_schemas import get_codec
 
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_subscriptions.constants import dataset_to_logical_topic, topic_to_dataset
-from sentry.utils.arroyo import RunTaskWithMultiprocessing
+from sentry.utils.arroyo import RunTaskWithMultiprocessing, get_reusable_multiprocessing_pool
 
 logger = logging.getLogger(__name__)
 
@@ -56,9 +56,9 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             return RunTaskWithMultiprocessing(
                 function=callable,
                 next_step=CommitOffsets(commit),
-                num_processes=self.num_processes,
                 max_batch_size=self.max_batch_size,
                 max_batch_time=self.max_batch_time,
+                pool=get_reusable_multiprocessing_pool(self.num_processes),
                 input_block_size=self.input_block_size,
                 output_block_size=self.output_block_size,
             )
@@ -118,7 +118,6 @@ def get_query_subscription_consumer(
     output_block_size: Optional[int],
     multi_proc: bool = False,
 ) -> StreamProcessor[KafkaPayload]:
-
     from sentry.utils import kafka_config
 
     cluster_name = kafka_config.get_topic_definition(topic)["cluster"]

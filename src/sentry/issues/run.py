@@ -13,7 +13,7 @@ from arroyo.processing.strategies import (
 )
 from arroyo.types import Commit, Message, Partition
 
-from sentry.utils.arroyo import RunTaskWithMultiprocessing
+from sentry.utils.arroyo import RunTaskWithMultiprocessing, get_reusable_multiprocessing_pool
 from sentry.utils.kafka_config import get_topic_definition
 
 logger = logging.getLogger(__name__)
@@ -107,9 +107,9 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         return RunTaskWithMultiprocessing(
             function=process_message,
             next_step=CommitOffsets(commit),
-            num_processes=self.num_processes,
             max_batch_size=self.max_batch_size,
             max_batch_time=self.max_batch_time,
+            pool=get_reusable_multiprocessing_pool(self.num_processes),
             input_block_size=self.input_block_size,
             output_block_size=self.output_block_size,
         )

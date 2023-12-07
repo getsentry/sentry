@@ -19,7 +19,7 @@ from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.spans.grouping.strategy.base import Span
 from sentry.utils import metrics
-from sentry.utils.arroyo import RunTaskWithMultiprocessing
+from sentry.utils.arroyo import RunTaskWithMultiprocessing, get_reusable_multiprocessing_pool
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 INGEST_SPAN_SCHEMA: Codec[IngestSpanMessage] = get_codec("ingest-spans")
@@ -186,9 +186,9 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             max_buffer_size=100000,
         )
         return RunTaskWithMultiprocessing(
-            num_processes=self.__num_processes,
             max_batch_size=self.__max_batch_size,
             max_batch_time=self.__max_batch_time,
+            pool=get_reusable_multiprocessing_pool(self.__num_processes),
             input_block_size=self.__input_block_size,
             output_block_size=self.__output_block_size,
             function=process_message,

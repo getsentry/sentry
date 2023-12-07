@@ -20,7 +20,7 @@ from django.conf import settings
 from sentry.ingest.types import ConsumerType
 from sentry.processing.backpressure.arroyo import HealthChecker, create_backpressure_step
 from sentry.utils import kafka_config
-from sentry.utils.arroyo import RunTaskWithMultiprocessing
+from sentry.utils.arroyo import RunTaskWithMultiprocessing, get_reusable_multiprocessing_pool
 
 from .attachment_event import decode_and_process_chunks, process_attachments_and_events
 from .simple_event import process_simple_event_message
@@ -47,9 +47,9 @@ def maybe_multiprocess_step(
         return RunTaskWithMultiprocessing(
             function=function,
             next_step=next_step,
-            num_processes=mp.num_processes,
             max_batch_size=mp.max_batch_size,
             max_batch_time=mp.max_batch_time,
+            pool=get_reusable_multiprocessing_pool(mp.num_processes),
             input_block_size=mp.input_block_size,
             output_block_size=mp.output_block_size,
         )
