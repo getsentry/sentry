@@ -1,4 +1,8 @@
 import {Component} from 'react';
+import styled from '@emotion/styled';
+
+import Panel from 'sentry/components/panels/panel';
+import {tct} from 'sentry/locale';
 
 interface ExternalRedirectState {
   count: number;
@@ -57,16 +61,40 @@ class ExternalRedirect extends Component<{}, ExternalRedirectState> {
     const {count, redirectUrl} = this.state;
 
     return (
-      <div>
-        <p>
-          You are being redirected to {redirectUrl} in {count} seconds. Changed your mind?{' '}
-          <a href="#" onClick={this.goBack}>
-            Go back
-          </a>
-        </p>
+      <div className="app">
+        <RedirectContainer>
+          <div className="pattern-bg" />
+          <AuthPanel>
+            {tct(
+              'You are being redirected to [redirectUrl] in [count] seconds. Changed your mind? [link:Go back]',
+              {
+                redirectUrl,
+                count,
+                link: <a href="#" onClick={this.goBack} />,
+              }
+            )}
+          </AuthPanel>
+        </RedirectContainer>
       </div>
     );
   }
 }
+
+const RedirectContainer = styled('div')`
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 5vh;
+`;
+
+const AuthPanel = styled(Panel)`
+  width: 550px;
+  display: inline-grid;
+  grid-template-columns: 1fr;
+  text-align: center;
+  align-items: center;
+  word-wrap: break-word;
+  padding: 2rem;
+`;
 
 export default ExternalRedirect;
