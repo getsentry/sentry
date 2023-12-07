@@ -101,7 +101,7 @@ const onboarding: OnboardingConfig = {
               code: `module.exports = {
                 plugins: [{
                   resolve: "@sentry/gatsby",
-                }, ],
+                }],
               };`,
             },
           ],
