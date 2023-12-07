@@ -209,9 +209,6 @@ DATABASES = {
 if "DATABASE_URL" in os.environ:
     url = urlparse(os.environ["DATABASE_URL"])
 
-    # Ensure default database exists.
-    DATABASES["default"] = DATABASES.get("default", {})
-
     # Update with environment configuration.
     DATABASES["default"].update(
         {
@@ -222,8 +219,6 @@ if "DATABASE_URL" in os.environ:
             "PORT": url.port,
         }
     )
-    if url.scheme == "postgres":
-        DATABASES["default"]["ENGINE"] = "sentry.db.postgres"
 
 
 # This should always be UTC.
@@ -1379,6 +1374,7 @@ if os.environ.get("OPENAPIGENERATE", False):
     from sentry.apidocs.build import OPENAPI_TAGS, get_old_json_components, get_old_json_paths
 
     SPECTACULAR_SETTINGS = {
+        "DEFAULT_GENERATOR_CLASS": "sentry.apidocs.hooks.CustomGenerator",
         "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
         "POSTPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_postprocessing_hook"],
         "DISABLE_ERRORS_AND_WARNINGS": False,
@@ -1499,7 +1495,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable emiting escalating data to the metrics backend
     "organizations:escalating-metrics-backend": False,
     # Enable querying Snuba to get the EventUser
-    "organizations:eventuser-from-snuba": False,
+    "organizations:eventuser-from-snuba": True,
     # Enable the frontend to request from region & control silo domains.
     "organizations:frontend-domainsplit": False,
     # Allows an org to have a larger set of project ownership rules per project
@@ -1798,6 +1794,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-view": False,
     # Enables the resource module ui
     "organizations:starfish-browser-resource-module-ui": False,
+    # Enables the resource module ui
+    "organizations:starfish-browser-resource-module-image-view": False,
     # Enable the aggregate span waterfall view
     "organizations:starfish-aggregate-span-waterfall": False,
     # Enable starfish endpoint that's used for regressing testing purposes
@@ -1821,7 +1819,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable feature to load more than 100 rows in performance trace view.
     "organizations:trace-view-load-more": False,
     # Enable dashboard widget indicators.
-    "organizations:dashboard-widget-indicators": False,
+    "organizations:dashboard-widget-indicators": True,
     # Enables updated all events tab in a performance issue
     "organizations:performance-issues-all-events-tab": False,
     # Temporary flag to test search performance that's running slow in S4S
@@ -1911,6 +1909,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:suspect-commits-all-frames": False,
     # Enables region provisioning for individual users
     "organizations:multi-region-selector": False,
+    # Enable the default alert at project creation to be the high priority alert
+    "organizations:default-high-priority-alerts": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
@@ -1921,6 +1921,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:first-event-severity-calculation": False,
     # Enable escalation detection for new issues
     "projects:first-event-severity-new-escalation": False,
+    # Enable severity alerts for new issues based on severity and escalation
+    "projects:high-priority-alerts": False,
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,
@@ -3034,7 +3036,6 @@ SENTRY_SDK_CONFIG: ServerSdkConfig = {
     "send_default_pii": True,
     "auto_enabling_integrations": False,
     "enable_db_query_source": True,
-    "db_query_source_threshold_ms": 500,
 }
 
 SENTRY_DEV_DSN = os.environ.get("SENTRY_DEV_DSN")
@@ -3964,6 +3965,8 @@ REGION_PINNED_URL_NAMES = {
 
 # Shared resource ids for accounting
 EVENT_PROCESSING_STORE = "rc_processing_redis"
+COGS_EVENT_STORE_LABEL = "bigtable_nodestore"
+
 
 if SILO_DEVSERVER:
     # Add connections for the region & control silo databases.

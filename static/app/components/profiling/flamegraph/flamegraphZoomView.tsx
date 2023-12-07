@@ -778,6 +778,7 @@ function FlamegraphZoomView({
       configSpaceCursor &&
       hoveredNode ? (
         <FlamegraphTooltip
+          flamegraph={flamegraph}
           frame={hoveredNode}
           configSpaceCursor={configSpaceCursor}
           flamegraphCanvas={flamegraphCanvas}

@@ -19,23 +19,8 @@ export default function FeedbackSetupPanel() {
     });
   }, [organization]);
 
-  const docsButton = (
-    <LinkButton
-      external
-      href="https://docs.sentry.io/product/user-feedback/setup/"
-      priority="primary"
-      onClick={() => {
-        trackAnalytics('feedback.index-setup-button-clicked', {
-          organization,
-        });
-      }}
-    >
-      {t('Set Up Now')}
-    </LinkButton>
-  );
-
   return (
-    <Panel>
+    <NoMarginPanel>
       <Container>
         <IlloBox>
           <img src={feedbackOnboardingImg} />
@@ -48,13 +33,28 @@ export default function FeedbackSetupPanel() {
                 'Allow your users to create bug reports so they can let you know about these sneaky issues right away. Every report will automatically include related replays, tags, and errors, making fixing the issue dead simple.'
               )}
             </p>
-            {docsButton}
+            <LinkButton
+              external
+              href="https://docs.sentry.io/product/user-feedback/setup/"
+              priority="primary"
+              analyticsEventName="Clicked Feedback Onboarding Setup Button"
+              analyticsEventKey="feedback.index-setup-button-clicked"
+              analyticsParams={{surface: 'setup-panel'}}
+            >
+              {t('Set Up Now')}
+            </LinkButton>
           </Fragment>
         </StyledBox>
       </Container>
-    </Panel>
+    </NoMarginPanel>
   );
 }
+
+const NoMarginPanel = styled(Panel)`
+  max-height: 100%;
+  overflow: scroll;
+  margin: 0;
+`;
 
 const Container = styled('div')`
   padding: ${space(3)};

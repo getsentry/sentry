@@ -437,17 +437,17 @@ class SearchFilter(NamedTuple):
         return self.operator in ("IN", "NOT IN")
 
 
+class AggregateKey(NamedTuple):
+    name: str
+
+
 class AggregateFilter(NamedTuple):
-    key: SearchKey
+    key: AggregateKey
     operator: str
     value: SearchValue
 
     def __str__(self):
         return f"{self.key.name}{self.operator}{self.value.raw_value}"
-
-
-class AggregateKey(NamedTuple):
-    name: str
 
 
 @dataclass

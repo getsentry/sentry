@@ -29,12 +29,13 @@ import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError, OperationalError, connection, router, transaction
+from django.db import OperationalError, connection, router, transaction
 from django.db.models import Func
 from django.db.models.signals import post_save
 from django.utils.encoding import force_str
 from urllib3 import Retry
 from urllib3.exceptions import MaxRetryError
+from usageaccountant import UsageUnit
 
 from sentry import (
     eventstore,
@@ -83,7 +84,6 @@ from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.event import EventDict
 from sentry.models.eventattachment import CRASH_REPORT_TYPES, EventAttachment, get_crashreport_key
-from sentry.models.eventuser import EventUser
 from sentry.models.files.file import File
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
@@ -122,17 +122,19 @@ from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
+from sentry.usage_accountant import record
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.event import has_event_minified_stack_trace, has_stacktrace, is_handled
+from sentry.utils.eventuser import EventUser
 from sentry.utils.metrics import MutableTags
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
-from sentry.utils.tag_normalization import normalize_sdk_tag
+from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import BaseEvent, Event
@@ -178,26 +180,6 @@ def get_tag(data: dict[str, Any], key: str) -> Optional[Any]:
 
 def is_sample_event(job):
     return get_tag(job["data"], "sample_event") == "yes"
-
-
-def normalized_sdk_tag_from_event(event: Event) -> str:
-    """
-     Normalize tags coming from SDKs to more manageable canonical form, by:
-
-     - combining synonymous tags (`sentry.react` -> `sentry.javascript.react`),
-     - ignoring framework differences (`sentry.python.flask` and `sentry.python.django` -> `sentry.python`)
-     - collapsing all community/third-party SDKs into a single `other` category
-
-    Note: Some platforms may keep their framework-specific values, as needed for analytics.
-
-    This is done to reduce the cardinality of the `sdk.name` tag, while keeping
-    the ones interesinting to us as granual as possible.
-    """
-    try:
-        return normalize_sdk_tag((event.data.get("sdk") or {}).get("name") or "other")
-    except Exception:
-        logger.warning("failed to get SDK name", exc_info=True)
-        return "other"
 
 
 def sdk_metadata_from_event(event: Event) -> Mapping[str, Any]:
@@ -683,7 +665,7 @@ class EventManager:
             old_bytes = job["event_metrics"].get(key) or 0
             job["event_metrics"][key] = old_bytes + attachment.size
 
-        _nodestore_save_many(jobs)
+        _nodestore_save_many(jobs=jobs, app_feature="errors")
         save_unprocessed_event(project, job["event"].event_id)
 
         if not raw:
@@ -1345,7 +1327,7 @@ def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
 
 
 @metrics.wraps("save_event.nodestore_save_many")
-def _nodestore_save_many(jobs: Sequence[Job]) -> None:
+def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
     inserted_time = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
     for job in jobs:
         # Write the event to Nodestore
@@ -1361,6 +1343,17 @@ def _nodestore_save_many(jobs: Sequence[Job]) -> None:
             if unprocessed is not None:
                 subkeys["unprocessed"] = unprocessed
 
+        if app_feature:
+            event_size = 0
+            event_metrics = job.get("event_metrics")
+            if event_metrics:
+                event_size = event_metrics.get("bytes.stored.event", 0)
+            record(
+                resource_id=settings.COGS_EVENT_STORE_LABEL,
+                app_feature=app_feature,
+                amount=event_size,
+                usage_type=UsageUnit.BYTES,
+            )
         job["event"].data["nodestore_insert"] = inserted_time
         job["event"].data.save(subkeys=subkeys)
 
@@ -1488,46 +1481,12 @@ def _get_event_user_impl(
 
     euser = EventUser(
         project_id=project.id,
-        ident=user_data.get("id"),
+        user_ident=user_data.get("id"),
         email=user_data.get("email"),
         username=user_data.get("username"),
         ip_address=ip_address,
         name=user_data.get("name"),
     )
-    euser.set_hash()
-    if not euser.hash:
-        return None
-
-    cache_key = f"euserid:1:{project.id}:{euser.hash}"
-    euser_id = cache.get(cache_key)
-    if euser_id is None:
-        metrics_tags["cache_hit"] = "false"
-
-        try:
-            euser, created = EventUser.objects.get_or_create(
-                project_id=euser.project_id,
-                hash=euser.hash,
-                defaults={
-                    "ident": euser.ident,
-                    "email": euser.email,
-                    "username": euser.username,
-                    "ip_address": euser.ip_address,
-                    "name": euser.name,
-                },
-            )
-        except IntegrityError:
-            # TODO(michal): This is result of project_id, ident duplicate and
-            # should not be possible since we prioritize ident for hash
-            created = False
-            cache.set(cache_key, -1, 3600)
-        else:
-            if not created and user_data.get("name") and euser.name != user_data.get("name"):
-                euser.update(name=user_data["name"])
-            cache.set(cache_key, euser.id, 3600)
-
-        metrics_tags["created"] = str(created).lower()
-    else:
-        metrics_tags["cache_hit"] = "true"
 
     return euser
 
@@ -2166,7 +2125,8 @@ def _get_severity_score(event: Event) -> float | None:
             {"event_type": event_type.key, "event_title": event.title, "computed_title": title}
         )
         logger.warning(
-            f"Unable to get severity score because of unusable `message` value '{title}'",
+            "Unable to get severity score because of unusable `message` value '%s'",
+            title,
             extra=logger_data,
         )
         return None
@@ -2196,17 +2156,23 @@ def _get_severity_score(event: Event) -> float | None:
                 severity = json.loads(response.data).get("severity")
             except MaxRetryError as e:
                 logger.warning(
-                    f"Unable to get severity score from microservice after {SEVERITY_DETECTION_RETRIES} retr{'ies' if SEVERITY_DETECTION_RETRIES >1 else 'y'}. Got MaxRetryError caused by: {repr(e.reason)}.",
+                    "Unable to get severity score from microservice after %s retr%s. Got MaxRetryError caused by: %s.",
+                    SEVERITY_DETECTION_RETRIES,
+                    "ies" if SEVERITY_DETECTION_RETRIES > 1 else "y",
+                    repr(e.reason),
                     extra=logger_data,
                 )
             except Exception as e:
                 logger.warning(
-                    f"Unable to get severity score from microservice. Got: {repr(e)}.",
+                    "Unable to get severity score from microservice. Got: %s.",
+                    repr(e),
                     extra=logger_data,
                 )
             else:
                 logger.info(
-                    f"Got severity score of {severity} for event {event.data['event_id']}",
+                    "Got severity score of %s for event %s",
+                    severity,
+                    event.data["event_id"],
                     extra=logger_data,
                 )
 
@@ -2685,7 +2651,8 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
         if features.has("organizations:issue-platform-extra-logging", project.organization):
             if performance_problems and len(performance_problems) > 0:
                 logger.warning(
-                    f"Detected {len(performance_problems)} performance problems",
+                    "Detected %s performance problems",
+                    len(performance_problems),
                     extra={
                         "performance_problems": performance_problems,
                         "project_id": project.id,
@@ -2750,7 +2717,7 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
     _get_or_create_release_associated_models(jobs, projects)
     _tsdb_record_all_metrics(jobs)
     _materialize_event_metrics(jobs)
-    _nodestore_save_many(jobs)
+    _nodestore_save_many(jobs=jobs, app_feature="transactions")
     _eventstream_insert_many(jobs)
     _track_outcome_accepted_many(jobs)
     _detect_performance_problems(jobs, projects)
@@ -2784,6 +2751,6 @@ def save_generic_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Seque
     _materialize_metadata_many(jobs)
     _get_or_create_environment_many(jobs, projects)
     _materialize_event_metrics(jobs)
-    _nodestore_save_many(jobs)
+    _nodestore_save_many(jobs=jobs, app_feature="issue_platform")
 
     return jobs
