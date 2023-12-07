@@ -22,6 +22,7 @@ pre-commit>=3.3
 black>=22.10.0
 flake8>=6.1
 flake8-bugbear>=22.10
+flake8-logging>=1.4
 pyupgrade>=3.2.3
 isort>=5.10.1
 
