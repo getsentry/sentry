@@ -365,6 +365,7 @@ export function Provider({
 
       // eslint-disable-next-line no-new
       const inst = new Replayer(events, {
+        // UNSAFE_replayCanvas: true,
         root,
         blockClass: 'sentry-block',
         mouseTail: {
@@ -373,7 +374,9 @@ export function Provider({
           lineWidth: 2,
           strokeStyle: theme.purple200,
         },
-        plugins: [CanvasReplayerPlugin(events)],
+        plugins: organization.features.includes('session-replay-enable-canvas')
+          ? [CanvasReplayerPlugin(events)]
+          : [],
         skipInactive: savedReplayConfigRef.current.skip ?? true,
         speed: savedReplayConfigRef.current.speed || 1,
       });
@@ -400,6 +403,7 @@ export function Provider({
       setReplayFinished,
       hasNewEvents,
       applyInitialOffset,
+      organization.features,
     ]
   );
 
