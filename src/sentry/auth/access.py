@@ -41,6 +41,9 @@ from sentry.services.hybrid_cloud.organization.serial import summarize_member
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils import metrics
 
+SUPERUSER_SCOPES = settings.SENTRY_SCOPES
+SUPERUSER_SCOPES.add("org:superuser")
+
 
 def has_role_in_organization(role: str, organization: Organization, user_id: int) -> bool:
     query = OrganizationMember.objects.filter(
@@ -958,7 +961,7 @@ def from_request_org_and_scopes(
         return ApiBackedOrganizationGlobalAccess(
             rpc_user_organization_context=rpc_user_org_context,
             auth_state=auth_state,
-            scopes=scopes if scopes is not None else settings.SENTRY_SCOPES,
+            scopes=scopes if scopes is not None else SUPERUSER_SCOPES,
         )
 
     if hasattr(request, "auth") and not request.user.is_authenticated:
@@ -1045,7 +1048,7 @@ def from_request(
         return OrganizationGlobalAccess(
             organization=organization,
             _member=member,
-            scopes=scopes if scopes is not None else settings.SENTRY_SCOPES,
+            scopes=scopes if scopes is not None else SUPERUSER_SCOPES,
             sso_is_valid=sso_state.is_valid,
             requires_sso=sso_state.is_required,
             permissions=access_service.get_permissions_for_user(request.user.id),

@@ -2373,6 +2373,7 @@ SENTRY_SCOPES = {
     "org:admin",
     "org:integrations",
     "org:ci",
+    # "org:superuser",  # only for active superusers, not assignable
     "member:read",
     "member:write",
     "member:admin",
