@@ -997,26 +997,22 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_internal_integration_token(install, **kwargs):
-        user = kwargs.pop("user")
-        request = kwargs.pop("request", None)
-        return SentryAppInstallationTokenCreator(sentry_app_installation=install, **kwargs).run(
+    def create_internal_integration_token(user, install=None, request=None, org=None, scopes=None):
+        if scopes is None:
+            scopes = []
+        if install is None:
+            assert org
+            sentry_app = Factories.create_sentry_app(
+                name="Integration Token",
+                organization=org,
+                scopes=scopes,
+            )
+            install = Factories.create_sentry_app_installation(
+                organization=org, slug=sentry_app.slug, user=user
+            )
+        return SentryAppInstallationTokenCreator(sentry_app_installation=install).run(
             user=user, request=request
         )
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_org_auth_token(organization, user, scopes, **kwargs):
-        sentry_app = Factories.create_sentry_app(
-            name="Org Token",
-            organization=organization,
-            scopes=scopes,
-        )
-
-        install = Factories.create_sentry_app_installation(
-            organization=organization, slug=sentry_app.slug, user=user
-        )
-        return Factories.create_internal_integration_token(install=install, user=user)
 
     @staticmethod
     def _sentry_app_kwargs(**kwargs):

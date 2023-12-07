@@ -121,7 +121,7 @@ class Access(abc.ABC):
         pass
 
     @property
-    def is_org_auth_token(self) -> bool:
+    def is_integration_token(self) -> bool:
         return False
 
     def has_permission(self, permission: str) -> bool:
@@ -783,7 +783,7 @@ class ApiOrganizationGlobalMembership(ApiBackedOrganizationGlobalAccess):
     """Access to all an organization's teams and projects with simulated membership."""
 
     @property
-    def is_org_auth_token(self) -> bool:
+    def is_integration_token(self) -> bool:
         return True
 
     @property

@@ -57,7 +57,6 @@ class OrganizationMemberTeamDetailsSerializer(Serializer):
 
 
 class OrganizationTeamMemberPermission(OrganizationPermission):
-
     scope_map = {
         "GET": [
             "org:read",
@@ -116,9 +115,9 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         access = request.access
 
         # When open membership is disabled, we need to check if the token has elevated permissions
-        # in order to ensure org tokens with only "org:read" scope cannot add members. This check
-        # comes first because access.has_global_access is True for all org tokens
-        if access.is_org_auth_token and not access.has_open_membership:
+        # in order to ensure integration tokens with only "org:read" scope cannot add members. This check
+        # comes first because access.has_global_access is True for all integration tokens
+        if access.is_integration_token and not access.has_open_membership:
             return _has_elevated_scope(access)
         return access.has_global_access or can_admin_team(access, team)
 

@@ -2852,7 +2852,7 @@ class MonitorIngestTestCase(MonitorTestCase):
         app = self.create_sentry_app_installation(
             slug=sentry_app.slug, organization=self.organization
         )
-        self.token = self.create_internal_integration_token(app, user=self.user)
+        self.token = self.create_internal_integration_token(install=app, user=self.user)
 
     def _get_path_functions(self):
         # Monitor paths are supported both with an org slug and without.  We test both as long as we support both.
