@@ -11,11 +11,9 @@ if TYPE_CHECKING:
 
 
 class NotificationSettingEnum(ValueEqualityEnum):
-    DEFAULT = "default"
     DEPLOY = "deploy"
     ISSUE_ALERTS = "alerts"
     WORKFLOW = "workflow"
-    ACTIVE_RELEASE = "activeRelease"
     APPROVAL = "approval"
     QUOTA = "quota"
     QUOTA_ERRORS = "quotaErrors"
