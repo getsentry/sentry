@@ -304,27 +304,22 @@ class SlackActionEndpoint(Endpoint):
                 }
             )
 
-        block_kit_payload = {
+        modal_payload = {
             "type": "modal",
             "title": {"type": "plain_text", "text": "Resolve Issue"},
             "blocks": [
                 {
                     "type": "section",
                     "text": {"type": "mrkdwn", "text": "Resolve in"},
-                    "initial_option": {
-                        "text": {
-                            "type": "plain_text",
-                            "text": "Immediately",
-                            "emoji": True,
-                        },
-                        "value": "resolved",
-                    },
                     "accessory": {
                         "type": "static_select",
-                        "placeholder": {
-                            "type": "plain_text",
-                            "text": "Select an item",
-                            "emoji": True,
+                        "initial_option": {
+                            "text": {
+                                "type": "plain_text",
+                                "text": "Immediately",
+                                "emoji": True,
+                            },
+                            "value": "resolved",
                         },
                         "options": formatted_resolve_options,
                         "action_id": "static_select-action",
@@ -341,7 +336,7 @@ class SlackActionEndpoint(Endpoint):
         if use_block_kit:
             try:
                 payload = {
-                    "view": json.dumps(block_kit_payload),
+                    "view": json.dumps(modal_payload),
                     "trigger_id": slack_request.data["trigger_id"],
                 }
                 headers = {"content-type": "application/json; charset=utf-8"}
