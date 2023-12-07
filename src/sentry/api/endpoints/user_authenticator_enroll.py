@@ -22,6 +22,7 @@ from sentry.models.authenticator import Authenticator
 from sentry.models.user import User
 from sentry.security import capture_security_activity
 from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.utils.auth import MFA_SESSION_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -291,6 +292,8 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         user.refresh_session_nonce(self.request)
         user.save()
         Authenticator.objects.auto_add_recovery_codes(user)
+
+        request.session[MFA_SESSION_KEY] = str(user.id)
 
         response = Response(status=status.HTTP_204_NO_CONTENT)
 
