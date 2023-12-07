@@ -9,6 +9,7 @@ from typing import Optional
 from zipfile import ZipFile
 
 import yaml
+from celery.app.task import Task
 from cryptography.fernet import Fernet
 from django.db import router, transaction
 from google.cloud.devtools.cloudbuild_v1 import Build
@@ -51,6 +52,7 @@ from sentry.utils.env import gcp_project_id, log_gcp_credentials_details
 from sentry.utils.relocation import (
     RELOCATION_BLOB_SIZE,
     RELOCATION_FILE_TYPE,
+    TASK_TO_STEP,
     LoggingPrinter,
     OrderedTask,
     create_cloudbuild_yaml,
@@ -1171,3 +1173,36 @@ def completed(uuid: str) -> None:
     ):
         relocation.status = Relocation.Status.SUCCESS.value
         relocation.save()
+
+
+TASK_MAP: dict[OrderedTask, Task] = {
+    OrderedTask.NONE: Task(),
+    OrderedTask.UPLOADING_COMPLETE: uploading_complete,
+    OrderedTask.PREPROCESSING_SCAN: preprocessing_scan,
+    OrderedTask.PREPROCESSING_BASELINE_CONFIG: preprocessing_baseline_config,
+    OrderedTask.PREPROCESSING_COLLIDING_USERS: preprocessing_colliding_users,
+    OrderedTask.PREPROCESSING_COMPLETE: preprocessing_complete,
+    OrderedTask.VALIDATING_START: validating_start,
+    OrderedTask.VALIDATING_POLL: validating_poll,
+    OrderedTask.VALIDATING_COMPLETE: validating_complete,
+    OrderedTask.IMPORTING: importing,
+    OrderedTask.POSTPROCESSING: postprocessing,
+    OrderedTask.NOTIFYING_USERS: notifying_users,
+    OrderedTask.NOTIFYING_OWNER: notifying_owner,
+    OrderedTask.COMPLETED: completed,
+}
+
+assert list(OrderedTask._member_map_.keys()) == [k.name for k in TASK_MAP.keys()]
+
+
+def get_first_task_for_step(target_step: Relocation.Step) -> Task | None:
+    min_task: OrderedTask | None = None
+    for ordered_task, step in TASK_TO_STEP.items():
+        if step == target_step:
+            if min_task is None or ordered_task.value < min_task.value:
+                min_task = ordered_task
+
+    if min_task is None or min_task == OrderedTask.NONE:
+        return None
+
+    return TASK_MAP.get(min_task, None)

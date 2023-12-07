@@ -25,6 +25,8 @@ class RelocationDetailsEndpoint(Endpoint):
         Get a single relocation.
         ``````````````````````````````````````````````````
 
+        :pparam string relocation_uuid: a UUID identifying the relocation.
+
         :auth: required
         """
 
