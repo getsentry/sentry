@@ -19,39 +19,75 @@ export enum SiblingOption {
 
 type PlaformOptionKey = 'siblingOption';
 
-const getSentryInitLayout = (params: Params): string => {
-  const otherConfigs: string[] = [];
+const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
+  siblingOption: {
+    label: t('Sibling Package'),
+    items: [
+      {
+        label: t('Angular 12+'),
+        value: SiblingOption.ANGULARV12,
+      },
+      {
+        label: t('Angular 10 and 11'),
+        value: SiblingOption.ANGULARV10,
+      },
+      {
+        label: t('React'),
+        value: SiblingOption.REACT,
+      },
+      {
+        label: t('Vue 3'),
+        value: SiblingOption.VUE3,
+      },
+      {
+        label: t('Vue 2'),
+        value: SiblingOption.VUE2,
+      },
+    ],
+  },
+};
 
-  let content: string[] = [];
-  let integrations: string[] = [];
+type PlatformOptions = typeof platformOptions;
+type Params = DocsParams<PlatformOptions>;
 
-  if (params.isPerformanceSelected) {
-    integrations = getPerformanceIntegration(params.platformOptions.siblingOption);
-    otherConfigs.push(performanceOtherConfig);
+const getSentryInitLayout = (params: Params, siblingOption: string): string => {
+  return `${
+    siblingOption === SiblingOption.VUE2
+      ? `Vue,`
+      : siblingOption === SiblingOption.VUE3
+      ? 'app,'
+      : ''
+  }dsn: "${params.dsn}",
+  integrations: [${
+    params.isPerformanceSelected
+      ? `
+          new ${getSiblingImportName(siblingOption)}.BrowserTracing({
+            // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
+            tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],
+          ${
+            params.isPerformanceSelected ? getPerformanceIntegration(siblingOption) : ''
+          }})`
+      : ''
+  }${
+    params.isReplaySelected
+      ? `
+          new ${getSiblingImportName(siblingOption)}.Replay(),`
+      : ''
   }
-
-  if (params.isReplaySelected) {
-    integrations.push(replayIntegration.trim());
-    otherConfigs.push(replayOtherConfig.trim());
-  }
-
-  if (params.platformOptions.siblingOption === SiblingOption.VUE3) {
-    content.push(`app`);
-  } else if (params.platformOptions.siblingOption === SiblingOption.VUE2) {
-    content.push(`Vue`);
-  }
-
-  content.push(`dsn: "${params.dsn}"`);
-  if (integrations.length > 0) {
-    content.push(`integrations: [
-${integrations}
-]`);
-  }
-
-  if (otherConfigs.length > 0) {
-    content = content.concat(otherConfigs);
-  }
-  return content.join();
+  ],${
+    params.isPerformanceSelected
+      ? `
+        // Performance Monitoring
+        tracesSampleRate: 1.0, //  Capture 100% of the transactions`
+      : ''
+  }${
+    params.isReplaySelected
+      ? `
+        // Session Replay
+        replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
+        replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
+      : ''
+  }`;
 };
 
 const getNextStep = (
@@ -85,78 +121,25 @@ const isAngular = (siblingOption: string): boolean =>
 const isVue = (siblingOption: string): boolean =>
   siblingOption === SiblingOption.VUE2 || siblingOption === SiblingOption.VUE3;
 
-// Configuration Start
-const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
-  siblingOption: {
-    label: t('Sibling Package'),
-    items: [
-      {
-        label: t('Angular 12+'),
-        value: SiblingOption.ANGULARV12,
-      },
-      {
-        label: t('Angular 10 and 11'),
-        value: SiblingOption.ANGULARV10,
-      },
-      {
-        label: t('React'),
-        value: SiblingOption.REACT,
-      },
-      {
-        label: t('Vue 3'),
-        value: SiblingOption.VUE3,
-      },
-      {
-        label: t('Vue 2'),
-        value: SiblingOption.VUE2,
-      },
-    ],
-  },
-};
-
-type PlatformOptions = typeof platformOptions;
-type Params = DocsParams<PlatformOptions>;
-
-const replayIntegration = `
-new SiblingSdk.Replay(),
-`;
-
-const replayOtherConfig = `
-// Session Replay
-replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
-replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.
-`;
-
-function getPerformanceIntegration(siblingOption: string): string[] {
-  const integration: string[] = [];
-  integration.push(`new SiblingSdk.BrowserTracing({
-// Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/]`);
-  if (isVue(siblingOption)) {
-    integration.push(
-      'routingInstrumentation: SiblingSdk.vueRouterInstrumentation(router)'
-    );
-  }
-  if (isAngular(siblingOption)) {
-    integration.push('routingInstrumentation: SiblingSdk.routingInstrumentation');
-  }
-  integration.push(`}),`);
-  return integration;
+function getPerformanceIntegration(siblingOption: string): string {
+  return `${
+    isVue(siblingOption)
+      ? `routingInstrumentation: SentryVue.vueRouterInstrumentation(router),`
+      : isAngular(siblingOption)
+      ? `routingInstrumentation: SentryAngular.routingInstrumentation,`
+      : ''
+  }`;
 }
-
-const performanceOtherConfig = `
-// Performance Monitoring
-tracesSampleRate: 1.0, // Capture 100% of the transactions`;
 
 const performanceAngularErrorHandler = `,
 {
-  provide: SiblingSdk.TraceService,
+  provide: SentryAngular.TraceService,
   deps: [Router],
 },
 {
   provide: APP_INITIALIZER,
   useFactory: () => () => {},
-  deps: [SiblingSdk.TraceService],
+  deps: [SentryAngular.TraceService],
   multi: true,
 },`;
 
@@ -307,8 +290,9 @@ function getVueConstSetup(siblingOption: string): string {
 }
 
 function getSetupConfiguration(params: Params) {
-  const sentryInitLayout = getSentryInitLayout(params);
   const siblingOption = params.platformOptions.siblingOption;
+  const sentryInitLayout = getSentryInitLayout(params, siblingOption);
+
   const configuration = [
     {
       description: tct(
@@ -320,13 +304,15 @@ function getSetupConfiguration(params: Params) {
       language: 'javascript',
       code: `${getSiblingImportsSetupConfiguration(siblingOption)}
           import * as Sentry from '@sentry/capacitor';
-          import * as SiblingSdk from '${getNpmPackage(siblingOption)}';
+          import * as ${getSiblingImportName(siblingOption)} from '${getNpmPackage(
+            siblingOption
+          )}';
           ${getVueConstSetup(siblingOption)}
           Sentry.init({
             ${sentryInitLayout}
 },
 // Forward the init method from ${getNpmPackage(params.platformOptions.siblingOption)}
-SiblingSdk.init
+${getSiblingImportName(siblingOption)}.init
 );`,
     },
   ];
@@ -340,14 +326,14 @@ SiblingSdk.init
       code: `
 import { APP_INITIALIZER, ErrorHandler, NgModule } from "@angular/core";
 import { Router } from "@angular/router";
-import * as SiblingSdk from "${getNpmPackage(siblingOption)}";
+import * as SentryAngular from "${getNpmPackage(siblingOption)}";
 
 @NgModule({
 // ...
 providers: [
 {
   provide: ErrorHandler,
-  useValue: SiblingSdk.createErrorHandler(),
+  useValue: SentryAngular.createErrorHandler(),
 }${params.isPerformanceSelected ? performanceAngularErrorHandler : ' '}
 ],
 // ...
@@ -384,7 +370,22 @@ function getSiblingName(siblingOption: string): string {
       return '';
   }
 }
-// Configuration End
+
+function getSiblingImportName(siblingOption: string): string {
+  siblingOption;
+  switch (siblingOption) {
+    case SiblingOption.ANGULARV10:
+    case SiblingOption.ANGULARV12:
+      return 'SentryAngular';
+    case SiblingOption.REACT:
+      return 'SentryReact';
+    case SiblingOption.VUE2:
+    case SiblingOption.VUE3:
+      return 'SentryVue';
+    default:
+      return '';
+  }
+}
 
 const docs: Docs<PlatformOptions> = {
   onboarding,
