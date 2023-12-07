@@ -35,6 +35,6 @@ export function DifferentialFlamegraphNegationSwitch(
 }
 
 const DifferentialFlamegraphNegationSwitchContainer = styled('div')`
-  /* after this size, the text is quickly truncated */
-  min-width: 210px;
+  /* ensure text is not truncated */
+  flex-shrink: 0;
 `;
