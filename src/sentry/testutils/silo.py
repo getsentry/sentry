@@ -48,11 +48,22 @@ TestMethod = Callable[..., None]
 
 SENTRY_USE_MONOLITH_DBS = os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
 
-_DEFAULT_TEST_REGIONS = (
-    Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
-    Region("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT),
-    Region("acme-single-tenant", 3, "acme.my.sentry.io", RegionCategory.SINGLE_TENANT),
-)
+
+def create_test_regions(*names: str, single_tenants: Iterable[str] = ()) -> tuple[Region, ...]:
+    single_tenants = frozenset(single_tenants)
+    return tuple(
+        Region(
+            name=name,
+            snowflake_id=index + 1,
+            address=f"http://{name}.testserver",
+            category=(
+                RegionCategory.SINGLE_TENANT
+                if name in single_tenants
+                else RegionCategory.MULTI_TENANT
+            ),
+        )
+        for (index, name) in enumerate(names)
+    )
 
 
 def _model_silo_limit(t: type[Model]) -> ModelSiloLimit:
@@ -116,7 +127,7 @@ class SiloModeTestDecorator:
     ) -> Any:
         mod = _SiloModeTestModification(
             silo_modes=self.silo_modes,
-            regions=tuple(regions or _DEFAULT_TEST_REGIONS),
+            regions=tuple(regions),
             include_monolith_run=include_monolith_run,
         )
 
@@ -135,7 +146,7 @@ class _SiloModeTestModification:
 
     @contextmanager
     def test_config(self, silo_mode: SiloMode):
-        monolith_region = self.regions[0].name
+        monolith_region = self.regions[0].name if self.regions else settings.SENTRY_MONOLITH_REGION
         with contextlib.ExitStack() as stack:
             stack.enter_context(
                 override_settings(
@@ -311,8 +322,6 @@ def assume_test_silo_mode(desired_silo: SiloMode, can_be_monolith: bool = True) 
     overrides: MutableMapping[str, Any] = {}
     if desired_silo != SiloMode.get_current_mode():
         overrides["SILO_MODE"] = desired_silo
-    if desired_silo == SiloMode.REGION and not getattr(settings, "SENTRY_REGION"):
-        overrides["SENTRY_REGION"] = "na"
 
     if overrides:
         with override_settings(**overrides):
