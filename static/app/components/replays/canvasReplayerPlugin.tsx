@@ -66,7 +66,6 @@ export function CanvasReplayerPlugin(events: eventWithTime[]) {
     const el = document.createElement('img');
     node.appendChild(el);
     document.adoptNode(cloneNode);
-    document.body.appendChild(cloneNode);
     containers.set(id, el);
     return cloneNode;
   }
