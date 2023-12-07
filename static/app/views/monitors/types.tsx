@@ -6,7 +6,7 @@ export enum MonitorType {
 }
 
 /**
- * Some old monitor configuratiosn do NOT have a schedule_type
+ * Some old monitor configurations do NOT have a schedule_type
  *
  * TODO: This should be removed once we've cleaned up our old data and can
  *       verify we don't have any config objects missing schedule_type
