@@ -5,11 +5,12 @@ from typing import Any, Dict, MutableMapping, Optional, cast
 
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
+from arroyo.types import Message, Value
 from django.conf import settings
 
 from sentry import features
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.issues.status_change_consumer import bulk_get_groups_from_fingerprints, update_status
+from sentry.issues.run import process_message
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud import ValueEqualityEnum
@@ -56,6 +57,12 @@ def produce_occurrence_to_kafka(
         return
 
     payload = KafkaPayload(None, json.dumps(payload_data).encode("utf-8"), [])
+    if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
+        # If we're not running Kafka then we're just in dev.
+        # Skip producing to Kafka and just process the message directly
+        process_message(Message(Value(payload=payload, committable={})))
+        return
+
     _occurrence_producer.produce(Topic(settings.KAFKA_INGEST_OCCURRENCES), payload)
 
 
@@ -66,22 +73,6 @@ def _prepare_occurrence_message(
         raise ValueError("occurrence must be provided")
     if event_data and occurrence.event_id != event_data["event_id"]:
         raise ValueError("Event id on occurrence and event_data must be the same")
-    if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
-        # If we're not running Kafka then we're just in dev. Skip producing to Kafka and just
-        # write to the issue platform directly
-        from sentry.issues.ingest import process_occurrence_data
-        from sentry.issues.occurrence_consumer import (
-            lookup_event_and_process_issue_occurrence,
-            process_event_and_issue_occurrence,
-        )
-
-        occurrence_dict = occurrence.to_dict()
-        process_occurrence_data(occurrence_dict)
-        if event_data:
-            process_event_and_issue_occurrence(occurrence_dict, event_data)
-        else:
-            lookup_event_and_process_issue_occurrence(occurrence_dict)
-        return None
 
     payload_data = cast(MutableMapping[str, Any], occurrence.to_dict())
     payload_data["payload_type"] = PayloadType.OCCURRENCE.value
@@ -99,25 +90,6 @@ def _prepare_status_change_message(
 
     organization = Project.objects.get(id=status_change.project_id).organization
     if not features.has("organizations:issue-platform-api-crons-sd", organization):
-        return None
-
-    if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
-        # Do the change
-        # If we're not running Kafka then we're just in dev. Skip producing to Kafka and just
-        # write to the issue platform directly
-        from sentry.issues.ingest import process_occurrence_data
-
-        process_occurrence_data(status_change.to_dict())
-        fingerprint = status_change.fingerprint
-        groups_by_fingerprints = bulk_get_groups_from_fingerprints(
-            [(status_change.project_id, fingerprint)]
-        )
-
-        key = (status_change.project_id, fingerprint[0])
-        group = groups_by_fingerprints.get(key, None)
-        if not group:
-            return None
-        update_status(group, status_change.to_dict())
         return None
 
     payload_data = cast(MutableMapping[str, Any], status_change.to_dict())
