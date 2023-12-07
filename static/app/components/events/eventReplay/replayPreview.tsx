@@ -11,7 +11,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {Flex} from 'sentry/components/profiling/flex';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
-import ReplayNotFound from 'sentry/components/replays/replayProcessingErrors';
+import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
 import {IconDelete, IconPlay} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -166,7 +166,7 @@ function ReplayPreview({
     >
       <PlayerContainer data-test-id="player-container">
         {replay?.hasProcessingErrors() ? (
-          <ReplayNotFound />
+          <ReplayProcessingError />
         ) : (
           <Fragment>
             <StaticPanel>

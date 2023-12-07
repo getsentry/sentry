@@ -6,7 +6,7 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import ReplayController from 'sentry/components/replays/replayController';
 import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
-import ReplayNotFound from 'sentry/components/replays/replayProcessingErrors';
+import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -42,7 +42,7 @@ function ReplayView({toggleFullscreen}: Props) {
             ) : null}
           </ContextContainer>
           {replay?.hasProcessingErrors() ? (
-            <ReplayNotFound />
+            <ReplayProcessingError />
           ) : (
             <Panel>
               <ReplayPlayer />

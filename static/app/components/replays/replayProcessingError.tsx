@@ -9,7 +9,7 @@ interface Props {
   className?: string;
 }
 
-export default function ReplayNotFound({className}: Props) {
+export default function ReplayProcessingError({className}: Props) {
   return (
     <StyledAlert type="error" showIcon className={className}>
       <Heading>{t('Replay Not Found')}</Heading>
@@ -42,7 +42,6 @@ export default function ReplayNotFound({className}: Props) {
 const StyledAlert = styled(Alert)`
   margin: 0;
   height: 100%;
-  border-collapse: collapse;
 `;
 
 const Heading = styled('h1')`
