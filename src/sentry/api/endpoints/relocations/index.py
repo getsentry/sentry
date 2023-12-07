@@ -1,6 +1,8 @@
 import logging
+import re
 from datetime import timedelta
 from functools import reduce
+from string import Template
 
 from django.db import router
 from django.utils import timezone
@@ -13,6 +15,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.relocations import ERR_FEATURE_DISABLED
+from sentry.api.fields.sentry_slug import ORG_SLUG_PATTERN
 from sentry.api.permissions import SuperuserPermission
 from sentry.models.files.file import File
 from sentry.models.relocation import Relocation, RelocationFile
@@ -27,6 +30,8 @@ ERR_DUPLICATE_RELOCATION = "An in-progress relocation already exists for this ow
 ERR_THROTTLED_RELOCATION = (
     "We've reached our daily limit of relocations - please try again tomorrow or contact support."
 )
+ERR_OWNER_NOT_FOUND = Template("Could not find user `$owner_username`.")
+ERR_INVALID_ORG_SLUG = Template("Org slug is invalid: `$org_slug`.")
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +67,7 @@ def should_throttle_relocation(relocation_bucket_size) -> bool:
 
 class RelocationPostSerializer(serializers.Serializer):
     file = serializers.FileField(required=True)
-    orgs = serializers.ListField(required=True, allow_empty=False)
+    orgs = serializers.CharField(required=True, allow_blank=False, allow_null=False)
     owner = serializers.CharField(
         max_length=MAX_USERNAME_LENGTH, required=True, allow_blank=False, allow_null=False
     )
@@ -107,11 +112,19 @@ class RelocationIndexEndpoint(Endpoint):
         validated = serializer.validated_data
         fileobj = validated.get("file")
         owner_username = validated.get("owner")
-        org_slugs = validated.get("orgs")
+        org_slugs = [org.strip() for org in validated.get("orgs").split(",")]
+        for org_slug in org_slugs:
+            if not re.match(ORG_SLUG_PATTERN, org_slug):
+                return Response(
+                    {"detail": ERR_INVALID_ORG_SLUG.substitute(org_slug=org_slug)}, status=400
+                )
         try:
             owner = user_service.get_by_username(username=owner_username)[0]
         except IndexError:
-            return Response({"detail": f"Could not find user `{owner_username}`"}, status=400)
+            return Response(
+                {"detail": ERR_OWNER_NOT_FOUND.substitute(owner_username=owner_username)},
+                status=400,
+            )
 
         # Quickly check that this `owner` does not have more than one active `Relocation` in flight.
         if Relocation.objects.filter(

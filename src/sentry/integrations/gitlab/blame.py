@@ -117,7 +117,7 @@ def _create_file_blame_info(commit: CommitInfo, file: SourceLineInfo) -> FileBla
 def _handle_file_blame_error(error: ApiError, file: SourceLineInfo, extra: Mapping[str, Any]):
     if error.code == 429:
         metrics.incr("integrations.gitlab.get_blame_for_files.rate_limit")
-    logger.error(
+    logger.exception(  # noqa: LOG004  # this function is used in an exception handler
         "get_blame_for_files.api_error",
         extra={
             **extra,
