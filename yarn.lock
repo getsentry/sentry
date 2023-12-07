@@ -2701,6 +2701,24 @@
   dependencies:
     "@sinonjs/commons" "^2.0.0"
 
+"@spotlightjs/overlay@1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@spotlightjs/overlay/-/overlay-1.0.0.tgz#1fa67d3a631fc87db63eda931681ed4ac8df4203"
+  integrity sha512-PAytV9acAqF8UHFD4236eAMlvOrh46T14508UuhM4fTRKSpJPktNpm+EO5wIa1Z1V+DtycJRi93tskbm6H4Faw==
+
+"@spotlightjs/sidecar@1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@spotlightjs/sidecar/-/sidecar-1.0.0.tgz#fe5ef4909c065e15dd7bc9deaac692ca54871cfb"
+  integrity sha512-OVyIetoyF8+POvfLbKuW6U3+STjiudxF4ugpxwCWCM+KIp9ZMJNmtQyXAsxkCrXTbWVtt88Pj2duZRPsQiYr7Q==
+
+"@spotlightjs/spotlight@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@spotlightjs/spotlight/-/spotlight-1.0.0.tgz#9d89096c3de2ad95d712e77999cafd82e59c65a3"
+  integrity sha512-cYeKHUt6ntR6assWnwzm5NlEKF70bGlXJnzDAbpyGKgyE5wIawwEzSj5Jq80/c7BOx4NrETxhJX+mX3y9hztrA==
+  dependencies:
+    "@spotlightjs/overlay" "1.0.0"
+    "@spotlightjs/sidecar" "1.0.0"
+
 "@styled/typescript-styled-plugin@^1.0.0":
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/@styled/typescript-styled-plugin/-/typescript-styled-plugin-1.0.0.tgz#82723b57c2a49cfb4bb7ea456cd7350474ae423a"
@@ -11560,6 +11578,11 @@ webpack-dev-server@^4.15.1:
     spdy "^4.0.2"
     webpack-dev-middleware "^5.3.1"
     ws "^8.13.0"
+
+webpack-hook-plugin@^1.0.7:
+  version "1.0.7"
+  resolved "https://registry.yarnpkg.com/webpack-hook-plugin/-/webpack-hook-plugin-1.0.7.tgz#689c2a24e16df247be91d8649e9da048774308ec"
+  integrity sha512-8GJ+LiR+0rrShCSeeFMaKONX7xMMW3H9Hszmy5IsCereZUJ5AoLhJgn5BhySQChA4Q5lZ7/9KtidDypYHQDDmA==
 
 webpack-merge@^5.7.3:
   version "5.7.3"
