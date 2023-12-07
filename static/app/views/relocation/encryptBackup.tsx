@@ -75,26 +75,26 @@ const Wrapper = styled('div')`
   margin-left: auto;
   margin-right: auto;
   padding: ${space(4)};
-  background-color: #ffffff;
+  background-color: ${p => p.theme.surface400};
   z-index: 100;
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
   border-radius: 10px;
   width: 100%;
-  color: #80708f;
+  color: ${p => p.theme.gray300};
   mark {
     border-radius: 8px;
     padding: ${space(0.25)} ${space(0.5)} ${space(0.25)} ${space(0.5)};
-    background: #f0ecf3;
+    background: ${p => p.theme.gray100};
     margin-right: ${space(1)};
   }
   h2 {
-    color: #4d4158;
+    color: ${p => p.theme.gray500};
   }
   p {
     margin-bottom: ${space(1)};
   }
   .encrypt-help {
-    color: #4d4158;
+    color: ${p => p.theme.gray500};
   }
 `;
 

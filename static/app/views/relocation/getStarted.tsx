@@ -50,7 +50,7 @@ function GetStarted(props: StepProps) {
             aria-label="org-slugs"
             onChange={evt => setOrgSlugs(evt.target.value)}
             required
-            minLength={1}
+            minLength={3}
             placeholder="org-slugs-here"
           />
           <Label>{t('Choose a datacenter region')}</Label>
@@ -107,15 +107,15 @@ const Wrapper = styled('div')`
   margin-left: auto;
   margin-right: auto;
   padding: ${space(4)};
-  background-color: #ffffff;
+  background-color: ${p => p.theme.surface400};
   z-index: 100;
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
   border-radius: 10px;
   max-width: 769px;
   max-height: 525px;
-  color: #80708f;
+  color: ${p => p.theme.gray300};
   h2 {
-    color: #4d4158;
+    color: ${p => p.theme.gray500};
   }
 `;
 
@@ -130,19 +130,19 @@ const Form = styled('form')`
 const Label = styled('label')`
   display: block;
   text-transform: uppercase;
-  color: #4d4158;
+  color: ${p => p.theme.gray500};
   margin-top: ${space(2)};
 `;
 
 const RequiredLabel = styled('label')`
   display: block;
   text-transform: uppercase;
-  color: #4d4158;
+  color: ${p => p.theme.gray500};
   margin-top: ${space(2)};
   &:after {
     content: '•';
     width: 6px;
-    color: #f55459;
+    color: ${p => p.theme.red300};
   }
 `;
 
