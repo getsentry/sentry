@@ -19,6 +19,7 @@ import requests
 import responses
 import sentry_kafka_schemas
 from click.testing import CliRunner
+from confluent_kafka import Producer
 from django.conf import settings
 from django.contrib.auth import login
 from django.contrib.auth.models import AnonymousUser
@@ -2875,3 +2876,73 @@ class MonitorIngestTestCase(MonitorTestCase):
 class IntegratedApiTestCase(BaseTestCase):
     def should_call_api_without_proxying(self) -> bool:
         return not IntegrationProxyClient.determine_whether_should_proxy_to_control()
+
+
+class SpansIndexedTestCase(TestCase, SnubaTestCase):
+    # Some base data for create_span
+    base_span = {
+        "is_segment": False,
+        "retention_days": 90,
+        "tags": {},
+        "sentry_tags": {},
+        "measurements": {},
+    }
+
+    # Snuba consumers need a second to process and the consumer needs another second, and another second just to be safe
+    sleep_time = 3
+
+    def setUp(self):
+        super().setUp()
+        # The topic we want to write the span json data into
+        self.spans_topic = "snuba-spans"
+        # Setup the producer that we'll be writing span data to later
+        self.producer = Producer(settings.KAFKA_CLUSTERS["default"]["common"])
+
+    def create_span(
+        self, extra_data=None, organization=None, project=None, start_ts=None, duration=1000
+    ):
+        """Create span json, not required for store_span, but with no params passed should just work out of the box"""
+        if organization is None:
+            organization = self.organization
+        if project is None:
+            project = self.project
+        if start_ts is None:
+            start_ts = datetime.now() - timedelta(minutes=1)
+        if extra_data is None:
+            extra_data = {}
+        span = self.base_span.copy()
+        # Load some defaults
+        span.update(
+            {
+                "event_id": uuid4().hex,
+                "organization_id": organization.id,
+                "project_id": project.id,
+                "trace_id": uuid4().hex,
+                "span_id": uuid4().hex[:16],
+                "parent_span_id": uuid4().hex[:16],
+                "segment_id": uuid4().hex[:16],
+                "group_raw": uuid4().hex[:16],
+                "profile_id": uuid4().hex,
+                # Multiply by 1000 cause it needs to be ms
+                "start_timestamp_ms": int(start_ts.timestamp() * 1000),
+                "received": start_ts.timestamp(),
+                "duration_ms": duration,
+                "exclusive_time_ms": duration,
+            }
+        )
+        # Load any specific custom data
+        span.update(extra_data)
+        return span
+
+    def _store_span(self, data, delay=True):
+        """Encode span data to json and send it to our producer, making this function private in hopes most people will
+        save batches of spans using the plural function instead"""
+        self.producer.produce(self.spans_topic, json.dumps(data).encode())
+        if delay:
+            time.sleep(self.sleep_time)
+
+    def store_spans(self, spans):
+        """Store a list of spans"""
+        for span in spans:
+            self._store_span(span, delay=False)
+        time.sleep(self.sleep_time)
