@@ -16,6 +16,7 @@ from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from sentry_relay.exceptions import RelayError
 from sentry_relay.processing import parse_release
+from sentry_sdk import metrics as sentry_metrics
 
 from sentry import features
 from sentry.backup.scopes import RelocationScope
@@ -365,6 +366,7 @@ def _get_cache_key(project_id: int, group_id: int, first: bool) -> str:
 class ReleaseModelManager(BaseManager["Release"]):
     def create(self, **kwargs):
         metrics.incr("release.create")
+        sentry_metrics.incr("release.create")
         super().create(**kwargs)
 
     def get_queryset(self):
