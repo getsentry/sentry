@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from functools import cached_property
 from unittest import mock
 
@@ -85,10 +83,7 @@ class RobotsTxtTest(TestCase):
         assert resp["Content-Type"] == "text/plain"
 
 
-@region_silo_test(
-    regions=create_test_regions("reg1", "reg2"),
-    include_monolith_run=True,
-)
+@region_silo_test(regions=create_test_regions("us", "eu"), include_monolith_run=True)
 class ClientConfigViewTest(TestCase):
     @cached_property
     def path(self):
@@ -291,7 +286,7 @@ class ClientConfigViewTest(TestCase):
         assert data["isAuthenticated"] is True
         assert data["lastOrganization"] == self.organization.slug
         assert data["links"] == {
-            "organizationUrl": "http://baz.testserver",
+            "organizationUrl": f"http://{self.organization.slug}.testserver",
             "regionUrl": generate_region_url(),
             "sentryUrl": "http://testserver",
         }
@@ -574,7 +569,7 @@ class ClientConfigViewTest(TestCase):
             data = json.loads(resp.content)
 
             expected_region_url = (
-                "http://foobar.reg1.testserver"
+                "http://foobar.us.testserver"
                 if SiloMode.get_current_mode() == SiloMode.REGION
                 else options.get("system.url-prefix")
             )
