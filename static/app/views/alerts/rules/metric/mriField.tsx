@@ -15,6 +15,7 @@ import {
   parseMRI,
 } from 'sentry/utils/metrics/mri';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
+import {middleEllipsis} from 'sentry/utils/middleEllipsis';
 
 interface Props {
   aggregate: string;
@@ -27,19 +28,16 @@ function filterAndSortOperations(operations: string[]) {
 }
 
 function MriField({aggregate, project, onChange}: Props) {
-  const {data: meta, isLoading} = useMetricsMeta([parseInt(project.id, 10)], {
-    useCases: ['custom'],
-  });
+  const {data: meta, isLoading} = useMetricsMeta([parseInt(project.id, 10)], ['custom']);
+
   const metaArr = useMemo(() => {
-    return Object.values(meta)
-      .map(
-        metric =>
-          ({
-            ...metric,
-            ...parseMRI(metric.mri),
-          }) as ParsedMRI & MetricMeta
-      )
-      .sort((a, b) => a.name.localeCompare(b.name));
+    return meta.map(
+      metric =>
+        ({
+          ...metric,
+          ...parseMRI(metric.mri),
+        }) as ParsedMRI & MetricMeta
+    );
   }, [meta]);
 
   const selectedValues = parseField(aggregate) ?? {mri: '' as MRI, op: ''};
@@ -48,7 +46,7 @@ function MriField({aggregate, project, onChange}: Props) {
 
   useEffect(() => {
     // Auto-select the first mri if none of the available ones is selected
-    if (!selectedMriMeta) {
+    if (!selectedMriMeta && !isLoading) {
       const newSelection = metaArr[0];
       if (newSelection) {
         onChange(
@@ -101,7 +99,7 @@ function MriField({aggregate, project, onChange}: Props) {
         disabled?: boolean;
         trailingItems?: React.ReactNode;
       }>(metric => ({
-        label: metric.name,
+        label: middleEllipsis(metric.name, 50, /\.|-|_/),
         value: metric.mri,
         trailingItems: (
           <Fragment>

@@ -62,7 +62,7 @@ def fetch_file_blames(
                 and rate_limit_info.remaining < (MINIMUM_REQUESTS - len(files))
             ):
                 metrics.incr("integrations.gitlab.get_blame_for_files.rate_limit")
-                logger.exception(
+                logger.error(
                     "get_blame_for_files.rate_limit_too_low",
                     extra={
                         **extra,
@@ -117,7 +117,7 @@ def _create_file_blame_info(commit: CommitInfo, file: SourceLineInfo) -> FileBla
 def _handle_file_blame_error(error: ApiError, file: SourceLineInfo, extra: Mapping[str, Any]):
     if error.code == 429:
         metrics.incr("integrations.gitlab.get_blame_for_files.rate_limit")
-    logger.exception(
+    logger.exception(  # noqa: LOG004  # this function is used in an exception handler
         "get_blame_for_files.api_error",
         extra={
             **extra,

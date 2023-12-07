@@ -12,6 +12,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.integrations.utils.scope import clear_tags_and_context
@@ -237,6 +238,7 @@ class GitlabWebhookMixin:
 
 @region_silo_endpoint
 class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
+    owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,
     }
@@ -273,7 +275,7 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
         if integration is None:
             logger.info("gitlab.webhook.invalid-organization", extra=extra)
             extra["reason"] = "There is no integration that matches your organization."
-            logger.exception(extra["reason"])
+            logger.error(extra["reason"])
             return HttpResponse(status=400, reason=extra["reason"])
 
         extra = {
@@ -318,7 +320,7 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
         except KeyError:
             logger.info("gitlab.webhook.wrong-event-type", extra=extra)
             supported_events = ", ".join(sorted(self._handlers.keys()))
-            logger.info(f"We only support these kinds of events: {supported_events}")
+            logger.info("We only support these kinds of events: %s", supported_events)
             extra[
                 "reason"
             ] = "The customer has edited the webhook in Gitlab to include other types of events."

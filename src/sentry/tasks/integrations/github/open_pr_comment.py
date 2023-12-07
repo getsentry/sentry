@@ -120,7 +120,7 @@ def get_issue_table_contents(issue_list: List[Dict[str, int]]) -> List[PullReque
             title=issue.title,
             subtitle=issue.culprit,
             url=issue.get_absolute_url(),
-            affected_users=group_id_to_info[issue.id]["affected_users"],
+            affected_users=issue.count_users_seen(),
             event_count=group_id_to_info[issue.id]["event_count"],
             is_handled=bool(group_id_to_info[issue.id]["is_handled"]),
         )
@@ -237,7 +237,6 @@ def get_top_5_issues_by_count_for_file(
                 [
                     Column("group_id"),
                     Function("count", [], "event_count"),
-                    Function("uniq", [Column("user_hash")], "affected_users"),
                     Function("isHandled", [], "is_handled"),
                 ]
             )
@@ -283,7 +282,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     try:
         organization = Organization.objects.get_from_cache(id=org_id)
     except Organization.DoesNotExist:
-        logger.error("github.open_pr_comment.org_missing")
+        logger.exception("github.open_pr_comment.org_missing")
         metrics.incr(OPEN_PR_METRICS_BASE.format(key="error"), tags={"type": "missing_org"})
         return
 

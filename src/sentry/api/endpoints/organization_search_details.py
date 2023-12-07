@@ -3,6 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationSearchPermission
@@ -35,6 +36,7 @@ class OrganizationSearchEditPermission(OrganizationSearchPermission):
 
 @region_silo_endpoint
 class OrganizationSearchDetailsEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.OWNERS_SNUBA
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "PUT": ApiPublishStatus.UNKNOWN,

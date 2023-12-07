@@ -22,6 +22,7 @@ from sentry import options
 from sentry.conf.types.sdk_config import SdkConfig
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
+from sentry.utils.openai_sdk_integration import OpenAiIntegration
 from sentry.utils.rust import RustInfoIntegration
 
 # Can't import models in utils because utils should be the bottom of the food chain
@@ -420,6 +421,7 @@ def configure_sdk():
 
     # exclude monitors with sub-minute schedules from using crons
     exclude_beat_tasks = [
+        "deliver-from-outbox-control",
         "flush-buffers",
         "sync-options",
         "sync-options-control",
@@ -454,40 +456,13 @@ def configure_sdk():
             RustInfoIntegration(),
             RedisIntegration(),
             ThreadingIntegration(propagate_hub=True),
+            OpenAiIntegration(capture_prompts=True),
         ],
         spotlight=settings.IS_DEV,
         **sdk_options,
     )
 
     minimetrics.patch_sentry_sdk()
-
-
-class RavenShim:
-    """Wrapper around sentry-sdk in case people are writing their own
-    integrations that rely on this being here."""
-
-    def captureException(self, exc_info=None, **kwargs):
-        with sentry_sdk.push_scope() as scope:
-            self._kwargs_into_scope(scope, **kwargs)
-            return capture_exception(exc_info)
-
-    def captureMessage(self, msg, **kwargs):
-        with sentry_sdk.push_scope() as scope:
-            self._kwargs_into_scope(scope, **kwargs)
-            return capture_message(msg)
-
-    def tags_context(self, tags):
-        with sentry_sdk.configure_scope() as scope:
-            for k, v in tags.items():
-                scope.set_tag(k, v)
-
-    def _kwargs_into_scope(self, scope, extra=None, tags=None, fingerprint=None, request=None):
-        for key, value in extra.items() if extra else ():
-            scope.set_extra(key, value)
-        for key, value in tags.items() if tags else ():
-            scope.set_tag(key, value)
-        if fingerprint is not None:
-            scope.fingerprint = fingerprint
 
 
 def check_tag_for_scope_bleed(
@@ -539,7 +514,7 @@ def check_tag_for_scope_bleed(
                 scope.set_tag("possible_mistag", True)
                 scope.set_tag(f"scope_bleed.{tag_key}", True)
                 merge_context_into_scope("scope_bleed", extra, scope)
-            logger.warning(f"Tag already set and different ({tag_key}).", extra=extra)
+            logger.warning("Tag already set and different (%s).", tag_key, extra=extra)
 
 
 def get_transaction_name_from_request(request: Request) -> str:
@@ -713,7 +688,6 @@ def merge_context_into_scope(
 __all__ = (
     "EXPERIMENT_TAG",
     "LEGACY_RESOLVER",
-    "RavenShim",
     "Scope",
     "UNSAFE_FILES",
     "UNSAFE_TAG",

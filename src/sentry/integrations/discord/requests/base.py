@@ -13,6 +13,7 @@ from sentry.services.hybrid_cloud.identity.service import identity_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.utils import json
 
 from ..utils import logger, verify_signature
 
@@ -54,7 +55,8 @@ class DiscordRequest:
     def __init__(self, request: Request):
         self.request = request
         self._integration: RpcIntegration | None = None
-        self._data: Mapping[str, object] = self.request.data
+        self._body = self.request.body.decode("utf-8")
+        self._data: Mapping[str, object] = json.loads(self._body)
         self._identity: RpcIdentity | None = None
         self.user: RpcUser | None = None
 
@@ -65,7 +67,11 @@ class DiscordRequest:
     @property
     def data(self) -> Mapping[str, object]:
         """This is the data object nested within request.data"""
-        return self._data.get("data") or {}  # type: ignore
+        data = self._data.get("data")
+        if isinstance(data, dict):
+            return data
+        else:
+            return {}
 
     @property
     def guild_id(self) -> str | None:
@@ -80,8 +86,14 @@ class DiscordRequest:
     @property
     def user_id(self) -> str | None:
         try:
-            return self._data.get("member")["user"]["id"]  # type: ignore
-        except (AttributeError, TypeError):
+            # 'member' object is sent when the interaction is invoked in a guild, and 'user' object is sent when
+            # invoked in a DM.
+            # See: https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
+            user_source = self._data.get("member", None)
+            if user_source is None:
+                user_source = self._data
+            return user_source["user"]["id"]  # type: ignore
+        except (AttributeError, TypeError, KeyError):
             return None
 
     @property
@@ -119,7 +131,7 @@ class DiscordRequest:
         public_key: str = options.get("discord.public-key")
         signature: str | None = self.request.META.get("HTTP_X_SIGNATURE_ED25519")
         timestamp: str | None = self.request.META.get("HTTP_X_SIGNATURE_TIMESTAMP")
-        body: str = self.request.body.decode("utf-8")
+        body: str = self._body
         if not signature or not timestamp:
             self._info(
                 "discord.authorize.auth.missing.data",
@@ -211,22 +223,23 @@ class DiscordRequest:
     def get_command_name(self) -> str:
         if not self.is_command():
             return ""
-        return self.data["name"]  # type: ignore
+        return str(self.data.get("name", ""))
 
     def get_component_custom_id(self) -> str:
         if not self.is_message_component():
             return ""
-        return self.data["custom_id"]  # type: ignore
+        return str(self.data.get("custom_id", ""))
 
     def is_select_component(self) -> bool:
-        return self.data["component_type"] == DiscordMessageComponentTypes.SELECT
+        return self.data.get("component_type", None) == DiscordMessageComponentTypes.SELECT
 
     def get_selected_options(self) -> list[str]:
         if not self.is_select_component():
             logger.info("discord.interaction.component.not.is_select_component")
             return []
+        values = self.data.get("values", [])
         logger.info(
             "discord.interaction.component.get_selected_options",
-            extra={"data": self.data, "values": self.data["values"]},
+            extra={"data": self.data, "values": values},
         )
-        return self.data["values"]  # type: ignore
+        return values  # type: ignore

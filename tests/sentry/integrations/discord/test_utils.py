@@ -7,6 +7,7 @@ from requests.exceptions import Timeout
 
 from sentry.integrations.discord.utils.auth import verify_signature
 from sentry.integrations.discord.utils.channel import ChannelType, validate_channel_id
+from sentry.integrations.discord.utils.channel_from_url import get_channel_id_from_url
 from sentry.shared_integrations.exceptions import ApiTimeoutError, IntegrationError
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.testutils.cases import TestCase
@@ -106,3 +107,51 @@ class ValidateChannelTest(TestCase):
             validate_channel_id(
                 self.channel_id, self.guild_id, self.integration_id, self.guild_name
             )
+
+
+class GetChannelIdFromUrl(TestCase):
+    channel_id = "12345678910"
+
+    def test_happy_path(self):
+        channel = get_channel_id_from_url(
+            f"https://discord.com/channels/guild-id/{self.channel_id}"
+        )
+        assert channel == self.channel_id
+
+    def test_happy_path_with_extra_slash(self):
+        channel = get_channel_id_from_url(
+            f"https://discord.com/channels/guild-id/{self.channel_id}"
+        )
+        assert channel == self.channel_id
+
+    def test_missing_channel_id_with_slash(self):
+        with raises(ValidationError):
+            get_channel_id_from_url("https://discord.com/channels/guild-id/")
+
+    def test_missing_channel_id_no_slash(self):
+        with raises(ValidationError):
+            get_channel_id_from_url("https://discord.com/channels/guild-id")
+
+    def test_missing_guild_and_channel_with_slash(self):
+        with raises(ValidationError):
+            get_channel_id_from_url("https://discord.com/channels/")
+
+    def test_missing_guild_and_channel_no_slash(self):
+        with raises(ValidationError):
+            get_channel_id_from_url("https://discord.com/channels")
+
+    def test_different_link(self):
+        with raises(ValidationError):
+            get_channel_id_from_url("https://different.com")
+
+    def test_just_channel_id(self):
+        channel = get_channel_id_from_url(self.channel_id)
+        assert channel == self.channel_id
+
+    def test_no_channel_at_all(self):
+        with raises(ValidationError):
+            get_channel_id_from_url("")
+
+    def test_non_integer_channel(self):
+        with raises(ValidationError):
+            get_channel_id_from_url("channel-id")

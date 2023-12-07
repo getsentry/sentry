@@ -138,12 +138,13 @@ function TeamStability({
       response.intervals
     );
 
-    const countSeriesWeeklyTotals: number[] = Array(sumSessions.length / 7).fill(0);
+    const sumSessionsCount = Math.floor(sumSessions.length / 7);
+    const countSeriesWeeklyTotals: number[] = new Array(sumSessionsCount).fill(0);
     countSeries.forEach(
       (s, idx) => (countSeriesWeeklyTotals[Math.floor(idx / 7)] += s.value)
     );
 
-    const sumSessionsWeeklyTotals: number[] = Array(sumSessions.length / 7).fill(0);
+    const sumSessionsWeeklyTotals: number[] = new Array(sumSessionsCount).fill(0);
     sumSessions.forEach((s, idx) => (sumSessionsWeeklyTotals[Math.floor(idx / 7)] += s));
 
     const data = countSeriesWeeklyTotals.map((value, idx) => ({

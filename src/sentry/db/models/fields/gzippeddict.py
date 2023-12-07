@@ -38,7 +38,7 @@ class GzippedDictField(TextField):
                 try:
                     value = pickle.loads(decompress(value))
                 except Exception as e:
-                    logger.exception(e)
+                    logger.exception(str(e))
                     return {}
             elif not value:
                 return {}

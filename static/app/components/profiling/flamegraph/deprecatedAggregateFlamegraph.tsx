@@ -105,7 +105,7 @@ export function DeprecatedAggregateFlamegraph(
     transaction.setTag('sorting', sorting.split(' ').join('_'));
     transaction.setTag('view', view.split(' ').join('_'));
 
-    const newFlamegraph = new FlamegraphModel(profile, threadId, {
+    const newFlamegraph = new FlamegraphModel(profile, {
       inverted: view === 'bottom up',
       sort: sorting,
       configSpace: undefined,
@@ -297,6 +297,7 @@ export function DeprecatedAggregateFlamegraph(
     <Fragment>
       {props.children ? props.children({canvasPoolManager, scheduler, flamegraph}) : null}
       <FlamegraphZoomView
+        profileGroup={profileGroup}
         canvasBounds={flamegraphCanvasBounds}
         canvasPoolManager={canvasPoolManager}
         flamegraph={flamegraph}

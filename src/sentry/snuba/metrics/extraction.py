@@ -81,6 +81,7 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "geo.subdivision": "user.geo.subdivision",
     "http.method": "request.method",
     "http.url": "request.url",
+    "http.referer": "request.headers.Referer",
     # url is a tag extracted by Sentry itself, on Relay it's received as `request.url`
     "url": "request.url",
     "sdk.name": "sdk.name",
@@ -437,7 +438,7 @@ def _extract_aggregate_components(aggregate: str) -> Optional[Tuple[str, List[st
         function, _, args, _ = query_builder.parse_function(match)
         return function, args
     except InvalidSearchQuery:
-        logger.error(f"Failed to parse aggregate: {aggregate}", exc_info=True)
+        logger.exception("Failed to parse aggregate: %s", aggregate)
 
     return None
 
@@ -534,7 +535,7 @@ def _get_query_supported_by(query: Optional[str]) -> SupportedBy:
 
         return SupportedBy(standard_metrics=standard_metrics, on_demand_metrics=on_demand_metrics)
     except InvalidSearchQuery:
-        logger.error(f"Failed to parse search query: {query}", exc_info=True)
+        logger.exception("Failed to parse search query: %s", query)
         return SupportedBy.neither()
 
 
@@ -647,7 +648,7 @@ def to_standard_metrics_query(query: str) -> str:
     try:
         tokens = _parse_search_query(query)
     except InvalidSearchQuery:
-        logger.error(f"Failed to parse search query: {query}", exc_info=True)
+        logger.exception("Failed to parse search query: %s", query)
         raise
 
     cleaned_query = to_standard_metrics_tokens(tokens)
@@ -998,6 +999,11 @@ class OnDemandMetricSpec:
 
         return self._arguments[0]
 
+    @property
+    def metric_type(self) -> str:
+        """Returns c, d or s representing if it's a counter, distribution or set."""
+        return self._metric_type
+
     @cached_property
     def mri(self) -> str:
         """The unique identifier of the on-demand metric."""
@@ -1138,9 +1144,9 @@ class OnDemandMetricSpec:
             # Third step is to generate the actual Relay rule that contains all rules nested. We assume that the query
             # being passed here, can be satisfied ONLY by on demand metrics.
             rule_condition = SearchQueryConverter(parsed_query.conditions).convert()
-        except Exception as exc:
+        except Exception:
             if not parsed_query.is_empty():
-                logger.error(f"Error while converting search query '{self.query}'", exc_info=exc)
+                logger.exception("Error while converting search query '%s'", self.query)
 
             return None
 

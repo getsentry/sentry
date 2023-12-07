@@ -7,7 +7,7 @@ import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {prismStyles} from 'sentry/styles/prism';
 import {space} from 'sentry/styles/space';
-import {loadPrismLanguage} from 'sentry/utils/loadPrismLanguage';
+import {loadPrismLanguage} from 'sentry/utils/prism';
 
 interface CodeSnippetProps {
   children: string;

@@ -39,7 +39,8 @@ def log_error_if_queue_has_items(func):
             queue_size = backend.get_size(CELERY_ISSUE_STATES_QUEUE.name)
             if queue_size > 0:
                 logger.info(
-                    f"{CELERY_ISSUE_STATES_QUEUE.name} queue size greater than 0.",
+                    "%s queue size greater than 0.",
+                    CELERY_ISSUE_STATES_QUEUE.name,
                     extra={"size": queue_size, "task": func.__name__},
                 )
 

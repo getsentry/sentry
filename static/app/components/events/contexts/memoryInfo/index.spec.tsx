@@ -1,3 +1,5 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {MemoryInfoEventContext} from 'sentry/components/events/contexts/memoryInfo';
@@ -20,14 +22,13 @@ export const memoryInfoMetaMockData = {
   },
 };
 
-const event = {
-  ...TestStubs.Event(),
+const event = EventFixture({
   _meta: {
     contexts: {
       memory_info: memoryInfoMetaMockData,
     },
   },
-};
+});
 
 describe('memory info event context', function () {
   it('display redacted data', function () {
