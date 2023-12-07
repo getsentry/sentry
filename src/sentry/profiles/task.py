@@ -111,6 +111,11 @@ def process_profile_task(
     if not _deobfuscate_profile(profile, project):
         return
 
+    if "js_profile" in profile:
+        prepare_android_js_profile(profile)
+        if not _symbolicate_profile(profile["js_profile"], project):
+            return
+
     if not _normalize_profile(profile, organization, project):
         return
 
@@ -949,3 +954,14 @@ def _push_profile_to_vroom(profile: Profile, project: Project) -> bool:
         reason="profiling_failed_vroom_insertion",
     )
     return False
+
+
+def prepare_android_js_profile(profile: Profile):
+    profile["js_profile"] = {"profile": profile["js_profile"]}
+    p = profile["js_profile"]
+    p["platform"] = "javascript"
+    p["debug_meta"] = profile["debug_meta"]
+    p["version"] = "1"
+    p["event_id"] = profile["event_id"]
+    p["release"] = profile["release"]
+    p["dist"] = profile["dist"]
