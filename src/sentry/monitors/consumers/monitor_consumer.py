@@ -13,7 +13,6 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Commit, Message, Partition
 from django.db import router, transaction
-from django.utils.text import slugify
 from sentry_sdk.tracing import Span, Transaction
 
 from sentry import ratelimits
@@ -22,7 +21,6 @@ from sentry.models.project import Project
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.logic.mark_ok import mark_ok
 from sentry.monitors.models import (
-    MAX_SLUG_LENGTH,
     CheckInStatus,
     Monitor,
     MonitorCheckIn,
@@ -34,7 +32,7 @@ from sentry.monitors.models import (
     MonitorType,
 )
 from sentry.monitors.tasks import try_monitor_tasks_trigger
-from sentry.monitors.types import CheckinMessage, CheckinPayload, ClockPulseMessage
+from sentry.monitors.types import CheckinItem, CheckinMessage, ClockPulseMessage
 from sentry.monitors.utils import (
     get_new_timeout_at,
     get_timeout_at,
@@ -280,17 +278,16 @@ def update_existing_check_in(
     return
 
 
-def _process_checkin(
-    params: CheckinPayload,
-    message_ts: datetime,
-    start_time: datetime,
-    project_id: int,
-    source_sdk: str,
-    txn: Transaction | Span,
-):
-    monitor_slug = slugify(params["monitor_slug"])[:MAX_SLUG_LENGTH].strip("-")
+def _process_checkin(item: CheckinItem, txn: Transaction | Span):
+    params = item.payload
 
+    start_time = to_datetime(float(item.message["start_time"]))
+    project_id = int(item.message["project_id"])
+    source_sdk = item.message["sdk"]
+
+    monitor_slug = item.valid_monitor_slug
     environment = params.get("environment")
+
     project = Project.objects.get_from_cache(id=project_id)
 
     # Strip sdk version to reduce metric cardinality
@@ -549,7 +546,7 @@ def _process_checkin(
             # check-ins may be slipping in, since we use the `item.ts` to click
             # the clock forward, if that is delayed it's possible for the
             # check-in to come in late
-            kafka_delay = message_ts - start_time.replace(tzinfo=None)
+            kafka_delay = item.ts - start_time.replace(tzinfo=None)
             metrics.gauge("monitors.checkin.relay_kafka_delay", kafka_delay.total_seconds())
 
             # how long in wall-clock time did it take for us to process this
@@ -557,7 +554,7 @@ def _process_checkin(
             # into the Kafka topic until we just completed processing.
             #
             # XXX: We are ONLY recording this metric for completed check-ins.
-            delay = datetime.now() - message_ts
+            delay = datetime.now() - item.ts
             metrics.gauge("monitors.checkin.completion_time", delay.total_seconds())
 
             metrics.incr(
@@ -598,12 +595,13 @@ def _process_message(
         op="_process_message",
         name="monitors.monitor_consumer",
     ) as txn:
-        params: CheckinPayload = json.loads(wrapper["payload"])
-        start_time = to_datetime(float(wrapper["start_time"]))
-        project_id = int(wrapper["project_id"])
-        source_sdk = wrapper["sdk"]
-
-        _process_checkin(params, ts, start_time, project_id, source_sdk, txn)
+        item = CheckinItem(
+            ts=ts,
+            partition=partition,
+            message=wrapper,
+            payload=json.loads(wrapper["payload"]),
+        )
+        _process_checkin(item, txn)
 
 
 class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):

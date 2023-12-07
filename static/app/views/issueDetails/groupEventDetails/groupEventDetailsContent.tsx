@@ -223,6 +223,9 @@ function ProfilingDurationRegressionIssueDetailsContent({
         <ErrorBoundary mini>
           <EventFunctionBreakpointChart event={event} />
         </ErrorBoundary>
+        <ErrorBoundary mini>
+          <EventAffectedTransactions event={event} group={group} project={project} />
+        </ErrorBoundary>
         <Feature features="profiling-differential-flamegraph" organization={organization}>
           <ErrorBoundary mini>
             <DataSection>
@@ -238,9 +241,6 @@ function ProfilingDurationRegressionIssueDetailsContent({
             </DataSection>
           </ErrorBoundary>
         </Feature>
-        <ErrorBoundary mini>
-          <EventAffectedTransactions event={event} group={group} project={project} />
-        </ErrorBoundary>
         <ErrorBoundary mini>
           <EventFunctionComparisonList event={event} group={group} project={project} />
         </ErrorBoundary>
