@@ -43,20 +43,9 @@ export const supportedPlatformExpectedDocKeys: Record<
   'php-laravel': ['1-install', '2-configure-performance', '3-configure-profiling'],
   'php-symfony2': ['1-install', '2-configure-performance', '3-configure-profiling'],
   ruby: ['0-alert', '1-install', '2-configure-performance', '3-configure-profiling'],
-  'javascript-nextjs': [
-    '0-alert',
-    '1-install',
-    '2-configure-performance',
-    '3-configure-profiling',
-  ],
-  'javascript-remix': [
-    '0-alert',
-    '1-install',
-    '2-configure-performance',
-    '3-configure-profiling',
-  ],
+  'javascript-nextjs': ['1-install', '2-configure-performance', '3-configure-profiling'],
+  'javascript-remix': ['1-install', '2-configure-performance', '3-configure-profiling'],
   'javascript-sveltekit': [
-    '0-alert',
     '1-install',
     '2-configure-performance',
     '3-configure-profiling',
