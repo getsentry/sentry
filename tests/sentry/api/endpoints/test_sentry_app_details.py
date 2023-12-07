@@ -346,7 +346,6 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             name="SampleApp", organization=self.org, scopes=["event:read", "event:write"]
         )
         url = reverse("sentry-api-0-sentry-app-details", args=[app.slug])
-        # scopes is None here
         response = self.client.put(url, data={"scopes": ["event:write"]}, format="json")
         assert response.status_code == 200
         assert SentryApp.objects.get(id=app.id).get_scopes() == ["event:read", "event:write"]
