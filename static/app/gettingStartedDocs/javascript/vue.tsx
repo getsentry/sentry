@@ -9,7 +9,7 @@ import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStart
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
-export enum SiblingOption {
+export enum VueVersion {
   VUE3 = 'vue3',
   VUE2 = 'vue2',
 }
@@ -22,11 +22,11 @@ const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
     items: [
       {
         label: t('Vue 3'),
-        value: SiblingOption.VUE3,
+        value: VueVersion.VUE3,
       },
       {
         label: t('Vue 2'),
-        value: SiblingOption.VUE2,
+        value: VueVersion.VUE2,
       },
     ],
   },
@@ -37,7 +37,7 @@ type Params = DocsParams<PlatformOptions>;
 
 const getSentryInitLayout = (params: Params, siblingOption: string): string => {
   return `Sentry.init({
-    ${siblingOption === SiblingOption.VUE2 ? `Vue,` : ''}dsn: "${params.dsn}",
+    ${siblingOption === VueVersion.VUE2 ? `Vue,` : ''}dsn: "${params.dsn}",
     integrations: [${
       params.isPerformanceSelected
         ? `
@@ -189,10 +189,10 @@ export const nextSteps = [
 
 function getSiblingImportsSetupConfiguration(siblingOption: string): string {
   switch (siblingOption) {
-    case SiblingOption.VUE3:
+    case VueVersion.VUE3:
       return `import {createApp} from "vue";
           import {createRouter} from "vue-router";`;
-    case SiblingOption.VUE2:
+    case VueVersion.VUE2:
     default:
       return `import Vue from "vue";
           import Router from "vue-router";`;
@@ -201,10 +201,10 @@ function getSiblingImportsSetupConfiguration(siblingOption: string): string {
 
 function getSiblingSuffix(siblingOption: string): string {
   switch (siblingOption) {
-    case SiblingOption.VUE3:
+    case VueVersion.VUE3:
       return `app.use(router);
       app.mount("#app");`;
-    case SiblingOption.VUE2:
+    case VueVersion.VUE2:
     default:
       return `new Vue({
         router,
@@ -215,7 +215,7 @@ function getSiblingSuffix(siblingOption: string): string {
 
 function getVueConstSetup(siblingOption: string): string {
   switch (siblingOption) {
-    case SiblingOption.VUE3:
+    case VueVersion.VUE3:
       return `
           const app = createApp({
             // ...
@@ -224,7 +224,7 @@ function getVueConstSetup(siblingOption: string): string {
             // ...
           });
           `;
-    case SiblingOption.VUE2:
+    case VueVersion.VUE2:
       return `
           Vue.use(Router);
 
