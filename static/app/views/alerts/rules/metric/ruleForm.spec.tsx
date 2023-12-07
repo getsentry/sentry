@@ -456,9 +456,7 @@ describe('Incident Rules Form', () => {
       });
 
       expect(
-        await screen.findByText(
-          /Check the chart above and make sure the current thresholds are still valid/
-        )
+        await screen.findByText(/please make sure the current thresholds are still valid/)
       ).toBeInTheDocument();
       await userEvent.click(screen.getByLabelText('Looks good to me!'), {delay: null});
       expect(onSubmitSuccess).toHaveBeenCalled();
