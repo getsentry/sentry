@@ -12,7 +12,7 @@ import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
-import {Monitor, MonitorStatus} from 'sentry/views/monitors/types';
+import {Monitor, MonitorObjectStatus, MonitorStatus} from 'sentry/views/monitors/types';
 import {scheduleAsText} from 'sentry/views/monitors/utils';
 import {statusIconColorMap} from 'sentry/views/monitors/utils/constants';
 
@@ -54,7 +54,9 @@ export function TimelineTableRow({
       <MonitorEnvContainer>
         {environments.map(({name, status}) => {
           const envStatus =
-            monitor.status === MonitorStatus.DISABLED ? MonitorStatus.DISABLED : status;
+            monitor.status === MonitorObjectStatus.MUTED
+              ? MonitorStatus.DISABLED
+              : status;
           const {label, icon} = statusIconColorMap[envStatus];
           return (
             <EnvWithStatus key={name}>

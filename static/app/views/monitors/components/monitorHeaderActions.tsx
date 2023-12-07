@@ -10,7 +10,7 @@ import useApi from 'sentry/utils/useApi';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
-import {Monitor, MonitorStatus} from '../types';
+import {Monitor, MonitorObjectStatus} from '../types';
 
 import CronsFeedbackButton from './cronsFeedbackButton';
 
@@ -49,9 +49,9 @@ function MonitorHeaderActions({monitor, orgId, onUpdate}: Props) {
   const toggleStatus = () =>
     handleUpdate({
       status:
-        monitor.status === MonitorStatus.DISABLED
-          ? MonitorStatus.ACTIVE
-          : MonitorStatus.DISABLED,
+        monitor.status === MonitorObjectStatus.MUTED
+          ? MonitorObjectStatus.ACTIVE
+          : MonitorObjectStatus.MUTED,
     });
 
   return (
@@ -68,7 +68,7 @@ function MonitorHeaderActions({monitor, orgId, onUpdate}: Props) {
       <Button
         size="sm"
         icon={
-          monitor.status !== 'disabled' ? (
+          monitor.status !== MonitorObjectStatus.MUTED ? (
             <IconUnsubscribed size="xs" />
           ) : (
             <IconSubscribed size="xs" />
@@ -76,7 +76,7 @@ function MonitorHeaderActions({monitor, orgId, onUpdate}: Props) {
         }
         onClick={toggleStatus}
       >
-        {monitor.status !== 'disabled' ? t('Mute') : t('Unmute')}
+        {monitor.status !== MonitorObjectStatus.MUTED ? t('Mute') : t('Unmute')}
       </Button>
       <Button
         priority="primary"
