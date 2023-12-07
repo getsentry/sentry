@@ -110,7 +110,7 @@ function DifferentialFlamegraphTooltip(props: DifferentialFlamegraphTooltipProps
   const change = shouldShowChange ? relativeChange(countAfter, countBefore) : 0;
   const formattedChange = shouldShowChange
     ? `${countAfter > countBefore ? '+' : ''}${formatPercentage(change)}`
-    : `new function`;
+    : t(`new function`);
 
   return (
     <BoundTooltip
