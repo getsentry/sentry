@@ -175,21 +175,21 @@ export function ScreenLoadSpansTable({
         const tooltipValue =
           ttid === ttfd
             ? tn(
-                '%s span (%s of spans) ended before TTID and TTFD and therefore may be affecting load times.',
-                '%s spans (%s of spans) ended before TTID and TTFD and therefore may be affecting load times.',
+                '%s (%s) span ended before TTID and TTFD and may affect load times.',
+                '%s (%s) spans ended before TTID and TTFD and may affect load times.',
                 ttid,
                 formatPercentage(ttid_contribution_rate)
               )
             : ttid === 1
             ? t(
-                '%s span (%s of spans) ended before TTID and %s spans (%s of spans) ended before TTFD and therefore may be affecting load times.',
+                '%s (%s) span ended before TTID and %s (%s) spans ended before TTFD and may affect load times.',
                 ttid,
                 formatPercentage(ttid_contribution_rate),
                 ttfd,
                 formatPercentage(ttfd_contribution_rate)
               )
             : t(
-                '%s spans (%s of spans) ended before TTID and %s spans (%s of spans) ended before TTFD and therefore may be affecting load times.',
+                '%s (%s) spans ended before TTID and %s (%s) spans ended before TTFD and may affect load times.',
                 ttid,
                 formatPercentage(ttid_contribution_rate),
                 ttfd,
@@ -204,8 +204,8 @@ export function ScreenLoadSpansTable({
 
       if (!isNaN(ttfd) && ttfd > 0) {
         const tooltipValue = tn(
-          '%s span (%s of spans) ended before TTFD and therefore may be affecting final display.',
-          '%s spans (%s of spans) ended before TTFD and therefore may be affecting final display.',
+          '%s (%s) span ended before TTFD and may affect final display.',
+          '%s (%s) spans ended before TTFD and may affect final display.',
           ttfd,
           formatPercentage(ttfd_contribution_rate)
         );
@@ -227,8 +227,8 @@ export function ScreenLoadSpansTable({
 
       if (!isNaN(ttid) && ttid > 0) {
         const tooltipValue = tn(
-          '%s span (%s of spans) ended before TTID and therefore may be affecting load times.',
-          '%s spans (%s of spans) ended before TTID and therefore may be affecting load times.',
+          '%s (%s) span ended before TTID and may affect load times.',
+          '%s (%s) spans ended before TTID and may affect load times.',
           ttid,
           formatPercentage(ttid_contribution_rate)
         );
