@@ -101,8 +101,8 @@ class RelocationCreateTest(APITestCase):
 
             with tempfile.TemporaryDirectory() as tmp_dir:
                 (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-                with self.feature("relocation:enabled"), self.options(
-                    {"relocation.daily-limit-small": 1}
+                with self.options(
+                    {"relocation.enabled": True, "relocation.daily-limit-small": 1}
                 ), open(FRESH_INSTALL_PATH) as f:
                     data = json.load(f)
                     with open(tmp_pub_key_path, "rb") as p:
@@ -144,8 +144,8 @@ class RelocationCreateTest(APITestCase):
 
             with tempfile.TemporaryDirectory() as tmp_dir:
                 (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-                with self.feature("relocation:enabled"), self.options(
-                    {"relocation.daily-limit-small": 1}
+                with self.options(
+                    {"relocation.enabled": True, "relocation.daily-limit-small": 1}
                 ), open(FRESH_INSTALL_PATH) as f:
                     data = json.load(f)
                     with open(tmp_pub_key_path, "rb") as p:
