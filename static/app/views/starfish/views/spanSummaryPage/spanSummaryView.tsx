@@ -10,7 +10,6 @@ import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/char
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
 import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
-import {useFullSpanFromTrace} from 'sentry/views/starfish/queries/useFullSpanFromTrace';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {
@@ -41,8 +40,6 @@ type Query = {
 export function SpanSummaryView({groupId}: Props) {
   const location = useLocation<Query>();
   const {endpoint, endpointMethod} = location.query;
-
-  const {data: fullSpan} = useFullSpanFromTrace(groupId);
 
   const filters: SpanMetricsQueryFilters = {
     'span.group': groupId,
@@ -117,11 +114,9 @@ export function SpanSummaryView({groupId}: Props) {
       {span?.[SpanMetricsField.SPAN_DESCRIPTION] && (
         <DescriptionContainer>
           <SpanDescription
-            span={{
-              ...span,
-              [SpanMetricsField.SPAN_DESCRIPTION]:
-                fullSpan?.description ?? spanMetrics?.[SpanMetricsField.SPAN_DESCRIPTION],
-            }}
+            groupId={groupId}
+            op={spanMetrics[SpanMetricsField.SPAN_OP]}
+            preliminaryDescription={spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]}
           />
         </DescriptionContainer>
       )}
