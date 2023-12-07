@@ -196,6 +196,14 @@ export default class ReplayReader {
 
   toJSON = () => this._cacheKey;
 
+  hasProcessingErrors = () => {
+    const checks = [
+      this.getRRWebFrames().length < 2,
+      !this.getRRWebFrames().some(frame => frame.type === EventType.Meta),
+    ];
+    return checks.some(Boolean);
+  };
+
   /**
    * @returns Duration of Replay (milliseonds)
    */

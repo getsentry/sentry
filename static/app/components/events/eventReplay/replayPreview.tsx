@@ -1,4 +1,4 @@
-import {ComponentProps, useMemo} from 'react';
+import {ComponentProps, Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
@@ -11,6 +11,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {Flex} from 'sentry/components/profiling/flex';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
+import ReplayNotFound from 'sentry/components/replays/replayProcessingErrors';
 import {IconDelete, IconPlay} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -93,6 +94,7 @@ function ReplayPreview({
 
   if (fetchError) {
     const reasons = [
+      t('The replay is still processing'),
       tct(
         'The replay was rate-limited and could not be accepted. [link:View the stats page] for more information.',
         {
@@ -163,19 +165,26 @@ function ReplayPreview({
       initialTimeOffsetMs={{offsetMs: initialTimeOffsetMs}}
     >
       <PlayerContainer data-test-id="player-container">
-        <StaticPanel>
-          <ReplayPlayer isPreview />
-        </StaticPanel>
-        <CTAOverlay>
-          <LinkButton
-            {...buttonProps}
-            icon={<IconPlay />}
-            priority="primary"
-            to={fullReplayUrl}
-          >
-            {t('Open Replay')}
-          </LinkButton>
-        </CTAOverlay>
+        {replay?.hasProcessingErrors() ? (
+          <ReplayNotFound />
+        ) : (
+          <Fragment>
+            <StaticPanel>
+              <ReplayPlayer isPreview />
+            </StaticPanel>
+
+            <CTAOverlay>
+              <LinkButton
+                {...buttonProps}
+                icon={<IconPlay />}
+                priority="primary"
+                to={fullReplayUrl}
+              >
+                {t('Open Replay')}
+              </LinkButton>
+            </CTAOverlay>
+          </Fragment>
+        )}
       </PlayerContainer>
     </ReplayContextProvider>
   );
