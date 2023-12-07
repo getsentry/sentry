@@ -10,7 +10,6 @@ from django.http import HttpResponse, StreamingHttpResponse
 from openai import OpenAI, RateLimitError
 
 from sentry import eventstore
-from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
@@ -126,10 +125,10 @@ def get_openai_client() -> OpenAI:
     return openai_client
 
 
-def get_openai_policy(organization):
+def get_openai_policy(organization, user):
     """Uses a signal to determine what the policy for OpenAI should be."""
     results = openai_policy_check.send(
-        sender=EventAiSuggestedFixEndpoint, organization=organization
+        sender=EventAiSuggestedFixEndpoint, organization=organization, user=user
     )
     result = "allowed"
 
@@ -292,7 +291,6 @@ def reduce_stream(response):
 
 @region_silo_endpoint
 class EventAiSuggestedFixEndpoint(ProjectEndpoint):
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -324,14 +322,19 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
             raise ResourceDoesNotExist
 
         # Check the OpenAI access policy
-        policy = get_openai_policy(request.organization)
+        policy = get_openai_policy(request.organization, request.user)
         policy_failure = None
         stream = request.GET.get("stream") == "yes"
+        pii_certified = request.GET.get("pii_certified") == "yes"
+        is_sentry_staff = request.user.is_staff
+
         if policy == "subprocessor":
             policy_failure = "subprocessor"
         elif policy == "individual_consent":
-            if request.GET.get("consent") != "yes":
+            if not pii_certified:
                 policy_failure = "individual_consent"
+        elif is_sentry_staff and not pii_certified:
+            policy_failure = "pii_certification_missing"
         elif policy == "allowed":
             pass
         else:

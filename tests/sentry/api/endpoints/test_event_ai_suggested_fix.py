@@ -104,6 +104,11 @@ def test_consent(client, default_project, test_event, openai_policy):
     assert response.status_code == 403
     assert response.json() == {"restriction": "subprocessor"}
 
+    openai_policy["result"] = "pii_certification_missing"
+    response = client.get(path)
+    assert response.status_code == 403
+    assert response.json() == {"restriction": "pii_certification_missing"}
+
     openai_policy["result"] = "allowed"
     response = client.get(path)
     assert response.status_code == 200

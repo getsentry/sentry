@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -66,23 +66,14 @@ function ErrorDescription({
   }
 
   if (restriction === 'individual_consent') {
-    const {isStaff} = ConfigStore.get('user');
-
-    const title = isStaff ? t('Confirm there is no PII') : t('We need your consent');
-    const description = isStaff
-      ? t(
-          'Before using this feature, please confirm that there is no personally identifiable information in this event.'
-        )
-      : t(
-          'By using this feature, you agree that OpenAI is a subprocessor and may process the data that you’ve chosen to submit. Sentry makes no guarantees as to the accuracy of the feature’s AI-generated recommendations.'
-        );
-
     const activeSuperUser = isActiveSuperuser();
     return (
       <EmptyMessage
         icon={<IconFlag size="xl" />}
-        title={title}
-        description={description}
+        title={t('We need your consent')}
+        description={t(
+          'By using this feature, you agree that OpenAI is a subprocessor and may process the data that you’ve chosen to submit. Sentry makes no guarantees as to the accuracy of the feature’s AI-generated recommendations.'
+        )}
         action={
           <ButtonBar gap={2}>
             <Button onClick={onHideSuggestion}>{t('Dismiss')}</Button>
@@ -112,6 +103,8 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
   const organization = useOrganization();
   const [suggestedSolutionLocalConfig, setSuggestedSolutionLocalConfig] =
     useOpenAISuggestionLocalStorage();
+  const [piiCertified, setPiiCertified] = useState(false);
+  const {isStaff} = ConfigStore.get('user');
 
   const {
     data,
@@ -125,6 +118,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
       {
         query: {
           consent: suggestedSolutionLocalConfig.individualConsent ? 'yes' : undefined,
+          pii_certified: isStaff ? (piiCertified ? 'yes' : 'no') : undefined,
         },
       },
     ],
@@ -137,6 +131,25 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
   const handleFeedbackClick = useCallback(() => {
     addSuccessMessage('Thank you for your feedback!');
   }, []);
+
+  if (isStaff && !piiCertified) {
+    return (
+      <EmptyMessage
+        icon={<IconFlag size="xl" />}
+        title={t('PII Certification Required')}
+        description={t(
+          'Before using this feature, please confirm that there is no personally identifiable information in this event.'
+        )}
+        action={
+          <ButtonBar gap={2}>
+            <Button priority="primary" onClick={() => setPiiCertified(true)}>
+              {t('Certify No PII')}
+            </Button>
+          </ButtonBar>
+        }
+      />
+    );
+  }
 
   return (
     <Panel>
