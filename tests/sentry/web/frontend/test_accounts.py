@@ -194,7 +194,7 @@ class TestAccounts(TestCase):
             follow=True,
         )
         assert resp.status_code == 200
-        assert resp.redirect_chain == [("/settings/account/emails/", 302)]
+        assert resp.redirect_chain == [(reverse("sentry-account-settings-emails"), 302)]
 
         useremail = UserEmail.objects.get(user=self.user, email="new@example.com")
         assert useremail.is_verified
@@ -202,3 +202,62 @@ class TestAccounts(TestCase):
         messages = list(resp.context["messages"])
         assert len(messages) == 1
         assert messages[0].message == "Thanks for confirming your email"
+
+    def test_confirm_email_userid_mismatch(self):
+        victim_user = self.create_user(email="victim@example.com")
+        self.login_as(victim_user)
+
+        attacker_user = self.user
+
+        useremail = UserEmail(user=attacker_user, email="victim@example.com")
+        useremail.save()
+
+        assert not useremail.is_verified
+
+        resp = self.client.get(
+            reverse(
+                "sentry-account-confirm-email",
+                kwargs={"user_id": str(attacker_user.id), "hash": useremail.validation_hash},
+            ),
+            follow=True,
+        )
+        assert resp.status_code == 200
+        assert resp.redirect_chain == [(reverse("sentry-account-settings-emails"), 302)]
+
+        useremail = UserEmail.objects.get(user=attacker_user, email="victim@example.com")
+        assert not useremail.is_verified
+
+        messages = list(resp.context["messages"])
+        assert len(messages) == 1
+        assert (
+            messages[0].message
+            == "There was an error confirming your email. Please try again or visit your Account Settings to resend the verification email."
+        )
+
+    def test_confirm_email_invalid_hash(self):
+        self.login_as(self.user)
+
+        useremail = UserEmail(user=self.user, email="new@example.com")
+        useremail.save()
+
+        assert not useremail.is_verified
+
+        resp = self.client.get(
+            reverse(
+                "sentry-account-confirm-email",
+                kwargs={"user_id": self.user.id, "hash": "WrongValidationHashRightHere1234"},
+            ),
+            follow=True,
+        )
+        assert resp.status_code == 200
+        assert resp.redirect_chain == [(reverse("sentry-account-settings-emails"), 302)]
+
+        useremail = UserEmail.objects.get(user=self.user, email="new@example.com")
+        assert not useremail.is_verified
+
+        messages = list(resp.context["messages"])
+        assert len(messages) == 1
+        assert (
+            messages[0].message
+            == "There was an error confirming your email. Please try again or visit your Account Settings to resend the verification email."
+        )
