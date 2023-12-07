@@ -28,6 +28,7 @@ export class DifferentialFlamegraph extends Flamegraph {
   decreasedFrames: [number, FlamegraphFrame][] = [];
 
   static ALPHA_SCALING = 0.8;
+  public negated: boolean = false;
 
   static FrameKey(frame: FlamegraphFrame): string {
     return (
@@ -172,6 +173,7 @@ export class DifferentialFlamegraph extends Flamegraph {
     differentialFlamegraph.decreasedFrames = decreasedFrames;
     differentialFlamegraph.beforeCounts = beforeCounts;
     differentialFlamegraph.afterCounts = afterCounts;
+    differentialFlamegraph.negated = negated;
 
     return differentialFlamegraph;
   }
