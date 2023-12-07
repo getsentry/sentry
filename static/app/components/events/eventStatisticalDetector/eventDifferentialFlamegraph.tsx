@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useReducer, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useReducer, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {LocationDescriptor} from 'history';
@@ -209,8 +209,8 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
     );
   }, [beforeFlamegraph, afterFlamegraph, theme, source]);
 
-  const makeFunctionFlamechartLink = useMemo(() => {
-    return (frame: FlamegraphFrame): LocationDescriptor => {
+  const makeFunctionFlamechartLink = useCallback(
+    (frame: FlamegraphFrame): LocationDescriptor => {
       if (!props.project) {
         return '';
       }
@@ -226,8 +226,9 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
           framePackage: frame.frame.package,
         },
       });
-    };
-  }, [organization.slug, props.project]);
+    },
+    [organization.slug, props.project]
+  );
 
   return (
     <Fragment>
