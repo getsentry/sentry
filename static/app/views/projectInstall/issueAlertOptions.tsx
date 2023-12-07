@@ -23,8 +23,7 @@ export enum MetricValues {
 }
 
 export enum RuleAction {
-  ALERT_ON_HIGH_PRIORITY_ISSUES,
-  ALERT_ON_EVERY_ISSUE,
+  DEFAULT_ALERT,
   CUSTOMIZED_ALERTS,
   CREATE_ALERT_LATER,
 }
@@ -117,7 +116,7 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
       ...super.getDefaultState(),
       conditions: [],
       intervalChoices: [],
-      alertSetting: this.props.alertSetting ?? RuleAction.ALERT_ON_EVERY_ISSUE.toString(),
+      alertSetting: this.props.alertSetting ?? RuleAction.DEFAULT_ALERT.toString(),
       metric: this.props.metric ?? MetricValues.ERRORS,
       interval: this.props.interval ?? '',
       threshold: this.props.threshold ?? '10',
@@ -180,13 +179,12 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
       </CustomizeAlertsGrid>,
     ];
 
+    const default_label = this.shouldUseNewDefaultSetting()
+      ? t('Alert me on high priority issues')
+      : t('Alert me on every new issue');
+
     const options: [string, React.ReactNode][] = [
-      this.shouldUseNewDefaultSetting()
-        ? [
-            RuleAction.ALERT_ON_HIGH_PRIORITY_ISSUES.toString(),
-            t('Alert me on high priority issues'),
-          ]
-        : [RuleAction.ALERT_ON_EVERY_ISSUE.toString(), t('Alert me on every new issue')],
+      [RuleAction.DEFAULT_ALERT.toString(), default_label],
       ...(hasProperlyLoadedConditions ? [customizedAlertOption] : []),
       [RuleAction.CREATE_ALERT_LATER.toString(), t("I'll create my own alerts later")],
     ];
@@ -209,11 +207,7 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
     let shouldCreateCustomRule: boolean;
     const alertSetting: RuleAction = parseInt(this.state.alertSetting, 10);
     switch (alertSetting) {
-      case RuleAction.ALERT_ON_HIGH_PRIORITY_ISSUES:
-        defaultRules = true;
-        shouldCreateCustomRule = false;
-        break;
-      case RuleAction.ALERT_ON_EVERY_ISSUE:
+      case RuleAction.DEFAULT_ALERT:
         defaultRules = true;
         shouldCreateCustomRule = false;
         break;
@@ -319,24 +313,6 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
     const issueAlertOptionsChoices = this.getIssueAlertsChoices(
       this.state.conditions?.length > 0
     );
-
-    // Hack to clear out the alert setting if the platform changes to python or
-    // javascript, which should have a different default alert type
-    if (
-      this.shouldUseNewDefaultSetting() &&
-      this.state.alertSetting === RuleAction.ALERT_ON_EVERY_ISSUE.toString()
-    ) {
-      this.setStateAndUpdateParents({
-        alertSetting: RuleAction.ALERT_ON_HIGH_PRIORITY_ISSUES.toString(),
-      });
-    } else if (
-      !this.shouldUseNewDefaultSetting() &&
-      this.state.alertSetting === RuleAction.ALERT_ON_HIGH_PRIORITY_ISSUES.toString()
-    ) {
-      this.setStateAndUpdateParents({
-        alertSetting: RuleAction.ALERT_ON_EVERY_ISSUE.toString(),
-      });
-    }
 
     return (
       <Content>

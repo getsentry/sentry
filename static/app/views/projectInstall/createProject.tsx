@@ -311,20 +311,10 @@ function CreateProject() {
       };
     }
 
-    const use_default_high_priority_alerts = organization.features.includes(
-      'default-high-priority-alerts'
-    );
-
     return {
-      alertSetting: use_default_high_priority_alerts
-        ? String(RuleAction.ALERT_ON_HIGH_PRIORITY_ISSUES)
-        : String(RuleAction.ALERT_ON_EVERY_ISSUE),
+      alertSetting: String(RuleAction.DEFAULT_ALERT),
     };
-  }, [
-    autoFill,
-    gettingStartedWithProjectContext.project?.alertRules,
-    organization.features,
-  ]);
+  }, [autoFill, gettingStartedWithProjectContext.project?.alertRules]);
 
   return (
     <Access access={canCreateProject ? ['project:read'] : ['project:admin']}>
