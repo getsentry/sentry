@@ -757,11 +757,11 @@ def test_performance_calculate_score(default_project):
         assert performance_score[0] == {
             "name": "Chrome",
             "scoreComponents": [
-                {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600},
-                {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400},
-                {"measurement": "fid", "weight": 0.3, "p10": 100, "p50": 300},
-                {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25},
-                {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400},
+                {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": False},
+                {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": False},
+                {"measurement": "fid", "weight": 0.3, "p10": 100, "p50": 300, "optional": False},
+                {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": False},
+                {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": False},
             ],
             "condition": {
                 "op": "eq",
@@ -772,11 +772,35 @@ def test_performance_calculate_score(default_project):
         assert performance_score[1] == {
             "name": "Firefox",
             "scoreComponents": [
-                {"measurement": "fcp", "weight": 0.15, "p10": 900.0, "p50": 1600.0},
-                {"measurement": "lcp", "weight": 0.0, "p10": 1200.0, "p50": 2400.0},
-                {"measurement": "fid", "weight": 0.3, "p10": 100.0, "p50": 300.0},
-                {"measurement": "cls", "weight": 0.0, "p10": 0.1, "p50": 0.25},
-                {"measurement": "ttfb", "weight": 0.1, "p10": 200.0, "p50": 400.0},
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 900.0,
+                    "p50": 1600.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.0,
+                    "p10": 1200.0,
+                    "p50": 2400.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "fid",
+                    "weight": 0.3,
+                    "p10": 100.0,
+                    "p50": 300.0,
+                    "optional": False,
+                },
+                {"measurement": "cls", "weight": 0.0, "p10": 0.1, "p50": 0.25, "optional": False},
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.1,
+                    "p10": 200.0,
+                    "p50": 400.0,
+                    "optional": False,
+                },
             ],
             "condition": {
                 "op": "eq",
@@ -787,11 +811,35 @@ def test_performance_calculate_score(default_project):
         assert performance_score[2] == {
             "name": "Safari",
             "scoreComponents": [
-                {"measurement": "fcp", "weight": 0.15, "p10": 900.0, "p50": 1600.0},
-                {"measurement": "lcp", "weight": 0.0, "p10": 1200.0, "p50": 2400.0},
-                {"measurement": "fid", "weight": 0.0, "p10": 100.0, "p50": 300.0},
-                {"measurement": "cls", "weight": 0.0, "p10": 0.1, "p50": 0.25},
-                {"measurement": "ttfb", "weight": 0.1, "p10": 200.0, "p50": 400.0},
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 900.0,
+                    "p50": 1600.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.0,
+                    "p10": 1200.0,
+                    "p50": 2400.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "fid",
+                    "weight": 0.0,
+                    "p10": 100.0,
+                    "p50": 300.0,
+                    "optional": False,
+                },
+                {"measurement": "cls", "weight": 0.0, "p10": 0.1, "p50": 0.25, "optional": False},
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.1,
+                    "p10": 200.0,
+                    "p50": 400.0,
+                    "optional": False,
+                },
             ],
             "condition": {
                 "op": "eq",
@@ -802,11 +850,11 @@ def test_performance_calculate_score(default_project):
         assert performance_score[3] == {
             "name": "Edge",
             "scoreComponents": [
-                {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600},
-                {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400},
-                {"measurement": "fid", "weight": 0.3, "p10": 100, "p50": 300},
-                {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25},
-                {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400},
+                {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": False},
+                {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": False},
+                {"measurement": "fid", "weight": 0.3, "p10": 100, "p50": 300, "optional": False},
+                {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": False},
+                {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": False},
             ],
             "condition": {
                 "op": "eq",
@@ -817,11 +865,11 @@ def test_performance_calculate_score(default_project):
         assert performance_score[4] == {
             "name": "Opera",
             "scoreComponents": [
-                {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600},
-                {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400},
-                {"measurement": "fid", "weight": 0.3, "p10": 100, "p50": 300},
-                {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25},
-                {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400},
+                {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": False},
+                {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": False},
+                {"measurement": "fid", "weight": 0.3, "p10": 100, "p50": 300, "optional": False},
+                {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": False},
+                {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": False},
             ],
             "condition": {
                 "op": "eq",
