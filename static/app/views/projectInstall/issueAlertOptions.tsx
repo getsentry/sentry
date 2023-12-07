@@ -6,6 +6,7 @@ import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
+import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -48,6 +49,7 @@ type Props = DeprecatedAsyncComponent['props'] & {
   alertSetting?: string;
   interval?: string;
   metric?: MetricValues;
+  platformLanguage?: SupportedLanguages;
   threshold?: string;
 };
 
@@ -115,11 +117,7 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
       ...super.getDefaultState(),
       conditions: [],
       intervalChoices: [],
-      alertSetting:
-        this.props.alertSetting ??
-        (this.props.organization.features.includes('default-high-priority-alerts')
-          ? RuleAction.ALERT_ON_HIGH_PRIORITY_ISSUES.toString()
-          : RuleAction.ALERT_ON_EVERY_ISSUE.toString()),
+      alertSetting: this.props.alertSetting ?? RuleAction.ALERT_ON_EVERY_ISSUE.toString(),
       metric: this.props.metric ?? MetricValues.ERRORS,
       interval: this.props.interval ?? '',
       threshold: this.props.threshold ?? '10',
@@ -183,7 +181,7 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
     ];
 
     const options: [string, React.ReactNode][] = [
-      this.props.organization.features.includes('default-high-priority-alerts')
+      this.shouldUseNewDefaultSetting()
         ? [
             RuleAction.ALERT_ON_HIGH_PRIORITY_ISSUES.toString(),
             t('Alert me on high priority issues'),
@@ -196,6 +194,14 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
       choiceValue,
       <RadioItemWrapper key={choiceValue}>{node}</RadioItemWrapper>,
     ]);
+  }
+
+  shouldUseNewDefaultSetting(): boolean {
+    return (
+      this.props.organization.features.includes('default-high-priority-alerts') &&
+      (this.props.platformLanguage === SupportedLanguages.PYTHON ||
+        this.props.platformLanguage === SupportedLanguages.JAVASCRIPT)
+    );
   }
 
   getUpdatedData(): RequestDataFragment {
@@ -313,6 +319,24 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
     const issueAlertOptionsChoices = this.getIssueAlertsChoices(
       this.state.conditions?.length > 0
     );
+
+    // Hack to clear out the alert setting if the platform changes to python or
+    // javascript, which should have a different default alert type
+    if (
+      this.shouldUseNewDefaultSetting() &&
+      this.state.alertSetting === RuleAction.ALERT_ON_EVERY_ISSUE.toString()
+    ) {
+      this.setStateAndUpdateParents({
+        alertSetting: RuleAction.ALERT_ON_HIGH_PRIORITY_ISSUES.toString(),
+      });
+    } else if (
+      !this.shouldUseNewDefaultSetting() &&
+      this.state.alertSetting === RuleAction.ALERT_ON_HIGH_PRIORITY_ISSUES.toString()
+    ) {
+      this.setStateAndUpdateParents({
+        alertSetting: RuleAction.ALERT_ON_EVERY_ISSUE.toString(),
+      });
+    }
 
     return (
       <Content>
