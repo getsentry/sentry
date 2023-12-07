@@ -269,7 +269,7 @@ class DiscoverLanding extends DeprecatedAsyncComponent<Props, State> {
     return (
       <Feature
         organization={organization}
-        features={['discover-query']}
+        features="discover-query"
         renderDisabled={this.renderNoAccess}
       >
         <SentryDocumentTitle title={t('Discover')} orgSlug={organization.slug}>

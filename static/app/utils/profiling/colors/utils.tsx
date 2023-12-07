@@ -54,8 +54,44 @@ function uniqueBy<T>(arr: ReadonlyArray<T>, predicate: (t: T) => unknown): Array
   return set;
 }
 
+function defaultKeyFn(frame: FlamegraphFrame): string | number {
+  return frame.key;
+}
+
+export function makeColorBuffer(
+  frames: ReadonlyArray<FlamegraphFrame>,
+  colorMap: Map<string | number, ColorChannels>,
+  fallbackColor: ColorChannels,
+  keyFn: (frame: FlamegraphFrame) => string | number = defaultKeyFn
+): number[] {
+  const length = frames.length;
+  // Length * number of frames * color components
+  const colorBuffer: number[] = new Array(length * 4 * 6);
+
+  for (let index = 0; index < length; index++) {
+    const frame = frames[index];
+
+    if (!frame) {
+      continue;
+    }
+
+    const c = colorMap.get(keyFn(frame));
+    const colorWithAlpha = c && c.length === 3 ? c.concat(1) : c ? c : fallbackColor;
+
+    for (let i = 0; i < 6; i++) {
+      const offset = index * 6 * 4 + i * 4;
+      colorBuffer[offset] = colorWithAlpha[0];
+      colorBuffer[offset + 1] = colorWithAlpha[1];
+      colorBuffer[offset + 2] = colorWithAlpha[2];
+      colorBuffer[offset + 3] = colorWithAlpha[3];
+    }
+  }
+
+  return colorBuffer;
+}
+
 export const makeStackToColor = (
-  fallback: [number, number, number, number]
+  fallbackColor: [number, number, number, number]
 ): FlamegraphTheme['COLORS']['STACK_TO_COLOR'] => {
   return (
     frames: ReadonlyArray<FlamegraphFrame>,
@@ -64,35 +100,7 @@ export const makeStackToColor = (
     theme: FlamegraphTheme
   ) => {
     const colorMap = generateColorMap(frames, colorBucket, theme);
-    const length = frames.length;
-
-    // Length * number of frames * color components
-    const colorBuffer: number[] = new Array(length * 4 * 6);
-
-    for (let index = 0; index < length; index++) {
-      const frame = frames[index];
-
-      if (!frame) {
-        continue;
-      }
-
-      const c = colorMap.get(frame.key);
-      const colorWithAlpha: [number, number, number, number] =
-        c && c.length === 3
-          ? (c.concat(1) as [number, number, number, number])
-          : c
-          ? c
-          : fallback;
-
-      for (let i = 0; i < 6; i++) {
-        const offset = index * 6 * 4 + i * 4;
-        colorBuffer[offset] = colorWithAlpha[0];
-        colorBuffer[offset + 1] = colorWithAlpha[1];
-        colorBuffer[offset + 2] = colorWithAlpha[2];
-        colorBuffer[offset + 3] = colorWithAlpha[3];
-      }
-    }
-
+    const colorBuffer = makeColorBuffer(frames, colorMap, fallbackColor);
     return {
       colorBuffer,
       colorMap,

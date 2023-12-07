@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from sentry.services.hybrid_cloud import ValueEqualityEnum
 
@@ -16,18 +16,6 @@ communication with the API and plan to do so as soon as we use native enums in
 Postgres. In the meantime each enum has an adjacent object that maps the
 integers to their string values.
 """
-
-
-def get_notification_setting_type_name(value: int | NotificationSettingTypes) -> Optional[str]:
-    return NOTIFICATION_SETTING_TYPES.get(NotificationSettingTypes(value))
-
-
-def get_notification_setting_value_name(value: int) -> Optional[str]:
-    return NOTIFICATION_SETTING_OPTION_VALUES.get(NotificationSettingOptionValues(value))
-
-
-def get_notification_scope_name(value: int) -> Optional[str]:
-    return NOTIFICATION_SCOPE_TYPE.get(NotificationScopeType(value))
 
 
 class NotificationSettingTypes(ValueEqualityEnum):
@@ -120,30 +108,6 @@ NOTIFICATION_SETTING_TYPES = {
 }
 
 
-class NotificationSettingOptionValues(ValueEqualityEnum):
-    """
-    An empty row in the DB should be represented as
-    NotificationSettingOptionValues.DEFAULT.
-    """
-
-    # Defer to a setting one level up.
-    DEFAULT = 0
-
-    # Mute this kind of notification.
-    NEVER = 10
-
-    # Un-mute this kind of notification.
-    ALWAYS = 20
-
-    # Workflow only. Only send notifications about Issues that the target has
-    # explicitly or implicitly opted-into.
-    SUBSCRIBE_ONLY = 30
-
-    # Deploy only. Only send notifications when the set of changes in the deploy
-    # included a commit authored by the target.
-    COMMITTED_ONLY = 40
-
-
 class NotificationSettingsOptionEnum(ValueEqualityEnum):
     DEFAULT = "default"
     NEVER = "never"
@@ -152,17 +116,8 @@ class NotificationSettingsOptionEnum(ValueEqualityEnum):
     COMMITTED_ONLY = "committed_only"
 
 
-# TODO(Steve): clean up after we finish migrating to settings 2.0
-NOTIFICATION_SETTING_OPTION_VALUES = {
-    NotificationSettingOptionValues.DEFAULT: NotificationSettingsOptionEnum.DEFAULT.value,
-    NotificationSettingOptionValues.NEVER: NotificationSettingsOptionEnum.NEVER.value,
-    NotificationSettingOptionValues.ALWAYS: NotificationSettingsOptionEnum.ALWAYS.value,
-    NotificationSettingOptionValues.SUBSCRIBE_ONLY: NotificationSettingsOptionEnum.SUBSCRIBE_ONLY.value,
-    NotificationSettingOptionValues.COMMITTED_ONLY: NotificationSettingsOptionEnum.COMMITTED_ONLY.value,
-}
-
 # default is not a choice anymore, we just delete the row if we want to the default
-NOTIFICATION_SETTING_V2_CHOICES = [
+NOTIFICATION_SETTING_CHOICES = [
     NotificationSettingsOptionEnum.ALWAYS.value,
     NotificationSettingsOptionEnum.NEVER.value,
     NotificationSettingsOptionEnum.SUBSCRIBE_ONLY.value,
@@ -205,75 +160,64 @@ class FineTuningAPIKey(Enum):
 
 
 class UserOptionsSettingsKey(Enum):
-    DEPLOY = "deployNotifications"
     SELF_ACTIVITY = "personalActivityNotifications"
     SELF_ASSIGN = "selfAssignOnResolve"
-    SUBSCRIBE_BY_DEFAULT = "subscribeByDefault"
-    WORKFLOW = "workflowNotifications"
-    ACTIVE_RELEASE = "activeReleaseNotifications"
-    APPROVAL = "approvalNotifications"
-    QUOTA = "quotaNotifications"
-    SPIKE_PROTECTION = "spikeProtectionNotifications"
 
 
 VALID_VALUES_FOR_KEY = {
-    NotificationSettingTypes.APPROVAL: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.APPROVAL: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.DEPLOY: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.COMMITTED_ONLY,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.DEPLOY: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.COMMITTED_ONLY,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.ISSUE_ALERTS: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.ISSUE_ALERTS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.QUOTA: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.QUOTA: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.QUOTA_ERRORS: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.QUOTA_ERRORS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.QUOTA_TRANSACTIONS: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.QUOTA_TRANSACTIONS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.QUOTA_ATTACHMENTS: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.QUOTA_ATTACHMENTS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.QUOTA_REPLAYS: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.QUOTA_REPLAYS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.QUOTA_WARNINGS: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.QUOTA_WARNINGS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.QUOTA_SPEND_ALLOCATIONS: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.QUOTA_SPEND_ALLOCATIONS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.WORKFLOW: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.WORKFLOW: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.SPIKE_PROTECTION: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.SPIKE_PROTECTION: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-}
-
-VALID_VALUES_FOR_KEY_V2 = {
-    **VALID_VALUES_FOR_KEY,
-    NotificationSettingTypes.REPORTS: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.REPORTS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
 }
 

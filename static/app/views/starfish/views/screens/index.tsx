@@ -50,6 +50,8 @@ export enum YAxis {
 }
 
 export const TOP_SCREENS = 5;
+const MAX_CHART_RELEASE_CHARS = 12;
+const MAX_TABLE_RELEASE_CHARS = 15;
 
 export const YAXIS_COLUMNS: Readonly<Record<YAxis, string>> = {
   [YAxis.WARM_START]: 'avg(measurements.app_start_warm)',
@@ -215,7 +217,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
     return (
       <Alert type="warning" showIcon>
         {t(
-          'No screens found on recent releases. Please try a single iOS or Android project or a smaller date range.'
+          'No screens found on recent releases. Please try a single iOS or Android project, a single environment or a smaller date range.'
         )}
       </Alert>
     );
@@ -269,6 +271,22 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
     });
   }
 
+  const truncatedPrimary = formatVersionAndCenterTruncate(
+    primaryRelease ?? '',
+    MAX_TABLE_RELEASE_CHARS
+  );
+  const truncatedPrimaryChart = formatVersionAndCenterTruncate(
+    primaryRelease ?? '',
+    MAX_CHART_RELEASE_CHARS
+  );
+  const truncatedSecondary = formatVersionAndCenterTruncate(
+    secondaryRelease ?? '',
+    MAX_TABLE_RELEASE_CHARS
+  );
+  const truncatedSecondaryChart = formatVersionAndCenterTruncate(
+    secondaryRelease ?? '',
+    MAX_CHART_RELEASE_CHARS
+  );
   const derivedQuery = getTransactionSearchQuery(location, tableEventView.query);
 
   const tableSearchFilters = new MutableSearch(['transaction.op:ui.load']);
@@ -290,10 +308,8 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
                   subtitle: primaryRelease
                     ? t(
                         '%s v. %s',
-                        formatVersionAndCenterTruncate(primaryRelease, 12),
-                        secondaryRelease
-                          ? formatVersionAndCenterTruncate(secondaryRelease, 12)
-                          : ''
+                        truncatedPrimaryChart,
+                        secondaryRelease ? truncatedSecondaryChart : ''
                       )
                     : '',
                 },
@@ -324,10 +340,8 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
                     subtitle: primaryRelease
                       ? t(
                           '%s v. %s',
-                          formatVersionAndCenterTruncate(primaryRelease, 12),
-                          secondaryRelease
-                            ? formatVersionAndCenterTruncate(secondaryRelease, 12)
-                            : ''
+                          truncatedPrimaryChart,
+                          secondaryRelease ? truncatedSecondaryChart : ''
                         )
                       : '',
                   },
@@ -366,12 +380,32 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
         data={topTransactionsData}
         isLoading={topTransactionsLoading}
         pageLinks={pageLinks}
+        columnNameMap={{
+          transaction: t('Screen'),
+          [`avg_if(measurements.time_to_initial_display,release,${primaryRelease})`]: t(
+            'TTID (%s)',
+            truncatedPrimary
+          ),
+          [`avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`]: t(
+            'TTID (%s)',
+            truncatedSecondary
+          ),
+          [`avg_if(measurements.time_to_full_display,release,${primaryRelease})`]: t(
+            'TTFD (%s)',
+            truncatedPrimary
+          ),
+          [`avg_if(measurements.time_to_full_display,release,${secondaryRelease})`]: t(
+            'TTFD (%s)',
+            truncatedSecondary
+          ),
+          'count()': t('Total Count'),
+        }}
       />
     </div>
   );
 }
 
-function getFreeTextFromQuery(query: string) {
+export function getFreeTextFromQuery(query: string) {
   const conditions = new MutableSearch(query);
   const transactionValues = conditions.getFilterValues('transaction');
   if (transactionValues.length) {

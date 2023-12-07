@@ -124,13 +124,13 @@ def handle_message(
                         EntityKey(contents["entity"]),
                     )
                 else:
-                    logger.error(
+                    logger.exception(
                         "Topic not registered with QuerySubscriptionConsumer, can't remove "
                         "non-existent subscription from Snuba",
                         extra={"topic": topic, "subscription_id": contents["subscription_id"]},
                     )
             except InvalidMessageError as e:
-                logger.exception(e)
+                logger.exception(str(e))
             except Exception:
                 logger.exception("Failed to delete unused subscription from snuba.")
             return

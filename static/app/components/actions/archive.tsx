@@ -15,6 +15,7 @@ interface ArchiveActionProps {
   className?: string;
   confirmLabel?: string;
   confirmMessage?: () => React.ReactNode;
+  disableArchiveUntilOccurrence?: boolean;
   disabled?: boolean;
   isArchived?: boolean;
   shouldConfirm?: boolean;
@@ -32,15 +33,20 @@ const ARCHIVE_FOREVER: GroupStatusResolution = {
   substatus: GroupSubstatus.ARCHIVED_FOREVER,
 };
 
+type GetArchiveActionsProps = Pick<
+  ArchiveActionProps,
+  'shouldConfirm' | 'confirmMessage' | 'onUpdate' | 'confirmLabel'
+> & {
+  disableArchiveUntilOccurrence?: boolean;
+};
+
 export function getArchiveActions({
   shouldConfirm,
   confirmLabel,
   confirmMessage,
   onUpdate,
-}: Pick<
-  ArchiveActionProps,
-  'shouldConfirm' | 'confirmMessage' | 'onUpdate' | 'confirmLabel'
->): {
+  disableArchiveUntilOccurrence,
+}: GetArchiveActionsProps): {
   dropdownItems: MenuItemProps[];
   onArchive: (resolution: GroupStatusResolution) => void;
 } {
@@ -78,7 +84,12 @@ export function getArchiveActions({
         label: t('Forever'),
         onAction: () => onArchive(ARCHIVE_FOREVER),
       },
-      ...dropdownItems,
+      ...dropdownItems.filter(item => {
+        if (disableArchiveUntilOccurrence) {
+          return item.key !== 'until-reoccur' && item.key !== 'until-affect';
+        }
+        return true;
+      }),
     ],
   };
 }
@@ -86,6 +97,7 @@ export function getArchiveActions({
 function ArchiveActions({
   size = 'xs',
   disabled,
+  disableArchiveUntilOccurrence,
   className,
   shouldConfirm,
   confirmLabel,
@@ -116,6 +128,7 @@ function ArchiveActions({
     onUpdate,
     shouldConfirm,
     confirmMessage,
+    disableArchiveUntilOccurrence,
   });
 
   return (

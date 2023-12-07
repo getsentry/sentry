@@ -1,4 +1,5 @@
 import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+import {Event as EventFixture} from 'sentry-fixture/event';
 import {Project} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -52,7 +53,7 @@ describe('Breadcrumb Data Default', function () {
             },
           },
         }}
-        event={TestStubs.Event()}
+        event={EventFixture()}
         orgSlug="org-slug"
         searchTerm=""
         breadcrumb={{
@@ -96,7 +97,7 @@ describe('Breadcrumb Data Default', function () {
             },
           },
         }}
-        event={TestStubs.Event()}
+        event={EventFixture()}
         orgSlug="org-slug"
         searchTerm=""
         breadcrumb={{

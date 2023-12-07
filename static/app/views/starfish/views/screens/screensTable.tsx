@@ -25,24 +25,28 @@ import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator
 import {TableColumn} from 'sentry/views/discover/table/types';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {TOP_SCREENS} from 'sentry/views/starfish/views/screens';
 
 type Props = {
+  columnNameMap: Record<string, string>;
   data: TableData | undefined;
   eventView: EventView;
   isLoading: boolean;
   pageLinks: string | undefined;
 };
 
-export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
+export function ScreensTable({
+  data,
+  eventView,
+  isLoading,
+  pageLinks,
+  columnNameMap,
+}: Props) {
   const location = useLocation();
   const {selection} = usePageFilters();
   const {projects} = useProjects();
   const organization = useOrganization();
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
-  const truncatedPrimary = formatVersionAndCenterTruncate(primaryRelease ?? '', 15);
-  const truncatedSecondary = formatVersionAndCenterTruncate(secondaryRelease ?? '', 15);
 
   const project = useMemo(() => {
     if (selection.projects.length !== 1) {
@@ -52,27 +56,6 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
   }, [projects, selection.projects]);
 
   const eventViewColumns = eventView.getColumns();
-
-  const columnNameMap = {
-    transaction: t('Screen'),
-    [`avg_if(measurements.time_to_initial_display,release,${primaryRelease})`]: t(
-      'TTID (%s)',
-      truncatedPrimary
-    ),
-    [`avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`]: t(
-      'TTID (%s)',
-      truncatedSecondary
-    ),
-    [`avg_if(measurements.time_to_full_display,release,${primaryRelease})`]: t(
-      'TTFD (%s)',
-      truncatedPrimary
-    ),
-    [`avg_if(measurements.time_to_full_display,release,${secondaryRelease})`]: t(
-      'TTFD (%s)',
-      truncatedSecondary
-    ),
-    'count()': t('Total Count'),
-  };
 
   function renderBodyCell(column, row): React.ReactNode {
     if (!data?.meta || !data?.meta.fields) {
@@ -197,7 +180,7 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
               !col.name.startsWith('avg_compare')
           )
           .map((col: TableColumn<React.ReactText>) => {
-            return {...col, name: columnNameMap[col.key]};
+            return {...col, name: columnNameMap[col.key] ?? col.name};
           })}
         columnSortBy={[
           {

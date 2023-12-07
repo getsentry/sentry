@@ -182,7 +182,6 @@ class GithubProxyClient(IntegrationProxyClient):
 
 
 class GitHubClientMixin(GithubProxyClient):
-
     allow_redirects = True
 
     base_url = "https://api.github.com"
@@ -276,7 +275,8 @@ class GitHubClientMixin(GithubProxyClient):
         if contents.get("truncated"):
             # e.g. getsentry/DataForThePeople
             logger.warning(
-                f"The tree for {repo_full_name} has been truncated. Use different a approach for retrieving contents of tree."
+                "The tree for %s has been truncated. Use different a approach for retrieving contents of tree.",
+                repo_full_name,
             )
         tree = contents["tree"]
 
@@ -373,24 +373,24 @@ class GitHubClientMixin(GithubProxyClient):
         # TODO: Add condition for  getsentry/DataForThePeople
         # e.g. getsentry/nextjs-sentry-example
         if txt == "Git Repository is empty.":
-            logger.warning(f"The repository is empty. {msg}", extra=extra)
+            logger.warning("The repository is empty. %s", msg, extra=extra)
         elif txt == "Not Found":
-            logger.warning(f"The app does not have access to the repo. {msg}", extra=extra)
+            logger.warning("The app does not have access to the repo. %s", msg, extra=extra)
         elif txt == "Repository access blocked":
-            logger.warning(f"Github has blocked the repository. {msg}", extra=extra)
+            logger.warning("Github has blocked the repository. %s", msg, extra=extra)
         elif txt == "Server Error":
-            logger.warning(f"Github failed to respond. {msg}.", extra=extra)
+            logger.warning("Github failed to respond. %s.", msg, extra=extra)
             should_count_error = True
         elif txt == "Bad credentials":
-            logger.warning(f"No permission granted for this repo. {msg}.", extra=extra)
+            logger.warning("No permission granted for this repo. %s.", msg, extra=extra)
         elif txt == "Connection reset by peer":
-            logger.warning(f"Connection reset by GitHub. {msg}.", extra=extra)
+            logger.warning("Connection reset by GitHub. %s.", msg, extra=extra)
             should_count_error = True
         elif txt == "Connection broken: invalid chunk length":
-            logger.warning(f"Connection broken by chunk with invalid length. {msg}.", extra=extra)
+            logger.warning("Connection broken by chunk with invalid length. %s.", msg, extra=extra)
             should_count_error = True
         elif txt and txt.startswith("Unable to reach host:"):
-            logger.warning(f"Unable to reach host at the moment. {msg}.", extra=extra)
+            logger.warning("Unable to reach host at the moment. %s.", msg, extra=extra)
             should_count_error = True
         elif txt and txt.startswith("Due to U.S. trade controls law restrictions, this GitHub"):
             logger.warning("Github has blocked this org. We will not continue.", extra=extra)
@@ -399,9 +399,7 @@ class GitHubClientMixin(GithubProxyClient):
         else:
             # We do not raise the exception so we can keep iterating through the repos.
             # Nevertheless, investigate the error to determine if we should abort the processing
-            logger.exception(
-                f"Investigate if to raise error. An error happened. {msg}", extra=extra
-            )
+            logger.error("Investigate if to raise error. An error happened. %s", msg, extra=extra)
 
         return should_count_error
 
@@ -496,7 +494,7 @@ class GitHubClientMixin(GithubProxyClient):
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[JSONData]]:
         """
         Find repositories matching a query.
-        NOTE: This API is rate limited to 30 requests/minute
+        NOTE: All search APIs share a rate limit of 30 requests/minute
 
         https://docs.github.com/en/rest/search#search-repositories
         """
@@ -530,7 +528,7 @@ class GitHubClientMixin(GithubProxyClient):
             output = []
 
             page_number = 1
-            logger.info(f"Page {page_number}: {path}?per_page={self.page_size}")
+            logger.info("Page %s: %s?per_page=%s", page_number, path, self.page_size)
             resp = self.get(path, params={"per_page": self.page_size})
             logger.info(resp)
             output.extend(resp) if not response_key else output.extend(resp[response_key])
@@ -543,9 +541,9 @@ class GitHubClientMixin(GithubProxyClient):
                 and resp["total_count"] > 0
                 and not output
             ):
-                logger.info(f"headers: {resp.headers}")
-                logger.info(f"output: {output}")
-                logger.info(f"next_link: {next_link}")
+                logger.info("headers: %s", resp.headers)
+                logger.info("output: %s", output)
+                logger.info("next_link: %s", next_link)
                 logger.error("No list of repos even when there's some. Investigate.")
 
             # XXX: In order to speed up this function we will need to parallelize this
@@ -556,7 +554,7 @@ class GitHubClientMixin(GithubProxyClient):
                 output.extend(resp) if not response_key else output.extend(resp[response_key])
 
                 next_link = get_next_link(resp)
-                logger.info(f"Page {page_number}: {next_link}")
+                logger.info("Page %s: %s", page_number, next_link)
                 page_number += 1
             return output
 
@@ -567,6 +565,7 @@ class GitHubClientMixin(GithubProxyClient):
     def search_issues(self, query: str) -> Mapping[str, Sequence[Mapping[str, Any]]]:
         """
         https://docs.github.com/en/rest/search?#search-issues-and-pull-requests
+        NOTE: All search APIs share a rate limit of 30 requests/minute
         """
         return self.get("/search/issues", params={"q": query})
 
@@ -609,9 +608,10 @@ class GitHubClientMixin(GithubProxyClient):
 
     def get_labels(self, repo: str) -> Sequence[JSONData]:
         """
+        Fetches up to the first 100 labels for a repository.
         https://docs.github.com/en/rest/issues/labels#list-labels-for-a-repository
         """
-        return self.get(f"/repos/{repo}/labels")
+        return self.get(f"/repos/{repo}/labels", params={"per_page": 100})
 
     def check_file(self, repo: Repository, path: str, version: str) -> BaseApiResponseX:
         return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})
@@ -734,7 +734,7 @@ class GitHubClientMixin(GithubProxyClient):
                     allow_text=False,
                 )
             except ValueError as e:
-                logger.exception(e, log_info)
+                logger.exception(str(e), log_info)
                 return []
             else:
                 self.set_cache(cache_key, response, 60)

@@ -592,7 +592,7 @@ def callback_timing(
             )
         else:
             secondary_duration_ms = (secondary_timing[1] - secondary_timing[0]) * 1000
-            metrics.timing(
+            metrics.distribution(
                 f"{metric_name}.timing_ms",
                 secondary_duration_ms,
                 tags={
@@ -601,17 +601,20 @@ def callback_timing(
                     "status": secondary_status,
                     "primary": "false",
                 },
+                unit="millisecond",
                 **metric_kwargs,  # type: ignore
             )
-            metrics.timing(
+            metrics.distribution(
                 f"{metric_name}.timing_delta_ms",
                 secondary_duration_ms - primary_duration_ms,
                 tags=tags,
+                unit="millisecond",
                 **metric_kwargs,  # type: ignore
             )
-            metrics.timing(
+            metrics.distribution(
                 f"{metric_name}.timing_relative_delta",
                 secondary_duration_ms / primary_duration_ms,
                 tags=tags,
+                unit="millisecond",
                 **metric_kwargs,  # type: ignore
             )

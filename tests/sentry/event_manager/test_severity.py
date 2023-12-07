@@ -47,7 +47,17 @@ class TestGetEventSeverity(TestCase):
         mock_urlopen: MagicMock,
     ) -> None:
         manager = EventManager(
-            make_event(exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]})
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "NopeError",
+                            "value": "Nopey McNopeface",
+                            "mechanism": {"type": "generic", "handled": True},
+                        }
+                    ]
+                }
+            )
         )
         event = manager.save(self.project.id)
 
@@ -56,18 +66,19 @@ class TestGetEventSeverity(TestCase):
         payload = {
             "message": "NopeError: Nopey McNopeface",
             "has_stacktrace": 0,
-            "log_level": "error",
-            "handled": 1,
+            "handled": True,
         }
 
         mock_urlopen.assert_called_with(
             "POST",
-            "/issues/severity-score",
+            "/v0/issues/severity-score",
             body=json.dumps(payload),
             headers={"content-type": "application/json;charset=utf-8"},
         )
         mock_logger_info.assert_called_with(
-            f"Got severity score of 0.1231 for event {event.event_id}",
+            "Got severity score of %s for event %s",
+            severity,
+            event.event_id,
             extra={
                 "event_id": event.event_id,
                 "op": "event_manager._get_severity_score",
@@ -100,18 +111,19 @@ class TestGetEventSeverity(TestCase):
             payload = {
                 "message": "Dogs are great!",
                 "has_stacktrace": 0,
-                "log_level": "error",
-                "handled": 1,
+                "handled": None,
             }
 
             mock_urlopen.assert_called_with(
                 "POST",
-                "/issues/severity-score",
+                "/v0/issues/severity-score",
                 body=json.dumps(payload),
                 headers={"content-type": "application/json;charset=utf-8"},
             )
             mock_logger_info.assert_called_with(
-                f"Got severity score of 0.1231 for event {event.event_id}",
+                "Got severity score of %s for event %s",
+                severity,
+                event.event_id,
                 extra={
                     "event_id": event.event_id,
                     "op": "event_manager._get_severity_score",
@@ -124,7 +136,7 @@ class TestGetEventSeverity(TestCase):
         "sentry.event_manager.severity_connection_pool.urlopen",
         return_value=HTTPResponse(body=json.dumps({"severity": 0.1231})),
     )
-    def test_usable_event_title(
+    def test_uses_exception(
         self,
         mock_urlopen: MagicMock,
     ) -> None:
@@ -140,7 +152,37 @@ class TestGetEventSeverity(TestCase):
 
         _get_severity_score(event)
 
-        assert json.loads(mock_urlopen.call_args.kwargs["body"])["message"] == "Dogs are great!"
+        assert (
+            json.loads(mock_urlopen.call_args.kwargs["body"])["message"]
+            == "NopeError: Nopey McNopeface"
+        )
+
+    @patch(
+        "sentry.event_manager.severity_connection_pool.urlopen",
+        return_value=HTTPResponse(body=json.dumps({"severity": 0.1231})),
+    )
+    def test_short_circuit_level(
+        self,
+        mock_urlopen: MagicMock,
+    ) -> None:
+        cases: list[tuple[str, float]] = [
+            ("fatal", 1.0),
+            ("info", 0.0),
+            ("debug", 0.0),
+            ("error", 0.1231),
+        ]
+
+        for level, expected_severity in cases:
+            manager = EventManager(
+                make_event(
+                    exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]},
+                    level=level,
+                )
+            )
+            event = manager.save(self.project.id)
+            severity = _get_severity_score(event)
+
+            assert severity == expected_severity
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
@@ -153,7 +195,7 @@ class TestGetEventSeverity(TestCase):
         mock_urlopen: MagicMock,
     ) -> None:
         for title in NON_TITLE_EVENT_TITLES:
-            manager = EventManager(make_event())
+            manager = EventManager(make_event(exception={"values": []}))
             event = manager.save(self.project.id)
             # `title` is a property with no setter, but it pulls from `metadata`, so it's equivalent
             # to set it there. (We have to ignore mypy because `metadata` isn't supposed to be mutable.)
@@ -163,7 +205,8 @@ class TestGetEventSeverity(TestCase):
 
             mock_urlopen.assert_not_called()
             mock_logger_warning.assert_called_with(
-                "Unable to get severity score because of unusable `message` value '<unlabeled event>'",
+                "Unable to get severity score because of unusable `message` value '%s'",
+                "<unlabeled event>",
                 extra={
                     "event_id": event.event_id,
                     "op": "event_manager._get_severity_score",
@@ -187,22 +230,34 @@ class TestGetEventSeverity(TestCase):
         _mock_urlopen: MagicMock,
     ) -> None:
         manager = EventManager(
-            make_event(exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]})
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "NopeError",
+                            "value": "Nopey McNopeface",
+                            "mechanism": {"type": "generic", "handled": True},
+                        }
+                    ]
+                }
+            )
         )
         event = manager.save(self.project.id)
 
         severity = _get_severity_score(event)
 
         mock_logger_warning.assert_called_with(
-            "Unable to get severity score from microservice after 1 retry. Got MaxRetryError caused by: Exception('It broke').",
+            "Unable to get severity score from microservice after %s retr%s. Got MaxRetryError caused by: %s.",
+            1,
+            "y",
+            "Exception('It broke')",
             extra={
                 "event_id": event.event_id,
                 "op": "event_manager._get_severity_score",
                 "payload": {
                     "message": "NopeError: Nopey McNopeface",
                     "has_stacktrace": 0,
-                    "log_level": "error",
-                    "handled": 1,
+                    "handled": True,
                 },
             },
         )
@@ -219,49 +274,36 @@ class TestGetEventSeverity(TestCase):
         _mock_urlopen: MagicMock,
     ) -> None:
         manager = EventManager(
-            make_event(exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]})
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "NopeError",
+                            "value": "Nopey McNopeface",
+                            "mechanism": {"type": "generic", "handled": True},
+                        }
+                    ],
+                },
+            )
         )
         event = manager.save(self.project.id)
 
         severity = _get_severity_score(event)
 
         mock_logger_warning.assert_called_with(
-            "Unable to get severity score from microservice. Got: Exception('It broke').",
+            "Unable to get severity score from microservice. Got: %s.",
+            "Exception('It broke')",
             extra={
                 "event_id": event.event_id,
                 "op": "event_manager._get_severity_score",
                 "payload": {
                     "message": "NopeError: Nopey McNopeface",
                     "has_stacktrace": 0,
-                    "log_level": "error",
-                    "handled": 1,
+                    "handled": True,
                 },
             },
         )
         assert severity is None
-
-    @patch(
-        "sentry.event_manager.severity_connection_pool.urlopen",
-    )
-    @patch("sentry.event_manager.logger.info")
-    def test_info_events_yield_zero_severity(
-        self,
-        mock_logger_info: MagicMock,
-        mock_urlopen: MagicMock,
-    ) -> None:
-        manager = EventManager(
-            make_event(
-                level="info",
-                exception={"values": [{"type": "InfoEvent", "value": "Super Cool Info"}]},
-            )
-        )
-        event = manager.save(self.project.id)
-
-        severity = _get_severity_score(event)
-        assert severity == 0
-
-        mock_urlopen.assert_not_called()
-        mock_logger_info.assert_not_called()
 
 
 @region_silo_test

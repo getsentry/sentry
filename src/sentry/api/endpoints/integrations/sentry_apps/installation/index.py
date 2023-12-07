@@ -1,11 +1,12 @@
-from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppInstallationsBaseEndpoint
+from sentry.api.fields.sentry_slug import SentrySlugField
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import SENTRY_APP_SLUG_MAX_LENGTH
@@ -14,25 +15,12 @@ from sentry.sentry_apps.installations import SentryAppInstallationCreator
 
 
 class SentryAppInstallationsSerializer(serializers.Serializer):
-    slug = serializers.RegexField(
-        r"^[a-z0-9_\-]+$",
-        max_length=SENTRY_APP_SLUG_MAX_LENGTH,
-        error_messages={
-            "invalid": _(
-                "Enter a valid slug consisting of lowercase letters, "
-                "numbers, underscores or hyphens."
-            )
-        },
-    )
-
-    def validate(self, attrs):
-        if not attrs.get("slug"):
-            raise serializers.ValidationError("Sentry App slug is required")
-        return attrs
+    slug = SentrySlugField(required=True, max_length=SENTRY_APP_SLUG_MAX_LENGTH)
 
 
 @control_silo_endpoint
 class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
+    owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,

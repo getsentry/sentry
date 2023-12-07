@@ -21,6 +21,7 @@ import {useSelectedDurationAggregate} from 'sentry/views/performance/database/us
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
 import {useFullSpanFromTrace} from 'sentry/views/starfish/queries/useFullSpanFromTrace';
+import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {
@@ -61,6 +62,14 @@ function SpanSummaryPage({params}: Props) {
     'span.group': groupId,
   };
 
+  const {data: indexedSpans} = useIndexedSpans(
+    {'span.group': groupId},
+    [INDEXED_SPAN_SORT],
+    1
+  );
+
+  const indexedSpan = indexedSpans?.[0];
+
   if (endpoint) {
     filters.transaction = endpoint;
     filters['transaction.method'] = endpointMethod;
@@ -68,7 +77,7 @@ function SpanSummaryPage({params}: Props) {
 
   const sort = useModuleSort(QueryParameterNames.ENDPOINTS_SORT, DEFAULT_SORT);
 
-  const {data: fullSpan} = useFullSpanFromTrace(groupId);
+  const {data: fullSpan} = useFullSpanFromTrace(groupId, [INDEXED_SPAN_SORT]);
 
   const {data: spanMetrics} = useSpanMetrics(
     filters,
@@ -160,6 +169,8 @@ function SpanSummaryPage({params}: Props) {
               <SpanDescription
                 span={{
                   ...span,
+                  ...indexedSpan,
+                  ...fullSpan,
                   [SpanMetricsField.SPAN_DESCRIPTION]:
                     fullSpan?.description ??
                     spanMetrics?.[SpanMetricsField.SPAN_DESCRIPTION],
@@ -209,6 +220,11 @@ function SpanSummaryPage({params}: Props) {
 const DEFAULT_SORT: Sort = {
   kind: 'desc',
   field: 'time_spent_percentage()',
+};
+
+const INDEXED_SPAN_SORT = {
+  field: 'span.self_time',
+  kind: 'desc' as const,
 };
 
 const PaddedContainer = styled('div')`

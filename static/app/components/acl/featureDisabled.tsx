@@ -11,10 +11,13 @@ import {space} from 'sentry/styles/space';
 import {selectText} from 'sentry/utils/selectText';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
-const installText = (features: string[], featureName: string): string =>
-  `# ${t('Enables the %s feature', featureName)}\n${features
+const installText = (features: Props['features'], featureName: string): string => {
+  const featuresList = Array.isArray(features) ? features : [features];
+
+  return `# ${t('Enables the %s feature', featureName)}\n${featuresList
     .map(f => `SENTRY_FEATURES['${f}'] = True`)
     .join('\n')}`;
+};
 
 type Props = {
   /**
@@ -26,7 +29,7 @@ type Props = {
    * The feature flag keys that should be displayed in the code example for
    * enabling the feature.
    */
-  features: string[];
+  features: string | string[];
   /**
    * Render the disabled message within a warning Alert. A custom Alert
    * component may be provided.

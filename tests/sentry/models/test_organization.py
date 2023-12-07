@@ -15,17 +15,13 @@ from sentry.api.endpoints.organization_details import (
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models.apikey import ApiKey
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.user import User
-from sentry.notifications.types import (
-    NotificationScopeType,
-    NotificationSettingOptionValues,
-    NotificationSettingTypes,
-)
 from sentry.silo import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import (
     schedule_hybrid_cloud_foreign_key_jobs,
@@ -36,7 +32,6 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
-from sentry.types.integrations import ExternalProviders
 
 
 @region_silo_test
@@ -337,7 +332,8 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         self.is_organization_member(user.id, member.id)
 
         auth_log.warning.assert_called_with(
-            "Could not remove 2FA noncompliant user from org",
+            "Could not remove %s noncompliant user from org",
+            "2FA",
             extra={"organization_id": self.org.id, "user_id": user.id, "member_id": member.id},
         )
 
@@ -433,19 +429,15 @@ class Require2fa(TestCase, HybridCloudTestMixin):
 class OrganizationDeletionTest(TestCase):
     def add_org_notification_settings(self, org: Organization, user: User):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSetting.objects.create(
-                scope_type=NotificationScopeType.ORGANIZATION.value,
-                target_id=user.id,
-                provider=ExternalProviders.EMAIL.value,
-                type=NotificationSettingTypes.DEPLOY.value,
-                scope_identifier=org.id,
-                user=user,
-                value=NotificationSettingOptionValues.NEVER.value,
-            )
-
-            assert NotificationSetting.objects.filter(
-                scope_type=NotificationScopeType.ORGANIZATION.value, scope_identifier=org.id
-            ).exists()
+            args = {
+                "scope_type": "organization",
+                "scope_identifier": org.id,
+                "type": "deploy",
+                "user_id": user.id,
+                "value": "never",
+            }
+            NotificationSettingOption.objects.create(**args)
+            NotificationSettingProvider.objects.create(**args, provider="slack")
 
     def test_hybrid_cloud_deletion(self):
         org = self.create_organization()
@@ -480,11 +472,12 @@ class OrganizationDeletionTest(TestCase):
             # Ensure they are all now gone.
             assert not UserOption.objects.filter(organization_id=org_id).exists()
 
-            assert NotificationSetting.objects.filter(
-                scope_type=NotificationScopeType.ORGANIZATION.value,
+            assert NotificationSettingOption.objects.filter(
+                scope_type="organization",
                 scope_identifier=unaffected_org.id,
             ).exists()
 
-            assert not NotificationSetting.objects.filter(
-                scope_type=NotificationScopeType.ORGANIZATION.value, scope_identifier=org_id
+            assert not NotificationSettingOption.objects.filter(
+                scope_type="organization",
+                scope_identifier=org_id,
             ).exists()

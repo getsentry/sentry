@@ -5,6 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.integrations.jira_server.utils import handle_assignee_change, handle_status_change
@@ -45,6 +46,7 @@ def get_integration_from_token(token):
 
 @control_silo_endpoint
 class JiraServerIssueUpdatedWebhook(Endpoint):
+    owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,
     }

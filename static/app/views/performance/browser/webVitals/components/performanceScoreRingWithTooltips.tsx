@@ -15,7 +15,7 @@ import PerformanceScoreRing from 'sentry/views/performance/browser/webVitals/com
 import {
   PERFORMANCE_SCORE_WEIGHTS,
   ProjectScore,
-} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 
 import {ORDER} from '../performanceScoreChart';
@@ -83,10 +83,10 @@ function WebVitalLabel({
   const yOffset = webVitalLabelCoordinates?.[webVital]?.y ?? 0;
   const webvitalInfo =
     webVital === 'cls'
-      ? Math.round((projectData?.data?.[0]?.['p75(measurements.cls)'] as number) * 100) /
+      ? Math.round((projectData?.data?.[0]?.['avg(measurements.cls)'] as number) * 100) /
         100
       : getFormattedDuration(
-          (projectData?.data?.[0]?.[`p75(measurements.${webVital})`] as number) / 1000
+          (projectData?.data?.[0]?.[`avg(measurements.${webVital})`] as number) / 1000
         );
 
   return (

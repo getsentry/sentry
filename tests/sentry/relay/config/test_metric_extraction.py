@@ -756,12 +756,29 @@ def test_get_metric_extraction_config_with_high_cardinality(default_project):
             ["epm()"],
             f"transaction.duration:>={duration}",
             default_project,
-            columns=["user.id", "release"],
+            columns=["user.id", "release", "count()"],
         )
 
         config = get_metric_extraction_config(default_project)
 
         assert not config
+
+
+@django_db_all
+@override_options({"on_demand.max_widget_cardinality.count": 1})
+def test_get_metric_extraction_config_with_low_cardinality(default_project):
+    duration = 1000
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
+        create_widget(
+            ["epm()"],
+            f"transaction.duration:>={duration}",
+            default_project,
+            columns=["user.id", "release", "count()"],
+        )
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
 
 
 @django_db_all

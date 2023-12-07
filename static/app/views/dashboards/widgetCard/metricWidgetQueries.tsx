@@ -1,22 +1,14 @@
 import {Component} from 'react';
-import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
-import {t} from 'sentry/locale';
-import {
-  MetricsApiResponse,
-  Organization,
-  PageFilters,
-  Release,
-  SessionApiResponse,
-} from 'sentry/types';
+import {MetricsApiResponse, Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {TOP_N} from 'sentry/utils/discover/types';
+import {mapToMRIFields} from 'sentry/utils/metrics';
 
 import {MetricsConfig} from '../datasetConfig/metrics';
 import {DashboardFilters, DEFAULT_TABLE_LIMIT, DisplayType, Widget} from '../types';
@@ -44,73 +36,15 @@ type Props = {
 type State = {
   loading: boolean;
   errorMessage?: string;
-  releases?: Release[];
 };
-
-export function derivedMetricsToField(field: string): string {
-  return field;
-}
-
-export function resolveDerivedStatusFields(fields: string[]): {
-  aggregates: string[];
-  derivedStatusFields: string[];
-  injectedFields: string[];
-} {
-  return {aggregates: fields, derivedStatusFields: [], injectedFields: []};
-}
 
 class MetricWidgetQueries extends Component<Props, State> {
   state: State = {
     loading: true,
     errorMessage: undefined,
-    releases: undefined,
   };
-
-  componentDidMount() {
-    this._isMounted = true;
-  }
-
-  componentWillUnmount() {
-    this._isMounted = false;
-  }
 
   config = MetricsConfig;
-  private _isMounted: boolean = false;
-
-  fetchReleases = async () => {
-    this.setState({loading: true, errorMessage: undefined});
-    const {selection, api, organization} = this.props;
-    const {environments, projects} = selection;
-
-    try {
-      const releases = await api.requestPromise(
-        `/organizations/${organization.slug}/releases/`,
-        {
-          method: 'GET',
-          data: {
-            sort: 'date',
-            project: projects,
-            per_page: 50,
-            environment: environments,
-          },
-        }
-      );
-      if (!this._isMounted) {
-        return;
-      }
-      this.setState({releases, loading: false});
-    } catch (error) {
-      if (!this._isMounted) {
-        return;
-      }
-
-      const message = error.responseJSON
-        ? error.responseJSON.error
-        : t('Error sorting by releases');
-      this.setState({errorMessage: message, loading: false});
-      addErrorMessage(message);
-    }
-  };
 
   get limit() {
     const {limit} = this.props;
@@ -177,30 +111,9 @@ class MetricWidgetQueries extends Component<Props, State> {
     );
   };
 
-  transformWidget = (initialWidget: Widget): Widget => {
-    const widget = cloneDeep(initialWidget);
-
-    const releaseCondition = '';
-
-    widget.queries.forEach(query => {
-      query.conditions =
-        query.conditions + (releaseCondition === '' ? '' : ` ${releaseCondition}`);
-    });
-
-    return widget;
-  };
-
-  afterFetchData = (data: SessionApiResponse | MetricsApiResponse) => {
-    const releasesArray: string[] = [];
-
-    if (releasesArray.length) {
-      data.groups.sort(function (group1, group2) {
-        const release1 = group1.by.release;
-        const release2 = group2.by.release;
-        return releasesArray.indexOf(release1) - releasesArray.indexOf(release2);
-      });
-      data.groups = data.groups.slice(0, this.limit);
-    }
+  afterFetchData = (data: MetricsApiResponse) => {
+    const fields = this.props.widget.queries[0].aggregates;
+    mapToMRIFields(data, fields);
   };
 
   render() {
@@ -222,7 +135,7 @@ class MetricWidgetQueries extends Component<Props, State> {
         api={api}
         organization={organization}
         selection={selection}
-        widget={this.transformWidget(widget)}
+        widget={widget}
         dashboardFilters={dashboardFilters}
         cursor={cursor}
         limit={this.limit}

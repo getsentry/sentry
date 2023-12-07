@@ -104,7 +104,7 @@ def pytest_configure(config: pytest.Config) -> None:
     settings.SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
     # silence (noisy) loggers by default when testing
-    settings.LOGGING["loggers"]["sentry"]["level"] = "ERROR"  # type: ignore[index]
+    settings.LOGGING["loggers"]["sentry"]["level"] = "ERROR"
 
     # Disable static compiling in tests
     settings.STATIC_BUNDLES = {}
@@ -326,19 +326,12 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
     with clusters.get("default").all() as client:
         client.flushdb()
 
-    import celery
+    from celery.app.control import Control
 
-    if celery.version_info >= (5, 2):
-        from celery.app.control import Control
+    from sentry.celery import app
 
-        from sentry.celery import app
-
-        celery_app_control = Control(app)
-        celery_app_control.discard_all()
-    else:
-        from celery.task.control import discard_all
-
-        discard_all()
+    celery_app_control = Control(app)
+    celery_app_control.discard_all()
 
     from sentry.models.options.organization_option import OrganizationOption
     from sentry.models.options.project_option import ProjectOption

@@ -8,7 +8,6 @@ from sentry.digests import get_option_key as get_digest_option_key
 from sentry.digests.notifications import event_to_record, unsplit_key
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
-from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
@@ -18,11 +17,11 @@ from sentry.notifications.types import (
     FallthroughChoiceType,
     NotificationSettingEnum,
 )
+from sentry.notifications.utils.participants import get_notification_recipients
 from sentry.plugins.base.structs import Notification
-from sentry.services.hybrid_cloud.actor import ActorType
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.tasks.digests import deliver_digest
-from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -99,7 +98,7 @@ class MailAdapter:
                 notification, target_type, target_identifier, fallthrough_choice, notification_uuid
             )
 
-        logger.info("mail.adapter.notification.%s" % log_event, extra=extra)
+        logger.info("mail.adapter.notification.%s", log_event, extra=extra)
 
     @staticmethod
     def get_sendable_user_objects(project):
@@ -108,20 +107,15 @@ class MailAdapter:
         notifications for the provided project.
         """
         user_ids = project.member_set.values_list("user_id", flat=True)
-        users = user_service.get_many(filter=dict(user_ids=list(user_ids)))
-
-        # TODO: Do we need to use a notification service here?
-        controller = NotificationController(
-            recipients=users,
+        actors = [RpcActor(id=uid, actor_type=ActorType.USER) for uid in user_ids]
+        recipients = get_notification_recipients(
+            recipients=actors,
+            type=NotificationSettingEnum.ISSUE_ALERTS,
             project_ids=[project.id],
             organization_id=project.organization_id,
-            provider=ExternalProviderEnum.EMAIL,
-            type=NotificationSettingEnum.ISSUE_ALERTS,
-        )
-        return controller.get_notification_recipients(
-            type=NotificationSettingEnum.ISSUE_ALERTS,
             actor_type=ActorType.USER,
-        )[ExternalProviders.EMAIL]
+        )
+        return recipients.get(ExternalProviders.EMAIL)
 
     def get_sendable_user_ids(self, project):
         users = self.get_sendable_user_objects(project)
@@ -173,7 +167,7 @@ class MailAdapter:
         metrics.incr("mail_adapter.notify_about_activity")
         email_cls = EMAIL_CLASSES_BY_TYPE.get(activity.type)
         if not email_cls:
-            logger.debug(f"No email associated with activity type `{activity.get_type_display()}`")
+            logger.debug("No email associated with activity type `%s`", activity.get_type_display())
             return
 
         email_cls(activity).send()

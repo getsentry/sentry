@@ -17,6 +17,7 @@ from sentry.backup.helpers import (
     ImportFlags,
     LocalFileDecryptor,
     LocalFileEncryptor,
+    Printer,
     Side,
     create_encrypted_export_tarball,
     decrypt_encrypted_tarball,
@@ -106,18 +107,72 @@ MERGE_USERS_HELP = """If this flag is set and users in the import JSON have matc
                    are always created in the event of a collision, with the new user receiving a
                    random suffix to their username."""
 
+NO_PROMPT_HELP = """When set, always answers `YES` to any confirmation dialogs. This can
+                 be dangerous (the dialogs are there to make sure that you REALLY want to proceed
+                 with an irrecoverable operation), but can be useful when these commands are meant
+                 to be consumed by scripts and automation."""
+
 OVERWRITE_CONFIGS_HELP = """Imports are generally non-destructive of old data. However, if this flag
                          is set and a global configuration, like an option or a relay id, collides
                          with an existing value, the new value will overwrite the existing one. If
                          the flag is left in its (default) unset state, the old value will be
                          retained in the event of a collision."""
 
+SILENT_HELP = """Silence all debug output. To silence confirmation dialogs as well, use
+               --no-prompt."""
 
-def get_printer(silent: bool) -> Callable:
+
+class OutputOnlyPrinter(Printer):
+    """
+    A printer that writes debug output, but does not ask for confirmations.
+    """
+
+    def echo(
+        self,
+        text: str,
+        *,
+        err: bool = False,
+        color: bool | None = None,
+    ) -> None:
+        return click.echo(text, err=err, color=color)
+
+
+class InputOnlyPrinter(Printer):
+    """
+    A printer that only asks for confirmations, and is otherwise silent.
+    """
+
+    def confirm(
+        self,
+        text: str,
+        *,
+        default: bool | None = None,
+        err: bool = False,
+    ) -> bool:
+        return click.confirm(text, default=default, err=err)
+
+
+class InputOutputPrinter(InputOnlyPrinter, OutputOnlyPrinter):
+    """
+    This printer does it all - it prints debug output AND asks for confirmation before continuing!
+    """
+
+
+def get_printer(silent: bool, no_prompt: bool) -> Printer:
+    """
+    Based on user flags, we select the right kind of printer for them: a noop that is completely
+    silent (`Printer`), one that only prints and automatically approves all confirmation dialogs
+    (`OutputOnlyPrinter`), one that only shows confirmation dialogs but is otherwise silent
+    (`InputOnlyPrinter`), or one that shows all output and dialogs (`InputOutputPrinter`).
+    """
+
+    if silent and no_prompt:
+        return Printer()
+    if no_prompt:
+        return OutputOnlyPrinter()
     if silent:
-        return lambda *args, **kwargs: None
-    else:
-        return click.echo
+        return InputOnlyPrinter()
+    return InputOutputPrinter()
 
 
 def parse_filter_arg(filter_arg: str) -> set[str] | None:
@@ -170,9 +225,9 @@ def get_encryptor_from_flags(
     return None
 
 
-def write_findings(findings_file: TextIO | None, findings: Sequence[Finding], printer: Callable):
+def write_findings(findings_file: TextIO | None, findings: Sequence[Finding], echo: Callable):
     for f in findings:
-        printer(f.pretty(), err=True)
+        echo(f"\n\n{f.pretty()}", err=True)
 
     if findings_file:
         findings_encoder = FindingJSONEncoder(
@@ -191,7 +246,7 @@ def write_findings(findings_file: TextIO | None, findings: Sequence[Finding], pr
 
 @contextmanager
 def write_import_findings(
-    findings_file: TextIO | None, printer: Callable
+    findings_file: TextIO | None, printer: Printer
 ) -> Generator[None, None, None]:
     """
     Helper that ensures that we write findings for the `import ...` command regardless of outcome.
@@ -203,15 +258,15 @@ def write_import_findings(
         yield
     except ImportingError as e:
         if e.context:
-            write_findings(findings_file, [e.context], printer)
+            write_findings(findings_file, [e.context], printer.echo)
         raise e
     else:
-        write_findings(findings_file, [], printer)
+        write_findings(findings_file, [], printer.echo)
 
 
 @contextmanager
 def write_export_findings(
-    findings_file: TextIO | None, printer: Callable
+    findings_file: TextIO | None, printer: Printer
 ) -> Generator[None, None, None]:
     """
     Helper that ensures that we write findings for the `export ...` command regardless of outcome.
@@ -223,15 +278,15 @@ def write_export_findings(
         yield
     except ExportingError as e:
         if e.context:
-            write_findings(findings_file, [e.context], printer)
+            write_findings(findings_file, [e.context], printer.echo)
         raise e
     else:
-        write_findings(findings_file, [], printer)
+        write_findings(findings_file, [], printer.echo)
 
 
 @click.group(name="backup")
 def backup():
-    """A collection of helper tools for operating on backup Sentry backup imports/exports."""
+    """Helper tools for operating on Sentry backup imports/exports."""
 
 
 @backup.command(name="compare")
@@ -310,11 +365,11 @@ def compare(
 
     res = validate(left_data, right_data, get_default_comparators())
     if res:
+        click.echo(f"\n\nDone, found {len(res.findings)} differences:")
         write_findings(findings_file, res.findings, click.echo)
-        click.echo(f"Done, found {len(res.findings)} differences:\n\n{res.pretty()}")
     else:
+        click.echo("\n\nDone, found 0 differences!")
         write_findings(findings_file, [], click.echo)
-        click.echo("Done, found 0 differences!")
 
 
 @backup.command(name="decrypt")
@@ -402,14 +457,13 @@ def encrypt(dest, encrypt_with, encrypt_with_gcp_kms, src):
 
 @click.group(name="import")
 def import_():
-    """Performs non-destructive imports of core data for a Sentry installation."""
+    """Imports core data for a Sentry installation."""
 
 
 @import_.command(name="users")
 @click.argument("src", type=click.File("rb"))
 @click.option(
     "--decrypt-with",
-    "--decrypt_with",  # For backwards compatibility with self-hosted@23.10.0
     type=click.File("rb"),
     help=DECRYPT_WITH_HELP,
 )
@@ -420,7 +474,6 @@ def import_():
 )
 @click.option(
     "--filter-usernames",
-    "--filter_usernames",  # For backwards compatibility with self-hosted@23.10.0
     default="",
     type=str,
     help="An optional comma-separated list of users to include. "
@@ -434,12 +487,22 @@ def import_():
 )
 @click.option(
     "--merge-users",
-    "--merge_users",  # For backwards compatibility with self-hosted@23.10.0
     default=False,
     is_flag=True,
     help=MERGE_USERS_HELP,
 )
-@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
+@click.option(
+    "--no-prompt",
+    default=False,
+    is_flag=True,
+    help=NO_PROMPT_HELP,
+)
+@click.option(
+    "--silent",
+    default=False,
+    is_flag=True,
+    help=SILENT_HELP,
+)
 @configuration
 def import_users(
     src,
@@ -448,6 +511,7 @@ def import_users(
     filter_usernames,
     findings_file,
     merge_users,
+    no_prompt,
     silent,
 ):
     """
@@ -456,7 +520,7 @@ def import_users(
 
     from sentry.backup.imports import import_in_user_scope
 
-    printer = get_printer(silent)
+    printer = get_printer(silent=silent, no_prompt=no_prompt)
     with write_import_findings(findings_file, printer):
         import_in_user_scope(
             src,
@@ -471,7 +535,6 @@ def import_users(
 @click.argument("src", type=click.File("rb"))
 @click.option(
     "--decrypt-with",
-    "--decrypt_with",  # For backwards compatibility with self-hosted@23.10.0
     type=click.File("rb"),
     help=DECRYPT_WITH_HELP,
 )
@@ -482,7 +545,6 @@ def import_users(
 )
 @click.option(
     "--filter-org-slugs",
-    "--filter_org_slugs",  # For backwards compatibility with self-hosted@23.10.0
     default="",
     type=str,
     help="An optional comma-separated list of organization slugs to include. "
@@ -497,12 +559,22 @@ def import_users(
 )
 @click.option(
     "--merge-users",
-    "--merge_users",  # For backwards compatibility with self-hosted@23.10.0
     default=False,
     is_flag=True,
     help=MERGE_USERS_HELP,
 )
-@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
+@click.option(
+    "--no-prompt",
+    default=False,
+    is_flag=True,
+    help=NO_PROMPT_HELP,
+)
+@click.option(
+    "--silent",
+    default=False,
+    is_flag=True,
+    help=SILENT_HELP,
+)
 @configuration
 def import_organizations(
     src,
@@ -511,6 +583,7 @@ def import_organizations(
     filter_org_slugs,
     findings_file,
     merge_users,
+    no_prompt,
     silent,
 ):
     """
@@ -519,7 +592,7 @@ def import_organizations(
 
     from sentry.backup.imports import import_in_organization_scope
 
-    printer = get_printer(silent)
+    printer = get_printer(silent=silent, no_prompt=no_prompt)
     with write_import_findings(findings_file, printer):
         import_in_organization_scope(
             src,
@@ -534,7 +607,6 @@ def import_organizations(
 @click.argument("src", type=click.File("rb"))
 @click.option(
     "--decrypt-with",
-    "--decrypt_with",  # For backwards compatibility with self-hosted@23.10.0
     type=click.File("rb"),
     help=DECRYPT_WITH_HELP,
 )
@@ -551,19 +623,28 @@ def import_organizations(
 )
 @click.option(
     "--merge-users",
-    "--merge_users",  # For backwards compatibility with self-hosted@23.10.0
     default=False,
     is_flag=True,
     help=MERGE_USERS_HELP,
 )
 @click.option(
+    "--no-prompt",
+    default=False,
+    is_flag=True,
+    help=NO_PROMPT_HELP,
+)
+@click.option(
     "--overwrite-configs",
-    "--overwrite_configs",  # For backwards compatibility with self-hosted@23.10.0
     default=False,
     is_flag=True,
     help=OVERWRITE_CONFIGS_HELP,
 )
-@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
+@click.option(
+    "--silent",
+    default=False,
+    is_flag=True,
+    help=SILENT_HELP,
+)
 @configuration
 def import_config(
     src,
@@ -571,6 +652,7 @@ def import_config(
     decrypt_with_gcp_kms,
     findings_file,
     merge_users,
+    no_prompt,
     overwrite_configs,
     silent,
 ):
@@ -580,7 +662,7 @@ def import_config(
 
     from sentry.backup.imports import import_in_config_scope
 
-    printer = get_printer(silent)
+    printer = get_printer(silent=silent, no_prompt=no_prompt)
     with write_import_findings(findings_file, printer):
         import_in_config_scope(
             src,
@@ -594,7 +676,6 @@ def import_config(
 @click.argument("src", type=click.File("rb"))
 @click.option(
     "--decrypt-with",
-    "--decrypt_with",  # For backwards compatibility with self-hosted@23.10.0
     type=click.File("rb"),
     help=DECRYPT_WITH_HELP,
 )
@@ -610,20 +691,24 @@ def import_config(
     help=FINDINGS_FILE_HELP,
 )
 @click.option(
-    "--overwrite-configs",
-    "--overwrite_configs",  # For backwards compatibility with self-hosted@23.10.0
+    "--no-prompt",
     default=False,
     is_flag=True,
-    help=OVERWRITE_CONFIGS_HELP,
+    help=NO_PROMPT_HELP,
 )
-@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
+@click.option(
+    "--silent",
+    default=False,
+    is_flag=True,
+    help=SILENT_HELP,
+)
 @configuration
 def import_global(
     src,
     decrypt_with,
     decrypt_with_gcp_kms,
     findings_file,
-    overwrite_configs,
+    no_prompt,
     silent,
 ):
     """
@@ -632,12 +717,12 @@ def import_global(
 
     from sentry.backup.imports import import_in_global_scope
 
-    printer = get_printer(silent)
+    printer = get_printer(silent=silent, no_prompt=no_prompt)
     with write_import_findings(findings_file, printer):
         import_in_global_scope(
             src,
             decryptor=get_decryptor_from_flags(decrypt_with, decrypt_with_gcp_kms),
-            flags=ImportFlags(overwrite_configs=overwrite_configs),
+            flags=None,
             printer=printer,
         )
 
@@ -651,7 +736,6 @@ def export():
 @click.argument("dest", default="-", type=click.File("wb"))
 @click.option(
     "--encrypt-with",
-    "--encrypt_with",  # For backwards compatibility with self-hosted@23.10.0
     type=click.File("rb"),
     help=ENCRYPT_WITH_HELP,
 )
@@ -662,7 +746,6 @@ def export():
 )
 @click.option(
     "--filter-usernames",
-    "--filter_usernames",  # For backwards compatibility with self-hosted@23.10.0
     default="",
     type=str,
     help="An optional comma-separated list of users to include. "
@@ -680,7 +763,18 @@ def export():
     type=int,
     help=INDENT_HELP,
 )
-@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
+@click.option(
+    "--no-prompt",
+    default=False,
+    is_flag=True,
+    help=NO_PROMPT_HELP,
+)
+@click.option(
+    "--silent",
+    default=False,
+    is_flag=True,
+    help=SILENT_HELP,
+)
 @configuration
 def export_users(
     dest,
@@ -689,6 +783,7 @@ def export_users(
     filter_usernames,
     findings_file,
     indent,
+    no_prompt,
     silent,
 ):
     """
@@ -697,7 +792,7 @@ def export_users(
 
     from sentry.backup.exports import export_in_user_scope
 
-    printer = get_printer(silent)
+    printer = get_printer(silent=silent, no_prompt=no_prompt)
     with write_export_findings(findings_file, printer):
         export_in_user_scope(
             dest,
@@ -712,7 +807,6 @@ def export_users(
 @click.argument("dest", default="-", type=click.File("wb"))
 @click.option(
     "--encrypt-with",
-    "--encrypt_with",  # For backwards compatibility with self-hosted@23.10.0
     type=click.File("rb"),
     help=ENCRYPT_WITH_HELP,
 )
@@ -723,7 +817,6 @@ def export_users(
 )
 @click.option(
     "--filter-org-slugs",
-    "--filter_org_slugs",  # For backwards compatibility with self-hosted@23.10.0
     default="",
     type=str,
     help="An optional comma-separated list of organization slugs to include. "
@@ -742,7 +835,18 @@ def export_users(
     type=int,
     help=INDENT_HELP,
 )
-@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
+@click.option(
+    "--no-prompt",
+    default=False,
+    is_flag=True,
+    help=NO_PROMPT_HELP,
+)
+@click.option(
+    "--silent",
+    default=False,
+    is_flag=True,
+    help=SILENT_HELP,
+)
 @configuration
 def export_organizations(
     dest,
@@ -751,6 +855,7 @@ def export_organizations(
     filter_org_slugs,
     findings_file,
     indent,
+    no_prompt,
     silent,
 ):
     """
@@ -759,7 +864,7 @@ def export_organizations(
 
     from sentry.backup.exports import export_in_organization_scope
 
-    printer = get_printer(silent)
+    printer = get_printer(silent=silent, no_prompt=no_prompt)
     with write_export_findings(findings_file, printer):
         export_in_organization_scope(
             dest,
@@ -774,7 +879,6 @@ def export_organizations(
 @click.argument("dest", default="-", type=click.File("wb"))
 @click.option(
     "--encrypt-with",
-    "--encrypt_with",  # For backwards compatibility with self-hosted@23.10.0
     type=click.File("rb"),
     help=ENCRYPT_WITH_HELP,
 )
@@ -795,7 +899,18 @@ def export_organizations(
     type=int,
     help=INDENT_HELP,
 )
-@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
+@click.option(
+    "--no-prompt",
+    default=False,
+    is_flag=True,
+    help=NO_PROMPT_HELP,
+)
+@click.option(
+    "--silent",
+    default=False,
+    is_flag=True,
+    help=SILENT_HELP,
+)
 @configuration
 def export_config(
     dest,
@@ -803,6 +918,7 @@ def export_config(
     encrypt_with_gcp_kms,
     findings_file,
     indent,
+    no_prompt,
     silent,
 ):
     """
@@ -811,7 +927,7 @@ def export_config(
 
     from sentry.backup.exports import export_in_config_scope
 
-    printer = get_printer(silent)
+    printer = get_printer(silent=silent, no_prompt=no_prompt)
     with write_export_findings(findings_file, printer):
         export_in_config_scope(
             dest,
@@ -825,7 +941,6 @@ def export_config(
 @click.argument("dest", default="-", type=click.File("wb"))
 @click.option(
     "--encrypt-with",
-    "--encrypt_with",  # For backwards compatibility with self-hosted@23.10.0
     type=click.File("rb"),
     help=ENCRYPT_WITH_HELP,
 )
@@ -846,7 +961,18 @@ def export_config(
     type=int,
     help=INDENT_HELP,
 )
-@click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
+@click.option(
+    "--no-prompt",
+    default=False,
+    is_flag=True,
+    help=NO_PROMPT_HELP,
+)
+@click.option(
+    "--silent",
+    default=False,
+    is_flag=True,
+    help=SILENT_HELP,
+)
 @configuration
 def export_global(
     dest,
@@ -854,6 +980,7 @@ def export_global(
     encrypt_with_gcp_kms,
     findings_file,
     indent,
+    no_prompt,
     silent,
 ):
     """
@@ -862,7 +989,7 @@ def export_global(
 
     from sentry.backup.exports import export_in_global_scope
 
-    printer = get_printer(silent)
+    printer = get_printer(silent=silent, no_prompt=no_prompt)
     with write_export_findings(findings_file, printer):
         export_in_global_scope(
             dest,
