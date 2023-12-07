@@ -170,6 +170,7 @@
     "url-loader": "^4.1.0",
     "webpack": "5.87.0",
     "webpack-cli": "5.1.4",
+    "webpack-hook-plugin": "^1.0.7",
     "webpack-remove-empty-scripts": "^1.0.3",
     "zxcvbn": "^4.4.2"
   },
@@ -204,8 +205,7 @@
     "terser": "5.16.9",
     "tocbot": "^4.20.0",
     "tsconfig-paths": "^4.2.0",
-    "webpack-dev-server": "^4.15.1",
-    "webpack-hook-plugin": "^1.0.7"
+    "webpack-dev-server": "^4.15.1"
   },
   "optionalDependencies": {
     "fsevents": "^2.3.2"
