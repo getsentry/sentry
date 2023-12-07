@@ -257,63 +257,47 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
 
   return (
     <Fragment>
-      <DifferentialFlamegraphTransactionToolbar
-        transaction={props.transaction}
-        onNextTransactionClick={props.onNextTransactionClick}
-        onPreviousTransactionClick={props.onPreviousTransactionClick}
-      />
-      <DifferentialFlamegraphToolbar
-        frameFilter={frameFilterSetting}
-        onFrameFilterChange={setFrameFilterSetting}
-        negated={negated}
-        onNegatedChange={setNegated}
-        flamegraph={differentialFlamegraph}
-        canvasPoolManager={canvasPoolManager}
-      />
-      <DifferentialFlamegraphContainer>
-        {props.after.isLoading || props.before.isLoading ? (
-          <LoadingIndicatorContainer>
-            <LoadingIndicator />
-          </LoadingIndicatorContainer>
-        ) : props.before.isError && props.after.isError ? (
-          <ErrorMessageContainer>
-            {t('Failed to load flamegraph for before and after regression time range.')}
-          </ErrorMessageContainer>
-        ) : props.before.isError ? (
-          <ErrorMessageContainer>
-            {t('Failed to load flamegraph for before regression time range.')}
-          </ErrorMessageContainer>
-        ) : props.after.isError ? (
-          <ErrorMessageContainer>
-            {t('Failed to load flamegraph for after regression time range.')}
-          </ErrorMessageContainer>
-        ) : null}
-        <DifferentialFlamegraph
-          profileGroup={afterProfileGroup ?? LOADING_PROFILE_GROUP}
-          differentialFlamegraph={differentialFlamegraph}
-          canvasPoolManager={canvasPoolManager}
-          scheduler={scheduler}
+      <Panel>
+        <DifferentialFlamegraphTransactionToolbar
+          transaction={props.transaction}
+          onNextTransactionClick={props.onNextTransactionClick}
+          onPreviousTransactionClick={props.onPreviousTransactionClick}
         />
-      </DifferentialFlamegraphContainer>
-      <DifferentialFlamegraphExplanationBar negated={negated} />
+        <DifferentialFlamegraphToolbar
+          frameFilter={frameFilterSetting}
+          onFrameFilterChange={setFrameFilterSetting}
+          negated={negated}
+          onNegatedChange={setNegated}
+          flamegraph={differentialFlamegraph}
+          canvasPoolManager={canvasPoolManager}
+        />
+        <DifferentialFlamegraphContainer>
+          {props.after.isLoading || props.before.isLoading ? (
+            <LoadingIndicatorContainer>
+              <LoadingIndicator />
+            </LoadingIndicatorContainer>
+          ) : props.before.isError && props.after.isError ? (
+            <ErrorMessageContainer>
+              {t('Failed to load flamegraph for before and after regression time range.')}
+            </ErrorMessageContainer>
+          ) : props.before.isError ? (
+            <ErrorMessageContainer>
+              {t('Failed to load flamegraph for before regression time range.')}
+            </ErrorMessageContainer>
+          ) : props.after.isError ? (
+            <ErrorMessageContainer>
+              {t('Failed to load flamegraph for after regression time range.')}
+            </ErrorMessageContainer>
+          ) : null}
+          <DifferentialFlamegraph
+            profileGroup={afterProfileGroup ?? LOADING_PROFILE_GROUP}
+            differentialFlamegraph={differentialFlamegraph}
+            canvasPoolManager={canvasPoolManager}
+            scheduler={scheduler}
+          />
+        </DifferentialFlamegraphContainer>
+        <DifferentialFlamegraphExplanationBar negated={negated} />
 
-      <DifferentialFlamegraphFunctionsContainer>
-        <DifferentialFlamegraphChangedFunctions
-          loading={props.after.isLoading || props.before.isLoading}
-          title={t('Slower functions')}
-          subtitle={negated ? t('before regression') : t('after regression')}
-          functions={differentialFlamegraph.increasedFrames}
-          flamegraph={differentialFlamegraph}
-          makeFunctionLink={makeFunctionFlamechartLink}
-        />
-        <DifferentialFlamegraphChangedFunctions
-          loading={props.after.isLoading || props.before.isLoading}
-          title={t('Faster functions')}
-          subtitle={negated ? t('before regression') : t('after regression')}
-          functions={differentialFlamegraph.decreasedFrames}
-          flamegraph={differentialFlamegraph}
-          canvasPoolManager={canvasPoolManager}
-        />
         <DifferentialFlamegraphContainer>
           {props.after.isLoading || props.before.isLoading ? (
             <LoadingIndicatorContainer>
