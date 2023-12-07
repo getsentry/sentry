@@ -41,8 +41,7 @@ from sentry.services.hybrid_cloud.organization.serial import summarize_member
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils import metrics
 
-SUPERUSER_SCOPES = settings.SENTRY_SCOPES
-SUPERUSER_SCOPES.add("org:superuser")
+SUPERUSER_SCOPES = settings.SENTRY_SCOPES.union({"org:superuser"})
 
 
 def has_role_in_organization(role: str, organization: Organization, user_id: int) -> bool:
