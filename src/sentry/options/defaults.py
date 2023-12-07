@@ -1748,3 +1748,11 @@ register(
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Relocation
+register("relocation.enabled", default=False)
+
+# Throttling limits for relocation requests
+register("relocation.daily-limit-small", default=0)
+register("relocation.daily-limit-medium", default=0)
+register("relocation.daily-limit-large", default=0)

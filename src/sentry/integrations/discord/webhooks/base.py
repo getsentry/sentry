@@ -2,16 +2,19 @@ from __future__ import annotations
 
 import logging
 
+import sentry_sdk
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
 from sentry import analytics
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.integrations.discord.requests.base import DiscordRequest, DiscordRequestError
 from sentry.integrations.discord.webhooks.command import DiscordCommandHandler
 from sentry.integrations.discord.webhooks.message_component import DiscordMessageComponentHandler
+from sentry.silo import SiloMode
 from sentry.web.decorators import transaction_start
 
 from .types import DiscordResponseTypes
@@ -19,8 +22,9 @@ from .types import DiscordResponseTypes
 logger = logging.getLogger(__name__)
 
 
-@region_silo_endpoint
+@all_silo_endpoint
 class DiscordInteractionsEndpoint(Endpoint):
+    owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,
     }
@@ -68,7 +72,9 @@ class DiscordInteractionsEndpoint(Endpoint):
                 return DiscordMessageComponentHandler(discord_request).handle()
 
         except DiscordRequestError as e:
-            logger.error(
+            if SiloMode.get_current_mode() != SiloMode.MONOLITH:
+                sentry_sdk.capture_exception(e)
+            logger.exception(
                 "discord.request.error",
                 extra={
                     "error": str(e),
@@ -77,12 +83,11 @@ class DiscordInteractionsEndpoint(Endpoint):
             )
             return self.respond(status=e.status)
         except Exception as e:
-            logger.error(
+            logger.exception(
                 "discord.request.unexpected_error",
                 extra={
                     "error": str(e),
                 },
-                exc_info=True,
             )
             return self.respond(status=500)
 

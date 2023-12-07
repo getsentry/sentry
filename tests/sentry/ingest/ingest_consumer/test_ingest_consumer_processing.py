@@ -15,6 +15,7 @@ from arroyo.backends.local.storages.memory import MemoryMessageStorage
 from arroyo.types import Partition, Topic
 from django.conf import settings
 
+from sentry import eventstore
 from sentry.event_manager import EventManager
 from sentry.ingest.consumer.processors import (
     process_attachment_chunk,
@@ -24,7 +25,6 @@ from sentry.ingest.consumer.processors import (
 )
 from sentry.models.debugfile import create_files_from_dif_zip
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.eventuser import EventUser
 from sentry.models.files.file import File
 from sentry.models.userreport import UserReport
 from sentry.options import set
@@ -32,6 +32,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 from sentry.usage_accountant import accountant
 from sentry.utils import json
+from sentry.utils.eventuser import EventUser
 from sentry.utils.json import loads
 
 pytestmark = [requires_snuba]
@@ -556,7 +557,8 @@ def test_userreport_reverse_order(django_cache, default_project, monkeypatch):
     (report,) = UserReport.objects.all()
     assert report.comments == "hello world"
 
-    (evtuser,) = EventUser.objects.all()
+    event = eventstore.backend.get_event_by_id(default_project.id, event_id)
+    evtuser = EventUser.from_event(event)
     # Event got saved after user report, and the sync only works in the
     # opposite direction. That's fine, we just accept it.
     assert evtuser.name is None

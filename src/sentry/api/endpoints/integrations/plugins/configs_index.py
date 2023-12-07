@@ -2,6 +2,7 @@ from django.http.response import Http404
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -15,12 +16,12 @@ from sentry.plugins.base import plugins
 
 @region_silo_endpoint
 class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
 
     def get(self, request: Request, organization) -> Response:
-
         """
         List one or more plugin configurations, including a `projectList` for each plugin which contains
         all the projects that have that specific plugin both configured and enabled.

@@ -3,6 +3,8 @@ import {reactHooks} from 'sentry-test/reactTestingLibrary';
 import {loadPrismLanguage} from 'sentry/utils/prism';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
+jest.unmock('prismjs');
+
 const JS_CODE = `function foo() {
   // Returns 'bar'
   return 'bar';

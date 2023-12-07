@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
-import {IssueCategory, IssueType} from 'sentry/types';
+import {ErrorType, IssueCategory, IssueType} from 'sentry/types';
 import cronConfig from 'sentry/utils/issueTypeConfig/cronConfig';
-import errorConfig from 'sentry/utils/issueTypeConfig/errorConfig';
+import {errorConfig, errorTypeConfigMap} from 'sentry/utils/issueTypeConfig/errorConfig';
 import performanceConfig from 'sentry/utils/issueTypeConfig/performanceConfig';
 import {
   IssueCategoryConfigMapping,
@@ -13,6 +13,7 @@ type Config = Record<IssueCategory, IssueCategoryConfigMapping>;
 type IssueCategoryAndType = {
   issueCategory: IssueCategory;
   issueType?: IssueType;
+  title?: string;
 };
 
 type GetConfigForIssueTypeParams = {eventOccurrenceType: number} | IssueCategoryAndType;
@@ -49,6 +50,16 @@ const issueTypeConfig: Config = {
   [IssueCategory.CRON]: cronConfig,
 };
 
+function getErrorResourceConfig(title: string): Partial<IssueTypeConfig> {
+  let errorTitle = '';
+
+  if (title.includes('ChunkLoadError')) {
+    errorTitle = ErrorType.CHUNK_LOAD_ERROR;
+  }
+  const resource = errorTypeConfigMap[errorTitle];
+  return resource ?? {};
+}
+
 const eventOccurrenceTypeToIssueCategory = (eventOccurrenceType: number) => {
   if (eventOccurrenceType >= 1000) {
     return IssueCategory.PERFORMANCE;
@@ -70,7 +81,7 @@ export const getIssueCategoryAndTypeFromOccurrenceType = (
  * configuration. If not found there, it takes from the base config.
  */
 export const getConfigForIssueType = (params: GetConfigForIssueTypeParams) => {
-  const {issueCategory, issueType} =
+  const {issueCategory, issueType, title} =
     'eventOccurrenceType' in params
       ? getIssueCategoryAndTypeFromOccurrenceType(params.eventOccurrenceType)
       : params;
@@ -83,10 +94,13 @@ export const getConfigForIssueType = (params: GetConfigForIssueTypeParams) => {
 
   const categoryConfig = categoryMap._categoryDefaults;
   const overrideConfig = issueType ? categoryMap[issueType] : {};
+  const errorResourceConfig =
+    issueType === IssueType.ERROR && title ? getErrorResourceConfig(title) : {};
 
   return {
     ...BASE_CONFIG,
     ...categoryConfig,
     ...overrideConfig,
+    ...errorResourceConfig,
   };
 };
