@@ -26,10 +26,9 @@ from sentry.api.serializers.rest_framework.origin import OriginField
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams
-from sentry.auth.superuser import is_active_superuser
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
-from sentry.dynamic_sampling import generate_rules, get_supported_biases_ids, get_user_biases
+from sentry.dynamic_sampling import get_supported_biases_ids, get_user_biases
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
@@ -507,16 +506,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if not ds_bias_serializer.is_valid():
                 return Response(ds_bias_serializer.errors, status=400)
             data["dynamicSamplingBiases"] = ds_bias_serializer.data
-
-            include_rules = request.GET.get("includeDynamicSamplingRules") == "1"
-            if include_rules and is_active_superuser(request):
-                data["dynamicSamplingRules"] = {
-                    "rules": [],
-                    "rulesV2": generate_rules(project),
-                }
         else:
             data["dynamicSamplingBiases"] = None
-            data["dynamicSamplingRules"] = None
 
         # filter for enabled plugins o/w the response body is gigantic and difficult to read
         data["plugins"] = [plugin for plugin in data["plugins"] if plugin.get("enabled")]
