@@ -297,33 +297,6 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
           />
         </DifferentialFlamegraphContainer>
         <DifferentialFlamegraphExplanationBar negated={negated} />
-
-        <DifferentialFlamegraphContainer>
-          {props.after.isLoading || props.before.isLoading ? (
-            <LoadingIndicatorContainer>
-              <LoadingIndicator />
-            </LoadingIndicatorContainer>
-          ) : props.before.isError && props.after.isError ? (
-            <ErrorMessageContainer>
-              {t('Failed to load flamegraph for before and after regression time range.')}
-            </ErrorMessageContainer>
-          ) : props.before.isError ? (
-            <ErrorMessageContainer>
-              {t('Failed to load flamegraph for before regression time range.')}
-            </ErrorMessageContainer>
-          ) : props.after.isError ? (
-            <ErrorMessageContainer>
-              {t('Failed to load flamegraph for after regression time range.')}
-            </ErrorMessageContainer>
-          ) : null}
-          <DifferentialFlamegraph
-            profileGroup={afterProfileGroup ?? LOADING_PROFILE_GROUP}
-            differentialFlamegraph={differentialFlamegraph}
-            canvasPoolManager={canvasPoolManager}
-            scheduler={scheduler}
-          />
-        </DifferentialFlamegraphContainer>
-        <DifferentialFlamegraphExplanationBar negated={negated} />
       </Panel>
 
       <Panel>
