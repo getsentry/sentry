@@ -15,7 +15,7 @@ from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import Replay
 from sentry_sdk.tracing import Span
 
 from sentry.replays.usecases.ingest import ingest_recording
-from sentry.utils.arroyo import RunTaskWithMultiprocessing
+from sentry.utils.arroyo import RunTaskWithMultiprocessing, get_reusable_multiprocessing_pool
 
 logger = logging.getLogger(__name__)
 
@@ -75,9 +75,9 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
             return RunTaskWithMultiprocessing(
                 function=process_message,
                 next_step=CommitOffsets(commit),
-                num_processes=self.num_processes,
                 max_batch_size=self.max_batch_size,
                 max_batch_time=self.max_batch_time,
+                pool=get_reusable_multiprocessing_pool(self.num_processes),
                 input_block_size=self.input_block_size,
                 output_block_size=self.output_block_size,
             )
