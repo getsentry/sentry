@@ -1,14 +1,7 @@
-import ipaddress
 from abc import ABC, abstractmethod
-
-from django.conf import settings
-
-ALLOWED_IPS = frozenset(getattr(settings, "SUPERUSER_ALLOWED_IPS", settings.INTERNAL_IPS) or ())
 
 
 class ElevatedMode(ABC):
-    allowed_ips = frozenset(ipaddress.ip_network(str(v), strict=False) for v in ALLOWED_IPS)
-
     @staticmethod
     @abstractmethod
     def _needs_validation():
