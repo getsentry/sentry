@@ -85,7 +85,6 @@
   "sentry_externalissue",
   "sentry_externalactor",
   "sentry_exporteddata",
-  "sentry_eventuser",
   "sentry_eventprocessingissue",
   "sentry_eventattachment",
   "sentry_environment",
