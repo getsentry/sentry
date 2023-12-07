@@ -3,9 +3,10 @@ from __future__ import annotations
 import heapq
 import logging
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, DefaultDict, Dict, Generator, Iterable, List, Optional, Tuple
 
+from django.db.models import Q
 from django.utils import timezone as django_timezone
 from snuba_sdk import (
     And,
@@ -32,6 +33,7 @@ from sentry.api.endpoints.project_performance_issue_settings import InternalProj
 from sentry.constants import ObjectStatus
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
+from sentry.models.statistical_detectors import RegressionGroup, RegressionType
 from sentry.profiles.utils import get_from_profiling_service
 from sentry.seer.utils import BreakpointData
 from sentry.sentry_metrics import indexer
@@ -286,11 +288,15 @@ def detect_transaction_change_points(
         (projects_by_id[item[0]], item[1]) for item in transactions if item[0] in projects_by_id
     ]
 
-    breakpoint_count = 0
-
     regressions = EndpointRegressionDetector.detect_regressions(
         transaction_pairs, start, "p95(transaction.duration)", TIMESERIES_PER_BATCH
     )
+
+    versioned_regressions = redirect_escalations(regressions, RegressionType.ENDPOINT)
+
+    regressions = save_versioned_regressions(versioned_regressions, RegressionType.ENDPOINT)
+
+    breakpoint_count = 0
 
     for regression in regressions:
         breakpoint_count += 1
@@ -361,12 +367,16 @@ def detect_function_change_points(
         (projects_by_id[item[0]], item[1]) for item in functions_list if item[0] in projects_by_id
     ]
 
-    breakpoint_count = 0
-    emitted_count = 0
-
     regressions = FunctionRegressionDetector.detect_regressions(
         function_pairs, start, "p95()", TIMESERIES_PER_BATCH
     )
+
+    versioned_regressions = redirect_escalations(regressions, RegressionType.FUNCTION)
+
+    regressions = save_versioned_regressions(versioned_regressions, RegressionType.FUNCTION)
+
+    breakpoint_count = 0
+    emitted_count = 0
 
     for regression_chunk in chunked(regressions, 100):
         breakpoint_count += len(regression_chunk)
@@ -389,13 +399,13 @@ def detect_function_change_points(
 
 def emit_function_regression_issue(
     projects_by_id: Dict[int, Project],
-    breakpoints: List[BreakpointData],
+    regressions: List[BreakpointData],
     start: datetime,
 ) -> int:
     start = start - timedelta(hours=1)
     start = start.replace(minute=0, second=0, microsecond=0)
 
-    project_ids = [int(entry["project"]) for entry in breakpoints]
+    project_ids = [int(regression["project"]) for regression in regressions]
     projects = [projects_by_id[project_id] for project_id in project_ids]
 
     params: Dict[str, Any] = {
@@ -408,11 +418,11 @@ def emit_function_regression_issue(
     conditions = [
         And(
             [
-                Condition(Column("project_id"), Op.EQ, int(entry["project"])),
-                Condition(Column("fingerprint"), Op.EQ, int(entry["transaction"])),
+                Condition(Column("project_id"), Op.EQ, int(regression["project"])),
+                Condition(Column("fingerprint"), Op.EQ, int(regression["transaction"])),
             ]
         )
-        for entry in breakpoints
+        for regression in regressions
     ]
 
     result = functions.query(
@@ -420,7 +430,7 @@ def emit_function_regression_issue(
         query="is_application:1",
         params=params,
         orderby=["project.id"],
-        limit=len(breakpoints),
+        limit=len(regressions),
         referrer=Referrer.API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_EXAMPLE.value,
         auto_aggregations=True,
         use_aggregate_conditions=True,
@@ -432,9 +442,9 @@ def emit_function_regression_issue(
 
     payloads = []
 
-    for entry in breakpoints:
-        project_id = int(entry["project"])
-        fingerprint = int(entry["transaction"])
+    for regression in regressions:
+        project_id = int(regression["project"])
+        fingerprint = int(regression["transaction"])
         example = examples.get((project_id, fingerprint))
         if example is None:
             continue
@@ -449,14 +459,14 @@ def emit_function_regression_issue(
                 "project_id": project_id,
                 "profile_id": example,
                 "fingerprint": fingerprint,
-                "absolute_percentage_change": entry["absolute_percentage_change"],
-                "aggregate_range_1": entry["aggregate_range_1"],
-                "aggregate_range_2": entry["aggregate_range_2"],
-                "breakpoint": int(entry["breakpoint"]),
-                "trend_difference": entry["trend_difference"],
-                "trend_percentage": entry["trend_percentage"],
-                "unweighted_p_value": entry["unweighted_p_value"],
-                "unweighted_t_value": entry["unweighted_t_value"],
+                "absolute_percentage_change": regression["absolute_percentage_change"],
+                "aggregate_range_1": regression["aggregate_range_1"],
+                "aggregate_range_2": regression["aggregate_range_2"],
+                "breakpoint": int(regression["breakpoint"]),
+                "trend_difference": regression["trend_difference"],
+                "trend_percentage": regression["trend_percentage"],
+                "unweighted_p_value": regression["unweighted_p_value"],
+                "unweighted_t_value": regression["unweighted_t_value"],
                 "released": True,
             }
         )
@@ -597,8 +607,7 @@ def query_transactions(
         DetectorPayload(
             project_id=row["project_id"],
             group=row["transaction_name"],
-            # take the first 16 chars of the fingerprint as that's sufficiently unique
-            fingerprint=fingerprint_regression(row["transaction_name"])[:16],
+            fingerprint=fingerprint_regression(row["transaction_name"]),
             count=row["count"],
             value=row["p95"],
             timestamp=start,
@@ -906,4 +915,85 @@ def limit_regressions_by_project(
 
     for regressions in regressions_by_project.values():
         for _, regression in regressions:
+            yield regression
+
+
+def get_regression_groups(
+    regression_type: RegressionType, pairs: List[Tuple[int, str]]
+) -> List[RegressionGroup]:
+    conditions = Q()
+    for project_id, fingerprint in pairs:
+        conditions |= Q(project_id=project_id, fingerprint=fingerprint)
+
+    return (
+        RegressionGroup.objects.filter(conditions, type=regression_type.value)
+        .order_by("type", "project_id", "fingerprint", "-version")
+        .distinct("type", "project_id", "fingerprint")
+    )
+
+
+def redirect_escalations(
+    regressions: Generator[BreakpointData, None, None],
+    regression_type: RegressionType,
+    batch_size=100,
+) -> Generator[Tuple[int, BreakpointData], None, None]:
+    for regression_chunk in chunked(regressions, batch_size):
+        existing_regression_groups = {
+            (group.project_id, group.fingerprint): group
+            for group in get_regression_groups(
+                regression_type,
+                [
+                    (
+                        int(regression["project"]),
+                        fingerprint_regression(regression["transaction"]),
+                    )
+                    for regression in regression_chunk
+                ],
+            )
+        }
+
+        for regression in regression_chunk:
+            project_id = int(regression["project"])
+            fingerprint = fingerprint_regression(regression["transaction"])
+            group = existing_regression_groups.get((project_id, fingerprint))
+
+            if group is None:
+                yield 1, regression
+            elif not group.active:
+                yield group.version + 1, regression
+            else:
+                # TODO:
+                # If there is an active regression group, we should check
+                # - if the issue group is still unresolved
+                # - if the issue escalted
+                # then emit an status change message if necessary.
+                pass
+
+
+def save_versioned_regressions(
+    versioned_regressions: Generator[Tuple[int, BreakpointData], None, None],
+    regression_type: RegressionType,
+    batch_size=100,
+) -> Generator[BreakpointData, None, None]:
+
+    for regression_chunk in chunked(versioned_regressions, batch_size):
+        RegressionGroup.objects.bulk_create(
+            [
+                RegressionGroup(
+                    type=regression_type.value,
+                    date_regressed=datetime.utcfromtimestamp(regression["breakpoint"]).replace(
+                        tzinfo=timezone.utc
+                    ),
+                    version=version,
+                    active=True,
+                    project_id=int(regression["project"]),
+                    fingerprint=fingerprint_regression(regression["transaction"]),
+                    baseline=regression["aggregate_range_1"],
+                    regressed=regression["aggregate_range_2"],
+                )
+                for version, regression in regression_chunk
+            ]
+        )
+
+        for _, regression in regression_chunk:
             yield regression

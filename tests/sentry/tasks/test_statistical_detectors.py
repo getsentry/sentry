@@ -8,11 +8,13 @@ from django.db.models import F
 from sentry.api.endpoints.project_performance_issue_settings import InternalProjectOptions
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
+from sentry.models.statistical_detectors import RegressionGroup, RegressionType
 from sentry.seer.utils import BreakpointData
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.discover import zerofill
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.statistical_detectors.detector import DetectorPayload, TrendType
+from sentry.statistical_detectors.issue_platform_adapter import fingerprint_regression
 from sentry.tasks.statistical_detectors import (
     detect_function_change_points,
     detect_function_trends,
@@ -23,6 +25,7 @@ from sentry.tasks.statistical_detectors import (
     query_functions,
     query_transactions,
     query_transactions_timeseries,
+    redirect_escalations,
     run_detection,
 )
 from sentry.testutils.cases import MetricsAPIBaseTestCase, ProfilesSnubaTestCase
@@ -424,6 +427,110 @@ def test_limit_regressions_by_project(ratelimit, timestamp, expected_idx):
     assert set(regressions) == set(expected_regressions)
 
 
+@pytest.mark.parametrize(
+    ["regression_type"],
+    [
+        pytest.param(RegressionType.ENDPOINT, id="endpoint"),
+        pytest.param(RegressionType.FUNCTION, id="function"),
+    ],
+)
+@pytest.mark.parametrize(
+    ["existing", "expected_versions"],
+    [
+        pytest.param([], [1], id="no existing"),
+        pytest.param(
+            [
+                (1, False, "transaction_1"),
+                (2, False, "transaction_1"),
+            ],
+            [3],
+            id="existing inactive",
+        ),
+        pytest.param(
+            [
+                (1, False, "transaction_1"),
+                (2, True, "transaction_1"),
+            ],
+            [None],
+            id="existing active",
+        ),
+        pytest.param(
+            [
+                (1, False, "transaction_1"),
+                (2, False, "transaction_1"),
+                (1, False, "transaction_2"),
+                (2, False, "transaction_2"),
+                (3, False, "transaction_2"),
+                (4, True, "transaction_2"),
+            ],
+            [3, None],
+            id="mixed active and inactive",
+        ),
+        pytest.param(
+            [
+                (1, True, "transaction_1"),
+                (2, False, "transaction_1"),
+            ],
+            [3],
+            id="use latest version",
+        ),
+    ],
+)
+@django_db_all
+def test_redirect_escalations(
+    regression_type,
+    existing,
+    expected_versions,
+    project,
+    timestamp,
+):
+    if existing:
+        RegressionGroup.objects.bulk_create(
+            RegressionGroup(
+                type=regression_type.value,
+                date_regressed=timestamp,
+                version=version,
+                active=active,
+                project_id=project.id,
+                fingerprint=fingerprint_regression(transaction),
+                baseline=100000000.0,
+                regressed=500000000.0,
+            )
+            for version, active, transaction in existing
+        )
+
+    breakpoints: List[BreakpointData] = [
+        {
+            "absolute_percentage_change": 5.0,
+            "aggregate_range_1": 100000000.0,
+            "aggregate_range_2": 500000000.0,
+            "breakpoint": 1687323600,
+            "project": str(project.id),
+            "transaction": "transaction_1",
+            "trend_difference": 400000000.0,
+            "trend_percentage": 5.0,
+            "unweighted_p_value": 0.0,
+            "unweighted_t_value": -float("inf"),
+        }
+    ]
+
+    def mock_regressions():
+        yield from breakpoints
+
+    regressions = list(
+        redirect_escalations(
+            mock_regressions(),
+            regression_type,
+        )
+    )
+
+    assert regressions == [
+        (expected_version, breakpoints[i])
+        for i, expected_version in enumerate(expected_versions)
+        if expected_version is not None
+    ]
+
+
 @mock.patch("sentry.tasks.statistical_detectors.query_functions")
 @mock.patch("sentry.tasks.statistical_detectors.detect_function_change_points")
 @django_db_all
@@ -676,7 +783,7 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
         mock_value.data = b'{"occurrences":5}'
         mock_get_from_profiling_service.return_value = mock_value
 
-        breakpoints: List[BreakpointData] = [
+        regressions: List[BreakpointData] = [
             {
                 "project": str(project.id),
                 "transaction": str(
@@ -694,7 +801,7 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
             for project in self.projects
         ]
         emitted = emit_function_regression_issue(
-            {project.id: project for project in self.projects}, breakpoints, self.now
+            {project.id: project for project in self.projects}, regressions, self.now
         )
         assert emitted == 5
 

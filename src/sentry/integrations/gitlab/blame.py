@@ -62,7 +62,7 @@ def fetch_file_blames(
                 and rate_limit_info.remaining < (MINIMUM_REQUESTS - len(files))
             ):
                 metrics.incr("integrations.gitlab.get_blame_for_files.rate_limit")
-                logger.exception(
+                logger.error(
                     "get_blame_for_files.rate_limit_too_low",
                     extra={
                         **extra,

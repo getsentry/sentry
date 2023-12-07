@@ -224,6 +224,7 @@ export default function PageOverview() {
                     setState({...state, webVital});
                   }}
                   transaction={transaction}
+                  showTooltip={false}
                 />
               </WebVitalMetersContainer>
               <PageSamplePerformanceTableContainer>

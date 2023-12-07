@@ -180,7 +180,7 @@ def stacktrace_buckets(stacktraces: List[str]) -> Dict[str, List[FrameFilename]]
             buckets[bucket_key].append(frame_filename)
 
         except UnsupportedFrameFilename:
-            logger.info(f"Frame's filepath not supported: {stacktrace_frame_file_path}")
+            logger.info("Frame's filepath not supported: %s", stacktrace_frame_file_path)
         except Exception:
             logger.exception("Unable to split stacktrace path into buckets")
 
@@ -244,11 +244,11 @@ class CodeMappingTreesHelper:
                 logger.exception("Unexpected error. Processing continues.")
 
         if len(_code_mappings) == 0:
-            logger.warning(f"No files matched for {frame_filename.full_path}")
+            logger.warning("No files matched for %s", frame_filename.full_path)
             return None
         # This means that the file has been found in more than one repo
         elif len(_code_mappings) > 1:
-            logger.warning(f"More than one repo matched {frame_filename.full_path}")
+            logger.warning("More than one repo matched %s", frame_filename.full_path)
             return None
 
         return _code_mappings[0]
@@ -415,11 +415,15 @@ def create_code_mapping(
 
     if created:
         logger.info(
-            f"Created a code mapping for {project.slug=}, stack root: {code_mapping.stacktrace_root}"
+            "Created a code mapping for project.slug=%s, stack root: %s",
+            project.slug,
+            code_mapping.stacktrace_root,
         )
     else:
         logger.info(
-            f"Updated existing code mapping for {project.slug=}, stack root: {code_mapping.stacktrace_root}"
+            "Updated existing code mapping for project.slug=%s, stack root: %s",
+            project.slug,
+            code_mapping.stacktrace_root,
         )
 
     return new_code_mapping

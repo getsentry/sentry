@@ -64,7 +64,7 @@ export function WebVitalDetailHeader({score, value, webVital}: Props) {
   return (
     <Header>
       <span>
-        <WebVitalName>{`${WEB_VITAL_FULL_NAME_MAP[webVital]} (P75)`}</WebVitalName>
+        <WebVitalName>{`${WEB_VITAL_FULL_NAME_MAP[webVital]} (AVG)`}</WebVitalName>
         <Value>{value}</Value>
       </span>
       <ProgressRing
