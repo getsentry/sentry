@@ -77,7 +77,6 @@ class MonitorEnvironmentValidationFailed(Exception):
 
 class MonitorObjectStatus:
     ACTIVE = 0
-    DISABLED = 1
     MUTED = 1
     PENDING_DELETION = 2
     DELETION_IN_PROGRESS = 3
@@ -86,8 +85,6 @@ class MonitorObjectStatus:
     def as_choices(cls) -> Sequence[Tuple[int, str]]:
         return (
             (cls.ACTIVE, "active"),
-            # TODO(epurkhiser): Remove once we're only using muted on the frontend
-            (cls.MUTED, "disabled"),
             (cls.MUTED, "muted"),
             (cls.PENDING_DELETION, "pending_deletion"),
             (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
