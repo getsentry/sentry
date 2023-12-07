@@ -363,6 +363,10 @@ def _get_cache_key(project_id: int, group_id: int, first: bool) -> str:
 
 
 class ReleaseModelManager(BaseManager["Release"]):
+    def create(self, **kwargs):
+        metrics.incr("release.create")
+        super().create(**kwargs)
+
     def get_queryset(self):
         return ReleaseQuerySet(self.model, using=self._db)
 
@@ -1291,7 +1295,6 @@ def follows_semver_versioning_scheme(org_id, project_id, release_version=None):
     follows_semver = cache.get(cache_key)
 
     if follows_semver is None:
-
         # Check if the latest ten releases are semver compliant
         releases_list = list(
             Release.objects.filter(organization_id=org_id, projects__id__in=[project_id])
