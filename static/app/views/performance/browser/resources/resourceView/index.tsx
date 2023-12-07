@@ -9,7 +9,7 @@ import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
-import ResourceTable from 'sentry/views/performance/browser/resources/jsCssView/resourceTable';
+import ResourceTable from 'sentry/views/performance/browser/resources/resourceView/resourceTable';
 import {
   FONT_FILE_EXTENSIONS,
   IMAGE_FILE_EXTENSIONS,
@@ -47,7 +47,7 @@ type Option = {
   value: string;
 };
 
-function JSCSSView() {
+function ResourceView() {
   const filters = useResourceModuleFilters();
   const sort = useResourceSort();
 
@@ -207,4 +207,4 @@ export const FilterOptionsContainer = styled('div')<{columnCount: number}>`
   max-width: 800px;
 `;
 
-export default JSCSSView;
+export default ResourceView;

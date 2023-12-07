@@ -8,7 +8,7 @@ import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import ResourceTable from 'sentry/views/performance/browser/resources/imageView/resourceTable';
 import {useImageResourceSort} from 'sentry/views/performance/browser/resources/imageView/utils/useImageResourceSort';
-import {FilterOptionsContainer} from 'sentry/views/performance/browser/resources/jsCssView';
+import {FilterOptionsContainer} from 'sentry/views/performance/browser/resources/resourceView';
 import DomainSelector from 'sentry/views/performance/browser/resources/shared/domainSelector';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
