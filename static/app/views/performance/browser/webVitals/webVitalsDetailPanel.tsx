@@ -63,17 +63,27 @@ export function WebVitalsDetailPanel({
   const location = useLocation();
 
   const {data: projectData} = useProjectRawWebVitalsQuery({});
-  const {data: projectScoreData} = useProjectWebVitalsScoresQuery({
+  const {data: projectScoresData} = useProjectWebVitalsScoresQuery({
     enabled: USE_STORED_SCORES,
+    weightWebVital: webVital ?? 'total',
   });
 
   const projectScore = USE_STORED_SCORES
-    ? calculatePerformanceScoreFromStoredTableDataRow(projectScoreData?.data?.[0])
+    ? calculatePerformanceScoreFromStoredTableDataRow(projectScoresData?.data?.[0])
     : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
 
   const {data, isLoading} = useTransactionWebVitalsQuery({
-    orderBy: webVital,
     limit: 100,
+    opportunityWebVital: webVital ?? 'total',
+    ...(USE_STORED_SCORES && webVital
+      ? {
+          defaultSort: {
+            field: `opportunity_score(measurements.score.${webVital})`,
+            kind: 'desc',
+          },
+        }
+      : {}),
+    enabled: webVital !== null,
   });
 
   const dataByOpportunity = useMemo(() => {
@@ -81,18 +91,22 @@ export function WebVitalsDetailPanel({
       return [];
     }
     const count = projectData?.data?.[0]?.['count()'] as number;
+    const sumWeights = projectScoresData?.data?.[0]?.[
+      `sum(measurements.score.weight.${webVital})`
+    ] as number;
     return data
       .map(row => ({
         ...row,
-        opportunity:
-          count !== undefined
-            ? calculateOpportunity(
-                projectScore[`${webVital}Score`],
-                count,
-                row[`${webVital}Score`],
-                row['count()']
-              )
-            : undefined,
+        opportunity: USE_STORED_SCORES
+          ? Math.round(((row.opportunity ?? 0) * 100 * 100) / sumWeights) / 100
+          : count !== undefined
+          ? calculateOpportunity(
+              projectScore[`${webVital}Score`],
+              count,
+              row[`${webVital}Score`],
+              row['count()']
+            )
+          : undefined,
       }))
       .sort((a, b) => {
         if (a.opportunity === undefined) {
@@ -104,7 +118,7 @@ export function WebVitalsDetailPanel({
         return b.opportunity - a.opportunity;
       })
       .slice(0, MAX_ROWS);
-  }, [data, projectData?.data, projectScore, webVital]);
+  }, [data, projectData?.data, projectScore, projectScoresData?.data, webVital]);
 
   const {data: timeseriesData, isLoading: isTimeseriesLoading} =
     useProjectRawWebVitalsValuesTimeseriesQuery({});

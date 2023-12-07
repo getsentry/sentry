@@ -1,4 +1,5 @@
 import {Sort} from 'sentry/utils/discover/fields';
+import {USE_STORED_SCORES} from 'sentry/views/performance/browser/webVitals/settings';
 
 export type Row = {
   'avg(measurements.cls)': number;
@@ -11,7 +12,6 @@ export type Row = {
 };
 
 export type TransactionSampleRow = {
-  browser: string;
   id: string;
   'measurements.cls': number | null;
   'measurements.fcp': number | null;
@@ -24,7 +24,6 @@ export type TransactionSampleRow = {
   timestamp: string;
   transaction: string;
   'transaction.duration': number | null;
-  'transaction.op': string;
   'user.display': string;
 };
 
@@ -35,6 +34,7 @@ export type Score = {
   lcpScore: number;
   score: number;
   ttfbScore: number;
+  opportunity?: number;
 };
 
 export type RowWithScore = Row & Score;
@@ -43,6 +43,7 @@ export type TransactionSampleRowWithScore = TransactionSampleRow & Score;
 
 export type WebVitals = 'lcp' | 'fcp' | 'cls' | 'ttfb' | 'fid';
 
+// TODO: These arrays have conditional elements that need to be refactored once stored scores are GA'd
 export const SORTABLE_FIELDS = [
   'count()',
   'avg(measurements.cls)',
@@ -50,7 +51,14 @@ export const SORTABLE_FIELDS = [
   'avg(measurements.fid)',
   'avg(measurements.lcp)',
   'avg(measurements.ttfb)',
-  'avg(measurements.score.total)',
+  ...(USE_STORED_SCORES
+    ? [
+        'score',
+        'opportunity',
+        'avg(measurements.score.total)',
+        'opportunity_score(measurements.score.total)',
+      ]
+    : []),
 ] as const;
 
 export const SORTABLE_INDEXED_FIELDS = [
@@ -59,6 +67,7 @@ export const SORTABLE_INDEXED_FIELDS = [
   'measurements.cls',
   'measurements.ttfb',
   'measurements.fid',
+  ...(USE_STORED_SCORES ? ['score', 'measurements.score.total'] : []),
 ] as const;
 
 export const DEFAULT_SORT: Sort = {

@@ -6,8 +6,9 @@ import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types'
 
 type Props = {
   defaultSort?: Sort;
+  enabled?: boolean;
   limit?: number;
-  orderBy?: WebVitals | null;
+  opportunityWebVital?: WebVitals | 'total';
   sortName?: string;
   transaction?: string | null;
 };
@@ -17,20 +18,23 @@ export const useTransactionWebVitalsQuery = ({
   transaction,
   defaultSort,
   sortName = 'sort',
+  opportunityWebVital,
+  enabled,
 }: Props) => {
   const storedScoresResult = useTransactionWebVitalsScoresQuery({
     limit,
     transaction,
     defaultSort,
     sortName,
-    enabled: USE_STORED_SCORES,
+    enabled: enabled && USE_STORED_SCORES,
+    opportunityWebVital,
   });
   const rawWebVitalsResult = useTransactionRawWebVitalsQuery({
     limit,
     transaction,
     defaultSort,
     sortName,
-    enabled: !USE_STORED_SCORES,
+    enabled: enabled && !USE_STORED_SCORES,
   });
   if (USE_STORED_SCORES) {
     return storedScoresResult;
