@@ -229,14 +229,13 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           {platform: currentPlatform?.name || currentProject.slug}
         )}
       </IntroText>
-      {newOnboarding ? (
+      {newOnboarding && migrated.includes(currentPlatform.id) ? (
         <SdkDocumentation
           platform={currentPlatform}
           organization={organization}
           projectSlug={currentProject.slug}
           projectId={currentProject.id}
           activeProductSelection={[]}
-          isOldReplayOnboarding={!migrated.includes(currentPlatform.id)}
           isReplayOnboarding
         />
       ) : (

@@ -21,7 +21,6 @@ type SdkDocumentationProps = {
   platform: PlatformIntegration;
   projectId: Project['id'];
   projectSlug: Project['slug'];
-  isOldReplayOnboarding?: boolean;
   isReplayOnboarding?: boolean;
   newOrg?: boolean;
 };
@@ -51,7 +50,6 @@ export function SdkDocumentation({
   newOrg,
   organization,
   projectId,
-  isOldReplayOnboarding,
   isReplayOnboarding,
 }: SdkDocumentationProps) {
   const sourcePackageRegistries = useSourcePackageRegistries(organization);
@@ -101,22 +99,17 @@ export function SdkDocumentation({
 
   useEffect(() => {
     async function getGettingStartedDoc() {
-      const mod = isOldReplayOnboarding
-        ? await import(
-            /* webpackExclude: /.spec/ */
-            `sentry/gettingStartedDocs/replay-onboarding/${platformPath}`
-          )
-        : await import(
-            /* webpackExclude: /.spec/ */
-            `sentry/gettingStartedDocs/${platformPath}`
-          );
+      const mod = await import(
+        /* webpackExclude: /.spec/ */
+        `sentry/gettingStartedDocs/${platformPath}`
+      );
       setModule(mod);
     }
     getGettingStartedDoc();
     return () => {
       setModule(null);
     };
-  }, [platformPath, isOldReplayOnboarding]);
+  }, [platformPath]);
 
   if (!module || projectKeysIsLoading) {
     return <LoadingIndicator />;

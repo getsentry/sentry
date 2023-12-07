@@ -12,13 +12,7 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getSdkSetupSnippet = ({
-  params,
-  isReplayOnboarding = false,
-}: {
-  params: Params;
-  isReplayOnboarding?: boolean;
-}) => `
+const getSdkSetupSnippet = (params: Params) => `
 //...
 import * as Sentry from "@sentry/react";
 
@@ -33,7 +27,7 @@ Sentry.init({
         }),`
       : ''
   }${
-    params.isReplaySelected || isReplayOnboarding
+    params.isReplaySelected
       ? `
         new Sentry.Replay(),`
       : ''
@@ -45,7 +39,7 @@ Sentry.init({
       tracesSampleRate: 1.0, //  Capture 100% of the transactions`
     : ''
 }${
-  params.isReplaySelected || isReplayOnboarding
+  params.isReplaySelected
     ? `
       // Session Replay
       replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
@@ -110,7 +104,7 @@ const onboarding: OnboardingConfig = {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              code: getSdkSetupSnippet({params}),
+              code: getSdkSetupSnippet(params),
             },
           ],
         },
@@ -202,7 +196,7 @@ const replayOnboarding: OnboardingConfig = {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              code: getSdkSetupSnippet({params, isReplayOnboarding: true}),
+              code: getSdkSetupSnippet({...params, isReplaySelected: true}),
             },
           ],
         },
