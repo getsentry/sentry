@@ -466,9 +466,8 @@ def _convert_aggregate_and_query_to_metric(
             "on_demand_metrics.invalid_metric_spec",
             tags={"prefilling": prefilling},
         )
-        logger.error(
+        logger.exception(
             "Invalid on-demand metric spec",
-            exc_info=True,
             extra={
                 "dataset": dataset,
                 "aggregate": aggregate,
@@ -482,7 +481,7 @@ def _convert_aggregate_and_query_to_metric(
         # Since prefilling might include several non-ondemand-compatible alerts, we want to not trigger errors in the
         # Sentry console.
         if not prefilling:
-            logger.error(e, exc_info=True)
+            logger.exception(str(e))
 
         return None
 
