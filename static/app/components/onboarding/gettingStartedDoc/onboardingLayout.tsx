@@ -7,7 +7,11 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {Docs, DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  ConfigType,
+  Docs,
+  DocsParams,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {
   PlatformOptionsControl,
@@ -28,13 +32,13 @@ const ProductSelectionAvailabilityHook = HookOrDefault({
 });
 
 export type OnboardingLayoutProps = {
+  configType: ConfigType;
   docsConfig: Docs<any>;
   dsn: string;
   platformKey: PlatformKey;
   projectId: Project['id'];
   projectSlug: Project['slug'];
   activeProductSelection?: ProductSolution[];
-  isReplayOnboarding?: boolean;
   newOrg?: boolean;
 };
 
@@ -48,7 +52,7 @@ export function OnboardingLayout({
   projectSlug,
   activeProductSelection = EMPTY_ARRAY,
   newOrg,
-  isReplayOnboarding,
+  configType = 'onboarding',
 }: OnboardingLayoutProps) {
   const organization = useOrganization();
   const {isLoading: isLoadingRegistry, data: registryData} =
@@ -58,8 +62,7 @@ export function OnboardingLayout({
   const {platformOptions} = docsConfig;
 
   const {introduction, steps, nextSteps} = useMemo(() => {
-    const {onboarding, replayOnboarding} = docsConfig;
-    const doc = isReplayOnboarding && replayOnboarding ? replayOnboarding : onboarding;
+    const doc = docsConfig[configType] ?? docsConfig.onboarding;
 
     const docParams: DocsParams<any> = {
       dsn,
@@ -101,7 +104,7 @@ export function OnboardingLayout({
     projectSlug,
     registryData,
     selectedOptions,
-    isReplayOnboarding,
+    configType,
   ]);
 
   return (
@@ -109,7 +112,7 @@ export function OnboardingLayout({
       <Wrapper>
         <Header>
           {introduction && <div>{introduction}</div>}
-          {!isReplayOnboarding && (
+          {configType === 'onboarding' && (
             <ProductSelectionAvailabilityHook
               organization={organization}
               platform={platformKey}

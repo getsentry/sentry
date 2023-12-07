@@ -236,7 +236,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           projectSlug={currentProject.slug}
           projectId={currentProject.id}
           activeProductSelection={[]}
-          isReplayOnboarding
+          configType="replayOnboarding"
         />
       ) : (
         docKeys.map((docKey, index) => {

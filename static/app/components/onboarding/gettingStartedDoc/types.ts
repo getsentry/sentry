@@ -73,3 +73,5 @@ export interface Docs<PlatformOptions extends BasePlatformOptions = BasePlatform
   platformOptions?: PlatformOptions;
   replayOnboarding?: OnboardingConfig<PlatformOptions>;
 }
+
+export type ConfigType = 'onboarding' | 'replayOnboarding';
