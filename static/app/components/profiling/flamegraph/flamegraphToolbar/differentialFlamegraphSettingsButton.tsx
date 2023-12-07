@@ -9,7 +9,14 @@ import {t} from 'sentry/locale';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 
-export function DifferentialFlamegraphSettingsButton() {
+interface DifferentialFlamegraphSettingsButtonProps {
+  frameFilter: 'application' | 'system' | 'all';
+  onFrameFilterChange: (type: 'application' | 'system' | 'all') => void;
+}
+
+export function DifferentialFlamegraphSettingsButton(
+  props: DifferentialFlamegraphSettingsButtonProps
+) {
   const [buttonRef, setButtonRef] = useState<HTMLElement | null>(null);
   const [dropdownRef, setDropdownRef] = useState<HTMLElement | null>(null);
 
@@ -47,7 +54,12 @@ export function DifferentialFlamegraphSettingsButton() {
               style={popper.styles.popper}
               {...popper.attributes.popper}
             >
-              <DifferentialFlamegraphMenu onClose={onClose} contextMenu={contextMenu} />
+              <DifferentialFlamegraphMenu
+                onClose={onClose}
+                contextMenu={contextMenu}
+                frameFilter={props.frameFilter}
+                onFrameFilterChange={props.onFrameFilterChange}
+              />
             </div>,
             document.body
           )
