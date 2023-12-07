@@ -27,7 +27,7 @@ class PluginRequestParser(BaseRequestParser):
         organization_id = self.match.kwargs.get("organization_id")
         logging_extra: dict[str, Any] = {"path": self.request.path}
         if not organization_id:
-            logger.info("%sno_organization_id", self.provider, extra=logging_extra)
+            logger.info("%s.no_organization_id", self.provider, extra=logging_extra)
             return self.get_response_from_control_silo()
 
         try:
