@@ -12,7 +12,7 @@ interface Props {
 
 export default function MailboxPicker({onChange, value}: Props) {
   return (
-    <Flex justify="flex-end" style={{flexGrow: 1}}>
+    <Flex justify="flex-end" flex="1 0 auto">
       <SegmentedControl
         size="xs"
         aria-label={t('Filter feedbacks')}
