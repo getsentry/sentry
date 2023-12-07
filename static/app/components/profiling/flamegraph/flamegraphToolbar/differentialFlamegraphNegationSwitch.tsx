@@ -1,25 +1,34 @@
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 
 interface DifferentialFlamegraphNegationSwitchProps {
-  onSourceChange: (source: 'before' | 'after') => void;
-  source: 'before' | 'after';
+  negated: boolean;
+  onNegatedChange: (negated: boolean) => void;
 }
 export function DifferentialFlamegraphNegationSwitch(
   props: DifferentialFlamegraphNegationSwitchProps
 ) {
+  const onNegatedChange = props.onNegatedChange;
+  const onWrapChange = useCallback(
+    (value: 'negated' | 'regular') => {
+      onNegatedChange(value === 'negated');
+    },
+    [onNegatedChange]
+  );
+
   return (
     <DifferentialFlamegraphNegationSwitchContainer>
       <SegmentedControl
         aria-label={t('View')}
         size="xs"
-        value={props.source}
-        onChange={props.onSourceChange}
+        value={props.negated ? 'negated' : 'regular'}
+        onChange={onWrapChange}
       >
-        <SegmentedControl.Item key="before">{t('Before → After')}</SegmentedControl.Item>
-        <SegmentedControl.Item key="after">{t('After → Before')}</SegmentedControl.Item>
+        <SegmentedControl.Item key="negated">{t('Before → After')}</SegmentedControl.Item>
+        <SegmentedControl.Item key="regular">{t('After → Before')}</SegmentedControl.Item>
       </SegmentedControl>
     </DifferentialFlamegraphNegationSwitchContainer>
   );
