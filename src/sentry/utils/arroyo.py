@@ -6,9 +6,7 @@ import pickle
 from functools import lru_cache, partial
 from typing import Any, Callable, Mapping, Optional, Union
 
-from arroyo.processing.strategies.run_task_with_multiprocessing import (
-    MultiprocessingPool as ArroyoMultiprocessingPool,
-)
+from arroyo.processing.strategies.run_task_with_multiprocessing import MultiprocessingPool
 from arroyo.processing.strategies.run_task_with_multiprocessing import (
     RunTaskWithMultiprocessing as ArroyoRunTaskWithMultiprocessing,
 )
@@ -133,40 +131,20 @@ def initialize_arroyo_main() -> None:
     configure_metrics(metrics_wrapper)
 
 
-class ReusableMultiprocessingPool(ArroyoMultiprocessingPool):
-    """
-    A variant of arroyo's MultiprocessingPool that initializes Sentry for you, and
-    ensures global metric tags in the subprocess are inherited from the main process.
-
-    Also auto-closes the pool when it receives the exit signal.
-
-    Since the pool is only closed in the exit handler, a single instance of this class
-    should be used across all consumer rebalances - that is, it must not be recreated
-    by the strategy factory on every rebalance.
-    """
-
-    def __init__(
-        self,
-        num_processes: int,
-        initializer: Optional[Callable[[], None]] = None,
-    ) -> None:
-        atexit.register(self._shutdown)
-
-        super().__init__(
-            num_processes=num_processes, initializer=_get_arroyo_subprocess_initializer(initializer)
-        )
-
-    def _shutdown(self) -> None:
-        logger.info("Shutting down multiprocessing pool")
-        super().close()
-
-
 @lru_cache(maxsize=None)
 def get_reusable_multiprocessing_pool(
     num_processes: int,
     initializer: Optional[Callable[[], None]] = None,
-) -> ReusableMultiprocessingPool:
-    return ReusableMultiprocessingPool(num_processes, initializer=initializer)
+) -> MultiprocessingPool:
+    pool = MultiprocessingPool(num_processes, initializer=initializer)
+
+    def shutdown() -> None:
+        logger.info("Shutting down multiprocessing pool")
+        pool.close()
+
+    atexit.register(shutdown)
+
+    return pool
 
 
 class RunTaskWithMultiprocessing(ArroyoRunTaskWithMultiprocessing[TStrategyPayload, TResult]):
@@ -179,8 +157,7 @@ class RunTaskWithMultiprocessing(ArroyoRunTaskWithMultiprocessing[TStrategyPaylo
     def __new__(
         cls,
         *,
-        # Either ArroyoMultiprocessingPool or ReusableMultiprocessingPool can be passed here
-        pool: ArroyoMultiprocessingPool,
+        pool: MultiprocessingPool,
         **kwargs: Any,
     ) -> RunTaskWithMultiprocessing:
         from django.conf import settings
