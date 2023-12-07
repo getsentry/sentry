@@ -2136,14 +2136,14 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
                 is_new_group_environment=False,
                 event=event,
             )
-        mock_threshold.assert_called()
+        mock_threshold.assert_called()  # ensures we escalate from the new logic
         job = mock_run_post_process_job.call_args[0][0]
         assert job["has_escalated"]
         group.refresh_from_db()
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.ESCALATING
 
-    @patch("sentry.issues.issue_velocity.get_latest_threshold")
+    @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=1)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
     def test_has_escalated_archived_old(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
@@ -2167,7 +2167,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         assert group.status == GroupStatus.IGNORED
         assert group.substatus == GroupSubStatus.UNTIL_ESCALATING
 
-    @patch("sentry.issues.issue_velocity.get_latest_threshold")
+    @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=1)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
     def test_has_escalated_ignored_not_archived(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
