@@ -1515,14 +1515,95 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:escalating-issues-v2": False,
     # Enable emiting escalating data to the metrics backend
     "organizations:escalating-metrics-backend": False,
-    # Enable querying Snuba to get the EventUser
-    "organizations:eventuser-from-snuba": True,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
+    # Enable querying Snuba to get the EventUser
+    "organizations:eventuser-from-snuba": True,
     # Enable the frontend to request from region & control silo domains.
     "organizations:frontend-domainsplit": False,
+    # Enable disabling gitlab integrations when broken is detected
+    "organizations:gitlab-disable-on-broken": False,
+    # Enable multi project selection
+    "organizations:global-views": False,
+    # Enable grouping of ChunkLoadErrors
+    "organizations:group-chunk-load-errors": False,
+    # Enable experimental new version of stacktrace component where additional
+    # data related to grouping is shown on each frame
+    "organizations:grouping-stacktrace-ui": False,
+    # Enable tweaks to group title in relation to hierarchical grouping.
+    "organizations:grouping-title-ui": False,
+    # Enable experimental new version of Merged Issues where sub-hashes are shown
+    "organizations:grouping-tree-ui": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
+    # Enable incidents feature
+    "organizations:incidents": False,
+    # Enable integration functionality to work with alert rules
+    "organizations:integrations-alert-rule": True,
+    # Enable integration functionality to work with alert rules (specifically chat integrations)
+    "organizations:integrations-chat-unfurl": True,
+    # Enable the API to importing CODEOWNERS for a project
+    "organizations:integrations-codeowners": False,
+    # Enable integration functionality to work deployment integrations like Vercel
+    "organizations:integrations-deployment": True,
+    # Enable integration functionality to work with enterprise alert rules
+    "organizations:integrations-enterprise-alert-rule": True,
+    # Enable integration functionality to work with enterprise alert rules (specifically incident
+    # management integrations)
+    "organizations:integrations-enterprise-incident-management": True,
+    # Enable interface functionality to receive event hooks.
+    "organizations:integrations-event-hooks": True,
+    # Enables inviting new members based on GitHub commit activity.
+    "organizations:integrations-gh-invite": False,
+    # Enable integration functionality to work with alert rules (specifically incident
+    # management integrations)
+    "organizations:integrations-incident-management": True,
+    # Enable inviting members to organizations.
+    "organizations:invite-members": True,
+    # Enable rate limits for inviting members.
+    "organizations:invite-members-rate-limits": True,
+    # Enable integration functionality to create and link groups to issues on
+    # external services.
+    "organizations:integrations-issue-basic": True,
+    # Enable interface functionality to synchronize groups between sentry and
+    # issues on external services.
+    "organizations:integrations-issue-sync": True,
+    # Enable comments of related issues on open PRs
+    "organizations:integrations-open-pr-comment": False,
+    # Enable Opsgenie integration
+    "organizations:integrations-opsgenie": True,
+    # Enable one-click migration from Opsgenie plugin
+    "organizations:integrations-opsgenie-migration": False,
+    # Enable stacktrace linking
+    "organizations:integrations-stacktrace-link": True,
+    # Allow orgs to automatically create Tickets in Issue Alerts
+    "organizations:integrations-ticket-rules": True,
+    # Enable new issue alert "issue owners" fallback
+    "organizations:issue-alert-fallback-targeting": False,
+    # Enable experimental replay-issue rendering on Issue Details page
+    "organizations:issue-details-replay-event": False,
+    # Enables syntax highlighting in the stack trace
+    "organizations:issue-details-stacktrace-syntax-highlighting": False,
+    # Enable issue platform
+    "organizations:issue-platform": False,
+    # Enable issue platform status change API for crons and SD issues
+    "organizations:issue-platform-api-crons-sd": False,
+    # Enable issue platform feature changes for crons and SD issues
+    "organizations:issue-platform-crons-sd": False,
+    # Enable additional logging for issue platform
+    "organizations:issue-platform-extra-logging": False,
+    # Whether to allow issue only search on the issue list
+    "organizations:issue-search-allow-postgres-only-search": False,
+    # Whether to make a side/parallel query against events -> group_attributes when searching issues
+    "organizations:issue-search-group-attributes-side-query": False,
+    # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
+    # sentry at the moment.
+    "organizations:issue-search-use-cdc-primary": False,
+    "organizations:issue-search-use-cdc-secondary": False,
+    # Enable issue stream performance improvements
+    "organizations:issue-stream-performance": False,
+    # Enable issue stream performance improvements (cache)
+    "organizations:issue-stream-performance-cache": False,
     # Enable Monitors (Crons) view
     "organizations:monitors": False,
     # Enable Performance view
@@ -1557,46 +1638,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:profiling-statistical-detectors-ema": False,
     # Enable profiling statistical detectors breakpoint detection
     "organizations:profiling-statistical-detectors-breakpoint": False,
-    # Enable disabling gitlab integrations when broken is detected
-    "organizations:gitlab-disable-on-broken": False,
-    # Enable multi project selection
-    "organizations:global-views": False,
-    # Enable grouping of ChunkLoadErrors
-    "organizations:group-chunk-load-errors": False,
-    # Enable experimental new version of Merged Issues where sub-hashes are shown
-    "organizations:grouping-tree-ui": False,
-    # Enable experimental new version of stacktrace component where additional
-    # data related to grouping is shown on each frame
-    "organizations:grouping-stacktrace-ui": False,
-    # Enable tweaks to group title in relation to hierarchical
-    # grouping.
-    "organizations:grouping-title-ui": False,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
-    # Enable incidents feature
-    "organizations:incidents": False,
-    # Enables syntax highlighting in the stack trace
-    "organizations:issue-details-stacktrace-syntax-highlighting": False,
-    # Enable issue platform
-    "organizations:issue-platform": False,
-    # Enable additional logging for issue platform
-    "organizations:issue-platform-extra-logging": False,
-    # Enable issue platform status change API for crons and SD issues
-    "organizations:issue-platform-api-crons-sd": False,
-    # Enable issue platform feature changes for crons and SD issues
-    "organizations:issue-platform-crons-sd": False,
-    # Whether to allow issue only search on the issue list
-    "organizations:issue-search-allow-postgres-only-search": False,
-    # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
-    # sentry at the moment.
-    "organizations:issue-search-use-cdc-primary": False,
-    "organizations:issue-search-use-cdc-secondary": False,
-    # Whether to make a side/parallel query against events -> group_attributes when searching issues
-    "organizations:issue-search-group-attributes-side-query": False,
-    # Enable issue stream performance improvements
-    "organizations:issue-stream-performance": False,
-    # Enable issue stream performance improvements (cache)
-    "organizations:issue-stream-performance-cache": False,
     # Enable metric alert charts in email/slack
     "organizations:metric-alert-chartcuterie": False,
     # Extract metrics for sessions during ingestion.
@@ -1633,54 +1676,10 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:metric-alert-ignore-archived": False,
     # Enable threshold period in metric alert rule builder
     "organizations:metric-alert-threshold-period": False,
-    # Enable integration functionality to create and link groups to issues on
-    # external services.
-    "organizations:integrations-issue-basic": True,
-    # Enable interface functionality to synchronize groups between sentry and
-    # issues on external services.
-    "organizations:integrations-issue-sync": True,
-    # Enable integration functionality to work with enterprise alert rules
-    "organizations:integrations-enterprise-alert-rule": True,
-    # Enable integration functionality to work with enterprise alert rules (specifically incident
-    # management integrations)
-    "organizations:integrations-enterprise-incident-management": True,
-    # Enable interface functionality to receive event hooks.
-    "organizations:integrations-event-hooks": True,
-    # Enable integration functionality to work with alert rules
-    "organizations:integrations-alert-rule": True,
-    # Enable integration functionality to work with alert rules (specifically chat integrations)
-    "organizations:integrations-chat-unfurl": True,
-    # Enable integration functionality to work with alert rules (specifically incident
-    # management integrations)
-    "organizations:integrations-incident-management": True,
-    # Enable integration functionality to work deployment integrations like Vercel
-    "organizations:integrations-deployment": True,
-    # Allow orgs to automatically create Tickets in Issue Alerts
-    "organizations:integrations-ticket-rules": True,
-    # Enable Opsgenie integration
-    "organizations:integrations-opsgenie": True,
-    # Enable one-click migration from Opsgenie plugin
-    "organizations:integrations-opsgenie-migration": False,
-    # Enable stacktrace linking
-    "organizations:integrations-stacktrace-link": True,
     # Limit project events endpoint to only query back a certain number of days
     "organizations:project-event-date-limit": False,
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
-    # Enables inviting new members based on GitHub commit activity.
-    "organizations:integrations-gh-invite": False,
-    # Enable the API to importing CODEOWNERS for a project
-    "organizations:integrations-codeowners": False,
-    # Enable comments of related issues on open PRs
-    "organizations:integrations-open-pr-comment": False,
-    # Enable inviting members to organizations.
-    "organizations:invite-members": True,
-    # Enable rate limits for inviting members.
-    "organizations:invite-members-rate-limits": True,
-    # Enable new issue alert "issue owners" fallback
-    "organizations:issue-alert-fallback-targeting": False,
-    # Enable experimental replay-issue rendering on Issue Details page
-    "organizations:issue-details-replay-event": False,
     # Adds the ttid & ttfd vitals to the frontend
     "organizations:mobile-vitals": False,
     # Display CPU and memory metrics in transactions with profiles
