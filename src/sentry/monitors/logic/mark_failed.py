@@ -124,8 +124,8 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
                 .values("id", "date_added", "status")[:failure_issue_threshold]
             )
         )
-        # check for successive failed previous check-ins
-        if not all([checkin["status"] != CheckInStatus.OK for checkin in previous_checkins]):
+        # If any checkin was successful quit early.
+        if any([checkin["status"] == CheckInStatus.OK for checkin in previous_checkins]):
             return False
 
         # change monitor status + update fingerprint timestamp
