@@ -164,7 +164,9 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
                 elif key == "status":
                     try:
                         queryset = queryset.filter(
-                            status__in=map_value_to_constant(MonitorStatus, value)
+                            monitorenvironment__status__in=map_value_to_constant(
+                                MonitorStatus, value
+                            )
                         )
                     except ValueError:
                         queryset = queryset.none()
