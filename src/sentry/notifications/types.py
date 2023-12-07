@@ -9,65 +9,6 @@ from sentry.services.hybrid_cloud import ValueEqualityEnum
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
 
-"""
-TODO(postgres): We've encoded these enums as integers to facilitate
-communication with the DB. We'd prefer to encode them as strings to facilitate
-communication with the API and plan to do so as soon as we use native enums in
-Postgres. In the meantime each enum has an adjacent object that maps the
-integers to their string values.
-"""
-
-
-class NotificationSettingTypes(ValueEqualityEnum):
-    """
-    Each of these categories of Notification settings has at least an option for
-    "on" or "off". Workflow also includes SUBSCRIBE_ONLY and Deploy also
-    includes COMMITTED_ONLY and both of these values are described below.
-    """
-
-    # Control all notification types. Currently unused.
-    DEFAULT = 0
-
-    # When Sentry sees there is a new code deploy.
-    DEPLOY = 10
-
-    # When Sentry sees and issue that triggers an Alert Rule.
-    ISSUE_ALERTS = 20
-
-    # Notifications for changes in assignment, resolution, comments, etc.
-    WORKFLOW = 30
-
-    # Notification when an issue happens shortly after your release. This notification type is no longer supported.
-    ACTIVE_RELEASE = 31
-
-    # Notifications that require approval like a request to invite a member
-    APPROVAL = 40
-
-    # Notifications about quotas
-    QUOTA = 50
-
-    # Sub category of quotas for each event category
-    QUOTA_ERRORS = 51
-    QUOTA_TRANSACTIONS = 52
-    QUOTA_ATTACHMENTS = 53
-    QUOTA_REPLAYS = 56
-
-    # Sub category of quotas for warnings before hitting the actual limit
-    QUOTA_WARNINGS = 54
-
-    # Sub category of quotas for spend allocation notifications
-    QUOTA_SPEND_ALLOCATIONS = 55
-
-    # Notifications about spikes
-    SPIKE_PROTECTION = 60
-
-    # Nudge notifications
-    MISSING_MEMBERS = 70
-
-    # new for settings v2 but only with helper functions
-    # This value shouldn't be stored in the DB
-    REPORTS = -1
-
 
 class NotificationSettingEnum(ValueEqualityEnum):
     DEFAULT = "default"
@@ -86,26 +27,6 @@ class NotificationSettingEnum(ValueEqualityEnum):
     SPIKE_PROTECTION = "spikeProtection"
     MISSING_MEMBERS = "missingMembers"
     REPORTS = "reports"
-
-
-# TODO(Steve): clean up after we finish migrating to settings 2.0
-NOTIFICATION_SETTING_TYPES = {
-    NotificationSettingTypes.DEFAULT: NotificationSettingEnum.DEFAULT.value,
-    NotificationSettingTypes.DEPLOY: NotificationSettingEnum.DEPLOY.value,
-    NotificationSettingTypes.ISSUE_ALERTS: NotificationSettingEnum.ISSUE_ALERTS.value,
-    NotificationSettingTypes.WORKFLOW: NotificationSettingEnum.WORKFLOW.value,
-    NotificationSettingTypes.ACTIVE_RELEASE: NotificationSettingEnum.ACTIVE_RELEASE.value,
-    NotificationSettingTypes.APPROVAL: NotificationSettingEnum.APPROVAL.value,
-    NotificationSettingTypes.QUOTA: NotificationSettingEnum.QUOTA.value,
-    NotificationSettingTypes.QUOTA_ERRORS: NotificationSettingEnum.QUOTA_ERRORS.value,
-    NotificationSettingTypes.QUOTA_TRANSACTIONS: NotificationSettingEnum.QUOTA_TRANSACTIONS.value,
-    NotificationSettingTypes.QUOTA_ATTACHMENTS: NotificationSettingEnum.QUOTA_ATTACHMENTS.value,
-    NotificationSettingTypes.QUOTA_REPLAYS: NotificationSettingEnum.QUOTA_REPLAYS.value,
-    NotificationSettingTypes.QUOTA_WARNINGS: NotificationSettingEnum.QUOTA_WARNINGS.value,
-    NotificationSettingTypes.QUOTA_SPEND_ALLOCATIONS: NotificationSettingEnum.QUOTA_SPEND_ALLOCATIONS.value,
-    NotificationSettingTypes.SPIKE_PROTECTION: NotificationSettingEnum.SPIKE_PROTECTION.value,
-    NotificationSettingTypes.REPORTS: NotificationSettingEnum.REPORTS.value,
-}
 
 
 class NotificationSettingsOptionEnum(ValueEqualityEnum):
@@ -130,22 +51,6 @@ class NotificationScopeEnum(ValueEqualityEnum):
     ORGANIZATION = "organization"
     PROJECT = "project"
     TEAM = "team"
-
-
-class NotificationScopeType(ValueEqualityEnum):
-    USER = 0
-    ORGANIZATION = 10
-    PROJECT = 20
-    TEAM = 30
-
-
-# TODO(Steve): clean up after we finish migrating to settings 2.0
-NOTIFICATION_SCOPE_TYPE = {
-    NotificationScopeType.USER: NotificationScopeEnum.USER.value,
-    NotificationScopeType.ORGANIZATION: NotificationScopeEnum.ORGANIZATION.value,
-    NotificationScopeType.PROJECT: NotificationScopeEnum.PROJECT.value,
-    NotificationScopeType.TEAM: NotificationScopeEnum.TEAM.value,
-}
 
 
 class FineTuningAPIKey(Enum):
