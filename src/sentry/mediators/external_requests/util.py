@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from typing import Any
 
@@ -7,6 +9,7 @@ from requests.models import Response
 
 from sentry.http import safe_urlopen
 from sentry.models.integrations.sentry_app import SentryApp, track_response_code
+from sentry.services.hybrid_cloud.app.model import RpcSentryApp
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 from sentry.utils.sentry_apps.webhooks import TIMEOUT_STATUS_CODE
 
@@ -49,7 +52,7 @@ def validate(instance, schema_type):
 
 def send_and_save_sentry_app_request(
     url: str,
-    sentry_app: SentryApp,
+    sentry_app: SentryApp | RpcSentryApp,
     org_id: int,
     event: str,
     **kwargs: Any,

@@ -27,6 +27,10 @@ if TYPE_CHECKING:
     from sentry.models.apitoken import ApiToken
     from sentry.models.integrations.sentry_app_component import SentryAppComponent
     from sentry.models.project import Project
+    from sentry.services.hybrid_cloud.app.model import (
+        RpcSentryAppComponent,
+        RpcSentryAppInstallation,
+    )
 
 from sentry.models.outbox import ControlOutboxBase, OutboxCategory, outbox_context
 
@@ -239,7 +243,7 @@ def prepare_sentry_app_components(
     component_type: str,
     project_slug: str | None = None,
     values: List[Mapping[str, Any]] | None = None,
-) -> SentryAppComponent | None:
+) -> RpcSentryAppComponent | None:
     from sentry.models.integrations.sentry_app_component import SentryAppComponent
 
     try:
@@ -253,16 +257,33 @@ def prepare_sentry_app_components(
 
 
 def prepare_ui_component(
-    installation: SentryAppInstallation,
-    component: SentryAppComponent,
+    installation: SentryAppInstallation | RpcSentryAppInstallation,
+    component: SentryAppComponent | RpcSentryAppComponent,
     project_slug: str | None = None,
     values: List[Mapping[str, Any]] | None = None,
-) -> SentryAppComponent | None:
+) -> RpcSentryAppComponent | None:
     from sentry.coreapi import APIError
+    from sentry.models.integrations.sentry_app_component import SentryAppComponent
     from sentry.sentry_apps.components import SentryAppComponentPreparer
+    from sentry.services.hybrid_cloud.app.model import (
+        RpcSentryAppComponent,
+        RpcSentryAppInstallation,
+    )
+    from sentry.services.hybrid_cloud.app.serial import (
+        serialize_sentry_app_component,
+        serialize_sentry_app_installation,
+    )
 
     if values is None:
         values = []
+
+    if isinstance(installation, SentryAppInstallation):
+        installation = serialize_sentry_app_installation(installation)
+    if isinstance(component, SentryAppComponent):
+        component = serialize_sentry_app_component(component)
+
+    assert isinstance(installation, RpcSentryAppInstallation), "expected RpcSentryAppInstallation"
+    assert isinstance(component, RpcSentryAppComponent), "expected RpcSentryAppComponent"
     try:
         SentryAppComponentPreparer(
             component=component, install=installation, project_slug=project_slug, values=values

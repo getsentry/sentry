@@ -8,16 +8,14 @@ from django.utils.encoding import force_str
 from django.utils.http import urlencode
 
 from sentry.mediators.external_requests.select_requester import SelectRequester
-from sentry.models.integrations.sentry_app_component import SentryAppComponent
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
+from sentry.services.hybrid_cloud.app.model import RpcSentryAppComponent, RpcSentryAppInstallation
 from sentry.utils import json
 
 
 @dataclasses.dataclass
 class SentryAppComponentPreparer:
-    component: SentryAppComponent
-    install: SentryAppInstallation
+    component: RpcSentryAppComponent
+    install: RpcSentryAppInstallation
     project_slug: str | None = None
     values: List[Mapping[str, Any]] = dataclasses.field(default_factory=list)
 
@@ -30,11 +28,12 @@ class SentryAppComponentPreparer:
             self._prepare_alert_rule_action()
 
     def _prepare_stacktrace_link(self) -> None:
-        schema = self.component.schema
+        schema = self.component.app_schema
         uri = schema.get("uri")
 
         urlparts = list(urlparse(force_str(self.install.sentry_app.webhook_url)))
-        urlparts[2] = uri
+        if uri:
+            urlparts[2] = str(uri)
 
         query = {"installationId": self.install.uuid}
 
@@ -45,7 +44,7 @@ class SentryAppComponentPreparer:
         schema.update({"url": urlunparse(urlparts)})
 
     def _prepare_issue_link(self) -> None:
-        schema = self.component.schema.copy()
+        schema = self.component.app_schema.copy()
 
         link = schema.get("link", {})
         create = schema.get("create", {})
@@ -63,7 +62,7 @@ class SentryAppComponentPreparer:
             self._prepare_field(field)
 
     def _prepare_alert_rule_action(self) -> None:
-        schema = self.component.schema.copy()
+        schema = self.component.app_schema.copy()
         settings = schema.get("settings", {})
 
         for field in settings.get("required_fields", []):
@@ -100,9 +99,8 @@ class SentryAppComponentPreparer:
                 field.update(self._request(field["uri"], dependent_data=dependant_data))
 
     def _request(self, uri: str, dependent_data: str | None = None) -> Any:
-        install = serialize_sentry_app_installation(self.install, self.install.sentry_app)
         return SelectRequester.run(
-            install=install,
+            install=self.install,
             project_slug=self.project_slug,
             uri=uri,
             dependent_data=dependent_data,

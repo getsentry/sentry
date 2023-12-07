@@ -30,18 +30,16 @@ from sentry.integrations.jira.actions.create_ticket import JiraCreateTicketActio
 from sentry.integrations.jira_server.actions.create_ticket import JiraServerCreateTicketAction
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators.project_rules.updater import Updater
-from sentry.models.integrations.sentry_app_component import SentryAppComponent
-from sentry.models.integrations.sentry_app_installation import (
-    SentryAppInstallation,
-    prepare_ui_component,
-)
+from sentry.models.integrations.sentry_app_installation import prepare_ui_component
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
+from sentry.services.hybrid_cloud.app.model import RpcSentryAppComponent, RpcSentryAppInstallation
 from sentry.signals import alert_rule_edited
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
+from sentry.utils import json
 from sentry.web.decorators import transaction_start
 
 logger = logging.getLogger(__name__)
@@ -135,10 +133,20 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         # Prepare Rule Actions that are SentryApp components using the meta fields
         for action in serialized_rule.get("actions", []):
             if action.get("_sentry_app_installation") and action.get("_sentry_app_component"):
-                installation = SentryAppInstallation(**action.get("_sentry_app_installation", {}))
+                installation = RpcSentryAppInstallation(
+                    **action.get("_sentry_app_installation", {}),
+                    sentry_app=action.get("_sentry_app", None),
+                )
+                # Handle differences in key names schema vs app_schema.
+                component_data = action.get("_sentry_app_component", {})
+                try:
+                    component_data["app_schema"] = json.loads(component_data.get("schema", ""))
+                except Exception:
+                    component_data["app_schema"] = None
+
                 component = prepare_ui_component(
                     installation,
-                    SentryAppComponent(**action.get("_sentry_app_component")),
+                    RpcSentryAppComponent(**component_data),
                     project.slug,
                     action.get("settings"),
                 )
@@ -150,11 +158,12 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                     action["disabled"] = True
                     continue
 
-                action["formFields"] = component.schema.get("settings", {})
+                action["formFields"] = component.app_schema.get("settings", {})
 
                 # Delete meta fields
                 del action["_sentry_app_installation"]
                 del action["_sentry_app_component"]
+                del action["_sentry_app"]
 
             # TODO(nisanthan): This is a temporary fix. We need to save both the label and value of
             #                  the selected choice and not save all the choices.

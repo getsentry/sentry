@@ -6,7 +6,7 @@
 import datetime
 import hmac
 from hashlib import sha256
-from typing import Any, Dict, List, Mapping, Optional, Protocol
+from typing import Any, Dict, List, Optional, Protocol
 
 from pydantic.fields import Field
 from typing_extensions import TypedDict
@@ -88,7 +88,7 @@ class RpcSentryAppComponent(RpcModel):
     uuid: str = ""
     sentry_app_id: int = -1
     type: str = ""
-    app_schema: Mapping[str, Any] = Field(default_factory=dict)
+    app_schema: Dict[str, Any] = Field(default_factory=dict)
 
 
 class RpcAlertRuleActionResult(RpcModel):
