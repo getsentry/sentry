@@ -1,7 +1,8 @@
 from enum import Enum
-from typing import Sequence, Tuple
+from typing import Optional, Sequence, Tuple
 
 from django.db import models
+from django.db.models import Q
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
@@ -23,6 +24,13 @@ class RegressionType(Enum):
             (cls.ENDPOINT.value, "endpoint"),
             (cls.FUNCTION.value, "function"),
         )
+
+    def abbreviate(self) -> str:
+        if self is RegressionType.ENDPOINT:
+            return "e"
+        elif self is RegressionType.FUNCTION:
+            return "f"
+        raise ValueError(f"Unknown regression type: {self}")
 
 
 @region_silo_only_model
@@ -69,3 +77,19 @@ class RegressionGroup(Model):
         unique_together = (("type", "project_id", "fingerprint", "version"),)
 
     __repr__ = sane_repr("active", "version", "type", "project_id", "fingerprint")
+
+
+def get_regression_groups(
+    regression_type: RegressionType, pairs: Sequence[Tuple[int, str]], active: Optional[bool] = None
+) -> Sequence[RegressionGroup]:
+    conditions = Q()
+    for project_id, fingerprint in pairs:
+        conditions |= Q(project_id=project_id, fingerprint=fingerprint)
+
+    is_active = Q() if active is None else Q(active=active)
+
+    return (
+        RegressionGroup.objects.filter(conditions, is_active, type=regression_type.value)
+        .order_by("type", "project_id", "fingerprint", "-version")
+        .distinct("type", "project_id", "fingerprint")
+    )
