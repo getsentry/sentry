@@ -278,6 +278,9 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         # This Project has event with sourcemaps
         has_sourcemaps: bool
 
+        # This project has custom metrics
+        has_metrics: bool
+
         bitfield_default = 10
         bitfield_null = True
 
