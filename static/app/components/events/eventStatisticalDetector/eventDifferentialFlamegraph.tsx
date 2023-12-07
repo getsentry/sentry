@@ -25,8 +25,10 @@ import {DifferentialFlamegraph as DifferentialFlamegraphModel} from 'sentry/util
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
+import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {Frame} from 'sentry/utils/profiling/frame';
 import {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {
   DifferentialFlamegraphQueryResult,
@@ -87,6 +89,7 @@ export function EventDifferentialFlamegraph(props: EventDifferentialFlamegraphPr
     projectID: parseInt(props.event.projectID, 10),
     breakpoint,
     environments: [],
+    fingerprint: props.event.occurrence?.evidenceData?.fingerprint,
     transaction: (transaction?.transaction as string) ?? '',
   });
 
@@ -124,7 +127,7 @@ export function EventDifferentialFlamegraph(props: EventDifferentialFlamegraphPr
           initialState={{
             preferences: {
               sorting: 'alphabetical',
-              view: 'bottom up',
+              view: 'top down',
             },
           }}
         >
@@ -142,6 +145,14 @@ export function EventDifferentialFlamegraph(props: EventDifferentialFlamegraphPr
   );
 }
 
+function applicationFrameOnly(frame: Frame): boolean {
+  return frame.is_application;
+}
+
+function systemFrameOnly(frame: Frame): boolean {
+  return !frame.is_application;
+}
+
 interface EventDifferentialFlamegraphViewProps {
   after: DifferentialFlamegraphQueryResult['before'];
   before: DifferentialFlamegraphQueryResult['after'];
@@ -153,33 +164,54 @@ interface EventDifferentialFlamegraphViewProps {
 function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewProps) {
   const organization = useOrganization();
   const theme = useFlamegraphTheme();
+  const flamegraphPreferences = useFlamegraphPreferences();
+
+  const [frameFilterSetting, setFrameFilterSetting] = useState<
+    'application' | 'system' | 'all'
+  >('all');
+
+  const frameFilter =
+    frameFilterSetting === 'application'
+      ? applicationFrameOnly
+      : frameFilterSetting === 'system'
+      ? systemFrameOnly
+      : undefined;
 
   const beforeFlamegraph = useMemo(() => {
     if (!props.before.data) {
       return null;
     }
 
-    // @TODO pass frame filter
-    const profile = importProfile(props.before.data, '', 'flamegraph');
-    return new Flamegraph(profile.profiles[0], {sort: 'alphabetical'});
-  }, [props.before]);
+    const profile = importProfile(props.before.data, '', 'flamegraph', frameFilter);
+    return new Flamegraph(profile.profiles[0], {
+      sort: flamegraphPreferences.sorting,
+      inverted: flamegraphPreferences.view === 'bottom up',
+    });
+  }, [
+    props.before,
+    flamegraphPreferences.sorting,
+    flamegraphPreferences.view,
+    frameFilter,
+  ]);
 
   const afterProfileGroup = useMemo(() => {
     if (!props.after.data) {
       return null;
     }
 
-    return importProfile(props.after.data, '', 'flamegraph');
-  }, [props.after]);
+    return importProfile(props.after.data, '', 'flamegraph', frameFilter);
+  }, [props.after, frameFilter]);
 
   const afterFlamegraph = useMemo(() => {
     if (!afterProfileGroup) {
       return null;
     }
 
-    // @TODO pass frame filter
-    return new Flamegraph(afterProfileGroup.profiles[0], {sort: 'alphabetical'});
-  }, [afterProfileGroup]);
+    return new Flamegraph(afterProfileGroup.profiles[0], {
+      sort: flamegraphPreferences.sorting,
+      inverted: flamegraphPreferences.view === 'bottom up',
+    });
+  }, [afterProfileGroup, flamegraphPreferences.sorting, flamegraphPreferences.view]);
 
   const [negated, setNegated] = useState<boolean>(false);
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
@@ -237,6 +269,8 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
         onPreviousTransactionClick={props.onPreviousTransactionClick}
       />
       <DifferentialFlamegraphToolbar
+        frameFilter={frameFilterSetting}
+        onFrameFilterChange={setFrameFilterSetting}
         negated={negated}
         onNegatedChange={setNegated}
         flamegraph={differentialFlamegraph}
@@ -267,14 +301,13 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
           scheduler={scheduler}
         />
       </DifferentialFlamegraphContainer>
-
       <DifferentialFlamegraphExplanationBar negated={negated} />
 
       <DifferentialFlamegraphFunctionsContainer>
         <DifferentialFlamegraphChangedFunctions
           loading={props.after.isLoading || props.before.isLoading}
           title={t('Largest Increase')}
-          subtitle={t('after regression')}
+          subtitle={negated ? t('before regression') : t('after regression')}
           functions={differentialFlamegraph.increasedFrames}
           flamegraph={differentialFlamegraph}
           makeFunctionLink={makeFunctionFlamechartLink}
@@ -282,7 +315,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
         <DifferentialFlamegraphChangedFunctions
           loading={props.after.isLoading || props.before.isLoading}
           title={t('Largest Decrease')}
-          subtitle={t('after regression')}
+          subtitle={negated ? t('before regression') : t('after regression')}
           functions={differentialFlamegraph.decreasedFrames}
           flamegraph={differentialFlamegraph}
           makeFunctionLink={makeFunctionFlamechartLink}

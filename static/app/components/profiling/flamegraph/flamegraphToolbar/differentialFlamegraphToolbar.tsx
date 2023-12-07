@@ -9,12 +9,16 @@ import {space} from 'sentry/styles/space';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 
+import {DifferentialFlamegraphSettingsButton} from './differentialFlamegraphSettingsButton';
+
 const EMPTY_SPANS = [];
 
 interface DifferentialFlamegraphProps {
   canvasPoolManager: CanvasPoolManager;
   flamegraph: DifferentialFlamegraph;
+  frameFilter: 'application' | 'system' | 'all';
   negated: boolean;
+  onFrameFilterChange: (type: 'application' | 'system' | 'all') => void;
   onNegatedChange: (source: boolean) => void;
 }
 export function DifferentialFlamegraphToolbar(props: DifferentialFlamegraphProps) {
@@ -36,6 +40,10 @@ export function DifferentialFlamegraphToolbar(props: DifferentialFlamegraphProps
       <Button size="xs" onClick={onResetZoom}>
         {t('Reset Zoom')}
       </Button>
+      <DifferentialFlamegraphSettingsButton
+        frameFilter={props.frameFilter}
+        onFrameFilterChange={props.onFrameFilterChange}
+      />
     </DifferentialFlamegraphToolbarContainer>
   );
 }
