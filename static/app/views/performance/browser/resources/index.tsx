@@ -16,7 +16,6 @@ import {
 } from 'sentry/utils/performance/contexts/pageError';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import ImageView from 'sentry/views/performance/browser/resources/imageView';
 import JSCSSView, {
   DEFAULT_RESOURCE_TYPES,
   FilterOptionsContainer,
@@ -84,9 +83,8 @@ function ResourcesLandingPage() {
             {(!filters[SPAN_OP] ||
               filters[SPAN_OP] === 'resource.script' ||
               filters[SPAN_OP] === 'resource.css' ||
-              filters[SPAN_OP] === 'resource.font') && <JSCSSView />}
-
-            {filters[SPAN_OP] === 'resource.img' && <ImageView />}
+              filters[SPAN_OP] === 'resource.font' ||
+              filters[SPAN_OP] === 'resource.img') && <JSCSSView />}
           </Layout.Main>
         </Layout.Body>
       </PageErrorProvider>
