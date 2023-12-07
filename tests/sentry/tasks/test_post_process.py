@@ -1748,6 +1748,28 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
             data={"event_id": event.event_id, "forecast": 0},
         ).exists()
 
+    @with_feature("projects:first-event-severity-new-escalation")
+    @with_feature("organizations:escalating-issues")
+    @patch("sentry.issues.escalating.is_escalating")
+    def test_skip_escalation_logic_for_new_groups(self, mock_is_escalating):
+        """
+        Test that we skip checking escalation in the process_snoozes job if the group is less than
+        a day old.
+        """
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        group = event.group
+        group.status = GroupStatus.IGNORED
+        group.substatus = GroupSubStatus.UNTIL_ESCALATING
+        group.save()
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_is_escalating.assert_not_called()
+
 
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection")
 class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
@@ -2096,6 +2118,78 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         assert not job["has_escalated"]
         group.refresh_from_db()
         assert group.substatus == GroupSubStatus.ESCALATING
+
+    @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=1)
+    @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
+    def test_has_escalated_archived(self, mock_run_post_process_job, mock_threshold):
+        event = self.create_event(data={}, project_id=self.project.id)
+        group = event.group
+        group.update(first_seen=datetime.now() - timedelta(hours=1), times_seen=10000)
+        group.status = GroupStatus.IGNORED
+        group.substatus = GroupSubStatus.UNTIL_ESCALATING
+        group.save()
+
+        with self.feature("projects:first-event-severity-new-escalation"):
+            self.call_post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                event=event,
+            )
+        mock_threshold.assert_called()
+        job = mock_run_post_process_job.call_args[0][0]
+        assert job["has_escalated"]
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.ESCALATING
+
+    @patch("sentry.issues.issue_velocity.get_latest_threshold")
+    @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
+    def test_has_escalated_archived_old(self, mock_run_post_process_job, mock_threshold):
+        event = self.create_event(data={}, project_id=self.project.id)
+        group = event.group
+        group.update(first_seen=datetime.now() - timedelta(days=2), times_seen=10000)
+        group.status = GroupStatus.IGNORED
+        group.substatus = GroupSubStatus.UNTIL_ESCALATING
+        group.save()
+
+        with self.feature("projects:first-event-severity-new-escalation"):
+            self.call_post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                event=event,
+            )
+        mock_threshold.assert_not_called()
+        job = mock_run_post_process_job.call_args[0][0]
+        assert not job["has_escalated"]
+        group.refresh_from_db()
+        assert group.status == GroupStatus.IGNORED
+        assert group.substatus == GroupSubStatus.UNTIL_ESCALATING
+
+    @patch("sentry.issues.issue_velocity.get_latest_threshold")
+    @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
+    def test_has_escalated_ignored_not_archived(self, mock_run_post_process_job, mock_threshold):
+        event = self.create_event(data={}, project_id=self.project.id)
+        group = event.group
+        group.update(first_seen=datetime.now() - timedelta(days=1), times_seen=10000)
+        group.status = GroupStatus.IGNORED
+        group.substatus = GroupSubStatus.UNTIL_CONDITION_MET
+        group.save()
+
+        with self.feature("projects:first-event-severity-new-escalation"):
+            self.call_post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                event=event,
+            )
+        mock_threshold.assert_not_called()
+        job = mock_run_post_process_job.call_args[0][0]
+        assert not job["has_escalated"]
+        group.refresh_from_db()
+        assert group.status == GroupStatus.IGNORED
+        assert group.substatus == GroupSubStatus.UNTIL_CONDITION_MET
 
     @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=0)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
