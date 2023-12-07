@@ -8,6 +8,7 @@ import {TabList, Tabs} from 'sentry/components/tabs';
 import {IconChevron, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {parseMRI} from 'sentry/utils/metrics/mri';
 import {CodeLocations} from 'sentry/views/ddm/codeLocations';
 import {useDDMContext} from 'sentry/views/ddm/context';
 import {TraceTable} from 'sentry/views/ddm/traceTable';
@@ -19,7 +20,7 @@ enum Tab {
 
 export function TrayContent() {
   const {selectedWidgetIndex, widgets} = useDDMContext();
-  const [selectedTab, setSelectedTab] = useState(Tab.SAMPLES);
+  const [selectedTab, setSelectedTab] = useState(Tab.CODE_LOCATIONS);
   const {isMaximized, maximiseSize, resetSize} = useContext(SplitPanelContext);
   // the tray is minimized when the main content is maximized
   const trayIsMinimized = isMaximized;
@@ -28,7 +29,10 @@ export function TrayContent() {
   return (
     <TrayWrapper>
       <Header>
-        <Title>{selectedWidget?.mri || t('Choose a metric to display data')}</Title>
+        <Title>
+          {(selectedWidget?.mri && parseMRI(selectedWidget.mri)?.name) ||
+            t('Choose a metric to display data')}
+        </Title>
         <ToggleButton
           size="xs"
           isMinimized={trayIsMinimized}
@@ -39,8 +43,8 @@ export function TrayContent() {
       </Header>
       <Tabs value={selectedTab} onChange={setSelectedTab}>
         <StyledTabList>
-          <TabList.Item key={Tab.SAMPLES}>{t('Samples')}</TabList.Item>
           <TabList.Item key={Tab.CODE_LOCATIONS}>{t('Code Location')}</TabList.Item>
+          <TabList.Item key={Tab.SAMPLES}>{t('Samples')}</TabList.Item>
         </StyledTabList>
       </Tabs>
       <ContentWrapper>
