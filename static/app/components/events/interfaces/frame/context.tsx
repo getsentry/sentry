@@ -161,7 +161,7 @@ function Context({
       className={`${className} context ${isExpanded ? 'expanded' : ''}`}
       data-test-id="frame-context"
     >
-      {frame.context && hasSyntaxHighlighting ? (
+      {frame.context && hasSyntaxHighlighting && lines.length > 0 ? (
         <CodeWrapper className={prismClassName}>
           <pre className={prismClassName}>
             <code className={prismClassName}>
