@@ -30,6 +30,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
+import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import {space} from 'sentry/styles/space';
 import {
   Group,
@@ -186,6 +187,7 @@ export function Actions(props: Props) {
     );
 
     trackIssueAction('deleted');
+    IssueListCacheStore.reset();
   };
 
   const onUpdate = (data: UpdateData) => {
@@ -214,6 +216,7 @@ export function Actions(props: Props) {
     if ((data as {inbox: boolean}).inbox !== undefined) {
       trackIssueAction('mark_reviewed');
     }
+    IssueListCacheStore.reset();
   };
 
   const onReprocessEvent = () => {
@@ -264,6 +267,7 @@ export function Actions(props: Props) {
       complete: clearIndicators,
     });
     trackIssueAction('discarded');
+    IssueListCacheStore.reset();
   };
 
   const renderDiscardModal = ({Body, Footer, closeModal}: ModalRenderProps) => {
