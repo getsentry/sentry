@@ -171,7 +171,6 @@ class RunTaskWithMultiprocessing(ArroyoRunTaskWithMultiprocessing[TStrategyPaylo
             kwargs.pop("max_batch_size", None)
             kwargs.pop("max_batch_time", None)
 
-            # XXX: Initializer would need to be public in Arroyo for this to work
             if pool.initializer is not None:
                 pool.initializer()
 
