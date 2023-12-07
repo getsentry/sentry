@@ -28,5 +28,6 @@ class Migration(CheckedMigration):
             DROP TABLE "sentry_eventuser";
             """,
             reverse_sql="CREATE TABLE sentry_eventuser (fake_col int)",  # We just create a fake table here so that the DROP will work if we roll back the migration.
+            hints={"tables": ["sentry_eventuser"]},
         )
     ]
