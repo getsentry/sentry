@@ -2392,7 +2392,6 @@ SENTRY_SCOPES = {
     "openid",
     "profile",
     "email",
-    "org:superuser",
 }
 
 SENTRY_SCOPE_HIERARCHY_MAPPING = {

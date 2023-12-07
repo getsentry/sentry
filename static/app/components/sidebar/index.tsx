@@ -116,7 +116,7 @@ function Sidebar({organization}: Props) {
 
   const collapsed = !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
-  const isCurrentlySuperuser = isActiveSuperuser(organization);
+  const hasSuperuserSession = isActiveSuperuser(organization);
 
   useOpenOnboardingSidebar();
 
@@ -502,7 +502,7 @@ function Sidebar({organization}: Props) {
     <SidebarWrapper
       aria-label={t('Primary Navigation')}
       collapsed={collapsed}
-      isSuperuser={isCurrentlySuperuser}
+      isSuperuser={hasSuperuserSession}
     >
       <SidebarSectionGroupPrimary>
         <SidebarSection>
@@ -640,11 +640,9 @@ const responsiveFlex = css`
   }
 `;
 
-export const SidebarWrapper = styled('nav')<{collapsed: boolean; isSuperuser: boolean}>`
+export const SidebarWrapper = styled('nav')<{collapsed: boolean; isSuperuser?: boolean}>`
   background: ${p =>
-    p.isSuperuser
-      ? 'linear-gradient(294.17deg,#8a2424 35.57%,#502636 92.42%,#502632 92.42%)'
-      : p.theme.sidebarGradient};
+    p.isSuperuser ? p.theme.superuserSidebar : p.theme.sidebarGradient};
   color: ${p => (p.isSuperuser ? 'white' : p.theme.sidebar.color)};
   line-height: 1;
   padding: 12px 0 2px; /* Allows for 32px avatars  */

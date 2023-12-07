@@ -66,6 +66,7 @@ export const ALLOWED_SCOPES = [
   'org:admin',
   'org:integrations',
   'org:read',
+  'org:superuser', // not an assignable API access scope
   'org:write',
   'project:admin',
   'project:read',
@@ -74,7 +75,6 @@ export const ALLOWED_SCOPES = [
   'team:admin',
   'team:read',
   'team:write',
-  'org:superuser',
 ] as const;
 
 // These should only be used in the case where we cannot obtain roles through
