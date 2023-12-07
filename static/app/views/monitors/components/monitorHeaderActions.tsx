@@ -4,7 +4,7 @@ import {deleteMonitor, updateMonitor} from 'sentry/actionCreators/monitors';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
-import {IconDelete, IconEdit, IconPause, IconPlay} from 'sentry/icons';
+import {IconDelete, IconEdit, IconSubscribed, IconUnsubscribed} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import useApi from 'sentry/utils/useApi';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -68,11 +68,15 @@ function MonitorHeaderActions({monitor, orgId, onUpdate}: Props) {
       <Button
         size="sm"
         icon={
-          monitor.status !== 'disabled' ? <IconPause size="xs" /> : <IconPlay size="xs" />
+          monitor.status !== 'disabled' ? (
+            <IconUnsubscribed size="xs" />
+          ) : (
+            <IconSubscribed size="xs" />
+          )
         }
         onClick={toggleStatus}
       >
-        {monitor.status !== 'disabled' ? t('Pause') : t('Resume')}
+        {monitor.status !== 'disabled' ? t('Mute') : t('Unmute')}
       </Button>
       <Button
         priority="primary"
