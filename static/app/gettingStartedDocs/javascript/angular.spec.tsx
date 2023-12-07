@@ -19,7 +19,7 @@ describe('javascript-angular onboarding docs', function () {
     // Includes import statement
     expect(
       screen.getByText(
-        textWithMarkupMatcher(/import \* as Sentry from "@sentry\/angular"/)
+        textWithMarkupMatcher(/import { enableProdMode } from "@angular\/core"/)
       )
     ).toBeInTheDocument();
   });
