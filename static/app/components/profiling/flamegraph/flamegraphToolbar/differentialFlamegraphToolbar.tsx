@@ -16,7 +16,9 @@ const EMPTY_SPANS = [];
 interface DifferentialFlamegraphProps {
   canvasPoolManager: CanvasPoolManager;
   flamegraph: DifferentialFlamegraph;
+  frameFilter: 'application' | 'system' | 'all';
   negated: boolean;
+  onFrameFilterChange: (type: 'application' | 'system' | 'all') => void;
   onNegatedChange: (source: boolean) => void;
 }
 export function DifferentialFlamegraphToolbar(props: DifferentialFlamegraphProps) {
@@ -38,7 +40,10 @@ export function DifferentialFlamegraphToolbar(props: DifferentialFlamegraphProps
       <Button size="xs" onClick={onResetZoom}>
         {t('Reset Zoom')}
       </Button>
-      <DifferentialFlamegraphSettingsButton />
+      <DifferentialFlamegraphSettingsButton
+        frameFilter={props.frameFilter}
+        onFrameFilterChange={props.onFrameFilterChange}
+      />
     </DifferentialFlamegraphToolbarContainer>
   );
 }
