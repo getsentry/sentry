@@ -192,7 +192,7 @@ class ProjectManager(BaseManager["Project"]):
             try:
                 team = team_list[team_list.index(team)]
             except ValueError:
-                logging.info(f"User does not have access to team: {team.id}")
+                logging.info("User does not have access to team: %s", team.id)
                 return []
 
         base_qs = self.filter(teams=team, status=ObjectStatus.ACTIVE)
