@@ -343,7 +343,7 @@ class SymbolicatorSession:
                 #
                 # This can happen for any network failure.
                 if attempts > MAX_ATTEMPTS:
-                    logger.error("Failed to contact symbolicator", exc_info=True)
+                    logger.exception("Failed to contact symbolicator")
                     raise
 
                 time.sleep(wait)

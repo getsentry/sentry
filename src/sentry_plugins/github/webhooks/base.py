@@ -62,7 +62,9 @@ class GithubWebhookBase(View, abc.ABC):
         try:
             handler = self.get_handler(request.META["HTTP_X_GITHUB_EVENT"])
         except KeyError:
-            logger.error("github.webhook.missing-event", extra=self.get_logging_data(organization))
+            logger.exception(
+                "github.webhook.missing-event", extra=self.get_logging_data(organization)
+            )
             return HttpResponse(status=400)
 
         if not handler:
@@ -85,10 +87,9 @@ class GithubWebhookBase(View, abc.ABC):
         try:
             event = json.loads(body.decode("utf-8"))
         except json.JSONDecodeError:
-            logger.error(
+            logger.exception(
                 "github.webhook.invalid-json",
                 extra=self.get_logging_data(organization),
-                exc_info=True,
             )
             return HttpResponse(status=400)
 

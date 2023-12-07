@@ -173,7 +173,7 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
         while self.__queue:
             remaining = timeout - (time.time() - start) if timeout is not None else None
             if remaining is not None and remaining <= 0:
-                logger.warning(f"Timed out with {len(self.__queue)} futures in queue")
+                logger.warning("Timed out with %s futures in queue", len(self.__queue))
                 break
 
             committable, future = self.__queue.popleft()

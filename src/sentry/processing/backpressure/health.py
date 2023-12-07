@@ -70,7 +70,7 @@ def is_consumer_healthy(consumer_name: str = "default") -> bool:
         with sentry_sdk.push_scope():
             sentry_sdk.set_tag("consumer", consumer_name)
             sentry_sdk.set_tag("reason", "error")
-            logger.error("Consumer `%s` stopped due to for reason `%s`", consumer_name, "error")
+            logger.exception("Consumer `%s` stopped due to for reason `%s`", consumer_name, "error")
 
         return False
 

@@ -138,10 +138,9 @@ class IndexerBatch:
                 self.parsed_payloads_by_meta[broker_meta] = parsed_payload
             except Exception as e:
                 self.invalid_msg_meta.add(broker_meta)
-                logger.error(
-                    e,
+                logger.exception(
+                    str(e),
                     extra={"payload_value": str(msg.payload.value)},
-                    exc_info=True,
                 )
 
         for namespace, cnt in skipped_msgs_cnt.items():
@@ -161,10 +160,9 @@ class IndexerBatch:
                 msg.payload.value.decode("utf-8"), use_rapid_json=True
             )
         except rapidjson.JSONDecodeError:
-            logger.error(
+            logger.exception(
                 "process_messages.invalid_json",
                 extra={"payload_value": str(msg.payload.value)},
-                exc_info=True,
             )
             raise
 
@@ -384,7 +382,7 @@ class IndexerBatch:
 
                     new_tags[str(new_k)] = value_to_write
             except KeyError:
-                logger.error("process_messages.key_error", extra={"tags": tags}, exc_info=True)
+                logger.exception("process_messages.key_error", extra={"tags": tags})
                 continue
 
             if exceeded_org_quotas or exceeded_global_quotas:

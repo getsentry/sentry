@@ -33,7 +33,7 @@ class DjangoNodeStorage(NodeStorage):
 
             return None
         except Exception as e:
-            logger.exception(e)
+            logger.exception(str(e))
             return {}
 
     def _get_bytes(self, id):

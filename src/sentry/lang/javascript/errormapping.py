@@ -131,7 +131,7 @@ def rewrite_exception(data):
                     rv = True
                     break
             except Exception as e:
-                logger.error('Failed to run processor "%s": %s', processor.vendor, e, exc_info=True)
+                logger.exception('Failed to run processor "%s": %s', processor.vendor, e)
                 data.setdefault("_metrics", {})["flag.processing.error"] = True
 
     if meta.raw():

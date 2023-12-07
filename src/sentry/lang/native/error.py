@@ -106,7 +106,7 @@ def write_error(e, data):
         errors = data.setdefault("errors", [])
         errors.append(e.get_data())
     else:
-        logger.debug("Failed to symbolicate with native backend", exc_info=True)
+        logger.debug("Failed to symbolicate with native backend")
 
     if not e.is_user_fixable:
         data.setdefault("_metrics", {})["flag.processing.error"] = True
