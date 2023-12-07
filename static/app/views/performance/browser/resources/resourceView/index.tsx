@@ -39,7 +39,6 @@ export const DEFAULT_RESOURCE_TYPES = [
   'resource.script',
   'resource.css',
   'resource.font',
-  'resource.img',
 ];
 
 type Option = {
