@@ -1,5 +1,3 @@
-import {Fragment, ReactElement, ReactNode, useEffect, useState} from 'react';
-
 import type {Frame} from 'sentry/types';
 import {getFileExtension} from 'sentry/utils/fileExtension';
 
@@ -21,83 +19,6 @@ export function isFrameFilenamePathlike(frame: Frame): boolean {
     (!!frame.absPath && !getFileExtension(filename))
   );
 }
-
-// Detects URLs in text and renders them with anchor tags
-export function Linkify({exceptionText}: {exceptionText?: string}): ReactElement {
-  if (!exceptionText) {
-    return <Fragment>{''}</Fragment>;
-  }
-
-  const urlRegex =
-    /https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9]{1,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&\/=,\[\]]*)/gi;
-  // https?: Matches both "http" and "https"
-  // :\/\/: This is a literal match for "://"
-  // (?:www\.)?: Matches URLs with or without "www."
-  // [-a-zA-Z0-9@:%._\+~#=]{1,256}: Matches the domain name
-  //    It allows for a range of characters (letters, digits, and special characters)
-  //    The {1,256} specifies that these characters can occur anywhere from 1 to 256 times, which covers the range of typical domain name lengths
-  // \.: Matches the dot before the top-level domain (like ".com")
-  // [a-zA-Z0-9]{1,6}: Matches the top-level domain (like "com" or "org"). It's limited to letters and digits and can be between 1 and 6 characters long
-  // \b: Marks the end of the domain part of the URL
-  // (?:[-a-zA-Z0-9@:%_\+.~#?&\/=,\[\]]*): Matches the path or query parameters that can follow the domain in a URL
-  //    It includes a wide range of characters typically found in paths and query strings
-  // /gi: The regex will match all occurrences in the string, not just the first one
-  //    i makes the regex match both upper and lower case characters
-
-  const parts = exceptionText.split(urlRegex);
-  const urls = exceptionText.match(urlRegex);
-
-  const elements: ReactNode[] = parts.flatMap((part, index) => {
-    const link =
-      urls && urls[index] ? (
-        <a
-          key={`link-${index}`}
-          href={window.location.href + '/redirect'}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={() => RedirectExternalLink(part)}
-        >
-          {urls[index]}
-        </a>
-      ) : null;
-
-    return [<Fragment key={`text-${index}`}>{part}</Fragment>, link];
-  });
-
-  return <Fragment>{elements}</Fragment>;
-}
-
-function RedirectExternalLink(externalUrl: string) {
-  // State to control the countdown
-  const [count, setCount] = useState(5);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCount(prevCount => prevCount - 1);
-    }, 1000);
-
-    if (count === 0) {
-      // When the countdown reaches zero, open the external URL in a new tab
-      window.open(externalUrl, '_blank');
-      clearInterval(timer); // Stop the countdown
-    }
-
-    return () => clearInterval(timer);
-  }, [count, externalUrl]);
-
-  return (
-    <div>
-      <title>Redirecting...</title>
-      <p>
-        You are being redirected to {externalUrl} in {count} seconds. Changed your mind?{' '}
-        <a href="/">Go back</a>
-      </p>
-    </div>
-  );
-}
-
-// // Usage
-// <RedirectTab redirectUrl="https://external-url.com" domain="https://mydomain.com" />;
 
 // Maps the SDK name to the url token for docs
 export const sourceMapSdkDocsMap: Record<string, string> = {
