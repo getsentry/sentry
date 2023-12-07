@@ -219,6 +219,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     );
   }
 
+  const migrated = ['javascript-react'];
+
   return (
     <Fragment>
       <IntroText>
@@ -234,6 +236,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           projectSlug={currentProject.slug}
           projectId={currentProject.id}
           activeProductSelection={[]}
+          isOldReplayOnboarding={!migrated.includes(currentPlatform.id)}
           isReplayOnboarding
         />
       ) : (
