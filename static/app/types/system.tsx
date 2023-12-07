@@ -166,6 +166,7 @@ export interface Config {
     dsn: string;
     release: string;
     tracePropagationTargets: string[];
+    environment?: string;
     profilesSampleRate?: number;
   };
   singleOrganization: boolean;
