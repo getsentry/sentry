@@ -48,6 +48,7 @@ export class DifferentialFlamegraph extends Flamegraph {
 
   static FromDiff(
     {before, after}: {after: Flamegraph; before: Flamegraph},
+    {negated}: {negated: boolean},
     theme: FlamegraphTheme
   ): DifferentialFlamegraph {
     const differentialFlamegraph = new DifferentialFlamegraph(after.profile, {

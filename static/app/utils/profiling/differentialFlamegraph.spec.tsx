@@ -77,7 +77,11 @@ describe('differentialFlamegraph', () => {
       ],
     });
 
-    const flamegraph = DifferentialFlamegraph.FromDiff({before, after}, THEME);
+    const flamegraph = DifferentialFlamegraph.FromDiff(
+      {before, after},
+      {negated: false},
+      THEME
+    );
 
     expect(flamegraph.colors?.get('new function')).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_INCREASE,
@@ -111,7 +115,11 @@ describe('differentialFlamegraph', () => {
       ],
     });
 
-    const flamegraph = DifferentialFlamegraph.FromDiff({before, after}, THEME);
+    const flamegraph = DifferentialFlamegraph.FromDiff(
+      {before, after},
+      {negated: false},
+      THEME
+    );
 
     expect(flamegraph.colors?.get('function')).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_INCREASE,
@@ -149,7 +157,11 @@ describe('differentialFlamegraph', () => {
       ],
     });
 
-    const flamegraph = DifferentialFlamegraph.FromDiff({before, after}, THEME);
+    const flamegraph = DifferentialFlamegraph.FromDiff(
+      {before, after},
+      {negated: false},
+      THEME
+    );
 
     expect(flamegraph.colors?.get('function')).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_INCREASE,
@@ -187,7 +199,11 @@ describe('differentialFlamegraph', () => {
       ],
     });
 
-    const flamegraph = DifferentialFlamegraph.FromDiff({before, after}, THEME);
+    const flamegraph = DifferentialFlamegraph.FromDiff(
+      {before, after},
+      {negated: false},
+      THEME
+    );
 
     expect(flamegraph.colors?.get('function')).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_DECREASE,

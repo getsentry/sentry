@@ -222,21 +222,12 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
       return DifferentialFlamegraphModel.Empty();
     }
 
-    if (negated) {
-      return DifferentialFlamegraphModel.FromDiff(
-        {
-          before: afterFlamegraph,
-          after: beforeFlamegraph,
-        },
-        theme
-      );
-    }
-
     return DifferentialFlamegraphModel.FromDiff(
       {
         before: beforeFlamegraph,
         after: afterFlamegraph,
       },
+      {negated},
       theme
     );
   }, [beforeFlamegraph, afterFlamegraph, theme, negated]);
