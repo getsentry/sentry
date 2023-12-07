@@ -116,6 +116,9 @@ def provision_middleware():
 
 @override_settings(ROOT_URLCONF=__name__)
 class ApiGatewayTestCase(APITestCase):
+    # Subclasses will generally need to be decorated with
+    #     @*_silo_test(regions=[ApiGatewayTestCase.REGION])
+
     REGION = Region(
         name="us",
         snowflake_id=1,
