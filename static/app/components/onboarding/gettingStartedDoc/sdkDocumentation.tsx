@@ -52,6 +52,7 @@ export function SdkDocumentation({
   organization,
   projectId,
   isOldReplayOnboarding,
+  isReplayOnboarding,
 }: SdkDocumentationProps) {
   const sourcePackageRegistries = useSourcePackageRegistries(organization);
 
@@ -152,7 +153,7 @@ export function SdkDocumentation({
       platformKey={platform.id}
       projectId={projectId}
       projectSlug={projectSlug}
-      isReplayOnboarding
+      isReplayOnboarding={isReplayOnboarding}
     />
   );
 }
