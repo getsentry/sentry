@@ -6,7 +6,6 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
-import decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
 import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import {t, tct} from 'sentry/locale';
@@ -21,42 +20,40 @@ const statusToText: Record<string, string> = {
 interface Props
   extends Pick<
     ReturnType<typeof useListItemCheckboxState>,
-    'countSelected' | 'selectedIds' | 'deselectAll'
-  > {
-  mailbox: ReturnType<typeof decodeMailbox>;
-}
+    'deselectAll' | 'selectedIds'
+  > {}
 
-export default function useBulkEditFeedbacks({deselectAll, mailbox, selectedIds}: Props) {
+export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) {
   const organization = useOrganization();
   const {markAsRead, resolve} = useMutateFeedback({
     feedbackIds: selectedIds,
     organization,
   });
 
-  const onToggleResovled = useCallback(() => {
-    const newStatus =
-      mailbox === 'resolved' ? GroupStatus.UNRESOLVED : GroupStatus.RESOLVED;
-
-    openConfirmModal({
-      bypass: Array.isArray(selectedIds) && selectedIds.length === 1,
-      onConfirm: () => {
-        addLoadingMessage(t('Updating feedbacks...'));
-        resolve(newStatus, {
-          onError: () => {
-            addErrorMessage(t('An error occurred while updating the feedbacks.'));
-          },
-          onSuccess: () => {
-            addSuccessMessage(t('Updated feedbacks'));
-            deselectAll();
-          },
-        });
-      },
-      message: tct('Are you sure you want to [status] these feedbacks?', {
-        status: statusToText[newStatus].toLowerCase(),
-      }),
-      confirmText: statusToText[newStatus],
-    });
-  }, [deselectAll, mailbox, resolve, selectedIds]);
+  const onToggleResovled = useCallback(
+    (newMailbox: GroupStatus) => {
+      openConfirmModal({
+        bypass: Array.isArray(selectedIds) && selectedIds.length === 1,
+        onConfirm: () => {
+          addLoadingMessage(t('Updating feedbacks...'));
+          resolve(newMailbox, {
+            onError: () => {
+              addErrorMessage(t('An error occurred while updating the feedbacks.'));
+            },
+            onSuccess: () => {
+              addSuccessMessage(t('Updated feedbacks'));
+              deselectAll();
+            },
+          });
+        },
+        message: tct('Are you sure you want to [status] these feedbacks?', {
+          status: statusToText[newMailbox].toLowerCase(),
+        }),
+        confirmText: statusToText[newMailbox],
+      });
+    },
+    [deselectAll, resolve, selectedIds]
+  );
 
   const onMarkAsRead = useCallback(
     () =>

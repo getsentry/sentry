@@ -8,11 +8,12 @@ import {Flex} from 'sentry/components/profiling/flex';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {GroupStatus} from 'sentry/types';
 
 interface Props
   extends Pick<
     ReturnType<typeof useListItemCheckboxState>,
-    'countSelected' | 'selectedIds' | 'deselectAll'
+    'countSelected' | 'deselectAll' | 'selectedIds'
   > {
   mailbox: ReturnType<typeof decodeMailbox>;
 }
@@ -24,11 +25,12 @@ export default function FeedbackListBulkSelection({
   deselectAll,
 }: Props) {
   const {onToggleResovled, onMarkAsRead, onMarkUnread} = useBulkEditFeedbacks({
-    mailbox,
-    countSelected,
     selectedIds,
     deselectAll,
   });
+
+  const newMailbox =
+    mailbox === 'resolved' ? GroupStatus.UNRESOLVED : GroupStatus.RESOLVED;
 
   return (
     <Flex gap={space(1)} align="center" justify="space-between" style={{flexGrow: 1}}>
@@ -41,7 +43,7 @@ export default function FeedbackListBulkSelection({
       </span>
       <Flex gap={space(1)} justify="flex-end">
         <ErrorBoundary mini>
-          <Button onClick={onToggleResovled}>
+          <Button onClick={() => onToggleResovled(newMailbox)}>
             {mailbox === 'resolved' ? t('Unresolve') : t('Resolve')}
           </Button>
         </ErrorBoundary>
