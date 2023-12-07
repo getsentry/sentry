@@ -19,7 +19,6 @@ function makeFrameMap(frames: ReadonlyArray<FlamegraphFrame>): Map<string, numbe
 export class DifferentialFlamegraph extends Flamegraph {
   colors: Map<string, ColorChannels> = new Map();
   colorBuffer: number[] = [];
-
   beforeCounts: Map<string, number> = new Map();
   afterCounts: Map<string, number> = new Map();
 
