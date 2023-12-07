@@ -1436,6 +1436,10 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:alert-migration-ui": False,
     # Enables the migration of alerts (checked in a migration script).
     "organizations:alerts-migration-enabled": False,
+    # Enable anr frame analysis
+    "organizations:anr-analyze-frames": False,
+    # Enable anr improvements ui
+    "organizations:anr-improvements": False,
     # Enable auth provider configuration through api
     "organizations:api-auth-provider": False,
     "organizations:api-keys": False,
@@ -1459,6 +1463,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:create": True,
     # Enable the new crons monitor form
     "organizations:crons-new-monitor-form": False,
+    # Metrics: Enable ingestion and storage of custom metrics. See ddm-ui for UI.
+    "organizations:custom-metrics": False,
     # Allow organizations to configure custom external symbol sources.
     "organizations:custom-symbol-sources": True,
     # Enable usage of customer domains on the frontend
@@ -1772,95 +1778,79 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:project-event-date-limit": False,
     # Enable project selection on the stats page
     "organizations:project-stats": True,
-    # Lets organizations manage grouping configs
-    "organizations:set-grouping-config": False,
-    # Enable feature to load more than 100 rows in performance trace view.
-    "organizations:trace-view-load-more": False,
-    # Normalize URL transaction names during ingestion.
-    "organizations:transaction-name-normalize": True,
-    # Allow organizations to configure all symbol sources.
-    "organizations:symbol-sources": True,
-    # Mark URL transactions scrubbed by regex patterns as "sanitized".
-    # NOTE: This flag does not concern transactions rewritten by clusterer rules.
-    # Those are always marked as "sanitized".
-    "organizations:transaction-name-mark-scrubbed-as-sanitized": True,
-    # Sanitize transaction names in the ingestion pipeline.
-    "organizations:transaction-name-sanitization": False,  # DEPRECATED
-    # Extraction metrics for transactions during ingestion.
-    "organizations:transaction-metrics-extraction": False,
-    # True if Relay should drop raw session payloads after extracting metrics from them.
-    "organizations:release-health-drop-sessions": False,
-    # Enable minimap in the widget viewer modal in dashboards
-    "organizations:widget-viewer-modal-minimap": False,
+    # Enable functionality for recap server polling.
+    "organizations:recap-server": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
+    # Metrics cardinality limiter in Relay
+    "organizations:relay-cardinality-limiter": False,
+    # Enable the release details performance section
+    "organizations:release-comparison-performance": False,
+    # True if Relay should drop raw session payloads after extracting metrics from them.
+    "organizations:release-health-drop-sessions": False,
+    # Enable new release UI
+    "organizations:releases-v2": False,
+    "organizations:releases-v2-st": False,
+    "organizations:releases-v2-banner": False,
+    # Enable version 2 of reprocessing (completely distinct from v1)
+    "organizations:reprocessing-v2": False,
+    # Enable team member role provisioning through scim
+    "organizations:scim-team-roles": False,
+    # Enable detecting SDK crashes during event processing
+    "organizations:sdk-crash-detection": False,
     # Enable Sentry Functions
     "organizations:sentry-functions": False,
+    # Replace the footer Sentry logo with a Sentry pride logo
+    "organizations:sentry-pride-logo-footer": False,
     # Enable core Session Replay backend APIs
     "organizations:session-replay": False,
-    # Enable core Session Replay link in the sidebar
-    "organizations:session-replay-ui": True,
+    # Enable the Replay Details > Accessibility tab
+    "organizations:session-replay-a11y-tab": False,
+    # Enable the accessibility issues endpoint
+    "organizations:session-replay-accessibility-issues": False,
+    # Enable core Session Replay SDK for recording onError events on sentry.io
+    "organizations:session-replay-count-query-optimize": False,
+    # Enable canvas recording
+    "organizations:session-replay-enable-canvas": False,
+    # Enable replay event linking in event processing
+    "organizations:session-replay-event-linking": False,
+    # Enable linking from 'new issue' email notifs to the issue replay list
+    "organizations:session-replay-issue-emails": False,
+    # Enable the new event linking columns to be queried
+    "organizations:session-replay-new-event-counts": False,
+    # Enable the new zero state UI
+    "organizations:session-replay-new-zero-state": False,
+    # Enable View Sample Replay button on the Replay-List empty-state page
+    "organizations:session-replay-onboarding-cta-button": False,
+    # Enable data scrubbing of replay recording payloads in Relay.
+    "organizations:session-replay-recording-scrubbing": False,
     # Enable core Session Replay SDK for recording on sentry.io
     "organizations:session-replay-sdk": False,
     # Enable core Session Replay SDK for recording onError events on sentry.io
-    "organizations:session-replay-count-query-optimize": False,
-    # Enable core Session Replay SDK for recording onError events on sentry.io
     "organizations:session-replay-sdk-errors-only": False,
-    # Enable data scrubbing of replay recording payloads in Relay.
-    "organizations:session-replay-recording-scrubbing": False,
-    # Enable View Sample Replay button on the Replay-List empty-state page
-    "organizations:session-replay-onboarding-cta-button": False,
-    # Enable the Replay Details > Accessibility tab
-    "organizations:session-replay-a11y-tab": False,
     # Enable linking from 'new issue' slack notifs to the issue replay list
     "organizations:session-replay-slack-new-issue": False,
-    # Enable linking from 'new issue' email notifs to the issue replay list
-    "organizations:session-replay-issue-emails": False,
-    # Enable replay event linking in event processing
-    "organizations:session-replay-event-linking": False,
-    # Enable linking from 'weekly email' summaries to the issue replay list
-    "organizations:session-replay-weekly-email": False,
     # Enable the Replay Details > Performance tab
     "organizations:session-replay-trace-table": False,
     # Enable the AM1 trial ended banner on sentry.io
     "organizations:session-replay-trial-ended-banner": False,
-    # Enable the new event linking columns to be queried
-    "organizations:session-replay-new-event-counts": False,
-    # Enable the accessibility issues endpoint
-    "organizations:session-replay-accessibility-issues": False,
-    # Enable the new zero state UI
-    "organizations:session-replay-new-zero-state": False,
-    # Enable canvas recording
-    "organizations:session-replay-enable-canvas": False,
-    # Enable the new suggested assignees feature
-    "organizations:streamline-targeting-context": False,
-    # Enable the new experimental starfish view
-    "organizations:starfish-view": False,
-    # Enables the resource module ui
-    "organizations:starfish-browser-resource-module-ui": False,
-    # Enables the resource module ui
-    "organizations:starfish-browser-resource-module-image-view": False,
-    # Enable the aggregate span waterfall view
-    "organizations:starfish-aggregate-span-waterfall": False,
-    # Enable starfish endpoint that's used for regressing testing purposes
-    "organizations:starfish-test-endpoint": False,
-    # Enable starfish dropdown on the webservice view for switching chart visualization
-    "organizations:starfish-wsv-chart-dropdown": False,
-    # Enable browser starfish webvitals module view
-    "organizations:starfish-browser-webvitals": False,
-    # Enable browser starfish webvitals module pageoverview v2 view
-    "organizations:starfish-browser-webvitals-pageoverview-v2": False,
-    # Enable browser starfish webvitals module to use backend provided performance scores
-    "organizations:starfish-browser-webvitals-use-backend-scores": False,
-    # Replace the footer Sentry logo with a Sentry pride logo
-    "organizations:sentry-pride-logo-footer": False,
-    # Enable version 2 of reprocessing (completely distinct from v1)
-    "organizations:reprocessing-v2": False,
+    # Enable core Session Replay link in the sidebar
+    "organizations:session-replay-ui": True,
+    # Enable linking from 'weekly email' summaries to the issue replay list
+    "organizations:session-replay-weekly-email": False,
+    # Lets organizations manage grouping configs
+    "organizations:set-grouping-config": False,
     # Enable the UI for the overage alert settings
     "organizations:slack-overage-notifications": False,
+    # Enable source maps debugger
+    "organizations:source-maps-debugger-blue-thunder-edition": False,
+    # Enable the new flat file indexing system for sourcemaps.
+    "organizations:sourcemaps-bundle-flat-file-indexing": False,
+    # Upload release bundles as artifact bundles.
+    "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -1868,50 +1858,66 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
-    # Enable view hierarchies options
-    "organizations:view-hierarchies-options-dev": False,
-    # Enable anr improvements ui
-    "organizations:anr-improvements": False,
-    # Enable anr frame analysis
-    "organizations:anr-analyze-frames": False,
-    # Enable the release details performance section
-    "organizations:release-comparison-performance": False,
+    # Enable standalone span ingestion
+    "organizations:standalone-span-ingestion": False,
+    # Enable the aggregate span waterfall view
+    "organizations:starfish-aggregate-span-waterfall": False,
+    # Enables the resource module ui
+    "organizations:starfish-browser-resource-module-image-view": False,
+    # Enables the resource module ui
+    "organizations:starfish-browser-resource-module-ui": False,
+    # Enable browser starfish webvitals module view
+    "organizations:starfish-browser-webvitals": False,
+    # Enable browser starfish webvitals module pageoverview v2 view
+    "organizations:starfish-browser-webvitals-pageoverview-v2": False,
+    # Enable browser starfish webvitals module to use backend provided performance scores
+    "organizations:starfish-browser-webvitals-use-backend-scores": False,
+    # Enable starfish endpoint that's used for regressing testing purposes
+    "organizations:starfish-test-endpoint": False,
+    # Enable the new experimental starfish view
+    "organizations:starfish-view": False,
+    # Enable starfish dropdown on the webservice view for switching chart visualization
+    "organizations:starfish-wsv-chart-dropdown": False,
+    # Enable the new suggested assignees feature
+    "organizations:streamline-targeting-context": False,
+    # Enable the new suspect commits calculation that uses all frames in the stack trace
+    "organizations:suspect-commits-all-frames": False,
+    # Allow organizations to configure all symbol sources.
+    "organizations:symbol-sources": True,
     # Enable team insights page
     "organizations:team-insights": True,
-    # Enable u2f verification on superuser form
-    "organizations:u2f-superuser-form": False,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": True,
     # Enable team workflow notifications
     "organizations:team-workflow-notifications": False,
-    # Enable team member role provisioning through scim
-    "organizations:scim-team-roles": False,
-    # Enable detecting SDK crashes during event processing
-    "organizations:sdk-crash-detection": False,
-    # Enable functionality for recap server polling.
-    "organizations:recap-server": False,
-    # Enable new release UI
-    "organizations:releases-v2": False,
-    "organizations:releases-v2-st": False,
-    "organizations:releases-v2-banner": False,
+    # Enable feature to load more than 100 rows in performance trace view.
+    "organizations:trace-view-load-more": False,
+    # Extraction metrics for transactions during ingestion.
+    "organizations:transaction-metrics-extraction": False,
+    # Mark URL transactions scrubbed by regex patterns as "sanitized".
+    # NOTE: This flag does not concern transactions rewritten by clusterer rules.
+    # Those are always marked as "sanitized".
+    "organizations:transaction-name-mark-scrubbed-as-sanitized": True,
+    # Normalize URL transaction names during ingestion.
+    "organizations:transaction-name-normalize": True,
+    # Sanitize transaction names in the ingestion pipeline.
+    "organizations:transaction-name-sanitization": False,  # DEPRECATED
+    # Enable u2f verification on superuser form
+    "organizations:u2f-superuser-form": False,
     # Enable the metrics layer for alerts queries.
     "organizations:use-metrics-layer-in-alerts": False,
     # Enable User Feedback v2 ingest
     "organizations:user-feedback-ingest": False,
     # Enable User Feedback v2 UI
     "organizations:user-feedback-ui": False,
+    # Enable view hierarchies options
+    "organizations:view-hierarchies-options-dev": False,
+    # Enable minimap in the widget viewer modal in dashboards
+    "organizations:widget-viewer-modal-minimap": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
-    # Enable the new flat file indexing system for sourcemaps.
-    "organizations:sourcemaps-bundle-flat-file-indexing": False,
-    # Upload release bundles as artifact bundles.
-    "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
-    # Enable source maps debugger
-    "organizations:source-maps-debugger-blue-thunder-edition": False,
-    # Enable the new suspect commits calculation that uses all frames in the stack trace
-    "organizations:suspect-commits-all-frames": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
@@ -1944,15 +1950,9 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:span-metrics-extraction-ga-modules": False,
     "projects:span-metrics-extraction-all-modules": False,
     "projects:span-metrics-extraction-resource": False,
-    # Enable standalone span ingestion
-    "organizations:standalone-span-ingestion": False,
-    # Metrics cardinality limiter in Relay
-    "organizations:relay-cardinality-limiter": False,
-    # Metrics: Enable ingestion and storage of custom metrics. See ddm-ui for UI.
-    "organizations:custom-metrics": False,
     # Controls whether or not the relocation endpoints can be used.
     "relocation:enabled": False,
-    # Don't add feature defaults down here! Please add them in their associated
+    # NOTE: Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }
 
