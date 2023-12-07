@@ -442,13 +442,14 @@ class SlackIssueAlertMessageBuilder(BlockSlackMessageBuilder):
 
         # If an event is unspecified, use the tags of the latest event (if one exists).
         event_for_tags = self.event or self.group.get_latest_event()
+        color = get_color(event_for_tags, self.notification, self.group)
         tags = get_tags(event_for_tags, self.tags)
         obj = self.event if self.event is not None else self.group
         if not self.issue_details or (
             self.recipient and self.recipient.actor_type == ActorType.TEAM
         ):
-            payload_actions, text, _ = build_actions(
-                self.group, project, text, self.actions, self.identity
+            payload_actions, text, color = build_actions(
+                self.group, project, text, color, self.actions, self.identity
             )
         else:
             payload_actions = []
@@ -495,9 +496,6 @@ class SlackIssueAlertMessageBuilder(BlockSlackMessageBuilder):
             if action.label in ("Archive", "Ignore", "Mark as Ongoing", "Stop Ignoring"):
                 actions.append(self.get_button_action(action))
             elif action.label in ("Resolve", "Unresolve", "Resolve..."):
-                # TODO: to get parity with the existing alerts, this should open up a modal
-                # design is TBD though so unclear if we'll use it. maybe just build it out in case?
-                # actions.append(self.get_static_action(action))
                 actions.append(self.get_button_action(action))
             elif action.name == "assign":
                 actions.append(self.get_static_action(action))

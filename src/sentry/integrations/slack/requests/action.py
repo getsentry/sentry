@@ -39,13 +39,14 @@ class SlackActionRequest(SlackRequest):
         if self.data.get("callback_id"):
             return json.loads(self.data["callback_id"])
 
-        # XXX(CEO): can't really feature flag this but the data is very different
+        # XXX(CEO): can't really feature flag this but the block kit data is very different
 
-        # modal dropdown seems to try to submit when an option is selected - I don't think we want that
-        # but just handling it for now
+        # modal dropdown seems to try to submit when an option is selected - we don't want that
+        # but just handling it so things don't blow up - can't figure out how to stop it
         if self.data["type"] == "block_actions":
-            return {"issue": 520}
-            # return json.loads(self.data["view"]["blocks"][0]["block_id"])
+            if self.data.get("view"):
+                return json.loads(self.data["view"]["private_metadata"])
+            return json.loads(self.data["message"]["blocks"][0]["block_id"])
 
         if self.data["type"] == "view_submission":
             return json.loads(self.data["view"]["callback_id"])

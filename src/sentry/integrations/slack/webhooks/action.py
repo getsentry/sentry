@@ -282,24 +282,24 @@ class SlackActionEndpoint(Endpoint):
             "trigger_id": slack_request.data["trigger_id"],
         }
         use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
-        # TODO add a "private_metadata" field that includes the response URL - this is not added by default
-        # see https://api.slack.com/block-kit/dialogs-to-modals#state
-        # "private_metadata" : callback_id, # I dont think we need is_message here
-
+        # TODO: build this up somewhere else, like block.py
+        # TODO: generate the resolve options from RESOLVE_SELECTOR (or copy it and modify for the format needed)
+        # XXX(CEO): idk if this is the default behavior, but instead of there being placeholder text it's an input field
+        # that filters to options in the dropdown (if a match is found)
+        # also, the second you make a selection (without hitting Submit) it sends a slightly different request
+        # and I don't need it to nor do I know how to stop it, it's making stuff harder in requests/action.py
         block_kit_payload = {
             "type": "modal",
-            "submit": {"type": "plain_text", "text": "Submit"},
-            "close": {"type": "plain_text", "text": "Cancel"},
             "title": {"type": "plain_text", "text": "Resolve Issue"},
             "blocks": [
                 {
                     "type": "section",
-                    "text": {"type": "mrkdwn", "text": " Resolved in"},
+                    "text": {"type": "mrkdwn", "text": "Resolve in"},
                     "accessory": {
                         "type": "static_select",
                         "placeholder": {
                             "type": "plain_text",
-                            "text": "Choose target",
+                            "text": "Select an item",
                             "emoji": True,
                         },
                         "options": [
@@ -319,10 +319,21 @@ class SlackActionEndpoint(Endpoint):
                                 },
                                 "value": "resolved:inNextRelease",
                             },
+                            {
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "In the current release",
+                                    "emoji": True,
+                                },
+                                "value": "resolved:inCurrentRelease",
+                            },
                         ],
+                        "action_id": "static_select-action",
                     },
                 }
             ],
+            "close": {"type": "plain_text", "text": "Cancel"},
+            "submit": {"type": "plain_text", "text": "Save"},
             "private_metadata": callback_id,
             "callback_id": callback_id,
         }
@@ -387,8 +398,11 @@ class SlackActionEndpoint(Endpoint):
         # Handle status dialog submission
         use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
         if use_block_kit and slack_request.type == "view_submission":
+            # TODO: if we use modals for something other than resolve, this will need to be more specific
+
             # Masquerade a status action
             selection = None
+            # TODO this is ridiculously nested, is there a better way?
             values = slack_request.data["view"]["state"]["values"]
             for value in values:
                 for val in values[value]:
@@ -411,7 +425,6 @@ class SlackActionEndpoint(Endpoint):
             body = self.construct_reply(
                 attachment, is_message=slack_request.callback_data["is_message"]
             )
-
             # use the original response_url to update the link attachment
             slack_client = SlackClient(integration_id=slack_request.integration.id)
             try:
@@ -442,8 +455,6 @@ class SlackActionEndpoint(Endpoint):
             body = self.construct_reply(
                 attachment, is_message=slack_request.callback_data["is_message"]
             )
-
-            # TODO: seems that the message body isn't changing, not sure why
 
             # use the original response_url to update the link attachment
             slack_client = SlackClient(integration_id=slack_request.integration.id)
@@ -488,12 +499,16 @@ class SlackActionEndpoint(Endpoint):
                 group, identity=identity, actions=action_list, tags=original_tags_from_request
             ).build()
             slack_client = SlackClient(integration_id=slack_request.integration.id)
+
+            if not slack_request.data.get("response_url"):
+                # XXX: when you click an option in a modal dropdown it submits the request even though "Submit" has not been clicked
+                return self.respond()
             try:
                 slack_client.post(slack_request.data["response_url"], data=response, json=True)
             except ApiError as e:
                 logger.error("slack.action.response-error", extra={"error": str(e)})
 
-            return self.respond()
+            return self.respond(response)
 
         attachment = SlackIssuesMessageBuilder(
             group, identity=identity, actions=action_list, tags=original_tags_from_request
