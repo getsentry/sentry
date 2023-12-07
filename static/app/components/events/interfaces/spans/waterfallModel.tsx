@@ -29,7 +29,6 @@ class WaterfallModel {
   fuse: Fuse<IndexedFusedSpan> | undefined = undefined;
   affectedSpanIds: string[] | undefined = undefined;
   isEmbeddedSpanTree: boolean;
-  traceInfo: TraceInfo | undefined;
 
   // readable/writable state
   operationNameFilters: ActiveOperationFilter = noFilter;
@@ -43,11 +42,9 @@ class WaterfallModel {
     event: Readonly<EventTransaction | AggregateEventTransaction>,
     affectedSpanIds?: string[],
     focusedSpanIds?: string[],
-    hiddenSpanSubTrees?: Set<string>,
-    traceInfo?: TraceInfo
+    hiddenSpanSubTrees?: Set<string>
   ) {
     this.event = event;
-    this.traceInfo = traceInfo;
     this.parsedTrace = parseTrace(event);
     const rootSpan = generateRootSpan(this.parsedTrace);
     this.rootSpan = new SpanTreeModel(
@@ -289,15 +286,17 @@ class WaterfallModel {
   generateBounds = ({
     viewStart,
     viewEnd,
+    traceInfo,
   }: {
     // in [0, 1]
     viewEnd: number;
     viewStart: number; // in [0, 1]
+    traceInfo?: TraceInfo;
   }) => {
-    const bounds = this.traceInfo
+    const bounds = traceInfo
       ? {
-          traceEndTimestamp: this.traceInfo.endTimestamp,
-          traceStartTimestamp: this.traceInfo.startTimestamp,
+          traceEndTimestamp: traceInfo.endTimestamp,
+          traceStartTimestamp: traceInfo.startTimestamp,
         }
       : this.getTraceBounds();
 
@@ -311,14 +310,17 @@ class WaterfallModel {
   getWaterfall = ({
     viewStart,
     viewEnd,
+    traceInfo,
   }: {
     // in [0, 1]
     viewEnd: number;
     viewStart: number; // in [0, 1]
+    traceInfo?: TraceInfo;
   }) => {
     const generateBounds = this.generateBounds({
       viewStart,
       viewEnd,
+      traceInfo,
     });
 
     return this.rootSpan.getSpansList({

@@ -380,6 +380,7 @@ export default function TraceView({
             <ScrollbarManager.Provider
               dividerPosition={dividerPosition}
               interactiveLayerRef={virtualScrollbarContainerRef}
+              isEmbedded
             >
               <StyledTracePanel>
                 <TraceViewHeaderContainer>

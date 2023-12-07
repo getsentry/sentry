@@ -13,8 +13,8 @@ import {
 import {Organization} from 'sentry/types';
 import {TraceError, TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 
+import NewTraceDetailsTransactionBar from './newTraceDetailsTransactionBar';
 import TransactionBar from './transactionBar';
-import TransactionBarV0 from './transactionBarV0';
 import {TraceInfo, TraceRoot, TreeDepth} from './types';
 
 type Props = ScrollbarManagerChildrenProps & {
@@ -83,57 +83,36 @@ class TransactionGroup extends Component<Props, State> {
     } = this.props;
     const {isExpanded} = this.state;
 
+    const commonProps = {
+      location,
+      organization,
+      measurements,
+      generateBounds,
+      index,
+      transaction,
+      traceInfo,
+      continuingDepths,
+      isOrphan,
+      isLast,
+      isExpanded,
+      toggleExpandedState: this.toggleExpandedState,
+      isVisible,
+      hasGuideAnchor,
+      barColor,
+      addContentSpanBarRef,
+      removeContentSpanBarRef,
+      onWheel,
+      onlyOrphanErrors,
+      numOfOrphanErrors,
+      isOrphanError,
+    };
+
     return (
       <Fragment>
         {organization.features.includes('performance-trace-details') ? (
-          <TransactionBarV0
-            location={location}
-            organization={organization}
-            measurements={measurements}
-            generateBounds={generateBounds}
-            index={index}
-            transaction={transaction}
-            traceInfo={traceInfo}
-            traceViewRef={traceViewRef}
-            continuingDepths={continuingDepths}
-            isOrphan={isOrphan}
-            isLast={isLast}
-            isExpanded={isExpanded}
-            toggleExpandedState={this.toggleExpandedState}
-            isVisible={isVisible}
-            hasGuideAnchor={hasGuideAnchor}
-            barColor={barColor}
-            addContentSpanBarRef={addContentSpanBarRef}
-            removeContentSpanBarRef={removeContentSpanBarRef}
-            onWheel={onWheel}
-            onlyOrphanErrors={onlyOrphanErrors}
-            numOfOrphanErrors={numOfOrphanErrors}
-            isOrphanError={isOrphanError}
-          />
+          <NewTraceDetailsTransactionBar {...commonProps} traceViewRef={traceViewRef} />
         ) : (
-          <TransactionBar
-            location={location}
-            organization={organization}
-            measurements={measurements}
-            generateBounds={generateBounds}
-            index={index}
-            transaction={transaction}
-            traceInfo={traceInfo}
-            continuingDepths={continuingDepths}
-            isOrphan={isOrphan}
-            isLast={isLast}
-            isExpanded={isExpanded}
-            toggleExpandedState={this.toggleExpandedState}
-            isVisible={isVisible}
-            hasGuideAnchor={hasGuideAnchor}
-            barColor={barColor}
-            addContentSpanBarRef={addContentSpanBarRef}
-            removeContentSpanBarRef={removeContentSpanBarRef}
-            onWheel={onWheel}
-            onlyOrphanErrors={onlyOrphanErrors}
-            numOfOrphanErrors={numOfOrphanErrors}
-            isOrphanError={isOrphanError}
-          />
+          <TransactionBar {...commonProps} />
         )}
 
         {isExpanded && renderedChildren}

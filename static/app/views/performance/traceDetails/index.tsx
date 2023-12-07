@@ -23,8 +23,8 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import TraceDetailsContent from './content';
-import TraceDetailsContentV0 from './contentV0';
 import {DEFAULT_TRACE_ROWS_LIMIT} from './limitExceededMessage';
+import NewTraceDetailsContent from './newTraceDetailsContent';
 import {getTraceSplitResults} from './utils';
 
 type Props = RouteComponentProps<{traceSlug: string}, {}> & {
@@ -113,36 +113,25 @@ class TraceSummary extends Component<Props> {
         organization
       );
 
+      const commonProps = {
+        location,
+        organization,
+        params,
+        traceSlug,
+        traceEventView: this.getTraceEventView(),
+        dateSelected,
+        isLoading,
+        error,
+        orphanErrors,
+        traces: transactions ?? (traces as TraceFullDetailed[]),
+        meta,
+        handleLimitChange: this.handleLimitChange,
+      };
+
       return organization.features.includes('performance-trace-details') ? (
-        <TraceDetailsContentV0
-          location={location}
-          organization={organization}
-          params={params}
-          traceSlug={traceSlug}
-          traceEventView={this.getTraceEventView()}
-          dateSelected={dateSelected}
-          isLoading={isLoading}
-          error={error}
-          orphanErrors={orphanErrors}
-          traces={transactions ?? (traces as TraceFullDetailed[])}
-          meta={meta}
-          handleLimitChange={this.handleLimitChange}
-        />
+        <NewTraceDetailsContent {...commonProps} />
       ) : (
-        <TraceDetailsContent
-          location={location}
-          organization={organization}
-          params={params}
-          traceSlug={traceSlug}
-          traceEventView={this.getTraceEventView()}
-          dateSelected={dateSelected}
-          isLoading={isLoading}
-          error={error}
-          orphanErrors={orphanErrors}
-          traces={transactions ?? (traces as TraceFullDetailed[])}
-          meta={meta}
-          handleLimitChange={this.handleLimitChange}
-        />
+        <TraceDetailsContent {...commonProps} />
       );
     };
 

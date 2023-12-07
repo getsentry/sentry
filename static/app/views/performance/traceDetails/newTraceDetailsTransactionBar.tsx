@@ -7,9 +7,9 @@ import {Observer} from 'mobx-react';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Count from 'sentry/components/count';
 import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
+import NewTraceDetailsSpanTree from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanTree';
 import * as ScrollbarManager from 'sentry/components/events/interfaces/spans/scrollbarManager';
 import * as SpanContext from 'sentry/components/events/interfaces/spans/spanContext';
-import SpanTreeV0 from 'sentry/components/events/interfaces/spans/spanTreeV0';
 import {MeasurementMarker} from 'sentry/components/events/interfaces/spans/styles';
 import {
   getMeasurementBounds,
@@ -106,7 +106,7 @@ type Props = {
   onlyOrphanErrors?: boolean;
 };
 
-function TransactionBarV0(props: Props) {
+function NewTraceDetailsTransactionBar(props: Props) {
   const [showDetail, setShowDetail] = useState(false);
   const [showEmbeddedChildren, setShowEmbeddedChildren] = useState(false);
   const transactionRowDOMRef = createRef<HTMLDivElement>();
@@ -365,13 +365,7 @@ function TransactionBarV0(props: Props) {
     }
 
     const {organization, traceViewRef, location, isLast, traceInfo} = props;
-    const waterfallModel = new WaterfallModel(
-      embeddedChildren,
-      undefined,
-      undefined,
-      undefined,
-      traceInfo
-    );
+    const waterfallModel = new WaterfallModel(embeddedChildren);
     const profileId = embeddedChildren.contexts?.profile?.profile_id ?? null;
     return (
       <Fragment>
@@ -404,7 +398,8 @@ function TransactionBarV0(props: Props) {
                             {spanContextProps => (
                               <Observer>
                                 {() => (
-                                  <SpanTreeV0
+                                  <NewTraceDetailsSpanTree
+                                    traceInfo={traceInfo}
                                     traceViewHeaderRef={traceViewRef}
                                     traceViewRef={traceViewRef}
                                     parentHasContinuingDepths={
@@ -422,6 +417,7 @@ function TransactionBarV0(props: Props) {
                                       .getWaterfall({
                                         viewStart: 0,
                                         viewEnd: 1,
+                                        traceInfo,
                                       })
                                       .slice(1)}
                                     focusedSpanIds={waterfallModel.focusedSpanIds}
@@ -858,7 +854,7 @@ function getOffset(generation) {
   return generation * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
 }
 
-export default TransactionBarV0;
+export default NewTraceDetailsTransactionBar;
 
 const StyledRow = styled(Row)`
   &,

@@ -21,6 +21,7 @@ import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {setGroupedEntityTag} from 'sentry/utils/performanceForSentry';
+import {TraceInfo} from 'sentry/views/performance/traceDetails/types';
 
 import {ActiveOperationFilter} from './filter';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
@@ -52,6 +53,7 @@ type PropType = ScrollbarManagerChildrenProps & {
   spanContextProps: SpanContext.SpanContextProps;
   spans: EnhancedProcessedSpanType[];
   traceHasMultipleRoots: boolean;
+  traceInfo: TraceInfo;
   traceViewHeaderRef: React.RefObject<HTMLDivElement>;
   traceViewRef: React.RefObject<HTMLDivElement>;
   waterfallModel: WaterfallModel;
@@ -65,7 +67,7 @@ type StateType = {
 
 const listRef = createRef<ReactVirtualizedList>();
 
-class SpanTreeV0 extends Component<PropType> {
+class NewTraceDetailsSpanTree extends Component<PropType> {
   state: StateType = {
     headerPos: 0,
     // Stores each visible span row ref along with its tree depth. This is used to calculate the
@@ -395,11 +397,13 @@ class SpanTreeV0 extends Component<PropType> {
       removeContentSpanBarRef,
       storeSpanBar,
       traceHasMultipleRoots,
+      traceInfo,
     } = this.props;
 
     const generateBounds = waterfallModel.generateBounds({
       viewStart: 0,
       viewEnd: 1,
+      traceInfo,
     });
 
     type AccType = {
@@ -947,4 +951,4 @@ function hasAllSpans(trace: ParsedTraceType): boolean {
   return missingDuration < 0.1;
 }
 
-export default withProfiler(withScrollbarManager(SpanTreeV0));
+export default withProfiler(withScrollbarManager(NewTraceDetailsSpanTree));

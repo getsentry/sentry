@@ -60,7 +60,7 @@ type State = {
   searchQuery: string | undefined;
 };
 
-class TraceDetailsContentV0 extends Component<Props, State> {
+class NewTraceDetailsContent extends Component<Props, State> {
   state: State = {
     searchQuery: undefined,
     filteredEventIds: undefined,
@@ -435,4 +435,4 @@ const Margin = styled('div')`
   margin-top: ${space(2)};
 `;
 
-export default TraceDetailsContentV0;
+export default NewTraceDetailsContent;
