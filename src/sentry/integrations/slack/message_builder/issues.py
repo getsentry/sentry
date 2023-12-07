@@ -218,17 +218,6 @@ def build_actions(
     def _resolve_button(use_block_kit) -> MessageAction:
 
         if use_block_kit:
-            # resolve_options = [
-            #     {"label": "Immediately", "value": "resolved"},
-            #     {"label": "In the next release", "value": "resolved:inNextRelease"},
-            #     {"label": "In the current release", "value": "resolved:inCurrentRelease"},
-            # ]
-            # return MessageAction(
-            #     name="status",
-            #     label="Resolve...",
-            #     type="select",
-            #     option_groups=resolve_options,
-            # )
             return MessageAction(
                 name="status",
                 label="Resolve",

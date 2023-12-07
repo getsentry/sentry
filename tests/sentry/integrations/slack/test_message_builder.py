@@ -688,7 +688,9 @@ class ActionsTest(TestCase):
         group.status = GroupStatus.RESOLVED
         group.save()
 
-        res = build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], None)
+        res = build_actions(
+            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
+        )
 
         self._assert_message_actions_list(
             res[0],
