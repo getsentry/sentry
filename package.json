@@ -176,7 +176,6 @@
     "@pmmmwh/react-refresh-webpack-plugin": "0.5.10",
     "@sentry/jest-environment": "^4.0.0",
     "@sentry/profiling-node": "^1.2.1",
-    "@spotlightjs/spotlight": "^1.0.0",
     "@styled/typescript-styled-plugin": "^1.0.0",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^12.1.2",
@@ -204,8 +203,7 @@
     "terser": "5.16.9",
     "tocbot": "^4.20.0",
     "tsconfig-paths": "^4.2.0",
-    "webpack-dev-server": "^4.15.1",
-    "webpack-hook-plugin": "^1.0.7"
+    "webpack-dev-server": "^4.15.1"
   },
   "optionalDependencies": {
     "fsevents": "^2.3.2"

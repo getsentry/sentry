@@ -12,7 +12,6 @@ import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import webpack from 'webpack';
 import {Configuration as DevServerConfig} from 'webpack-dev-server';
-import WebpackHookPlugin from 'webpack-hook-plugin';
 import FixStyleOnlyEntriesPlugin from 'webpack-remove-empty-scripts';
 
 import IntegrationDocsFetchPlugin from './build-utils/integration-docs-fetch-plugin';
@@ -611,12 +610,6 @@ if (
       },
     };
     appConfig.output!.publicPath = '/_static/dist/sentry/';
-
-    appConfig.plugins?.push(
-      new WebpackHookPlugin({
-        onBuildStart: ['yarn run spotlight-sidecar'],
-      })
-    );
   }
 }
 
