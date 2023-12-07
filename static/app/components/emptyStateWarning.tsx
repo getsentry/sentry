@@ -21,7 +21,7 @@ function EmptyStateWarning({small = false, withIcon = true, children, className}
     </EmptyMessage>
   ) : (
     <EmptyStreamWrapper data-test-id="empty-state" className={className}>
-      {withIcon && <IconSearch size="xl" />}
+      {withIcon && <IconSearch legacySize="54px" />}
       {children}
     </EmptyStreamWrapper>
   );
