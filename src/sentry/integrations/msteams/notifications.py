@@ -77,7 +77,7 @@ def send_notification_as_msteams(
 ):
     if not is_supported_notification_type(notification):
         logger.info(
-            f"Unsupported notification type for Microsoft Teams {notification.__class__.__name__}"
+            "Unsupported notification type for Microsoft Teams %s", notification.__class__.__name__
         )
         return
 
@@ -111,10 +111,8 @@ def send_notification_as_msteams(
                             client.send_card(conversation_id, card)
 
                         notification.record_notification_sent(recipient, ExternalProviders.MSTEAMS)
-                    except Exception as e:
-                        logger.error(
-                            "Exception occured while trying to send the notification", exc_info=e
-                        )
+                    except Exception:
+                        logger.exception("Exception occured while trying to send the notification")
 
     metrics.incr(
         f"{notification.metrics_key}.notifications.sent",
