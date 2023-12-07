@@ -61,4 +61,24 @@ describe('ErrorMigrationWarning', () => {
     expect(container).toBeEmptyDOMElement();
     expect(dismissMock).toHaveBeenCalledTimes(1);
   });
+
+  it('renders nothing if the alert was created after the `is:unresolved` feature became available', () => {
+    const rule = MetricRule({
+      projects: [project.slug],
+      latestIncident: null,
+      dataset: Dataset.ERRORS,
+      query: '',
+      dateCreated: '2024-01-01T00:00:00Z',
+    });
+    const promptApi = MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      body: {},
+    });
+    const {container} = render(<ErrorMigrationWarning project={project} rule={rule} />, {
+      organization,
+    });
+
+    expect(container).toBeEmptyDOMElement();
+    expect(promptApi).not.toHaveBeenCalled();
+  });
 });

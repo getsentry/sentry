@@ -1024,7 +1024,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       !!ruleId && hasMigrationFeatureFlag(organization) && ruleNeedsMigration(rule);
     const showErrorMigrationWarning =
       !!ruleId &&
-      location?.query?.migration === '1' &&
+      isMigration &&
       hasIgnoreArchivedFeatureFlag(organization) &&
       ruleNeedsErrorMigration(rule);
 
@@ -1085,7 +1085,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
               project={project}
               aggregate={aggregate}
               organization={organization}
-              isMigration={isMigration}
+              isTransactionMigration={isMigration && !showErrorMigrationWarning}
+              isErrorMigration={showErrorMigrationWarning}
               router={router}
               disabled={formDisabled}
               thresholdChart={wizardBuilderChart}
@@ -1137,8 +1138,11 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             )}
             {showErrorMigrationWarning && (
               <Alert type="warning" showIcon>
-                {t(
-                  'Check the chart above and make sure the current thresholds are still valid, given that this alert is now filtering out resolved and archived errors.'
+                {tct(
+                  "We've added [code:is:unresolved] to your events filter; please make sure the current thresholds are still valid as this alert is now filtering out resolved and archived errors.",
+                  {
+                    code: <code />,
+                  }
                 )}
               </Alert>
             )}
