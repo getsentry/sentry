@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
 from typing import Any, Dict, MutableMapping, Optional, cast
 
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
-from arroyo.types import Message
+from arroyo.types import Message, Value
 from django.conf import settings
 
 from sentry import features
@@ -40,11 +39,6 @@ _occurrence_producer = SingletonProducer(
 )
 
 
-@dataclass
-class DevKafkaMessage:
-    payload: KafkaPayload
-
-
 def produce_occurrence_to_kafka(
     payload_type: PayloadType | None = PayloadType.OCCURRENCE,
     occurrence: IssueOccurrence | None = None,
@@ -64,9 +58,9 @@ def produce_occurrence_to_kafka(
 
     payload = KafkaPayload(None, json.dumps(payload_data).encode("utf-8"), [])
     if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
-        # If we're not running Kafka then we're just in dev. Skip producing to Kafka and just
-        # process the message directly
-        process_message(Message(value=DevKafkaMessage(payload)))
+        # If we're not running Kafka then we're just in dev.
+        # Skip producing to Kafka and just process the message directly
+        process_message(Message(Value(payload=payload, committable={})))
         return
 
     _occurrence_producer.produce(Topic(settings.KAFKA_INGEST_OCCURRENCES), payload)

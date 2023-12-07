@@ -225,12 +225,15 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
                 payload_type=PayloadType.STATUS_CHANGE,
                 status_change=bad_status_change,
             )
+            processed_fingerprint = {"fingerprint": ["group-1"]}
+            process_occurrence_data(processed_fingerprint)
+
             self.group.refresh_from_db()
             mock_logger_error.assert_called_with(
                 error_msg,
                 extra={
                     "project_id": self.group.project_id,
-                    "fingerprint": [self.group_hash.hash],
+                    "fingerprint": processed_fingerprint["fingerprint"],
                     "new_status": status,
                     "new_substatus": substatus,
                 },
