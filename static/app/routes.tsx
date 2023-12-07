@@ -314,7 +314,7 @@ function buildRoutes() {
       />
       <Route
         path="/redirect/"
-        component={make(() => import('sentry/views/externalRedirect/redirectPage'))}
+        component={make(() => import('sentry/views/externalRedirect/index'))}
         key="external-redirect"
       />
     </Fragment>

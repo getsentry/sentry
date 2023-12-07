@@ -1,77 +1,71 @@
-import {Component, Fragment} from 'react';
-import {urlEncode} from '@sentry/utils';
-
-interface ExternalRedirectProps {
-  exceptionText: string;
-}
+import {Component} from 'react';
 
 interface ExternalRedirectState {
-  isRedirecting: boolean;
-  redirectUrl: string;
+  count: number;
+  redirectUrl: string | null;
 }
 
-class ExternalRedirect extends Component<ExternalRedirectProps, ExternalRedirectState> {
-  constructor(props) {
+class ExternalRedirect extends Component<{}, ExternalRedirectState> {
+  constructor(props: {}) {
     super(props);
     this.state = {
-      isRedirecting: false,
-      redirectUrl: '',
+      count: 5,
+      redirectUrl: null,
     };
   }
 
-  handleLinkClick = url => {
-    this.setState({
-      redirectUrl: url,
-      isRedirecting: true,
-    });
+  componentDidMount() {
+    const queryParams = new URLSearchParams(window.location.search);
+    const redirectUrl = queryParams.get('url');
+
+    if (redirectUrl) {
+      this.setState({redirectUrl});
+    }
+
+    this.timer = window.setInterval(() => {
+      this.setState(prevState => ({
+        count: prevState.count - 1,
+      }));
+    }, 1000);
+  }
+
+  componentDidUpdate() {
+    const {count, redirectUrl} = this.state;
+    if (count === 0 && redirectUrl) {
+      if (this.timer !== null) {
+        clearInterval(this.timer);
+        this.timer = null;
+        window.location.href = redirectUrl;
+      }
+    }
+  }
+
+  componentWillUnmount() {
+    if (this.timer !== null) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
+  }
+
+  timer: number | null = null;
+
+  goBack = () => {
+    window.close();
   };
 
   render() {
-    const {exceptionText} = this.props;
-    // const {isRedirecting, redirectUrl} = this.state;
+    const {count, redirectUrl} = this.state;
 
-    if (!exceptionText) {
-      return <Fragment />;
-    }
-
-    const urlRegex =
-      /https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9]{1,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&\/=,\[\]]*)/gi;
-    // https?: Matches both "http" and "https"
-    // :\/\/: This is a literal match for "://"
-    // (?:www\.)?: Matches URLs with or without "www."
-    // [-a-zA-Z0-9@:%._\+~#=]{1,256}: Matches the domain name
-    //    It allows for a range of characters (letters, digits, and special characters)
-    //    The {1,256} specifies that these characters can occur anywhere from 1 to 256 times, which covers the range of typical domain name lengths
-    // \.: Matches the dot before the top-level domain (like ".com")
-    // [a-zA-Z0-9]{1,6}: Matches the top-level domain (like "com" or "org"). It's limited to letters and digits and can be between 1 and 6 characters long
-    // \b: Marks the end of the domain part of the URL
-    // (?:[-a-zA-Z0-9@:%_\+.~#?&\/=,\[\]]*): Matches the path or query parameters that can follow the domain in a URL
-    //    It includes a wide range of characters typically found in paths and query strings
-    // /gi: The regex will match all occurrences in the string, not just the first one
-    //    i makes the regex match both upper and lower case characters;
-    const parts = exceptionText.split(urlRegex);
-    const urls = exceptionText.match(urlRegex);
-
-    const elements = parts.flatMap((part, index) => {
-      const link =
-        urls && urls[index] ? (
-          <a
-            key={`link-${index}`}
-            href={`${window.location.origin}/redirect?${urlEncode({
-              url: urls[index],
-            })}`}
-            onClick={() => this.handleLinkClick(urls[index])}
-            target="_blank"
-            rel="noreferrer"
-          >
-            {urls[index]}
+    return (
+      <div>
+        <p>
+          You are being redirected to {redirectUrl} in {count} seconds. Changed your mind?{' '}
+          <a href="#" onClick={this.goBack}>
+            Go back
           </a>
-        ) : null;
-
-      return [<Fragment key={`text-${index}`}>{part}</Fragment>, link];
-    });
-
-    return <Fragment>{elements}</Fragment>;
+        </p>
+      </div>
+    );
   }
 }
 

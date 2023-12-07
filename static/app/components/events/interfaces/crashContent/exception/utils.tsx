@@ -1,3 +1,6 @@
+import {Fragment, ReactElement} from 'react';
+import {urlEncode} from '@sentry/utils';
+
 import type {Frame} from 'sentry/types';
 import {getFileExtension} from 'sentry/utils/fileExtension';
 
@@ -19,6 +22,41 @@ export function isFrameFilenamePathlike(frame: Frame): boolean {
     (!!frame.absPath && !getFileExtension(filename))
   );
 }
+
+interface RenderLinksInTextProps {
+  exceptionText: string;
+}
+
+export const renderLinksInText = ({
+  exceptionText,
+}: RenderLinksInTextProps): ReactElement => {
+  if (!exceptionText) {
+    return <Fragment />;
+  }
+
+  const urlRegex =
+    /https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9]{1,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&\/=,\[\]]*)/gi;
+  const parts = exceptionText.split(urlRegex);
+  const urls = exceptionText.match(urlRegex);
+
+  const elements = parts.flatMap((part, index) => {
+    const link =
+      urls && urls[index] ? (
+        <a
+          key={`link-${index}`}
+          href={`${window.location.origin}/redirect?${urlEncode({url: urls[index]})}`}
+          target="_blank"
+          rel="noreferrer"
+        >
+          {urls[index]}
+        </a>
+      ) : null;
+
+    return [<Fragment key={`text-${index}`}>{part}</Fragment>, link];
+  });
+
+  return <Fragment>{elements}</Fragment>;
+};
 
 // Maps the SDK name to the url token for docs
 export const sourceMapSdkDocsMap: Record<string, string> = {
