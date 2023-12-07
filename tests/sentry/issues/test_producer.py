@@ -23,6 +23,7 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 pytestmark = [requires_snuba]
 
 
+@apply_feature_flag_on_cls("organizations:profile-file-io-main-thread-ingest")
 class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
     def test_event_id_mismatch(self) -> None:
         with self.assertRaisesMessage(
@@ -35,7 +36,7 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
             )
 
     def test_with_event(self) -> None:
-        occurrence = self.build_occurrence()
+        occurrence = self.build_occurrence(project_id=self.project.id)
         produce_occurrence_to_kafka(
             payload_type=PayloadType.OCCURRENCE,
             occurrence=occurrence,
