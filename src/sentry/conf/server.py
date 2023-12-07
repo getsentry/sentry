@@ -1916,6 +1916,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:widget-viewer-modal-minimap": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
+    # Workflow 2.0 Auto associate commits to commit sha release
+    "projects:auto-associate-commits-to-release": False,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
     # Enable data forwarding functionality for projects.
@@ -1941,15 +1943,13 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:rate-limits": True,
     # Enable functionality to trigger service hooks upon event ingestion.
     "projects:servicehooks": False,
-    # Enable suspect resolutions feature
-    "projects:suspect-resolutions": False,
-    # Workflow 2.0 Auto associate commits to commit sha release
-    "projects:auto-associate-commits-to-release": False,
     # Starfish: extract metrics from the spans
     "projects:span-metrics-extraction": False,
     "projects:span-metrics-extraction-ga-modules": False,
     "projects:span-metrics-extraction-all-modules": False,
     "projects:span-metrics-extraction-resource": False,
+    # Enable suspect resolutions feature
+    "projects:suspect-resolutions": False,
     # Controls whether or not the relocation endpoints can be used.
     "relocation:enabled": False,
     # NOTE: Don't add feature defaults down here! Please add them in their associated
