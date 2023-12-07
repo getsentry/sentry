@@ -26,7 +26,9 @@ MONITOR_TYPES = {"cron_job": MonitorType.CRON_JOB}
 
 MONITOR_STATUSES = {
     "active": MonitorObjectStatus.ACTIVE,
-    "disabled": MonitorObjectStatus.DISABLED,
+    "muted": MonitorObjectStatus.MUTED,
+    # TODO(epurkhiser): Remove once the frontend is only using "muted"
+    "disabled": MonitorObjectStatus.MUTED,
 }
 
 SCHEDULE_TYPES = {
@@ -248,7 +250,7 @@ class MonitorValidator(CamelSnakeSerializer):
     status = serializers.ChoiceField(
         choices=list(zip(MONITOR_STATUSES.keys(), MONITOR_STATUSES.keys())),
         default="active",
-        help_text="Status of the monitor. Disabled monitors do not generate events or notifications.",
+        help_text="Status of the monitor. Muted monitors do not generate events or notifications.",
     )
     type = serializers.ChoiceField(choices=list(zip(MONITOR_TYPES.keys(), MONITOR_TYPES.keys())))
     config = ConfigValidator()

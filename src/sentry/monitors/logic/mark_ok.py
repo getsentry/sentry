@@ -23,7 +23,7 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
     }
 
     if (
-        monitor_env.monitor.status != MonitorObjectStatus.DISABLED
+        monitor_env.monitor.status != MonitorObjectStatus.MUTED
         and monitor_env.status != MonitorStatus.OK
     ):
         params["status"] = MonitorStatus.OK
