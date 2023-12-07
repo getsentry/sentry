@@ -239,8 +239,8 @@ class BaseNotification(abc.ABC):
         )
 
     def get_participants(self) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
-        # need a notification_setting_type to call this function
-        if not self.notification_setting_type:
+        # need a notification_setting_type_enum to call this function
+        if not self.notification_setting_type_enum:
             raise NotImplementedError
 
         available_providers = self.get_notification_providers()
