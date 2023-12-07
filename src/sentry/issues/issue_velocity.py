@@ -139,10 +139,10 @@ def calculate_threshold(project: Project) -> Optional[float]:
 
     try:
         return result[0][THRESHOLD_QUANTILE["name"]]
-    except Exception as error:
+    except Exception:
         logger.exception(
             "Unexpected shape for threshold query results",
-            extra={"project_id": project.id, "result": json.dumps(result), "error": error},
+            extra={"project_id": project.id, "result": json.dumps(result)},
         )
         return None
 
