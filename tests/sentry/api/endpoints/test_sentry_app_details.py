@@ -340,6 +340,17 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert response.status_code == 200
         assert SentryApp.objects.get(id=app.id).get_scopes() == ["event:read"]
 
+    def test_updating_scopes_maintains_scope_hierarchy(self):
+        self.login_as(user=self.user)
+        app = self.create_sentry_app(
+            name="SampleApp", organization=self.org, scopes=["event:read", "event:write"]
+        )
+        url = reverse("sentry-api-0-sentry-app-details", args=[app.slug])
+        # scopes is None here
+        response = self.client.put(url, data={"scopes": ["event:write"]}, format="json")
+        assert response.status_code == 200
+        assert SentryApp.objects.get(id=app.id).get_scopes() == ["event:read", "event:write"]
+
     @patch("sentry.analytics.record")
     def test_bad_schema(self, record):
         self.login_as(user=self.user)

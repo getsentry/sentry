@@ -15,6 +15,7 @@ from sentry_sdk.api import push_scope
 
 from sentry import analytics, audit_log
 from sentry.api.helpers.slugs import sentry_slugify
+from sentry.conf.server import SENTRY_SCOPE_HIERARCHY_MAPPING, SENTRY_SCOPES
 from sentry.constants import SentryAppStatus
 from sentry.coreapi import APIError
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
@@ -143,7 +144,18 @@ class SentryAppUpdater:
                 and self.sentry_app.scope_list != self.scopes
             ):
                 raise APIError("Cannot update permissions on a published integration.")
+
+            # We are using a pre_save signal to enforce scope hierarchy on the ApiToken model.
+            # Because we're using bulk_update here to update all the tokens for the SentryApp,
+            # we need to manually enforce the hierarchy because the pre_save signal won't be called.
+            new_scopes = set(self.scopes)
+            for scope in self.scopes:
+                if scope in SENTRY_SCOPES:
+                    new_scopes = new_scopes.union(SENTRY_SCOPE_HIERARCHY_MAPPING[scope])
+            self.scopes = sorted(new_scopes)
+
             self.sentry_app.scope_list = self.scopes
+
             # update the scopes of active tokens tokens
             tokens = list(
                 ApiToken.objects.filter(
