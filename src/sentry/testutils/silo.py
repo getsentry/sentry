@@ -34,6 +34,7 @@ from django.db.models.fields.related import RelatedField
 from django.test import override_settings
 
 from sentry import deletions
+from sentry.api.utils import generate_region_url
 from sentry.db.models.base import BaseModel, ModelSiloLimit
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionModel
@@ -55,7 +56,7 @@ def create_test_regions(*names: str, single_tenants: Iterable[str] = ()) -> tupl
         Region(
             name=name,
             snowflake_id=index + 1,
-            address=f"http://{name}.testserver",
+            address=generate_region_url(name),
             category=(
                 RegionCategory.SINGLE_TENANT
                 if name in single_tenants
