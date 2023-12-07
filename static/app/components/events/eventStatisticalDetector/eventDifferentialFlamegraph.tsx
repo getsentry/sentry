@@ -21,6 +21,7 @@ import {
   CanvasPoolManager,
   useCanvasScheduler,
 } from 'sentry/utils/profiling/canvasScheduler';
+import {colorComponentsToRGBA} from 'sentry/utils/profiling/colors/utils';
 import {DifferentialFlamegraph as DifferentialFlamegraphModel} from 'sentry/utils/profiling/differentialFlamegraph';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
@@ -298,7 +299,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
       <DifferentialFlamegraphFunctionsContainer>
         <DifferentialFlamegraphChangedFunctions
           loading={props.after.isLoading || props.before.isLoading}
-          title={t('Largest Increase')}
+          title={t('Slower functions')}
           subtitle={negated ? t('before regression') : t('after regression')}
           functions={differentialFlamegraph.increasedFrames}
           flamegraph={differentialFlamegraph}
@@ -306,7 +307,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
         />
         <DifferentialFlamegraphChangedFunctions
           loading={props.after.isLoading || props.before.isLoading}
-          title={t('Largest Decrease')}
+          title={t('Faster functions')}
           subtitle={negated ? t('before regression') : t('after regression')}
           functions={differentialFlamegraph.decreasedFrames}
           flamegraph={differentialFlamegraph}
@@ -445,6 +446,7 @@ interface DifferentialFlamegraphChangedFunctionsProps {
 function DifferentialFlamegraphChangedFunctions(
   props: DifferentialFlamegraphChangedFunctionsProps
 ) {
+  const theme = useFlamegraphTheme();
   const [state, dispatch] = useReducer(paginationReducer, {
     page: 0,
     pageSize: 0,
@@ -527,6 +529,15 @@ function DifferentialFlamegraphChangedFunctions(
                       disabled={!linkToFlamechart}
                       to={linkToFlamechart}
                     >
+                      <DifferentialFlamegraphFunctionColorIndicator
+                        style={{
+                          backgroundColor: colorComponentsToRGBA(
+                            props.flamegraph.colors.get(
+                              DifferentialFlamegraphModel.FrameKey(func[1])
+                            ) ?? theme.COLORS.FRAME_FALLBACK_COLOR
+                          ),
+                        }}
+                      />
                       {func[1].frame.name}
                     </DifferentialFlamegraphChangedFunctionNameLink>
                     <DifferentialFlamegraphChangedFunctionModule>
@@ -554,6 +565,16 @@ function DifferentialFlamegraphChangedFunctions(
   );
 }
 
+const DifferentialFlamegraphFunctionColorIndicator = styled('div')`
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  display: inline-block;
+  border: 1px solid ${p => p.theme.border};
+  margin-right: ${space(0.25)};
+  background-color: ${p => p.theme.green300};
+`;
+
 const RIGHT_ALIGN_PLACEHOLDER_STYLES: React.CSSProperties = {
   marginBottom: '4px',
   marginLeft: 'auto',
@@ -576,6 +597,10 @@ const DifferentialFlamegraphFunctionSecondaryStats = styled('div')`
 const DifferentialFlamegraphChangedFunctionNameLink = styled(Link)`
   overflow: hidden;
   text-overflow: ellipsis;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  white-space: nowrap;
 `;
 
 const DifferentialFlamegraphChangedFunctionModule = styled('div')`
