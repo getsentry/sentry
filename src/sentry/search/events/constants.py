@@ -258,6 +258,7 @@ METRICS_MAP = {
     "measurements.frames_frozen": "d:transactions/measurements.frames_frozen@none",
     "measurements.frames_slow": "d:transactions/measurements.frames_slow@none",
     "measurements.frames_total": "d:transactions/measurements.frames_total@none",
+    "measurements.frames_delay": "d:transactions/measurements.frames_delay@millisecond",
     "measurements.lcp": "d:transactions/measurements.lcp@millisecond",
     "measurements.time_to_initial_display": "d:transactions/measurements.time_to_initial_display@millisecond",
     "measurements.time_to_full_display": "d:transactions/measurements.time_to_full_display@millisecond",

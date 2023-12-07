@@ -133,6 +133,14 @@ export const MOBILE_VITAL_DETAILS: Record<MobileVital, Vital> = {
     ),
     type: measurementType(MobileVital.FRAMES_FROZEN_RATE),
   },
+  [MobileVital.FRAMES_DELAY]: {
+    slug: 'frames_delay',
+    name: t('Frames Delay'),
+    description: t(
+      'Frames delay is the duration of all delayed frames recorded within a transaction.'
+    ),
+    type: measurementType(MobileVital.FRAMES_DELAY),
+  },
   [MobileVital.STALL_COUNT]: {
     slug: 'stall_count',
     name: t('Stalls'),

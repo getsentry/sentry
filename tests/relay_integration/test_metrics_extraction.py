@@ -48,6 +48,7 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
                     "frames_total": {"value": 100},
                     "frames_slow": {"value": 10},
                     "frames_frozen": {"value": 5},
+                    "frames_delay": {"value": 0.0145},
                     "stall_count": {"value": 2},
                     "stall_total_time": {"value": 12},
                     "stall_longest_time": {"value": 7},

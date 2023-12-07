@@ -4961,6 +4961,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         self.transaction_data["measurements"]["frames_total"] = {"value": 100}
         self.transaction_data["measurements"]["frames_slow"] = {"value": 10}
         self.transaction_data["measurements"]["frames_frozen"] = {"value": 5}
+        self.transaction_data["measurements"]["frames_delay"] = {"value": 0.16}
         self.transaction_data["measurements"]["stall_count"] = {"value": 2}
         self.transaction_data["measurements"]["stall_total_time"] = {"value": 12}
         self.transaction_data["measurements"]["stall_longest_time"] = {"value": 7}
@@ -4973,6 +4974,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                 "measurements.frames_frozen",
                 "measurements.frames_slow_rate",
                 "measurements.frames_frozen_rate",
+                "measurements.frames_delay",
                 "measurements.stall_count",
                 "measurements.stall_total_time",
                 "measurements.stall_longest_time",
@@ -4990,6 +4992,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["measurements.frames_frozen"] == 5
         assert data[0]["measurements.frames_slow_rate"] == 0.1
         assert data[0]["measurements.frames_frozen_rate"] == 0.05
+        assert data[0]["measurements.frames_delay"] == 0.16
         assert data[0]["measurements.stall_count"] == 2
         assert data[0]["measurements.stall_total_time"] == 12
         assert data[0]["measurements.stall_longest_time"] == 7
@@ -5000,6 +5003,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert meta["measurements.frames_frozen"] == "number"
         assert meta["measurements.frames_slow_rate"] == "percentage"
         assert meta["measurements.frames_frozen_rate"] == "percentage"
+        assert meta["measurements.frames_delay"] == "duration"
         assert meta["measurements.stall_count"] == "number"
         assert meta["measurements.stall_total_time"] == "number"
         assert meta["measurements.stall_longest_time"] == "number"

@@ -225,6 +225,10 @@
       "value": 1,
       "unit": "none"
     },
+    "frames_delay": {
+      "value": 1234.42,
+      "unit": "millisecond"
+    },
     "screen_load_count": {
       "value": 1,
       "unit": "test"

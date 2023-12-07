@@ -35,6 +35,7 @@ BUILTIN_MEASUREMENTS: Sequence[BuiltinMeasurementKey] = [
     {"name": "frames_slow_rate", "unit": "ratio"},
     {"name": "frames_slow", "unit": "none"},
     {"name": "frames_total", "unit": "none"},
+    {"name": "frames_delay", "unit": "millisecond"},
     {"name": "inp", "unit": "millisecond"},
     {"name": "lcp", "unit": "millisecond"},
     {"name": "stall_count", "unit": "none"},

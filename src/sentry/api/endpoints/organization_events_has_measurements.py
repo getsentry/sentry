@@ -27,6 +27,7 @@ MEASUREMENT_TYPES = {
         "measurements.frames_total",
         "measurements.frames_slow",
         "measurements.frames_frozen",
+        "measurements.frames_delay",
         "measurements.stall_count",
         "measurements.stall_stall_total_time",
         "measurements.stall_stall_longest_time",

@@ -155,6 +155,7 @@ export enum MobileVital {
   FRAMES_FROZEN = 'measurements.frames_frozen',
   FRAMES_SLOW_RATE = 'measurements.frames_slow_rate',
   FRAMES_FROZEN_RATE = 'measurements.frames_frozen_rate',
+  FRAMES_DELAY = 'measurements.frames_delay',
   STALL_COUNT = 'measurements.stall_count',
   STALL_TOTAL_TIME = 'measurements.stall_total_time',
   STALL_LONGEST_TIME = 'measurements.stall_longest_time',
@@ -431,6 +432,11 @@ export const MEASUREMENT_FIELDS: Record<WebVital | MobileVital, FieldDefinition>
     desc: t('Number of frozen frames out of the total'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.PERCENTAGE,
+  },
+  [MobileVital.FRAMES_DELAY]: {
+    desc: t('Duration of all delayed frames.'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
   },
   [MobileVital.STALL_COUNT]: {
     desc: t('Count of slow Javascript event loops (React Native)'),
