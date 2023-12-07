@@ -124,19 +124,19 @@ SENTRY_ENSURE_FQDN = False
 # XXX [!!]: When adding a new key here BE SURE to configure it in getsentry, as
 #           it can not be `default`. The default cluster in sentry.io
 #           production is NOT a true redis cluster and WILL error in prod.
-SENTRY_ARTIFACT_BUNDLES_INDEXING_REDIS_CLUSTER = "default"
-SENTRY_DEBUG_FILES_REDIS_CLUSTER = "default"
 SENTRY_DYNAMIC_SAMPLING_RULES_REDIS_CLUSTER = "default"
-SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER = "default"
 SENTRY_INCIDENT_RULES_REDIS_CLUSTER = "default"
-SENTRY_INTEGRATION_ERROR_LOG_REDIS_CLUSTER = "default"
-SENTRY_METRIC_META_REDIS_CLUSTER = "default"
-SENTRY_MONITORS_REDIS_CLUSTER = "default"
 SENTRY_RATE_LIMIT_REDIS_CLUSTER = "default"
 SENTRY_RULE_TASK_REDIS_CLUSTER = "default"
-SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER = "default"
 SENTRY_TRANSACTION_NAMES_REDIS_CLUSTER = "default"
 SENTRY_WEBHOOK_LOG_REDIS_CLUSTER = "default"
+SENTRY_ARTIFACT_BUNDLES_INDEXING_REDIS_CLUSTER = "default"
+SENTRY_INTEGRATION_ERROR_LOG_REDIS_CLUSTER = "default"
+SENTRY_DEBUG_FILES_REDIS_CLUSTER = "default"
+SENTRY_MONITORS_REDIS_CLUSTER = "default"
+SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER = "default"
+SENTRY_METRIC_META_REDIS_CLUSTER = "default"
+SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -149,10 +149,10 @@ INTERNAL_SYSTEM_IPS = (
     "172.16.0.0/12",
     "192.0.0.0/29",
     "192.0.2.0/24",
-    "198.18.0.0/15",
-    "198.51.100.0/24",
     "192.88.99.0/24",
     "192.168.0.0/16",
+    "198.18.0.0/15",
+    "198.51.100.0/24",
     "224.0.0.0/4",
     "240.0.0.0/4",
     "255.255.255.255/32",
@@ -726,46 +726,31 @@ CELERY_RESULT_SERIALIZER = "pickle"
 CELERY_ACCEPT_CONTENT = {"pickle"}
 CELERY_IMPORTS = (
     "sentry.data_export.tasks",
-    "sentry.debug_files.tasks",
     "sentry.discover.tasks",
-    "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
-    "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
-    "sentry.dynamic_sampling.tasks.collect_orgs",
-    "sentry.dynamic_sampling.tasks.custom_rule_notifications",
-    "sentry.dynamic_sampling.tasks.recalibrate_orgs",
-    "sentry.dynamic_sampling.tasks.sliding_window_org",
-    "sentry.dynamic_sampling.tasks.utils",
     "sentry.incidents.tasks",
-    "sentry.ingest.transaction_clusterer.tasks",
-    "sentry.monitors.tasks",
-    "sentry.profiles.task",
-    "sentry.release_health.tasks",
-    "sentry.replays.tasks",
     "sentry.snuba.tasks",
+    "sentry.replays.tasks",
+    "sentry.monitors.tasks",
     "sentry.tasks.app_store_connect",
     "sentry.tasks.assemble",
     "sentry.tasks.auth",
-    "sentry.tasks.auto_enable_codecov",
-    "sentry.tasks.auto_ongoing_issues",
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.backfill_outboxes",
     "sentry.tasks.beacon",
-    "sentry.tasks.check_am2_compatibility",
     "sentry.tasks.check_auth",
-    "sentry.tasks.clear_expired_rulesnoozes",
     "sentry.tasks.clear_expired_snoozes",
+    "sentry.tasks.clear_expired_rulesnoozes",
     "sentry.tasks.codeowners.code_owners_auto_sync",
     "sentry.tasks.codeowners.update_code_owners_schema",
     "sentry.tasks.collect_project_platforms",
-    "sentry.tasks.commit_context",
     "sentry.tasks.commits",
+    "sentry.tasks.commit_context",
+    "sentry.tasks.deletion",
+    "sentry.tasks.deletion.scheduled",
     "sentry.tasks.deletion.groups",
     "sentry.tasks.deletion.hybrid_cloud",
-    "sentry.tasks.deletion.scheduled",
-    "sentry.tasks.deletion",
     "sentry.tasks.deliver_from_outbox",
-    "sentry.tasks.derive_code_mappings",
     "sentry.tasks.digests",
     "sentry.tasks.email",
     "sentry.tasks.files",
@@ -782,20 +767,35 @@ CELERY_IMPORTS = (
     "sentry.tasks.relay",
     "sentry.tasks.release_registry",
     "sentry.tasks.relocation",
+    "sentry.tasks.weekly_reports",
     "sentry.tasks.reprocessing",
     "sentry.tasks.reprocessing2",
     "sentry.tasks.sentry_apps",
     "sentry.tasks.servicehooks",
-    "sentry.tasks.statistical_detectors",
     "sentry.tasks.store",
     "sentry.tasks.symbolication",
     "sentry.tasks.unmerge",
     "sentry.tasks.update_user_reports",
     "sentry.tasks.user_report",
-    "sentry.tasks.weekly_escalating_forecast",
-    "sentry.tasks.weekly_reports",
-    "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
+    "sentry.profiles.task",
+    "sentry.release_health.tasks",
+    "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
+    "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
+    "sentry.dynamic_sampling.tasks.recalibrate_orgs",
+    "sentry.dynamic_sampling.tasks.sliding_window_org",
+    "sentry.dynamic_sampling.tasks.utils",
+    "sentry.dynamic_sampling.tasks.custom_rule_notifications",
     "sentry.utils.suspect_resolutions.get_suspect_resolutions",
+    "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
+    "sentry.tasks.derive_code_mappings",
+    "sentry.ingest.transaction_clusterer.tasks",
+    "sentry.tasks.auto_enable_codecov",
+    "sentry.tasks.weekly_escalating_forecast",
+    "sentry.tasks.auto_ongoing_issues",
+    "sentry.tasks.check_am2_compatibility",
+    "sentry.dynamic_sampling.tasks.collect_orgs",
+    "sentry.tasks.statistical_detectors",
+    "sentry.debug_files.tasks",
 )
 
 default_exchange = Exchange("default", type="direct")
@@ -1345,16 +1345,16 @@ LOGGING: LoggingConfig = {
 # django-rest-framework
 
 REST_FRAMEWORK = {
+    "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_PARSER_CLASSES": [
         "rest_framework.parsers.JSONParser",
         "rest_framework.parsers.MultiPartParser",
         "rest_framework.parsers.FormParser",
     ],
-    "DEFAULT_PERMISSION_CLASSES": ("sentry.api.permissions.NoPermission",),
-    "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
-    "DEFAULT_SCHEMA_CLASS": "sentry.apidocs.schema.SentrySchema",
-    "EXCEPTION_HANDLER": "sentry.api.handlers.custom_exception_handler",
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
+    "DEFAULT_PERMISSION_CLASSES": ("sentry.api.permissions.NoPermission",),
+    "EXCEPTION_HANDLER": "sentry.api.handlers.custom_exception_handler",
+    "DEFAULT_SCHEMA_CLASS": "sentry.apidocs.schema.SentrySchema",
 }
 
 
@@ -1374,25 +1374,25 @@ if os.environ.get("OPENAPIGENERATE", False):
     from sentry.apidocs.build import OPENAPI_TAGS, get_old_json_components, get_old_json_paths
 
     SPECTACULAR_SETTINGS = {
-        "APPEND_COMPONENTS": get_old_json_components(OLD_OPENAPI_JSON_PATH),
-        "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON_PATH),
-        "AUTHENTICATION_WHITELIST": ["sentry.api.authentication.UserAuthTokenAuthentication"],
-        "COMPONENT_SPLIT_PATCH": False,
-        "COMPONENT_SPLIT_REQUEST": False,
-        "CONTACT": {"email": "partners@sentry.io"},
         "DEFAULT_GENERATOR_CLASS": "sentry.apidocs.hooks.CustomGenerator",
-        "DESCRIPTION": "Sentry Public API",
-        "DISABLE_ERRORS_AND_WARNINGS": False,
-        "LICENSE": {"name": "Apache 2.0", "url": "http://www.apache.org/licenses/LICENSE-2.0.html"},
-        "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
-        "POSTPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_postprocessing_hook"],
         "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
-        "SERVERS": [{"url": "https://sentry.io"}],
-        "SORT_OPERATION_PARAMETERS": custom_parameter_sort,
+        "POSTPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_postprocessing_hook"],
+        "DISABLE_ERRORS_AND_WARNINGS": False,
+        "COMPONENT_SPLIT_REQUEST": False,
+        "COMPONENT_SPLIT_PATCH": False,
+        "AUTHENTICATION_WHITELIST": ["sentry.api.authentication.UserAuthTokenAuthentication"],
         "TAGS": OPENAPI_TAGS,
         "TITLE": "API Reference",
+        "DESCRIPTION": "Sentry Public API",
         "TOS": "http://sentry.io/terms/",
+        "CONTACT": {"email": "partners@sentry.io"},
+        "LICENSE": {"name": "Apache 2.0", "url": "http://www.apache.org/licenses/LICENSE-2.0.html"},
         "VERSION": "v0",
+        "SERVERS": [{"url": "https://sentry.io"}],
+        "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
+        "APPEND_PATHS": get_old_json_paths(OLD_OPENAPI_JSON_PATH),
+        "APPEND_COMPONENTS": get_old_json_components(OLD_OPENAPI_JSON_PATH),
+        "SORT_OPERATION_PARAMETERS": custom_parameter_sort,
     }
 
 CRISPY_TEMPLATE_PACK = "bootstrap3"
