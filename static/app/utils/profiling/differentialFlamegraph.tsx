@@ -67,8 +67,8 @@ export class DifferentialFlamegraph extends Flamegraph {
     const afterCounts = makeFrameMap(after.frames);
 
     const newFrames: FlamegraphFrame[] = [];
-    let increasedFrames: [number, FlamegraphFrame][] = [];
-    let decreasedFrames: [number, FlamegraphFrame][] = [];
+    const increasedFrames: [number, FlamegraphFrame][] = [];
+    const decreasedFrames: [number, FlamegraphFrame][] = [];
 
     const INCREASED_FRAME_COLOR = theme.COLORS.DIFFERENTIAL_INCREASE;
     const DECREASED_FRAME_COLOR = theme.COLORS.DIFFERENTIAL_DECREASE;
@@ -81,9 +81,6 @@ export class DifferentialFlamegraph extends Flamegraph {
 
     if (negated) {
       NEW_FRAME_COLOR = REMOVED_FRAME_COLOR;
-      const tmp = increasedFrames;
-      increasedFrames = decreasedFrames;
-      decreasedFrames = tmp;
     }
 
     // Keep track of max increase and decrease so that we can
@@ -164,7 +161,7 @@ export class DifferentialFlamegraph extends Flamegraph {
 
     differentialFlamegraph.colors = colorMap;
     differentialFlamegraph.colorBuffer = makeColorBuffer(
-      after.frames,
+      sourceFlamegraph.frames,
       colorMap,
       theme.COLORS.FRAME_FALLBACK_COLOR as unknown as ColorChannels,
       DifferentialFlamegraph.FrameKey
