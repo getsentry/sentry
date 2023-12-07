@@ -9,6 +9,7 @@ from typing import Any, List, Optional
 import sentry_sdk
 from django.db import connection
 from django.utils import timezone
+from sentry_sdk.crons.decorator import monitor
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query
 from snuba_sdk import Request as SnubaRequest
 
@@ -296,6 +297,8 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
 @instrumented_task(
     name="sentry.tasks.integrations.github_comment_reactions", silo_mode=SiloMode.REGION
 )
+# TODO(rjo100): dual write check-ins for debugging
+@monitor(monitor_slug="github_comment_reactions_test")
 def github_comment_reactions():
     logger.info("github.pr_comment.reactions_task")
 

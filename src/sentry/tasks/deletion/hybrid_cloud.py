@@ -21,6 +21,7 @@ from django.db import connections, router
 from django.db.models import Max, Min
 from django.db.models.manager import BaseManager
 from django.utils import timezone
+from sentry_sdk.crons.decorator import monitor
 
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.tombstone import TombstoneBase
@@ -110,6 +111,8 @@ def schedule_hybrid_cloud_foreign_key_jobs_control():
     acks_late=True,
     silo_mode=SiloMode.REGION,
 )
+# TODO(rjo100): dual write check-ins for debugging
+@monitor(monitor_slug="schedule-hybrid-cloud-foreign-key-jobs-test")
 def schedule_hybrid_cloud_foreign_key_jobs():
     _schedule_hybrid_cloud_foreign_key(
         SiloMode.REGION, process_hybrid_cloud_foreign_key_cascade_batch
