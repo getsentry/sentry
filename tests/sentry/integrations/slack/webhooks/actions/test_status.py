@@ -296,7 +296,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert resp.data["text"].endswith(expect_status), resp.data["text"]
 
     @responses.activate
-    def test_resolve_issue(self):
+    def test_resolve_issue_via_dialog(self):
         status_action = {"name": "resolve_dialog", "value": "resolve_dialog"}
 
         # Expect request to open dialog on slack
@@ -348,7 +348,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert update_data["text"].endswith(expect_status)
 
     @responses.activate
-    def test_resolve_issue_in_next_release(self):
+    def test_resolve_issue_in_next_release_via_dialog(self):
         status_action = {"name": "resolve_dialog", "value": "resolve_dialog"}
 
         release = Release.objects.create(
@@ -401,6 +401,57 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert self.group.get_status() == GroupStatus.RESOLVED
 
         update_data = json.loads(responses.calls[1].request.body)
+
+        expect_status = f"*Issue resolved by <@{self.external_id}>*"
+        assert update_data["text"].endswith(expect_status)
+
+    def test_resolve_issue_via_select(self):
+        resp = self.post_webhook(
+            data={
+                "type": "interactive_message",
+                "actions": [
+                    {
+                        "name": "resolve_type",
+                        "type": "select",
+                        "selected_options": [{"value": "resolved"}],
+                    }
+                ],
+            }
+        )
+        self.group = Group.objects.get(id=self.group.id)
+
+        assert resp.status_code == 200, resp.content
+        assert self.group.get_status() == GroupStatus.RESOLVED
+
+        update_data = resp.data
+
+        expect_status = f"*Issue resolved by <@{self.external_id}>*"
+        assert update_data["text"].endswith(expect_status)
+
+    def test_resolve_issue_in_next_release_via_select(self):
+        release = Release.objects.create(
+            organization_id=self.organization.id,
+            version="1.0",
+        )
+        release.add_project(self.project)
+        resp = self.post_webhook(
+            data={
+                "type": "interactive_message",
+                "actions": [
+                    {
+                        "name": "resolve_type",
+                        "type": "select",
+                        "selected_options": [{"value": "resolved:inNextRelease"}],
+                    }
+                ],
+            }
+        )
+        self.group = Group.objects.get(id=self.group.id)
+
+        assert resp.status_code == 200, resp.content
+        assert self.group.get_status() == GroupStatus.RESOLVED
+
+        update_data = resp.data
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
         assert update_data["text"].endswith(expect_status)

@@ -736,12 +736,7 @@ class ActionsTest(TestCase):
 
         self._assert_message_actions_list(
             res[0],
-            {
-                "label": "Resolve...",
-                "name": "resolve_dialog",
-                "type": "button",
-                "value": "resolve_dialog",
-            },
+            {"label": "Resolve...", "name": "resolve_type", "type": "select", "value": "resolved"},
         )
 
     def test_assign(self):
