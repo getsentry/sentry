@@ -15,7 +15,6 @@ from sentry_sdk.api import push_scope
 
 from sentry import analytics, audit_log
 from sentry.api.helpers.slugs import sentry_slugify
-from sentry.conf.server import SENTRY_SCOPE_HIERARCHY_MAPPING, SENTRY_SCOPES
 from sentry.constants import SentryAppStatus
 from sentry.coreapi import APIError
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
@@ -32,6 +31,7 @@ from sentry.models.integrations.sentry_app import (
 from sentry.models.integrations.sentry_app_component import SentryAppComponent
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.user import User
+from sentry.receivers.tokens import add_scope_hierarchy
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
@@ -148,11 +148,7 @@ class SentryAppUpdater:
             # We are using a pre_save signal to enforce scope hierarchy on the ApiToken model.
             # Because we're using bulk_update here to update all the tokens for the SentryApp,
             # we need to manually enforce the hierarchy because the pre_save signal won't be called.
-            new_scopes = set(self.scopes)
-            for scope in self.scopes:
-                if scope in SENTRY_SCOPES:
-                    new_scopes = new_scopes.union(SENTRY_SCOPE_HIERARCHY_MAPPING[scope])
-            self.scopes = sorted(new_scopes)
+            self.scopes = add_scope_hierarchy(self.scopes)
 
             self.sentry_app.scope_list = self.scopes
 
