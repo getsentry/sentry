@@ -104,21 +104,11 @@ export function GettingStartedWithReactReplay({
   projectId,
   ...props
 }: ModuleProps) {
-  const integrations: string[] = [];
-  const otherConfigs: string[] = [];
-
-  integrations.push(replayIntegration.trim());
-  otherConfigs.push(replayOtherConfig.trim());
-
+  const integrations = replayIntegration.trim();
+  const otherConfigs = replayOtherConfig.trim();
   let sentryInitContent: string[] = [`dsn: "${dsn}",`];
-
-  if (integrations.length > 0) {
-    sentryInitContent = sentryInitContent.concat('integrations: [', integrations, '],');
-  }
-
-  if (otherConfigs.length > 0) {
-    sentryInitContent = sentryInitContent.concat(otherConfigs);
-  }
+  sentryInitContent = sentryInitContent.concat('integrations: [', integrations, '],');
+  sentryInitContent = sentryInitContent.concat(otherConfigs);
 
   return (
     <Layout

@@ -6,11 +6,10 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {USE_STORED_SCORES} from 'sentry/views/performance/browser/webVitals/settings';
 import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
-import {
-  useProjectWebVitalsTimeseriesQuery,
-  WebVitalsScoreBreakdown,
-} from 'sentry/views/performance/browser/webVitals/utils/queries/useProjectWebVitalsTimeseriesQuery';
+import {WebVitalsScoreBreakdown} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsTimeseriesQuery';
+import {useProjectWebVitalsTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useProjectWebVitalsTimeseriesQuery';
 import Chart from 'sentry/views/starfish/components/chart';
 
 const {
@@ -27,13 +26,14 @@ type Props = {
 
 export const formatTimeSeriesResultsToChartData = (
   data: WebVitalsScoreBreakdown,
-  segmentColors: string[]
+  segmentColors: string[],
+  useWeights = true
 ): Series[] => {
   return [
     {
       data: data?.lcp.map(({name, value}) => ({
         name,
-        value: value * LCP_WEIGHT * 0.01,
+        value: Math.round(value * (useWeights ? LCP_WEIGHT : 100) * 0.01),
       })),
       seriesName: 'LCP',
       color: segmentColors[0],
@@ -42,7 +42,7 @@ export const formatTimeSeriesResultsToChartData = (
       data: data?.fcp.map(
         ({name, value}) => ({
           name,
-          value: value * FCP_WEIGHT * 0.01,
+          value: Math.round(value * (useWeights ? FCP_WEIGHT : 100) * 0.01),
         }),
         []
       ),
@@ -53,7 +53,7 @@ export const formatTimeSeriesResultsToChartData = (
       data: data?.fid.map(
         ({name, value}) => ({
           name,
-          value: value * FID_WEIGHT * 0.01,
+          value: Math.round(value * (useWeights ? FID_WEIGHT : 100) * 0.01),
         }),
         []
       ),
@@ -64,7 +64,7 @@ export const formatTimeSeriesResultsToChartData = (
       data: data?.cls.map(
         ({name, value}) => ({
           name,
-          value: value * CLS_WEIGHT * 0.01,
+          value: Math.round(value * (useWeights ? CLS_WEIGHT : 100) * 0.01),
         }),
         []
       ),
@@ -75,7 +75,7 @@ export const formatTimeSeriesResultsToChartData = (
       data: data?.ttfb.map(
         ({name, value}) => ({
           name,
-          value: value * TTFB_WEIGHT * 0.01,
+          value: Math.round(value * (useWeights ? TTFB_WEIGHT : 100) * 0.01),
         }),
         []
       ),
@@ -103,7 +103,7 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
       <Chart
         stacked
         height={180}
-        data={formatTimeSeriesResultsToChartData(data, segmentColors)}
+        data={formatTimeSeriesResultsToChartData(data, segmentColors, !USE_STORED_SCORES)}
         disableXAxis
         loading={isLoading}
         utc={false}
@@ -115,6 +115,7 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
         }}
         dataMax={100}
         chartColors={segmentColors}
+        preserveIncompletePoints
       />
     </ChartContainer>
   );
@@ -125,6 +126,7 @@ const ChartContainer = styled('div')`
   flex: 1;
   border: 1px solid ${p => p.theme.gray200};
   border-radius: ${p => p.theme.borderRadius};
+  position: relative;
 `;
 
 const PerformanceScoreLabel = styled('div')`

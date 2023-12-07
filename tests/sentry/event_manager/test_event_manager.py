@@ -27,7 +27,7 @@ from fixtures.github import (
     GET_PRIOR_COMMIT_EXAMPLE,
     LATER_COMMIT_SHA,
 )
-from sentry import audit_log, nodestore, tsdb
+from sentry import audit_log, eventstore, nodestore, tsdb
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.constants import MAX_VERSION_LENGTH, DataCategory
 from sentry.dynamic_sampling import (
@@ -60,7 +60,6 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.environment import Environment
-from sentry.models.eventuser import EventUser
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
@@ -99,6 +98,7 @@ from sentry.types.activity import ActivityType
 from sentry.usage_accountant import accountant
 from sentry.utils import json
 from sentry.utils.cache import cache_key_for_event
+from sentry.utils.eventuser import EventUser
 from sentry.utils.outcomes import Outcome
 from sentry.utils.samples import load_data
 
@@ -1130,9 +1130,10 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         ) == {event.project.id: [(event.group_id, 1.0)]}
 
     def test_event_user(self):
+        event_id = uuid.uuid4().hex
         manager = EventManager(
             make_event(
-                event_id="a", environment="totally unique environment", **{"user": {"id": "1"}}
+                event_id=event_id, environment="totally unique environment", **{"user": {"id": "1"}}
             )
         )
         manager.normalize()
@@ -1178,7 +1179,8 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             tenant_ids={"organization_id": 123, "referrer": "r"},
         ) == {event.project.id: 1}
 
-        euser = EventUser.objects.get(project_id=self.project.id, ident="1")
+        saved_event = eventstore.backend.get_event_by_id(self.project.id, event_id)
+        euser = EventUser.from_event(saved_event)
         assert event.get_tag("sentry:user") == euser.tag_value
 
         # clear the cache otherwise the cached EventUser from prev
@@ -1186,20 +1188,25 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         cache.clear()
 
         # ensure event user is mapped to tags in second attempt
-        manager = EventManager(make_event(event_id="b", **{"user": {"id": "1", "name": "jane"}}))
+        event_id_2 = uuid.uuid4().hex
+        manager = EventManager(
+            make_event(event_id=event_id_2, **{"user": {"id": "1", "name": "jane"}})
+        )
         manager.normalize()
         with self.tasks():
-            event = manager.save(self.project.id)
+            manager.save(self.project.id)
 
-        euser = EventUser.objects.get(id=euser.id)
+        saved_event = eventstore.backend.get_event_by_id(self.project.id, event_id_2)
+        euser = EventUser.from_event(saved_event)
         assert event.get_tag("sentry:user") == euser.tag_value
         assert euser.name == "jane"
-        assert euser.ident == "1"
+        assert euser.user_ident == "1"
 
     def test_event_user_invalid_ip(self):
+        event_id = uuid.uuid4().hex
         manager = EventManager(
             make_event(
-                event_id="a", environment="totally unique environment", **{"user": {"id": "1"}}
+                event_id=event_id, environment="totally unique environment", **{"user": {"id": "1"}}
             )
         )
 
@@ -1211,16 +1218,19 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         with self.tasks():
             manager.save(self.project.id)
 
-        euser = EventUser.objects.get(project_id=self.project.id)
-
+        saved_event = eventstore.backend.get_event_by_id(self.project.id, event_id)
+        euser = EventUser.from_event(saved_event)
         assert euser.ip_address is None
 
     def test_event_user_unicode_identifier(self):
-        manager = EventManager(make_event(**{"user": {"username": "foô"}}))
+        event_id = uuid.uuid4().hex
+        manager = EventManager(make_event(event_id=event_id, **{"user": {"username": "foô"}}))
         manager.normalize()
         with self.tasks():
             manager.save(self.project.id)
-        euser = EventUser.objects.get(project_id=self.project.id)
+
+        saved_event = eventstore.backend.get_event_by_id(self.project.id, event_id)
+        euser = EventUser.from_event(saved_event)
         assert euser.username == "foô"
 
     def test_environment(self):
