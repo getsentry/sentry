@@ -82,13 +82,16 @@ def openai_policy():
 
 @django_db_all
 def test_consent(client, default_project, test_event, openai_policy):
-    path = reverse(
-        "sentry-api-0-event-ai-fix-suggest",
-        kwargs={
-            "organization_slug": default_project.organization.slug,
-            "project_slug": default_project.slug,
-            "event_id": test_event.event_id,
-        },
+    path = (
+        reverse(
+            "sentry-api-0-event-ai-fix-suggest",
+            kwargs={
+                "organization_slug": default_project.organization.slug,
+                "project_slug": default_project.slug,
+                "event_id": test_event.event_id,
+            },
+        )
+        + "?pii_certified=yes"
     )
 
     openai_policy["result"] = "individual_consent"
@@ -105,7 +108,7 @@ def test_consent(client, default_project, test_event, openai_policy):
     assert response.json() == {"restriction": "subprocessor"}
 
     openai_policy["result"] = "pii_certification_missing"
-    response = client.get(path)
+    response = client.get(path.replace("?pii_certified=yes", ""))
     assert response.status_code == 403
     assert response.json() == {"restriction": "pii_certification_missing"}
 
