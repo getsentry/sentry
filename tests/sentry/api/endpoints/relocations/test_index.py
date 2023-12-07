@@ -8,6 +8,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
 from sentry.api.endpoints.relocations import ERR_FEATURE_DISABLED
+from sentry.api.endpoints.relocations.index import ERR_INVALID_ORG_SLUG, ERR_OWNER_NOT_FOUND
 from sentry.backup.helpers import LocalFileEncryptor, create_encrypted_export_tarball
 from sentry.models.relocation import Relocation, RelocationFile
 from sentry.testutils.cases import APITestCase
@@ -53,8 +54,11 @@ class RelocationCreateTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with self.feature("relocation:enabled"), self.options(
-                {"relocation.daily-limit-small": 1}
+            with self.options(
+                {
+                    "relocation.enabled": True,
+                    "relocation.daily-limit-small": 1,
+                }
             ), open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
                 with open(tmp_pub_key_path, "rb") as p:
@@ -69,7 +73,7 @@ class RelocationCreateTest(APITestCase):
                                 ).getvalue(),
                                 content_type="application/tar",
                             ),
-                            "orgs": ["testing", "foo"],
+                            "orgs": "testing",
                         },
                         format="multipart",
                     )
@@ -77,7 +81,97 @@ class RelocationCreateTest(APITestCase):
         assert response.status_code == 201
         assert Relocation.objects.count() == relocation_count + 1
         assert RelocationFile.objects.count() == relocation_file_count + 1
+        assert Relocation.objects.get(owner_id=self.owner.id).want_org_slugs == ["testing"]
         assert uploading_complete_mock.call_count == 1
+
+    # pytest parametrize does not work in TestCase subclasses, so hack around this
+    for org_slugs, expected in [
+        ("testing,foo,", ["testing", "foo"]),
+        ("testing, foo", ["testing", "foo"]),
+        ("testing,\tfoo", ["testing", "foo"]),
+        ("testing,\nfoo", ["testing", "foo"]),
+    ]:
+
+        @patch("sentry.tasks.relocation.uploading_complete.delay")
+        def test_success_good_org_slugs(
+            self, uploading_complete_mock, org_slugs=org_slugs, expected=expected
+        ):
+            relocation_count = Relocation.objects.count()
+            relocation_file_count = RelocationFile.objects.count()
+
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
+                with self.options(
+                    {"relocation.enabled": True, "relocation.daily-limit-small": 1}
+                ), open(FRESH_INSTALL_PATH) as f:
+                    data = json.load(f)
+                    with open(tmp_pub_key_path, "rb") as p:
+                        response = self.client.post(
+                            reverse(self.endpoint),
+                            {
+                                "owner": self.owner.username,
+                                "file": SimpleUploadedFile(
+                                    "export.tar",
+                                    create_encrypted_export_tarball(
+                                        data, LocalFileEncryptor(p)
+                                    ).getvalue(),
+                                    content_type="application/tar",
+                                ),
+                                "orgs": org_slugs,
+                            },
+                            format="multipart",
+                        )
+
+            assert response.status_code == 201
+            assert Relocation.objects.count() == relocation_count + 1
+            assert RelocationFile.objects.count() == relocation_file_count + 1
+            assert Relocation.objects.get(owner_id=self.owner.id).want_org_slugs == expected
+            assert uploading_complete_mock.call_count == 1
+
+    for org_slugs, invalid_org_slug in [
+        (",,", ""),
+        ("testing,,foo", ""),
+        ("testing\nfoo", "testing\nfoo"),
+        ("testing\tfoo", "testing\tfoo"),
+    ]:
+
+        @patch("sentry.tasks.relocation.uploading_complete.delay")
+        def test_fail_bad_org_slugs(
+            self, uploading_complete_mock, org_slugs=org_slugs, invalid_org_slug=invalid_org_slug
+        ):
+            relocation_count = Relocation.objects.count()
+            relocation_file_count = RelocationFile.objects.count()
+
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
+                with self.options(
+                    {"relocation.enabled": True, "relocation.daily-limit-small": 1}
+                ), open(FRESH_INSTALL_PATH) as f:
+                    data = json.load(f)
+                    with open(tmp_pub_key_path, "rb") as p:
+                        response = self.client.post(
+                            reverse(self.endpoint),
+                            {
+                                "owner": self.owner.username,
+                                "file": SimpleUploadedFile(
+                                    "export.tar",
+                                    create_encrypted_export_tarball(
+                                        data, LocalFileEncryptor(p)
+                                    ).getvalue(),
+                                    content_type="application/tar",
+                                ),
+                                "orgs": org_slugs,
+                            },
+                            format="multipart",
+                        )
+
+            assert response.status_code == 400
+            assert response.data.get("detail") is not None
+            assert response.data.get("detail") == ERR_INVALID_ORG_SLUG.substitute(
+                org_slug=invalid_org_slug
+            )
+            assert Relocation.objects.count() == relocation_count
+            assert RelocationFile.objects.count() == relocation_file_count
 
     def test_success_relocation_for_same_owner_already_completed(self):
         Relocation.objects.create(
@@ -99,8 +193,11 @@ class RelocationCreateTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with self.feature("relocation:enabled"), self.options(
-                {"relocation.daily-limit-small": 1}
+            with self.options(
+                {
+                    "relocation.enabled": True,
+                    "relocation.daily-limit-small": 1,
+                }
             ), open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
                 with open(tmp_pub_key_path, "rb") as p:
@@ -115,7 +212,7 @@ class RelocationCreateTest(APITestCase):
                                 ).getvalue(),
                                 content_type="application/tar",
                             ),
-                            "orgs": ["testing", "foo"],
+                            "orgs": "testing, foo",
                         },
                         format="multipart",
                     )
@@ -141,7 +238,7 @@ class RelocationCreateTest(APITestCase):
                                 ).getvalue(),
                                 content_type="application/tar",
                             ),
-                            "orgs": ["testing", "foo"],
+                            "orgs": "testing, foo",
                         },
                         format="multipart",
                     )
@@ -153,14 +250,17 @@ class RelocationCreateTest(APITestCase):
     def test_fail_missing_file(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with self.feature("relocation:enabled"), self.options(
-                {"relocation.daily-limit-small": 1}
+            with self.options(
+                {
+                    "relocation.enabled": True,
+                    "relocation.daily-limit-small": 1,
+                }
             ):
                 response = self.client.post(
                     reverse(self.endpoint),
                     {
                         "owner": self.owner.username,
-                        "orgs": ["testing", "foo"],
+                        "orgs": "testing, foo",
                     },
                     format="multipart",
                 )
@@ -172,8 +272,11 @@ class RelocationCreateTest(APITestCase):
     def test_fail_missing_orgs(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with self.feature("relocation:enabled"), self.options(
-                {"relocation.daily-limit-small": 1}
+            with self.options(
+                {
+                    "relocation.enabled": True,
+                    "relocation.daily-limit-small": 1,
+                }
             ), open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
                 with open(tmp_pub_key_path, "rb") as p:
@@ -199,8 +302,11 @@ class RelocationCreateTest(APITestCase):
     def test_fail_missing_owner(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with self.feature("relocation:enabled"), self.options(
-                {"relocation.daily-limit-small": 1}
+            with self.options(
+                {
+                    "relocation.enabled": True,
+                    "relocation.daily-limit-small": 1,
+                }
             ), open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
                 with open(tmp_pub_key_path, "rb") as p:
@@ -214,7 +320,7 @@ class RelocationCreateTest(APITestCase):
                                 ).getvalue(),
                                 content_type="application/tar",
                             ),
-                            "orgs": ["testing", "foo"],
+                            "orgs": "testing, foo",
                         },
                         format="multipart",
                     )
@@ -226,8 +332,11 @@ class RelocationCreateTest(APITestCase):
     def test_fail_nonexistent_owner(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with self.feature("relocation:enabled"), self.options(
-                {"relocation.daily-limit-small": 1}
+            with self.options(
+                {
+                    "relocation.enabled": True,
+                    "relocation.daily-limit-small": 1,
+                }
             ), open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
                 with open(tmp_pub_key_path, "rb") as p:
@@ -242,14 +351,16 @@ class RelocationCreateTest(APITestCase):
                                 ).getvalue(),
                                 content_type="application/tar",
                             ),
-                            "orgs": ["testing", "foo"],
+                            "orgs": "testing, foo",
                         },
                         format="multipart",
                     )
 
         assert response.status_code == 400
         assert response.data.get("detail") is not None
-        assert "`doesnotexist`" in response.data.get("detail")
+        assert response.data.get("detail") == ERR_OWNER_NOT_FOUND.substitute(
+            owner_username="doesnotexist"
+        )
 
     def test_fail_relocation_for_same_owner_already_in_progress(self):
         Relocation.objects.create(
@@ -261,8 +372,11 @@ class RelocationCreateTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with self.feature("relocation:enabled"), self.options(
-                {"relocation.daily-limit-small": 1}
+            with self.options(
+                {
+                    "relocation.enabled": True,
+                    "relocation.daily-limit-small": 1,
+                }
             ), open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
                 with open(tmp_pub_key_path, "rb") as p:
@@ -277,7 +391,7 @@ class RelocationCreateTest(APITestCase):
                         {
                             "owner": self.owner.username,
                             "file": simple_file,
-                            "orgs": ["testing", "foo"],
+                            "orgs": "testing, foo",
                         },
                         format="multipart",
                     )
@@ -290,8 +404,11 @@ class RelocationCreateTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with self.feature("relocation:enabled"), self.options(
-                {"relocation.daily-limit-small": 1}
+            with self.options(
+                {
+                    "relocation.enabled": True,
+                    "relocation.daily-limit-small": 1,
+                }
             ), open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
                 with open(tmp_pub_key_path, "rb") as p:
@@ -306,7 +423,7 @@ class RelocationCreateTest(APITestCase):
                                 ).getvalue(),
                                 content_type="application/tar",
                             ),
-                            "orgs": ["testing", "foo"],
+                            "orgs": "testing, foo",
                         },
                         format="multipart",
                     )
@@ -329,7 +446,7 @@ class RelocationCreateTest(APITestCase):
                                 ).getvalue(),
                                 content_type="application/tar",
                             ),
-                            "orgs": ["testing", "foo"],
+                            "orgs": "testing, foo",
                         },
                         format="multipart",
                     )
@@ -350,8 +467,12 @@ class RelocationCreateTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with self.feature("relocation:enabled"), self.options(
-                {"relocation.daily-limit-small": 1, "relocation.daily-limit-medium": 1}
+            with self.options(
+                {
+                    "relocation.enabled": True,
+                    "relocation.daily-limit-small": 1,
+                    "relocation.daily-limit-medium": 1,
+                }
             ), open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
                 with open(tmp_pub_key_path, "rb") as p:
@@ -366,7 +487,7 @@ class RelocationCreateTest(APITestCase):
                                 ).getvalue(),
                                 content_type="application/tar",
                             ),
-                            "orgs": ["testing", "foo"],
+                            "orgs": "testing, foo",
                         },
                         format="multipart",
                     )
@@ -390,7 +511,7 @@ class RelocationCreateTest(APITestCase):
                                 * 1000,
                                 content_type="application/tar",
                             ),
-                            "orgs": ["testing", "foo"],
+                            "orgs": "testing, foo",
                         },
                         format="multipart",
                     )
@@ -406,8 +527,11 @@ class RelocationCreateTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with self.feature("relocation:enabled"), self.options(
-                {"relocation.daily-limit-small": 1}
+            with self.options(
+                {
+                    "relocation.enabled": True,
+                    "relocation.daily-limit-small": 1,
+                }
             ), open(FRESH_INSTALL_PATH) as f, freeze_time("2023-11-28 00:00:00") as frozen_time:
                 data = json.load(f)
                 with open(tmp_pub_key_path, "rb") as p:
@@ -422,7 +546,7 @@ class RelocationCreateTest(APITestCase):
                                 ).getvalue(),
                                 content_type="application/tar",
                             ),
-                            "orgs": ["testing", "foo"],
+                            "orgs": "testing, foo",
                         },
                         format="multipart",
                     )
@@ -449,7 +573,7 @@ class RelocationCreateTest(APITestCase):
                                 ).getvalue(),
                                 content_type="application/tar",
                             ),
-                            "orgs": ["testing", "foo"],
+                            "orgs": "testing, foo",
                         },
                         format="multipart",
                     )
