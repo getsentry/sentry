@@ -16,7 +16,7 @@ import {StepProps} from './types';
 
 function GetStarted(props: StepProps) {
   const regions = ConfigStore.get('regions');
-  const [region, setRegion] = useState(regions[0].name);
+  const [region, setRegion] = useState('');
   const [orgSlugs, setOrgSlugs] = useState('');
   const relocationOnboardingContext = useContext(RelocationOnboardingContext);
 
@@ -28,7 +28,7 @@ function GetStarted(props: StepProps) {
   };
   return (
     <Wrapper>
-      <StepHeading step={1}>{t('Basic Information Needed to Get Started')}</StepHeading>
+      <StepHeading step={1}>{t('Basic information needed to get started')}</StepHeading>
       <motion.div
         transition={testableTransition()}
         variants={{
@@ -43,7 +43,7 @@ function GetStarted(props: StepProps) {
               'In order to best facilitate the process some basic information will be required to ensure sucess with the relocation process of you self-hosted instance'
             )}
           </p>
-          <RequiredLabel>{t('Organization Slugs')}</RequiredLabel>
+          <RequiredLabel>{t('Organization slugs being relocated')}</RequiredLabel>
           <Input
             type="text"
             name="org-slugs"
@@ -51,17 +51,24 @@ function GetStarted(props: StepProps) {
             onChange={evt => setOrgSlugs(evt.target.value)}
             required
             minLength={1}
-            placeholder=""
+            placeholder="org-slugs-here"
           />
-          <Label>{t('Choose a Datacenter Region')}</Label>
+          <Label>{t('Choose a datacenter region')}</Label>
           <RegionSelect
             value={region}
             name="region"
             aria-label="region"
+            placeholder="Select Region"
             options={regions.map(r => ({label: r.name, value: r.name}))}
             onChange={opt => setRegion(opt.value)}
           />
-          <ContinueButton disabled={!orgSlugs} size="md" priority="primary" type="submit">
+          {region && <p>{t('This is an important decision and cannot be changed.')}</p>}
+          <ContinueButton
+            disabled={!orgSlugs || !region}
+            size="md"
+            priority="primary"
+            type="submit"
+          >
             {t('Continue')}
           </ContinueButton>
         </Form>
@@ -113,7 +120,7 @@ const Wrapper = styled('div')`
 `;
 
 const ContinueButton = styled(Button)`
-  margin-top: ${space(1.5)};
+  margin-top: ${space(4)};
 `;
 
 const Form = styled('form')`
@@ -140,6 +147,7 @@ const RequiredLabel = styled('label')`
 `;
 
 const RegionSelect = styled(SelectControl)`
+  padding-bottom: ${space(2)};
   button {
     width: 709px;
   }

@@ -12,11 +12,11 @@ import {StepProps} from './types';
 
 export function EncryptBackup(props: StepProps) {
   const code =
-    './sentry-admin.sh export global--encrypt-with /path/to/public/\nkey/file.pub /path/to/encrypted/backup/output/file.tar';
+    './sentry-admin.sh export global --encrypt-with /path/to/public_key.pub\n/path/to/encrypted/backup/file.tar';
   return (
     <Wrapper>
       <StepHeading step={3}>
-        {t('Create an encrypted back up of current self-hosted instance')}
+        {t('Create an encrypted backup of current self-hosted instance')}
       </StepHeading>
       <motion.div
         transition={testableTransition()}
@@ -28,7 +28,7 @@ export function EncryptBackup(props: StepProps) {
       >
         <p>
           {t(
-            'You’ll need to have the public key saved in the previous step accessible and run the command below in your terminal to ensure success'
+            'You’ll need to have the public key saved in the previous step accessible when you run the following command in your terminal. Make sure your current working directory is the root of your `self-hosted` install when you execute it.'
           )}
         </p>
         <EncryptCodeSnippet
@@ -44,15 +44,15 @@ export function EncryptBackup(props: StepProps) {
         </p>
         <p>
           <mark>{'./sentry-admin.sh'}</mark>
-          {'this is a script present in your self-hosted installation'}
+          {t('this is a script present in your self-hosted installation')}
         </p>
         <p>
           <mark>{'/path/to/public/key/file.pub'}</mark>
-          {'path to file you created in the previous step'}
+          {t('path to file you created in the previous step')}
         </p>
         <p>
           <mark>{'/path/to/encrypted/backup/output/file.tar'}</mark>
-          {'file that will be uploaded in the next step'}
+          {t('file that will be uploaded in the next step')}
         </p>
         <ContinueButton size="md" priority="primary" onClick={() => props.onComplete()}>
           {t('Continue')}
