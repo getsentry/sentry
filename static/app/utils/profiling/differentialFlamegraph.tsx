@@ -23,6 +23,7 @@ export class DifferentialFlamegraph extends Flamegraph {
   afterCounts: Map<string, number> = new Map();
 
   newFrames: FlamegraphFrame[] = [];
+  removedFrames: FlamegraphFrame[] = [];
   increasedFrames: [number, FlamegraphFrame][] = [];
   decreasedFrames: [number, FlamegraphFrame][] = [];
 
@@ -67,35 +68,41 @@ export class DifferentialFlamegraph extends Flamegraph {
     const afterCounts = makeFrameMap(after.frames);
 
     const newFrames: FlamegraphFrame[] = [];
+    const removedFrames: FlamegraphFrame[] = [];
     const increasedFrames: [number, FlamegraphFrame][] = [];
     const decreasedFrames: [number, FlamegraphFrame][] = [];
 
     const INCREASED_FRAME_COLOR = theme.COLORS.DIFFERENTIAL_INCREASE;
     const DECREASED_FRAME_COLOR = theme.COLORS.DIFFERENTIAL_DECREASE;
-    let NEW_FRAME_COLOR = INCREASED_FRAME_COLOR.concat(
+    const NEW_FRAME_COLOR = INCREASED_FRAME_COLOR.concat(
       1 * DifferentialFlamegraph.ALPHA_SCALING
     );
     const REMOVED_FRAME_COLOR = DECREASED_FRAME_COLOR.concat(
       1 * DifferentialFlamegraph.ALPHA_SCALING
     );
 
-    if (negated) {
-      NEW_FRAME_COLOR = REMOVED_FRAME_COLOR;
-    }
-
     // Keep track of max increase and decrease so that we can
     // scale the colors accordingly to the max value
     let maxIncrease = 0;
     let maxDecrease = 0;
 
-    for (const frame of sourceFlamegraph.frames) {
+    // Find frames that are in the before state, but not in the after state
+    for (const frame of before.frames) {
+      const key = DifferentialFlamegraph.FrameKey(frame);
+
+      !afterCounts.has(key) &&
+        removedFrames.push(frame) &&
+        colorMap.set(key, REMOVED_FRAME_COLOR as ColorChannels);
+    }
+
+    for (const frame of after.frames) {
       const key = DifferentialFlamegraph.FrameKey(frame);
 
       const beforeCount = beforeCounts.get(key);
       const afterCount = afterCounts.get(key);
 
-      // In a negated view, frames missing in the after state are new frames
-      if (afterCount === undefined && negated) {
+      // In a negated view, frames missing in before state are new frames
+      if (beforeCount === undefined && negated) {
         newFrames.push(frame);
         continue;
       }
@@ -168,6 +175,7 @@ export class DifferentialFlamegraph extends Flamegraph {
     );
 
     differentialFlamegraph.newFrames = newFrames;
+    differentialFlamegraph.removedFrames = removedFrames;
     differentialFlamegraph.increasedFrames = increasedFrames;
     differentialFlamegraph.decreasedFrames = decreasedFrames;
     differentialFlamegraph.beforeCounts = beforeCounts;
