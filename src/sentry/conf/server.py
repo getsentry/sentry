@@ -1423,6 +1423,7 @@ SENTRY_EARLY_FEATURES = {
     "organizations:user-feedback-ui": "Enable User Feedback v2 UI",
 }
 
+# NOTE: Please maintain alphabetical order when adding new feature flags
 SENTRY_FEATURES: dict[str, bool | None] = {
     # Enables user registration.
     "auth:register": True,
