@@ -1216,7 +1216,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         manager._data["user"]["ip_address"] = "[ip]"
 
         with self.tasks():
-            event = manager.save(self.project.id)
+            manager.save(self.project.id)
 
         saved_event = eventstore.backend.get_event_by_id(self.project.id, event_id)
         euser = EventUser.from_event(saved_event)
