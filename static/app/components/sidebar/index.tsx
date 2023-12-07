@@ -40,6 +40,7 @@ import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
@@ -115,6 +116,7 @@ function Sidebar({organization}: Props) {
 
   const collapsed = !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
+  const isCurrentlySuperuser = isActiveSuperuser(organization);
 
   useOpenOnboardingSidebar();
 
@@ -497,7 +499,11 @@ function Sidebar({organization}: Props) {
   );
 
   return (
-    <SidebarWrapper aria-label={t('Primary Navigation')} collapsed={collapsed}>
+    <SidebarWrapper
+      aria-label={t('Primary Navigation')}
+      collapsed={collapsed}
+      isSuperuser={isCurrentlySuperuser}
+    >
       <SidebarSectionGroupPrimary>
         <SidebarSection>
           <SidebarDropdown
@@ -634,9 +640,12 @@ const responsiveFlex = css`
   }
 `;
 
-export const SidebarWrapper = styled('nav')<{collapsed: boolean}>`
-  background: ${p => p.theme.sidebarGradient};
-  color: ${p => p.theme.sidebar.color};
+export const SidebarWrapper = styled('nav')<{collapsed: boolean; isSuperuser: boolean}>`
+  background: ${p =>
+    p.isSuperuser
+      ? 'linear-gradient(294.17deg,#8a2424 35.57%,#502636 92.42%,#502632 92.42%)'
+      : p.theme.sidebarGradient};
+  color: ${p => (p.isSuperuser ? 'white' : p.theme.sidebar.color)};
   line-height: 1;
   padding: 12px 0 2px; /* Allows for 32px avatars  */
   width: ${p => p.theme.sidebar[p.collapsed ? 'collapsedWidth' : 'expandedWidth']};

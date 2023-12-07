@@ -54,6 +54,29 @@ export const API_ACCESS_SCOPES = [
   'team:write',
 ] as const;
 
+export const ALLOWED_SCOPES = [
+  'alerts:read',
+  'alerts:write',
+  'event:admin',
+  'event:read',
+  'event:write',
+  'member:admin',
+  'member:read',
+  'member:write',
+  'org:admin',
+  'org:integrations',
+  'org:read',
+  'org:write',
+  'project:admin',
+  'project:read',
+  'project:releases',
+  'project:write',
+  'team:admin',
+  'team:read',
+  'team:write',
+  'org:superuser',
+] as const;
+
 // These should only be used in the case where we cannot obtain roles through
 // the members endpoint (primarily in cases where a user is admining a
 // different organization they are not a OrganizationMember of ).
