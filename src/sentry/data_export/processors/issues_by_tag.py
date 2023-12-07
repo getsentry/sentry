@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from sentry import tagstore
-from sentry.models.eventuser import EventUser as EventUser_model
 from sentry.models.group import Group, get_group_with_redirect
 from sentry.models.project import Project
 from sentry.utils.eventuser import EventUser
@@ -98,13 +97,7 @@ class IssuesByTagProcessor:
         }
         if key == "user":
             euser = item._eventuser
-            result["id"] = (
-                euser.user_ident
-                if euser and isinstance(euser, EventUser)
-                else euser.ident
-                if euser and isinstance(euser, EventUser_model)
-                else ""
-            )
+            result["id"] = euser.user_ident if euser and isinstance(euser, EventUser) else ""
             result["email"] = euser.email if euser else ""
             result["username"] = euser.username if euser else ""
             result["ip_address"] = euser.ip_address if euser else ""

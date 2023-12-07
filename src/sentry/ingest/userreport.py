@@ -6,10 +6,9 @@ from datetime import timedelta
 from django.db import IntegrityError, router
 from django.utils import timezone
 
-from sentry import analytics, eventstore, features
+from sentry import eventstore, features
 from sentry.eventstore.models import Event
 from sentry.feedback.usecases.create_feedback import shim_to_feedback
-from sentry.models.eventuser import EventUser as EventUser_model
 from sentry.models.userreport import UserReport
 from sentry.signals import user_feedback_received
 from sentry.utils import metrics
@@ -39,24 +38,10 @@ def save_userreport(
 
         event = eventstore.backend.get_event_by_id(project.id, report["event_id"])
 
-        euser, eventuser_record = find_event_user(event, report)
+        euser = find_event_user(event)
 
         if euser and not euser.name and report.get("name"):
             euser.name = report["name"]
-
-        # TODO(nisanthan): Continue updating the EventUser record's name
-        # And record metrics to see how often this logic hits.
-        if eventuser_record and not eventuser_record.name and report.get("name"):
-            eventuser_record.update(name=report["name"])
-            analytics.record(
-                "eventuser_endpoint.request",
-                project_id=project.id,
-                endpoint="sentry.ingest.userreport.eventuser_record_name.update",
-            )
-
-        if euser:
-            # TODO(nisanthan): Remove this eventually once UserReport model drops the event_user_id column
-            report["event_user_id"] = euser.id
 
         if event:
             # if the event is more than 30 minutes old, we don't allow updates
@@ -109,34 +94,8 @@ def save_userreport(
         return report_instance
 
 
-def find_eventuser_record(report_data, event):
+def find_event_user(event: Event):
     if not event:
-        if not report_data.get("email"):
-            return None
-        try:
-            return EventUser_model.objects.filter(
-                project_id=report_data["project_id"], email=report_data["email"]
-            )[0]
-        except IndexError:
-            return None
-
-    tag = event.get_tag("sentry:user")
-
-    if not tag:
         return None
-
-    try:
-        return EventUser_model.for_tags(project_id=report_data["project_id"], values=[tag])[tag]
-    except KeyError:
-        pass
-
-
-def find_event_user(event: Event, report_data):
-    if not event:
-        return None, None
-    eventuser_record = find_eventuser_record(report_data, event)
     eventuser = EventUser.from_event(event)
-    if eventuser_record:
-        eventuser.id = eventuser_record.id
-
-    return eventuser, eventuser_record
+    return eventuser

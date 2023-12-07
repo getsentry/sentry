@@ -22,7 +22,6 @@ from .doc_integration_avatar import *  # noqa: F401,F403
 from .environment import *  # noqa: F401,F403
 from .event import *  # noqa: F401,F403
 from .eventattachment import *  # noqa: F401,F403
-from .eventuser import *  # noqa: F401,F403
 from .exporteddata import *  # noqa: F401,F403
 from .external_actor import *  # noqa: F401,F403
 from .filechange import *  # noqa: F401,F403
