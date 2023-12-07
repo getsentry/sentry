@@ -21,7 +21,7 @@ export default storyBook(Confirm, story => {
         trigger, or by calling <code>openConfirmModal()</code> in a callback.
       </p>
       <p>
-        I recommend calling <code>openConfirmModal()</code>.
+        It's recommended to call <code>openConfirmModal()</code>.
       </p>
       <SideBySide>
         <Button onClick={() => openConfirmModal({})}>
@@ -169,7 +169,7 @@ export default storyBook(Confirm, story => {
           render={props => (
             <Button onClick={() => setClicks(prev => prev + 1)}>
               <Confirm {...props}>
-                <Green>Open modal</Green>
+                <ModalTrigger>Click the green area to open modal</ModalTrigger>
               </Confirm>
             </Button>
           )}
@@ -180,7 +180,7 @@ export default storyBook(Confirm, story => {
   });
 });
 
-const Green = styled('span')`
+const ModalTrigger = styled('span')`
   background: ${p => p.theme.green200};
   padding: ${space(1)};
 `;
