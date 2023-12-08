@@ -525,7 +525,6 @@ module = [
     "sentry.scim.endpoints.members",
     "sentry.scim.endpoints.teams",
     "sentry.scim.endpoints.utils",
-    "sentry.sdk_updates",
     "sentry.search.events.builder.discover",
     "sentry.search.events.builder.errors",
     "sentry.search.events.builder.metrics",
