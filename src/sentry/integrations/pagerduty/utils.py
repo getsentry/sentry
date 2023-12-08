@@ -103,7 +103,7 @@ def send_incident_alert_notification(
     client = PagerDutyProxyClient(
         org_integration_id=org_integration_id,
         integration_key=integration_key,
-        keyname=str(service["id"]),
+        keyid=str(service["id"]),
     )
     attachment = build_incident_attachment(
         incident, integration_key, new_status, metric_value, notification_uuid
