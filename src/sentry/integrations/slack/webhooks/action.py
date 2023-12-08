@@ -20,10 +20,7 @@ from sentry.auth.access import from_member
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder import SlackBody
-from sentry.integrations.slack.message_builder.issues import (
-    SlackIssueAlertMessageBuilder,
-    SlackIssuesMessageBuilder,
-)
+from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.views.link_identity import build_linking_url
@@ -413,7 +410,7 @@ class SlackActionEndpoint(Endpoint):
             except client.ApiError as error:
                 return self.api_error(slack_request, group, identity_user, error, "status_dialog")
 
-            attachment = SlackIssueAlertMessageBuilder(
+            attachment = SlackIssuesMessageBuilder(
                 group, identity=identity, actions=[action], tags=original_tags_from_request
             ).build()
             body = self.construct_reply(
@@ -489,7 +486,7 @@ class SlackActionEndpoint(Endpoint):
 
         use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
         if use_block_kit:
-            response = SlackIssueAlertMessageBuilder(
+            response = SlackIssuesMessageBuilder(
                 group, identity=identity, actions=action_list, tags=original_tags_from_request
             ).build()
             slack_client = SlackClient(integration_id=slack_request.integration.id)

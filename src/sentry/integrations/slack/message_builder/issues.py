@@ -15,7 +15,6 @@ from sentry.integrations.message_builder import (
     get_title_link,
 )
 from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT, SlackBody
-from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.issues.grouptype import GroupCategory
@@ -289,8 +288,8 @@ def build_actions(
     return action_list, text, color
 
 
-class SlackIssuesMessageBuilder(SlackMessageBuilder):
-    """We're keeping around this awkward interface so that we can share logic with unfurling."""
+class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
+    """Build an issue alert notification for Slack"""
 
     def __init__(
         self,
@@ -365,101 +364,32 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         if self.rules:
             rule_id = self.rules[0].id
 
-        return self._build(
-            actions=payload_actions,
-            callback_id=json.dumps({"issue": self.group.id}),
-            color=color,
-            fallback=self.build_fallback_text(obj, project.slug),
-            fields=fields,
-            footer=footer,
-            text=text,
-            title=build_attachment_title(obj),
-            title_link=get_title_link(
-                self.group,
-                self.event,
-                self.link_to_event,
-                self.issue_details,
-                self.notification,
-                ExternalProviders.SLACK,
-                rule_id,
-                notification_uuid=notification_uuid,
-            ),
-            ts=get_timestamp(self.group, self.event) if not self.issue_details else None,
-        )
-
-
-class SlackIssueAlertMessageBuilder(BlockSlackMessageBuilder):
-    def __init__(
-        self,
-        group: Group,
-        event: GroupEvent | None = None,
-        tags: set[str] | None = None,
-        identity: RpcIdentity | None = None,
-        actions: Sequence[MessageAction] | None = None,
-        rules: list[Rule] | None = None,
-        link_to_event: bool = False,
-        issue_details: bool = False,
-        notification: ProjectNotification | None = None,
-        recipient: RpcActor | None = None,
-        is_unfurl: bool = False,
-    ) -> None:
-        super().__init__()
-        self.group = group
-        self.event = event
-        self.tags = tags
-        self.identity = identity
-        self.actions = actions
-        self.rules = rules
-        self.link_to_event = link_to_event
-        self.issue_details = issue_details
-        self.notification = notification
-        self.recipient = recipient
-        self.is_unfurl = is_unfurl
-        """
-        Builds an issue alert for Slack with Block Kit.
-        """
-
-    @property
-    def escape_text(self) -> bool:
-        """
-        Returns True if we need to escape the text in the message.
-        """
-        return True
-
-    def build(self, notification_uuid: str | None = None) -> SlackBody:
-        # XXX(dcramer): options are limited to 100 choices, even when nested
-        text = build_attachment_text(self.group, self.event) or ""
-
-        if self.escape_text:
-            text = escape_slack_text(text)
-            # XXX(scefali): Not sure why we actually need to do this just for unfurled messages.
-            # If we figure out why this is required we should note it here because it's quite strange
-            if self.is_unfurl:
-                text = escape_slack_text(text)
-
-        # This link does not contain user input (it's a static label and a url), must not escape it.
-        text += build_attachment_replay_link(self.group, self.event) or ""
-
-        project = Project.objects.get_from_cache(id=self.group.project_id)
-
-        # If an event is unspecified, use the tags of the latest event (if one exists).
-        event_for_tags = self.event or self.group.get_latest_event()
-        color = get_color(event_for_tags, self.notification, self.group)
-        tags = get_tags(event_for_tags, self.tags)
-        obj = self.event if self.event is not None else self.group
-        if not self.issue_details or (
-            self.recipient and self.recipient.actor_type == ActorType.TEAM
-        ):
-            payload_actions, text, color = build_actions(
-                self.group, project, text, color, self.actions, self.identity
+        if not features.has("organizations:slack-block-kit", self.group.project.organization):
+            return self._build(
+                actions=payload_actions,
+                callback_id=json.dumps({"issue": self.group.id}),
+                color=color,
+                fallback=self.build_fallback_text(obj, project.slug),
+                fields=fields,
+                footer=footer,
+                text=text,
+                title=build_attachment_title(obj),
+                title_link=get_title_link(
+                    self.group,
+                    self.event,
+                    self.link_to_event,
+                    self.issue_details,
+                    self.notification,
+                    ExternalProviders.SLACK,
+                    rule_id,
+                    notification_uuid=notification_uuid,
+                ),
+                ts=get_timestamp(self.group, self.event) if not self.issue_details else None,
             )
-        else:
-            payload_actions = []
 
-        rule_id = None
-        if self.rules:
-            rule_id = self.rules[0].id
+        # build up the blocks for newer issue alert formatting #
 
+        tags = get_tags(event_for_tags, self.tags)
         # build title block
         title_link = get_title_link(
             self.group,
@@ -525,18 +455,6 @@ def build_group_attachment(
     is_unfurl: bool = False,
     notification_uuid: str | None = None,
 ) -> SlackBody:
-    if features.has("organizations:slack-block-kit", group.project.organization):
-        return SlackIssueAlertMessageBuilder(
-            group,
-            event,
-            tags,
-            identity,
-            actions,
-            rules,
-            link_to_event,
-            issue_details,
-            is_unfurl=is_unfurl,
-        ).build(notification_uuid=notification_uuid)
 
     return SlackIssuesMessageBuilder(
         group,

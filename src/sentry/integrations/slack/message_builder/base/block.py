@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC
+from datetime import datetime
 from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence, Tuple, TypedDict
 
 from sentry.integrations.slack.message_builder import SlackBlock, SlackBody
@@ -91,7 +92,7 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         return action_block
 
     @staticmethod
-    def get_context_block(text: str, timestamp: Optional[float] = None) -> SlackBlock:
+    def get_context_block(text: str, timestamp: Optional[datetime] = None) -> SlackBlock:
         if timestamp:
             time = timestamp.strftime("%b %d")
             text += f" | {time}"
@@ -110,7 +111,7 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         *args: SlackBlock,
         fallback_text: Optional[str] = None,
         color: Optional[str] = None,
-        block_id: Optional[dict(str, int)] = None,
+        block_id: Optional[dict[str, int]] = None,
     ) -> SlackBody:
         blocks: dict[str, Any] = {"blocks": list(args)}
 

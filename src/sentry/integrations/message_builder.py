@@ -27,10 +27,9 @@ class AbstractMessageBuilder(ABC):
 def format_actor_options(
     actors: Sequence[Team | RpcUser], use_block_kit: bool = False
 ) -> Sequence[Mapping[str, str]]:
+    sort_func: Callable[[Mapping[str, str]], Any] = lambda actor: actor["text"]
     if use_block_kit:
-        sort_func: Callable[[Mapping[str, str]], Any] = lambda actor: actor["text"]["text"]
-    else:
-        sort_func: Callable[[Mapping[str, str]], Any] = lambda actor: actor["text"]
+        sort_func = lambda actor: actor["text"]["text"]
     return sorted((format_actor_option(actor, use_block_kit) for actor in actors), key=sort_func)
 
 
