@@ -20,6 +20,8 @@ type Props = {
   limit?: number;
   orderBy?: WebVitals | null;
   query?: string;
+  sortName?: string;
+  webVital?: WebVitals;
   withProfiles?: boolean;
 };
 
@@ -30,12 +32,15 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
   query,
   enabled,
   withProfiles,
+  sortName,
+  webVital,
 }: Props) => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const location = useLocation();
 
   const sort = useWebVitalsSort({
+    sortName,
     defaultSort: DEFAULT_INDEXED_SORT,
     sortableFields: SORTABLE_INDEXED_FIELDS as unknown as string[],
   });
@@ -57,11 +62,9 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
         'profile.id',
         'project',
         'measurements.score.total',
-        'measurements.score.lcp',
-        'measurements.score.fcp',
-        'measurements.score.cls',
-        'measurements.score.ttfb',
-        'measurements.score.fid',
+        ...(webVital
+          ? [`measurements.score.${webVital}`, `measurements.score.weight.${webVital}`]
+          : []),
       ],
       name: 'Web Vitals',
       query: `transaction.op:pageload transaction:"${transaction}" has:measurements.score.total ${
@@ -90,27 +93,38 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
   const toNumber = (item: ReactText) => (item ? parseFloat(item.toString()) : null);
   const tableData: TransactionSampleRowWithScore[] =
     !isLoading && data?.data.length
-      ? data.data.map(row => ({
-          id: row.id?.toString(),
-          'user.display': row['user.display']?.toString(),
-          transaction: row.transaction?.toString(),
-          'measurements.lcp': toNumber(row['measurements.lcp']),
-          'measurements.fcp': toNumber(row['measurements.fcp']),
-          'measurements.cls': toNumber(row['measurements.cls']),
-          'measurements.ttfb': toNumber(row['measurements.ttfb']),
-          'measurements.fid': toNumber(row['measurements.fid']),
-          'transaction.duration': toNumber(row['transaction.duration']),
-          replayId: row.replayId?.toString(),
-          'profile.id': row['profile.id']?.toString(),
-          projectSlug: row.project?.toString(),
-          timestamp: row.timestamp?.toString(),
-          score: Math.round((toNumber(row['measurements.score.total']) ?? 0) * 100),
-          clsScore: Math.round((toNumber(row['measurements.score.cls']) ?? 0) * 100),
-          fcpScore: Math.round((toNumber(row['measurements.score.fcp']) ?? 0) * 100),
-          lcpScore: Math.round((toNumber(row['measurements.score.lcp']) ?? 0) * 100),
-          ttfbScore: Math.round((toNumber(row['measurements.score.ttfb']) ?? 0) * 100),
-          fidScore: Math.round((toNumber(row['measurements.score.fid']) ?? 0) * 100),
-        }))
+      ? (data.data.map(
+          row => ({
+            id: row.id?.toString(),
+            'user.display': row['user.display']?.toString(),
+            transaction: row.transaction?.toString(),
+            'measurements.lcp': toNumber(row['measurements.lcp']),
+            'measurements.fcp': toNumber(row['measurements.fcp']),
+            'measurements.cls': toNumber(row['measurements.cls']),
+            'measurements.ttfb': toNumber(row['measurements.ttfb']),
+            'measurements.fid': toNumber(row['measurements.fid']),
+            'transaction.duration': toNumber(row['transaction.duration']),
+            replayId: row.replayId?.toString(),
+            'profile.id': row['profile.id']?.toString(),
+            projectSlug: row.project?.toString(),
+            timestamp: row.timestamp?.toString(),
+            score: Math.round((toNumber(row['measurements.score.total']) ?? 0) * 100),
+            ...(webVital
+              ? {
+                  [`${webVital}Score`]: Math.round(
+                    ((toNumber(row[`measurements.score.${webVital}`]) ?? 0) /
+                      (toNumber(row[`measurements.score.weight.${webVital}`]) ?? 0)) *
+                      100
+                  ),
+                  [`${webVital}Weight`]: Math.round(
+                    (toNumber(row[`measurements.score.weight.${webVital}`]) ?? 0) * 100
+                  ),
+                }
+              : {}),
+          })
+          // TODO: Discover doesn't let us query more than 20 fields and we're hitting that limit.
+          // Clean up the types to account for this so we don't need to do this casting.
+        ) as TransactionSampleRowWithScore[])
       : [];
 
   return {

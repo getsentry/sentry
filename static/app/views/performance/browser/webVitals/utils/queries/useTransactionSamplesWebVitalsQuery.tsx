@@ -9,6 +9,8 @@ type Props = {
   limit?: number;
   orderBy?: WebVitals | null;
   query?: string;
+  sortName?: string;
+  webVital?: WebVitals;
   withProfiles?: boolean;
 };
 
@@ -19,6 +21,8 @@ export const useTransactionSamplesWebVitalsQuery = ({
   query,
   enabled,
   withProfiles,
+  sortName,
+  webVital,
 }: Props) => {
   const storedScoresResult = useTransactionSamplesWebVitalsScoresQuery({
     orderBy,
@@ -26,7 +30,9 @@ export const useTransactionSamplesWebVitalsQuery = ({
     transaction,
     query,
     withProfiles,
-    enabled: enabled && USE_STORED_SCORES,
+    enabled: USE_STORED_SCORES && enabled,
+    sortName,
+    webVital,
   });
   const rawWebVitalsResult = useTransactionRawSamplesWebVitalsQuery({
     orderBy,
@@ -34,7 +40,8 @@ export const useTransactionSamplesWebVitalsQuery = ({
     transaction,
     query,
     withProfiles,
-    enabled: enabled && !USE_STORED_SCORES,
+    enabled: !USE_STORED_SCORES && enabled,
+    sortName,
   });
   if (USE_STORED_SCORES) {
     return storedScoresResult;

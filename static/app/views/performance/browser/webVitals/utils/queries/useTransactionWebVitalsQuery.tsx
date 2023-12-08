@@ -26,7 +26,7 @@ export const useTransactionWebVitalsQuery = ({
     transaction,
     defaultSort,
     sortName,
-    enabled: enabled && USE_STORED_SCORES,
+    enabled: USE_STORED_SCORES && enabled,
     opportunityWebVital,
   });
   const rawWebVitalsResult = useTransactionRawWebVitalsQuery({
@@ -34,7 +34,7 @@ export const useTransactionWebVitalsQuery = ({
     transaction,
     defaultSort,
     sortName,
-    enabled: enabled && !USE_STORED_SCORES,
+    enabled: !USE_STORED_SCORES && enabled,
   });
   if (USE_STORED_SCORES) {
     return storedScoresResult;

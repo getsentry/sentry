@@ -35,6 +35,14 @@ export type Score = {
   score: number;
   ttfbScore: number;
   opportunity?: number;
+} & Partial<Weight>;
+
+export type Weight = {
+  clsWeight: number;
+  fcpWeight: number;
+  fidWeight: number;
+  lcpWeight: number;
+  ttfbWeight: number;
 };
 
 export type RowWithScore = Row & Score;

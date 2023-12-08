@@ -21,6 +21,7 @@ type Props = {
   limit?: number;
   orderBy?: WebVitals | null;
   query?: string;
+  sortName?: string;
   withProfiles?: boolean;
 };
 
@@ -31,12 +32,14 @@ export const useTransactionRawSamplesWebVitalsQuery = ({
   query,
   enabled,
   withProfiles,
+  sortName,
 }: Props) => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const location = useLocation();
 
   const sort = useWebVitalsSort({
+    sortName,
     defaultSort: DEFAULT_INDEXED_SORT,
     sortableFields: SORTABLE_INDEXED_FIELDS as unknown as string[],
   });

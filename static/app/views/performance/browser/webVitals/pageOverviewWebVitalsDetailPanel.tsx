@@ -97,6 +97,8 @@ export function PageOverviewWebVitalsDetailPanel({
         : undefined,
       enabled: Boolean(webVital),
       withProfiles: true,
+      sortName: 'webVitalSort',
+      webVital: webVital ?? undefined,
     });
 
   const {data: mehData, isLoading: isMehTransactionWebVitalsQueryLoading} =
@@ -108,6 +110,8 @@ export function PageOverviewWebVitalsDetailPanel({
         : undefined,
       enabled: Boolean(webVital),
       withProfiles: true,
+      sortName: 'webVitalSort',
+      webVital: webVital ?? undefined,
     });
 
   const {data: poorData, isLoading: isPoorTransactionWebVitalsQueryLoading} =
@@ -119,6 +123,8 @@ export function PageOverviewWebVitalsDetailPanel({
         : undefined,
       enabled: Boolean(webVital),
       withProfiles: true,
+      sortName: 'webVitalSort',
+      webVital: webVital ?? undefined,
     });
 
   const data = [...goodData, ...mehData, ...poorData];
