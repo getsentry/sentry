@@ -874,9 +874,16 @@ def process_snoozes(job: PostProcessJob) -> None:
     if not group.issue_type.should_detect_escalation(group.organization):
         return
 
+    # groups less than a day old should use the new -> escalating logic
+    group_age_hours = (timezone.now() - group.first_seen).total_seconds() / 3600
+    should_use_new_escalation_logic = (
+        group_age_hours < MAX_NEW_ESCALATION_AGE_HOURS
+        and features.has("projects:first-event-severity-new-escalation", group.project)
+    )
     # Check if group is escalating
     if (
-        features.has("organizations:escalating-issues", group.organization)
+        not should_use_new_escalation_logic
+        and features.has("organizations:escalating-issues", group.organization)
         and group.status == GroupStatus.IGNORED
         and group.substatus == GroupSubStatus.UNTIL_ESCALATING
     ):
@@ -1357,6 +1364,7 @@ def detect_new_escalation(job: PostProcessJob):
     """
     from sentry.issues.issue_velocity import get_latest_threshold
     from sentry.models.activity import Activity
+    from sentry.models.group import GroupStatus
     from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
     from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
     from sentry.types.activity import ActivityType
@@ -1366,8 +1374,11 @@ def detect_new_escalation(job: PostProcessJob):
         "projects:first-event-severity-new-escalation", job["event"].project
     ):
         return
-    group_age_hours = (datetime.now() - group.first_seen).total_seconds() / 3600
-    if group_age_hours >= MAX_NEW_ESCALATION_AGE_HOURS or group.substatus != GroupSubStatus.NEW:
+    group_age_hours = (timezone.now() - group.first_seen).total_seconds() / 3600
+    has_valid_status = group.substatus == GroupSubStatus.NEW or (
+        group.status == GroupStatus.IGNORED and group.substatus == GroupSubStatus.UNTIL_ESCALATING
+    )
+    if group_age_hours >= MAX_NEW_ESCALATION_AGE_HOURS or not has_valid_status:
         return
     # Get escalation lock for this group. If we're unable to acquire this lock, another process is handling
     # this group at the same time. In that case, just exit early, no need to retry.
@@ -1384,8 +1395,7 @@ def detect_new_escalation(job: PostProcessJob):
             # a rate of 0 means there was no threshold that could be calculated
             if project_escalation_rate > 0 and group_hourly_event_rate > project_escalation_rate:
                 job["has_escalated"] = True
-                group.update(substatus=GroupSubStatus.ESCALATING)
-
+                group.update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ESCALATING)
                 # TODO(snigdha): reuse manage_issue_states when we allow escalating from other statuses
                 add_group_to_inbox(group, GroupInboxReason.ESCALATING)
                 record_group_history(group, GroupHistoryStatus.ESCALATING)
