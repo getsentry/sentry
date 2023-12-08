@@ -7,7 +7,7 @@ import useApi from 'sentry/utils/useApi';
 type GenQueryKey<Aggregate> = (ids: ReadonlyArray<Aggregate>) => ApiQueryKey;
 type Reducer<Data> = (data: Data, result: ApiResult<unknown>) => Data;
 
-const BUFFER_WAIT_MS = 10;
+const BUFFER_WAIT_MS = 20;
 
 export default function useBufferedQuery<QueryKeyAggregate, Data>(
   genQueryKey: GenQueryKey<QueryKeyAggregate>,
