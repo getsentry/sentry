@@ -40,7 +40,7 @@ from requests.utils import CaseInsensitiveDict, get_encoding_from_headers
 from rest_framework import status
 from rest_framework.test import APITestCase as BaseAPITestCase
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
-from snuba_sdk import Granularity, Limit, Offset
+from snuba_sdk import Column, Entity, Granularity, Limit, Offset, Op, Query, Request
 from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
 from sentry import auth, eventstore
@@ -109,10 +109,11 @@ from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
 from sentry.silo import SiloMode
-from sentry.snuba.dataset import EntityKey
+from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.extraction import OnDemandMetricSpec
 from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
+from sentry.snuba.referrer import Referrer
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -127,7 +128,7 @@ from sentry.utils.json import dumps_htmlsafe
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.samples import load_data
-from sentry.utils.snuba import _snuba_pool
+from sentry.utils.snuba import _snuba_pool, raw_snql_query
 
 from ..services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from ..shared_integrations.client.proxy import IntegrationProxyClient
@@ -2878,7 +2879,8 @@ class IntegratedApiTestCase(BaseTestCase):
         return not IntegrationProxyClient.determine_whether_should_proxy_to_control()
 
 
-class SpansIndexedTestCase(TestCase, SnubaTestCase):
+@pytest.mark.usefixtures("reset_spans")
+class SpansIndexedTestCase(TestCase):
     # Some base data for create_span
     base_span = {
         "is_segment": False,
@@ -2888,8 +2890,7 @@ class SpansIndexedTestCase(TestCase, SnubaTestCase):
         "measurements": {},
     }
 
-    # Snuba consumers need a second to process and the consumer needs another second, and another second just to be safe
-    sleep_time = 3
+    max_time = 5
 
     def setUp(self):
         super().setUp()
@@ -2897,6 +2898,39 @@ class SpansIndexedTestCase(TestCase, SnubaTestCase):
         self.spans_topic = "snuba-spans"
         # Setup the producer that we'll be writing span data to later
         self.producer = Producer(settings.KAFKA_CLUSTERS["default"]["common"])
+
+    def _poll_storage(self, data):
+        """Poll snuba until the stored span has shown up"""
+        timestamp = data["start_timestamp_ms"] / 1000
+        span_id = data["span_id"]
+        project_id = data["project_id"]
+        organization_id = data["organization_id"]
+        request = Request(
+            dataset=Dataset.SpansIndexed.value,
+            app_id="default",
+            query=Query(
+                match=Entity(Dataset.SpansIndexed.value),
+                select=[Column("span_id")],
+                where=[
+                    Condition(Column("span_id"), Op.EQ, span_id),
+                    Condition(Column("project_id"), Op.EQ, project_id),
+                    Condition(
+                        Column("timestamp"), Op.GTE, datetime.fromtimestamp(timestamp - 1000)
+                    ),
+                    Condition(Column("timestamp"), Op.LT, datetime.fromtimestamp(timestamp + 1000)),
+                ],
+            ),
+            tenant_ids={"organization_id": organization_id},
+        )
+        start_time = time.time()
+        while time.time() - start_time < self.max_time:
+            result = raw_snql_query(
+                request,
+                referrer=Referrer.TEST_SPANS_POLLING.value,
+            )
+            if len(result["data"]) > 0:
+                return
+        raise Exception(f"Span didn't appear in clickhouse within {self.max_time}s")
 
     def create_span(
         self, extra_data=None, organization=None, project=None, start_ts=None, duration=1000
@@ -2934,15 +2968,12 @@ class SpansIndexedTestCase(TestCase, SnubaTestCase):
         span.update(extra_data)
         return span
 
-    def _store_span(self, data, delay=True):
-        """Encode span data to json and send it to our producer, making this function private in hopes most people will
-        save batches of spans using the plural function instead"""
+    def _store_span(self, data):
+        """Always store spans using the bulk store_spans function not this so we only poll once"""
         self.producer.produce(self.spans_topic, json.dumps(data).encode())
-        if delay:
-            time.sleep(self.sleep_time)
 
     def store_spans(self, spans):
-        """Store a list of spans"""
+        """Store a list of spans, only polls for the last span to save a bit of time"""
         for span in spans:
-            self._store_span(span, delay=False)
-        time.sleep(self.sleep_time)
+            self._store_span(span)
+        self._poll_storage(spans[-1])

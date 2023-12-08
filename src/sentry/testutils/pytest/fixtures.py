@@ -487,6 +487,18 @@ def reset_snuba(call_snuba):
 
 
 @pytest.fixture
+def reset_spans(call_snuba):
+    init_endpoints = [
+        "/tests/spans/drop",
+    ]
+
+    assert all(
+        response.status_code == 200
+        for response in ThreadPoolExecutor(len(init_endpoints)).map(call_snuba, init_endpoints)
+    )
+
+
+@pytest.fixture
 def set_sentry_option():
     """
     A pytest-style wrapper around override_options.

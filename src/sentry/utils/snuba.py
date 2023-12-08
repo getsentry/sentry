@@ -44,7 +44,7 @@ from sentry.models.release import Release, ReleaseProject
 from sentry.net.http import connection_from_url
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
-from sentry.snuba.referrer import validate_referrer
+from sentry.snuba.referrer import Referrer, validate_referrer
 from sentry.utils import json, metrics
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
 
@@ -77,6 +77,8 @@ OVERRIDE_OPTIONS = {
 SNUBA_INFO = os.environ.get("SENTRY_SNUBA_INFO", "false").lower() in ("true", "1")
 if SNUBA_INFO:
     import sqlparse
+# Don't show the sql for some referrers
+SNUBA_INFO_IGNORE_LIST = {Referrer.TEST_SPANS_POLLING.value}
 
 # There are several cases here where we support both a top level column name and
 # a tag with the same name. Existing search patterns expect to refer to the tag,
@@ -935,7 +937,7 @@ def _bulk_snuba_query(
     for response, _, reverse in query_results:
         try:
             body = json.loads(response.data)
-            if SNUBA_INFO:
+            if SNUBA_INFO and query_referrer not in SNUBA_INFO_IGNORE_LIST:
                 if "sql" in body:
                     print(  # NOQA: only prints when an env variable is set
                         "{}.sql:\n {}".format(
@@ -1018,7 +1020,7 @@ def _raw_snql_query(
     # Enter hub such that http spans are properly nested
     with thread_hub, timer("snql_query"):
         referrer = headers.get("referer", "<unknown>")
-        if SNUBA_INFO:
+        if SNUBA_INFO and referrer not in SNUBA_INFO_IGNORE_LIST:
             import pprint
 
             print(  # NOQA: only prints when an env variable is set

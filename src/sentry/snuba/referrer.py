@@ -732,6 +732,7 @@ class Referrer(Enum):
     TESTING_TEST = "testing.test"
     TEST_QUERY_PRIMARY = "test_query.primary"
     TEST_QUERY = "test_query"
+    TEST_SPANS_POLLING = "test.spans_indexed_polling"
     METRIC_VALIDATION = "metric_validation"
 
 
