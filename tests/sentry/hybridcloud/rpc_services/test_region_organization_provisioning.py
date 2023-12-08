@@ -23,10 +23,10 @@ from sentry.services.organization import (
 )
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, create_test_regions
 
 
-@control_silo_test
+@control_silo_test(regions=create_test_regions("us"))
 class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
     def get_provisioning_args(
         self, user: User, is_test: bool = False, create_default_team: bool = True
@@ -195,7 +195,7 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
             assert not Organization.objects.filter(id=organization_id).exists()
 
 
-@control_silo_test
+@control_silo_test(regions=create_test_regions("us"))
 class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
     def setUp(self):
         self.provisioning_user = self.create_user()

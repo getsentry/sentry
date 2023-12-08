@@ -18,7 +18,12 @@ from sentry.services.hybrid_cloud.organization_mapping.serial import (
 )
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TransactionTestCase
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
+from sentry.testutils.silo import (
+    assume_test_silo_mode,
+    control_silo_test,
+    create_test_regions,
+    region_silo_test,
+)
 from sentry.types.region import get_local_region
 
 
@@ -45,7 +50,7 @@ def assert_matching_organization_mapping(
         assert org_mapping.codecov_access == bool(org.flags.codecov_access)
 
 
-@control_silo_test
+@control_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
 class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCase):
     def test_upsert__create_if_not_found(self):
         self.organization = self.create_organization(name="test name", slug="foobar", region="us")
@@ -148,7 +153,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
         assert_matching_organization_mapping(org=self.organization)
 
 
-@region_silo_test
+@region_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
 class OrganizationMappingReplicationTest(TransactionTestCase):
     def test_replicates_all_flags(self):
         self.organization = self.create_organization(slug="santry", region="us")

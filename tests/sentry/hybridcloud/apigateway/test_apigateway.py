@@ -5,22 +5,24 @@ import responses
 from django.test import override_settings
 from django.urls import reverse
 from rest_framework.exceptions import NotFound
+from rest_framework.response import Response
 
 from sentry.silo import SiloMode
 from sentry.testutils.helpers.apigateway import ApiGatewayTestCase, verify_request_params
 from sentry.testutils.helpers.response import close_streaming_response
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
+@control_silo_test(regions=[ApiGatewayTestCase.REGION], include_monolith_run=True)
 class ApiGatewayTest(ApiGatewayTestCase):
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
     @responses.activate
     def test_simple(self):
         query_params = dict(foo="test", bar=["one", "two"])
         headers = dict(example="this")
         responses.add_callback(
             responses.GET,
-            f"http://us.internal.sentry.io/organizations/{self.organization.slug}/region/",
+            f"{self.REGION.address}/organizations/{self.organization.slug}/region/",
             verify_request_params(query_params, headers),
         )
 
@@ -30,20 +32,25 @@ class ApiGatewayTest(ApiGatewayTestCase):
         with override_settings(MIDDLEWARE=tuple(self.middleware)):
             resp = self.client.get(url, headers=headers)
         assert resp.status_code == 200, resp.content
-        resp_json = json.loads(close_streaming_response(resp))
-        assert resp_json["proxy"]
+
+        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+            resp_json = json.loads(resp.content)
+            assert resp_json["proxy"] is False
+        else:
+            resp_json = json.loads(close_streaming_response(resp))
+            assert resp_json["proxy"] is True
 
     @responses.activate
     def test_proxy_check_org_slug_url(self):
         """Test the logic of when a request should be proxied"""
         responses.add(
             responses.GET,
-            f"http://us.internal.sentry.io/organizations/{self.organization.slug}/region/",
+            f"{self.REGION.address}/organizations/{self.organization.slug}/region/",
             json={"proxy": True},
         )
         responses.add(
             responses.GET,
-            f"http://us.internal.sentry.io/organizations/{self.organization.slug}/control/",
+            f"{self.REGION.address}/organizations/{self.organization.slug}/control/",
             json={"proxy": True},
         )
 
@@ -58,22 +65,22 @@ class ApiGatewayTest(ApiGatewayTestCase):
             resp = self.client.get(region_url)
             assert resp.status_code == 200
             resp_json = json.loads(close_streaming_response(resp))
-            assert resp_json["proxy"]
+            assert resp_json["proxy"] is True
 
             resp = self.client.get(control_url)
             assert resp.status_code == 200
-            assert not resp.data["proxy"]
+            assert resp.data["proxy"] is False
 
         with override_settings(SILO_MODE=SiloMode.REGION, MIDDLEWARE=tuple(self.middleware)):
             resp = self.client.get(region_url)
             assert resp.status_code == 200
-            assert not resp.data["proxy"]
+            assert resp.data["proxy"] is False
 
     @responses.activate
     def test_proxy_check_region_pinned_url(self):
         responses.add(
             responses.GET,
-            "http://us.internal.sentry.io/builtin-symbol-sources/",
+            f"{self.REGION.address}/builtin-symbol-sources/",
             json={"proxy": True},
         )
 
@@ -84,50 +91,51 @@ class ApiGatewayTest(ApiGatewayTestCase):
             "control-endpoint", kwargs={"organization_slug": self.organization.slug}
         )
 
-        with override_settings(
-            SILO_MODE=SiloMode.CONTROL,
-            MIDDLEWARE=tuple(self.middleware),
-            SENTRY_MONOLITH_REGION="us",
-        ):
+        with override_settings(SILO_MODE=SiloMode.CONTROL, MIDDLEWARE=tuple(self.middleware)):
             resp = self.client.get(region_pinned)
             assert resp.status_code == 200
             resp_json = json.loads(close_streaming_response(resp))
-            assert resp_json["proxy"]
+            assert resp_json["proxy"] is True
 
             resp = self.client.get(control_url)
             assert resp.status_code == 200
-            assert not resp.data["proxy"]
+            assert resp.data["proxy"] is False
 
     @responses.activate
     def test_proxy_check_region_pinned_url_with_params(self):
         responses.add(
             responses.GET,
-            "http://us.internal.sentry.io/relays/register/",
+            f"{self.REGION.address}/relays/register/",
             json={"proxy": True},
         )
         responses.add(
             responses.GET,
-            "http://us.internal.sentry.io/relays/abc123/",
+            f"{self.REGION.address}/relays/abc123/",
             json={"proxy": True, "details": True},
         )
 
-        with override_settings(
-            SILO_MODE=SiloMode.CONTROL,
-            MIDDLEWARE=tuple(self.middleware),
-            SENTRY_MONOLITH_REGION="us",
-        ):
+        with override_settings(SILO_MODE=SiloMode.CONTROL, MIDDLEWARE=tuple(self.middleware)):
             resp = self.client.get("/relays/register/")
             assert resp.status_code == 200
             resp_json = json.loads(close_streaming_response(resp))
-            assert resp_json["proxy"]
+            assert resp_json["proxy"] is True
 
             resp = self.client.get("/relays/abc123/")
             assert resp.status_code == 200
             resp_json = json.loads(close_streaming_response(resp))
-            assert resp_json["proxy"]
-            assert resp_json["details"]
+            assert resp_json["proxy"] is True
+            assert resp_json["details"] is True
 
-    @override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_MONOLITH_REGION="us")
+    @staticmethod
+    def _check_response(resp: Response, expected_name: str) -> None:
+        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+            assert resp.status_code == 401
+            return
+        assert resp.status_code == 200
+        resp_json = json.loads(close_streaming_response(resp))
+        assert resp_json["proxy"] is True
+        assert resp_json["name"] == expected_name
+
     @responses.activate
     def test_proxy_sentryapp_installation_path(self):
         sentry_app = self.create_sentry_app()
@@ -137,73 +145,59 @@ class ApiGatewayTest(ApiGatewayTestCase):
 
         responses.add(
             responses.GET,
-            f"http://us.internal.sentry.io/sentry-app-installations/{install.uuid}/external-requests/",
+            f"{self.REGION.address}/sentry-app-installations/{install.uuid}/external-requests/",
             json={"proxy": True, "name": "external-requests"},
         )
         responses.add(
             responses.GET,
-            f"http://us.internal.sentry.io/sentry-app-installations/{install.uuid}/external-issues/",
+            f"{self.REGION.address}/sentry-app-installations/{install.uuid}/external-issues/",
             json={"proxy": True, "name": "external-issues"},
         )
         responses.add(
             responses.GET,
-            f"http://us.internal.sentry.io/sentry-app-installations/{install.uuid}/external-issue-actions/",
+            f"{self.REGION.address}/sentry-app-installations/{install.uuid}/external-issue-actions/",
             json={"proxy": True, "name": "external-issue-actions"},
         )
 
         with override_settings(MIDDLEWARE=tuple(self.middleware)):
             resp = self.client.get(f"/sentry-app-installations/{install.uuid}/external-requests/")
-            assert resp.status_code == 200
-            resp_json = json.loads(close_streaming_response(resp))
-            assert resp_json["proxy"]
-            assert resp_json["name"] == "external-requests"
+            self._check_response(resp, "external-requests")
 
             resp = self.client.get(f"/sentry-app-installations/{install.uuid}/external-issues/")
-            assert resp.status_code == 200
-            resp_json = json.loads(close_streaming_response(resp))
-            assert resp_json["proxy"]
-            assert resp_json["name"] == "external-issues"
+            self._check_response(resp, "external-issues")
 
             resp = self.client.get(
                 f"/sentry-app-installations/{install.uuid}/external-issue-actions/"
             )
-            assert resp.status_code == 200
-            resp_json = json.loads(close_streaming_response(resp))
-            assert resp_json["proxy"]
-            assert resp_json["name"] == "external-issue-actions"
+            self._check_response(resp, "external-issue-actions")
 
-    @override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_MONOLITH_REGION="us")
     @responses.activate
     def test_proxy_sentryapp_path(self):
         sentry_app = self.create_sentry_app()
 
         responses.add(
             responses.GET,
-            f"http://us.internal.sentry.io/sentry-apps/{sentry_app.slug}/interaction/",
+            f"{self.REGION.address}/sentry-apps/{sentry_app.slug}/interaction/",
             json={"proxy": True, "name": "interaction"},
         )
         responses.add(
             responses.GET,
-            f"http://us.internal.sentry.io/sentry-apps/{sentry_app.slug}/requests/",
+            f"{self.REGION.address}/sentry-apps/{sentry_app.slug}/requests/",
             json={"proxy": True, "name": "requests"},
         )
 
         with override_settings(MIDDLEWARE=tuple(self.middleware)):
             resp = self.client.get(f"/sentry-apps/{sentry_app.slug}/interaction/")
-            assert resp.status_code == 200
-            resp_json = json.loads(close_streaming_response(resp))
-            assert resp_json["proxy"]
-            assert resp_json["name"] == "interaction"
+            self._check_response(resp, "interaction")
 
             resp = self.client.get(f"/sentry-apps/{sentry_app.slug}/requests/")
-            assert resp.status_code == 200
-            resp_json = json.loads(close_streaming_response(resp))
-            assert resp_json["proxy"]
-            assert resp_json["name"] == "requests"
+            self._check_response(resp, "requests")
 
-    @override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_MONOLITH_REGION="us")
     @responses.activate
     def test_proxy_sentryapp_installation_path_invalid(self):
+        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+            return
+
         # No responses configured so that requests will fail if they are made.
         with override_settings(MIDDLEWARE=tuple(self.middleware)):
             with pytest.raises(NotFound):

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+import contextlib
 import io
 import os
 import random
 from base64 import b64encode
 from binascii import hexlify
-from contextlib import contextmanager
 from datetime import datetime
 from hashlib import sha1
 from importlib import import_module
@@ -276,19 +276,20 @@ class Factories:
         if not name:
             name = petname.generate(2, " ", letters=10).title()
 
-        if isinstance(region, str):
-            region = get_region_by_name(region)
-
-        @contextmanager
-        def org_creation_context():
-            if region is None:
-                yield
+        if region is None or SiloMode.get_current_mode() == SiloMode.MONOLITH:
+            region_name = get_local_region().name
+            org_creation_context = contextlib.nullcontext()
+        else:
+            if isinstance(region, Region):
+                region_name = region.name
             else:
-                with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION=region.name):
-                    yield
+                region_obj = get_region_by_name(region)  # Verify it exists
+                region_name = region_obj.name
+            org_creation_context = override_settings(
+                SILO_MODE=SiloMode.REGION, SENTRY_REGION=region_name
+            )
 
-        with org_creation_context():
-            region_name = region.name if region is not None else get_local_region().name
+        with org_creation_context:
             with outbox_context(flush=False):
                 org: Organization = Organization.objects.create(name=name, **kwargs)
 

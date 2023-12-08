@@ -4,9 +4,11 @@ import requests
 import responses
 
 from sentry.testutils.helpers.apigateway import ApiGatewayTestCase, verify_request_body
+from sentry.testutils.silo import no_silo_test
 from sentry.utils import json
 
 
+@no_silo_test(regions=[ApiGatewayTestCase.REGION])
 class VerifyRequestBodyTest(ApiGatewayTestCase):
     @responses.activate
     def test_verify_request_body(self):

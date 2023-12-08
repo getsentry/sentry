@@ -208,7 +208,7 @@ def pytest_configure(config: pytest.Config) -> None:
     )
     settings.SENTRY_OPTIONS_COMPLAIN_ON_ERRORS = True
     settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = False
-    settings.SENTRY_REGION = "us"
+    settings.SENTRY_REGION = None
 
     # ID controls
     settings.SENTRY_USE_BIG_INTS = True

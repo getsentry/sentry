@@ -12,7 +12,7 @@ from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_regions
 
 
 @django_db_all(transaction=True)
@@ -65,7 +65,7 @@ def test_replicate_external_actor():
 
 
 @django_db_all(transaction=True)
-@all_silo_test
+@all_silo_test(regions=create_test_regions("us"))
 def test_replicate_auth_provider():
     user = Factories.create_user()
     org = Factories.create_organization(owner=user)
