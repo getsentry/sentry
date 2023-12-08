@@ -498,7 +498,6 @@ module = [
     "sentry.plugins.config",
     "sentry.plugins.endpoints",
     "sentry.plugins.providers.base",
-    "sentry.plugins.providers.integration_repository",
     "sentry.plugins.providers.repository",
     "sentry.profiles.task",
     "sentry.profiles.utils",
