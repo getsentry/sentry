@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Panel from 'sentry/components/panels/panel';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import Placeholder from 'sentry/components/placeholder';
 import {DifferentialFlamegraph} from 'sentry/components/profiling/flamegraph/differentialFlamegraph';
@@ -21,6 +22,7 @@ import {
   CanvasPoolManager,
   useCanvasScheduler,
 } from 'sentry/utils/profiling/canvasScheduler';
+import {colorComponentsToRGBA} from 'sentry/utils/profiling/colors/utils';
 import {DifferentialFlamegraph as DifferentialFlamegraphModel} from 'sentry/utils/profiling/differentialFlamegraph';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
@@ -222,21 +224,12 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
       return DifferentialFlamegraphModel.Empty();
     }
 
-    if (negated) {
-      return DifferentialFlamegraphModel.FromDiff(
-        {
-          before: afterFlamegraph,
-          after: beforeFlamegraph,
-        },
-        theme
-      );
-    }
-
     return DifferentialFlamegraphModel.FromDiff(
       {
         before: beforeFlamegraph,
         after: afterFlamegraph,
       },
+      {negated},
       theme
     );
   }, [beforeFlamegraph, afterFlamegraph, theme, negated]);
@@ -264,64 +257,116 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
 
   return (
     <Fragment>
-      <DifferentialFlamegraphTransactionToolbar
-        transaction={props.transaction}
-        onNextTransactionClick={props.onNextTransactionClick}
-        onPreviousTransactionClick={props.onPreviousTransactionClick}
-      />
-      <DifferentialFlamegraphToolbar
-        frameFilter={frameFilterSetting}
-        onFrameFilterChange={setFrameFilterSetting}
-        negated={negated}
-        onNegatedChange={setNegated}
-        flamegraph={differentialFlamegraph}
-        canvasPoolManager={canvasPoolManager}
-      />
-      <DifferentialFlamegraphContainer>
-        {props.after.isLoading || props.before.isLoading ? (
-          <LoadingIndicatorContainer>
-            <LoadingIndicator />
-          </LoadingIndicatorContainer>
-        ) : props.before.isError && props.after.isError ? (
-          <ErrorMessageContainer>
-            {t('Failed to load flamegraph for before and after regression time range.')}
-          </ErrorMessageContainer>
-        ) : props.before.isError ? (
-          <ErrorMessageContainer>
-            {t('Failed to load flamegraph for before regression time range.')}
-          </ErrorMessageContainer>
-        ) : props.after.isError ? (
-          <ErrorMessageContainer>
-            {t('Failed to load flamegraph for after regression time range.')}
-          </ErrorMessageContainer>
-        ) : null}
-        <DifferentialFlamegraph
-          profileGroup={afterProfileGroup ?? LOADING_PROFILE_GROUP}
-          differentialFlamegraph={differentialFlamegraph}
+      <Panel>
+        <DifferentialFlamegraphTransactionToolbar
+          transaction={props.transaction}
+          onNextTransactionClick={props.onNextTransactionClick}
+          onPreviousTransactionClick={props.onPreviousTransactionClick}
+        />
+        <DifferentialFlamegraphToolbar
+          frameFilter={frameFilterSetting}
+          onFrameFilterChange={setFrameFilterSetting}
+          negated={negated}
+          onNegatedChange={setNegated}
+          flamegraph={differentialFlamegraph}
           canvasPoolManager={canvasPoolManager}
-          scheduler={scheduler}
         />
-      </DifferentialFlamegraphContainer>
-      <DifferentialFlamegraphExplanationBar negated={negated} />
+        <DifferentialFlamegraphContainer>
+          {props.after.isLoading || props.before.isLoading ? (
+            <LoadingIndicatorContainer>
+              <LoadingIndicator />
+            </LoadingIndicatorContainer>
+          ) : props.before.isError && props.after.isError ? (
+            <ErrorMessageContainer>
+              {t('Failed to load flamegraph for before and after regression time range.')}
+            </ErrorMessageContainer>
+          ) : props.before.isError ? (
+            <ErrorMessageContainer>
+              {t('Failed to load flamegraph for before regression time range.')}
+            </ErrorMessageContainer>
+          ) : props.after.isError ? (
+            <ErrorMessageContainer>
+              {t('Failed to load flamegraph for after regression time range.')}
+            </ErrorMessageContainer>
+          ) : null}
+          <DifferentialFlamegraph
+            profileGroup={afterProfileGroup ?? LOADING_PROFILE_GROUP}
+            differentialFlamegraph={differentialFlamegraph}
+            canvasPoolManager={canvasPoolManager}
+            scheduler={scheduler}
+          />
+        </DifferentialFlamegraphContainer>
+        <DifferentialFlamegraphExplanationBar negated={negated} />
 
-      <DifferentialFlamegraphFunctionsContainer>
-        <DifferentialFlamegraphChangedFunctions
-          loading={props.after.isLoading || props.before.isLoading}
-          title={t('Largest Increase')}
-          subtitle={negated ? t('before regression') : t('after regression')}
-          functions={differentialFlamegraph.increasedFrames}
-          flamegraph={differentialFlamegraph}
-          makeFunctionLink={makeFunctionFlamechartLink}
-        />
-        <DifferentialFlamegraphChangedFunctions
-          loading={props.after.isLoading || props.before.isLoading}
-          title={t('Largest Decrease')}
-          subtitle={negated ? t('before regression') : t('after regression')}
-          functions={differentialFlamegraph.decreasedFrames}
-          flamegraph={differentialFlamegraph}
-          makeFunctionLink={makeFunctionFlamechartLink}
-        />
-      </DifferentialFlamegraphFunctionsContainer>
+        <DifferentialFlamegraphContainer>
+          {props.after.isLoading || props.before.isLoading ? (
+            <LoadingIndicatorContainer>
+              <LoadingIndicator />
+            </LoadingIndicatorContainer>
+          ) : props.before.isError && props.after.isError ? (
+            <ErrorMessageContainer>
+              {t('Failed to load flamegraph for before and after regression time range.')}
+            </ErrorMessageContainer>
+          ) : props.before.isError ? (
+            <ErrorMessageContainer>
+              {t('Failed to load flamegraph for before regression time range.')}
+            </ErrorMessageContainer>
+          ) : props.after.isError ? (
+            <ErrorMessageContainer>
+              {t('Failed to load flamegraph for after regression time range.')}
+            </ErrorMessageContainer>
+          ) : null}
+          <DifferentialFlamegraph
+            profileGroup={afterProfileGroup ?? LOADING_PROFILE_GROUP}
+            differentialFlamegraph={differentialFlamegraph}
+            canvasPoolManager={canvasPoolManager}
+            scheduler={scheduler}
+          />
+        </DifferentialFlamegraphContainer>
+        <DifferentialFlamegraphExplanationBar negated={negated} />
+      </Panel>
+
+      <Panel>
+        <DifferentialFlamegraphFunctionsContainer>
+          <DifferentialFlamegraphChangedFunctions
+            loading={props.after.isLoading || props.before.isLoading}
+            title={t('Slower functions')}
+            subtitle={t('after regression')}
+            functions={differentialFlamegraph.increasedFrames}
+            flamegraph={differentialFlamegraph}
+            makeFunctionLink={makeFunctionFlamechartLink}
+          />
+          <DifferentialFlamegraphChangedFunctions
+            loading={props.after.isLoading || props.before.isLoading}
+            title={t('Faster functions')}
+            subtitle={t('after regression')}
+            functions={differentialFlamegraph.decreasedFrames}
+            flamegraph={differentialFlamegraph}
+            makeFunctionLink={makeFunctionFlamechartLink}
+          />
+        </DifferentialFlamegraphFunctionsContainer>
+      </Panel>
+
+      <Panel>
+        <DifferentialFlamegraphFunctionsContainer>
+          <DifferentialFlamegraphChangedFunctions
+            loading={props.after.isLoading || props.before.isLoading}
+            title={t('New functions')}
+            subtitle={t('after regression')}
+            functions={differentialFlamegraph.newFrames}
+            flamegraph={differentialFlamegraph}
+            makeFunctionLink={makeFunctionFlamechartLink}
+          />
+          <DifferentialFlamegraphChangedFunctions
+            loading={props.after.isLoading || props.before.isLoading}
+            title={t('Removed functions')}
+            subtitle={t('after regression')}
+            functions={differentialFlamegraph.removedFrames}
+            flamegraph={differentialFlamegraph}
+            makeFunctionLink={makeFunctionFlamechartLink}
+          />
+        </DifferentialFlamegraphFunctionsContainer>
+      </Panel>
     </Fragment>
   );
 }
@@ -445,7 +490,9 @@ function paginationReducer(
 
 interface DifferentialFlamegraphChangedFunctionsProps {
   flamegraph: DifferentialFlamegraphModel;
-  functions: DifferentialFlamegraphModel['increasedFrames'];
+  functions:
+    | DifferentialFlamegraphModel['increasedFrames']
+    | DifferentialFlamegraphModel['newFrames'];
   loading: boolean;
   makeFunctionLink: (frame: FlamegraphFrame) => LocationDescriptor;
   subtitle: string;
@@ -454,6 +501,7 @@ interface DifferentialFlamegraphChangedFunctionsProps {
 function DifferentialFlamegraphChangedFunctions(
   props: DifferentialFlamegraphChangedFunctionsProps
 ) {
+  const theme = useFlamegraphTheme();
   const [state, dispatch] = useReducer(paginationReducer, {
     page: 0,
     pageSize: 0,
@@ -483,7 +531,7 @@ function DifferentialFlamegraphChangedFunctions(
   }, [state.page, state.pageCount]);
 
   return (
-    <div>
+    <DifferentialFlamegraphFunctionsWrapper>
       <DifferentialFlamegraphChangedFunctionsTitle
         title={props.title}
         subtitle={props.subtitle}
@@ -518,17 +566,20 @@ function DifferentialFlamegraphChangedFunctions(
               state.page * state.pageSize,
               state.page * state.pageSize + state.pageSize
             )
-            .map((func, idx) => {
+            .map((func: [number, FlamegraphFrame] | FlamegraphFrame, idx) => {
+              const frame = Array.isArray(func) ? func[1] : func;
+              const changeValue = Array.isArray(func) ? func[0] : null;
+
               const countAfter =
                 props.flamegraph.afterCounts.get(
-                  DifferentialFlamegraphModel.FrameKey(func[1])
+                  DifferentialFlamegraphModel.FrameKey(frame)
                 ) ?? 0;
               const countBefore =
                 props.flamegraph.beforeCounts.get(
-                  DifferentialFlamegraphModel.FrameKey(func[1])
+                  DifferentialFlamegraphModel.FrameKey(frame)
                 ) ?? 0;
 
-              const linkToFlamechart = props.makeFunctionLink(func[1]);
+              const linkToFlamechart = props.makeFunctionLink(frame);
               return (
                 <DifferentialFlamegraphChangedFunctionContainer key={idx}>
                   <div>
@@ -536,32 +587,62 @@ function DifferentialFlamegraphChangedFunctions(
                       disabled={!linkToFlamechart}
                       to={linkToFlamechart}
                     >
-                      {func[1].frame.name}
+                      <DifferentialFlamegraphFunctionColorIndicator
+                        style={{
+                          backgroundColor: colorComponentsToRGBA(
+                            props.flamegraph.colors.get(
+                              DifferentialFlamegraphModel.FrameKey(frame)
+                            ) ?? theme.COLORS.FRAME_FALLBACK_COLOR
+                          ),
+                        }}
+                      />
+                      <span>{frame.frame.name}</span>
                     </DifferentialFlamegraphChangedFunctionNameLink>
                     <DifferentialFlamegraphChangedFunctionModule>
-                      {func[1].frame.module ||
-                        func[1].frame.package ||
-                        func[1].frame.file}
+                      {frame.frame.module || frame.frame.package || frame.frame.file}
                     </DifferentialFlamegraphChangedFunctionModule>
                   </div>
 
-                  <DifferentialFlamegraphChangedFunctionStats>
-                    <div>
-                      {countAfter > countBefore ? '+' : ''}
-                      {formatPercentage(relativeChange(countAfter, countBefore))}
-                      {/* diff % */}
-                      {/* n samples, x weight */}
-                    </div>
-                    <DifferentialFlamegraphFunctionSecondaryStats>
-                      {formatAbbreviatedNumber(func[1].node.selfWeight)} {t('samples')}
-                    </DifferentialFlamegraphFunctionSecondaryStats>
-                  </DifferentialFlamegraphChangedFunctionStats>
+                  {typeof changeValue === 'number' ? (
+                    <DifferentialFlamegraphChangedFunctionStats>
+                      <div>
+                        {countAfter > countBefore ? '+' : ''}
+                        {formatPercentage(relativeChange(countAfter, countBefore))}
+                        {/* diff % */}
+                        {/* n samples, x weight */}
+                      </div>
+                      <DifferentialFlamegraphFunctionSecondaryStats>
+                        {formatAbbreviatedNumber(frame.node.selfWeight)} {t('samples')}
+                      </DifferentialFlamegraphFunctionSecondaryStats>
+                    </DifferentialFlamegraphChangedFunctionStats>
+                  ) : null}
                 </DifferentialFlamegraphChangedFunctionContainer>
               );
             })}
-    </div>
+    </DifferentialFlamegraphFunctionsWrapper>
   );
 }
+
+const DifferentialFlamegraphFunctionsWrapper = styled('div')`
+  flex: 1;
+  width: 50%;
+  &:first-child {
+    padding-right: ${space(0.5)};
+  }
+  &:nth-child(2) {
+    padding-left: ${space(0.5)};
+  }
+`;
+
+const DifferentialFlamegraphFunctionColorIndicator = styled('div')`
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  display: inline-block;
+  border: 1px solid ${p => p.theme.border};
+  margin-right: ${space(0.25)};
+  background-color: ${p => p.theme.green300};
+`;
 
 const RIGHT_ALIGN_PLACEHOLDER_STYLES: React.CSSProperties = {
   marginBottom: '4px',
@@ -575,6 +656,7 @@ const MARGIN_BOTTOM_PLACEHOLDER_STYLES: React.CSSProperties = {
 
 const DifferentialFlamegraphChangedFunctionStats = styled('div')`
   text-align: right;
+  flex-shrink: 0;
 `;
 
 const DifferentialFlamegraphFunctionSecondaryStats = styled('div')`
@@ -583,12 +665,23 @@ const DifferentialFlamegraphFunctionSecondaryStats = styled('div')`
 `;
 
 const DifferentialFlamegraphChangedFunctionNameLink = styled(Link)`
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  white-space: nowrap;
+
+  > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
 `;
 
 const DifferentialFlamegraphChangedFunctionModule = styled('div')`
   color: ${p => p.theme.subText};
+  min-width: 0;
+  text-overflow: ellipsis;
+  overflow: hidden;
 `;
 
 const DifferentialFlamegraphChangedFunctionContainer = styled('div')`
@@ -598,7 +691,9 @@ const DifferentialFlamegraphChangedFunctionContainer = styled('div')`
   justify-content: space-between;
   gap: ${space(1)};
   padding: ${space(0.5)} ${space(0)};
+
   > *:first-child {
+    min-width: 0;
     flex: 1;
   }
 `;
@@ -624,6 +719,7 @@ function DifferentialFlamegraphExplanationBar(
 const DifferentialFlamegraphExplanationBarContainer = styled('div')`
   display: flex;
   justify-content: space-between;
+  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   padding: ${space(0.5)} ${space(1)};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   color: ${p => p.theme.subText};
@@ -726,15 +822,9 @@ const DifferentialFlamegraphChangedFunctionsSubtitleText = styled('div')`
 `;
 
 const DifferentialFlamegraphFunctionsContainer = styled('div')`
-  border-top: 1px solid ${p => p.theme.border};
   display: flex;
   flex-direction: row;
-  gap: ${space(2)};
   padding: ${space(1)};
-
-  > div {
-    flex: 0.5;
-  }
 `;
 
 const DifferentialFlamegraphPaginationButton = styled(Button)`

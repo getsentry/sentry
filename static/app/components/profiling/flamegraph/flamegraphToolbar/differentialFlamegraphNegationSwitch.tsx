@@ -27,14 +27,14 @@ export function DifferentialFlamegraphNegationSwitch(
         value={props.negated ? 'negated' : 'regular'}
         onChange={onWrapChange}
       >
-        <SegmentedControl.Item key="negated">{t('Before → After')}</SegmentedControl.Item>
-        <SegmentedControl.Item key="regular">{t('After → Before')}</SegmentedControl.Item>
+        <SegmentedControl.Item key="negated">{t('Baseline')}</SegmentedControl.Item>
+        <SegmentedControl.Item key="regular">{t('Regressed')}</SegmentedControl.Item>
       </SegmentedControl>
     </DifferentialFlamegraphNegationSwitchContainer>
   );
 }
 
 const DifferentialFlamegraphNegationSwitchContainer = styled('div')`
-  /* after this size, the text is quickly truncated */
-  min-width: 210px;
+  /* ensure text is not truncated */
+  flex-shrink: 0;
 `;
