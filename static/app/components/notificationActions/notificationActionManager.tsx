@@ -220,7 +220,7 @@ function NotificationActionManager({
       return t('You do not have permission to add notification actions for this project');
     }
     if (menuItems.length === 0) {
-      return t('You do not any notification actions to add');
+      return t('You do not have any notification actions to add');
     }
     return undefined;
   };
