@@ -43,7 +43,7 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
   );
 
   const controller = (
-    <ErrorBoundary>
+    <ErrorBoundary mini>
       <ReplayController toggleFullscreen={toggleFullscreen} />
     </ErrorBoundary>
   );
