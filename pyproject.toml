@@ -607,7 +607,6 @@ module = [
     "sentry.utils.audit",
     "sentry.utils.auth",
     "sentry.utils.committers",
-    "sentry.utils.concurrent",
     "sentry.utils.distutils.commands.base",
     "sentry.utils.distutils.commands.build_assets",
     "sentry.utils.email.signer",
