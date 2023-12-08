@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Callable, Mapping, MutableMapping, Optional, Tuple
 
-from sentry.models.statistical_detectors import RegressionGroup
 from sentry.statistical_detectors.detector import (
     DetectorAlgorithm,
     DetectorConfig,
@@ -57,11 +56,10 @@ class MovingAverageDetectorState(DetectorState):
             moving_avg_long=moving_avg_long,
         )
 
-    def should_auto_resolve(self, group: RegressionGroup, rel_threshold: float) -> bool:
+    def should_auto_resolve(self, target: float, rel_threshold: float) -> bool:
         value = self.moving_avg_long
-        target = group.baseline
 
-        if (value - target) / target < rel_threshold:
+        if abs((value - target) / target) < rel_threshold:
             return True
 
         return False

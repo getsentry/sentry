@@ -317,7 +317,7 @@ class RegressionDetector(ABC):
             for trend_type, score, payload, state in trend_chunk:
                 group = active_regression_groups.get((payload.project_id, payload.fingerprint))
                 if group is not None and state.should_auto_resolve(
-                    group, cls.resolution_rel_threshold
+                    group.baseline, cls.resolution_rel_threshold
                 ):
                     group.active = False
                     group.date_resolved = timestamp
