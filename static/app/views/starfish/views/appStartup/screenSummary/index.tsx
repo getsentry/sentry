@@ -1,7 +1,9 @@
 import styled from '@emotion/styled';
+import {LocationDescriptor} from 'history';
+import omit from 'lodash/omit';
 
+import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -15,28 +17,60 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
-import Onboarding from 'sentry/views/performance/onboarding';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
-import {ScreensView, YAxis} from 'sentry/views/starfish/views/screens';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
-export default function PageloadModule() {
+type Query = {
+  primaryRelease: string;
+  project: string;
+  secondaryRelease: string;
+  transaction: string;
+};
+
+function ScreenSummary() {
   const organization = useOrganization();
-  const onboardingProject = useOnboardingProject();
+  const location = useLocation<Query>();
+
+  const {transaction: transactionName} = location.query;
+
+  const startupModule: LocationDescriptor = {
+    pathname: `/organizations/${organization.slug}/starfish/appStartup/`,
+    query: {
+      ...omit(location.query, [
+        QueryParameterNames.SPANS_SORT,
+        'transaction',
+        SpanMetricsField.SPAN_OP,
+      ]),
+    },
+  };
+
+  const crumbs: Crumb[] = [
+    {
+      to: startupModule,
+      label: t('App Startup'),
+      preservePageFilters: true,
+    },
+    {
+      to: '',
+      label: t('Screen Summary'),
+    },
+  ];
 
   return (
-    <SentryDocumentTitle title={t('Mobile')} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={transactionName} orgSlug={organization.slug}>
       <Layout.Page>
         <PageErrorProvider>
           <Layout.Header>
             <Layout.HeaderContent>
-              <Layout.Title>{t('Mobile')}</Layout.Title>
+              <Breadcrumbs crumbs={crumbs} />
+              <Layout.Title>{transactionName}</Layout.Title>
             </Layout.HeaderContent>
           </Layout.Header>
 
           <Layout.Body>
-            <FeedbackWidget />
             <Layout.Main fullWidth>
               <PageErrorAlert />
               <PageFiltersContainer>
@@ -48,19 +82,7 @@ export default function PageloadModule() {
                   </PageFilterBar>
                   <ReleaseComparisonSelector />
                 </Container>
-                <ErrorBoundary mini>
-                  {onboardingProject && (
-                    <OnboardingContainer>
-                      <Onboarding
-                        organization={organization}
-                        project={onboardingProject}
-                      />
-                    </OnboardingContainer>
-                  )}
-                  {!onboardingProject && (
-                    <ScreensView yAxes={[YAxis.TTID, YAxis.TTFD]} chartHeight={240} />
-                  )}
-                </ErrorBoundary>
+                <ErrorBoundary mini>Screen detail page content</ErrorBoundary>
               </PageFiltersContainer>
             </Layout.Main>
           </Layout.Body>
@@ -69,6 +91,8 @@ export default function PageloadModule() {
     </SentryDocumentTitle>
   );
 }
+
+export default ScreenSummary;
 
 const Container = styled('div')`
   display: grid;
@@ -80,8 +104,4 @@ const Container = styled('div')`
     grid-template-rows: auto;
     grid-template-columns: auto 1fr auto;
   }
-`;
-
-const OnboardingContainer = styled('div')`
-  margin-top: ${space(2)};
 `;

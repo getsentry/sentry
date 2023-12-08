@@ -1,4 +1,4 @@
-import {Component, createRef, Fragment} from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -14,33 +14,25 @@ import TimeSince from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {getDuration} from 'sentry/utils/formatters';
-import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {
   TraceError,
   TraceFullDetailed,
   TraceMeta,
 } from 'sentry/utils/performance/quickTrace/types';
-import {filterTrace, reduceTrace} from 'sentry/utils/performance/quickTrace/utils';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import {MetaData} from 'sentry/views/performance/transactionDetails/styles';
 
-import {TraceDetailHeader, TraceSearchBar, TraceSearchContainer} from './styles';
+import {TraceDetailHeader} from './styles';
 import TraceNotFound from './traceNotFound';
 import TraceView from './traceView';
 import {TraceInfo} from './types';
 import {getTraceInfo, hasTraceData, isRootTransaction} from './utils';
-
-type IndexedFusedTransaction = {
-  event: TraceFullDetailed | TraceError;
-  indexed: string[];
-};
 
 type Props = Pick<RouteComponentProps<{traceSlug: string}, {}>, 'params' | 'location'> & {
   dateSelected: boolean;
@@ -55,165 +47,22 @@ type Props = Pick<RouteComponentProps<{traceSlug: string}, {}>, 'params' | 'loca
   orphanErrors?: TraceError[];
 };
 
-type State = {
-  filteredEventIds: Set<string> | undefined;
-  searchQuery: string | undefined;
-};
-
-class NewTraceDetailsContent extends Component<Props, State> {
-  state: State = {
-    searchQuery: undefined,
-    filteredEventIds: undefined,
-  };
-
-  componentDidMount() {
-    this.initFuse();
-  }
-
-  componentDidUpdate(prevProps: Props) {
-    if (
-      this.props.traces !== prevProps.traces ||
-      this.props.orphanErrors !== prevProps.orphanErrors
-    ) {
-      this.initFuse();
-    }
-  }
-
-  fuse: Fuse<IndexedFusedTransaction> | null = null;
-  traceViewRef = createRef<HTMLDivElement>();
-  virtualScrollbarContainerRef = createRef<HTMLDivElement>();
-
-  async initFuse() {
-    const {traces, orphanErrors} = this.props;
-
-    if (!hasTraceData(traces, orphanErrors)) {
-      return;
-    }
-
-    const transformedEvents: IndexedFusedTransaction[] =
-      traces?.flatMap(trace =>
-        reduceTrace<IndexedFusedTransaction[]>(
-          trace,
-          (acc, transaction) => {
-            const indexed: string[] = [
-              transaction['transaction.op'],
-              transaction.transaction,
-              transaction.project_slug,
-            ];
-
-            acc.push({
-              event: transaction,
-              indexed,
-            });
-
-            return acc;
-          },
-          []
-        )
-      ) ?? [];
-
-    // Include orphan error titles and project slugs during fuzzy search
-    orphanErrors?.forEach(orphanError => {
-      const indexed: string[] = [orphanError.title, orphanError.project_slug, 'Unknown'];
-
-      transformedEvents.push({
-        indexed,
-        event: orphanError,
-      });
-    });
-
-    this.fuse = await createFuzzySearch(transformedEvents, {
-      keys: ['indexed'],
-      includeMatches: true,
-      threshold: 0.6,
-      location: 0,
-      distance: 100,
-      maxPatternLength: 32,
-    });
-  }
-
-  renderTraceLoading() {
+function NewTraceDetailsContent(props: Props) {
+  const renderTraceLoading = () => {
     return (
       <LoadingContainer>
         <StyledLoadingIndicator />
         {t('Hang in there, as we build your trace view!')}
       </LoadingContainer>
     );
-  }
+  };
 
-  renderTraceRequiresDateRangeSelection() {
+  const renderTraceRequiresDateRangeSelection = () => {
     return <LoadingError message={t('Trace view requires a date range selection.')} />;
-  }
-
-  handleTransactionFilter = (searchQuery: string) => {
-    this.setState({searchQuery: searchQuery || undefined}, this.filterTransactions);
   };
 
-  filterTransactions = () => {
-    const {traces, orphanErrors} = this.props;
-    const {filteredEventIds, searchQuery} = this.state;
-
-    if (!searchQuery || !hasTraceData(traces, orphanErrors) || !defined(this.fuse)) {
-      if (filteredEventIds !== undefined) {
-        this.setState({
-          filteredEventIds: undefined,
-        });
-      }
-      return;
-    }
-
-    const fuseMatches = this.fuse
-      .search<IndexedFusedTransaction>(searchQuery)
-      /**
-       * Sometimes, there can be matches that don't include any
-       * indices. These matches are often noise, so exclude them.
-       */
-      .filter(({matches}) => matches?.length)
-      .map(({item}) => item.event.event_id);
-
-    /**
-     * Fuzzy search on ids result in seemingly random results. So switch to
-     * doing substring matches on ids to provide more meaningful results.
-     */
-    const idMatches: string[] = [];
-    traces
-      ?.flatMap(trace =>
-        filterTrace(
-          trace,
-          ({event_id, span_id}) =>
-            event_id.includes(searchQuery) || span_id.includes(searchQuery)
-        )
-      )
-      .forEach(transaction => idMatches.push(transaction.event_id));
-
-    // Include orphan error event_ids and span_ids during substring search
-    orphanErrors?.forEach(orphanError => {
-      const {event_id, span} = orphanError;
-      if (event_id.includes(searchQuery) || span.includes(searchQuery)) {
-        idMatches.push(event_id);
-      }
-    });
-
-    this.setState({
-      filteredEventIds: new Set([...fuseMatches, ...idMatches]),
-    });
-  };
-
-  renderSearchBar() {
-    return (
-      <TraceSearchContainer>
-        <TraceSearchBar
-          defaultQuery=""
-          query={this.state.searchQuery || ''}
-          placeholder={t('Search for events')}
-          onSearch={this.handleTransactionFilter}
-        />
-      </TraceSearchContainer>
-    );
-  }
-
-  renderTraceHeader(traceInfo: TraceInfo) {
-    const {meta} = this.props;
+  const renderTraceHeader = (traceInfo: TraceInfo) => {
+    const {meta} = props;
     const errors = meta?.errors ?? traceInfo.errors.size;
     const performanceIssues =
       meta?.performance_issues ?? traceInfo.performanceIssues.size;
@@ -255,10 +104,10 @@ class NewTraceDetailsContent extends Component<Props, State> {
         />
       </TraceDetailHeader>
     );
-  }
+  };
 
-  renderTraceWarnings() {
-    const {traces, orphanErrors} = this.props;
+  const renderTraceWarnings = () => {
+    const {traces, orphanErrors} = props;
 
     const {roots, orphans} = (traces ?? []).reduce(
       (counts, trace) => {
@@ -318,9 +167,9 @@ class NewTraceDetailsContent extends Component<Props, State> {
     }
 
     return warning;
-  }
+  };
 
-  renderContent() {
+  const renderContent = () => {
     const {
       dateSelected,
       isLoading,
@@ -332,13 +181,13 @@ class NewTraceDetailsContent extends Component<Props, State> {
       traces,
       meta,
       orphanErrors,
-    } = this.props;
+    } = props;
 
     if (!dateSelected) {
-      return this.renderTraceRequiresDateRangeSelection();
+      return renderTraceRequiresDateRangeSelection();
     }
     if (isLoading) {
-      return this.renderTraceLoading();
+      return renderTraceLoading();
     }
 
     const hasData = hasTraceData(traces, orphanErrors);
@@ -358,13 +207,11 @@ class NewTraceDetailsContent extends Component<Props, State> {
 
     return (
       <Fragment>
-        {this.renderTraceWarnings()}
-        {traceInfo && this.renderTraceHeader(traceInfo)}
-        {this.renderSearchBar()}
+        {renderTraceWarnings()}
+        {traceInfo && renderTraceHeader(traceInfo)}
         <Margin>
           <VisuallyCompleteWithData id="PerformanceDetails-TraceView" hasData={hasData}>
             <TraceView
-              filteredEventIds={this.state.filteredEventIds}
               traceInfo={traceInfo}
               location={location}
               organization={organization}
@@ -373,52 +220,50 @@ class NewTraceDetailsContent extends Component<Props, State> {
               traces={traces || []}
               meta={meta}
               orphanErrors={orphanErrors || []}
-              handleLimitChange={this.props.handleLimitChange}
+              handleLimitChange={props.handleLimitChange}
             />
           </VisuallyCompleteWithData>
         </Margin>
       </Fragment>
     );
-  }
+  };
 
-  render() {
-    const {organization, location, traceEventView, traceSlug} = this.props;
+  const {organization, location, traceEventView, traceSlug} = props;
 
-    return (
-      <Fragment>
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumb
-              organization={organization}
-              location={location}
-              traceSlug={traceSlug}
-            />
-            <Layout.Title data-test-id="trace-header">
-              {t('Trace ID: %s', traceSlug)}
-            </Layout.Title>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              <DiscoverButton
-                size="sm"
-                to={traceEventView.getResultsViewUrlTarget(organization.slug)}
-                onClick={() => {
-                  trackAnalytics('performance_views.trace_view.open_in_discover', {
-                    organization,
-                  });
-                }}
-              >
-                {t('Open in Discover')}
-              </DiscoverButton>
-            </ButtonBar>
-          </Layout.HeaderActions>
-        </Layout.Header>
-        <Layout.Body>
-          <Layout.Main fullWidth>{this.renderContent()}</Layout.Main>
-        </Layout.Body>
-      </Fragment>
-    );
-  }
+  return (
+    <Fragment>
+      <Layout.Header>
+        <Layout.HeaderContent>
+          <Breadcrumb
+            organization={organization}
+            location={location}
+            traceSlug={traceSlug}
+          />
+          <Layout.Title data-test-id="trace-header">
+            {t('Trace ID: %s', traceSlug)}
+          </Layout.Title>
+        </Layout.HeaderContent>
+        <Layout.HeaderActions>
+          <ButtonBar gap={1}>
+            <DiscoverButton
+              size="sm"
+              to={traceEventView.getResultsViewUrlTarget(organization.slug)}
+              onClick={() => {
+                trackAnalytics('performance_views.trace_view.open_in_discover', {
+                  organization,
+                });
+              }}
+            >
+              {t('Open in Discover')}
+            </DiscoverButton>
+          </ButtonBar>
+        </Layout.HeaderActions>
+      </Layout.Header>
+      <Layout.Body>
+        <Layout.Main fullWidth>{renderContent()}</Layout.Main>
+      </Layout.Body>
+    </Fragment>
+  );
 }
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
