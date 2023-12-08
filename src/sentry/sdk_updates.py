@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import logging
 
 from django.conf import settings
 from django.core.cache import cache
 from packaging.version import Version
+from typing_extensions import TypedDict
 
 from sentry.tasks.release_registry import SDK_INDEX_CACHE_KEY
 from sentry.utils.safe import get_path
@@ -143,7 +146,15 @@ class ChangeSDKSuggestion(Suggestion):
         return new_state
 
 
-SDK_SUPPORTED_MODULES = [
+class SupportedModule(TypedDict):
+    sdk_name: str
+    sdk_version_added: str
+    module_name: str
+    module_version_min: str
+    suggestion: Suggestion
+
+
+SDK_SUPPORTED_MODULES: list[SupportedModule] = [
     {
         "sdk_name": "sentry.python",
         "sdk_version_added": "0.3.2",
