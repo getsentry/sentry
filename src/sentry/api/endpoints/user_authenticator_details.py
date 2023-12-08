@@ -15,6 +15,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.models.authenticator import Authenticator
 from sentry.models.user import User
 from sentry.security import capture_security_activity
+from sentry.utils.auth import MFA_SESSION_KEY
 
 
 @control_silo_endpoint
@@ -210,5 +211,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
                 context={"authenticator": authenticator},
                 send_email=not interface.is_backup_interface,
             )
+
+        request.session.pop(MFA_SESSION_KEY, None)
 
         return Response(status=status.HTTP_204_NO_CONTENT)

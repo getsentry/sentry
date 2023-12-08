@@ -210,6 +210,7 @@ def devserver(
         "thunder-lock": False,
         "timeout": 600,
         "harakiri": 600,
+        "workers": 1 if debug_server else 2,
     }
 
     if reload:
@@ -401,13 +402,12 @@ Alternatively, run without --workers.
         os.environ["SENTRY_CONTROL_SILO_PORT"] = str(ports["server"] + 1)
         os.environ["SENTRY_DEVSERVER_BIND"] = f"127.0.0.1:{server_port}"
         os.environ["UWSGI_HTTP_SOCKET"] = f"127.0.0.1:{ports['region.server']}"
-        os.environ["UWSGI_WORKERS"] = "5"
+        os.environ["UWSGI_WORKERS"] = "8"
         os.environ["UWSGI_THREADS"] = "2"
 
     server = SentryHTTPServer(
         host=host,
         port=int(server_port),
-        workers=1,
         extra_options=uwsgi_overrides,
         debug=debug_server,
     )
@@ -461,7 +461,7 @@ Alternatively, run without --workers.
             "SENTRY_REGION_SILO_PORT": str(ports["region.server"]),
             "SENTRY_DEVSERVER_BIND": f"127.0.0.1:{server_port}",
             "UWSGI_HTTP_SOCKET": f"127.0.0.1:{ports['server']}",
-            "UWSGI_WORKERS": "5",
+            "UWSGI_WORKERS": "8",
             "UWSGI_THREADS": "2",
         }
         merged_env = os.environ.copy()

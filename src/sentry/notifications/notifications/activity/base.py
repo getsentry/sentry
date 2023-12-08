@@ -11,11 +11,7 @@ from django.utils.safestring import SafeString
 from sentry.db.models import Model
 from sentry.notifications.helpers import get_reason_context
 from sentry.notifications.notifications.base import ProjectNotification
-from sentry.notifications.types import (
-    NotificationSettingEnum,
-    NotificationSettingTypes,
-    UnsubscribeContext,
-)
+from sentry.notifications.types import NotificationSettingEnum, UnsubscribeContext
 from sentry.notifications.utils import send_activity_notification
 from sentry.notifications.utils.avatar import avatar_as_html
 from sentry.notifications.utils.participants import ParticipantMap, get_participants_for_group
@@ -30,7 +26,6 @@ if TYPE_CHECKING:
 
 class ActivityNotification(ProjectNotification, abc.ABC):
     metrics_key = "activity"
-    notification_setting_type = NotificationSettingTypes.WORKFLOW
     notification_setting_type_enum = NotificationSettingEnum.WORKFLOW
     template_path = "sentry/emails/activity/generic"
 

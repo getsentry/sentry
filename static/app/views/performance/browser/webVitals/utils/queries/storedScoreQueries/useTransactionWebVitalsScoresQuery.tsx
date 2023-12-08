@@ -6,23 +6,18 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
-import {
-  RowWithScore,
-  WebVitals,
-} from 'sentry/views/performance/browser/webVitals/utils/types';
+import {RowWithScore} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 
 type Props = {
   defaultSort?: Sort;
   enabled?: boolean;
   limit?: number;
-  orderBy?: WebVitals | null;
   sortName?: string;
   transaction?: string | null;
 };
 
 export const useTransactionWebVitalsScoresQuery = ({
-  orderBy,
   limit,
   transaction,
   defaultSort,
@@ -44,22 +39,18 @@ export const useTransactionWebVitalsScoresQuery = ({
         'p75(measurements.cls)',
         'p75(measurements.ttfb)',
         'p75(measurements.fid)',
-        'avg(measurements.score.lcp)',
-        'avg(measurements.score.fcp)',
-        'avg(measurements.score.cls)',
-        'avg(measurements.score.fid)',
-        'avg(measurements.score.ttfb)',
-        'avg(measurements.score.weight.lcp)',
-        'avg(measurements.score.weight.fcp)',
-        'avg(measurements.score.weight.cls)',
-        'avg(measurements.score.weight.fid)',
-        'avg(measurements.score.weight.ttfb)',
+        'performance_score(measurements.score.lcp)',
+        'performance_score(measurements.score.fcp)',
+        'performance_score(measurements.score.cls)',
+        'performance_score(measurements.score.fid)',
+        'performance_score(measurements.score.ttfb)',
+        'avg(measurements.score.total)',
         'count()',
       ],
       name: 'Web Vitals',
       query:
-        'transaction.op:pageload' + (transaction ? ` transaction:"${transaction}"` : ''),
-      orderby: orderBy ?? '-count',
+        'transaction.op:pageload avg(measurements.score.total):>=0' +
+        (transaction ? ` transaction:"${transaction}"` : ''),
       version: 2,
       dataset: DiscoverDatasets.METRICS,
     },
@@ -74,7 +65,7 @@ export const useTransactionWebVitalsScoresQuery = ({
     location,
     orgSlug: organization.slug,
     options: {
-      enabled: pageFilters.isReady && enabled,
+      enabled,
       refetchOnWindowFocus: false,
     },
     referrer: 'api.performance.browser.web-vitals.transactions-scores',

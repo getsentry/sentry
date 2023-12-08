@@ -33,7 +33,7 @@ import {
   PERFORMANCE_SCORE_P90S,
 } from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
-import {useProjectWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useProjectWebVitalsValuesTimeseriesQuery';
+import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
 import {useTransactionSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionSamplesWebVitalsQuery';
 import {
   TransactionSampleRowWithScore,
@@ -133,7 +133,7 @@ export function PageOverviewWebVitalsDetailPanel({
   );
 
   const {data: timeseriesData, isLoading: isTimeseriesLoading} =
-    useProjectWebVitalsValuesTimeseriesQuery({transaction});
+    useProjectRawWebVitalsValuesTimeseriesQuery({transaction});
 
   const webVitalData: LineChartSeries = {
     data:
@@ -273,7 +273,7 @@ export function PageOverviewWebVitalsDetailPanel({
                   )
                 : (
                     projectData?.data[0][`p75(measurements.${webVital})`] as number
-                  ).toFixed(2)
+                  )?.toFixed(2)
             }
             webVital={webVital}
             score={webVitalScore}

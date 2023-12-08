@@ -1,3 +1,5 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
+
 import {appKnownDataValues} from 'sentry/components/events/contexts/app';
 import {getAppKnownDataDetails} from 'sentry/components/events/contexts/app/getAppKnownDataDetails';
 
@@ -11,7 +13,7 @@ describe('getAppKnownDataDetails', function () {
       const appKnownDataDetails = getAppKnownDataDetails({
         type: appKnownDataValues[type],
         data: appMockData,
-        event: TestStubs.Event(),
+        event: EventFixture(),
       });
 
       if (!appKnownDataDetails) {

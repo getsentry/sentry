@@ -1,6 +1,6 @@
 import {useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
-import * as Prism from 'prismjs';
+import Prism from 'prismjs';
 
 import {loadPrismLanguage, prismLanguageMap} from 'sentry/utils/prism';
 
@@ -40,8 +40,13 @@ const useLoadPrismLanguage = (language: string, {onLoad}: {onLoad: () => void}) 
 };
 
 const getPrismGrammar = (language: string) => {
-  const fullLanguage = prismLanguageMap[language];
-  return Prism.languages[fullLanguage] ?? null;
+  try {
+    const fullLanguage = prismLanguageMap[language];
+    return Prism.languages[fullLanguage] ?? null;
+  } catch (e) {
+    Sentry.captureException(e);
+    return null;
+  }
 };
 
 const splitMultipleTokensByLine = (
@@ -139,11 +144,16 @@ export const usePrismTokens = ({
     },
   });
   const lines = useMemo(() => {
-    if (!grammar) {
-      return breakTokensByLine([code]);
+    try {
+      if (!grammar) {
+        return breakTokensByLine([code]);
+      }
+      const tokens = Prism.tokenize(code, grammar);
+      return breakTokensByLine(tokens);
+    } catch (e) {
+      Sentry.captureException(e);
+      return [];
     }
-    const tokens = Prism.tokenize(code, grammar);
-    return breakTokensByLine(tokens);
   }, [grammar, code]);
 
   return lines;

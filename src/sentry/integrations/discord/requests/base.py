@@ -86,8 +86,14 @@ class DiscordRequest:
     @property
     def user_id(self) -> str | None:
         try:
-            return self._data.get("member")["user"]["id"]  # type: ignore
-        except (AttributeError, TypeError):
+            # 'member' object is sent when the interaction is invoked in a guild, and 'user' object is sent when
+            # invoked in a DM.
+            # See: https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
+            user_source = self._data.get("member", None)
+            if user_source is None:
+                user_source = self._data
+            return user_source["user"]["id"]  # type: ignore
+        except (AttributeError, TypeError, KeyError):
             return None
 
     @property

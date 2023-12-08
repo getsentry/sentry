@@ -7,7 +7,7 @@ import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/button';
 import {AggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
-import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
+import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import {COL_WIDTH_UNDEFINED, GridColumnOrder} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -189,7 +189,7 @@ export default function PageOverview() {
           </Layout.Body>
         ) : (
           <Layout.Body>
-            <FeedbackWidget />
+            <FloatingFeedbackWidget />
             <Layout.Main>
               <TopMenuContainer>
                 {transaction && (
@@ -224,6 +224,7 @@ export default function PageOverview() {
                     setState({...state, webVital});
                   }}
                   transaction={transaction}
+                  showTooltip={false}
                 />
               </WebVitalMetersContainer>
               <PageSamplePerformanceTableContainer>

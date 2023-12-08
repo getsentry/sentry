@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import all_silo_endpoint
 from sentry.integrations.slack.client import SlackClient
@@ -30,6 +31,7 @@ from .command import LINK_FROM_CHANNEL_MESSAGE
 
 @all_silo_endpoint  # Only challenge verification is handled at control
 class SlackEventEndpoint(SlackDMEndpoint):
+    owner = ApiOwner.ECOSYSTEM
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
@@ -81,7 +83,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
         try:
             client.post("/chat.postEphemeral", data=payload)
         except ApiError as e:
-            logger.error("slack.event.unfurl-error", extra={"error": str(e)}, exc_info=True)
+            logger.exception("slack.event.unfurl-error", extra={"error": str(e)})
 
     def on_message(self, request: Request, slack_request: SlackDMRequest) -> Response:
         command = request.data.get("event", {}).get("text", "").lower()
@@ -187,7 +189,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
         try:
             client.post("/chat.unfurl", data=payload)
         except ApiError as e:
-            logger.error("slack.event.unfurl-error", extra={"error": str(e)}, exc_info=True)
+            logger.exception("slack.event.unfurl-error", extra={"error": str(e)})
 
         return True
 

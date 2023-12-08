@@ -341,7 +341,6 @@ def _generate_entity_dataset_query(
     end_date: datetime,
     category: GroupCategory | None = None,
 ) -> Query:
-
     """This simply generates a query based on the passed parameters"""
     group_id_col = Column("group_id")
     proj_id_col = Column("project_id")
@@ -527,7 +526,9 @@ def manage_issue_states(
                     jsonschema.validate(snooze_details, INBOX_REASON_DETAILS)
 
                 except jsonschema.ValidationError:
-                    logging.error("Expired snooze_details invalid jsonschema", extra=snooze_details)
+                    logging.exception(
+                        "Expired snooze_details invalid jsonschema", extra=snooze_details
+                    )
 
                 data.update({"expired_snooze": snooze_details})
 

@@ -196,6 +196,9 @@
   "sentry.dashboardwidgetquery": [
     "sentry.dashboardwidget"
   ],
+  "sentry.dashboardwidgetqueryondemand": [
+    "sentry.dashboardwidgetquery"
+  ],
   "sentry.debugidartifactbundle": [
     "sentry.artifactbundle",
     "sentry.organization"
@@ -246,9 +249,6 @@
   "sentry.eventprocessingissue": [
     "sentry.processingissue",
     "sentry.rawevent"
-  ],
-  "sentry.eventuser": [
-    "sentry.project"
   ],
   "sentry.exporteddata": [
     "sentry.file",
@@ -641,6 +641,9 @@
   "sentry.regionoutbox": [],
   "sentry.regionscheduleddeletion": [],
   "sentry.regiontombstone": [],
+  "sentry.regressiongroup": [
+    "sentry.project"
+  ],
   "sentry.relay": [],
   "sentry.relayusage": [],
   "sentry.release": [
@@ -829,7 +832,6 @@
   ],
   "sentry.userreport": [
     "sentry.environment",
-    "sentry.eventuser",
     "sentry.group",
     "sentry.project"
   ],

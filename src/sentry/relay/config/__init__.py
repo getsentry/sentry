@@ -66,6 +66,7 @@ EXPOSABLE_FEATURES = [
     "organizations:custom-metrics",
     "organizations:metric-meta",
     "organizations:standalone-span-ingestion",
+    "organizations:relay-cardinality-limiter",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -215,7 +216,7 @@ def get_dynamic_sampling_config(project: Project) -> Optional[Mapping[str, Any]]
     if features.has("organizations:dynamic-sampling", project.organization):
         # For compatibility reasons we want to return an empty list of old rules. This has been done in order to make
         # old Relays use empty configs which will result in them forwarding sampling decisions to upstream Relays.
-        return {"rules": [], "rulesV2": generate_rules(project)}
+        return {"version": 2, "rules": generate_rules(project)}
 
     return None
 
@@ -292,7 +293,7 @@ def add_experimental_config(
     try:
         subconfig = function(*args, **kwargs)
     except Exception:
-        logger.error("Exception while building Relay project config field", exc_info=True)
+        logger.exception("Exception while building Relay project config field")
     else:
         if subconfig is not None:
             config[key] = subconfig
@@ -343,7 +344,7 @@ def _get_project_config(
     # NOTE: Omitting dynamicSampling because of a failure increases the number
     # of events forwarded by Relay, because dynamic sampling will stop filtering
     # anything.
-    add_experimental_config(config, "dynamicSampling", get_dynamic_sampling_config, project)
+    add_experimental_config(config, "sampling", get_dynamic_sampling_config, project)
 
     # Rules to replace high cardinality transaction names
     add_experimental_config(config, "txNameRules", get_transaction_names_config, project)
@@ -393,11 +394,41 @@ def _get_project_config(
                 {
                     "name": "Chrome",
                     "scoreComponents": [
-                        {"measurement": "fcp", "weight": 0.15, "p10": 900.0, "p50": 1600.0},
-                        {"measurement": "lcp", "weight": 0.30, "p10": 1200.0, "p50": 2400.0},
-                        {"measurement": "fid", "weight": 0.30, "p10": 100.0, "p50": 300.0},
-                        {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25},
-                        {"measurement": "ttfb", "weight": 0.10, "p10": 200.0, "p50": 400.0},
+                        {
+                            "measurement": "fcp",
+                            "weight": 0.15,
+                            "p10": 900.0,
+                            "p50": 1600.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "lcp",
+                            "weight": 0.30,
+                            "p10": 1200.0,
+                            "p50": 2400.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "fid",
+                            "weight": 0.30,
+                            "p10": 100.0,
+                            "p50": 300.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "cls",
+                            "weight": 0.15,
+                            "p10": 0.1,
+                            "p50": 0.25,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "ttfb",
+                            "weight": 0.10,
+                            "p10": 200.0,
+                            "p50": 400.0,
+                            "optional": False,
+                        },
                     ],
                     "condition": {
                         "op": "eq",
@@ -408,11 +439,41 @@ def _get_project_config(
                 {
                     "name": "Firefox",
                     "scoreComponents": [
-                        {"measurement": "fcp", "weight": 0.15, "p10": 900.0, "p50": 1600.0},
-                        {"measurement": "lcp", "weight": 0.0, "p10": 1200.0, "p50": 2400.0},
-                        {"measurement": "fid", "weight": 0.30, "p10": 100.0, "p50": 300.0},
-                        {"measurement": "cls", "weight": 0.0, "p10": 0.1, "p50": 0.25},
-                        {"measurement": "ttfb", "weight": 0.10, "p10": 200.0, "p50": 400.0},
+                        {
+                            "measurement": "fcp",
+                            "weight": 0.15,
+                            "p10": 900.0,
+                            "p50": 1600.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "lcp",
+                            "weight": 0.0,
+                            "p10": 1200.0,
+                            "p50": 2400.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "fid",
+                            "weight": 0.30,
+                            "p10": 100.0,
+                            "p50": 300.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "cls",
+                            "weight": 0.0,
+                            "p10": 0.1,
+                            "p50": 0.25,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "ttfb",
+                            "weight": 0.10,
+                            "p10": 200.0,
+                            "p50": 400.0,
+                            "optional": False,
+                        },
                     ],
                     "condition": {
                         "op": "eq",
@@ -423,11 +484,41 @@ def _get_project_config(
                 {
                     "name": "Safari",
                     "scoreComponents": [
-                        {"measurement": "fcp", "weight": 0.15, "p10": 900.0, "p50": 1600.0},
-                        {"measurement": "lcp", "weight": 0.0, "p10": 1200.0, "p50": 2400.0},
-                        {"measurement": "fid", "weight": 0.0, "p10": 100.0, "p50": 300.0},
-                        {"measurement": "cls", "weight": 0.0, "p10": 0.1, "p50": 0.25},
-                        {"measurement": "ttfb", "weight": 0.10, "p10": 200.0, "p50": 400.0},
+                        {
+                            "measurement": "fcp",
+                            "weight": 0.15,
+                            "p10": 900.0,
+                            "p50": 1600.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "lcp",
+                            "weight": 0.0,
+                            "p10": 1200.0,
+                            "p50": 2400.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "fid",
+                            "weight": 0.0,
+                            "p10": 100.0,
+                            "p50": 300.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "cls",
+                            "weight": 0.0,
+                            "p10": 0.1,
+                            "p50": 0.25,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "ttfb",
+                            "weight": 0.10,
+                            "p10": 200.0,
+                            "p50": 400.0,
+                            "optional": False,
+                        },
                     ],
                     "condition": {
                         "op": "eq",
@@ -438,11 +529,41 @@ def _get_project_config(
                 {
                     "name": "Edge",
                     "scoreComponents": [
-                        {"measurement": "fcp", "weight": 0.15, "p10": 900.0, "p50": 1600.0},
-                        {"measurement": "lcp", "weight": 0.30, "p10": 1200.0, "p50": 2400.0},
-                        {"measurement": "fid", "weight": 0.30, "p10": 100.0, "p50": 300.0},
-                        {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25},
-                        {"measurement": "ttfb", "weight": 0.10, "p10": 200.0, "p50": 400.0},
+                        {
+                            "measurement": "fcp",
+                            "weight": 0.15,
+                            "p10": 900.0,
+                            "p50": 1600.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "lcp",
+                            "weight": 0.30,
+                            "p10": 1200.0,
+                            "p50": 2400.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "fid",
+                            "weight": 0.30,
+                            "p10": 100.0,
+                            "p50": 300.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "cls",
+                            "weight": 0.15,
+                            "p10": 0.1,
+                            "p50": 0.25,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "ttfb",
+                            "weight": 0.10,
+                            "p10": 200.0,
+                            "p50": 400.0,
+                            "optional": False,
+                        },
                     ],
                     "condition": {
                         "op": "eq",
@@ -453,11 +574,41 @@ def _get_project_config(
                 {
                     "name": "Opera",
                     "scoreComponents": [
-                        {"measurement": "fcp", "weight": 0.15, "p10": 900.0, "p50": 1600.0},
-                        {"measurement": "lcp", "weight": 0.30, "p10": 1200.0, "p50": 2400.0},
-                        {"measurement": "fid", "weight": 0.30, "p10": 100.0, "p50": 300.0},
-                        {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25},
-                        {"measurement": "ttfb", "weight": 0.10, "p10": 200.0, "p50": 400.0},
+                        {
+                            "measurement": "fcp",
+                            "weight": 0.15,
+                            "p10": 900.0,
+                            "p50": 1600.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "lcp",
+                            "weight": 0.30,
+                            "p10": 1200.0,
+                            "p50": 2400.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "fid",
+                            "weight": 0.30,
+                            "p10": 100.0,
+                            "p50": 300.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "cls",
+                            "weight": 0.15,
+                            "p10": 0.1,
+                            "p50": 0.25,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "ttfb",
+                            "weight": 0.10,
+                            "p10": 200.0,
+                            "p50": 400.0,
+                            "optional": False,
+                        },
                     ],
                     "condition": {
                         "op": "eq",
