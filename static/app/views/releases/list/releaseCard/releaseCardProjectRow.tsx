@@ -244,8 +244,10 @@ function ReleaseCardProjectRow({
                 title={
                   <div>
                     <div>
-                      {`${healthyThresholds.length} / ${thresholds.length} ` +
-                        t('thresholds succeeded')}
+                      {pendingThresholds.length !== thresholds.length &&
+                        `${healthyThresholds.length - pendingThresholds.length} / ${
+                          thresholds.length
+                        } ` + t('thresholds succeeded')}
                     </div>
                     {pendingThresholds.length > 0 && (
                       <div>
