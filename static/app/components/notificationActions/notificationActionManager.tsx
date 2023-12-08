@@ -185,8 +185,8 @@ function NotificationActionManager({
     }
   };
 
-  const getMenuItems = () => {
-    const menuItems: MenuItemProps[] = [];
+  const menuItems = useMemo(() => {
+    const dropdownMenuItems: MenuItemProps[] = [];
     Object.entries(availableServices).forEach(([serviceType, validActions]) => {
       if (validActions.length === 0) {
         return;
@@ -199,7 +199,7 @@ function NotificationActionManager({
         return;
       }
       const label = getLabel(serviceType);
-      menuItems.push({
+      dropdownMenuItems.push({
         key: serviceType,
         label,
         onAction: () => {
@@ -210,16 +210,24 @@ function NotificationActionManager({
         },
       });
     });
-    return menuItems;
-  };
+    return dropdownMenuItems;
+  }, [actionsMap, availableServices, notificationActions, project, updateAlertCount]);
+
+  let toolTipText: undefined | string = undefined;
+  if (disabled) {
+    toolTipText = t(
+      'You do not have permission to add notification actions for this project'
+    );
+  } else if (menuItems.length === 0) {
+    toolTipText = t('You do not have any notification actions to add');
+  }
+
+  const isAddAlertDisabled = disabled || menuItems.length === 0;
 
   const addAlertButton = (
-    <Tooltip
-      disabled={!disabled}
-      title={t('You do not have permission to add notification actions for this project')}
-    >
+    <Tooltip disabled={!isAddAlertDisabled} title={toolTipText}>
       <DropdownMenu
-        items={getMenuItems()}
+        items={menuItems}
         trigger={(triggerProps, isOpen) => (
           <DropdownButton
             {...triggerProps}
@@ -227,12 +235,12 @@ function NotificationActionManager({
             aria-label={t('Add Action')}
             size="xs"
             icon={<IconAdd isCircled color="gray300" />}
-            disabled={disabled}
+            disabled={isAddAlertDisabled}
           >
             {t('Add Action')}
           </DropdownButton>
         )}
-        isDisabled={disabled}
+        isDisabled={isAddAlertDisabled}
         data-test-id="add-action-button"
       />
     </Tooltip>
