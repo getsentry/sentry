@@ -224,6 +224,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     'javascript',
     'javascript-ember',
     'javascript-sveltekit',
+    'javascript-svelte',
   ];
 
   return (
