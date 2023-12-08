@@ -6,9 +6,10 @@ import {LinkButton} from 'sentry/components/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import FeatureBadge from 'sentry/components/featureBadge';
 import Placeholder from 'sentry/components/placeholder';
+import {Flex} from 'sentry/components/profiling/flex';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
-import {IconCursorArrow} from 'sentry/icons';
+import {IconCursorArrow, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
@@ -118,8 +119,11 @@ function AccordionWidget({
         </LoadingContainer>
       ) : isError || (!isLoading && filteredData.length === 0) ? (
         <CenteredContentContainer>
-          <EmptyStateWarning>
-            <div>{t('No results found')}</div>
+          <EmptyStateWarning withIcon={false}>
+            <EmptyHeader>
+              <IconSearch size="sm" />
+              {t('No results found')}
+            </EmptyHeader>
             <EmptySubtitle>
               {tct(
                 'There were no [type] clicks within this timeframe. Expand your timeframe, or increase your replay sample rate to see more data.',
@@ -325,6 +329,13 @@ const LoadingContainer = styled(ContentContainer)`
 
 const StyledPlaceholder = styled(Placeholder)`
   height: 34px;
+`;
+
+const EmptyHeader = styled(Flex)`
+  justify-content: center;
+  align-items: center;
+  gap: ${space(1.5)};
+  color: ${p => p.theme.gray300};
 `;
 
 export default DeadRageSelectorCards;
