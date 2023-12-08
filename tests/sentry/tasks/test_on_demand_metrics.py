@@ -187,14 +187,12 @@ def create_widget(
         ),  # Checking 2nd batch of 4. Widgets[1, 4], 1 child task, 2 queries made (batch size 2)
     ],
 )
-@mock.patch("sentry.tasks.on_demand_metrics._get_previous_processing_batch")
 @mock.patch(
     "sentry.tasks.on_demand_metrics._query_cardinality", return_value=_CARDINALITY_DISCOVER_DATA
 )
 @django_db_all
 def test_schedule_on_demand_check(
     _query_cardinality,
-    _get_previous_processing_batch,
     feature_flags,
     option_enable,
     option_rollout,
@@ -218,7 +216,7 @@ def test_schedule_on_demand_check(
     }
     query_columns = ["custom-tag"] if has_columns else []
 
-    _get_previous_processing_batch.return_value = previous_batch
+    on_demand_metrics._set_currently_processing_batch(previous_batch)
 
     # Reuse the same dashboard to speed up fixture calls and avoid managing dashboard unique title constraint.
     _, __, dashboard = create_widget(
