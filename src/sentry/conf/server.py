@@ -2373,7 +2373,7 @@ SENTRY_SCOPES = {
     "org:admin",
     "org:integrations",
     "org:ci",
-    # "org:superuser",  Do not use for any type of superuser permission/access checks 
+    # "org:superuser",  Do not use for any type of superuser permission/access checks
     # Assigned to active SU sessions in src/sentry/auth/access.py to enable UI elements
     "member:read",
     "member:write",
