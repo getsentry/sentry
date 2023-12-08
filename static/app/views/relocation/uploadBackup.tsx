@@ -135,6 +135,7 @@ export function UploadBackup(__props: StepProps) {
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             centered
+            aria-label="dropzone"
             draggedOver={dragCounter > 0}
           >
             <IconFile className="file-icon" size="xl" />
