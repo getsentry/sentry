@@ -44,7 +44,7 @@ function queryKeyGen({dataSource, fieldName, organization}: QueryKeyGenProps) {
       query: {
         data_source: dataSource,
         project: -1,
-        statsPeriod: '14d',
+        statsPeriod: '90d',
         query: `${fieldName}:[${ids.join(',')}]`,
       },
     },
