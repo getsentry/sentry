@@ -22,8 +22,7 @@ function GetStarted(props: StepProps) {
 
   const handleContinue = (event: any) => {
     event.preventDefault();
-    const formData = new FormData(event.target);
-    relocationOnboardingContext.setData({formData});
+    relocationOnboardingContext.setData({orgSlugs, region});
     props.onComplete();
   };
   return (
@@ -46,7 +45,7 @@ function GetStarted(props: StepProps) {
           <RequiredLabel>{t('Organization slugs being relocated')}</RequiredLabel>
           <Input
             type="text"
-            name="org-slugs"
+            name="orgs"
             aria-label="org-slugs"
             onChange={evt => setOrgSlugs(evt.target.value)}
             required
