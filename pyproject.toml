@@ -516,7 +516,6 @@ module = [
     "sentry.rules.actions.integrations.create_ticket.form",
     "sentry.rules.actions.integrations.create_ticket.utils",
     "sentry.rules.actions.notify_event_service",
-    "sentry.rules.conditions.event_attribute",
     "sentry.rules.conditions.event_frequency",
     "sentry.rules.conditions.level",
     "sentry.rules.conditions.tagged_event",
