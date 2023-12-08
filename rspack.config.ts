@@ -4,21 +4,13 @@
 import fs from 'fs';
 import path from 'path';
 
-import {WebpackReactSourcemapsPlugin} from '@acemarke/react-prod-sourcemaps';
+import rspack from '@rspack/core';
 import CompressionPlugin from 'compression-webpack-plugin';
-import CopyPlugin from 'copy-webpack-plugin';
-import CssMinimizerPlugin from 'css-minimizer-webpack-plugin';
-import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
-import MiniCssExtractPlugin from 'mini-css-extract-plugin';
+import ReactRefreshRspackPlugin from '@rspack/plugin-react-refresh';
 import webpack from 'webpack';
-import {Configuration as DevServerConfig} from 'webpack-dev-server';
-import FixStyleOnlyEntriesPlugin from 'webpack-remove-empty-scripts';
 
-import IntegrationDocsFetchPlugin from './build-utils/integration-docs-fetch-plugin';
-import LastBuiltPlugin from './build-utils/last-built-plugin';
-import SentryInstrumentation from './build-utils/sentry-instrumentation';
 import {extractIOSDeviceNames} from './scripts/extract-ios-device-names';
-import babelConfig from './babel.config';
+import packageJson from './package.json';
 
 // Runs as part of prebuild step to generate a list of identifier -> name mappings for  iOS
 (async () => {
@@ -31,7 +23,7 @@ import babelConfig from './babel.config';
  * See: https://github.com/DefinitelyTyped/DefinitelyTyped/issues/43232
  */
 interface Configuration extends webpack.Configuration {
-  devServer?: DevServerConfig;
+  devServer?: rspack.DevServer;
 }
 
 const {env} = process;
@@ -75,7 +67,6 @@ const HAS_WEBPACK_DEV_SERVER_CONFIG =
 
 // User/tooling configurable environment variables
 const NO_DEV_SERVER = !!env.NO_DEV_SERVER; // Do not run webpack dev server
-const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK; // Do not run fork-ts plugin (or if not dev env)
 const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
 const SHOULD_LAZY_LOAD = DEV_MODE && !!env.SENTRY_UI_LAZY_LOAD;
 
@@ -104,25 +95,6 @@ const SENTRY_SPA_DSN = SENTRY_EXPERIMENTAL_SPA ? env.SENTRY_SPA_DSN : undefined;
 const sentryDjangoAppPath = path.join(__dirname, 'src/sentry/static/sentry');
 const distPath = env.SENTRY_STATIC_DIST_PATH || path.join(sentryDjangoAppPath, 'dist');
 const staticPrefix = path.join(__dirname, 'static');
-
-// Locale file extraction build step
-if (env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
-  babelConfig.plugins?.push([
-    'module:babel-gettext-extractor',
-    {
-      fileName: 'build/javascript.po',
-      baseDirectory: path.join(__dirname),
-      functionNames: {
-        gettext: ['msgid'],
-        ngettext: ['msgid', 'msgid_plural', 'count'],
-        gettextComponentTemplate: ['msgid'],
-        t: ['msgid'],
-        tn: ['msgid', 'msgid_plural', 'count'],
-        tct: ['msgid'],
-      },
-    },
-  ]);
-}
 
 // Locale compilation and optimizations.
 //
@@ -159,71 +131,76 @@ const localeCatalog: LocaleCatalog = JSON.parse(
 // * moment.js locales are stored as language code files
 //
 // [0] https://docs.djangoproject.com/en/2.1/topics/i18n/#term-locale-name
-const localeToLanguage = (locale: string) => locale.toLowerCase().replace('_', '-');
-const supportedLocales = localeCatalog.supported_locales;
-const supportedLanguages = supportedLocales.map(localeToLanguage);
+// const localeToLanguage = (locale: string) => locale.toLowerCase().replace('_', '-');
+// const supportedLocales = localeCatalog.supported_locales;
+// const supportedLanguages = supportedLocales.map(localeToLanguage);
 
 type CacheGroups = Exclude<
   NonNullable<Configuration['optimization']>['splitChunks'],
   false | undefined
 >['cacheGroups'];
 
-type CacheGroupTest = (
-  module: webpack.Module,
-  context: Parameters<webpack.optimize.SplitChunksPlugin['options']['getCacheGroups']>[1]
-) => boolean;
+// type CacheGroupTest = (
+//   module: webpack.Module,
+//   context: Parameters<webpack.optimize.SplitChunksPlugin['options']['getCacheGroups']>[1]
+// ) => boolean;
 
 // A mapping of chunk groups used for locale code splitting
 const localeChunkGroups: CacheGroups = {};
 
-supportedLocales
-  // No need to split the english locale out as it will be completely empty and
-  // is not included in the django layout.html.
-  .filter(l => l !== 'en')
-  .forEach(locale => {
-    const language = localeToLanguage(locale);
-    const group = `locale/${language}`;
-
-    // List of module path tests to group into locale chunks
-    const localeGroupTests = [
-      new RegExp(`locale\\/${locale}\\/.*\\.po$`),
-      new RegExp(`moment\\/locale\\/${language}\\.js$`),
-    ];
-
-    // module test taken from [0] and modified to support testing against
-    // multiple expressions.
-    //
-    // [0] https://github.com/webpack/webpack/blob/7a6a71f1e9349f86833de12a673805621f0fc6f6/lib/optimize/SplitChunksPlugin.js#L309-L320
-    const groupTest: CacheGroupTest = (module, {chunkGraph}) =>
-      localeGroupTests.some(pattern =>
-        pattern.test(module?.nameForCondition?.() ?? '')
-          ? true
-          : chunkGraph.getModuleChunks(module).some(c => c.name && pattern.test(c.name))
-      );
-
-    // We are defining a chunk that combines the django language files with
-    // moment's locales as if you want one, you will want the other.
-    //
-    // In the application code you will still need to import via their module
-    // paths and not the chunk name
-    localeChunkGroups[group] = {
-      chunks: 'async',
-      name: group,
-      test: groupTest,
-      enforce: true,
-    };
-  });
-
-const babelOptions = {...babelConfig, cacheDirectory: true};
-const babelLoaderConfig = {
-  loader: 'babel-loader',
-  options: babelOptions,
-};
+// supportedLocales
+//   // No need to split the english locale out as it will be completely empty and
+//   // is not included in the django layout.html.
+//   .filter(l => l !== 'en')
+//   .forEach(locale => {
+//     const language = localeToLanguage(locale);
+//     const group = `locale/${language}`;
+//
+//     // List of module path tests to group into locale chunks
+//     const localeGroupTests = [
+//       new RegExp(`locale\\/${locale}\\/.*\\.po$`),
+//       new RegExp(`moment\\/locale\\/${language}\\.js$`),
+//     ];
+//
+//     // module test taken from [0] and modified to support testing against
+//     // multiple expressions.
+//     //
+//     // [0] https://github.com/webpack/webpack/blob/7a6a71f1e9349f86833de12a673805621f0fc6f6/lib/optimize/SplitChunksPlugin.js#L309-L320
+//     const groupTest: CacheGroupTest = (module, {chunkGraph}) =>
+//       localeGroupTests.some(pattern =>
+//         pattern.test(module?.nameForCondition?.() ?? '')
+//           ? true
+//           : chunkGraph.getModuleChunks(module).some(c => c.name && pattern.test(c.name))
+//       );
+//
+//     // We are defining a chunk that combines the django language files with
+//     // moment's locales as if you want one, you will want the other.
+//     //
+//     // In the application code you will still need to import via their module
+//     // paths and not the chunk name
+//     localeChunkGroups[group] = {
+//       chunks: 'async',
+//       name: group,
+//       test: groupTest,
+//       enforce: true,
+//     };
+//   });
 
 /**
  * Main Webpack config for Sentry React SPA.
  */
-const appConfig: Configuration = {
+const appConfig: rspack.Configuration = {
+  experiments: {
+    rspackFuture: {
+      disableTransformByDefault: false,
+    },
+  },
+  builtins: {
+    emotion: true,
+    react: {
+      importSource: '@emotion/react',
+    },
+  },
   mode: WEBPACK_MODE,
   entry: {
     /**
@@ -256,7 +233,52 @@ const appConfig: Configuration = {
         test: /\.[tj]sx?$/,
         include: [staticPrefix],
         exclude: /(vendor|node_modules|dist)/,
-        use: babelLoaderConfig,
+        loader: 'builtin:swc-loader',
+        options: {
+          sourceMap: true,
+          jsc: {
+            parser: {
+              syntax: 'typescript',
+              tsx: true,
+            },
+            externalHelpers: true,
+            transform: {
+              react: {
+                runtime: 'automatic',
+                development: DEV_MODE,
+                refresh: DEV_MODE,
+              },
+            },
+          },
+          env: {
+            targets: packageJson.browserslist[env.NODE_ENV],
+          },
+        },
+      },
+      {
+        test: /\.[tj]s?$/,
+        include: [staticPrefix],
+        exclude: /(vendor|node_modules|dist)/,
+        loader: 'builtin:swc-loader',
+        options: {
+          sourceMap: true,
+          jsc: {
+            parser: {
+              syntax: 'typescript',
+            },
+            externalHelpers: true,
+            transform: {
+              react: {
+                runtime: 'automatic',
+                development: DEV_MODE,
+                refresh: DEV_MODE,
+              },
+            },
+          },
+          env: {
+            targets: packageJson.browserslist[env.NODE_ENV],
+          },
+        },
       },
       {
         test: /\.po$/,
@@ -279,27 +301,12 @@ const appConfig: Configuration = {
       {
         test: /\.less$/,
         include: [staticPrefix],
-        use: [
-          {
-            loader: MiniCssExtractPlugin.loader,
-            options: {
-              publicPath: 'auto',
-            },
-          },
-          'css-loader',
-          'less-loader',
-        ],
+        use: ['css-loader', 'less-loader'],
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg|mp4)($|\?)/,
         type: 'asset',
       },
-    ],
-    noParse: [
-      // don't parse known, pre-built javascript files (improves webpack perf)
-      /jed\/jed\.js/,
-      /marked\/lib\/marked\.js/,
-      /terser\/dist\/bundle\.min\.js/,
     ],
   },
   plugins: [
@@ -307,65 +314,42 @@ const appConfig: Configuration = {
      * Adds build time measurement instrumentation, which will be reported back
      * to sentry
      */
-    new SentryInstrumentation(),
-
-    // Do not bundle moment's locale files as we will lazy load them using
-    // dynamic imports in the application code
-    new webpack.IgnorePlugin({
-      contextRegExp: /moment$/,
-      resourceRegExp: /^\.\/locale$/,
-    }),
+    // new SentryInstrumentation(),
 
     /**
      * TODO(epurkhiser): Figure out if we still need these
      */
-    new webpack.ProvidePlugin({
+    new rspack.ProvidePlugin({
       process: 'process/browser',
       Buffer: ['buffer', 'Buffer'],
     }),
 
     /**
-     * Extract CSS into separate files.
-     */
-    new MiniCssExtractPlugin({
-      // We want the sentry css file to be unversioned for frontend-only deploys
-      // We will cache using `Cache-Control` headers
-      filename: 'entrypoints/[name].css',
-    }),
-
-    /**
      * Defines environment specific flags.
      */
-    new webpack.DefinePlugin({
-      'process.env': {
-        NODE_ENV: JSON.stringify(env.NODE_ENV),
-        IS_ACCEPTANCE_TEST: JSON.stringify(IS_ACCEPTANCE_TEST),
-        DEPLOY_PREVIEW_CONFIG: JSON.stringify(DEPLOY_PREVIEW_CONFIG),
-        EXPERIMENTAL_SPA: JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
-        SPA_DSN: JSON.stringify(SENTRY_SPA_DSN),
-        SENTRY_RELEASE_VERSION: JSON.stringify(SENTRY_RELEASE_VERSION),
-      },
+    new rspack.DefinePlugin({
+      'process.env.NODE_ENV': JSON.stringify(env.NODE_ENV),
+      'process.env.IS_ACCEPTANCE_TEST': JSON.stringify(env.IS_ACCEPTANCE_TEST),
+      'process.env.DEPLOY_PREVIEW_CONFIG': JSON.stringify(env.DEPLOY_PREVIEW_CONFIG),
+      'process.env.EXPERIMENTAL_SPA': JSON.stringify(env.EXPERIMENTAL_SPA),
+      'process.env.SPA_DSN': JSON.stringify(env.SPA_DSN),
+      'process.env.SENTRY_RELEASE_VERSION': JSON.stringify(env.SENTRY_RELEASE_VERSION),
     }),
 
-    /**
-     * This removes empty js files for style only entries (e.g. sentry.less)
-     */
-    new FixStyleOnlyEntriesPlugin({verbose: false}),
-
-    ...(SHOULD_FORK_TS
-      ? [
-          new ForkTsCheckerWebpackPlugin({
-            typescript: {
-              configFile: path.resolve(__dirname, './config/tsconfig.build.json'),
-              configOverwrite: {
-                compilerOptions: {incremental: true},
-              },
-            },
-            devServer: false,
-            // memorylimit is configured in package.json
-          }),
-        ]
-      : []),
+    // ...(SHOULD_FORK_TS
+    //   ? [
+    //       new ForkTsCheckerWebpackPlugin({
+    //         typescript: {
+    //           configFile: path.resolve(__dirname, './config/tsconfig.build.json'),
+    //           configOverwrite: {
+    //             compilerOptions: {incremental: true},
+    //           },
+    //         },
+    //         devServer: false,
+    //         // memorylimit is configured in package.json
+    //       }),
+    //     ]
+    //   : []),
 
     /**
      * Restrict translation files that are pulled in through app/translations.jsx
@@ -375,22 +359,22 @@ const appConfig: Configuration = {
      * Without this, webpack will still output all of the unused locale files despite
      * the application never loading any of them.
      */
-    new webpack.ContextReplacementPlugin(
-      /sentry-locale$/,
-      path.join(__dirname, 'src', 'sentry', 'locale', path.sep),
-      true,
-      new RegExp(`(${supportedLocales.join('|')})/.*\\.po$`)
-    ),
-    new webpack.ContextReplacementPlugin(
-      /moment\/locale/,
-      new RegExp(`(${supportedLanguages.join('|')})\\.js$`)
-    ),
+    // new webpack.ContextReplacementPlugin(
+    //   /sentry-locale$/,
+    //   path.join(__dirname, 'src', 'sentry', 'locale', path.sep),
+    //   true,
+    //   new RegExp(`(${supportedLocales.join('|')})/.*\\.po$`)
+    // ),
+    // new webpack.ContextReplacementPlugin(
+    //   /moment\/locale/,
+    //   new RegExp(`(${supportedLanguages.join('|')})\\.js$`)
+    // ),
 
     /**
      * Copies file logo-sentry.svg to the dist/entrypoints directory so that it can be accessed by
      * the backend
      */
-    new CopyPlugin({
+    new rspack.CopyRspackPlugin({
       patterns: [
         {
           from: path.join(staticPrefix, 'images/logo-sentry.svg'),
@@ -411,10 +395,10 @@ const appConfig: Configuration = {
       ],
     }),
 
-    WebpackReactSourcemapsPlugin({
-      mode: IS_PRODUCTION ? 'strict' : undefined,
-      debug: false,
-    }),
+    // WebpackReactSourcemapsPlugin({
+    //   mode: IS_PRODUCTION ? 'strict' : undefined,
+    //   debug: false,
+    // }),
   ],
 
   resolve: {
@@ -448,6 +432,7 @@ const appConfig: Configuration = {
 
     modules: ['node_modules'],
     extensions: ['.jsx', '.js', '.json', '.ts', '.tsx', '.less'],
+    tsConfigPath: path.resolve(__dirname, './tsconfig.json'),
   },
   output: {
     crossOriginLoading: 'anonymous',
@@ -476,7 +461,7 @@ const appConfig: Configuration = {
 
     // This only runs in production mode
     // Grabbed this example from https://github.com/webpack-contrib/css-minimizer-webpack-plugin
-    minimizer: ['...', new CssMinimizerPlugin()],
+    minimizer: ['...', new rspack.SwcCssMinimizerRspackPlugin()],
   },
   devtool: IS_PRODUCTION ? 'source-map' : 'eval-cheap-module-source-map',
 };
@@ -494,14 +479,14 @@ if (IS_TEST || IS_ACCEPTANCE_TEST) {
     'fixtures/integration-docs/_platforms.json'
   );
 } else {
-  const plugin = new IntegrationDocsFetchPlugin({basePath: __dirname});
-  appConfig.plugins?.push(plugin);
-  appConfig.resolve!.alias!['integration-docs-platforms'] = plugin.modulePath;
+  // const plugin = new IntegrationDocsFetchPlugin({basePath: __dirname});
+  // appConfig.plugins?.push(plugin);
+  // appConfig.resolve!.alias!['integration-docs-platforms'] = plugin.modulePath;
 }
-
-if (IS_ACCEPTANCE_TEST) {
-  appConfig.plugins?.push(new LastBuiltPlugin({basePath: __dirname}));
-}
+//
+// if (IS_ACCEPTANCE_TEST) {
+//   appConfig.plugins?.push(new LastBuiltPlugin({basePath: __dirname}));
+// }
 
 // Dev only! Hot module reloading
 if (
@@ -513,24 +498,23 @@ if (
     // Hot reload react components on save
     // We include the library here as to not break docker/google cloud builds
     // since we do not install devDeps there.
-    const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
-    appConfig.plugins?.push(new ReactRefreshWebpackPlugin());
+    appConfig.plugins?.push(new ReactRefreshRspackPlugin());
 
     // TODO: figure out why defining output breaks hot reloading
     if (IS_UI_DEV_ONLY) {
       appConfig.output = {};
     }
 
-    if (SHOULD_LAZY_LOAD) {
-      appConfig.experiments = {
-        lazyCompilation: {
-          // enable lazy compilation for dynamic imports
-          imports: true,
-          // disable lazy compilation for entries
-          entries: false,
-        },
-      };
-    }
+    // if (SHOULD_LAZY_LOAD) {
+    //   appConfig.experiments = {
+    //     lazyCompilation: {
+    //       // enable lazy compilation for dynamic imports
+    //       imports: true,
+    //       // disable lazy compilation for entries
+    //       entries: false,
+    //     },
+    //   };
+    // }
   }
 
   appConfig.devServer = {
@@ -550,8 +534,7 @@ if (
       watch: true,
     },
     host: SENTRY_WEBPACK_PROXY_HOST,
-    // Don't reload on errors
-    hot: 'only',
+    hot: true,
     port: Number(SENTRY_WEBPACK_PROXY_PORT),
     devMiddleware: {
       stats: 'errors-only',
@@ -597,7 +580,7 @@ if (
     appConfig.devServer = {
       ...appConfig.devServer,
       static: {
-        ...(appConfig.devServer.static as object),
+        ...(appConfig.devServer!.static as object),
         publicPath: '/_static/dist/sentry',
       },
       // syntax for matching is using https://www.npmjs.com/package/micromatch
@@ -770,15 +753,7 @@ if (IS_PRODUCTION) {
 
 // Cache webpack builds
 if (env.WEBPACK_CACHE_PATH) {
-  appConfig.cache = {
-    type: 'filesystem',
-    cacheLocation: path.resolve(__dirname, env.WEBPACK_CACHE_PATH),
-    buildDependencies: {
-      // This makes all dependencies of this file - build dependencies
-      config: [__filename],
-      // By default webpack and loaders are build dependencies
-    },
-  };
+  appConfig.cache = true;
 }
 
 export default appConfig;
