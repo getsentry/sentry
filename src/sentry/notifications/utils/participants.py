@@ -510,7 +510,7 @@ def _get_users_from_team_fall_back(
     # Fall back to notifying each subscribed user if there aren't team notification settings
     members = OrganizationMemberTeam.objects.filter(
         team_id__in=[team.id for team in teams_to_fall_back]
-    )
+    ).select_related("organizationmember")
     user_ids = {
         member.organizationmember.user_id
         for member in members
