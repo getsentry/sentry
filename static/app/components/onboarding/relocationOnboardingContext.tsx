@@ -4,7 +4,7 @@ import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
 type Data = {
   orgSlugs: string;
-  region: string;
+  regionUrl: string;
   file?: File;
 };
 
@@ -17,7 +17,7 @@ export const RelocationOnboardingContext =
   createContext<RelocationOnboardingContextProps>({
     data: {
       orgSlugs: '',
-      region: '',
+      regionUrl: '',
       file: undefined,
     },
     setData: () => {},
@@ -33,7 +33,7 @@ export function RelocationOnboardingContextProvider({children, value}: ProviderP
     'relocationOnboarding',
     {
       orgSlugs: value?.orgSlugs || '',
-      region: value?.region || '',
+      regionUrl: value?.regionUrl || '',
       file: value?.file || undefined,
     }
   );

@@ -16,13 +16,13 @@ import {StepProps} from './types';
 
 function GetStarted(props: StepProps) {
   const regions = ConfigStore.get('regions');
-  const [region, setRegion] = useState('');
+  const [regionUrl, setRegionUrl] = useState('');
   const [orgSlugs, setOrgSlugs] = useState('');
   const relocationOnboardingContext = useContext(RelocationOnboardingContext);
 
   const handleContinue = (event: any) => {
     event.preventDefault();
-    relocationOnboardingContext.setData({orgSlugs, region});
+    relocationOnboardingContext.setData({orgSlugs, regionUrl});
     props.onComplete();
   };
   return (
@@ -54,16 +54,18 @@ function GetStarted(props: StepProps) {
           />
           <Label>{t('Choose a datacenter region')}</Label>
           <RegionSelect
-            value={region}
+            value={regionUrl}
             name="region"
             aria-label="region"
             placeholder="Select Region"
-            options={regions.map(r => ({label: r.name, value: r.name}))}
-            onChange={opt => setRegion(opt.value)}
+            options={regions.map(r => ({label: r.name, value: r.url}))}
+            onChange={opt => setRegionUrl(opt.value)}
           />
-          {region && <p>{t('This is an important decision and cannot be changed.')}</p>}
+          {regionUrl && (
+            <p>{t('This is an important decision and cannot be changed.')}</p>
+          )}
           <ContinueButton
-            disabled={!orgSlugs || !region}
+            disabled={!orgSlugs || !regionUrl}
             size="md"
             priority="primary"
             type="submit"
