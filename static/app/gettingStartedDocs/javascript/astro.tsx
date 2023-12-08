@@ -44,7 +44,7 @@ const getReplaySDKSetupSnippet = (params: Params) => `
 import * as Sentry from "@sentry/astro";
 
 Sentry.init({
-  dsn: "${params.dsn}}",
+  dsn: "${params.dsn}",
 
   // This sets the sample rate at 10%. You may want this to be 100% while
   // in development, then sample at a lower rate in production.

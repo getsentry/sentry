@@ -14,7 +14,7 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getSdkSetupSnippet = (params: Params) => `
+const getReplaySDKSetupSnippet = (params: Params) => `
 import * as Sentry from "@sentry/sveltekit";
 
 Sentry.init({
@@ -133,7 +133,7 @@ const replayOnboarding: OnboardingConfig = {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              code: getSdkSetupSnippet(params),
+              code: getReplaySDKSetupSnippet(params),
             },
           ],
         },
