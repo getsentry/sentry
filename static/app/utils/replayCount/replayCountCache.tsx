@@ -2,8 +2,8 @@ import {createContext, ReactNode, useCallback, useContext} from 'react';
 
 import {ApiResult} from 'sentry/api';
 import {Organization} from 'sentry/types';
+import useAggregatedQueryKeys from 'sentry/utils/api/useAggregatedQueryKeys';
 import {ApiQueryKey} from 'sentry/utils/queryClient';
-import useBufferedQuery from 'sentry/utils/replayCount/useBufferedQuery';
 
 interface QueryKeyGenProps {
   dataSource: string;
@@ -89,11 +89,11 @@ function reducer(data: CountState, response: ApiResult) {
  * @private
  */
 export function ReplayCountCache({children, queryKeyGenProps}: Props) {
-  const cache = useBufferedQuery<string, CountState>(
-    queryKeyGen(queryKeyGenProps),
+  const cache = useAggregatedQueryKeys<string, CountState>({
+    genQueryKey: queryKeyGen(queryKeyGenProps),
     reducer,
-    {}
-  );
+    defaultData: {},
+  });
 
   const getMany = useCallback(
     (ids: readonly string[]) => {

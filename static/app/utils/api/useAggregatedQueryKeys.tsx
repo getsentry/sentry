@@ -4,16 +4,38 @@ import {ApiResult} from 'sentry/api';
 import {ApiQueryKey, fetchDataQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
-type GenQueryKey<Aggregate> = (ids: ReadonlyArray<Aggregate>) => ApiQueryKey;
-type Reducer<Data> = (data: Data, result: ApiResult<unknown>) => Data;
-
 const BUFFER_WAIT_MS = 20;
 
-export default function useBufferedQuery<QueryKeyAggregate, Data>(
-  genQueryKey: GenQueryKey<QueryKeyAggregate>,
-  reducer: Reducer<Data>,
-  defaultData: Data
-) {
+interface Props<QueryKeyAggregate, Data> {
+  /**
+   * Default data that goes into `useState`
+   */
+  defaultData: Data;
+
+  /**
+   * The queryKey reducer/generator.
+   *
+   * Takes the buffered "aggregates" and outputs an ApiQueryKey
+   */
+  genQueryKey: (ids: ReadonlyArray<QueryKeyAggregate>) => ApiQueryKey;
+
+  /**
+   * Data reducer, to integrate new requests with the previous state
+   */
+  reducer: (prev: Data, result: ApiResult<unknown>) => Data;
+
+  /**
+   * Callback should an error happen while fetching or reducing the data
+   */
+  onError?: (error: Error) => void;
+}
+
+export default function useAggregatedQueryKeys<QueryKeyAggregate, Data>({
+  defaultData,
+  genQueryKey,
+  reducer,
+  onError,
+}: Props<QueryKeyAggregate, Data>) {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
@@ -47,9 +69,9 @@ export default function useBufferedQuery<QueryKeyAggregate, Data>(
         inFlight.current.delete(id);
         buffered.current.add(id);
       });
-      // onError(error);
+      onError?.(error);
     }
-  }, [api, data, genQueryKey, queryClient, reducer]);
+  }, [api, data, genQueryKey, queryClient, reducer, onError]);
 
   const clearTimer = useCallback(() => {
     if (timer.current) {
