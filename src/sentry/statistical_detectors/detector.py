@@ -315,22 +315,34 @@ class RegressionDetector(ABC):
             }
 
             for trend_type, score, payload, state in trend_chunk:
-                group = active_regression_groups.get((payload.project_id, payload.fingerprint))
-                if group is not None and state.should_auto_resolve(
-                    group.baseline, cls.resolution_rel_threshold
-                ):
-                    group.active = False
-                    group.date_resolved = timestamp
-                    groups_to_update.append(group)
+                try:
+                    group = active_regression_groups.get((payload.project_id, payload.fingerprint))
+                    if group is not None and state.should_auto_resolve(
+                        group.baseline, cls.resolution_rel_threshold
+                    ):
+                        group.active = False
+                        group.date_resolved = timestamp
+                        groups_to_update.append(group)
 
-                    status_change = cls.make_status_change_message(
-                        payload, status=GroupStatus.RESOLVED
-                    )
-                    produce_occurrence_to_kafka(
-                        payload_type=PayloadType.STATUS_CHANGE,
-                        status_change=status_change,
-                    )
-                else:
-                    yield trend_type, score, payload, state
+                        status_change = cls.make_status_change_message(
+                            payload, status=GroupStatus.RESOLVED
+                        )
+                        produce_occurrence_to_kafka(
+                            payload_type=PayloadType.STATUS_CHANGE,
+                            status_change=status_change,
+                        )
 
-            RegressionGroup.objects.bulk_update(groups_to_update, ["active", "date_resolved"])
+                        continue
+                except Exception as e:
+                    sentry_sdk.capture_exception(e)
+
+                yield trend_type, score, payload, state
+
+        RegressionGroup.objects.bulk_update(groups_to_update, ["active", "date_resolved"])
+
+        metrics.incr(
+            "statistical_detectors.objects.auto_resolved",
+            amount=len(groups_to_update),
+            tags={"source": cls.source, "kind": cls.kind},
+            sample_rate=1.0,
+        )
