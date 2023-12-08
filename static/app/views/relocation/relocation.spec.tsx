@@ -58,6 +58,7 @@ describe('Relocation', function () {
           'Create an encrypted backup of current self-hosted instance'
         )
       ).toBeInTheDocument();
+      expect(await screen.findByText('./sentry-admin.sh')).toBeInTheDocument();
     });
   });
 });

@@ -22,10 +22,10 @@ function GetStarted(props: StepProps) {
 
   const handleContinue = (event: any) => {
     event.preventDefault();
-    const formData = new FormData(event.target);
-    relocationOnboardingContext.setData({formData});
+    relocationOnboardingContext.setData({orgSlugs, region});
     props.onComplete();
   };
+  // TODO(getsentry/team-ospo#214): Make a popup to warn users about data region selection
   return (
     <Wrapper>
       <StepHeading step={1}>{t('Basic information needed to get started')}</StepHeading>
@@ -46,12 +46,12 @@ function GetStarted(props: StepProps) {
           <RequiredLabel>{t('Organization slugs being relocated')}</RequiredLabel>
           <Input
             type="text"
-            name="org-slugs"
+            name="orgs"
             aria-label="org-slugs"
             onChange={evt => setOrgSlugs(evt.target.value)}
             required
             minLength={3}
-            placeholder="org-slugs-here"
+            placeholder="org-slug-1, org-slug-2, ..."
           />
           <Label>{t('Choose a datacenter region')}</Label>
           <RegionSelect
