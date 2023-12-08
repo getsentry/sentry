@@ -124,7 +124,7 @@ const replayOnboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: getReplayConfigureDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/sveltekit/',
+        link: 'https://docs.sentry.io/platforms/javascript/guides/sveltekit/session-replay/',
       }),
       configurations: [
         {
