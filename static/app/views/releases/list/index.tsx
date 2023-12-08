@@ -9,7 +9,7 @@ import {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
+import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -667,7 +667,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
               {error
                 ? super.renderError()
                 : this.renderInnerBody(activeDisplay, showReleaseAdoptionStages)}
-              <FeedbackWidget />
+              <FloatingFeedbackWidget />
             </Layout.Main>
           </Layout.Body>
         </NoProjectMessage>

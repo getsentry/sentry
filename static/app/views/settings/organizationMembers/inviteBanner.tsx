@@ -11,7 +11,7 @@ import Card from 'sentry/components/card';
 import Carousel from 'sentry/components/carousel';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
-import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
+import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconCommit, IconEllipsis, IconGithub, IconMail} from 'sentry/icons';
@@ -168,7 +168,7 @@ export function InviteBanner({
   return (
     <Fragment>
       {/* this is temporary to collect feedback about the banner */}
-      <FeedbackWidget />
+      <FloatingFeedbackWidget />
       <StyledCard>
         <CardTitleContainer>
           <CardTitleContent>

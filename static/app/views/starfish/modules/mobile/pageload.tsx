@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
+import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -36,7 +36,7 @@ export default function PageloadModule() {
           </Layout.Header>
 
           <Layout.Body>
-            <FeedbackWidget />
+            <FloatingFeedbackWidget />
             <Layout.Main fullWidth>
               <PageErrorAlert />
               <PageFiltersContainer>

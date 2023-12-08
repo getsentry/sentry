@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
+import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -98,7 +98,7 @@ export function DatabaseLandingPage() {
       <Layout.Body>
         <Layout.Main fullWidth>
           {!onboardingProject && <NoDataMessage Wrapper={AlertBanner} />}
-          <FeedbackWidget />
+          <FloatingFeedbackWidget />
           <PaddedContainer>
             <PageFilterBar condensed>
               <ProjectPageFilter />
