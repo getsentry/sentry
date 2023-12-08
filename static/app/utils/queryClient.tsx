@@ -132,7 +132,6 @@ export function fetchDataQuery(api: Client) {
   return function fetchQueryImpl(context: QueryFunctionContext<ApiQueryKey>) {
     const [url, opts] = context.queryKey;
 
-    console.log({opts});
     return api.requestPromise(url, {
       includeAllArgs: true,
       method: 'GET',
