@@ -27,9 +27,9 @@ import {USE_STORED_SCORES} from 'sentry/views/performance/browser/webVitals/sett
 import {calculateOpportunity} from 'sentry/views/performance/browser/webVitals/utils/calculateOpportunity';
 import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
+import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
-import {useProjectWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useProjectWebVitalsValuesTimeseriesQuery';
 import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionWebVitalsQuery';
 import {
   Row,
@@ -107,7 +107,7 @@ export function WebVitalsDetailPanel({
   }, [data, projectData?.data, projectScore, webVital]);
 
   const {data: timeseriesData, isLoading: isTimeseriesLoading} =
-    useProjectWebVitalsValuesTimeseriesQuery({});
+    useProjectRawWebVitalsValuesTimeseriesQuery({});
 
   const webVitalData: LineChartSeries = {
     data:
@@ -224,7 +224,7 @@ export function WebVitalsDetailPanel({
                   )
                 : (
                     projectData?.data?.[0]?.[mapWebVitalToColumn(webVital)] as number
-                  ).toFixed(2)
+                  )?.toFixed(2)
             }
             webVital={webVital}
             score={webVitalScore}

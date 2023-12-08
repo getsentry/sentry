@@ -99,7 +99,7 @@ class BetterSignal(Signal):
                     ):
                         raise
 
-                logging.error("signal.failure", extra={"receiver": repr(receiver)}, exc_info=True)
+                logging.exception("signal.failure", extra={"receiver": repr(receiver)})
                 responses.append((receiver, err))
             else:
                 responses.append((receiver, response))

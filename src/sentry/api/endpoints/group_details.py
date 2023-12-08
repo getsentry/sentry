@@ -332,9 +332,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             )
             return Response(serialized, status=response.status_code)
         except client.ApiError as e:
-            logging.error(
+            logging.exception(
                 "group_details:put client.ApiError",
-                exc_info=True,
             )
             return Response(e.body, status=e.status_code)
         except Exception:

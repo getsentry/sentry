@@ -743,6 +743,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "issues.severity.high-priority-alerts-projects-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # ## sentry.killswitches
 #
@@ -1750,7 +1757,8 @@ register(
 )
 
 # Relocation
-#
+register("relocation.enabled", default=False)
+
 # Throttling limits for relocation requests
 register("relocation.daily-limit-small", default=0)
 register("relocation.daily-limit-medium", default=0)

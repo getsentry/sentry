@@ -4,8 +4,8 @@ import {
   formatMetricUsingFixedUnit,
   formattingSupportedMetricUnits,
   getDateTimeParams,
+  getDDMInterval,
   getMetricsApiRequestQuery,
-  getMetricsInterval,
 } from 'sentry/utils/metrics';
 
 describe('formatMetricsUsingUnitAndOp', () => {
@@ -16,6 +16,8 @@ describe('formatMetricsUsingUnitAndOp', () => {
     expect(formatMetricsUsingUnitAndOp(600, 'byte')).toEqual('600 B');
     expect(formatMetricsUsingUnitAndOp(4096, 'kibibyte')).toEqual('4.0 MiB');
     expect(formatMetricsUsingUnitAndOp(3145728, 'megabyte')).toEqual('3.15 TB');
+    expect(formatMetricsUsingUnitAndOp(0.99, 'ratio')).toEqual('99%');
+    expect(formatMetricsUsingUnitAndOp(99, 'percent')).toEqual('99%');
   });
 
   it('should handle value as null', () => {
@@ -50,7 +52,7 @@ describe('getMetricsApiRequestQuery', () => {
       environment: ['production'],
       field: 'sessions',
       useCase: 'custom',
-      interval: '12h',
+      interval: '2h',
       groupBy: ['project'],
       allowPrivate: true,
       per_page: 10,
@@ -109,21 +111,24 @@ describe('getMetricsApiRequestQuery', () => {
   });
 });
 
-describe('getMetricsInterval', () => {
+describe('getDDMInterval', () => {
   it('should return the correct interval for non-"1m" intervals', () => {
     const dateTimeObj = {start: '2023-01-01', end: '2023-01-31'};
     const useCase = 'sessions';
 
-    const result = getMetricsInterval(dateTimeObj, useCase);
+    const result = getDDMInterval(dateTimeObj, useCase);
 
-    expect(result).toBe('12h');
+    expect(result).toBe('2h');
   });
 
   it('should return "10s" interval for "1m" interval within 60 minutes and custom use case', () => {
-    const dateTimeObj = {start: '2023-01-01', end: '2023-01-01T00:59:00.000Z'};
+    const dateTimeObj = {
+      start: '2023-01-01T00:00:00.000Z',
+      end: '2023-01-01T00:59:00.000Z',
+    };
     const useCase = 'custom';
 
-    const result = getMetricsInterval(dateTimeObj, useCase);
+    const result = getDDMInterval(dateTimeObj, useCase, 'high');
 
     expect(result).toBe('10s');
   });
@@ -132,7 +137,7 @@ describe('getMetricsInterval', () => {
     const dateTimeObj = {start: '2023-01-01', end: '2023-01-01T01:05:00.000Z'};
     const useCase = 'sessions';
 
-    const result = getMetricsInterval(dateTimeObj, useCase);
+    const result = getDDMInterval(dateTimeObj, useCase);
 
     expect(result).toBe('1m');
   });
@@ -141,8 +146,8 @@ describe('getMetricsInterval', () => {
 describe('formatMetricUsingFixedUnit', () => {
   it('should return the formatted value with the short form of the given unit', () => {
     expect(formatMetricUsingFixedUnit(123456, 'millisecond')).toBe('123,456ms');
-    expect(formatMetricUsingFixedUnit(2.1231245, 'kibibyte')).toBe('2.123KiB');
-    expect(formatMetricUsingFixedUnit(1222.1231245, 'megabyte')).toBe('1,222.123MB');
+    expect(formatMetricUsingFixedUnit(2.1231245, 'kibibyte')).toBe('2.12KiB');
+    expect(formatMetricUsingFixedUnit(1222.1231245, 'megabyte')).toBe('1,222.12MB');
   });
 
   it.each(formattingSupportedMetricUnits.filter(unit => unit !== 'none'))(

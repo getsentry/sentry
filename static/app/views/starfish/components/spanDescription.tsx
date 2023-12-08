@@ -1,69 +1,111 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {Project} from 'sentry/types';
-import {StackTraceMiniFrame} from 'sentry/views/starfish/components/stackTraceMiniFrame';
-import {MetricsResponse, SpanMetricsField} from 'sentry/views/starfish/types';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {space} from 'sentry/styles/space';
+import {
+  MissingFrame,
+  StackTraceMiniFrame,
+} from 'sentry/views/starfish/components/stackTraceMiniFrame';
+import {useFullSpanFromTrace} from 'sentry/views/starfish/queries/useFullSpanFromTrace';
+import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
+import {SpanIndexedField, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
 import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 
-type Props = {
-  span: Pick<
-    MetricsResponse,
-    SpanMetricsField.SPAN_OP | SpanMetricsField.SPAN_DESCRIPTION
-  > & {
-    data?: {
-      'code.filepath'?: string;
-      'code.function'?: string;
-      'code.lineno'?: number;
-    };
-  };
-  project?: Project;
-};
+interface Props {
+  groupId: SpanIndexedFieldTypes[SpanIndexedField.SPAN_GROUP];
+  op: SpanIndexedFieldTypes[SpanIndexedField.SPAN_OP];
+  preliminaryDescription?: string;
+}
 
-export function SpanDescription({span, project}: Props) {
-  if (span[SpanMetricsField.SPAN_OP]?.startsWith('db')) {
-    return <DatabaseSpanDescription span={span} project={project} />;
+export function SpanDescription(props: Props) {
+  const {op, preliminaryDescription} = props;
+
+  if (op.startsWith('db')) {
+    return <DatabaseSpanDescription {...props} />;
   }
 
-  return <WordBreak>{span[SpanMetricsField.SPAN_DESCRIPTION]}</WordBreak>;
+  return <WordBreak>{preliminaryDescription ?? ''}</WordBreak>;
 }
 
 const formatter = new SQLishFormatter();
 
-function DatabaseSpanDescription({span, project}: Props) {
-  const rawDescription = span[SpanMetricsField.SPAN_DESCRIPTION];
+export function DatabaseSpanDescription({
+  groupId,
+  preliminaryDescription,
+}: Omit<Props, 'op'>) {
+  const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useIndexedSpans(
+    {'span.group': groupId},
+    [INDEXED_SPAN_SORT],
+    1
+  );
+  const indexedSpan = indexedSpans?.[0];
+
+  // NOTE: We only need this for `span.data`! If this info existed in indexed spans, we could skip it
+  const {data: rawSpan, isFetching: isRawSpanLoading} = useFullSpanFromTrace(
+    groupId,
+    [INDEXED_SPAN_SORT],
+    Boolean(indexedSpan)
+  );
+
+  const rawDescription =
+    rawSpan?.description || indexedSpan?.['span.description'] || preliminaryDescription;
+
   const formatterDescription = useMemo(() => {
-    return formatter.toString(rawDescription);
+    return formatter.toString(rawDescription ?? '');
   }, [rawDescription]);
 
   return (
     <Frame>
-      <CodeSnippet language="sql" isRounded={false}>
-        {formatterDescription}
-      </CodeSnippet>
+      {areIndexedSpansLoading ? (
+        <WithPadding>
+          <LoadingIndicator mini />
+        </WithPadding>
+      ) : (
+        <CodeSnippet language="sql" isRounded={false}>
+          {formatterDescription}
+        </CodeSnippet>
+      )}
 
       <Feature features={['organizations:performance-database-view-query-source']}>
-        {span?.data?.['code.filepath'] && (
-          <StackTraceMiniFrame
-            project={project}
-            frame={{
-              absPath: span?.data?.['code.filepath'],
-              lineNo: span?.data?.['code.lineno'],
-              function: span?.data?.['code.function'],
-            }}
-          />
+        {!areIndexedSpansLoading && !isRawSpanLoading && (
+          <Fragment>
+            {rawSpan?.data?.['code.filepath'] ? (
+              <StackTraceMiniFrame
+                projectId={indexedSpan?.project_id?.toString()}
+                eventId={indexedSpan?.['transaction.id']}
+                frame={{
+                  filename: rawSpan?.data?.['code.filepath'],
+                  lineNo: rawSpan?.data?.['code.lineno'],
+                  function: rawSpan?.data?.['code.function'],
+                }}
+              />
+            ) : (
+              <MissingFrame />
+            )}
+          </Fragment>
         )}
       </Feature>
     </Frame>
   );
 }
 
+const INDEXED_SPAN_SORT = {
+  field: 'span.self_time',
+  kind: 'desc' as const,
+};
+
 const Frame = styled('div')`
   border: solid 1px ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
+`;
+
+const WithPadding = styled('div')`
+  display: flex;
+  padding: ${space(1)} ${space(2)};
 `;
 
 const WordBreak = styled('div')`

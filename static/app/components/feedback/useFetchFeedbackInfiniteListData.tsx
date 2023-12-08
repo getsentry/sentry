@@ -61,12 +61,12 @@ export default function useFetchFeedbackInfiniteListData() {
     [issues]
   );
 
-  const isRowLoaded = useCallback(({index}: Index) => Boolean(issues?.[index]), [issues]);
+  const isRowLoaded = useCallback(({index}: Index) => Boolean(issues[index]), [issues]);
 
   const loadMoreRows = useCallback(
-    ({startIndex: _1, stopIndex: _2}: IndexRange) =>
-      hasNextPage && !isFetching ? fetchNextPage() : Promise.resolve(),
-    [hasNextPage, isFetching, fetchNextPage]
+    ({startIndex: _1, stopIndex: _2}: IndexRange): Promise<any> =>
+      hasNextPage ? fetchNextPage() : Promise.resolve(),
+    [hasNextPage, fetchNextPage]
   );
 
   const hits = useMemo(

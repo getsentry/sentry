@@ -121,7 +121,7 @@ class Access(abc.ABC):
         pass
 
     @property
-    def is_org_auth_token(self) -> bool:
+    def is_integration_token(self) -> bool:
         return False
 
     def has_permission(self, permission: str) -> bool:
@@ -349,7 +349,10 @@ class DbAccess(Access):
 
     def get_team_role(self, team: Team) -> TeamRole | None:
         team_member = self._team_memberships.get(team)
-        return team_member and team_member.get_team_role()
+        if team_member:
+            return team_member.get_team_role()
+        else:
+            return None
 
     def has_any_project_scope(self, project: Project, scopes: Collection[str]) -> bool:
         """
@@ -780,7 +783,7 @@ class ApiOrganizationGlobalMembership(ApiBackedOrganizationGlobalAccess):
     """Access to all an organization's teams and projects with simulated membership."""
 
     @property
-    def is_org_auth_token(self) -> bool:
+    def is_integration_token(self) -> bool:
         return True
 
     @property

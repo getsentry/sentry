@@ -17,7 +17,7 @@ import AggregateSpanDiff from 'sentry/components/events/eventStatisticalDetector
 import EventBreakpointChart from 'sentry/components/events/eventStatisticalDetector/breakpointChart';
 import {EventAffectedTransactions} from 'sentry/components/events/eventStatisticalDetector/eventAffectedTransactions';
 import EventComparison from 'sentry/components/events/eventStatisticalDetector/eventComparison';
-import {EventDifferenialFlamegraph} from 'sentry/components/events/eventStatisticalDetector/eventDifferentialFlamegraph';
+import {EventDifferentialFlamegraph} from 'sentry/components/events/eventStatisticalDetector/eventDifferentialFlamegraph';
 import {EventFunctionComparisonList} from 'sentry/components/events/eventStatisticalDetector/eventFunctionComparisonList';
 import {EventRegressionSummary} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
@@ -32,8 +32,10 @@ import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrR
 import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
 import {EventPackageData} from 'sentry/components/events/packageData';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
+import {DataSection} from 'sentry/components/events/styles';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
+import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, Group, IssueCategory, IssueType, Project} from 'sentry/types';
@@ -221,14 +223,24 @@ function ProfilingDurationRegressionIssueDetailsContent({
         <ErrorBoundary mini>
           <EventFunctionBreakpointChart event={event} />
         </ErrorBoundary>
-        <Feature features="profiling-differential-flamegraph" organization={organization}>
-          <ErrorBoundary mini>
-            <EventDifferenialFlamegraph event={event} />
-          </ErrorBoundary>
-        </Feature>
         <ErrorBoundary mini>
           <EventAffectedTransactions event={event} group={group} project={project} />
         </ErrorBoundary>
+        <Feature features="profiling-differential-flamegraph" organization={organization}>
+          <ErrorBoundary mini>
+            <DataSection>
+              <b>{t('Largest Changes in Call Stack Frequency')}</b>
+              <p>
+                {t(`See which functions changed the most before and after the regression. The
+                frame with the largest increase in call stack population likely
+                contributed to the cause for the duration regression.`)}
+              </p>
+              <Panel>
+                <EventDifferentialFlamegraph event={event} />
+              </Panel>
+            </DataSection>
+          </ErrorBoundary>
+        </Feature>
         <ErrorBoundary mini>
           <EventFunctionComparisonList event={event} group={group} project={project} />
         </ErrorBoundary>

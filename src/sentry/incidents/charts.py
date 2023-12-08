@@ -4,6 +4,7 @@ from typing import Any, List, Mapping, Optional
 
 from django.utils import timezone
 
+from sentry import features
 from sentry.api import client
 from sentry.api.base import logger
 from sentry.api.serializers import serialize
@@ -76,9 +77,9 @@ def fetch_metric_alert_sessions_data(
         )
         return resp.data
     except Exception as exc:
-        logger.error(
-            f"Failed to load sessions for chart: {exc}",
-            exc_info=True,
+        logger.exception(
+            "Failed to load sessions for chart: %s",
+            exc,
         )
         raise exc
 
@@ -114,7 +115,8 @@ def fetch_metric_alert_events_timeseries(
         return [series]
     except Exception as exc:
         logger.error(
-            f"Failed to load events-stats for chart: {exc}",
+            "Failed to load events-stats for chart: %s",
+            exc,
             exc_info=True,
         )
         raise exc
@@ -142,7 +144,8 @@ def fetch_metric_alert_incidents(
         return resp.data
     except Exception as exc:
         logger.error(
-            f"Failed to load incidents for chart: {exc}",
+            "Failed to load incidents for chart: %s",
+            exc,
             exc_info=True,
         )
         return []
@@ -191,7 +194,12 @@ def build_metric_alert_chart(
         ),
     }
 
-    aggregate = translate_aggregate_field(snuba_query.aggregate, reverse=True)
+    allow_mri = features.has(
+        "organizations:ddm-experimental",
+        organization,
+        actor=user,
+    )
+    aggregate = translate_aggregate_field(snuba_query.aggregate, reverse=True, allow_mri=allow_mri)
     # If we allow alerts to be across multiple orgs this will break
     first_subscription_or_none = snuba_query.subscriptions.first()
     if first_subscription_or_none is None:
@@ -243,7 +251,8 @@ def build_metric_alert_chart(
         return charts.generate_chart(style, chart_data, size=size)
     except RuntimeError as exc:
         logger.error(
-            f"Failed to generate chart for metric alert: {exc}",
+            "Failed to generate chart for metric alert: %s",
+            exc,
             exc_info=True,
         )
         return None

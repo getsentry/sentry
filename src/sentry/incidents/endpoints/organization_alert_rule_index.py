@@ -11,6 +11,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
@@ -135,6 +136,7 @@ class AlertRuleIndexMixin(Endpoint):
 
 @region_silo_endpoint
 class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
@@ -295,7 +297,7 @@ class OrganizationAlertRuleIndexPostSerializer(serializers.Serializer):
     # projects is not required in the serializer, however, the UI requires a project is chosen
     projects = serializers.ListField(
         child=ProjectField(scope="project:read"),
-        help_text="The names of the projects to filter by.",
+        help_text="Metric alerts are currently limited to one project. The array should contain a single slug, representing the project to filter by.",
     )
     query = serializers.CharField(
         help_text='An event search query to subscribe to and monitor for alerts. For example, to filter transactions so that only those with status code 400 are included, you could use `"query": "http.status_code:400"`. Use an empty string for no filter.'
@@ -381,6 +383,7 @@ Metric alert rule trigger actions follow the following structure:
 @extend_schema(tags=["Alerts"])
 @region_silo_endpoint
 class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMixin):
+    owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,

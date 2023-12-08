@@ -2,83 +2,18 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from sentry.services.hybrid_cloud import ValueEqualityEnum
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
 
-"""
-TODO(postgres): We've encoded these enums as integers to facilitate
-communication with the DB. We'd prefer to encode them as strings to facilitate
-communication with the API and plan to do so as soon as we use native enums in
-Postgres. In the meantime each enum has an adjacent object that maps the
-integers to their string values.
-"""
-
-
-def get_notification_setting_type_name(value: int | NotificationSettingTypes) -> Optional[str]:
-    return NOTIFICATION_SETTING_TYPES.get(NotificationSettingTypes(value))
-
-
-class NotificationSettingTypes(ValueEqualityEnum):
-    """
-    Each of these categories of Notification settings has at least an option for
-    "on" or "off". Workflow also includes SUBSCRIBE_ONLY and Deploy also
-    includes COMMITTED_ONLY and both of these values are described below.
-    """
-
-    # Control all notification types. Currently unused.
-    DEFAULT = 0
-
-    # When Sentry sees there is a new code deploy.
-    DEPLOY = 10
-
-    # When Sentry sees and issue that triggers an Alert Rule.
-    ISSUE_ALERTS = 20
-
-    # Notifications for changes in assignment, resolution, comments, etc.
-    WORKFLOW = 30
-
-    # Notification when an issue happens shortly after your release. This notification type is no longer supported.
-    ACTIVE_RELEASE = 31
-
-    # Notifications that require approval like a request to invite a member
-    APPROVAL = 40
-
-    # Notifications about quotas
-    QUOTA = 50
-
-    # Sub category of quotas for each event category
-    QUOTA_ERRORS = 51
-    QUOTA_TRANSACTIONS = 52
-    QUOTA_ATTACHMENTS = 53
-    QUOTA_REPLAYS = 56
-
-    # Sub category of quotas for warnings before hitting the actual limit
-    QUOTA_WARNINGS = 54
-
-    # Sub category of quotas for spend allocation notifications
-    QUOTA_SPEND_ALLOCATIONS = 55
-
-    # Notifications about spikes
-    SPIKE_PROTECTION = 60
-
-    # Nudge notifications
-    MISSING_MEMBERS = 70
-
-    # new for settings v2 but only with helper functions
-    # This value shouldn't be stored in the DB
-    REPORTS = -1
-
 
 class NotificationSettingEnum(ValueEqualityEnum):
-    DEFAULT = "default"
     DEPLOY = "deploy"
     ISSUE_ALERTS = "alerts"
     WORKFLOW = "workflow"
-    ACTIVE_RELEASE = "activeRelease"
     APPROVAL = "approval"
     QUOTA = "quota"
     QUOTA_ERRORS = "quotaErrors"
@@ -92,50 +27,6 @@ class NotificationSettingEnum(ValueEqualityEnum):
     REPORTS = "reports"
 
 
-# TODO(Steve): clean up after we finish migrating to settings 2.0
-NOTIFICATION_SETTING_TYPES = {
-    NotificationSettingTypes.DEFAULT: NotificationSettingEnum.DEFAULT.value,
-    NotificationSettingTypes.DEPLOY: NotificationSettingEnum.DEPLOY.value,
-    NotificationSettingTypes.ISSUE_ALERTS: NotificationSettingEnum.ISSUE_ALERTS.value,
-    NotificationSettingTypes.WORKFLOW: NotificationSettingEnum.WORKFLOW.value,
-    NotificationSettingTypes.ACTIVE_RELEASE: NotificationSettingEnum.ACTIVE_RELEASE.value,
-    NotificationSettingTypes.APPROVAL: NotificationSettingEnum.APPROVAL.value,
-    NotificationSettingTypes.QUOTA: NotificationSettingEnum.QUOTA.value,
-    NotificationSettingTypes.QUOTA_ERRORS: NotificationSettingEnum.QUOTA_ERRORS.value,
-    NotificationSettingTypes.QUOTA_TRANSACTIONS: NotificationSettingEnum.QUOTA_TRANSACTIONS.value,
-    NotificationSettingTypes.QUOTA_ATTACHMENTS: NotificationSettingEnum.QUOTA_ATTACHMENTS.value,
-    NotificationSettingTypes.QUOTA_REPLAYS: NotificationSettingEnum.QUOTA_REPLAYS.value,
-    NotificationSettingTypes.QUOTA_WARNINGS: NotificationSettingEnum.QUOTA_WARNINGS.value,
-    NotificationSettingTypes.QUOTA_SPEND_ALLOCATIONS: NotificationSettingEnum.QUOTA_SPEND_ALLOCATIONS.value,
-    NotificationSettingTypes.SPIKE_PROTECTION: NotificationSettingEnum.SPIKE_PROTECTION.value,
-    NotificationSettingTypes.REPORTS: NotificationSettingEnum.REPORTS.value,
-}
-
-
-class NotificationSettingOptionValues(ValueEqualityEnum):
-    """
-    An empty row in the DB should be represented as
-    NotificationSettingOptionValues.DEFAULT.
-    """
-
-    # Defer to a setting one level up.
-    DEFAULT = 0
-
-    # Mute this kind of notification.
-    NEVER = 10
-
-    # Un-mute this kind of notification.
-    ALWAYS = 20
-
-    # Workflow only. Only send notifications about Issues that the target has
-    # explicitly or implicitly opted-into.
-    SUBSCRIBE_ONLY = 30
-
-    # Deploy only. Only send notifications when the set of changes in the deploy
-    # included a commit authored by the target.
-    COMMITTED_ONLY = 40
-
-
 class NotificationSettingsOptionEnum(ValueEqualityEnum):
     DEFAULT = "default"
     NEVER = "never"
@@ -144,17 +35,8 @@ class NotificationSettingsOptionEnum(ValueEqualityEnum):
     COMMITTED_ONLY = "committed_only"
 
 
-# TODO(Steve): clean up after we finish migrating to settings 2.0
-NOTIFICATION_SETTING_OPTION_VALUES = {
-    NotificationSettingOptionValues.DEFAULT: NotificationSettingsOptionEnum.DEFAULT.value,
-    NotificationSettingOptionValues.NEVER: NotificationSettingsOptionEnum.NEVER.value,
-    NotificationSettingOptionValues.ALWAYS: NotificationSettingsOptionEnum.ALWAYS.value,
-    NotificationSettingOptionValues.SUBSCRIBE_ONLY: NotificationSettingsOptionEnum.SUBSCRIBE_ONLY.value,
-    NotificationSettingOptionValues.COMMITTED_ONLY: NotificationSettingsOptionEnum.COMMITTED_ONLY.value,
-}
-
 # default is not a choice anymore, we just delete the row if we want to the default
-NOTIFICATION_SETTING_V2_CHOICES = [
+NOTIFICATION_SETTING_CHOICES = [
     NotificationSettingsOptionEnum.ALWAYS.value,
     NotificationSettingsOptionEnum.NEVER.value,
     NotificationSettingsOptionEnum.SUBSCRIBE_ONLY.value,
@@ -167,22 +49,6 @@ class NotificationScopeEnum(ValueEqualityEnum):
     ORGANIZATION = "organization"
     PROJECT = "project"
     TEAM = "team"
-
-
-class NotificationScopeType(ValueEqualityEnum):
-    USER = 0
-    ORGANIZATION = 10
-    PROJECT = 20
-    TEAM = 30
-
-
-# TODO(Steve): clean up after we finish migrating to settings 2.0
-NOTIFICATION_SCOPE_TYPE = {
-    NotificationScopeType.USER: NotificationScopeEnum.USER.value,
-    NotificationScopeType.ORGANIZATION: NotificationScopeEnum.ORGANIZATION.value,
-    NotificationScopeType.PROJECT: NotificationScopeEnum.PROJECT.value,
-    NotificationScopeType.TEAM: NotificationScopeEnum.TEAM.value,
-}
 
 
 class FineTuningAPIKey(Enum):
@@ -202,63 +68,59 @@ class UserOptionsSettingsKey(Enum):
 
 
 VALID_VALUES_FOR_KEY = {
-    NotificationSettingTypes.APPROVAL: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.APPROVAL: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.DEPLOY: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.COMMITTED_ONLY,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.DEPLOY: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.COMMITTED_ONLY,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.ISSUE_ALERTS: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.ISSUE_ALERTS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.QUOTA: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.QUOTA: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.QUOTA_ERRORS: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.QUOTA_ERRORS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.QUOTA_TRANSACTIONS: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.QUOTA_TRANSACTIONS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.QUOTA_ATTACHMENTS: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.QUOTA_ATTACHMENTS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.QUOTA_REPLAYS: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.QUOTA_REPLAYS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.QUOTA_WARNINGS: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.QUOTA_WARNINGS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.QUOTA_SPEND_ALLOCATIONS: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.QUOTA_SPEND_ALLOCATIONS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.WORKFLOW: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.WORKFLOW: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.SUBSCRIBE_ONLY,
+        NotificationSettingsOptionEnum.NEVER,
     },
-    NotificationSettingTypes.SPIKE_PROTECTION: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.SPIKE_PROTECTION: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
-}
-
-VALID_VALUES_FOR_KEY_V2 = {
-    **VALID_VALUES_FOR_KEY,
-    NotificationSettingTypes.REPORTS: {
-        NotificationSettingOptionValues.ALWAYS,
-        NotificationSettingOptionValues.NEVER,
+    NotificationSettingEnum.REPORTS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
     },
 }
 
