@@ -6,6 +6,9 @@ import pytest
 from django.db.models import F
 
 from sentry.api.endpoints.project_performance_issue_settings import InternalProjectOptions
+from sentry.issues.producer import PayloadType
+from sentry.issues.status_change_message import StatusChangeMessage
+from sentry.models.group import GroupStatus
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.statistical_detectors import RegressionGroup, RegressionType
@@ -360,7 +363,15 @@ def test_detect_transaction_trends_auto_resolution(
         for ts in timestamps[20:]:
             detect_transaction_trends([project.organization.id], [project.id], ts)
 
-    assert produce_occurrence_to_kafka.called
+    status_change = StatusChangeMessage(
+        fingerprint=[fingerprint_regression("/123", full=True)],
+        project_id=project.id,
+        new_status=GroupStatus.RESOLVED,
+        new_substatus=None,
+    )
+    produce_occurrence_to_kafka.assert_has_calls(
+        [mock.call(payload_type=PayloadType.STATUS_CHANGE, status_change=status_change)]
+    )
 
 
 @pytest.mark.parametrize(

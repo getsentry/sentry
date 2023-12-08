@@ -193,7 +193,7 @@ def test_moving_average_detector_state_from_redis_dict_error(data, error):
         pytest.param(105, 0.1, True, id="within threshold above"),
         pytest.param(95, 0.1, True, id="within threshold below"),
         pytest.param(115, 0.1, False, id="exceed threshold above"),
-        pytest.param(85, 0.1, False, id="exceed threshold below"),
+        pytest.param(85, 0.1, True, id="exceed threshold below"),
     ],
 )
 def test_moving_average_detector_state_should_auto_resolve(baseline, rel_threshold, auto_resolve):
