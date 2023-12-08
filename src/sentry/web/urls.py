@@ -394,6 +394,11 @@ urlpatterns += [
         r"^onboarding/",
         generic_react_page_view,
     ),
+    # Relocation
+    re_path(
+        r"^relocation/",
+        generic_react_page_view,
+    ),
     # Admin
     re_path(
         r"^manage/",
