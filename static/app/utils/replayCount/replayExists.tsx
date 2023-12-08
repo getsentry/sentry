@@ -24,6 +24,7 @@ export function ReplayExists({children}: Props) {
         dataSource: 'discover',
         fieldName: 'replay_id',
         organization,
+        statsPeriod: '90d',
       }}
     >
       {children}

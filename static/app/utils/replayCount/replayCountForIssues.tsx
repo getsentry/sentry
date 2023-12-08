@@ -24,6 +24,7 @@ export function ReplayCountForIssues({children}: Props) {
         dataSource: 'discover',
         fieldName: 'issue.id',
         organization,
+        statsPeriod: '90d',
       }}
     >
       {children}

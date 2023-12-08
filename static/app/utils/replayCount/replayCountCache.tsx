@@ -9,6 +9,7 @@ interface QueryKeyGenProps {
   dataSource: string;
   fieldName: string;
   organization: Organization;
+  statsPeriod: string;
 }
 
 interface Props {
@@ -37,14 +38,19 @@ const DEFAULT_CONTEXT: TContext = {
 
 const ReplayCacheCountContext = createContext<TContext>(DEFAULT_CONTEXT);
 
-function queryKeyGen({dataSource, fieldName, organization}: QueryKeyGenProps) {
+function queryKeyGen({
+  dataSource,
+  fieldName,
+  organization,
+  statsPeriod,
+}: QueryKeyGenProps) {
   return (ids: readonly string[]): ApiQueryKey => [
     `/organizations/${organization.slug}/replay-count/`,
     {
       query: {
         data_source: dataSource,
         project: -1,
-        statsPeriod: '90d',
+        statsPeriod,
         query: `${fieldName}:[${ids.join(',')}]`,
       },
     },

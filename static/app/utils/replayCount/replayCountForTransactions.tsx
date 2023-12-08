@@ -24,6 +24,7 @@ export function ReplayCountForTransactions({children}: Props) {
         dataSource: 'discover',
         fieldName: 'transaction',
         organization,
+        statsPeriod: '90d',
       }}
     >
       {children}
