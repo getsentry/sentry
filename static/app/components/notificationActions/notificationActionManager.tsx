@@ -213,20 +213,19 @@ function NotificationActionManager({
     return dropdownMenuItems;
   }, [actionsMap, availableServices, notificationActions, project, updateAlertCount]);
 
-  const toolTipText = () => {
-    if (disabled) {
-      return t('You do not have permission to add notification actions for this project');
-    }
-    if (menuItems.length === 0) {
-      return t('You do not have any notification actions to add');
-    }
-    return undefined;
-  };
+  let toolTipText: undefined | string = undefined;
+  if (disabled) {
+    toolTipText = t(
+      'You do not have permission to add notification actions for this project'
+    );
+  } else if (menuItems.length === 0) {
+    toolTipText = t('You do not have any notification actions to add');
+  }
 
   const isAddAlertDisabled = disabled || menuItems.length === 0;
 
   const addAlertButton = (
-    <Tooltip disabled={!isAddAlertDisabled} title={toolTipText()}>
+    <Tooltip disabled={!isAddAlertDisabled} title={toolTipText}>
       <DropdownMenu
         items={menuItems}
         trigger={(triggerProps, isOpen) => (
