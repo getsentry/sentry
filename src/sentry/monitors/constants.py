@@ -15,6 +15,9 @@ SUBTITLE_DATETIME_FORMAT = "%b %d, %I:%M %p %Z"
 # lowering this may invalidate monitors + block check-ins
 MAX_THRESHOLD = 720
 
+# Enforced maximum length of the monitor slug
+MAX_SLUG_LENGTH = 50
+
 
 class PermitCheckInStatus(Enum):
     ACCEPT = 0
