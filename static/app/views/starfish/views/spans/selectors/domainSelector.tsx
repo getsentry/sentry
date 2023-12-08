@@ -78,7 +78,9 @@ export function DomainSelector({
     referrer: 'api.starfish.get-span-domains',
   });
 
-  const incomingDomains = uniq(flatten(domainData?.map(row => row['span.domain'])));
+  const incomingDomains = uniq(
+    flatten(domainData?.map(row => row[SpanMetricsField.SPAN_DOMAIN]))
+  );
 
   // Cache for all previously seen domains
   const domainCache = useRef<DomainCacheValue>({
@@ -93,20 +95,18 @@ export function DomainSelector({
   }
 
   useEffect(() => {
-    // When caching the first domain data result, check if it had more data
+    // When caching the first domain data result, check if it had more data. If not, there's no point making any more requests when users update the search filter
     if (domainCache.current.loadCount === 0) {
       const {next} = parseLinkHeader(pageLinks ?? '');
       domainCache.current.initialLoadHadMoreData = next?.results ?? false;
     }
 
-    // Cache all known domains
     domainCache.current.loadCount += 1;
+
     incomingDomains?.forEach(domain => {
       domainCache.current.domains.add(domain);
     });
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [incomingDomains]);
+  }, [incomingDomains, pageLinks]);
 
   const emptyOption = {
     value: EMPTY_OPTION_VALUE,
