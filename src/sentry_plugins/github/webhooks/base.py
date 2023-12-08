@@ -6,6 +6,7 @@ import hmac
 import logging
 
 from django.http import HttpResponse
+from django.http.response import HttpResponseBase
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -36,7 +37,7 @@ class GithubWebhookBase(View, abc.ABC):
         return constant_time_compare(expected, signature)
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, *args, **kwargs) -> HttpResponse:
+    def dispatch(self, request: Request, *args, **kwargs) -> HttpResponseBase:
         if request.method != "POST":
             return HttpResponse(status=405)
 

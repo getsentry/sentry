@@ -19,15 +19,16 @@ function makeFrameMap(frames: ReadonlyArray<FlamegraphFrame>): Map<string, numbe
 export class DifferentialFlamegraph extends Flamegraph {
   colors: Map<string, ColorChannels> = new Map();
   colorBuffer: number[] = [];
-
   beforeCounts: Map<string, number> = new Map();
   afterCounts: Map<string, number> = new Map();
 
   newFrames: FlamegraphFrame[] = [];
+  removedFrames: FlamegraphFrame[] = [];
   increasedFrames: [number, FlamegraphFrame][] = [];
   decreasedFrames: [number, FlamegraphFrame][] = [];
 
   static ALPHA_SCALING = 0.8;
+  public negated: boolean = false;
 
   static FrameKey(frame: FlamegraphFrame): string {
     return (
@@ -48,9 +49,15 @@ export class DifferentialFlamegraph extends Flamegraph {
 
   static FromDiff(
     {before, after}: {after: Flamegraph; before: Flamegraph},
+    // When drawing a negated view, the differential flamegraph renders the flamegraph
+    // of the previous state, with the colors of the after state. This way we can see
+    // how the exectution of the program changed, i.e. see into the future.
+    {negated}: {negated: boolean},
     theme: FlamegraphTheme
   ): DifferentialFlamegraph {
-    const differentialFlamegraph = new DifferentialFlamegraph(after.profile, {
+    const sourceFlamegraph = negated ? before : after;
+
+    const differentialFlamegraph = new DifferentialFlamegraph(sourceFlamegraph.profile, {
       inverted: after.inverted,
       sort: after.sort,
     });
@@ -61,18 +68,32 @@ export class DifferentialFlamegraph extends Flamegraph {
     const afterCounts = makeFrameMap(after.frames);
 
     const newFrames: FlamegraphFrame[] = [];
+    const removedFrames: FlamegraphFrame[] = [];
     const increasedFrames: [number, FlamegraphFrame][] = [];
     const decreasedFrames: [number, FlamegraphFrame][] = [];
 
-    // @TODO do we want to show removed frames?
-    // This would require iterating over the entire
-    // before frame list and checking if the frame is
-    // still present in the after frame list
+    const INCREASED_FRAME_COLOR = theme.COLORS.DIFFERENTIAL_INCREASE;
+    const DECREASED_FRAME_COLOR = theme.COLORS.DIFFERENTIAL_DECREASE;
+    const NEW_FRAME_COLOR = INCREASED_FRAME_COLOR.concat(
+      1 * DifferentialFlamegraph.ALPHA_SCALING
+    );
+    const REMOVED_FRAME_COLOR = DECREASED_FRAME_COLOR.concat(
+      1 * DifferentialFlamegraph.ALPHA_SCALING
+    );
 
     // Keep track of max increase and decrease so that we can
     // scale the colors accordingly to the max value
     let maxIncrease = 0;
     let maxDecrease = 0;
+
+    // Find frames that are in the before state, but not in the after state
+    for (const frame of before.frames) {
+      const key = DifferentialFlamegraph.FrameKey(frame);
+
+      !afterCounts.has(key) &&
+        removedFrames.push(frame) &&
+        colorMap.set(key, REMOVED_FRAME_COLOR as ColorChannels);
+    }
 
     for (const frame of after.frames) {
       const key = DifferentialFlamegraph.FrameKey(frame);
@@ -80,59 +101,86 @@ export class DifferentialFlamegraph extends Flamegraph {
       const beforeCount = beforeCounts.get(key);
       const afterCount = afterCounts.get(key);
 
+      // In a negated view, frames missing in before state are new frames
+      if (beforeCount === undefined && negated) {
+        newFrames.push(frame);
+        continue;
+      }
+
       if (afterCount === undefined) {
         throw new Error(`Missing count for frame ${key}, this should never happen`);
       }
 
+      // In a non-negated view, frames missing in the before state are new frames
       if (beforeCount === undefined) {
         newFrames.push(frame);
-      } else if (afterCount > beforeCount) {
+        continue;
+      }
+
+      // If frames have same count, we don't need to color them
+      if (beforeCount === afterCount) {
+        continue;
+      }
+
+      // If the frame count increased, color it red
+      if (afterCount > beforeCount) {
         if (afterCount - beforeCount > maxIncrease) {
           maxIncrease = afterCount - beforeCount;
         }
         increasedFrames.push([afterCount - beforeCount, frame]);
-      } else if (beforeCount > afterCount) {
+        continue;
+      }
+
+      // If the frame count decreased, color it blue
+      if (beforeCount > afterCount) {
         if (beforeCount - afterCount > maxDecrease) {
           maxDecrease = beforeCount - afterCount;
         }
         decreasedFrames.push([beforeCount - afterCount, frame]);
+        continue;
       }
     }
 
     for (const frame of newFrames) {
-      colorMap.set(DifferentialFlamegraph.FrameKey(frame), [
-        ...theme.COLORS.DIFFERENTIAL_INCREASE,
-        1 * DifferentialFlamegraph.ALPHA_SCALING,
-      ] as ColorChannels);
+      colorMap.set(
+        DifferentialFlamegraph.FrameKey(frame),
+        NEW_FRAME_COLOR as ColorChannels
+      );
     }
 
     for (const frame of increasedFrames) {
-      colorMap.set(DifferentialFlamegraph.FrameKey(frame[1]), [
-        ...theme.COLORS.DIFFERENTIAL_INCREASE,
-        (frame[0] / maxIncrease) * DifferentialFlamegraph.ALPHA_SCALING,
-      ] as ColorChannels);
+      colorMap.set(
+        DifferentialFlamegraph.FrameKey(frame[1]),
+        INCREASED_FRAME_COLOR.concat(
+          (frame[0] / maxIncrease) * DifferentialFlamegraph.ALPHA_SCALING
+        ) as ColorChannels
+      );
     }
 
     for (const frame of decreasedFrames) {
-      colorMap.set(DifferentialFlamegraph.FrameKey(frame[1]), [
-        ...theme.COLORS.DIFFERENTIAL_DECREASE,
-        (frame[0] / maxDecrease) * DifferentialFlamegraph.ALPHA_SCALING,
-      ] as ColorChannels);
+      colorMap.set(
+        DifferentialFlamegraph.FrameKey(frame[1]),
+        DECREASED_FRAME_COLOR.concat(
+          (frame[0] / maxDecrease) * DifferentialFlamegraph.ALPHA_SCALING
+        ) as ColorChannels
+      );
     }
 
     differentialFlamegraph.colors = colorMap;
     differentialFlamegraph.colorBuffer = makeColorBuffer(
-      after.frames,
+      sourceFlamegraph.frames,
       colorMap,
       theme.COLORS.FRAME_FALLBACK_COLOR as unknown as ColorChannels,
       DifferentialFlamegraph.FrameKey
     );
 
     differentialFlamegraph.newFrames = newFrames;
+    differentialFlamegraph.removedFrames = removedFrames;
     differentialFlamegraph.increasedFrames = increasedFrames;
     differentialFlamegraph.decreasedFrames = decreasedFrames;
     differentialFlamegraph.beforeCounts = beforeCounts;
     differentialFlamegraph.afterCounts = afterCounts;
+    differentialFlamegraph.negated = negated;
 
     return differentialFlamegraph;
   }

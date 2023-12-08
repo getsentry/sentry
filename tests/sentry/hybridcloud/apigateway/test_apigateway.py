@@ -179,6 +179,35 @@ class ApiGatewayTest(ApiGatewayTestCase):
             check_response(resp, "external-issue-actions")
 
     @responses.activate
+    def test_proxy_sentryapp_path(self):
+        sentry_app = self.create_sentry_app()
+
+        responses.add(
+            responses.GET,
+            f"http://us.internal.sentry.io/sentry-apps/{sentry_app.slug}/interaction/",
+            json={"proxy": True, "name": "interaction"},
+        )
+        responses.add(
+            responses.GET,
+            f"http://us.internal.sentry.io/sentry-apps/{sentry_app.slug}/requests/",
+            json={"proxy": True, "name": "requests"},
+        )
+
+        with override_settings(MIDDLEWARE=tuple(self.middleware)):
+            resp = self.client.get(f"/sentry-apps/{sentry_app.slug}/interaction/")
+            assert resp.status_code == 200
+            resp_json = json.loads(close_streaming_response(resp))
+            assert resp_json["proxy"]
+            assert resp_json["name"] == "interaction"
+
+            resp = self.client.get(f"/sentry-apps/{sentry_app.slug}/requests/")
+            assert resp.status_code == 200
+            resp_json = json.loads(close_streaming_response(resp))
+            assert resp_json["proxy"]
+            assert resp_json["name"] == "requests"
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_MONOLITH_REGION="us")
+    @responses.activate
     def test_proxy_sentryapp_installation_path_invalid(self):
         if SiloMode.get_current_mode() == SiloMode.MONOLITH:
             return

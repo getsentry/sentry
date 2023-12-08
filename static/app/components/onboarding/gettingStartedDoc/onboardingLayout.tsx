@@ -7,7 +7,11 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {Docs, DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  ConfigType,
+  Docs,
+  DocsParams,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {
   PlatformOptionsControl,
@@ -34,6 +38,7 @@ export type OnboardingLayoutProps = {
   projectId: Project['id'];
   projectSlug: Project['slug'];
   activeProductSelection?: ProductSolution[];
+  configType?: ConfigType;
   newOrg?: boolean;
 };
 
@@ -47,6 +52,7 @@ export function OnboardingLayout({
   projectSlug,
   activeProductSelection = EMPTY_ARRAY,
   newOrg,
+  configType = 'onboarding',
 }: OnboardingLayoutProps) {
   const organization = useOrganization();
   const {isLoading: isLoadingRegistry, data: registryData} =
@@ -56,7 +62,7 @@ export function OnboardingLayout({
   const {platformOptions} = docsConfig;
 
   const {introduction, steps, nextSteps} = useMemo(() => {
-    const {onboarding} = docsConfig;
+    const doc = docsConfig[configType] ?? docsConfig.onboarding;
 
     const docParams: DocsParams<any> = {
       dsn,
@@ -78,13 +84,13 @@ export function OnboardingLayout({
     };
 
     return {
-      introduction: onboarding.introduction?.(docParams),
+      introduction: doc.introduction?.(docParams),
       steps: [
-        ...onboarding.install(docParams),
-        ...onboarding.configure(docParams),
-        ...onboarding.verify(docParams),
+        ...doc.install(docParams),
+        ...doc.configure(docParams),
+        ...doc.verify(docParams),
       ],
-      nextSteps: onboarding.nextSteps?.(docParams) || [],
+      nextSteps: doc.nextSteps?.(docParams) || [],
     };
   }, [
     activeProductSelection,
@@ -98,6 +104,7 @@ export function OnboardingLayout({
     projectSlug,
     registryData,
     selectedOptions,
+    configType,
   ]);
 
   return (
@@ -105,10 +112,12 @@ export function OnboardingLayout({
       <Wrapper>
         <Header>
           {introduction && <div>{introduction}</div>}
-          <ProductSelectionAvailabilityHook
-            organization={organization}
-            platform={platformKey}
-          />
+          {configType === 'onboarding' && (
+            <ProductSelectionAvailabilityHook
+              organization={organization}
+              platform={platformKey}
+            />
+          )}
           {platformOptions ? (
             <PlatformOptionsControl platformOptions={platformOptions} />
           ) : null}
