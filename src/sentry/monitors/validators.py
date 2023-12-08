@@ -27,8 +27,6 @@ MONITOR_TYPES = {"cron_job": MonitorType.CRON_JOB}
 MONITOR_STATUSES = {
     "active": MonitorObjectStatus.ACTIVE,
     "muted": MonitorObjectStatus.MUTED,
-    # TODO(epurkhiser): Remove once the frontend is only using "muted"
-    "disabled": MonitorObjectStatus.MUTED,
 }
 
 SCHEDULE_TYPES = {
