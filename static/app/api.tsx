@@ -693,8 +693,9 @@ export function resolveHostname(path: string, hostname?: string): string {
 
   hostname = hostname ?? '';
   if (!hostname && storeState.organization?.features.includes('frontend-domainsplit')) {
+    const isAdmin = window.location.pathname.startsWith('/_admin/');
     const isControlSilo = detectControlSiloPath(path);
-    if (!isControlSilo && configLinks.regionUrl) {
+    if (!isAdmin && !isControlSilo && configLinks.regionUrl) {
       hostname = configLinks.regionUrl;
     }
     if (isControlSilo && configLinks.sentryUrl) {
