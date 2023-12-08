@@ -133,12 +133,15 @@ class DatabaseBackedAppService(AppService):
         ):
             component = prepare_sentry_app_components(install, "alert-rule-action", project_slug)
             if component:
+                # Refetch the app component to be compatible with serializer
+                orm_component = SentryAppComponent.objects.get(uuid=component.uuid)
+                orm_component.schema = component.app_schema
                 kwargs = {
                     "install": install,
                     "event_action": event_data,
                 }
                 action_details = serialize(
-                    component, None, SentryAppAlertRuleActionSerializer(), **kwargs
+                    orm_component, None, SentryAppAlertRuleActionSerializer(), **kwargs
                 )
                 action_list.append(action_details)
 

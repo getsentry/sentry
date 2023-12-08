@@ -2,7 +2,10 @@ from unittest.mock import call, patch
 
 from sentry.models.organization import Organization
 from sentry.sentry_apps.components import SentryAppComponentPreparer
-from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
+from sentry.services.hybrid_cloud.app.serial import (
+    serialize_sentry_app_component,
+    serialize_sentry_app_installation,
+)
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -19,20 +22,23 @@ class TestPreparerIssueLink(TestCase):
         )
 
         self.install = self.create_sentry_app_installation(slug=self.sentry_app.slug)
+        self.rpc_install = serialize_sentry_app_installation(self.install)
 
         self.component = self.sentry_app.components.first()
+        self.rpc_component = serialize_sentry_app_component(self.component)
+
         with assume_test_silo_mode(SiloMode.REGION):
             self.project = Organization.objects.get(
                 id=self.install.organization_id
             ).project_set.first()
 
         self.preparer = SentryAppComponentPreparer(
-            component=self.component, install=self.install, project_slug=self.project.slug
+            component=self.rpc_component, install=self.rpc_install, project_slug=self.project.slug
         )
 
     @patch("sentry.mediators.external_requests.SelectRequester.run")
     def test_prepares_components_requiring_requests(self, run):
-        self.component.schema = {
+        self.rpc_component.app_schema = {
             "link": {
                 "required_fields": [
                     {"type": "select", "name": "foo", "label": "Foo", "uri": "/sentry/foo"}
@@ -59,10 +65,9 @@ class TestPreparerIssueLink(TestCase):
 
         self.preparer.run()
 
-        install = serialize_sentry_app_installation(self.install, self.install.sentry_app)
         assert (
             call(
-                install=install,
+                install=self.rpc_install,
                 project_slug=self.project.slug,
                 uri="/sentry/foo",
                 dependent_data=None,
@@ -72,7 +77,7 @@ class TestPreparerIssueLink(TestCase):
 
         assert (
             call(
-                install=install,
+                install=self.rpc_install,
                 project_slug=self.project.slug,
                 uri="/sentry/beep",
                 dependent_data=None,
@@ -82,7 +87,7 @@ class TestPreparerIssueLink(TestCase):
 
         assert (
             call(
-                install=install,
+                install=self.rpc_install,
                 project_slug=self.project.slug,
                 uri="/sentry/bar",
                 dependent_data=None,
@@ -91,7 +96,7 @@ class TestPreparerIssueLink(TestCase):
         )
 
         assert (
-            not call(install=install, project_slug=self.project.slug, uri="/sentry/baz")
+            not call(install=self.rpc_install, project_slug=self.project.slug, uri="/sentry/baz")
             in run.mock_calls
         )
 
@@ -106,24 +111,27 @@ class TestPreparerStacktraceLink(TestCase):
         )
 
         self.install = self.create_sentry_app_installation(slug=self.sentry_app.slug)
+        self.rpc_install = serialize_sentry_app_installation(self.install)
 
         self.component = self.sentry_app.components.first()
+        self.rpc_component = serialize_sentry_app_component(self.component)
+
         with assume_test_silo_mode(SiloMode.REGION):
             self.project = Organization.objects.get(
                 id=self.install.organization_id
             ).project_set.first()
 
         self.preparer = SentryAppComponentPreparer(
-            component=self.component, install=self.install, project_slug=self.project.slug
+            component=self.rpc_component, install=self.rpc_install, project_slug=self.project.slug
         )
 
     def test_prepares_components_url(self):
-        self.component.schema = {"uri": "/redirection"}
+        self.rpc_component.app_schema = {"uri": "/redirection"}
 
         self.preparer.run()
 
         assert (
-            self.component.schema["url"]
+            self.rpc_component.app_schema["url"]
             == f"https://example.com/redirection?installationId={self.install.uuid}&projectSlug={self.project.slug}"
         )
 
@@ -177,8 +185,11 @@ class TestPreparerAlertRuleAction(TestCase):
         self.install = self.create_sentry_app_installation(
             slug="pied-piper", organization=self.project.organization
         )
+        self.rpc_install = serialize_sentry_app_installation(self.install)
 
         self.component = self.sentry_app.components.first()
+        self.rpc_component = serialize_sentry_app_component(self.component)
+
         with assume_test_silo_mode(SiloMode.REGION):
             self.project = Organization.objects.get(
                 id=self.install.organization_id
@@ -187,8 +198,8 @@ class TestPreparerAlertRuleAction(TestCase):
     @patch("sentry.mediators.external_requests.SelectRequester.run")
     def test_prepares_components_requiring_requests(self, run):
         self.preparer = SentryAppComponentPreparer(
-            component=self.component,
-            install=self.install,
+            component=self.rpc_component,
+            install=self.rpc_install,
             project_slug=self.project.slug,
             values=[
                 {"name": "teamId", "value": "Ecosystem"},
@@ -199,11 +210,9 @@ class TestPreparerAlertRuleAction(TestCase):
 
         self.preparer.run()
 
-        install = serialize_sentry_app_installation(self.install, self.install.sentry_app)
-
         assert (
             call(
-                install=install,
+                install=self.rpc_install,
                 project_slug=self.project.slug,
                 uri="/hooks/sentry/issues/teams",
                 dependent_data=None,
@@ -213,7 +222,7 @@ class TestPreparerAlertRuleAction(TestCase):
 
         assert (
             call(
-                install=install,
+                install=self.rpc_install,
                 project_slug=self.project.slug,
                 uri="/hooks/sentry/issues/assignees",
                 dependent_data=json.dumps({"teamId": "Ecosystem"}),
@@ -223,7 +232,7 @@ class TestPreparerAlertRuleAction(TestCase):
 
         assert (
             call(
-                install=install,
+                install=self.rpc_install,
                 project_slug=self.project.slug,
                 uri="/hooks/sentry/issues/labels",
                 dependent_data=json.dumps({"teamId": "Ecosystem"}),
