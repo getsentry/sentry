@@ -42,7 +42,6 @@ from sentry.notifications.types import (
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
-from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
@@ -405,7 +404,7 @@ def get_send_to(
             recipients = filter(
                 lambda x: x.actor_type != ActorType.USER or x.id not in muted_user_ids, recipients
             )
-    return get_recipients_by_provider(
+    return _get_recipients_by_provider(
         project,
         recipients,
         notification_type_enum,
@@ -488,7 +487,7 @@ def get_team_from_identifier(project: Project, target_identifier: str | int | No
         return None
 
 
-def partition_recipients(
+def _partition_recipients(
     recipients: Iterable[RpcActor],
 ) -> Mapping[ActorType, set[RpcActor]]:
     mapping = defaultdict(set)
@@ -497,7 +496,7 @@ def partition_recipients(
     return mapping
 
 
-def get_users_from_team_fall_back(
+def _get_users_from_team_fall_back(
     teams: Iterable[RpcActor],
     recipients_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]],
 ) -> Iterable[RpcUser]:
@@ -508,11 +507,15 @@ def get_users_from_team_fall_back(
         for recipient in recipients:
             teams_to_fall_back.remove(recipient)
 
-    user_ids: set[int] = set()
-    for team in teams_to_fall_back:
-        # Fall back to notifying each subscribed user if there aren't team notification settings
-        members = organization_service.get_team_members(team_id=team.id)
-        user_ids |= {member.user_id for member in members if member.user_id is not None}
+    # Fall back to notifying each subscribed user if there aren't team notification settings
+    members = OrganizationMemberTeam.objects.filter(
+        team_id__in=[team.id for team in teams_to_fall_back]
+    ).select_related("organizationmember")
+    user_ids = {
+        member.organizationmember.user_id
+        for member in members
+        if member.organizationmember.user_id is not None
+    }
     return user_service.get_many(filter={"user_ids": list(user_ids)})
 
 
@@ -570,7 +573,7 @@ def get_notification_recipients_v2(
     )
 
 
-def get_recipients_by_provider(
+def _get_recipients_by_provider(
     project: Project,
     recipients: Iterable[RpcActor],
     notification_type_enum: NotificationSettingEnum = NotificationSettingEnum.ISSUE_ALERTS,
@@ -579,7 +582,7 @@ def get_recipients_by_provider(
     notification_uuid: str | None = None,
 ) -> Mapping[ExternalProviders, set[RpcActor]]:
     """Get the lists of recipients that should receive an Issue Alert by ExternalProvider."""
-    recipients_by_type = partition_recipients(recipients)
+    recipients_by_type = _partition_recipients(recipients)
     teams = recipients_by_type[ActorType.TEAM]
     users = recipients_by_type[ActorType.USER]
 
@@ -604,7 +607,9 @@ def get_recipients_by_provider(
     }
 
     # If there are any teams that didn't get added, fall back and add all users.
-    users |= set(RpcActor.many_from_object(get_users_from_team_fall_back(teams, teams_by_provider)))
+    users |= set(
+        RpcActor.many_from_object(_get_users_from_team_fall_back(teams, teams_by_provider))
+    )
 
     # Repeat for users.
     users_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]] = {}

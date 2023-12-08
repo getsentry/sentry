@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, List, Mapping, Optional, Union
+from typing import Any, List, Mapping, Optional, Union
 
 from django.db import IntegrityError, models, router, transaction
 from django.db.models.expressions import CombinedExpression, F
@@ -417,10 +417,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
         # It might be nice to return an RpcTeamMember to represent what we just
         # created, but doing so would require a list of project IDs. We can implement
         # that if a return value is needed in the future.
-
-    def get_team_members(self, *, team_id: int) -> Iterable[RpcOrganizationMember]:
-        team_members = OrganizationMemberTeam.objects.filter(team_id=team_id)
-        return [serialize_member(team_member.organizationmember) for team_member in team_members]
 
     def update_membership_flags(self, *, organization_member: RpcOrganizationMember) -> None:
         model = OrganizationMember.objects.get(id=organization_member.id)
