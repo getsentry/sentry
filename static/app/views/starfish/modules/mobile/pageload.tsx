@@ -16,11 +16,14 @@ import {
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
+import Onboarding from 'sentry/views/performance/onboarding';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
 import {ScreensView, YAxis} from 'sentry/views/starfish/views/screens';
 
 export default function PageloadModule() {
   const organization = useOrganization();
+  const onboardingProject = useOnboardingProject();
 
   return (
     <SentryDocumentTitle title={t('Mobile')} orgSlug={organization.slug}>
@@ -46,7 +49,17 @@ export default function PageloadModule() {
                   <ReleaseComparisonSelector />
                 </Container>
                 <ErrorBoundary mini>
-                  <ScreensView yAxes={[YAxis.TTID, YAxis.TTFD]} chartHeight={240} />
+                  {onboardingProject && (
+                    <OnboardingContainer>
+                      <Onboarding
+                        organization={organization}
+                        project={onboardingProject}
+                      />
+                    </OnboardingContainer>
+                  )}
+                  {!onboardingProject && (
+                    <ScreensView yAxes={[YAxis.TTID, YAxis.TTFD]} chartHeight={240} />
+                  )}
                 </ErrorBoundary>
               </PageFiltersContainer>
             </Layout.Main>
@@ -67,4 +80,8 @@ const Container = styled('div')`
     grid-template-rows: auto;
     grid-template-columns: auto 1fr auto;
   }
+`;
+
+const OnboardingContainer = styled('div')`
+  margin-top: ${space(2)};
 `;
