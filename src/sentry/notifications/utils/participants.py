@@ -617,29 +617,25 @@ def get_recipients_by_provider(
         actor_type=ActorType.USER,
     )
 
-    # TODO(jangjodi): Remove the try-except once INC-564 prevention steps are completed
-    try:
-        teams_by_provider_dict = {
-            provider.value: [team.id for team in teams_by_provider[provider]]
-            for provider in teams_by_provider.keys()
-        }
-        users_by_provider_dict = {
-            provider.value: [user.id for user in users_by_provider[provider]]
-            for provider in users_by_provider.keys()
-        }
-        extra = {
-            "organization_id": project.organization.id,
-            "project_id": project.id,
-            "target_type": target_type,
-            "target_identifier": target_identifier,
-            "notification_uuid": notification_uuid,
-            "teams": json.dumps([team.id for team in teams]),
-            "teams_by_provider": json.dumps(teams_by_provider_dict),
-            "users": json.dumps([user.id for user in users]),
-            "users_by_provider": json.dumps(users_by_provider_dict),
-        }
-        logger.info("sentry.notifications.recipients_by_provider", extra=extra)
-    except Exception as e:
-        logger.exception("Unable to log recipients_by_provider: %s", e)
+    teams_by_provider_dict = {
+        provider.value: [team.id for team in teams_by_provider[provider]]
+        for provider in teams_by_provider.keys()
+    }
+    users_by_provider_dict = {
+        provider.value: [user.id for user in users_by_provider[provider]]
+        for provider in users_by_provider.keys()
+    }
+    extra = {
+        "organization_id": project.organization.id,
+        "project_id": project.id,
+        "target_type": target_type,
+        "target_identifier": target_identifier,
+        "notification_uuid": notification_uuid,
+        "teams": json.dumps([team.id for team in teams]),
+        "teams_by_provider": json.dumps(teams_by_provider_dict),
+        "users": json.dumps([user.id for user in users]),
+        "users_by_provider": json.dumps(users_by_provider_dict),
+    }
+    logger.info("sentry.notifications.recipients_by_provider", extra=extra)
 
     return combine_recipients_by_provider(teams_by_provider, users_by_provider)
