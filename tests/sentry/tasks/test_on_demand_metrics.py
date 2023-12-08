@@ -12,6 +12,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetTypes,
 )
 from sentry.models.project import Project
+from sentry.tasks import on_demand_metrics
 from sentry.tasks.on_demand_metrics import process_widget_specs, schedule_on_demand_check
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature, override_options
@@ -187,14 +188,12 @@ def create_widget(
     ],
 )
 @mock.patch("sentry.tasks.on_demand_metrics._get_previous_processing_batch")
-@mock.patch("sentry.tasks.on_demand_metrics._set_cardinality_cache")
 @mock.patch(
     "sentry.tasks.on_demand_metrics._query_cardinality", return_value=_CARDINALITY_DISCOVER_DATA
 )
 @django_db_all
 def test_schedule_on_demand_check(
     _query_cardinality,
-    _cardinality_cache,
     _get_previous_processing_batch,
     feature_flags,
     option_enable,
@@ -259,19 +258,26 @@ def test_schedule_on_demand_check(
     )
 
     with mock.patch.object(
+        on_demand_metrics, "_set_cardinality_cache", wraps=on_demand_metrics._set_cardinality_cache
+    ) as _cardinality_cache, mock.patch.object(
         process_widget_specs, "delay", wraps=process_widget_specs
-    ) as process_widget_specs_spy, override_options(options), Feature(feature_flags):
+    ) as process_widget_specs_spy, override_options(
+        options
+    ), Feature(
+        feature_flags
+    ):
         assert not process_widget_specs_spy.called
         schedule_on_demand_check()
         assert process_widget_specs_spy.call_count == expected_number_of_child_tasks_run
 
-    assert _query_cardinality.call_count == expected_discover_queries_run
-    assert _cardinality_cache.call_count == expected_discover_queries_run
-    if _cardinality_cache.call_count:
-        # Can't assert order, tasks aren't guaranteed to fire in order.
-        assert all(
-            mock_call.args[1] == expected_cache_set for mock_call in _cardinality_cache.mock_calls
-        )
+        assert _query_cardinality.call_count == expected_discover_queries_run
+        assert _cardinality_cache.call_count == expected_discover_queries_run
+        if _cardinality_cache.call_count:
+            # Can't assert order, tasks aren't guaranteed to fire in order.
+            assert all(
+                mock_call.args[1] == expected_cache_set
+                for mock_call in _cardinality_cache.mock_calls
+            )
 
 
 @pytest.mark.parametrize(
