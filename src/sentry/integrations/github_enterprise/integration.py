@@ -190,7 +190,7 @@ class GitHubEnterpriseIntegration(
 
     def get_commit_context(
         self, repo: Repository, filepath: str, ref: str, event_frame: Mapping[str, Any]
-    ) -> Mapping[str, str] | None:
+    ) -> Mapping[str, Any] | None:
         lineno = event_frame.get("lineno", 0)
         if not lineno:
             return None
