@@ -113,6 +113,9 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
             params["slug"] = result["slug"]
         if "status" in result:
             params["status"] = result["status"]
+
+            # TODO(epurkhiser): Remove dual-writing once status no longer tracks muted
+            params["is_muted"] = result["status"] == MonitorObjectStatus.MUTED
         if "config" in result:
             params["config"] = result["config"]
         if "project" in result and result["project"].id != monitor.project_id:
