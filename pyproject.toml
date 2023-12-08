@@ -650,7 +650,6 @@ module = [
     "sentry.web.frontend.debug.debug_organization_join_request",
     "sentry.web.frontend.debug.debug_password_changed_email",
     "sentry.web.frontend.debug.debug_recovery_codes_regenerated_email",
-    "sentry.web.frontend.debug.debug_trigger_error",
     "sentry.web.frontend.disabled_member_view",
     "sentry.web.frontend.generic",
     "sentry.web.frontend.group_plugin_action",
