@@ -7,7 +7,10 @@ import {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getReplayConfigureDescription} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {
+  getReplayConfigureDescription,
+  getReplaySDKSetupSnippet,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -39,22 +42,6 @@ export default defineConfig({
   ],
 });
 `;
-
-const getReplaySDKSetupSnippet = (params: Params) => `
-import * as Sentry from "@sentry/astro";
-
-Sentry.init({
-  dsn: "${params.dsn}",
-
-  // This sets the sample rate at 10%. You may want this to be 100% while
-  // in development, then sample at a lower rate in production.
-  replaysSessionSampleRate: 0.1,
-  // If the entire session is not sampled, use the below sample rate to sample
-  // sessions when an error occurs.
-  replaysOnErrorSampleRate: 1.0,
-
-  integrations: [new Sentry.Replay()],
-});`;
 
 const getVerifyAstroSnippet = () => `
 <!-- your-page.astro -->
@@ -222,7 +209,10 @@ const replayOnboarding: OnboardingConfig = {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              code: getReplaySDKSetupSnippet(params),
+              code: getReplaySDKSetupSnippet({
+                importStatement: `import * as Sentry from "@sentry/astro";`,
+                dsn: params.dsn,
+              }),
             },
           ],
         },

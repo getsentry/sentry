@@ -220,13 +220,14 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   }
 
   const migrated = [
-    'javascript-react',
     'javascript',
+    'javascript-react',
     'javascript-ember',
     'javascript-sveltekit',
     'javascript-svelte',
     'javascript-astro',
     'javascript-nextjs',
+    'javascript-remix',
     'electron',
   ];
 

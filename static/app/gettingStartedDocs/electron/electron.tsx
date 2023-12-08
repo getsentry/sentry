@@ -7,6 +7,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getReplayConfigureDescription,
+  getReplaySDKSetupSnippet,
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct} from 'sentry/locale';
@@ -19,23 +20,6 @@ import * as Sentry from "@sentry/electron";
 Sentry.init({
   dsn: "${params.dsn}",
 });`;
-
-const getReplaySDKSetupSnippet = (params: Params) => `
-import * as Sentry from "@sentry/electron";
-
-Sentry.init({
-  dsn: "${params.dsn}",
-
-  // This sets the sample rate to be 10%. You may want this to be 100% while
-  // in development and sample at a lower rate in production
-  replaysSessionSampleRate: 0.1,
-  // If the entire session is not sampled, use the below sample rate to sample
-  // sessions when an error occurs.
-  replaysOnErrorSampleRate: 1.0,
-
-  integrations: [new Sentry.Replay()],
-});
-`;
 
 const getInstallConfig = () => [
   {
@@ -147,7 +131,10 @@ const replayOnboarding: OnboardingConfig = {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              code: getReplaySDKSetupSnippet(params),
+              code: getReplaySDKSetupSnippet({
+                importStatement: `import * as Sentry from "@sentry/electron";`,
+                dsn: params.dsn,
+              }),
             },
           ],
         },
