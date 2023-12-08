@@ -3994,17 +3994,23 @@ if SILO_DEVSERVER:
     ]
     SENTRY_MONOLITH_REGION = SENTRY_REGION_CONFIG[0]["name"]
 
-    # RPC authentication and address information
+    # Cross region RPC authentication
     RPC_SHARED_SECRET = [
         "a-long-value-that-is-shared-but-also-secret",
     ]
     RPC_TIMEOUT = 15.0
 
-    bind = str(os.environ.get("SENTRY_DEVSERVER_BIND")).split(":")
-    SENTRY_WEB_HOST = bind[0]
-    SENTRY_WEB_PORT = int(bind[1])
+    # Key for signing integration proxy requests.
+    SENTRY_SUBNET_SECRET = "secret-subnet-signature"
 
     control_port = os.environ.get("SENTRY_CONTROL_SILO_PORT", "8000")
     SENTRY_CONTROL_ADDRESS = f"http://127.0.0.1:{control_port}"
+
+    # Webserver config
+    bind_address = os.environ.get("SENTRY_DEVSERVER_BIND")
+    if bind_address:
+        bind = str(bind_address).split(":")
+        SENTRY_WEB_HOST = bind[0]
+        SENTRY_WEB_PORT = int(bind[1])
 
     CELERYBEAT_SCHEDULE_FILENAME = f"celerybeat-schedule-{SILO_MODE}"
