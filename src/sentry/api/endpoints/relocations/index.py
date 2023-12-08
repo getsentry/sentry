@@ -31,7 +31,7 @@ from sentry.tasks.relocation import uploading_complete
 from sentry.utils.db import atomic_transaction
 from sentry.utils.relocation import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE
 
-ERR_DUPLICATE_RELOCATION = "An in-progress relocation already exists for this owner"
+ERR_DUPLICATE_RELOCATION = "An in-progress relocation already exists for this owner."
 ERR_THROTTLED_RELOCATION = (
     "We've reached our daily limit of relocations - please try again tomorrow or contact support."
 )
