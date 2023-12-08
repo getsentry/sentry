@@ -25,7 +25,7 @@ class OpsgenieClient(IntegrationProxyClient):
         integration: RpcIntegration | Integration,
         integration_key: str,
         org_integration_id: int | None,
-        keyid: str,
+        keyid: str | None = None,
     ) -> None:
         self.integration = integration
         self.base_url = f"{self.metadata['base_url']}{OPSGENIE_API_VERSION}"
