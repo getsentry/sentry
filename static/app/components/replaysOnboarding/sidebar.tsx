@@ -228,6 +228,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     'javascript-astro',
     'javascript-nextjs',
     'javascript-remix',
+    'javascript-gatsby',
     'electron',
   ];
 
