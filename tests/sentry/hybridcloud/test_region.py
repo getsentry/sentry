@@ -8,9 +8,7 @@ from sentry.services.hybrid_cloud.region import (
     ByOrganizationObject,
     ByOrganizationSlug,
     RequireSingleOrganization,
-    UnimplementedRegionResolution,
 )
-from sentry.services.hybrid_cloud.rpc import RpcServiceUnimplementedException
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.region import override_regions
@@ -77,9 +75,3 @@ class RegionResolutionTest(TestCase):
             self.create_organization(region=_TEST_REGIONS[1])
             with pytest.raises(RegionResolutionError):
                 region_resolution.resolve({})
-
-    def test_unimplemented_region_resolution(self):
-        region_resolution = UnimplementedRegionResolution("some_service", "some_method")
-        with pytest.raises(RpcServiceUnimplementedException):
-            arguments = {"team_id": 1234}
-            region_resolution.resolve(arguments)
