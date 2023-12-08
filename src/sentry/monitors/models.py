@@ -34,6 +34,7 @@ from sentry.grouping.utils import hash_from_values
 from sentry.locks import locks
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleSource
+from sentry.monitors.constants import MAX_SLUG_LENGTH
 from sentry.monitors.types import CrontabSchedule, IntervalSchedule
 from sentry.utils.retries import TimedRetryPolicy
 
@@ -59,8 +60,6 @@ MONITOR_CONFIG = {
     "required": ["checkin_margin", "max_runtime", "schedule_type", "schedule"],
     "additionalProperties": False,
 }
-
-MAX_SLUG_LENGTH = 50
 
 
 class MonitorLimitsExceeded(Exception):
