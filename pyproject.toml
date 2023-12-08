@@ -185,7 +185,6 @@ module = [
     "sentry.api.endpoints.organization_code_mapping_details",
     "sentry.api.endpoints.organization_code_mappings",
     "sentry.api.endpoints.organization_dashboard_details",
-    "sentry.api.endpoints.organization_dashboards",
     "sentry.api.endpoints.organization_details",
     "sentry.api.endpoints.organization_events",
     "sentry.api.endpoints.organization_events_facets",
