@@ -9,7 +9,7 @@ function hasWebVital(data: TableDataRow, webVital: WebVitals): boolean {
 }
 
 function getWebVital(data: TableDataRow, webVital: WebVitals): number {
-  return data[`avg(measurements.${webVital})`] as number;
+  return data[`p75(measurements.${webVital})`] as number;
 }
 
 export function getWebVitalsFromTableData(data: TableDataRow) {

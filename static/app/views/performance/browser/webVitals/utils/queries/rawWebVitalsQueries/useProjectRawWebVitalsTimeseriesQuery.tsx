@@ -38,11 +38,11 @@ export const useProjectRawWebVitalsTimeseriesQuery = ({
   const projectTimeSeriesEventView = EventView.fromNewQueryWithPageFilters(
     {
       yAxis: [
-        'avg(measurements.lcp)',
-        'avg(measurements.fcp)',
-        'avg(measurements.cls)',
-        'avg(measurements.ttfb)',
-        'avg(measurements.fid)',
+        'p75(measurements.lcp)',
+        'p75(measurements.fcp)',
+        'p75(measurements.cls)',
+        'p75(measurements.ttfb)',
+        'p75(measurements.fid)',
         'count()',
       ],
       name: 'Web Vitals',
@@ -94,10 +94,10 @@ export const useProjectRawWebVitalsTimeseriesQuery = ({
     total: [],
   };
 
-  result?.data?.['avg(measurements.lcp)']?.data.forEach((interval, index) => {
+  result?.data?.['p75(measurements.lcp)']?.data.forEach((interval, index) => {
     const [lcp, fcp, cls, ttfb, fid] = ['lcp', 'fcp', 'cls', 'ttfb', 'fid'].map(
       webVital => {
-        return result?.data?.[`avg(measurements.${webVital})`]?.data[index][1][0].count;
+        return result?.data?.[`p75(measurements.${webVital})`]?.data[index][1][0].count;
       }
     );
     // This is kinda jank, but since events-stats zero fills, we need to assume that 0 values mean no data.

@@ -3,7 +3,7 @@ import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types'
 
 export const mapWebVitalToOrderBy = (
   webVital?: WebVitals | null,
-  aggregateFunction?: 'avg'
+  aggregateFunction?: 'avg' | 'p75'
 ) => {
   let webVitalKey = webVital ? WEBVITAL_TO_KEY[webVital] : undefined;
   if (!webVitalKey) {

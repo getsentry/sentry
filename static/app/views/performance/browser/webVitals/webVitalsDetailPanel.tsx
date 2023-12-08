@@ -127,7 +127,7 @@ export function WebVitalsDetailPanel({
       return <NoOverflow>{col.name}</NoOverflow>;
     }
     if (col.key === 'webVital') {
-      return <AlignRight>{`${webVital} AVG`}</AlignRight>;
+      return <AlignRight>{`${webVital} P75`}</AlignRight>;
     }
     if (col.key === 'score') {
       return <AlignCenter>{`${webVital} ${col.name}`}</AlignCenter>;
@@ -256,15 +256,15 @@ export function WebVitalsDetailPanel({
 const mapWebVitalToColumn = (webVital?: WebVitals | null) => {
   switch (webVital) {
     case 'lcp':
-      return 'avg(measurements.lcp)';
+      return 'p75(measurements.lcp)';
     case 'fcp':
-      return 'avg(measurements.fcp)';
+      return 'p75(measurements.fcp)';
     case 'cls':
-      return 'avg(measurements.cls)';
+      return 'p75(measurements.cls)';
     case 'ttfb':
-      return 'avg(measurements.ttfb)';
+      return 'p75(measurements.ttfb)';
     case 'fid':
-      return 'avg(measurements.fid)';
+      return 'p75(measurements.fid)';
     default:
       return 'count()';
   }
