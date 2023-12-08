@@ -26,6 +26,10 @@ export function Config(params: Partial<ConfigType> = {}): ConfigType {
     isSelfHosted: false,
     lastOrganization: null,
     gravatarBaseUrl: 'https://gravatar.com',
+    initialTrace: {
+      baggage: 'baggage',
+      sentry_trace: 'sentry_trace',
+    },
     dsn: 'test-dsn',
     userIdentity: {
       ip_address: '127.0.0.1',

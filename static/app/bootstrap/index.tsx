@@ -44,6 +44,8 @@ function promiseRequest(url: string): Promise<any> {
   return new Promise(function (resolve, reject) {
     const xhr = new XMLHttpRequest();
     xhr.open('GET', url);
+    xhr.setRequestHeader('sentry-trace', window.__initialData.initialTrace.sentry_trace);
+    xhr.setRequestHeader('baggage', window.__initialData.initialTrace.baggage);
     xhr.withCredentials = true;
     xhr.onload = function () {
       try {
