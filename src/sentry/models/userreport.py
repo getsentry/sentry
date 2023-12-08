@@ -11,7 +11,6 @@ class UserReport(Model):
 
     project_id = BoundedBigIntegerField(db_index=True)
     group_id = BoundedBigIntegerField(null=True, db_index=True)
-    event_user_id = BoundedBigIntegerField(null=True)
     event_id = models.CharField(max_length=32)
     environment_id = BoundedBigIntegerField(null=True, db_index=True)
     name = models.CharField(max_length=128)
