@@ -2,7 +2,9 @@ import {ReactNode, useCallback, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import debounce from 'lodash/debounce';
+import flatten from 'lodash/flatten';
 import omit from 'lodash/omit';
+import uniq from 'lodash/uniq';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
@@ -55,7 +57,7 @@ export function DomainSelector({
     additionalQuery
   );
 
-  const {data: domains, isLoading} = useSpansQuery<
+  const {data: domainData, isLoading} = useSpansQuery<
     Array<{[SpanMetricsField.SPAN_DOMAIN]: Array<string>}>
   >({
     eventView,
@@ -64,22 +66,10 @@ export function DomainSelector({
     referrer: 'api.starfish.get-span-domains',
   });
 
-  const transformedDomains = Array.from(
-    domains?.reduce((acc, curr) => {
-      const spanDomainArray = curr[SpanMetricsField.SPAN_DOMAIN];
-      if (spanDomainArray) {
-        spanDomainArray.forEach(name => acc.add(name));
-      }
-      return acc;
-    }, new Set<string>()) || []
-  );
+  const domains = uniq(flatten(domainData?.map(row => row['span.domain'])));
 
   // If the maximum number of domains is returned, we need to requery on input change to get full results
-  if (
-    !state.shouldRequeryOnInputChange &&
-    transformedDomains &&
-    transformedDomains.length >= LIMIT
-  ) {
+  if (!state.shouldRequeryOnInputChange && domains && domains.length >= LIMIT) {
     setState({...state, shouldRequeryOnInputChange: true});
   }
 
@@ -104,7 +94,7 @@ export function DomainSelector({
     ? [
         {value: '', label: 'All'},
         ...(emptyOptionLocation === 'top' ? [emptyOption] : []),
-        ...transformedDomains
+        ...domains
           .map(datum => {
             return {
               value: datum,
