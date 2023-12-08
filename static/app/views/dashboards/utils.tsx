@@ -656,9 +656,11 @@ export function dashboardFiltersToString(
   if (dashboardFilters) {
     for (const [key, activeFilters] of Object.entries(dashboardFilters)) {
       if (activeFilters.length === 1) {
-        dashboardFilterConditions += `${key}:${activeFilters[0]} `;
+        dashboardFilterConditions += `${key}:"${activeFilters[0]}" `;
       } else if (activeFilters.length > 1) {
-        dashboardFilterConditions += `${key}:[${activeFilters.join(',')}] `;
+        dashboardFilterConditions += `${key}:[${activeFilters
+          .map(f => `"${f}"`)
+          .join(',')}] `;
       }
     }
   }
