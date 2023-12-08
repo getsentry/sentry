@@ -89,6 +89,45 @@ describe('differentialFlamegraph', () => {
     ]);
   });
 
+  it('tracks removed frames and creates color entry', () => {
+    const before = makeFlamegraph({
+      shared: {
+        frames: [{name: 'function'}, {name: 'removed function'}],
+      },
+      profiles: [
+        {
+          ...baseProfile,
+          samples: [[0], [1]],
+          weights: [1, 1],
+        },
+      ],
+    });
+    const after = makeFlamegraph({
+      shared: {
+        frames: [{name: 'function'}],
+      },
+      profiles: [
+        {
+          ...baseProfile,
+          samples: [[0], [0]],
+          weights: [1, 1],
+        },
+      ],
+    });
+
+    const flamegraph = DifferentialFlamegraph.FromDiff(
+      {before, after},
+      {negated: false},
+      THEME
+    );
+
+    expect(flamegraph.colors?.get('removed function')).toEqual([
+      ...THEME.COLORS.DIFFERENTIAL_DECREASE,
+      1 * DifferentialFlamegraph.ALPHA_SCALING,
+    ]);
+    expect(flamegraph.removedFrames?.[0].frame.name).toBe('removed function');
+  });
+
   it('sums weight across all stacks', () => {
     const before = makeFlamegraph({
       shared: {
