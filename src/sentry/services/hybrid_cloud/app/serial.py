@@ -60,7 +60,7 @@ def serialize_sentry_app_installation(
         sentry_app=serialize_sentry_app(app),
         date_deleted=installation.date_deleted,
         uuid=installation.uuid,
-        api_token=installation.api_token.token if installation.api_token else None,
+        api_token=installation.api_token.token if installation.api_token_id else None,
     )
 
 
