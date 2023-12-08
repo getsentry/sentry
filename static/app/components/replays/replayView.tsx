@@ -42,7 +42,7 @@ function ReplayView({toggleFullscreen}: Props) {
             ) : null}
           </ContextContainer>
           {replay?.hasProcessingErrors() ? (
-            <ReplayProcessingError />
+            <ReplayProcessingError processingErrors={replay.processingErrors()} />
           ) : (
             <Panel>
               <ReplayPlayer />

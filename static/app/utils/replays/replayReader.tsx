@@ -3,6 +3,7 @@ import {incrementalSnapshotEvent, IncrementalSource} from '@sentry-internal/rrwe
 import memoize from 'lodash/memoize';
 import {duration} from 'moment';
 
+import {defined} from 'sentry/utils';
 import domId from 'sentry/utils/domId';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import hydrateBreadcrumbs, {
@@ -196,12 +197,19 @@ export default class ReplayReader {
 
   toJSON = () => this._cacheKey;
 
+  processingErrors = memoize(() => {
+    return [
+      this.getRRWebFrames().length < 2
+        ? `Replay has ${this.getRRWebFrames().length} frames`
+        : null,
+      !this.getRRWebFrames().some(frame => frame.type === EventType.Meta)
+        ? 'Missing Meta Frame'
+        : null,
+    ].filter(defined);
+  });
+
   hasProcessingErrors = () => {
-    const checks = [
-      this.getRRWebFrames().length < 2,
-      !this.getRRWebFrames().some(frame => frame.type === EventType.Meta),
-    ];
-    return checks.some(Boolean);
+    return this.processingErrors().length;
   };
 
   /**

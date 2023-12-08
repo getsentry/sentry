@@ -1,4 +1,6 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -6,10 +8,21 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 interface Props {
+  processingErrors: readonly string[];
   className?: string;
 }
 
-export default function ReplayProcessingError({className}: Props) {
+export default function ReplayProcessingError({className, processingErrors}: Props) {
+  useEffect(() => {
+    Sentry.withScope(scope => {
+      scope.setLevel('warning');
+      scope.setFingerprint(['replay-processing-error']);
+      processingErrors.forEach(error => {
+        Sentry.captureException(error);
+      });
+    });
+  }, [processingErrors]);
+
   return (
     <StyledAlert type="error" showIcon className={className}>
       <Heading>{t('Replay Not Found')}</Heading>
