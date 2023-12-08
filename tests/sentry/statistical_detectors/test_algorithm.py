@@ -264,7 +264,7 @@ def test_moving_average_relative_change_detector(
         DetectorPayload(
             project_id=1,
             group=0,
-            fingerprint=0,
+            fingerprint="0",
             count=i + 1,
             value=value,
             timestamp=now + timedelta(hours=i + 1),

@@ -322,6 +322,7 @@ def test_detect_transaction_trends_auto_resolution(
             DetectorPayload(
                 project_id=project.id,
                 group="/123",
+                # this matches the fingerprint field generated from querying transactions
                 fingerprint=fingerprint_regression("/123"),
                 count=100,
                 value=100 if i < 10 else 300 if i < 20 else 100,
@@ -607,7 +608,7 @@ def test_detect_function_trends(
             DetectorPayload(
                 project_id=project.id,
                 group=123,
-                fingerprint=123,
+                fingerprint=f"{123:x}",
                 count=100,
                 value=100 if i < n / 2 else 300,
                 timestamp=ts,
@@ -628,6 +629,66 @@ def test_detect_function_trends(
         for ts in timestamps:
             detect_function_trends([project.id], ts)
     assert detect_function_change_points.apply_async.called
+
+
+@mock.patch("sentry.tasks.statistical_detectors.query_functions")
+@mock.patch("sentry.tasks.statistical_detectors.detect_function_change_points")
+@mock.patch("sentry.statistical_detectors.detector.produce_occurrence_to_kafka")
+@django_db_all
+def test_detect_function_trends_auto_resolution(
+    produce_occurrence_to_kafka,
+    detect_function_change_points,
+    query_functions,
+    timestamp,
+    project,
+):
+    n = 750
+    timestamps = [timestamp - timedelta(hours=n - i) for i in range(n)]
+
+    query_functions.side_effect = [
+        [
+            DetectorPayload(
+                project_id=project.id,
+                group=123,
+                # this matches the fingerprint field generated from querying functions
+                fingerprint=f"{123:x}",
+                count=100,
+                value=100 if i < 10 else 300 if i < 20 else 100,
+                timestamp=ts,
+            ),
+        ]
+        for i, ts in enumerate(timestamps)
+    ]
+
+    options = {
+        "statistical_detectors.enable": True,
+    }
+
+    features = {
+        "organizations:profiling-statistical-detectors-ema": [project.organization.slug],
+    }
+
+    with override_options(options), Feature(features):
+        for ts in timestamps[:20]:
+            detect_function_trends([project.id], ts)
+
+    assert detect_function_change_points.apply_async.called
+
+    with override_options(options), Feature(features):
+        RegressionGroup.objects.create(
+            type=RegressionType.FUNCTION.value,
+            date_regressed=timestamps[10],
+            version=1,
+            active=True,
+            project_id=project.id,
+            fingerprint=f"{123:x}",
+            baseline=100,
+            regressed=300,
+        )
+        for ts in timestamps[20:]:
+            detect_function_trends([project.id], ts)
+
+    assert produce_occurrence_to_kafka.called
 
 
 @pytest.mark.parametrize(
@@ -653,7 +714,7 @@ def test_detect_function_trends_ratelimit(
             DetectorPayload(
                 project_id=project.id,
                 group=1,
-                fingerprint=1,
+                fingerprint=f"{1:x}",
                 count=100,
                 value=100 if i < n / 2 else 301,
                 timestamp=ts,
@@ -661,7 +722,7 @@ def test_detect_function_trends_ratelimit(
             DetectorPayload(
                 project_id=project.id,
                 group=2,
-                fingerprint=2,
+                fingerprint=f"{2:x}",
                 count=100,
                 value=100 if i < n / 2 else 302,
                 timestamp=ts,
@@ -669,7 +730,7 @@ def test_detect_function_trends_ratelimit(
             DetectorPayload(
                 project_id=project.id,
                 group=3,
-                fingerprint=3,
+                fingerprint=f"{3:x}",
                 count=100,
                 value=100 if i < n / 2 else 303,
                 timestamp=ts,
@@ -823,11 +884,12 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
     @mock.patch("sentry.tasks.statistical_detectors.FUNCTIONS_PER_PROJECT", 1)
     def test_functions_query(self):
         results = query_functions(self.projects, self.now)
+        fingerprint = self.function_fingerprint({"package": "foo", "function": "foo"})
         assert results == [
             DetectorPayload(
                 project_id=project.id,
-                group=self.function_fingerprint({"package": "foo", "function": "foo"}),
-                fingerprint=self.function_fingerprint({"package": "foo", "function": "foo"}),
+                group=fingerprint,
+                fingerprint=f"{fingerprint:x}",
                 count=100,
                 value=pytest.approx(100),  # type: ignore[arg-type]
                 timestamp=self.hour_ago,
