@@ -2,16 +2,21 @@ import {CSSProperties, isValidElement, memo, MouseEvent, useMemo} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
+import {openModal} from 'sentry/actionCreators/modal';
+import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
+import ReplayComparisonModal from 'sentry/components/replays/breadcrumbs/replayComparisonModal';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {isErrorFrame} from 'sentry/utils/replays/types';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
 import TraceGrid from 'sentry/views/replays/detail/perfTable/traceGrid';
@@ -61,8 +66,10 @@ function BreadcrumbItem({
   style,
   traces,
 }: Props) {
+  const organization = useOrganization();
   const {color, description, projectSlug, title, icon, timestampMs} =
     getCrumbOrFrameData(frame);
+  const {replay} = useReplayContext();
 
   return (
     <CrumbItem
@@ -104,6 +111,29 @@ function BreadcrumbItem({
             />
           </InspectorWrapper>
         )}
+
+        {'data' in frame && frame.data && 'mutations' in frame.data ? (
+          <Button
+            onClick={() => {
+              openModal(deps => (
+                <ReplayComparisonModal
+                  replay={replay}
+                  organization={organization}
+                  leftTimestamp={frame.offsetMs}
+                  rightTimestamp={
+                    // @ts-expect-error
+                    frame.data.mutations.next.timestamp -
+                    // @ts-expect-error
+                    (replay?.getReplay().started_at ?? 0)
+                  }
+                  {...deps}
+                />
+              ));
+            }}
+          >
+            Show Side by side
+          </Button>
+        ) : null}
 
         {extraction?.html ? (
           <CodeContainer>
