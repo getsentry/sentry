@@ -252,7 +252,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
       '/organizations/org-slug/metrics/data/',
       expect.objectContaining({
         query: expect.objectContaining({
-          query: ' release:abc@1.3.0 ',
+          query: ' release:"abc@1.3.0" ',
         }),
       })
     );
