@@ -16,6 +16,7 @@ from requests.exceptions import Timeout
 from rest_framework.exceptions import NotFound
 
 from sentry.api.exceptions import RequestTimeout
+from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.silo.util import (
@@ -104,6 +105,23 @@ def proxy_sentryappinstallation_request(
         region = get_region_by_name(organization_mapping.region_name)
     except (RegionResolutionError, OrganizationMapping.DoesNotExist) as e:
         logger.info("region_resolution_error", extra={"installation_id": installation_uuid})
+        raise NotFound from e
+
+    return proxy_region_request(request, region)
+
+
+def proxy_sentryapp_request(request: HttpRequest, app_slug: str) -> StreamingHttpResponse:
+    """Take a django request object and proxy it to the region of the organization that owns a sentryapp"""
+    try:
+        sentry_app = SentryApp.objects.get(slug=app_slug)
+    except SentryApp.DoesNotExist as e:
+        logger.info("region_resolution_error", extra={"app_slug": app_slug})
+        raise NotFound from e
+    try:
+        organization_mapping = OrganizationMapping.objects.get(organization_id=sentry_app.owner_id)
+        region = get_region_by_name(organization_mapping.region_name)
+    except (RegionResolutionError, OrganizationMapping.DoesNotExist) as e:
+        logger.info("region_resolution_error", extra={"app_slug": app_slug})
         raise NotFound from e
 
     return proxy_region_request(request, region)

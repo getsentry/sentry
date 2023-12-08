@@ -9,6 +9,7 @@ from rest_framework.request import Request
 from sentry.hybridcloud.apigateway.proxy import (
     proxy_region_request,
     proxy_request,
+    proxy_sentryapp_request,
     proxy_sentryappinstallation_request,
 )
 from sentry.silo import SiloMode
@@ -74,10 +75,25 @@ def proxy_request_if_needed(
             "apigateway.proxy_request",
             tags={
                 "url_name": request.resolver_match.url_name,
-                "kind": "sentryapp",
+                "kind": "sentryapp-installation",
             },
         )
         return proxy_sentryappinstallation_request(request, install_uuid)
+
+    if (
+        "sentry_app_slug" in view_kwargs
+        and request.resolver_match
+        and request.resolver_match.url_name in SENTRY_APP_REGION_URL_NAMES
+    ):
+        app_slug = view_kwargs["sentry_app_slug"]
+        metrics.incr(
+            "apigateway.proxy_request",
+            tags={
+                "url_name": request.resolver_match.url_name,
+                "kind": "sentryapp",
+            },
+        )
+        return proxy_sentryapp_request(request, app_slug)
 
     if (
         request.resolver_match
