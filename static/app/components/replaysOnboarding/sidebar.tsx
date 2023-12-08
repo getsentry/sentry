@@ -227,6 +227,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     'javascript-svelte',
     'javascript-astro',
     'javascript-nextjs',
+    'electron',
   ];
 
   return (
