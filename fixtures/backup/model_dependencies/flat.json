@@ -196,6 +196,9 @@
   "sentry.dashboardwidgetquery": [
     "sentry.dashboardwidget"
   ],
+  "sentry.dashboardwidgetqueryondemand": [
+    "sentry.dashboardwidgetquery"
+  ],
   "sentry.debugidartifactbundle": [
     "sentry.artifactbundle",
     "sentry.organization"

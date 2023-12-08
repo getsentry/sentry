@@ -1434,6 +1434,24 @@
       ]
     ]
   },
+  "sentry.dashboardwidgetqueryondemand": {
+    "dangling": false,
+    "foreign_keys": {
+      "dashboard_widget_query": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.dashboardwidgetquery",
+        "nullable": false
+      }
+    },
+    "model": "sentry.dashboardwidgetqueryondemand",
+    "relocation_dependencies": [],
+    "relocation_scope": "Organization",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_dashboardwidgetqueryondemand",
+    "uniques": []
+  },
   "sentry.debugidartifactbundle": {
     "dangling": false,
     "foreign_keys": {

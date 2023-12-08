@@ -222,6 +222,7 @@
   "sentry.incidentseen",
   "sentry.incidentproject",
   "sentry.incidentactivity",
+  "sentry.dashboardwidgetqueryondemand",
   "sentry.alertruletriggerexclusion",
   "sentry.alertruletriggeraction",
   "sentry.servicehookproject"
