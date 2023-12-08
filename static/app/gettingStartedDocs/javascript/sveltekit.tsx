@@ -6,30 +6,60 @@ import ListItem from 'sentry/components/list/listItem';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   Docs,
+  DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getReplayConfigureDescription} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct} from 'sentry/locale';
 
-const onboarding: OnboardingConfig = {
-  install: () => [
-    {
-      type: StepType.INSTALL,
-      configurations: [
-        {
-          description: tct(
-            'Configure your app automatically with the [wizardLink:Sentry wizard].',
-            {
-              wizardLink: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/#install" />
-              ),
-            }
-          ),
-          language: 'bash',
-          code: `npx @sentry/wizard@latest -i sveltekit`,
-        },
-      ],
-    },
+type Params = DocsParams;
+
+const getSdkSetupSnippet = (params: Params) => `
+import * as Sentry from "@sentry/sveltekit";
+
+Sentry.init({
+  dsn: "${params.dsn}",
+
+  // This sets the sample rate to be 10%. You may want this to be 100% while
+  // in development and sample at a lower rate in production.
+  replaysSessionSampleRate: 0.1,
+
+  // If the entire session is not sampled, use the below sample rate to sample
+  // sessions when an error occurs.
+  replaysOnErrorSampleRate: 1.0,
+
+  integrations: [
+    new Sentry.Replay({
+      // Additional SDK configuration goes in here, for example:
+      maskAllText: true,
+      blockAllMedia: true,
+    }),
   ],
+});
+`;
+
+const getInstallConfig = () => [
+  {
+    type: StepType.INSTALL,
+    description: tct(
+      'Configure your app automatically with the [wizardLink:Sentry wizard].',
+      {
+        wizardLink: (
+          <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/#install" />
+        ),
+      }
+    ),
+    configurations: [
+      {
+        language: 'bash',
+        code: `npx @sentry/wizard@latest -i sveltekit`,
+      },
+    ],
+  },
+];
+
+const onboarding: OnboardingConfig = {
+  install: () => getInstallConfig(),
   configure: () => [
     {
       type: StepType.CONFIGURE,
@@ -88,8 +118,35 @@ const onboarding: OnboardingConfig = {
   verify: () => [],
 };
 
+const replayOnboarding: OnboardingConfig = {
+  install: () => getInstallConfig(),
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: getReplayConfigureDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/sveltekit/',
+      }),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getSdkSetupSnippet(params),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  replayOnboarding,
 };
 
 export default docs;

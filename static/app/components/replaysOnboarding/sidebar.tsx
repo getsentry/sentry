@@ -219,7 +219,12 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     );
   }
 
-  const migrated = ['javascript-react'];
+  const migrated = [
+    'javascript-react',
+    'javascript',
+    'javascript-ember',
+    'javascript-sveltekit',
+  ];
 
   return (
     <Fragment>
