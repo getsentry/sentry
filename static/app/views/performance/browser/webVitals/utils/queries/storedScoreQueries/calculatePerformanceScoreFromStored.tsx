@@ -12,6 +12,11 @@ export const calculatePerformanceScoreFromStoredTableDataRow = (
 function getWebVitalScore(data: TableDataRow, webVital: WebVitals): number {
   return data[`performance_score(measurements.score.${webVital})`] as number;
 }
+
+function getWebVitalWeight(data: TableDataRow, webVital: WebVitals): number {
+  return data[`avg(measurements.score.weight.${webVital})`] as number;
+}
+
 function getTotalScore(data: TableDataRow): number {
   return data[`avg(measurements.score.total)`] as number;
 }
@@ -34,6 +39,11 @@ export function getWebVitalScores(data?: TableDataRow): ProjectScore {
     ttfbScore: Math.round(getWebVitalScore(data, 'ttfb') * 100),
     fidScore: Math.round(getWebVitalScore(data, 'fid') * 100),
     totalScore: Math.round(getTotalScore(data) * 100),
+    lcpWeight: Math.round(getWebVitalWeight(data, 'lcp') * 100),
+    fcpWeight: Math.round(getWebVitalWeight(data, 'fcp') * 100),
+    clsWeight: Math.round(getWebVitalWeight(data, 'cls') * 100),
+    ttfbWeight: Math.round(getWebVitalWeight(data, 'ttfb') * 100),
+    fidWeight: Math.round(getWebVitalWeight(data, 'fid') * 100),
   };
   return scores;
 }
