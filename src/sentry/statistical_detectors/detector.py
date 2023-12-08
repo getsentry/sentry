@@ -54,7 +54,7 @@ class DetectorState(ABC):
         ...
 
     @abstractmethod
-    def should_auto_resolve(self, group: RegressionGroup, rel_threshold: float) -> bool:
+    def should_auto_resolve(self, target: float, rel_threshold: float) -> bool:
         ...
 
     @classmethod

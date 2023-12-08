@@ -303,6 +303,65 @@ def test_detect_transaction_trends(
     assert detect_transaction_change_points.apply_async.called
 
 
+@mock.patch("sentry.tasks.statistical_detectors.query_transactions")
+@mock.patch("sentry.tasks.statistical_detectors.detect_transaction_change_points")
+@mock.patch("sentry.statistical_detectors.detector.produce_occurrence_to_kafka")
+@django_db_all
+def test_detect_transaction_trends_auto_resolution(
+    produce_occurrence_to_kafka,
+    detect_transaction_change_points,
+    query_transactions,
+    timestamp,
+    project,
+):
+    n = 75
+    timestamps = [timestamp - timedelta(hours=n - i) for i in range(n)]
+
+    query_transactions.side_effect = [
+        [
+            DetectorPayload(
+                project_id=project.id,
+                group="/123",
+                fingerprint=fingerprint_regression("/123"),
+                count=100,
+                value=100 if i < 10 else 300 if i < 20 else 100,
+                timestamp=ts,
+            ),
+        ]
+        for i, ts in enumerate(timestamps)
+    ]
+
+    options = {
+        "statistical_detectors.enable": True,
+    }
+
+    features = {
+        "organizations:performance-statistical-detectors-ema": [project.organization.slug],
+    }
+
+    with override_options(options), Feature(features):
+        for ts in timestamps[:20]:
+            detect_transaction_trends([project.organization.id], [project.id], ts)
+
+    assert detect_transaction_change_points.apply_async.called
+
+    with override_options(options), Feature(features):
+        RegressionGroup.objects.create(
+            type=RegressionType.ENDPOINT.value,
+            date_regressed=timestamps[10],
+            version=1,
+            active=True,
+            project_id=project.id,
+            fingerprint=fingerprint_regression("/123"),
+            baseline=100,
+            regressed=300,
+        )
+        for ts in timestamps[20:]:
+            detect_transaction_trends([project.organization.id], [project.id], ts)
+
+    assert produce_occurrence_to_kafka.called
+
+
 @pytest.mark.parametrize(
     ["ratelimit", "expected_calls"],
     [(-1, 3), (0, 0), (1, 1), (2, 2), (3, 3)],

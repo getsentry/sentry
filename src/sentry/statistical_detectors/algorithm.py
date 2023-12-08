@@ -59,7 +59,8 @@ class MovingAverageDetectorState(DetectorState):
     def should_auto_resolve(self, target: float, rel_threshold: float) -> bool:
         value = self.moving_avg_long
 
-        if abs((value - target) / target) < rel_threshold:
+        rel_change = abs((value - target) / target)
+        if rel_change < rel_threshold:
             return True
 
         return False
