@@ -156,7 +156,6 @@ module = [
     "sentry.api.endpoints.group_event_details",
     "sentry.api.endpoints.group_events",
     "sentry.api.endpoints.group_external_issues",
-    "sentry.api.endpoints.group_hashes",
     "sentry.api.endpoints.group_hashes_split",
     "sentry.api.endpoints.group_integration_details",
     "sentry.api.endpoints.group_integrations",
