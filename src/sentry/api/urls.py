@@ -38,6 +38,8 @@ from sentry.api.endpoints.release_thresholds.release_threshold_index import (
 from sentry.api.endpoints.release_thresholds.release_threshold_status_index import (
     ReleaseThresholdStatusIndexEndpoint,
 )
+from sentry.api.endpoints.relocations.abort import RelocationAbortEndpoint
+from sentry.api.endpoints.relocations.cancel import RelocationCancelEndpoint
 from sentry.api.endpoints.relocations.details import RelocationDetailsEndpoint
 from sentry.api.endpoints.relocations.index import RelocationIndexEndpoint
 from sentry.api.endpoints.relocations.pause import RelocationPauseEndpoint
@@ -756,6 +758,16 @@ RELOCATION_URLS = [
         r"^(?P<relocation_uuid>[^\/]+)/$",
         RelocationDetailsEndpoint.as_view(),
         name="sentry-api-0-relocations-details",
+    ),
+    re_path(
+        r"^(?P<relocation_uuid>[^\/]+)/abort/$",
+        RelocationAbortEndpoint.as_view(),
+        name="sentry-api-0-relocations-abort",
+    ),
+    re_path(
+        r"^(?P<relocation_uuid>[^\/]+)/cancel/$",
+        RelocationCancelEndpoint.as_view(),
+        name="sentry-api-0-relocations-cancel",
     ),
     re_path(
         r"^(?P<relocation_uuid>[^\/]+)/pause/$",
