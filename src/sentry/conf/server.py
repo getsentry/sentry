@@ -796,6 +796,7 @@ CELERY_IMPORTS = (
     "sentry.dynamic_sampling.tasks.collect_orgs",
     "sentry.tasks.statistical_detectors",
     "sentry.debug_files.tasks",
+    "sentry.tasks.on_demand_metrics",
 )
 
 default_exchange = Exchange("default", type="direct")
@@ -929,6 +930,7 @@ CELERY_QUEUES_REGION = [
     CELERY_ISSUE_STATES_QUEUE,
     Queue("nudge.invite_missing_org_members", routing_key="invite_missing_org_members"),
     Queue("auto_resolve_issues", routing_key="auto_resolve_issues"),
+    Queue("on_demand_metrics", routing_key="on_demand_metrics"),
 ]
 
 from celery.schedules import crontab
@@ -1201,6 +1203,10 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},
+    },
+    "on-demand-metrics-schedule-on-demand-check": {
+        "task": "sentry.tasks.on_demand_metrics.schedule_on_demand_check",
+        "schedule": crontab(minute="*/5"),
     },
 }
 
