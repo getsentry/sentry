@@ -78,7 +78,7 @@ class HighCardinalityWidgetException(Exception):
     max_retries=0,
     soft_time_limit=60,
     time_limit=120,
-    expires=60,
+    expires=180,
 )
 def schedule_on_demand_check() -> None:
     """
@@ -170,7 +170,7 @@ def schedule_on_demand_check() -> None:
     max_retries=0,
     soft_time_limit=60,
     time_limit=120,
-    expires=60,
+    expires=180,
 )
 def process_widget_specs(widget_query_ids: list[int], *args, **kwargs) -> None:
     """
