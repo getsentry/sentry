@@ -303,32 +303,32 @@ def test_detect_transaction_trends(
     assert detect_transaction_change_points.apply_async.called
 
 
-@mock.patch("sentry.tasks.statistical_detectors.query_transactions")
+@mock.patch("sentry.tasks.statistical_detectors.raw_snql_query")
 @mock.patch("sentry.tasks.statistical_detectors.detect_transaction_change_points")
 @mock.patch("sentry.statistical_detectors.detector.produce_occurrence_to_kafka")
 @django_db_all
+@pytest.mark.sentry_metrics
 def test_detect_transaction_trends_auto_resolution(
     produce_occurrence_to_kafka,
     detect_transaction_change_points,
-    query_transactions,
+    raw_snql_query,
     timestamp,
     project,
 ):
     n = 75
     timestamps = [timestamp - timedelta(hours=n - i) for i in range(n)]
 
-    query_transactions.side_effect = [
-        [
-            DetectorPayload(
-                project_id=project.id,
-                group="/123",
-                # this matches the fingerprint field generated from querying transactions
-                fingerprint=fingerprint_regression("/123"),
-                count=100,
-                value=100 if i < 10 else 300 if i < 20 else 100,
-                timestamp=ts,
-            ),
-        ]
+    raw_snql_query.side_effect = [
+        {
+            "data": [
+                {
+                    "project_id": project.id,
+                    "transaction_name": "/123",
+                    "count": 100,
+                    "p95": 100 if i < 10 else 300 if i < 20 else 100,
+                },
+            ],
+        }
         for i, ts in enumerate(timestamps)
     ]
 
@@ -631,32 +631,32 @@ def test_detect_function_trends(
     assert detect_function_change_points.apply_async.called
 
 
-@mock.patch("sentry.tasks.statistical_detectors.query_functions")
+@mock.patch("sentry.tasks.statistical_detectors.functions.query")
 @mock.patch("sentry.tasks.statistical_detectors.detect_function_change_points")
 @mock.patch("sentry.statistical_detectors.detector.produce_occurrence_to_kafka")
 @django_db_all
 def test_detect_function_trends_auto_resolution(
     produce_occurrence_to_kafka,
     detect_function_change_points,
-    query_functions,
+    functions_query,
     timestamp,
     project,
 ):
     n = 750
     timestamps = [timestamp - timedelta(hours=n - i) for i in range(n)]
 
-    query_functions.side_effect = [
-        [
-            DetectorPayload(
-                project_id=project.id,
-                group=123,
-                # this matches the fingerprint field generated from querying functions
-                fingerprint=f"{123:x}",
-                count=100,
-                value=100 if i < 10 else 300 if i < 20 else 100,
-                timestamp=ts,
-            ),
-        ]
+    functions_query.side_effect = [
+        {
+            "data": [
+                {
+                    "project.id": project.id,
+                    "fingerprint": 123,
+                    "count()": 100,
+                    "p95()": 100 if i < 10 else 300 if i < 20 else 100,
+                    "timestamp": ts.isoformat(),
+                },
+            ],
+        }
         for i, ts in enumerate(timestamps)
     ]
 
