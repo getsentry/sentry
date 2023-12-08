@@ -6,6 +6,7 @@ import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
+import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -22,8 +23,7 @@ export enum MetricValues {
 }
 
 export enum RuleAction {
-  ALERT_ON_HIGH_PRIORITY_ISSUES,
-  ALERT_ON_EVERY_ISSUE,
+  DEFAULT_ALERT,
   CUSTOMIZED_ALERTS,
   CREATE_ALERT_LATER,
 }
@@ -48,6 +48,7 @@ type Props = DeprecatedAsyncComponent['props'] & {
   alertSetting?: string;
   interval?: string;
   metric?: MetricValues;
+  platformLanguage?: SupportedLanguages;
   threshold?: string;
 };
 
@@ -115,11 +116,7 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
       ...super.getDefaultState(),
       conditions: [],
       intervalChoices: [],
-      alertSetting:
-        this.props.alertSetting ??
-        (this.props.organization.features.includes('default-high-priority-alerts')
-          ? RuleAction.ALERT_ON_HIGH_PRIORITY_ISSUES.toString()
-          : RuleAction.ALERT_ON_EVERY_ISSUE.toString()),
+      alertSetting: this.props.alertSetting ?? RuleAction.DEFAULT_ALERT.toString(),
       metric: this.props.metric ?? MetricValues.ERRORS,
       interval: this.props.interval ?? '',
       threshold: this.props.threshold ?? '10',
@@ -182,13 +179,12 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
       </CustomizeAlertsGrid>,
     ];
 
+    const default_label = this.shouldUseNewDefaultSetting()
+      ? t('Alert me on high priority issues')
+      : t('Alert me on every new issue');
+
     const options: [string, React.ReactNode][] = [
-      this.props.organization.features.includes('default-high-priority-alerts')
-        ? [
-            RuleAction.ALERT_ON_HIGH_PRIORITY_ISSUES.toString(),
-            t('Alert me on high priority issues'),
-          ]
-        : [RuleAction.ALERT_ON_EVERY_ISSUE.toString(), t('Alert me on every new issue')],
+      [RuleAction.DEFAULT_ALERT.toString(), default_label],
       ...(hasProperlyLoadedConditions ? [customizedAlertOption] : []),
       [RuleAction.CREATE_ALERT_LATER.toString(), t("I'll create my own alerts later")],
     ];
@@ -198,16 +194,20 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
     ]);
   }
 
+  shouldUseNewDefaultSetting(): boolean {
+    return (
+      this.props.organization.features.includes('default-high-priority-alerts') &&
+      (this.props.platformLanguage === SupportedLanguages.PYTHON ||
+        this.props.platformLanguage === SupportedLanguages.JAVASCRIPT)
+    );
+  }
+
   getUpdatedData(): RequestDataFragment {
     let defaultRules: boolean;
     let shouldCreateCustomRule: boolean;
     const alertSetting: RuleAction = parseInt(this.state.alertSetting, 10);
     switch (alertSetting) {
-      case RuleAction.ALERT_ON_HIGH_PRIORITY_ISSUES:
-        defaultRules = true;
-        shouldCreateCustomRule = false;
-        break;
-      case RuleAction.ALERT_ON_EVERY_ISSUE:
+      case RuleAction.DEFAULT_ALERT:
         defaultRules = true;
         shouldCreateCustomRule = false;
         break;
