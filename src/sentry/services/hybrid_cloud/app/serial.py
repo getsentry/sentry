@@ -52,6 +52,9 @@ def serialize_sentry_app_installation(
     if app is None:
         app = installation.sentry_app
         assert app is not None
+    api_token = None
+    if installation.api_token_id and installation.api_token:
+        api_token = installation.api_token.token
 
     return RpcSentryAppInstallation(
         id=installation.id,
@@ -60,7 +63,7 @@ def serialize_sentry_app_installation(
         sentry_app=serialize_sentry_app(app),
         date_deleted=installation.date_deleted,
         uuid=installation.uuid,
-        api_token=installation.api_token.token if installation.api_token_id else None,
+        api_token=api_token,
     )
 
 
