@@ -20,15 +20,10 @@ import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
+import {ScreensTable} from 'sentry/views/starfish/views/appStartup/screensTable';
 import {getFreeTextFromQuery} from 'sentry/views/starfish/views/screens';
-import {
-  ScreensTable,
-  useTableQuery,
-} from 'sentry/views/starfish/views/screens/screensTable';
-
-const MAX_TABLE_RELEASE_CHARS = 15;
+import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 
 type Props = {
   additionalFilters?: string[];
@@ -47,14 +42,6 @@ function AppStartup({additionalFilters}: Props) {
     secondaryRelease,
     isLoading: isReleasesLoading,
   } = useReleaseSelection();
-  const truncatedPrimary = formatVersionAndCenterTruncate(
-    primaryRelease ?? '',
-    MAX_TABLE_RELEASE_CHARS
-  );
-  const truncatedSecondary = formatVersionAndCenterTruncate(
-    secondaryRelease ?? '',
-    MAX_TABLE_RELEASE_CHARS
-  );
 
   const router = useRouter();
 
@@ -81,6 +68,8 @@ function AppStartup({additionalFilters}: Props) {
       `avg_if(measurements.app_start_cold,release,${secondaryRelease})`,
       `avg_if(measurements.app_start_warm,release,${primaryRelease})`,
       `avg_if(measurements.app_start_warm,release,${secondaryRelease})`,
+      'count_starts(measurements.app_start_cold)',
+      'count_starts(measurements.app_start_warm)',
       'count()',
     ],
     query: queryString,
@@ -154,26 +143,6 @@ function AppStartup({additionalFilters}: Props) {
         data={topTransactionsData}
         isLoading={topTransactionsLoading}
         pageLinks={pageLinks}
-        columnNameMap={{
-          transaction: t('Screen'),
-          [`avg_if(measurements.app_start_cold,release,${primaryRelease})`]: t(
-            'Cold Start (%s)',
-            truncatedPrimary
-          ),
-          [`avg_if(measurements.app_start_cold,release,${secondaryRelease})`]: t(
-            'Cold Start (%s)',
-            truncatedSecondary
-          ),
-          [`avg_if(measurements.app_start_warm,release,${primaryRelease})`]: t(
-            'Warm Start (%s)',
-            truncatedPrimary
-          ),
-          [`avg_if(measurements.app_start_warm,release,${secondaryRelease})`]: t(
-            'Warm Start (%s)',
-            truncatedSecondary
-          ),
-          'count()': t('Total Count'),
-        }}
       />
     </div>
   );
