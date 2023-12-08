@@ -4,7 +4,7 @@
 import fs from 'fs';
 import path from 'path';
 
-import webpack from 'webpack';
+import type {Compiler} from '@rspack/core';
 
 type Options = {
   basePath: string;
@@ -19,7 +19,7 @@ class LastBuiltPlugin {
     this.isWatchMode = false;
   }
 
-  apply(compiler: webpack.Compiler) {
+  apply(compiler: Compiler) {
     compiler.hooks.watchRun.tapAsync('LastBuiltPlugin', (_, callback) => {
       this.isWatchMode = true;
       callback();
