@@ -242,7 +242,7 @@ class GroupTest(TestCase, SnubaTestCase):
         project = self.create_project(organization=org)
         group_id = 23
         params = None
-        expected = f"http://testserver/organizations/org1/feedback/?feedbackSlug={project.slug}%3A23&project=4553092757258259"
+        expected = f"http://testserver/organizations/org1/feedback/?feedbackSlug={project.slug}%3A23&project={project.id}"
 
         group = self.create_group(id=group_id, project=project, type=FeedbackGroup.type_id)
         actual = group.get_absolute_url(params)
