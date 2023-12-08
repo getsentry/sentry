@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 from enum import Enum
-from typing import Any, Collection, Container, Dict, Iterable, List, Optional, Set
+from typing import Any, Container, Dict, Generator, Iterable, List, Optional, Set
 from urllib.parse import urljoin
 
 import sentry_sdk
@@ -119,34 +120,129 @@ class RegionContextError(Exception):
     """Indicate that the server is not in a state to resolve a region."""
 
 
-class GlobalRegionDirectory:
-    """The set of all regions in this Sentry platform instance."""
+class RegionDirectory:
+    """A set of regions in a Sentry environment.
 
-    def __init__(self, regions: Collection[Region]) -> None:
-        if not regions:
-            default_monolith_region = Region(
-                name=settings.SENTRY_MONOLITH_REGION,
+    In a production environment, there will be only one instance of this class,
+    held in a singleton GlobalRegionDirectory.
+
+    In a test environment, the singleton GlobalRegionDirectory may have
+    RegionDirectory instances temporarily swapped into it.
+    """
+
+    def __init__(self, regions: Iterable[Region], monolith_region_name: str | None = None) -> None:
+        if monolith_region_name is None:
+            monolith_region_name = settings.SENTRY_MONOLITH_REGION
+        elif not in_test_environment():
+            raise Exception(
+                "Monolith region may be set only in the test environment; "
+                "otherwise it must come from the SENTRY_MONOLITH_REGION setting"
+            )
+
+        self.regions = frozenset(regions)
+        if not self.regions:
+            self.monolith_region = Region(
+                name=monolith_region_name,
                 snowflake_id=0,
                 address=options.get("system.url-prefix"),
                 category=RegionCategory.MULTI_TENANT,
             )
-            regions = [default_monolith_region]
-        elif not any(r.name == settings.SENTRY_MONOLITH_REGION for r in regions):
-            raise RegionConfigurationError(
-                "The SENTRY_MONOLITH_REGION setting must point to a region name "
-                f"({settings.SENTRY_MONOLITH_REGION=!r}; "
-                f"region names = {[r.name for r in regions]!r})"
-            )
+            self.regions = frozenset({self.monolith_region})
+        else:
+            regions_with_monolith_name = [r for r in self.regions if r.name == monolith_region_name]
+            if not regions_with_monolith_name:
+                raise RegionConfigurationError(
+                    "The SENTRY_MONOLITH_REGION setting must point to a region name "
+                    f"({monolith_region_name=!r}; "
+                    f"region names = {[r.name for r in self.regions]!r})"
+                )
+            (self.monolith_region,) = regions_with_monolith_name
 
-        self.regions = frozenset(regions)
-        self.by_name = {r.name: r for r in self.regions}
+        self._by_name = {r.name: r for r in self.regions}
+
+        self.local_region: Region | None = None
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            if not settings.SENTRY_REGION:
+                raise RegionConfigurationError(
+                    "SENTRY_REGION must be set when server is in REGION silo mode"
+                )
+            self.local_region = self._by_name[settings.SENTRY_REGION]
+
+    def get(self, region_name: str) -> Region | None:
+        return self._by_name.get(region_name)
 
     def validate_all(self) -> None:
         for region in self.regions:
             region.validate()
 
 
-def parse_raw_config(region_config: Any) -> Iterable[Region]:
+class GlobalRegionDirectory:
+    """The set of all regions in this Sentry platform instance.
+
+    This class is a singleton. In a production environment, it is immutable.
+    Test environments support swapping its values in a temporary context.
+    """
+
+    def __init__(self, directory: RegionDirectory) -> None:
+        self._dir = directory
+        self._temporary_local_region: Region | None = None  # Used only in test env
+
+    @property
+    def regions(self) -> frozenset[Region]:
+        return self._dir.regions
+
+    @property
+    def historic_monolith_region(self) -> Region:
+        return self._dir.monolith_region
+
+    @property
+    def local_region(self) -> Region | None:
+        if self._temporary_local_region is not None:
+            self._allow_only_in_test_env()
+            return self._temporary_local_region
+        return self._dir.local_region
+
+    def get(self, region_name: str) -> Region | None:
+        return self._dir.get(region_name)
+
+    def get_all_region_names(self) -> Iterable[str]:
+        return (r.name for r in self.regions)
+
+    def _allow_only_in_test_env(self) -> None:
+        if not in_test_environment():
+            raise Exception("Swapping region values is allowed only in the test environment")
+
+    @contextmanager
+    def swap_directory(self, directory: RegionDirectory) -> Generator[None, None, None]:
+        self._allow_only_in_test_env()
+        old_dir = self._dir
+        try:
+            self._dir = directory
+            yield
+        finally:
+            self._dir = old_dir
+
+    @contextmanager
+    def swap_local_region(self, region: Region) -> Generator[None, None, None]:
+        self._allow_only_in_test_env()
+        if self._temporary_local_region is not None:
+            raise Exception(
+                f"A local region ({self._temporary_local_region.name}) is already being swapped"
+            )
+        if region not in self.regions:
+            raise Exception(
+                f"The swapped region {region.name} is not in this directory "
+                f"({[r.name for r in self.regions]})"
+            )
+
+        try:
+            self._temporary_local_region = region
+            yield
+        finally:
+            self._temporary_local_region = None
+
+
+def _parse_raw_config(region_config: Any) -> Iterable[Region]:
     if isinstance(region_config, (str, bytes)):
         json_config_values = json.loads(region_config)
         config_values = parse_obj_as(List[Region], json_config_values)
@@ -154,7 +250,7 @@ def parse_raw_config(region_config: Any) -> Iterable[Region]:
         config_values = region_config
 
     if not isinstance(config_values, (list, tuple)):
-        config_values = [config_values]  # type: ignore
+        config_values = [config_values]  # type: ignore[unreachable]
 
     for config_value in config_values:
         if isinstance(config_value, Region):
@@ -167,10 +263,9 @@ def parse_raw_config(region_config: Any) -> Iterable[Region]:
             yield Region(**config_value)
 
 
-def load_from_config(region_config: Any) -> GlobalRegionDirectory:
+def load_from_config(region_config: Any) -> RegionDirectory:
     try:
-        region_objs = list(parse_raw_config(region_config))
-        return GlobalRegionDirectory(region_objs)
+        return RegionDirectory(_parse_raw_config(region_config))
     except RegionConfigurationError as e:
         sentry_sdk.capture_exception(e)
         raise
@@ -192,32 +287,28 @@ def load_global_regions() -> GlobalRegionDirectory:
     # For now, assume that all region configs can be taken in through Django
     # settings. We may investigate other ways of delivering those configs in
     # production.
-    _global_regions = load_from_config(settings.SENTRY_REGION_CONFIG)
+    _global_regions = GlobalRegionDirectory(load_from_config(settings.SENTRY_REGION_CONFIG))
     return _global_regions
-
-
-def clear_global_regions() -> None:
-    global _global_regions
-    _global_regions = None
 
 
 def get_region_by_name(name: str) -> Region:
     """Look up a region by name."""
     global_regions = load_global_regions()
-    try:
-        return global_regions.by_name[name]
-    except KeyError as e:
+    region = global_regions.get(name)
+    if region is not None:
+        return region
+    else:
         region_names = [
             r.name for r in global_regions.regions if r.category == RegionCategory.MULTI_TENANT
         ]
         raise RegionResolutionError(
             f"No region with name: {name!r} "
             f"(expected one of {region_names!r} or a single-tenant name)"
-        ) from e
+        )
 
 
 def is_region_name(name: str) -> bool:
-    return name in load_global_regions().by_name
+    return load_global_regions().get(name) is not None
 
 
 def subdomain_is_region(request: HttpRequest) -> bool:
@@ -244,11 +335,10 @@ def get_local_region() -> Region:
 
     Raises RegionContextError if this server instance is not a region silo.
     """
-    from django.conf import settings
 
+    global_regions = load_global_regions()
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-        return get_region_by_name(settings.SENTRY_MONOLITH_REGION)
-
+        return global_regions.historic_monolith_region
     if SiloMode.get_current_mode() != SiloMode.REGION:
         raise RegionContextError("Not a region silo")
 
@@ -259,12 +349,9 @@ def get_local_region() -> Region:
     if single_process_silo_mode_state.region:
         return single_process_silo_mode_state.region
 
-    if not settings.SENTRY_REGION:
-        if in_test_environment():
-            return get_region_by_name(settings.SENTRY_MONOLITH_REGION)
-        else:
-            raise Exception("SENTRY_REGION must be set when server is in REGION silo mode")
-    return get_region_by_name(settings.SENTRY_REGION)
+    if not global_regions.local_region:
+        raise RegionConfigurationError("SENTRY_REGION was not stored as expected")
+    return global_regions.local_region
 
 
 @control_silo_function
@@ -301,7 +388,7 @@ def find_regions_for_user(user_id: int) -> Set[str]:
 
 
 def find_all_region_names() -> Iterable[str]:
-    return load_global_regions().by_name.keys()
+    return load_global_regions().get_all_region_names()
 
 
 def find_all_multitenant_region_names() -> List[str]:

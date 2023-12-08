@@ -1,3 +1,5 @@
+from contextlib import contextmanager
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -9,27 +11,33 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.silo import SiloLimit, SiloMode, unguarded_write
 from sentry.testutils.cases import TestCase
-from sentry.testutils.region import override_region_config, override_regions
+from sentry.testutils.region import override_regions
 from sentry.types.region import (
     Region,
     RegionCategory,
     RegionConfigurationError,
     RegionResolutionError,
-    clear_global_regions,
     find_all_multitenant_region_names,
     find_all_region_names,
     get_local_region,
     get_region_by_name,
     get_region_for_organization,
+    load_from_config,
+    load_global_regions,
     subdomain_is_region,
 )
 from sentry.utils import json
 
 
-class RegionMappingTest(TestCase):
-    def setUp(self) -> None:
-        clear_global_regions()
+@contextmanager
+def _override_region_config(region_config: Any, monolith_region_name: str):
+    with override_settings(SENTRY_MONOLITH_REGION=monolith_region_name):
+        test_directory = load_from_config(json.dumps(region_config))
+        with load_global_regions().override(test_directory):
+            yield
 
+
+class RegionMappingTest(TestCase):
     def test_region_mapping(self):
         regions = [
             Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
@@ -112,10 +120,7 @@ class RegionMappingTest(TestCase):
                 "category": RegionCategory.MULTI_TENANT.name,
             }
         ]
-        with override_settings(
-            SENTRY_REGION_CONFIG=json.dumps(region_config),
-            SENTRY_MONOLITH_REGION="us",
-        ):
+        with _override_region_config(region_config, "us"):
             region = get_region_by_name("us")
         assert region.snowflake_id == 1
 
@@ -123,21 +128,18 @@ class RegionMappingTest(TestCase):
     def test_invalid_config(self, sentry_sdk_mock):
         region_config = ["invalid"]
         assert sentry_sdk_mock.capture_exception.call_count == 0
-        with override_settings(SENTRY_REGION_CONFIG=json.dumps(region_config)), pytest.raises(
-            RegionConfigurationError
-        ):
-            get_region_by_name("us")
+        with pytest.raises(RegionConfigurationError):
+            with _override_region_config(region_config, "us"):
+                pass
         assert sentry_sdk_mock.capture_exception.call_count == 1
 
     def test_default_historic_region_setting(self):
         monolith_region_name = "my_default_historic_monolith_region"
-        with override_settings(
-            SENTRY_REGION_CONFIG=json.dumps([]),
-            SENTRY_MONOLITH_REGION=monolith_region_name,
-        ):
+        with _override_region_config([], monolith_region_name):
             region = get_region_by_name(monolith_region_name)
             assert region.name == monolith_region_name
             assert region.is_historic_monolith_region()
+            assert region == load_global_regions().historic_monolith_region
 
     def test_invalid_historic_region_setting(self):
         region_config = [
@@ -148,12 +150,9 @@ class RegionMappingTest(TestCase):
                 "category": RegionCategory.MULTI_TENANT.name,
             }
         ]
-        with override_settings(
-            SENTRY_REGION_CONFIG=json.dumps(region_config),
-            SENTRY_MONOLITH_REGION="nonexistent",
-        ):
-            with pytest.raises(RegionConfigurationError):
-                get_region_by_name("us")
+        with pytest.raises(RegionConfigurationError):
+            with _override_region_config(region_config, "nonexistent"):
+                pass
 
     def test_find_regions_for_user(self):
         from sentry.types.region import find_regions_for_user
@@ -166,17 +165,18 @@ class RegionMappingTest(TestCase):
                 "category": RegionCategory.MULTI_TENANT.name,
             }
         ]
-        with override_settings(SILO_MODE=SiloMode.CONTROL), override_region_config(region_config):
-            organization = self.create_organization(name="test name", region="us")
+        with override_settings(SILO_MODE=SiloMode.CONTROL):
+            with _override_region_config(region_config, "us"):
+                organization = self.create_organization(name="test name", region="us")
 
-            user = self.create_user()
-            organization_service.add_organization_member(
-                organization_id=organization.id,
-                default_org_role=organization.default_role,
-                user_id=user.id,
-            )
-            actual_regions = find_regions_for_user(user_id=user.id)
-            assert actual_regions == {"us"}
+                user = self.create_user()
+                organization_service.add_organization_member(
+                    organization_id=organization.id,
+                    default_org_role=organization.default_role,
+                    user_id=user.id,
+                )
+                actual_regions = find_regions_for_user(user_id=user.id)
+                assert actual_regions == {"us"}
 
         with override_settings(SILO_MODE=SiloMode.REGION):
             with pytest.raises(SiloLimit.AvailabilityError):
@@ -197,9 +197,10 @@ class RegionMappingTest(TestCase):
                 "category": RegionCategory.SINGLE_TENANT.name,
             },
         ]
-        with override_settings(SILO_MODE=SiloMode.CONTROL), override_region_config(region_config):
-            result = find_all_region_names()
-            assert set(result) == {"us", "acme"}
+        with override_settings(SILO_MODE=SiloMode.CONTROL):
+            with _override_region_config(region_config, "us"):
+                result = find_all_region_names()
+                assert set(result) == {"us", "acme"}
 
     def test_find_all_multitenant_region_names(self):
         region_config = [
@@ -216,9 +217,10 @@ class RegionMappingTest(TestCase):
                 "category": RegionCategory.SINGLE_TENANT.name,
             },
         ]
-        with override_settings(SILO_MODE=SiloMode.CONTROL), override_region_config(region_config):
-            result = find_all_multitenant_region_names()
-            assert set(result) == {"us"}
+        with override_settings(SILO_MODE=SiloMode.CONTROL):
+            with _override_region_config(region_config, "us"):
+                result = find_all_multitenant_region_names()
+                assert set(result) == {"us"}
 
     def test_subdomain_is_region(self):
         regions = [
