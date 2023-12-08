@@ -1,4 +1,4 @@
-import {ReactNode, useCallback, useEffect, useState} from 'react';
+import {ReactNode, useCallback, useEffect, useRef, useState} from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import debounce from 'lodash/debounce';
@@ -10,6 +10,7 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useLocation} from 'sentry/utils/useLocation';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {buildEventViewQuery} from 'sentry/views/starfish/utils/buildEventViewQuery';
@@ -28,13 +29,14 @@ type Props = {
   value?: string;
 };
 
-type State = {
-  inputChanged: boolean;
-  search: string;
-  shouldRequeryOnInputChange: boolean;
-};
+interface DomainData {
+  'span.domain': string[];
+}
 
-const LIMIT = 100;
+interface DomainCacheValue {
+  domainData: DomainData[];
+  hasNextResults: boolean;
+}
 
 export function DomainSelector({
   value = '',
@@ -43,45 +45,68 @@ export function DomainSelector({
   additionalQuery = [],
   emptyOptionLocation = 'bottom',
 }: Props) {
-  const [state, setState] = useState<State>({
-    search: '',
-    inputChanged: false,
-    shouldRequeryOnInputChange: false,
-  });
   const location = useLocation();
+
+  const [searchInputValue, setSearchInputValue] = useState<string>(''); // Realtime domain search value in UI
+  const [domainQuery, setDomainQuery] = useState<string>(''); // Debounced copy of `searchInputValue` used for the Discover query
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const debouncedSetSearch = useCallback(
+    debounce(newSearch => {
+      setDomainQuery(newSearch);
+    }, 500),
+    []
+  );
+
   const eventView = getEventView(
     location,
     moduleName,
     spanCategory,
-    state.search,
+    domainQuery,
     additionalQuery
   );
 
-  const {data: domainData, isLoading} = useSpansQuery<
-    Array<{[SpanMetricsField.SPAN_DOMAIN]: Array<string>}>
-  >({
+  const {
+    data: domainData,
+    isLoading,
+    pageLinks,
+  } = useSpansQuery<DomainData[]>({
     eventView,
     initialData: [],
     limit: LIMIT,
     referrer: 'api.starfish.get-span-domains',
   });
 
-  const domains = uniq(flatten(domainData?.map(row => row['span.domain'])));
+  // Cache for the initial full load of top N domains
+  const domainCache = useRef<DomainCacheValue>({
+    domainData: [],
+    hasNextResults: true,
+  });
 
-  // If the maximum number of domains is returned, we need to requery on input change to get full results
-  if (!state.shouldRequeryOnInputChange && domains && domains.length >= LIMIT) {
-    setState({...state, shouldRequeryOnInputChange: true});
-  }
-
-  // Everytime loading is complete, reset the inputChanged state
   useEffect(() => {
-    if (!isLoading && state.inputChanged) {
-      setState({...state, inputChanged: false});
+    if (!domainCache.current.domainData.length) {
+      if (domainData && (domainData?.length ?? 0) > 0) {
+        domainCache.current.domainData = domainData;
+      }
+
+      if (pageLinks) {
+        const {next} = parseLinkHeader(pageLinks);
+        domainCache.current.hasNextResults = next.results ?? false;
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading]);
+  }, [domainData]);
 
-  const optionsReady = !isLoading && !state.inputChanged;
+  const domains = uniq(
+    flatten(
+      (domainData ?? domainCache.current.domainData ?? [])?.map(row => row['span.domain'])
+    )
+  );
+
+  // The current selected table might not be in the initial load, or the current search. Ensure it's always in the list
+  if (Boolean(value) && !domains.includes(value)) {
+    domains.push(value);
+  }
 
   const emptyOption = {
     value: EMPTY_OPTION_VALUE,
@@ -90,39 +115,33 @@ export function DomainSelector({
     ),
   };
 
-  const options = optionsReady
-    ? [
-        {value: '', label: 'All'},
-        ...(emptyOptionLocation === 'top' ? [emptyOption] : []),
-        ...domains
-          .map(datum => {
-            return {
-              value: datum,
-              label: datum,
-            };
-          })
-          .sort((a, b) => a.value.localeCompare(b.value)),
-        ...(emptyOptionLocation === 'bottom' ? [emptyOption] : []),
-      ]
-    : [];
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const debounceUpdateSearch = useCallback(
-    debounce((search, currentState) => {
-      setState({...currentState, search});
-    }, 500),
-    []
-  );
+  const options = [
+    {value: '', label: 'All'},
+    ...(emptyOptionLocation === 'top' ? [emptyOption] : []),
+    ...domains
+      .map(datum => {
+        return {
+          value: datum,
+          label: datum,
+        };
+      })
+      .sort((a, b) => a.value.localeCompare(b.value)),
+    ...(emptyOptionLocation === 'bottom' ? [emptyOption] : []),
+  ];
 
   return (
     <SelectControl
       inFieldLabel={`${LABEL_FOR_MODULE_NAME[moduleName]}:`}
+      inputValue={searchInputValue}
       value={value}
       options={options}
+      isLoading={isLoading}
       onInputChange={input => {
-        if (state.shouldRequeryOnInputChange) {
-          setState({...state, inputChanged: true});
-          debounceUpdateSearch(input, state);
+        setSearchInputValue(input);
+
+        // If the initial query didn't fetch all the domains, update the search query and fire off a new query with the given search
+        if (domainCache.current.hasNextResults) {
+          debouncedSetSearch(input);
         }
       }}
       onChange={newValue => {
@@ -135,10 +154,12 @@ export function DomainSelector({
           },
         });
       }}
-      noOptionsMessage={() => (optionsReady ? undefined : t('Loading...'))}
+      noOptionsMessage={() => t('No results')}
     />
   );
 }
+
+const LIMIT = 100;
 
 const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   http: t('Host'),
