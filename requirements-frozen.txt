@@ -94,6 +94,7 @@ pycountry==17.5.14
 pycparser==2.21
 pydantic==1.10.9
 pyjwt==2.4.0
+pymemcache==4.0.0
 pyparsing==3.0.9
 pyrsistent==0.18.1
 python-dateutil==2.8.2
