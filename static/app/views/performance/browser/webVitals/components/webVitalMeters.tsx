@@ -84,7 +84,7 @@ export default function WebVitalMeters({
                     title={
                       <span>
                         {tct(
-                          `The average [webVital] value and aggregate [webVital] score of your selected project(s).
+                          `The p75 [webVital] value and aggregate [webVital] score of your selected project(s).
                           Scores and values may share some (but not perfect) correlation.`,
                           {
                             webVital: toUpper(webVital),
