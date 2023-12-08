@@ -26,11 +26,11 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
   const projectTimeSeriesEventView = EventView.fromNewQueryWithPageFilters(
     {
       yAxis: [
-        'avg(measurements.lcp)',
-        'avg(measurements.fcp)',
-        'avg(measurements.cls)',
-        'avg(measurements.ttfb)',
-        'avg(measurements.fid)',
+        'p75(measurements.lcp)',
+        'p75(measurements.fcp)',
+        'p75(measurements.cls)',
+        'p75(measurements.ttfb)',
+        'p75(measurements.fid)',
         'count()',
       ],
       name: 'Web Vitals',
@@ -89,13 +89,13 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
     count: [],
   };
 
-  result?.data?.['avg(measurements.lcp)']?.data.forEach((interval, index) => {
+  result?.data?.['p75(measurements.lcp)']?.data.forEach((interval, index) => {
     const map: {key: string; series: SeriesDataUnit[]}[] = [
-      {key: 'avg(measurements.cls)', series: data.cls},
-      {key: 'avg(measurements.lcp)', series: data.lcp},
-      {key: 'avg(measurements.fcp)', series: data.fcp},
-      {key: 'avg(measurements.ttfb)', series: data.ttfb},
-      {key: 'avg(measurements.fid)', series: data.fid},
+      {key: 'p75(measurements.cls)', series: data.cls},
+      {key: 'p75(measurements.lcp)', series: data.lcp},
+      {key: 'p75(measurements.fcp)', series: data.fcp},
+      {key: 'p75(measurements.ttfb)', series: data.ttfb},
+      {key: 'p75(measurements.fid)', series: data.fid},
       {key: 'count()', series: data.count},
     ];
     map.forEach(({key, series}) => {

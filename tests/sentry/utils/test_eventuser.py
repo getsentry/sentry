@@ -9,7 +9,6 @@ from snuba_sdk import BooleanOp
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.eventuser import EventUser
 
@@ -440,7 +439,6 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
         assert euser[0].email is None
         assert euser[0].tag_value == "ip:8.8.8.1"
 
-    @with_feature("organizations:eventuser-from-snuba")
     def test_for_tags(self):
         assert EventUser.for_tags(self.project.id, ["id:myminion"]) == {
             "id:myminion": EventUser.from_event(self.event_3)

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from django.http.response import Http404
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -66,7 +68,7 @@ class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
             },
         }
         """
-        info_by_plugin_project = {}
+        info_by_plugin_project: dict[str, dict[int, dict[str, bool]]] = {}
         for project_option in project_options:
             [slug, field] = project_option.key.split(":")
             project_id = project_option.project_id

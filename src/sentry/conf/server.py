@@ -796,6 +796,7 @@ CELERY_IMPORTS = (
     "sentry.dynamic_sampling.tasks.collect_orgs",
     "sentry.tasks.statistical_detectors",
     "sentry.debug_files.tasks",
+    "sentry.tasks.on_demand_metrics",
 )
 
 default_exchange = Exchange("default", type="direct")
@@ -929,6 +930,7 @@ CELERY_QUEUES_REGION = [
     CELERY_ISSUE_STATES_QUEUE,
     Queue("nudge.invite_missing_org_members", routing_key="invite_missing_org_members"),
     Queue("auto_resolve_issues", routing_key="auto_resolve_issues"),
+    Queue("on_demand_metrics", routing_key="on_demand_metrics"),
 ]
 
 from celery.schedules import crontab
@@ -1202,6 +1204,10 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},
     },
+    "on-demand-metrics-schedule-on-demand-check": {
+        "task": "sentry.tasks.on_demand_metrics.schedule_on_demand_check",
+        "schedule": crontab(minute="*/5"),
+    },
 }
 
 # Assign the configuration keys celery uses based on our silo mode.
@@ -1399,91 +1405,121 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 # Sentry and internal client configuration
 
 SENTRY_EARLY_FEATURES = {
-    "organizations:grouping-tree-ui": "Enable experimental new version of Merged Issues where sub-hashes are shown",
-    "organizations:sourcemaps-bundle-flat-file-indexing": "Enable the new flat file indexing system for sourcemaps.",
     "organizations:anr-analyze-frames": "Enable anr frame analysis",
-    "organizations:mobile-cpu-memory-in-transactions": "Display CPU and memory metrics in transactions with profiles",
-    "organizations:device-classification": "Enable device.class as a selectable column",
-    "organizations:streamline-targeting-context": "Enable the new suggested assignees feature",
-    "organizations:performance-new-widget-designs": "Enable updated landing page widget designs",
-    "organizations:performance-new-trends": "Enable new trends",
-    "organizations:grouping-stacktrace-ui": "Enable experimental new version of stacktrace component where additional data related to grouping is shown on each frame",
-    "organizations:user-feedback-ui": "Enable User Feedback v2 UI",
-    "organizations:performance-transaction-name-only-search-indexed": "Enable transaction name only search on indexed",
-    "organizations:sourcemaps-upload-release-as-artifact-bundle": "Upload release bundles as artifact bundles",
-    "organizations:integrations-opsgenie-migration": "Enable one-click migration from Opsgenie plugin",
-    "organizations:integrations-gh-invite": "Enables inviting new members based on GitHub commit activity",
-    "organizations:performance-metrics-backed-transaction-summary": "Enable metrics-backed transaction summary view",
-    "organizations:profiling-global-suspect-functions": "Enable global suspect functions in profiling",
-    "organizations:grouping-title-ui": "Enable tweaks to group title in relation to hierarchical grouping.",
-    "organizations:performance-span-histogram-view": "Enable histogram view in span details",
-    "organizations:gitlab-disable-on-broken": "Enable disabling gitlab integrations when broken is detected",
-    "organizations:issue-details-tag-improvements": "Enable tag improvements in the issue details page",
     "organizations:anr-improvements": "Enable anr improvements ui",
+    "organizations:device-classification": "Enable device.class as a selectable column",
+    "organizations:gitlab-disable-on-broken": "Enable disabling gitlab integrations when broken is detected",
+    "organizations:grouping-stacktrace-ui": "Enable experimental new version of stacktrace component where additional data related to grouping is shown on each frame",
+    "organizations:grouping-title-ui": "Enable tweaks to group title in relation to hierarchical grouping.",
+    "organizations:grouping-tree-ui": "Enable experimental new version of Merged Issues where sub-hashes are shown",
+    "organizations:integrations-gh-invite": "Enables inviting new members based on GitHub commit activity",
+    "organizations:integrations-opsgenie-migration": "Enable one-click migration from Opsgenie plugin",
+    "organizations:issue-details-tag-improvements": "Enable tag improvements in the issue details page",
+    "organizations:mobile-cpu-memory-in-transactions": "Display CPU and memory metrics in transactions with profiles",
+    "organizations:performance-metrics-backed-transaction-summary": "Enable metrics-backed transaction summary view",
+    "organizations:performance-new-trends": "Enable new trends",
+    "organizations:performance-new-widget-designs": "Enable updated landing page widget designs",
+    "organizations:performance-span-histogram-view": "Enable histogram view in span details",
+    "organizations:performance-transaction-name-only-search-indexed": "Enable transaction name only search on indexed",
+    "organizations:profiling-global-suspect-functions": "Enable global suspect functions in profiling",
     "organizations:source-maps-debugger-blue-thunder-edition": "Enable source maps debugger",
+    "organizations:sourcemaps-bundle-flat-file-indexing": "Enable the new flat file indexing system for sourcemaps.",
+    "organizations:sourcemaps-upload-release-as-artifact-bundle": "Upload release bundles as artifact bundles",
+    "organizations:streamline-targeting-context": "Enable the new suggested assignees feature",
+    "organizations:user-feedback-ui": "Enable User Feedback v2 UI",
 }
 
+# NOTE: Please maintain alphabetical order when adding new feature flags
 SENTRY_FEATURES: dict[str, bool | None] = {
     # Enables user registration.
     "auth:register": True,
+    # Enable advanced search features, like negation and wildcard matching.
+    "organizations:advanced-search": True,
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
     "organizations:alert-allow-indexed": False,
+    # Use metrics as the dataset for crash free metric alerts
+    "organizations:alert-crash-free-metrics": False,
     # Enables transaction to metric dataset migration UI for alert rules
     "organizations:alert-migration-ui": False,
     # Enables the migration of alerts (checked in a migration script).
     "organizations:alerts-migration-enabled": False,
-    # Enables the cron job to auto-enable codecov integrations.
-    "organizations:auto-enable-codecov": False,
-    # The overall flag for codecov integration, gated by plans.
-    "organizations:codecov-integration": False,
-    # Enables getting commit sha from git blame for codecov.
-    "organizations:codecov-commit-sha-from-git-blame": False,
-    # Enables automatically deriving of code mappings
-    "organizations:derive-code-mappings": True,
-    # Enable advanced search features, like negation and wildcard matching.
-    "organizations:advanced-search": True,
-    # Use metrics as the dataset for crash free metric alerts
-    "organizations:alert-crash-free-metrics": False,
+    # Enable anr frame analysis
+    "organizations:anr-analyze-frames": False,
+    # Enable anr improvements ui
+    "organizations:anr-improvements": False,
     # Enable auth provider configuration through api
     "organizations:api-auth-provider": False,
     "organizations:api-keys": False,
     # Enable multiple Apple app-store-connect sources per project.
     "organizations:app-store-connect-multiple": False,
-    # Removes extra fields from the project serializers
-    "organizations:cleanup-project-serializer": False,
+    # Enables the cron job to auto-enable codecov integrations.
+    "organizations:auto-enable-codecov": False,
     # Enable change alerts for an org
     "organizations:change-alerts": True,
-    # Enable alerting based on crash free sessions/users
-    "organizations:crash-rate-alerts": True,
+    # Removes extra fields from the project serializers
+    "organizations:cleanup-project-serializer": False,
+    # Enables getting commit sha from git blame for codecov.
+    "organizations:codecov-commit-sha-from-git-blame": False,
+    # The overall flag for codecov integration, gated by plans.
+    "organizations:codecov-integration": False,
     # Enable the Commit Context feature
     "organizations:commit-context": False,
-    # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
-    # is not enabled).
+    # Enable alerting based on crash free sessions/users
+    "organizations:crash-rate-alerts": True,
+    # Enable creating organizations within sentry
+    # (if SENTRY_SINGLE_ORGANIZATION is not enabled).
     "organizations:create": True,
     # Enable the new crons monitor form
     "organizations:crons-new-monitor-form": False,
-    # Enable usage of customer domains on the frontend
-    "organizations:customer-domains": False,
-    # Delightful Developer Metrics (DDM): Enable sidebar menu item and all UI (requires custom-metrics flag as well)
-    "organizations:ddm-ui": False,
-    # Enables experimental WIP ddm related features
-    "organizations:ddm-experimental": False,
-    # Enable the 'discover' interface.
-    "organizations:discover": False,
-    # Enables events endpoint rate limit
-    "organizations:discover-events-rate-limit": False,
-    # Enables import/export functionality for dashboards
-    "organizations:dashboards-import": False,
-    # Enable attaching arbitrary files to events.
-    "organizations:event-attachments": True,
-    # Allow organizations to configure all symbol sources.
-    "organizations:symbol-sources": True,
+    # Metrics: Enable ingestion and storage of custom metrics. See ddm-ui for UI.
+    "organizations:custom-metrics": False,
     # Allow organizations to configure custom external symbol sources.
     "organizations:custom-symbol-sources": True,
+    # Enable usage of customer domains on the frontend
+    "organizations:customer-domains": False,
+    # Enable data forwarding functionality for organizations.
+    "organizations:data-forwarding": True,
+    # Enable dashboard widget indicators.
+    "organizations:dashboard-widget-indicators": True,
+    # Enable readonly dashboards
+    "organizations:dashboards-basic": True,
+    # Enable custom editable dashboards
+    "organizations:dashboards-edit": True,
+    # Enables import/export functionality for dashboards
+    "organizations:dashboards-import": False,
+    # Enable metrics enhanced performance in dashboards
+    "organizations:dashboards-mep": False,
+    # Enable release health widget in dashboards
+    "organizations:dashboards-rh-widget": False,
+    # Enables experimental WIP ddm related features
+    "organizations:ddm-experimental": False,
+    # Delightful Developer Metrics (DDM):
+    # Enable sidebar menu item and all UI (requires custom-metrics flag as well)
+    "organizations:ddm-ui": False,
+    # Enable the default alert at project creation to be the high priority alert
+    "organizations:default-high-priority-alerts": False,
+    # Enables automatically deriving of code mappings
+    "organizations:derive-code-mappings": True,
+    # Enable device.class as a selectable column
+    "organizations:device-classification": False,
+    # Enables synthesis of device.class in ingest
+    "organizations:device-class-synthesis": False,
+    # Enable the 'discover' interface.
+    "organizations:discover": False,
     # Enable discover 2 basic functions
     "organizations:discover-basic": True,
+    # Enables events endpoint rate limit
+    "organizations:discover-events-rate-limit": False,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
+    # Enable the org recalibration
+    "organizations:ds-org-recalibration": False,
+    # Enable the sliding window per project
+    "organizations:ds-sliding-window": False,
+    # Enable the sliding window per org
+    "organizations:ds-sliding-window-org": False,
+    # Enable the new opinionated dynamic sampling
+    "organizations:dynamic-sampling": False,
     # Enables data secrecy mode
     "organizations:enterprise-data-secrecy": False,
     # Enable archive/escalating issue workflow
@@ -1494,126 +1530,35 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:escalating-issues-v2": False,
     # Enable emiting escalating data to the metrics backend
     "organizations:escalating-metrics-backend": False,
-    # Enable querying Snuba to get the EventUser
-    "organizations:eventuser-from-snuba": True,
+    # Enable attaching arbitrary files to events.
+    "organizations:event-attachments": True,
     # Enable the frontend to request from region & control silo domains.
     "organizations:frontend-domainsplit": False,
-    # Allows an org to have a larger set of project ownership rules per project
-    "organizations:higher-ownership-limit": False,
-    # Enable Monitors (Crons) view
-    "organizations:monitors": False,
-    # Enable Performance view
-    "organizations:performance-view": True,
-    # Enable profiling
-    "organizations:profiling": False,
-    # Enable profiling view
-    "organizations:profiling-view": False,
-    # Enable ui frames in flamecharts
-    "organizations:profiling-ui-frames": False,
-    # Enable the transactions backed profiling views
-    "organizations:profiling-using-transactions": False,
-    # Enabled for those orgs who participated in the profiling Beta program
-    "organizations:profiling-beta": False,
-    # Enables production profiling in sentry browser application
-    "organizations:profiling-browser": False,
-    # Enables differential flamegraph in profiling
-    "organizations:profiling-differential-flamegraph": False,
-    # Enable stacktrace linking of multiple frames in profiles
-    "organizations:profiling-stacktrace-links": False,
-    # Enable global suspect functions in profiling
-    "organizations:profiling-global-suspect-functions": False,
-    # Enable profiling CPU chart
-    "organizations:profiling-cpu-chart": False,
-    # Enable profiling Memory chart
-    "organizations:profiling-memory-chart": False,
-    # Enable profiling battery usage chart
-    "organizations:profiling-battery-usage-chart": False,
-    # Enable profiling summary redesign view
-    "organizations:profiling-summary-redesign": False,
-    # Enable profiling statistical detectors ema detection
-    "organizations:profiling-statistical-detectors-ema": False,
-    # Enable profiling statistical detectors breakpoint detection
-    "organizations:profiling-statistical-detectors-breakpoint": False,
     # Enable disabling gitlab integrations when broken is detected
     "organizations:gitlab-disable-on-broken": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable grouping of ChunkLoadErrors
     "organizations:group-chunk-load-errors": False,
-    # Enable experimental new version of Merged Issues where sub-hashes are shown
-    "organizations:grouping-tree-ui": False,
     # Enable experimental new version of stacktrace component where additional
     # data related to grouping is shown on each frame
     "organizations:grouping-stacktrace-ui": False,
-    # Enable tweaks to group title in relation to hierarchical
-    # grouping.
+    # Enable tweaks to group title in relation to hierarchical grouping.
     "organizations:grouping-title-ui": False,
-    # Lets organizations manage grouping configs
-    "organizations:set-grouping-config": False,
+    # Enable experimental new version of Merged Issues where sub-hashes are shown
+    "organizations:grouping-tree-ui": False,
+    # Allows an org to have a larger set of project ownership rules per project
+    "organizations:higher-ownership-limit": False,
     # Enable incidents feature
     "organizations:incidents": False,
-    # Enables syntax highlighting in the stack trace
-    "organizations:issue-details-stacktrace-syntax-highlighting": False,
-    # Enable issue platform
-    "organizations:issue-platform": False,
-    # Enable additional logging for issue platform
-    "organizations:issue-platform-extra-logging": False,
-    # Enable issue platform status change API for crons and SD issues
-    "organizations:issue-platform-api-crons-sd": False,
-    # Enable issue platform feature changes for crons and SD issues
-    "organizations:issue-platform-crons-sd": False,
-    # Whether to allow issue only search on the issue list
-    "organizations:issue-search-allow-postgres-only-search": False,
-    # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
-    # sentry at the moment.
-    "organizations:issue-search-use-cdc-primary": False,
-    "organizations:issue-search-use-cdc-secondary": False,
-    # Whether to make a side/parallel query against events -> group_attributes when searching issues
-    "organizations:issue-search-group-attributes-side-query": False,
-    # Enable issue stream performance improvements
-    "organizations:issue-stream-performance": False,
-    # Enable issue stream performance improvements (cache)
-    "organizations:issue-stream-performance-cache": False,
-    # Enable metric alert charts in email/slack
-    "organizations:metric-alert-chartcuterie": False,
-    # Extract metrics for sessions during ingestion.
-    "organizations:metrics-extraction": False,
-    # Enables the usage of the new metrics layer in the metrics API.
-    "organizations:metrics-api-new-metrics-layer": False,
-    # Enables the metrics metadata.
-    "organizations:metric-meta": False,
-    # Enables higher limit for alert rules
-    "organizations:more-slow-alerts": False,
-    # Extract on demand metrics
-    "organizations:on-demand-metrics-extraction": False,
-    # Extract on demand metrics (widget extraction)
-    "organizations:on-demand-metrics-extraction-widgets": False,
-    # Extract on demand metrics (experimental features)
-    "organizations:on-demand-metrics-extraction-experimental": False,
-    # Display on demand metrics related UI elements
-    "organizations:on-demand-metrics-ui": False,
-    # Normalize URL transaction names during ingestion.
-    "organizations:transaction-name-normalize": True,
-    # Mark URL transactions scrubbed by regex patterns as "sanitized".
-    # NOTE: This flag does not concern transactions rewritten by clusterer rules.
-    # Those are always marked as "sanitized".
-    "organizations:transaction-name-mark-scrubbed-as-sanitized": True,
-    # Sanitize transaction names in the ingestion pipeline.
-    "organizations:transaction-name-sanitization": False,  # DEPRECATED
-    # Extraction metrics for transactions during ingestion.
-    "organizations:transaction-metrics-extraction": False,
-    # True if Relay should drop raw session payloads after extracting metrics from them.
-    "organizations:release-health-drop-sessions": False,
-    # Enable ignoring archived issues in metric alerts
-    "organizations:metric-alert-ignore-archived": False,
-    # Enable threshold period in metric alert rule builder
-    "organizations:metric-alert-threshold-period": False,
-    # Enable integration functionality to create and link groups to issues on
-    # external services.
-    "organizations:integrations-issue-basic": True,
-    # Enable interface functionality to synchronize groups between sentry and
-    # issues on external services.
-    "organizations:integrations-issue-sync": True,
+    # Enable integration functionality to work with alert rules
+    "organizations:integrations-alert-rule": True,
+    # Enable integration functionality to work with alert rules (specifically chat integrations)
+    "organizations:integrations-chat-unfurl": True,
+    # Enable the API to importing CODEOWNERS for a project
+    "organizations:integrations-codeowners": False,
+    # Enable integration functionality to work deployment integrations like Vercel
+    "organizations:integrations-deployment": True,
     # Enable integration functionality to work with enterprise alert rules
     "organizations:integrations-enterprise-alert-rule": True,
     # Enable integration functionality to work with enterprise alert rules (specifically incident
@@ -1621,43 +1566,30 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:integrations-enterprise-incident-management": True,
     # Enable interface functionality to receive event hooks.
     "organizations:integrations-event-hooks": True,
-    # Enable integration functionality to work with alert rules
-    "organizations:integrations-alert-rule": True,
-    # Enable integration functionality to work with alert rules (specifically chat integrations)
-    "organizations:integrations-chat-unfurl": True,
+    # Enables inviting new members based on GitHub commit activity.
+    "organizations:integrations-gh-invite": False,
     # Enable integration functionality to work with alert rules (specifically incident
     # management integrations)
     "organizations:integrations-incident-management": True,
-    # Enable integration functionality to work deployment integrations like Vercel
-    "organizations:integrations-deployment": True,
-    # Allow orgs to automatically create Tickets in Issue Alerts
-    "organizations:integrations-ticket-rules": True,
+    # Enable integration functionality to create and link groups to issues on
+    # external services.
+    "organizations:integrations-issue-basic": True,
+    # Enable interface functionality to synchronize groups between sentry and
+    # issues on external services.
+    "organizations:integrations-issue-sync": True,
+    # Enable comments of related issues on open PRs
+    "organizations:integrations-open-pr-comment": False,
     # Enable Opsgenie integration
     "organizations:integrations-opsgenie": True,
     # Enable one-click migration from Opsgenie plugin
     "organizations:integrations-opsgenie-migration": False,
     # Enable stacktrace linking
     "organizations:integrations-stacktrace-link": True,
-    # Limit project events endpoint to only query back a certain number of days
-    "organizations:project-event-date-limit": False,
-    # Enable data forwarding functionality for organizations.
-    "organizations:data-forwarding": True,
-    # Enable readonly dashboards
-    "organizations:dashboards-basic": True,
-    # Enable custom editable dashboards
-    "organizations:dashboards-edit": True,
-    # Enable metrics enhanced performance in dashboards
-    "organizations:dashboards-mep": False,
-    # Enable release health widget in dashboards
-    "organizations:dashboards-rh-widget": False,
-    # Enable minimap in the widget viewer modal in dashboards
-    "organizations:widget-viewer-modal-minimap": False,
-    # Enables inviting new members based on GitHub commit activity.
-    "organizations:integrations-gh-invite": False,
-    # Enable the API to importing CODEOWNERS for a project
-    "organizations:integrations-codeowners": False,
-    # Enable comments of related issues on open PRs
-    "organizations:integrations-open-pr-comment": False,
+    # Allow orgs to automatically create Tickets in Issue Alerts
+    "organizations:integrations-ticket-rules": True,
+    # Metrics: Enable creation of investigation dynamic sampling rules (rules that
+    # temporary boost the sample rate of particular transactions)
+    "organizations:investigation-bias": False,
     # Enable inviting members to organizations.
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
@@ -1666,174 +1598,266 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-alert-fallback-targeting": False,
     # Enable experimental replay-issue rendering on Issue Details page
     "organizations:issue-details-replay-event": False,
+    # Enables syntax highlighting in the stack trace
+    "organizations:issue-details-stacktrace-syntax-highlighting": False,
+    # Enable tag improvements in the issue details page
+    "organizations:issue-details-tag-improvements": False,
+    # Enable issue platform
+    "organizations:issue-platform": False,
+    # Enable issue platform status change API for crons and SD issues
+    "organizations:issue-platform-api-crons-sd": False,
+    # Enable issue platform feature changes for crons and SD issues
+    "organizations:issue-platform-crons-sd": False,
+    # Enable additional logging for issue platform
+    "organizations:issue-platform-extra-logging": False,
+    # Whether to allow issue only search on the issue list
+    "organizations:issue-search-allow-postgres-only-search": False,
+    # Whether to make a side/parallel query against events -> group_attributes when searching issues
+    "organizations:issue-search-group-attributes-side-query": False,
+    # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
+    # sentry at the moment.
+    "organizations:issue-search-use-cdc-primary": False,
+    "organizations:issue-search-use-cdc-secondary": False,
+    # Enable issue stream performance improvements
+    "organizations:issue-stream-performance": False,
+    # Enable issue stream performance improvements (cache)
+    "organizations:issue-stream-performance-cache": False,
+    # Enable metric alert charts in email/slack
+    "organizations:metric-alert-chartcuterie": False,
+    # Enable ignoring archived issues in metric alerts
+    "organizations:metric-alert-ignore-archived": False,
+    # Enable threshold period in metric alert rule builder
+    "organizations:metric-alert-threshold-period": False,
+    # Enables the metrics metadata.
+    "organizations:metric-meta": False,
+    # Extract metrics for sessions during ingestion.
+    "organizations:metrics-extraction": False,
+    # Enables the usage of the new metrics layer in the metrics API.
+    "organizations:metrics-api-new-metrics-layer": False,
+    # Enable Session Stats down to a minute resolution
+    "organizations:minute-resolution-sessions": True,
     # Adds the ttid & ttfd vitals to the frontend
     "organizations:mobile-vitals": False,
     # Display CPU and memory metrics in transactions with profiles
     "organizations:mobile-cpu-memory-in-transactions": False,
+    # Enable Monitors (Crons) view
+    "organizations:monitors": False,
+    # Enables higher limit for alert rules
+    "organizations:more-slow-alerts": False,
+    # Enables region provisioning for individual users
+    "organizations:multi-region-selector": False,
     # Enable new page filter UI
     "organizations:new-page-filter": True,
     # Display warning banner for every event issue alerts
     "organizations:noisy-alert-warning": False,
+    # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
+    "organizations:notification-all-recipients": False,
+    # Enable User Feedback v1
+    "organizations:old-user-feedback": False,
+    # Extract on demand metrics
+    "organizations:on-demand-metrics-extraction": False,
+    # Extract on demand metrics (experimental features)
+    "organizations:on-demand-metrics-extraction-experimental": False,
+    # Extract on demand metrics (widget extraction)
+    "organizations:on-demand-metrics-extraction-widgets": False,
+    # Signals that the organization supports the on demand metrics prefill.
+    "organizations:on-demand-metrics-prefill": False,
+    # Display on demand metrics related UI elements
+    "organizations:on-demand-metrics-ui": False,
+    # Enable the SDK selection feature in the onboarding
+    "organizations:onboarding-sdk-selection": False,
+    # Enable the setting of org roles for team
+    "organizations:org-roles-for-teams": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
-    # Enable project selection on the stats page
-    "organizations:project-stats": True,
+    # Enable views for anomaly detection
+    "organizations:performance-anomaly-detection-ui": False,
+    # Enable performance score calculation for transactions in relay
+    "organizations:performance-calculate-score-relay": False,
     # Enable performance change explorer panel on trends page
     "organizations:performance-change-explorer": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
-    # Enable views for anomaly detection
-    "organizations:performance-anomaly-detection-ui": False,
-    # Enable histogram view in span details
-    "organizations:performance-span-histogram-view": False,
-    # Enable performance on-boarding checklist
-    "organizations:performance-onboarding-checklist": False,
-    # Enable transaction name only search
-    "organizations:performance-transaction-name-only-search": False,
-    # Enable transaction name only search on indexed
-    "organizations:performance-transaction-name-only-search-indexed": False,
-    # Re-enable histograms for Metrics Enhanced Performance Views
-    "organizations:performance-mep-reintroduce-histograms": False,
-    # Enable showing INP web vital in default views
-    "organizations:performance-vitals-inp": False,
-    # Enables a longer stats period for the performance landing page
-    "organizations:performance-landing-page-stats-period": False,
-    # Enable internal view for bannerless MEP view
-    "organizations:performance-mep-bannerless-ui": False,
-    # Enable updated landing page widget designs
-    "organizations:performance-new-widget-designs": False,
-    # Enable metrics-backed transaction summary view
-    "organizations:performance-metrics-backed-transaction-summary": False,
-    # Enable new trends
-    "organizations:performance-new-trends": False,
-    # Enable debug views for trendsv2 to be used internally
-    "organizations:performance-trendsv2-dev-only": False,
-    # Enabled creating issues out of trends
-    "organizations:performance-trends-issues": False,
-    # Bypass 30 day date range selection when fetching new trends data
-    "organizations:performance-trends-new-data-date-range-default": False,
     # Enable consecutive db performance issue type
     "organizations:performance-consecutive-db-issue": False,
     # Enable consecutive http performance issue type
     "organizations:performance-consecutive-http-detector": False,
-    # Enable consecutive http performance issue type
-    "organizations:performance-large-http-payload-detector": False,
-    # Enable slow DB performance issue type
-    "organizations:performance-slow-db-issue": False,
-    # Enable N+1 API Calls performance issue type
-    "organizations:performance-n-plus-one-api-calls-detector": False,
-    # Enable compressed assets performance issue type
-    "organizations:performance-issues-compressed-assets-detector": False,
-    # Enable render blocking assets performance issue type
-    "organizations:performance-issues-render-blocking-assets-detector": False,
-    # Enable MN+1 DB performance issue type
-    "organizations:performance-issues-m-n-plus-one-db-detector": False,
-    # Enable trace details page with embedded spans
-    "organizations:performance-trace-details": False,
-    # Enable FE/BE for tracing without performance
-    "organizations:performance-tracing-without-performance": True,
     # Enable database view powered by span metrics
     "organizations:performance-database-view": False,
     # Enable database view percentile graphs
     "organizations:performance-database-view-percentiles": False,
     # Enable database view query source UI
     "organizations:performance-database-view-query-source": False,
+    # Enables updated all events tab in a performance issue
+    "organizations:performance-issues-all-events-tab": False,
+    # Enable compressed assets performance issue type
+    "organizations:performance-issues-compressed-assets-detector": False,
+    # Enable performance issues dev options, includes changing parts of issues that we're using for development.
+    "organizations:performance-issues-dev": False,
+    # Enable MN+1 DB performance issue type
+    "organizations:performance-issues-m-n-plus-one-db-detector": False,
+    # Enable render blocking assets performance issue type
+    "organizations:performance-issues-render-blocking-assets-detector": False,
+    # Temporary flag to test search performance that's running slow in S4S
+    "organizations:performance-issues-search": True,
+    # Enables a longer stats period for the performance landing page
+    "organizations:performance-landing-page-stats-period": False,
+    # Enable consecutive http performance issue type
+    "organizations:performance-large-http-payload-detector": False,
+    # Enable internal view for bannerless MEP view
+    "organizations:performance-mep-bannerless-ui": False,
+    # Re-enable histograms for Metrics Enhanced Performance Views
+    "organizations:performance-mep-reintroduce-histograms": False,
+    # Enable metrics-backed transaction summary view
+    "organizations:performance-metrics-backed-transaction-summary": False,
+    # Enable N+1 API Calls performance issue type
+    "organizations:performance-n-plus-one-api-calls-detector": False,
+    # Enable new trends
+    "organizations:performance-new-trends": False,
+    # Enable updated landing page widget designs
+    "organizations:performance-new-widget-designs": False,
+    # Enable performance on-boarding checklist
+    "organizations:performance-onboarding-checklist": False,
     # Enable removing the fallback for metrics compatibility
     "organizations:performance-remove-metrics-compatibility-fallback": False,
-    # Enable performance score calculation for transactions in relay
-    "organizations:performance-calculate-score-relay": False,
     # Enable screens view powered by span metrics
     "organizations:performance-screens-view": False,
+    # Enable slow DB performance issue type
+    "organizations:performance-slow-db-issue": False,
+    # Enable histogram view in span details
+    "organizations:performance-span-histogram-view": False,
+    # Enable performance statistical detectors breakpoint detection
+    "organizations:performance-statistical-detectors-breakpoint": False,
+    # Enable performance statistical detectors ema detection
+    "organizations:performance-statistical-detectors-ema": False,
+    # Enable performance statistical detectors breakpoint lifecycles
+    "organizations:performance-statistical-detectors-lifecycles": False,
+    # Enable trace details page with embedded spans
+    "organizations:performance-trace-details": False,
+    # Enable FE/BE for tracing without performance
+    "organizations:performance-tracing-without-performance": True,
+    # Enable transaction name only search
+    "organizations:performance-transaction-name-only-search": False,
+    # Enable transaction name only search on indexed
+    "organizations:performance-transaction-name-only-search-indexed": False,
+    # Enabled creating issues out of trends
+    "organizations:performance-trends-issues": False,
+    # Bypass 30 day date range selection when fetching new trends data
+    "organizations:performance-trends-new-data-date-range-default": False,
+    # Enable debug views for trendsv2 to be used internally
+    "organizations:performance-trendsv2-dev-only": False,
+    # Enable Performance view
+    "organizations:performance-view": True,
+    # Enable showing INP web vital in default views
+    "organizations:performance-vitals-inp": False,
+    # Enable profiling
+    "organizations:profiling": False,
+    # Enable profiling battery usage chart
+    "organizations:profiling-battery-usage-chart": False,
+    # Enabled for those orgs who participated in the profiling Beta program
+    "organizations:profiling-beta": False,
+    # Enables production profiling in sentry browser application
+    "organizations:profiling-browser": False,
+    # Enable profiling CPU chart
+    "organizations:profiling-cpu-chart": False,
+    # Enables differential flamegraph in profiling
+    "organizations:profiling-differential-flamegraph": False,
+    # Enable global suspect functions in profiling
+    "organizations:profiling-global-suspect-functions": False,
+    # Enable profiling Memory chart
+    "organizations:profiling-memory-chart": False,
+    # Enable stacktrace linking of multiple frames in profiles
+    "organizations:profiling-stacktrace-links": False,
+    # Enable profiling statistical detectors breakpoint detection
+    "organizations:profiling-statistical-detectors-breakpoint": False,
+    # Enable profiling statistical detectors ema detection
+    "organizations:profiling-statistical-detectors-ema": False,
+    # Enable profiling summary redesign view
+    "organizations:profiling-summary-redesign": False,
+    # Enable ui frames in flamecharts
+    "organizations:profiling-ui-frames": False,
+    # Enable the transactions backed profiling views
+    "organizations:profiling-using-transactions": False,
+    # Enable profiling view
+    "organizations:profiling-view": False,
+    # Limit project events endpoint to only query back a certain number of days
+    "organizations:project-event-date-limit": False,
+    # Enable project selection on the stats page
+    "organizations:project-stats": True,
+    # Enable functionality for recap server polling.
+    "organizations:recap-server": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
+    # Metrics cardinality limiter in Relay
+    "organizations:relay-cardinality-limiter": False,
+    # Enable the release details performance section
+    "organizations:release-comparison-performance": False,
+    # True if Relay should drop raw session payloads after extracting metrics from them.
+    "organizations:release-health-drop-sessions": False,
+    # Enable new release UI
+    "organizations:releases-v2": False,
+    "organizations:releases-v2-st": False,
+    "organizations:releases-v2-banner": False,
+    # Enable version 2 of reprocessing (completely distinct from v1)
+    "organizations:reprocessing-v2": False,
+    # Enable team member role provisioning through scim
+    "organizations:scim-team-roles": False,
+    # Enable detecting SDK crashes during event processing
+    "organizations:sdk-crash-detection": False,
     # Enable Sentry Functions
     "organizations:sentry-functions": False,
+    # Replace the footer Sentry logo with a Sentry pride logo
+    "organizations:sentry-pride-logo-footer": False,
     # Enable core Session Replay backend APIs
     "organizations:session-replay": False,
-    # Enable core Session Replay link in the sidebar
-    "organizations:session-replay-ui": True,
+    # Enable the Replay Details > Accessibility tab
+    "organizations:session-replay-a11y-tab": False,
+    # Enable the accessibility issues endpoint
+    "organizations:session-replay-accessibility-issues": False,
+    # Enable core Session Replay SDK for recording onError events on sentry.io
+    "organizations:session-replay-count-query-optimize": False,
+    # Enable canvas recording
+    "organizations:session-replay-enable-canvas": False,
+    # Enable replay event linking in event processing
+    "organizations:session-replay-event-linking": False,
+    # Enable linking from 'new issue' email notifs to the issue replay list
+    "organizations:session-replay-issue-emails": False,
+    # Enable the new event linking columns to be queried
+    "organizations:session-replay-new-event-counts": False,
+    # Enable the new zero state UI
+    "organizations:session-replay-new-zero-state": False,
+    # Enable View Sample Replay button on the Replay-List empty-state page
+    "organizations:session-replay-onboarding-cta-button": False,
+    # Enable data scrubbing of replay recording payloads in Relay.
+    "organizations:session-replay-recording-scrubbing": False,
     # Enable core Session Replay SDK for recording on sentry.io
     "organizations:session-replay-sdk": False,
     # Enable core Session Replay SDK for recording onError events on sentry.io
-    "organizations:session-replay-count-query-optimize": False,
-    # Enable core Session Replay SDK for recording onError events on sentry.io
     "organizations:session-replay-sdk-errors-only": False,
-    # Enable data scrubbing of replay recording payloads in Relay.
-    "organizations:session-replay-recording-scrubbing": False,
-    # Enable View Sample Replay button on the Replay-List empty-state page
-    "organizations:session-replay-onboarding-cta-button": False,
-    # Enable the Replay Details > Accessibility tab
-    "organizations:session-replay-a11y-tab": False,
     # Enable linking from 'new issue' slack notifs to the issue replay list
     "organizations:session-replay-slack-new-issue": False,
-    # Enable linking from 'new issue' email notifs to the issue replay list
-    "organizations:session-replay-issue-emails": False,
-    # Enable replay event linking in event processing
-    "organizations:session-replay-event-linking": False,
-    # Enable linking from 'weekly email' summaries to the issue replay list
-    "organizations:session-replay-weekly-email": False,
     # Enable the Replay Details > Performance tab
     "organizations:session-replay-trace-table": False,
     # Enable the AM1 trial ended banner on sentry.io
     "organizations:session-replay-trial-ended-banner": False,
-    # Enable the new event linking columns to be queried
-    "organizations:session-replay-new-event-counts": False,
-    # Enable the accessibility issues endpoint
-    "organizations:session-replay-accessibility-issues": False,
-    # Enable the new zero state UI
-    "organizations:session-replay-new-zero-state": False,
-    # Enable canvas recording
-    "organizations:session-replay-enable-canvas": False,
-    # Enable the new suggested assignees feature
-    "organizations:streamline-targeting-context": False,
-    # Enable the new experimental starfish view
-    "organizations:starfish-view": False,
-    # Enables the resource module ui
-    "organizations:starfish-browser-resource-module-ui": False,
-    # Enables the resource module ui
-    "organizations:starfish-browser-resource-module-image-view": False,
-    # Enable the aggregate span waterfall view
-    "organizations:starfish-aggregate-span-waterfall": False,
-    # Enable starfish endpoint that's used for regressing testing purposes
-    "organizations:starfish-test-endpoint": False,
-    # Enable starfish dropdown on the webservice view for switching chart visualization
-    "organizations:starfish-wsv-chart-dropdown": False,
-    # Enable browser starfish webvitals module view
-    "organizations:starfish-browser-webvitals": False,
-    # Enable browser starfish webvitals module pageoverview v2 view
-    "organizations:starfish-browser-webvitals-pageoverview-v2": False,
-    # Enable browser starfish webvitals module to use backend provided performance scores
-    "organizations:starfish-browser-webvitals-use-backend-scores": False,
-    # Replace the footer Sentry logo with a Sentry pride logo
-    "organizations:sentry-pride-logo-footer": False,
-    # Enable Session Stats down to a minute resolution
-    "organizations:minute-resolution-sessions": True,
-    # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
-    "organizations:notification-all-recipients": False,
-    # Enable performance issues dev options, includes changing parts of issues that we're using for development.
-    "organizations:performance-issues-dev": False,
-    # Enable feature to load more than 100 rows in performance trace view.
-    "organizations:trace-view-load-more": False,
-    # Enable dashboard widget indicators.
-    "organizations:dashboard-widget-indicators": True,
-    # Enables updated all events tab in a performance issue
-    "organizations:performance-issues-all-events-tab": False,
-    # Temporary flag to test search performance that's running slow in S4S
-    "organizations:performance-issues-search": True,
-    # Enable performance statistical detectors ema detection
-    "organizations:performance-statistical-detectors-ema": False,
-    # Enable performance statistical detectors breakpoint detection
-    "organizations:performance-statistical-detectors-breakpoint": False,
-    # Enable performance statistical detectors breakpoint lifecycles
-    "organizations:performance-statistical-detectors-lifecycles": False,
-    # Enable version 2 of reprocessing (completely distinct from v1)
-    "organizations:reprocessing-v2": False,
+    # Enable core Session Replay link in the sidebar
+    "organizations:session-replay-ui": True,
+    # Enable linking from 'weekly email' summaries to the issue replay list
+    "organizations:session-replay-weekly-email": False,
+    # Lets organizations manage grouping configs
+    "organizations:set-grouping-config": False,
     # Enable the UI for the overage alert settings
     "organizations:slack-overage-notifications": False,
+    # Enable source maps debugger
+    "organizations:source-maps-debugger-blue-thunder-edition": False,
+    # Enable the new flat file indexing system for sourcemaps.
+    "organizations:sourcemaps-bundle-flat-file-indexing": False,
+    # Upload release bundles as artifact bundles.
+    "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -1841,76 +1865,68 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
-    # Enable the new opinionated dynamic sampling
-    "organizations:dynamic-sampling": False,
-    # Enable the sliding window per project
-    "organizations:ds-sliding-window": False,
-    # Enable the sliding window per org
-    "organizations:ds-sliding-window-org": False,
-    # Enable the org recalibration
-    "organizations:ds-org-recalibration": False,
-    # Enable view hierarchies options
-    "organizations:view-hierarchies-options-dev": False,
-    # Enable anr improvements ui
-    "organizations:anr-improvements": False,
-    # Enable anr frame analysis
-    "organizations:anr-analyze-frames": False,
-    # Enable device.class as a selectable column
-    "organizations:device-classification": False,
-    # Enables synthesis of device.class in ingest
-    "organizations:device-class-synthesis": False,
-    # Enable the SDK selection feature in the onboarding
-    "organizations:onboarding-sdk-selection": False,
-    # Enable tag improvements in the issue details page
-    "organizations:issue-details-tag-improvements": False,
-    # Enable the release details performance section
-    "organizations:release-comparison-performance": False,
+    # Enable standalone span ingestion
+    "organizations:standalone-span-ingestion": False,
+    # Enable the aggregate span waterfall view
+    "organizations:starfish-aggregate-span-waterfall": False,
+    # Enables the resource module ui
+    "organizations:starfish-browser-resource-module-image-view": False,
+    # Enables the resource module ui
+    "organizations:starfish-browser-resource-module-ui": False,
+    # Enable browser starfish webvitals module view
+    "organizations:starfish-browser-webvitals": False,
+    # Enable browser starfish webvitals module pageoverview v2 view
+    "organizations:starfish-browser-webvitals-pageoverview-v2": False,
+    # Enable browser starfish webvitals module to use backend provided performance scores
+    "organizations:starfish-browser-webvitals-use-backend-scores": False,
+    # Enable starfish endpoint that's used for regressing testing purposes
+    "organizations:starfish-test-endpoint": False,
+    # Enable the new experimental starfish view
+    "organizations:starfish-view": False,
+    # Enable starfish dropdown on the webservice view for switching chart visualization
+    "organizations:starfish-wsv-chart-dropdown": False,
+    # Enable the new suggested assignees feature
+    "organizations:streamline-targeting-context": False,
+    # Enable the new suspect commits calculation that uses all frames in the stack trace
+    "organizations:suspect-commits-all-frames": False,
+    # Allow organizations to configure all symbol sources.
+    "organizations:symbol-sources": True,
     # Enable team insights page
     "organizations:team-insights": True,
-    # Enable u2f verification on superuser form
-    "organizations:u2f-superuser-form": False,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": True,
     # Enable team workflow notifications
     "organizations:team-workflow-notifications": False,
-    # Enable team member role provisioning through scim
-    "organizations:scim-team-roles": False,
-    # Enable the setting of org roles for team
-    "organizations:org-roles-for-teams": False,
-    # Enable detecting SDK crashes during event processing
-    "organizations:sdk-crash-detection": False,
-    # Enable functionality for recap server polling.
-    "organizations:recap-server": False,
-    # Enable new release UI
-    "organizations:releases-v2": False,
-    "organizations:releases-v2-st": False,
-    "organizations:releases-v2-banner": False,
+    # Enable feature to load more than 100 rows in performance trace view.
+    "organizations:trace-view-load-more": False,
+    # Extraction metrics for transactions during ingestion.
+    "organizations:transaction-metrics-extraction": False,
+    # Mark URL transactions scrubbed by regex patterns as "sanitized".
+    # NOTE: This flag does not concern transactions rewritten by clusterer rules.
+    # Those are always marked as "sanitized".
+    "organizations:transaction-name-mark-scrubbed-as-sanitized": True,
+    # Normalize URL transaction names during ingestion.
+    "organizations:transaction-name-normalize": True,
+    # Sanitize transaction names in the ingestion pipeline.
+    "organizations:transaction-name-sanitization": False,  # DEPRECATED
+    # Enable u2f verification on superuser form
+    "organizations:u2f-superuser-form": False,
     # Enable the metrics layer for alerts queries.
     "organizations:use-metrics-layer-in-alerts": False,
     # Enable User Feedback v2 ingest
     "organizations:user-feedback-ingest": False,
     # Enable User Feedback v2 UI
     "organizations:user-feedback-ui": False,
-    # Enable User Feedback v1
-    "organizations:old-user-feedback": False,
+    # Enable view hierarchies options
+    "organizations:view-hierarchies-options-dev": False,
+    # Enable minimap in the widget viewer modal in dashboards
+    "organizations:widget-viewer-modal-minimap": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
+    # Workflow 2.0 Auto associate commits to commit sha release
+    "projects:auto-associate-commits-to-release": False,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
-    # Enable the new flat file indexing system for sourcemaps.
-    "organizations:sourcemaps-bundle-flat-file-indexing": False,
-    # Upload release bundles as artifact bundles.
-    "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
-    # Signals that the organization supports the on demand metrics prefill.
-    "organizations:on-demand-metrics-prefill": False,
-    # Enable source maps debugger
-    "organizations:source-maps-debugger-blue-thunder-edition": False,
-    # Enable the new suspect commits calculation that uses all frames in the stack trace
-    "organizations:suspect-commits-all-frames": False,
-    # Enables region provisioning for individual users
-    "organizations:multi-region-selector": False,
-    # Enable the default alert at project creation to be the high priority alert
-    "organizations:default-high-priority-alerts": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
@@ -1934,27 +1950,16 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:rate-limits": True,
     # Enable functionality to trigger service hooks upon event ingestion.
     "projects:servicehooks": False,
-    # Enable suspect resolutions feature
-    "projects:suspect-resolutions": False,
-    # Workflow 2.0 Auto associate commits to commit sha release
-    "projects:auto-associate-commits-to-release": False,
     # Starfish: extract metrics from the spans
     "projects:span-metrics-extraction": False,
     "projects:span-metrics-extraction-ga-modules": False,
     "projects:span-metrics-extraction-all-modules": False,
     "projects:span-metrics-extraction-resource": False,
-    # Enable standalone span ingestion
-    "organizations:standalone-span-ingestion": False,
-    # Metrics cardinality limiter in Relay
-    "organizations:relay-cardinality-limiter": False,
-    # Metrics: Enable ingestion and storage of custom metrics. See ddm-ui for UI.
-    "organizations:custom-metrics": False,
-    # Metrics: Enable creation of investigation dynamic sampling rules (rules that
-    # temporary boost the sample rate of particular transactions)
-    "organizations:investigation-bias": False,
+    # Enable suspect resolutions feature
+    "projects:suspect-resolutions": False,
     # Controls whether or not the relocation endpoints can be used.
     "relocation:enabled": False,
-    # Don't add feature defaults down here! Please add them in their associated
+    # NOTE: Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }
 
@@ -3993,17 +3998,23 @@ if SILO_DEVSERVER:
     ]
     SENTRY_MONOLITH_REGION = SENTRY_REGION_CONFIG[0]["name"]
 
-    # RPC authentication and address information
+    # Cross region RPC authentication
     RPC_SHARED_SECRET = [
         "a-long-value-that-is-shared-but-also-secret",
     ]
     RPC_TIMEOUT = 15.0
 
-    bind = str(os.environ.get("SENTRY_DEVSERVER_BIND")).split(":")
-    SENTRY_WEB_HOST = bind[0]
-    SENTRY_WEB_PORT = int(bind[1])
+    # Key for signing integration proxy requests.
+    SENTRY_SUBNET_SECRET = "secret-subnet-signature"
 
     control_port = os.environ.get("SENTRY_CONTROL_SILO_PORT", "8000")
     SENTRY_CONTROL_ADDRESS = f"http://127.0.0.1:{control_port}"
+
+    # Webserver config
+    bind_address = os.environ.get("SENTRY_DEVSERVER_BIND")
+    if bind_address:
+        bind = str(bind_address).split(":")
+        SENTRY_WEB_HOST = bind[0]
+        SENTRY_WEB_PORT = int(bind[1])
 
     CELERYBEAT_SCHEDULE_FILENAME = f"celerybeat-schedule-{SILO_MODE}"

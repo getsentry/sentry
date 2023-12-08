@@ -35,7 +35,6 @@ import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {DataSection} from 'sentry/components/events/styles';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
-import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, Group, IssueCategory, IssueType, Project} from 'sentry/types';
@@ -223,6 +222,9 @@ function ProfilingDurationRegressionIssueDetailsContent({
         <ErrorBoundary mini>
           <EventFunctionBreakpointChart event={event} />
         </ErrorBoundary>
+        <ErrorBoundary mini>
+          <EventAffectedTransactions event={event} group={group} project={project} />
+        </ErrorBoundary>
         <Feature features="profiling-differential-flamegraph" organization={organization}>
           <ErrorBoundary mini>
             <DataSection>
@@ -232,15 +234,11 @@ function ProfilingDurationRegressionIssueDetailsContent({
                 frame with the largest increase in call stack population likely
                 contributed to the cause for the duration regression.`)}
               </p>
-              <Panel>
-                <EventDifferentialFlamegraph event={event} />
-              </Panel>
+
+              <EventDifferentialFlamegraph event={event} />
             </DataSection>
           </ErrorBoundary>
         </Feature>
-        <ErrorBoundary mini>
-          <EventAffectedTransactions event={event} group={group} project={project} />
-        </ErrorBoundary>
         <ErrorBoundary mini>
           <EventFunctionComparisonList event={event} group={group} project={project} />
         </ErrorBoundary>

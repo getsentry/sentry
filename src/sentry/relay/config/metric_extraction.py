@@ -196,7 +196,7 @@ def _get_widget_metric_specs(
     specs = []
     with metrics.timer("on_demand_metrics.widget_spec_convert"):
         for widget in widget_queries:
-            for result in _convert_widget_query_to_metric(project, widget, prefilling):
+            for result in convert_widget_query_to_metric(project, widget, prefilling, True):
                 specs.append(result)
 
     max_widget_specs = options.get("on_demand.max_widget_specs") or _MAX_ON_DEMAND_WIDGETS
@@ -249,8 +249,8 @@ def _convert_snuba_query_to_metric(
     )
 
 
-def _convert_widget_query_to_metric(
-    project: Project, widget_query: DashboardWidgetQuery, prefilling: bool
+def convert_widget_query_to_metric(
+    project: Project, widget_query: DashboardWidgetQuery, prefilling: bool, check_cardinality: bool
 ) -> Sequence[HashedMetricSpec]:
     """
     Converts a passed metrics widget query to one or more MetricSpecs.
@@ -261,7 +261,7 @@ def _convert_widget_query_to_metric(
     if not widget_query.aggregates:
         return metrics_specs
 
-    if not _is_widget_query_low_cardinality(widget_query, project):
+    if check_cardinality and not _is_widget_query_low_cardinality(widget_query, project):
         # High cardinality widgets don't have metrics specs created
         return metrics_specs
 
@@ -466,9 +466,8 @@ def _convert_aggregate_and_query_to_metric(
             "on_demand_metrics.invalid_metric_spec",
             tags={"prefilling": prefilling},
         )
-        logger.error(
+        logger.exception(
             "Invalid on-demand metric spec",
-            exc_info=True,
             extra={
                 "dataset": dataset,
                 "aggregate": aggregate,
@@ -482,7 +481,7 @@ def _convert_aggregate_and_query_to_metric(
         # Since prefilling might include several non-ondemand-compatible alerts, we want to not trigger errors in the
         # Sentry console.
         if not prefilling:
-            logger.error(e, exc_info=True)
+            logger.exception(str(e))
 
         return None
 

@@ -147,36 +147,6 @@ function ReplayDetails({params: {replaySlug}}: Props) {
     );
   }
 
-  if (!fetching && replay && replay.getRRWebFrames().length < 2) {
-    return (
-      <Page
-        orgSlug={orgSlug}
-        replayRecord={replayRecord}
-        projectSlug={projectSlug}
-        replayErrors={replayErrors}
-      >
-        <DetailedError
-          hideSupportLinks
-          heading={t('Error loading replay')}
-          message={
-            <Fragment>
-              <p>
-                {t(
-                  'Expected two or more replay events. This Replay may not have captured any user actions.'
-                )}
-              </p>
-              <p>
-                {t(
-                  'Or there may be an issue loading the actions from the server, click to try loading the Replay again.'
-                )}
-              </p>
-            </Fragment>
-          }
-        />
-      </Page>
-    );
-  }
-
   return (
     <ReplayContextProvider
       isFetching={fetching}

@@ -5,7 +5,7 @@ from typing import Mapping, Sequence
 
 import requests
 from django.http import HttpRequest
-from jwt import InvalidSignatureError
+from jwt import ExpiredSignatureError, InvalidSignatureError
 from rest_framework.request import Request
 
 from sentry.models.integrations.integration import Integration
@@ -93,8 +93,10 @@ def get_integration_from_jwt(
             if key_id
             else jwt.decode(token, integration.metadata["shared_secret"], audience=False)
         )
-    except InvalidSignatureError:
-        raise AtlassianConnectValidationError("Signature is invalid")
+    except InvalidSignatureError as e:
+        raise AtlassianConnectValidationError("Signature is invalid") from e
+    except ExpiredSignatureError as e:
+        raise AtlassianConnectValidationError("Signature is expired") from e
 
     verify_claims(decoded_claims, path, query_params, method)
 
