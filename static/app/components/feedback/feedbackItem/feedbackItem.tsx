@@ -18,7 +18,6 @@ import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackVie
 import IssueTrackingSection from 'sentry/components/feedback/feedbackItem/issueTrackingSection';
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
-import useFeedbackHasReplayId from 'sentry/components/feedback/useFeedbackHasReplayId';
 import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
@@ -30,6 +29,7 @@ import {space} from 'sentry/styles/space';
 import type {Event, Group} from 'sentry/types';
 import {GroupStatus} from 'sentry/types';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
+import {useReplayCountForFeedbacks} from 'sentry/utils/replayCount/replayCountForFeedbacks';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -42,7 +42,9 @@ interface Props {
 
 export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   const organization = useOrganization();
-  const hasReplayId = useFeedbackHasReplayId({feedbackId: feedbackItem.id});
+  const {feedbackHasReplay} = useReplayCountForFeedbacks();
+  const hasReplayId = feedbackHasReplay(feedbackItem.id);
+
   const {markAsRead, resolve} = useMutateFeedback({
     feedbackIds: [feedbackItem.id],
     organization,

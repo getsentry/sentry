@@ -112,16 +112,7 @@ function useApiQuery<TResponseData, TError = RequestError>(
   options: UseApiQueryOptions<TResponseData, TError>
 ): UseApiQueryResult<TResponseData, TError> {
   const api = useApi({persistInFlight: PERSIST_IN_FLIGHT});
-
-  const [path, endpointOptions] = queryKey;
-
-  const queryFn: reactQuery.QueryFunction<ApiResult<TResponseData>, ApiQueryKey> = () =>
-    api.requestPromise(path, {
-      method: 'GET',
-      query: endpointOptions?.query,
-      headers: endpointOptions?.headers,
-      includeAllArgs: true,
-    });
+  const queryFn = fetchDataQuery(api);
 
   const {data, ...rest} = reactQuery.useQuery(queryKey, queryFn, options);
 
@@ -135,6 +126,20 @@ function useApiQuery<TResponseData, TError = RequestError>(
   //      useQuery above. The react-query library's UseQueryResult is a union type and
   //      too complex to recreate here so casting the entire object is more appropriate.
   return queryResult as UseApiQueryResult<TResponseData, TError>;
+}
+
+export function fetchDataQuery(api: Client) {
+  return function fetchQueryImpl(context: QueryFunctionContext<ApiQueryKey>) {
+    const [url, opts] = context.queryKey;
+
+    console.log({opts});
+    return api.requestPromise(url, {
+      includeAllArgs: true,
+      method: 'GET',
+      query: opts?.query,
+      headers: opts?.headers,
+    });
+  };
 }
 
 /**
