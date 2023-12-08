@@ -39,6 +39,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, Group, IssueCategory, IssueType, Project} from 'sentry/types';
 import {EntryType, EventTransaction} from 'sentry/types/event';
+import {shouldShowCustomErrorResourceConfig} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ResourcesAndMaybeSolutions} from 'sentry/views/issueDetails/resourcesAndMaybeSolutions';
@@ -86,6 +87,7 @@ function DefaultGroupEventDetailsContent({
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
   const hasAnrImprovementsFeature = organization.features.includes('anr-improvements');
+  const showMaybeSolutionsHigher = shouldShowCustomErrorResourceConfig(group);
 
   const eventEntryProps = {group, event, project};
 
@@ -124,6 +126,13 @@ function DefaultGroupEventDetailsContent({
         projectSlug={project.slug}
         location={location}
       />
+      {showMaybeSolutionsHigher && (
+        <ResourcesAndMaybeSolutions
+          event={event}
+          projectSlug={project.slug}
+          group={group}
+        />
+      )}
       <EventEvidence event={event} group={group} projectSlug={project.slug} />
       <GroupEventEntry entryType={EntryType.MESSAGE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.EXCEPTION} {...eventEntryProps} />
@@ -146,11 +155,13 @@ function DefaultGroupEventDetailsContent({
       <GroupEventEntry entryType={EntryType.EXPECTSTAPLE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.TEMPLATE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.BREADCRUMBS} {...eventEntryProps} />
-      <ResourcesAndMaybeSolutions
-        event={event}
-        projectSlug={project.slug}
-        group={group}
-      />
+      {!showMaybeSolutionsHigher && (
+        <ResourcesAndMaybeSolutions
+          event={event}
+          projectSlug={project.slug}
+          group={group}
+        />
+      )}
       <GroupEventEntry entryType={EntryType.DEBUGMETA} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.REQUEST} {...eventEntryProps} />
       <EventContexts group={group} event={event} />

@@ -6,8 +6,11 @@ import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {Resources} from 'sentry/components/events/interfaces/performance/resources';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Group, Project} from 'sentry/types';
-import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import type {Event, Group, Project} from 'sentry/types';
+import {
+  getConfigForIssueType,
+  shouldShowCustomErrorResourceConfig,
+} from 'sentry/utils/issueTypeConfig';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
@@ -20,7 +23,9 @@ type Props = {
 export function ResourcesAndMaybeSolutions({event, projectSlug, group}: Props) {
   const organization = useOrganization();
   const config = getConfigForIssueType(group);
-  const displayAiSuggestedSolution = organization.aiSuggestedSolution;
+  const displayAiSuggestedSolution =
+    // Skip showing AI suggested solution if the issue has a custom resource
+    organization.aiSuggestedSolution && !shouldShowCustomErrorResourceConfig(group);
 
   if (!config.resources && !displayAiSuggestedSolution) {
     return null;
