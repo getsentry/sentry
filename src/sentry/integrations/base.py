@@ -373,7 +373,21 @@ class IntegrationInstallation:
         return None
 
     def get_client(self) -> Any:
-        # Return the api client for a given provider
+        """
+        Return an API client for the integration provider
+
+        Use this method if the integration uses a single API key for all
+        configurations and usage of the integration.
+        """
+        raise NotImplementedError
+
+    def get_keyring_client(self, keyname: str) -> Any:
+        """
+        Return an API client with a scoped key based on the key_name.
+
+        Use this method if your integration supports a 'keyring' of keys
+        like opsgenie or pagerduty.
+        """
         raise NotImplementedError
 
     def get_default_identity(self) -> RpcIdentity:

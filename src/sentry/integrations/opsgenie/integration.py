@@ -24,6 +24,7 @@ from sentry.tasks.integrations import migrate_opsgenie_plugin
 from sentry.web.helpers import render_to_response
 
 from .client import OpsgenieClient
+from .utils import get_team
 
 logger = logging.getLogger("sentry.integrations.opsgenie")
 
@@ -111,13 +112,20 @@ class InstallationConfigView(PipelineView):
 
 
 class OpsgenieIntegration(IntegrationInstallation):
-    def get_client(self, integration_key: str) -> Any:  # type: ignore
-        org_integration_id = self.org_integration.id if self.org_integration else None
+    def get_keyring_client(self, keyid: str) -> OpsgenieClient:
+        org_integration = self.org_integration
+        team = get_team(keyid, org_integration)
+        assert team, "Cannot get client for unknown team"
+
         return OpsgenieClient(
             integration=self.model,
-            integration_key=integration_key,
-            org_integration_id=org_integration_id,
+            integration_key=team["integration_key"],
+            org_integration_id=org_integration.id,
+            keyid=keyid,
         )
+
+    def get_client(self) -> Any:  # type: ignore
+        raise NotImplementedError("Use get_keyring_client instead.")
 
     def get_organization_config(self) -> Sequence[Any]:
         fields = [

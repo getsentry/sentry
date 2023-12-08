@@ -17,6 +17,7 @@ from sentry.silo.util import (
     DEFAULT_REQUEST_BODY,
     PROXY_BASE_PATH,
     PROXY_BASE_URL_HEADER,
+    PROXY_KEYID_HEADER,
     PROXY_OI_HEADER,
     PROXY_SIGNATURE_HEADER,
     encode_subnet_signature,
@@ -76,6 +77,7 @@ class IntegrationProxyClient(ApiClient):
         self,
         integration_id: int | None = None,
         org_integration_id: int | None = None,
+        keyid: str | None = None,
         verify_ssl: bool = True,
         logging_context: Mapping[str, Any] | None = None,
     ) -> None:
@@ -83,6 +85,7 @@ class IntegrationProxyClient(ApiClient):
             verify_ssl=verify_ssl, logging_context=logging_context, integration_id=integration_id
         )
         self.org_integration_id = org_integration_id
+        self.keyid = keyid
 
         if self.determine_whether_should_proxy_to_control():
             self._should_proxy_to_control = True
@@ -115,7 +118,6 @@ class IntegrationProxyClient(ApiClient):
         where tokens are added in by Control Silo. We do this to avoid race conditions around
         stale tokens and centralize token refresh flows.
         """
-
         if not self._should_proxy_to_control or not prepared_request.url:
             prepared_request = self.authorize_request(prepared_request=prepared_request)
             return prepared_request
@@ -145,6 +147,8 @@ class IntegrationProxyClient(ApiClient):
         if not isinstance(request_body, bytes):
             request_body = request_body.encode("utf-8") if request_body else DEFAULT_REQUEST_BODY
         prepared_request.headers[PROXY_OI_HEADER] = str(self.org_integration_id)
+        if self.keyid:
+            prepared_request.headers[PROXY_KEYID_HEADER] = str(self.keyid)
         prepared_request.headers[PROXY_BASE_URL_HEADER] = base_url
         prepared_request.headers[PROXY_SIGNATURE_HEADER] = encode_subnet_signature(
             secret=settings.SENTRY_SUBNET_SECRET,

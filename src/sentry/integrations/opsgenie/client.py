@@ -25,11 +25,12 @@ class OpsgenieClient(IntegrationProxyClient):
         integration: RpcIntegration | Integration,
         integration_key: str,
         org_integration_id: int | None,
+        keyid: str,
     ) -> None:
         self.integration = integration
         self.base_url = f"{self.metadata['base_url']}{OPSGENIE_API_VERSION}"
         self.integration_key = integration_key
-        super().__init__(org_integration_id=org_integration_id)
+        super().__init__(org_integration_id=org_integration_id, keyid=keyid)
 
     @property
     def metadata(self):
