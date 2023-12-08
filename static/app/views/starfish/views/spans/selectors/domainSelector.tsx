@@ -34,8 +34,9 @@ interface DomainData {
 }
 
 interface DomainCacheValue {
-  domainData: DomainData[];
-  hasNextResults: boolean;
+  domains: Set<string>;
+  initialLoadHadMoreData: boolean;
+  loadCount: number;
 }
 
 export function DomainSelector({
@@ -77,36 +78,35 @@ export function DomainSelector({
     referrer: 'api.starfish.get-span-domains',
   });
 
-  // Cache for the initial full load of top N domains
+  const incomingDomains = uniq(flatten(domainData?.map(row => row['span.domain'])));
+
+  // Cache for all previously seen domains
   const domainCache = useRef<DomainCacheValue>({
-    domainData: [],
-    hasNextResults: true,
+    domains: new Set(),
+    initialLoadHadMoreData: true,
+    loadCount: 0,
   });
 
-  useEffect(() => {
-    if (!domainCache.current.domainData.length) {
-      if (domainData && (domainData?.length ?? 0) > 0) {
-        domainCache.current.domainData = domainData;
-      }
-
-      if (pageLinks) {
-        const {next} = parseLinkHeader(pageLinks);
-        domainCache.current.hasNextResults = next.results ?? false;
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [domainData]);
-
-  const domains = uniq(
-    flatten(
-      (domainData ?? domainCache.current.domainData ?? [])?.map(row => row['span.domain'])
-    )
-  );
-
-  // The current selected table might not be in the initial load, or the current search. Ensure it's always in the list
-  if (Boolean(value) && !domains.includes(value)) {
-    domains.push(value);
+  // The current selected table might not be in the cached set. Ensure it's always there
+  if (value) {
+    domainCache.current.domains.add(value);
   }
+
+  useEffect(() => {
+    // When caching the first domain data result, check if it had more data
+    if (domainCache.current.loadCount === 0) {
+      const {next} = parseLinkHeader(pageLinks ?? '');
+      domainCache.current.initialLoadHadMoreData = next?.results ?? false;
+    }
+
+    // Cache all known domains
+    domainCache.current.loadCount += 1;
+    incomingDomains?.forEach(domain => {
+      domainCache.current.domains.add(domain);
+    });
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incomingDomains]);
 
   const emptyOption = {
     value: EMPTY_OPTION_VALUE,
@@ -118,7 +118,7 @@ export function DomainSelector({
   const options = [
     {value: '', label: 'All'},
     ...(emptyOptionLocation === 'top' ? [emptyOption] : []),
-    ...domains
+    ...Array.from(domainCache.current.domains)
       .map(datum => {
         return {
           value: datum,
@@ -140,7 +140,7 @@ export function DomainSelector({
         setSearchInputValue(input);
 
         // If the initial query didn't fetch all the domains, update the search query and fire off a new query with the given search
-        if (domainCache.current.hasNextResults) {
+        if (domainCache.current.initialLoadHadMoreData) {
           debouncedSetSearch(input);
         }
       }}
