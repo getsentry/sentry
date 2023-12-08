@@ -29,6 +29,7 @@ from sentry.notifications.utils.actions import MessageAction
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.dates import to_timestamp
@@ -36,6 +37,90 @@ from sentry.utils.http import absolute_uri
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = [requires_snuba]
+
+
+def build_test_message_blocks(
+    teams: set[Team],
+    users: set[User],
+    timestamp: datetime,
+    group: Group,
+    event: Event | None = None,
+    link_to_event: bool = False,
+) -> dict[str, Any]:
+    project = group.project
+
+    title = group.title
+    title_link = f"http://testserver/organizations/{project.organization.slug}/issues/{group.id}"
+    formatted_title = title
+    if event:
+        title = event.title
+        if title == "<unlabeled event>":
+            formatted_title = "&lt;unlabeled event&gt;"
+        if link_to_event:
+            title_link += f"/events/{event.event_id}"
+    title_link += "/?referrer=slack"
+    return {
+        "blocks": [
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": f"<{title_link}|*{formatted_title}*>  \n"},
+                "block_id": f'{{"issue":{group.id}}}',
+            },
+            {
+                "type": "context",
+                "elements": [{"type": "mrkdwn", "text": f"BAR-{group.short_id} | Dec 08"}],
+            },
+            {
+                "type": "actions",
+                "elements": [
+                    {
+                        "type": "button",
+                        "action_id": "resolve_dialog",
+                        "text": {"type": "plain_text", "text": "Resolve"},
+                        "value": "resolve_dialog",
+                    },
+                    {
+                        "type": "button",
+                        "action_id": "ignored:forever",
+                        "text": {"type": "plain_text", "text": "Ignore"},
+                        "value": "ignored:forever",
+                    },
+                    {
+                        "type": "static_select",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Select Assignee...",
+                            "emoji": True,
+                        },
+                        "option_groups": [
+                            {
+                                "label": {"type": "plain_text", "text": "Teams"},
+                                "options": [
+                                    {
+                                        "text": {"type": "plain_text", "text": f"#{team.slug}"},
+                                        "value": f"team:{team.id}",
+                                    }
+                                    for team in teams
+                                ],
+                            },
+                            {
+                                "label": {"type": "plain_text", "text": "People"},
+                                "options": [
+                                    {
+                                        "text": {"type": "plain_text", "text": f"{user.email}"},
+                                        "value": f"user:{user.id}",
+                                    }
+                                    for user in users
+                                ],
+                            },
+                        ],
+                        "action_id": "assign",
+                    },
+                ],
+            },
+        ],
+        "text": f"[{project.slug}] {title}",
+    }
 
 
 def build_test_message(
@@ -152,6 +237,56 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
                 }
                 for action in test_message["actions"]
             ]
+            assert SlackIssuesMessageBuilder(group).build() == test_message
+
+    @with_feature("organizations:slack-block-kit")
+    def test_build_group_block(self):
+        group = self.create_group(project=self.project)
+        assert SlackIssuesMessageBuilder(group).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            timestamp=group.last_seen,
+            group=group,
+        )
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert SlackIssuesMessageBuilder(
+            group, event.for_group(group)
+        ).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            timestamp=event.datetime,
+            group=group,
+            event=event,
+        )
+
+        assert SlackIssuesMessageBuilder(
+            group, event.for_group(group), link_to_event=True
+        ).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            timestamp=event.datetime,
+            group=group,
+            event=event,
+            link_to_event=True,
+        )
+
+        with self.feature("organizations:escalating-issues"):
+            test_message = build_test_message_blocks(
+                teams={self.team},
+                users={self.user},
+                timestamp=group.last_seen,
+                group=group,
+            )
+
+            for section in test_message["blocks"]:
+                if section["type"] == "actions":
+                    for element in section["elements"]:
+                        if "ignore" in element["action_id"]:
+                            element["action_id"] = "ignored:until_escalating"
+                            element["value"] = "ignored:until_escalating"
+                            element["text"]["text"] = "Archive"
+
             assert SlackIssuesMessageBuilder(group).build() == test_message
 
     @patch(
