@@ -168,7 +168,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
 
     def test_muted(self):
         for path_func in self._get_path_functions():
-            monitor = self._create_monitor(status=MonitorObjectStatus.MUTED)
+            monitor = self._create_monitor(is_muted=True, status=MonitorObjectStatus.MUTED)
             path = path_func(monitor.guid)
 
             resp = self.client.post(path, {"status": "error"}, **self.token_auth_headers)
