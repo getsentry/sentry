@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {memo, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import colorFn from 'color';
 import type {LineSeriesOption} from 'echarts';
@@ -16,145 +16,98 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {MetricsApiResponse, PageFilters} from 'sentry/types';
 import {
-  defaultMetricDisplayType,
   getSeriesName,
   MetricDisplayType,
   MetricWidgetQueryParams,
-  updateQuery,
 } from 'sentry/utils/metrics';
 import {getMRI, parseMRI} from 'sentry/utils/metrics/mri';
 import {useMetricsDataZoom} from 'sentry/utils/metrics/useMetricsData';
-import {decodeList} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
-import useRouter from 'sentry/utils/useRouter';
 import {MetricChart} from 'sentry/views/ddm/chart';
-import {CodeLocations} from 'sentry/views/ddm/codeLocations';
 import {MetricWidgetContextMenu} from 'sentry/views/ddm/contextMenu';
 import {QueryBuilder} from 'sentry/views/ddm/queryBuilder';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
 
-import {DEFAULT_SORT_STATE, MIN_WIDGET_WIDTH} from './constants';
+import {MIN_WIDGET_WIDTH} from './constants';
 
-const emptyWidget = {
-  mri: '',
-  op: undefined,
-  query: '',
-  groupBy: [],
-  sort: DEFAULT_SORT_STATE,
-};
-
-export interface MetricWidgetProps extends MetricWidgetQueryParams {
-  onChange: (data: Partial<MetricWidgetProps>) => void;
-  position: number;
-}
-
-export function useMetricWidgets() {
-  const router = useRouter();
-
-  const currentWidgets = JSON.parse(
-    router.location.query.widgets ?? JSON.stringify([emptyWidget])
-  );
-
-  const widgets: MetricWidgetProps[] = currentWidgets.map(
-    (widget: MetricWidgetQueryParams, i) => {
-      return {
-        mri: widget.mri,
-        op: widget.op,
-        query: widget.query,
-        groupBy: decodeList(widget.groupBy),
-        displayType: widget.displayType ?? defaultMetricDisplayType,
-        focusedSeries: widget.focusedSeries,
-        showSummaryTable: widget.showSummaryTable ?? true, // temporary default
-        position: widget.position ?? i,
-        powerUserMode: widget.powerUserMode,
-        sort: widget.sort ?? DEFAULT_SORT_STATE,
-      };
-    }
-  );
-
-  const onChange = (position: number, data: Partial<MetricWidgetQueryParams>) => {
-    currentWidgets[position] = {...currentWidgets[position], ...data};
-
-    updateQuery(router, {
-      widgets: JSON.stringify(currentWidgets),
-    });
-  };
-
-  const addWidget = () => {
-    currentWidgets.push({...emptyWidget, position: currentWidgets.length});
-
-    updateQuery(router, {
-      widgets: JSON.stringify(currentWidgets),
-    });
-  };
-
-  return {
-    widgets,
+export const MetricWidget = memo(
+  ({
+    widget,
+    datetime,
+    projects,
+    environments,
+    index,
+    isSelected,
+    onSelect,
     onChange,
-    addWidget,
-  };
-}
+  }: {
+    datetime: PageFilters['datetime'];
+    environments: PageFilters['environments'];
+    index: number;
+    isSelected: boolean;
+    onChange: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
+    onSelect: (index: number) => void;
+    projects: PageFilters['projects'];
+    widget: MetricWidgetQueryParams;
+  }) => {
+    const handleChange = useCallback(
+      (data: Partial<MetricWidgetQueryParams>) => {
+        onChange(index, data);
+      },
+      [index, onChange]
+    );
 
-export function MetricWidget({
-  widget,
-  datetime,
-  projects,
-  environments,
-}: {
-  datetime: PageFilters['datetime'];
-  environments: PageFilters['environments'];
-  projects: PageFilters['projects'];
-  widget: MetricWidgetProps;
-}) {
-  return (
-    <MetricWidgetPanel key={widget.position}>
-      <PanelBody>
-        <MetricWidgetHeader>
-          <QueryBuilder
-            metricsQuery={{
-              mri: widget.mri,
-              query: widget.query,
-              op: widget.op,
-              groupBy: widget.groupBy,
-            }}
-            projects={projects}
-            displayType={widget.displayType}
-            onChange={widget.onChange}
-            powerUserMode={widget.powerUserMode}
-          />
-          <MetricWidgetContextMenu
-            metricsQuery={{
-              mri: widget.mri,
-              query: widget.query,
-              op: widget.op,
-              groupBy: widget.groupBy,
-              projects,
-              datetime,
-              environments,
-            }}
-            displayType={widget.displayType}
-          />
-        </MetricWidgetHeader>
-        {widget.mri ? (
-          <MetricWidgetBody
-            datetime={datetime}
-            projects={projects}
-            environments={environments}
-            {...widget}
-          />
-        ) : (
-          <StyledMetricWidgetBody>
-            <EmptyMessage
-              icon={<IconSearch size="xxl" />}
-              title={t('Nothing to show!')}
-              description={t('Choose a metric to display data.')}
+    const metricsQuery = useMemo(
+      () => ({
+        mri: widget.mri,
+        query: widget.query,
+        op: widget.op,
+        groupBy: widget.groupBy,
+        projects,
+        datetime,
+        environments,
+      }),
+      [widget, projects, datetime, environments]
+    );
+
+    return (
+      <MetricWidgetPanel isSelected={isSelected} onClick={() => onSelect(index)}>
+        <PanelBody>
+          <MetricWidgetHeader>
+            <QueryBuilder
+              metricsQuery={metricsQuery}
+              projects={projects}
+              displayType={widget.displayType}
+              onChange={handleChange}
+              powerUserMode={widget.powerUserMode}
             />
-          </StyledMetricWidgetBody>
-        )}
-      </PanelBody>
-    </MetricWidgetPanel>
-  );
-}
+            <MetricWidgetContextMenu
+              metricsQuery={metricsQuery}
+              displayType={widget.displayType}
+            />
+          </MetricWidgetHeader>
+          {widget.mri ? (
+            <MetricWidgetBody
+              datetime={datetime}
+              projects={projects}
+              environments={environments}
+              onChange={handleChange}
+              {...widget}
+            />
+          ) : (
+            <StyledMetricWidgetBody>
+              <EmptyMessage
+                icon={<IconSearch size="xxl" />}
+                title={t('Nothing to show!')}
+                description={t('Choose a metric to display data.')}
+              />
+            </StyledMetricWidgetBody>
+          )}
+        </PanelBody>
+      </MetricWidgetPanel>
+    );
+  }
+);
 
 const MetricWidgetHeader = styled('div')`
   display: flex;
@@ -163,98 +116,103 @@ const MetricWidgetHeader = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-function MetricWidgetBody({
-  onChange,
-  displayType,
-  focusedSeries,
-  sort,
-  ...metricsQuery
-}: MetricWidgetProps & PageFilters) {
-  const {mri, op, query, groupBy, projects, environments, datetime} = metricsQuery;
+interface MetricWidgetProps extends MetricWidgetQueryParams {
+  onChange: (data: Partial<MetricWidgetQueryParams>) => void;
+}
 
-  const {data, isLoading, isError, error, onZoom} = useMetricsDataZoom(
-    {
-      mri,
-      op,
-      query,
-      groupBy,
-      projects,
-      environments,
-      datetime,
-    },
-    {fidelity: displayType === MetricDisplayType.BAR ? 'low' : 'high'}
-  );
+const MetricWidgetBody = memo(
+  ({
+    onChange,
+    displayType,
+    focusedSeries,
+    sort,
+    ...metricsQuery
+  }: MetricWidgetProps & PageFilters) => {
+    const {mri, op, query, groupBy, projects, environments, datetime} = metricsQuery;
 
-  const [dataToBeRendered, setDataToBeRendered] = useState<
-    MetricsApiResponse | undefined
-  >(undefined);
+    const {data, isLoading, isError, error, onZoom} = useMetricsDataZoom(
+      {
+        mri,
+        op,
+        query,
+        groupBy,
+        projects,
+        environments,
+        datetime,
+      },
+      {fidelity: displayType === MetricDisplayType.BAR ? 'low' : 'high'}
+    );
 
-  const [hoveredLegend, setHoveredLegend] = useState('');
+    const [dataToBeRendered, setDataToBeRendered] = useState<
+      MetricsApiResponse | undefined
+    >(undefined);
 
-  useEffect(() => {
-    if (data) {
-      setDataToBeRendered(data);
+    const [hoveredLegend, setHoveredLegend] = useState('');
+
+    useEffect(() => {
+      if (data) {
+        setDataToBeRendered(data);
+      }
+    }, [data]);
+
+    const toggleSeriesVisibility = useCallback(
+      (seriesName: string) => {
+        setHoveredLegend('');
+        onChange({
+          focusedSeries: focusedSeries === seriesName ? undefined : seriesName,
+        });
+      },
+      [focusedSeries, onChange]
+    );
+
+    if (!dataToBeRendered || isError) {
+      return (
+        <StyledMetricWidgetBody>
+          {isLoading && <LoadingIndicator />}
+          {isError && (
+            <Alert type="error">
+              {error?.responseJSON?.detail || t('Error while fetching metrics data')}
+            </Alert>
+          )}
+        </StyledMetricWidgetBody>
+      );
     }
-  }, [data]);
 
-  const toggleSeriesVisibility = useCallback(
-    (seriesName: string) => {
-      setHoveredLegend('');
-      onChange({
-        focusedSeries: focusedSeries === seriesName ? undefined : seriesName,
-      });
-    },
-    [focusedSeries, onChange]
-  );
+    const chartSeries = getChartSeries(dataToBeRendered, {
+      focusedSeries,
+      hoveredLegend,
+      groupBy: metricsQuery.groupBy,
+      displayType,
+    });
 
-  if (!dataToBeRendered || isError) {
     return (
       <StyledMetricWidgetBody>
-        {isLoading && <LoadingIndicator />}
-        {isError && (
-          <Alert type="error">
-            {error?.responseJSON?.detail || t('Error while fetching metrics data')}
-          </Alert>
+        <TransparentLoadingMask visible={isLoading} />
+        <MetricChart
+          series={chartSeries}
+          displayType={displayType}
+          operation={metricsQuery.op}
+          projects={metricsQuery.projects}
+          environments={metricsQuery.environments}
+          {...normalizeChartTimeParams(dataToBeRendered)}
+          onZoom={onZoom}
+        />
+        {metricsQuery.showSummaryTable && (
+          <SummaryTable
+            series={chartSeries}
+            onSortChange={newSort => {
+              onChange({sort: newSort});
+            }}
+            sort={sort}
+            operation={metricsQuery.op}
+            onRowClick={toggleSeriesVisibility}
+            setHoveredLegend={focusedSeries ? undefined : setHoveredLegend}
+          />
         )}
       </StyledMetricWidgetBody>
     );
   }
-
-  const chartSeries = getChartSeries(dataToBeRendered, {
-    focusedSeries,
-    hoveredLegend,
-    groupBy: metricsQuery.groupBy,
-    displayType,
-  });
-
-  return (
-    <StyledMetricWidgetBody>
-      <TransparentLoadingMask visible={isLoading} />
-      <MetricChart
-        series={chartSeries}
-        displayType={displayType}
-        operation={metricsQuery.op}
-        projects={metricsQuery.projects}
-        environments={metricsQuery.environments}
-        {...normalizeChartTimeParams(dataToBeRendered)}
-        onZoom={onZoom}
-      />
-      {metricsQuery.showSummaryTable && (
-        <SummaryTable
-          series={chartSeries}
-          onSortChange={newSort => {
-            onChange({sort: newSort});
-          }}
-          sort={sort}
-          operation={metricsQuery.op}
-          onRowClick={toggleSeriesVisibility}
-          setHoveredLegend={focusedSeries ? undefined : setHoveredLegend}
-        />
-      )}
-      <CodeLocations mri={metricsQuery.mri} projects={projects} />
-    </StyledMetricWidgetBody>
-  );
-}
+);
 
 export function getChartSeries(
   data: MetricsApiResponse,
@@ -371,10 +329,26 @@ export type Series = {
   transaction?: string;
 };
 
-const MetricWidgetPanel = styled(Panel)`
+const MetricWidgetPanel = styled(Panel)<{isSelected: boolean}>`
   padding-bottom: 0;
   margin-bottom: 0;
   min-width: ${MIN_WIDGET_WIDTH}px;
+  position: relative;
+  ${p =>
+    p.isSelected &&
+    // Use ::after to avoid layout shifts when the border changes from 1px to 2px
+    `
+  &::after {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    bottom: -1px;
+    right: -1px;
+    pointer-events: none;
+    border: 2px solid ${p.theme.purple300};
+    border-radius: ${p.theme.borderRadius};
+  `}
 `;
 
 const StyledMetricWidgetBody = styled('div')`

@@ -30,26 +30,26 @@
 /src/sentry/search/events/datasets/metrics_layer.py      @getsentry/owners-snuba
 
 ## Event Ingestion
-/src/sentry/attachments/                                 @getsentry/owners-ingest
-/src/sentry/api/endpoints/relay/                         @getsentry/owners-ingest
-/src/sentry/api/endpoints/project_transaction_names.py   @getsentry/owners-ingest
-/src/sentry/coreapi.py                                   @getsentry/owners-ingest
-/src/sentry/ingest/                                      @getsentry/owners-ingest
-/src/sentry/interfaces/                                  @getsentry/owners-ingest
-/src/sentry/message_filters.py                           @getsentry/owners-ingest
-/src/sentry/quotas/                                      @getsentry/owners-ingest
-/src/sentry/relay/                                       @getsentry/owners-ingest
-/src/sentry/utils/data_filters.py                        @getsentry/owners-ingest
-/src/sentry/web/api.py                                   @getsentry/owners-ingest
-/src/sentry/scripts/quotas/                              @getsentry/owners-ingest
-/src/sentry/scripts/tsdb/                                @getsentry/owners-ingest
-/src/sentry/tasks/relay.py                               @getsentry/owners-ingest
-/src/sentry/tasks/unmerge.py                             @getsentry/owners-ingest
-/tests/sentry/event_manager/                             @getsentry/owners-ingest
-/tests/sentry/ingest/                                    @getsentry/owners-ingest
-/tests/sentry/relay/                                     @getsentry/owners-ingest
-/tests/relay_integration/                                @getsentry/owners-ingest
-/bin/invalidate-project-configs                          @getsentry/owners-ingest
+/src/sentry/attachments/                                 @getsentry/ingest
+/src/sentry/api/endpoints/relay/                         @getsentry/ingest
+/src/sentry/api/endpoints/project_transaction_names.py   @getsentry/ingest
+/src/sentry/coreapi.py                                   @getsentry/ingest
+/src/sentry/ingest/                                      @getsentry/ingest
+/src/sentry/interfaces/                                  @getsentry/ingest
+/src/sentry/message_filters.py                           @getsentry/ingest
+/src/sentry/quotas/                                      @getsentry/ingest
+/src/sentry/relay/                                       @getsentry/ingest
+/src/sentry/utils/data_filters.py                        @getsentry/ingest
+/src/sentry/web/api.py                                   @getsentry/ingest
+/src/sentry/scripts/quotas/                              @getsentry/ingest
+/src/sentry/scripts/tsdb/                                @getsentry/ingest
+/src/sentry/tasks/relay.py                               @getsentry/ingest
+/src/sentry/tasks/unmerge.py                             @getsentry/ingest
+/tests/sentry/event_manager/                             @getsentry/ingest
+/tests/sentry/ingest/                                    @getsentry/ingest
+/tests/sentry/relay/                                     @getsentry/ingest
+/tests/relay_integration/                                @getsentry/ingest
+/bin/invalidate-project-configs                          @getsentry/ingest
 
 ## Security
 /src/sentry/net/                                         @getsentry/security

@@ -1,4 +1,8 @@
 {% load sentry_assets %}
+{% load sentry_trace %}
+
+<meta name="sentry-trace" content="{% get_sentry_trace %}">
+<meta name="baggage" content="{% get_sentry_baggage %}">
 
 {% script %}
 <script type="text/javascript">
@@ -20,6 +24,8 @@
       return new Promise(function (resolve, reject) {
         var xhr = new XMLHttpRequest();
         xhr.open('GET', url);
+        xhr.setRequestHeader("sentry-trace", window.__initialData.initialTrace.sentry_trace);
+        xhr.setRequestHeader("baggage", window.__initialData.initialTrace.baggage);
         xhr.withCredentials = true;
         xhr.onload = function () {
           try {

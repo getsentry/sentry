@@ -34,6 +34,7 @@ from sentry.grouping.utils import hash_from_values
 from sentry.locks import locks
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleSource
+from sentry.monitors.constants import MAX_SLUG_LENGTH
 from sentry.monitors.types import CrontabSchedule, IntervalSchedule
 from sentry.utils.retries import TimedRetryPolicy
 
@@ -60,8 +61,6 @@ MONITOR_CONFIG = {
     "additionalProperties": False,
 }
 
-MAX_SLUG_LENGTH = 50
-
 
 class MonitorLimitsExceeded(Exception):
     pass
@@ -77,23 +76,17 @@ class MonitorEnvironmentValidationFailed(Exception):
 
 class MonitorObjectStatus:
     ACTIVE = 0
-    DISABLED = 1
+    MUTED = 1
     PENDING_DELETION = 2
     DELETION_IN_PROGRESS = 3
-
-    WAITING = 4
-    """
-    Active but does not have a seat assigned yet
-    """
 
     @classmethod
     def as_choices(cls) -> Sequence[Tuple[int, str]]:
         return (
             (cls.ACTIVE, "active"),
-            (cls.DISABLED, "disabled"),
+            (cls.MUTED, "muted"),
             (cls.PENDING_DELETION, "pending_deletion"),
             (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
-            (cls.WAITING, "waiting"),
         )
 
 
@@ -328,7 +321,7 @@ class Monitor(Model):
             jsonschema.validate(self.config, MONITOR_CONFIG)
             return self.config
         except jsonschema.ValidationError:
-            logging.exception(f"Monitor: {self.id} invalid config: {self.config}", exc_info=True)
+            logging.exception("Monitor: %s invalid config: %s", self.id, self.config)
 
     def get_alert_rule(self):
         alert_rule_id = self.config.get("alert_rule_id")

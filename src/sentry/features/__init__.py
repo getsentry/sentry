@@ -62,7 +62,7 @@ register_permanent_features(default_manager)
 # Features that don't use resource scoping
 default_manager.add("auth:register", SystemFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:create", SystemFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("relocation:enabled", SystemFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("relocation:enabled", SystemFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:multi-region-selector", SystemFeature, FeatureHandlerStrategy.INTERNAL)
 
 # Organization scoped features that are in development or in customer trials.
@@ -218,12 +218,14 @@ default_manager.add("organizations:session-replay-new-event-counts", Organizatio
 default_manager.add("organizations:session-replay-weekly-email", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:session-replay-accessibility-issues", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:session-replay-new-zero-state", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:session-replay-enable-canvas", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:set-grouping-config", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:slack-overage-notifications", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:sdk-crash-detection", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:stacktrace-processing-caching", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:starfish-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:starfish-browser-resource-module-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:starfish-browser-resource-module-image-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:starfish-aggregate-span-waterfall", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:starfish-test-endpoint", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:starfish-wsv-chart-dropdown", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -247,7 +249,7 @@ default_manager.add("organizations:old-user-feedback", OrganizationFeature, Feat
 default_manager.add("organizations:widget-viewer-modal-minimap", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:u2f-superuser-form", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:api-auth-provider", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:ddm-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:ddm-ui", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:ddm-experimental", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:escalating-issues", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:escalating-issues-msteams", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -275,6 +277,7 @@ default_manager.add("organizations:source-maps-debugger-blue-thunder-edition", O
 default_manager.add("organizations:suspect-commits-all-frames", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:metrics-api-new-metrics-layer", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:metric-meta", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:default-high-priority-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.
 
@@ -283,6 +286,7 @@ default_manager.add("projects:alert-filters", ProjectFeature, FeatureHandlerStra
 default_manager.add("projects:first-event-severity-alerting", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:first-event-severity-calculation", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:first-event-severity-new-escalation", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("projects:high-priority-alerts", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:minidump", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:race-free-group-creation", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:similarity-indexing", ProjectFeature, FeatureHandlerStrategy.INTERNAL)

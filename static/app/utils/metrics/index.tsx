@@ -28,6 +28,7 @@ import {
   UseCase,
 } from 'sentry/types/metrics';
 import {defined, formatBytesBase2, formatBytesBase10} from 'sentry/utils';
+import {isMeasurement as isMeasurementName} from 'sentry/utils/discover/fields';
 import {
   DAY,
   formatNumberWithDynamicDecimalPoints,
@@ -37,7 +38,15 @@ import {
   SECOND,
   WEEK,
 } from 'sentry/utils/formatters';
-import {formatMRI, getUseCaseFromMRI, parseField} from 'sentry/utils/metrics/mri';
+import {getMeasurements} from 'sentry/utils/measurements/measurements';
+import {
+  formatMRI,
+  formatMRIField,
+  getUseCaseFromMRI,
+  MRIToField,
+  parseField,
+  parseMRI,
+} from 'sentry/utils/metrics/mri';
 
 import {DateString, PageFilters} from '../../types/core';
 
@@ -78,7 +87,6 @@ export interface MetricWidgetQueryParams
   extends Pick<MetricsQuery, 'mri' | 'op' | 'query' | 'groupBy'> {
   displayType: MetricDisplayType;
   focusedSeries?: string;
-  position?: number;
   powerUserMode?: boolean;
   showSummaryTable?: boolean;
   sort?: SortState;
@@ -104,14 +112,20 @@ export type MetricsQuery = {
   query?: string;
 };
 
+export type MetricCodeLocationFrame = {
+  absPath?: string;
+  contextLine?: string;
+  filename?: string;
+  function?: string;
+  lineNo?: number;
+  module?: string;
+  platform?: string;
+  postContext?: string[];
+  preContext?: string[];
+};
+
 export type MetricMetaCodeLocation = {
-  frames: {
-    absPath?: string;
-    filename?: string;
-    function?: string;
-    lineNo?: number;
-    module?: string;
-  }[];
+  frames: MetricCodeLocationFrame[];
   mri: string;
   timestamp: number;
 };
@@ -476,6 +490,38 @@ export function groupByOp(metrics: MetricMeta[]): Record<string, MetricMeta[]> {
   }, {});
 
   return groupedByOp;
+}
+
+export function isMeasurement({mri}: {mri: MRI}) {
+  const {name} = parseMRI(mri) ?? {name: ''};
+  return isMeasurementName(name);
+}
+
+export function isCustomMeasurement({mri}: {mri: MRI}) {
+  const DEFINED_MEASUREMENTS = new Set(Object.keys(getMeasurements()));
+
+  const {name} = parseMRI(mri) ?? {name: ''};
+  return !DEFINED_MEASUREMENTS.has(name) && isMeasurementName(name);
+}
+
+export function isStandardMeasurement({mri}: {mri: MRI}) {
+  return isMeasurement({mri}) && !isCustomMeasurement({mri});
+}
+
+export function isTransactionDuration({mri}: {mri: MRI}) {
+  return mri === 'd:transactions/duration@millisecond';
+}
+
+export function isCustomMetric({mri}: {mri: MRI}) {
+  return mri.includes(':custom/');
+}
+
+export function getFieldFromMetricsQuery(metricsQuery: MetricsQuery) {
+  if (isCustomMetric(metricsQuery)) {
+    return MRIToField(metricsQuery.mri, metricsQuery.op!);
+  }
+
+  return formatMRIField(MRIToField(metricsQuery.mri, metricsQuery.op!));
 }
 
 // TODO(ddm): remove this and all of its usages once backend sends mri fields

@@ -1,7 +1,7 @@
 --index-url https://pypi.devinfra.sentry.io/simple
 
 covdefaults>=2.3.0
-docker>=3.7.0,<3.8.0
+docker>=6
 time-machine>=2.13.0
 honcho>=1.1.0
 openapi-core>=0.14.2
@@ -14,7 +14,7 @@ pytest-rerunfailures>=11
 pytest-sentry>=0.1.11
 pytest-xdist>=3
 responses>=0.23.1
-selenium>=4.3.0
+selenium>=4.16.0
 sentry-cli>=2.16.0
 
 # pre-commit dependencies
@@ -22,6 +22,7 @@ pre-commit>=3.3
 black>=22.10.0
 flake8>=6.1
 flake8-bugbear>=22.10
+flake8-logging>=1.4
 pyupgrade>=3.2.3
 isort>=5.10.1
 
@@ -31,8 +32,8 @@ pip-tools>=6.7.0
 packaging>=21.3
 
 # for type checking
-sentry-forked-django-stubs>=4.2.6.post3
-sentry-forked-djangorestframework-stubs>=3.14.4.post2
+sentry-forked-django-stubs>=4.2.7.post1
+sentry-forked-djangorestframework-stubs>=3.14.5.post1
 lxml-stubs
 msgpack-types>=0.2.0
 mypy>=1.7.1

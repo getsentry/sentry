@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 
 from django.db import IntegrityError, router, transaction
@@ -67,6 +69,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         else:
             desc = False
 
+        order_by: list[Case | str]
         if sort_by == "title":
             order_by = [
                 "-title" if desc else "title",
@@ -74,7 +77,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             ]
 
         elif sort_by == "dateCreated":
-            order_by = "-date_added" if desc else "date_added"
+            order_by = ["-date_added" if desc else "date_added"]
 
         elif sort_by == "mostPopular":
             order_by = [
@@ -83,7 +86,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             ]
 
         elif sort_by == "recentlyViewed":
-            order_by = "last_visited" if desc else "-last_visited"
+            order_by = ["last_visited" if desc else "-last_visited"]
 
         elif sort_by == "mydashboards":
             order_by = [
@@ -102,10 +105,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             ]
 
         else:
-            order_by = "title"
-
-        if not isinstance(order_by, list):
-            order_by = [order_by]
+            order_by = ["title"]
 
         dashboards = dashboards.order_by(*order_by)
 

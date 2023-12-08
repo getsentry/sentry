@@ -1849,10 +1849,16 @@ function buildRoutes() {
         />
       </Route>
       <Redirect from="database/" to="/performance/database" />
-      <Route path="initialization/">
+      <Route path="appStartup/">
         <IndexRoute
           component={make(
-            () => import('sentry/views/starfish/modules/mobile/initialization')
+            () => import('sentry/views/starfish/modules/mobile/appStartup')
+          )}
+        />
+        <Route
+          path="spans/"
+          component={make(
+            () => import('sentry/views/starfish/views/appStartup/screenSummary')
           )}
         />
       </Route>

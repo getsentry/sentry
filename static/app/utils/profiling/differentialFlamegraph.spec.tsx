@@ -77,12 +77,55 @@ describe('differentialFlamegraph', () => {
       ],
     });
 
-    const flamegraph = DifferentialFlamegraph.FromDiff({before, after}, THEME);
+    const flamegraph = DifferentialFlamegraph.FromDiff(
+      {before, after},
+      {negated: false},
+      THEME
+    );
 
     expect(flamegraph.colors?.get('new function')).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_INCREASE,
       1 * DifferentialFlamegraph.ALPHA_SCALING,
     ]);
+  });
+
+  it('tracks removed frames and creates color entry', () => {
+    const before = makeFlamegraph({
+      shared: {
+        frames: [{name: 'function'}, {name: 'removed function'}],
+      },
+      profiles: [
+        {
+          ...baseProfile,
+          samples: [[0], [1]],
+          weights: [1, 1],
+        },
+      ],
+    });
+    const after = makeFlamegraph({
+      shared: {
+        frames: [{name: 'function'}],
+      },
+      profiles: [
+        {
+          ...baseProfile,
+          samples: [[0], [0]],
+          weights: [1, 1],
+        },
+      ],
+    });
+
+    const flamegraph = DifferentialFlamegraph.FromDiff(
+      {before, after},
+      {negated: false},
+      THEME
+    );
+
+    expect(flamegraph.colors?.get('removed function')).toEqual([
+      ...THEME.COLORS.DIFFERENTIAL_DECREASE,
+      1 * DifferentialFlamegraph.ALPHA_SCALING,
+    ]);
+    expect(flamegraph.removedFrames?.[0].frame.name).toBe('removed function');
   });
 
   it('sums weight across all stacks', () => {
@@ -111,7 +154,11 @@ describe('differentialFlamegraph', () => {
       ],
     });
 
-    const flamegraph = DifferentialFlamegraph.FromDiff({before, after}, THEME);
+    const flamegraph = DifferentialFlamegraph.FromDiff(
+      {before, after},
+      {negated: false},
+      THEME
+    );
 
     expect(flamegraph.colors?.get('function')).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_INCREASE,
@@ -149,7 +196,11 @@ describe('differentialFlamegraph', () => {
       ],
     });
 
-    const flamegraph = DifferentialFlamegraph.FromDiff({before, after}, THEME);
+    const flamegraph = DifferentialFlamegraph.FromDiff(
+      {before, after},
+      {negated: false},
+      THEME
+    );
 
     expect(flamegraph.colors?.get('function')).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_INCREASE,
@@ -187,7 +238,11 @@ describe('differentialFlamegraph', () => {
       ],
     });
 
-    const flamegraph = DifferentialFlamegraph.FromDiff({before, after}, THEME);
+    const flamegraph = DifferentialFlamegraph.FromDiff(
+      {before, after},
+      {negated: false},
+      THEME
+    );
 
     expect(flamegraph.colors?.get('function')).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_DECREASE,
@@ -196,6 +251,122 @@ describe('differentialFlamegraph', () => {
     expect(flamegraph.colors?.get('other function')).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_DECREASE,
       0.2 * DifferentialFlamegraph.ALPHA_SCALING,
+    ]);
+  });
+});
+
+describe('negation', () => {
+  it('color encodes removed frames blue', () => {
+    const before = makeFlamegraph({
+      shared: {
+        frames: [{name: 'function'}, {name: 'other function'}],
+      },
+      profiles: [
+        {
+          ...baseProfile,
+          samples: [[0], [1]],
+          weights: [11, 4],
+        },
+      ],
+    });
+    const after = makeFlamegraph({
+      shared: {
+        frames: [{name: 'function'}, {name: 'other function'}],
+      },
+      profiles: [
+        {
+          ...baseProfile,
+          samples: [[0], [0]],
+          weights: [1, 1],
+        },
+      ],
+    });
+
+    const flamegraph = DifferentialFlamegraph.FromDiff(
+      {before, after},
+      {negated: true},
+      THEME
+    );
+
+    expect(flamegraph.colors?.get('other function')).toEqual([
+      ...THEME.COLORS.DIFFERENTIAL_DECREASE,
+      1 * DifferentialFlamegraph.ALPHA_SCALING,
+    ]);
+  });
+
+  it('increase: color encodes functions that got slower as red', () => {
+    const before = makeFlamegraph({
+      shared: {
+        frames: [{name: 'function'}],
+      },
+      profiles: [
+        {
+          ...baseProfile,
+          samples: [[0], [0]],
+          weights: [1, 1],
+        },
+      ],
+    });
+    const after = makeFlamegraph({
+      shared: {
+        frames: [{name: 'function'}],
+      },
+      profiles: [
+        {
+          ...baseProfile,
+          samples: [[0], [0]],
+          weights: [5, 5],
+        },
+      ],
+    });
+
+    const flamegraph = DifferentialFlamegraph.FromDiff(
+      {before, after},
+      {negated: true},
+      THEME
+    );
+
+    expect(flamegraph.colors?.get('function')).toEqual([
+      ...THEME.COLORS.DIFFERENTIAL_INCREASE,
+      1 * DifferentialFlamegraph.ALPHA_SCALING,
+    ]);
+  });
+
+  it('decrease: color encodes functions that got faster as blue', () => {
+    const before = makeFlamegraph({
+      shared: {
+        frames: [{name: 'function'}],
+      },
+      profiles: [
+        {
+          ...baseProfile,
+          samples: [[0], [0]],
+          weights: [10, 10],
+        },
+      ],
+    });
+    const after = makeFlamegraph({
+      shared: {
+        frames: [{name: 'function'}],
+      },
+      profiles: [
+        {
+          ...baseProfile,
+          samples: [[0], [0]],
+          weights: [1, 1],
+        },
+      ],
+    });
+
+    const flamegraph = DifferentialFlamegraph.FromDiff(
+      {before, after},
+      {negated: true},
+      THEME
+    );
+
+    expect(flamegraph.colors?.get('function')).toEqual([
+      ...THEME.COLORS.DIFFERENTIAL_DECREASE,
+      1 * DifferentialFlamegraph.ALPHA_SCALING,
     ]);
   });
 });

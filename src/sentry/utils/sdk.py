@@ -421,6 +421,7 @@ def configure_sdk():
 
     # exclude monitors with sub-minute schedules from using crons
     exclude_beat_tasks = [
+        "deliver-from-outbox-control",
         "flush-buffers",
         "sync-options",
         "sync-options-control",
@@ -512,7 +513,7 @@ def check_tag_for_scope_bleed(
                 scope.set_tag("possible_mistag", True)
                 scope.set_tag(f"scope_bleed.{tag_key}", True)
                 merge_context_into_scope("scope_bleed", extra, scope)
-            logger.warning(f"Tag already set and different ({tag_key}).", extra=extra)
+            logger.warning("Tag already set and different (%s).", tag_key, extra=extra)
 
 
 def get_transaction_name_from_request(request: Request) -> str:

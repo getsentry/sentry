@@ -28,6 +28,8 @@ import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {TOP_SCREENS} from 'sentry/views/starfish/views/screens';
 
+const MAX_TABLE_RELEASE_CHARS = 15;
+
 type Props = {
   data: TableData | undefined;
   eventView: EventView;
@@ -41,8 +43,14 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
   const {projects} = useProjects();
   const organization = useOrganization();
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
-  const truncatedPrimary = formatVersionAndCenterTruncate(primaryRelease ?? '', 15);
-  const truncatedSecondary = formatVersionAndCenterTruncate(secondaryRelease ?? '', 15);
+  const truncatedPrimary = formatVersionAndCenterTruncate(
+    primaryRelease ?? '',
+    MAX_TABLE_RELEASE_CHARS
+  );
+  const truncatedSecondary = formatVersionAndCenterTruncate(
+    secondaryRelease ?? '',
+    MAX_TABLE_RELEASE_CHARS
+  );
 
   const project = useMemo(() => {
     if (selection.projects.length !== 1) {
@@ -197,7 +205,7 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
               !col.name.startsWith('avg_compare')
           )
           .map((col: TableColumn<React.ReactText>) => {
-            return {...col, name: columnNameMap[col.key]};
+            return {...col, name: columnNameMap[col.key] ?? col.name};
           })}
         columnSortBy={[
           {

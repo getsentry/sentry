@@ -106,7 +106,7 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
 
     monitor_env = failed_checkin.monitor_environment
 
-    monitor_disabled = monitor_env.monitor.status == MonitorObjectStatus.DISABLED
+    monitor_muted = monitor_env.monitor.status == MonitorObjectStatus.MUTED
 
     fingerprint = None
 
@@ -133,8 +133,8 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
         monitor_env.last_state_change = monitor_env.last_checkin
         monitor_env.save(update_fields=("status", "last_state_change"))
 
-        # Do not create incident if monitor is disabled
-        if not monitor_disabled:
+        # Do not create incident if monitor is muted
+        if not monitor_muted:
             starting_checkin = previous_checkins[0]
 
             # for new incidents, generate a new hash from a uuid to use
@@ -167,8 +167,8 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
         # don't send occurrence for other statuses
         return False
 
-    # Do not create event/occurrence if monitor is disabled
-    if monitor_disabled:
+    # Do not create event/occurrence if monitor is muted
+    if monitor_muted:
         return True
 
     for previous_checkin in previous_checkins:
@@ -185,8 +185,8 @@ def mark_failed_no_threshold(failed_checkin: MonitorCheckIn):
 
     monitor_env = failed_checkin.monitor_environment
 
-    # Do not create event if monitor is disabled
-    if monitor_env.monitor.status == MonitorObjectStatus.DISABLED:
+    # Do not create event if monitor is muted
+    if monitor_env.monitor.status == MonitorObjectStatus.MUTED:
         return True
 
     use_issue_platform = False
