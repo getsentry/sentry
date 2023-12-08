@@ -61,7 +61,7 @@ class DiscordRequestParser(BaseRequestParser):
 
         with sentry_sdk.push_scope() as scope:
             scope.set_extra("path", self.request.path)
-            scope.set_extra("guild_id", str(discord_request.guild_id))
+            scope.set_extra("guild_id", str(discord_request.guild_id if discord_request else None))
             sentry_sdk.capture_exception(
                 Exception(
                     f"Unexpected view class in {self.provider} request parser: {self.view_class.__name__}"
