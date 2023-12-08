@@ -5,6 +5,7 @@ from functools import reduce
 from typing import Any, Mapping, Sequence
 from urllib.parse import quote
 
+from django.http.response import HttpResponseBase
 from jwt import ExpiredSignatureError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -109,7 +110,7 @@ class JiraSentryIssueDetailsView(JiraSentryUIBaseView):
 
         return self.get_response(response_context)
 
-    def dispatch(self, request: Request, *args, **kwargs) -> Response:
+    def dispatch(self, request: Request, *args, **kwargs) -> HttpResponseBase:
         try:
             return super().dispatch(request, *args, **kwargs)
         except ApiError as exc:

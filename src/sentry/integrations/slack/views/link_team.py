@@ -4,7 +4,8 @@ from typing import Any, Sequence
 
 from django import forms
 from django.core.signing import BadSignature, SignatureExpired
-from django.http import Http404, HttpResponse
+from django.http import Http404
+from django.http.response import HttpResponseBase
 from django.utils.decorators import method_decorator
 from rest_framework.request import Request
 
@@ -70,7 +71,7 @@ class SlackLinkTeamView(BaseView):
 
     @transaction_start("SlackLinkTeamView")
     @method_decorator(never_cache)
-    def handle(self, request: Request, signed_params: str) -> HttpResponse:
+    def handle(self, request: Request, signed_params: str) -> HttpResponseBase:
         if request.method not in ALLOWED_METHODS:
             return render_error_page(request, status=405, body_text="HTTP 405: Method not allowed")
 

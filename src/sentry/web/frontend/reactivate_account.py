@@ -1,4 +1,4 @@
-from django.http import HttpResponse
+from django.http.response import HttpResponseBase
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
@@ -14,7 +14,7 @@ class ReactivateAccountView(BaseView):
     auth_required = False
 
     @method_decorator(never_cache)
-    def handle(self, request: Request) -> HttpResponse:
+    def handle(self, request: Request) -> HttpResponseBase:
         if not request.user.is_authenticated:
             return self.handle_auth_required(request)
 

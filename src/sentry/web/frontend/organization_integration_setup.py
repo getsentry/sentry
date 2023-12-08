@@ -2,8 +2,8 @@ import logging
 
 import sentry_sdk
 from django.http import Http404
+from django.http.response import HttpResponseBase
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.web.frontend.base import ControlSiloOrganizationView, control_silo_view
@@ -17,7 +17,7 @@ class OrganizationIntegrationSetupView(ControlSiloOrganizationView):
 
     csrf_protect = False
 
-    def handle(self, request: Request, organization, provider_id) -> Response:
+    def handle(self, request: Request, organization, provider_id) -> HttpResponseBase:
         try:
             with sentry_sdk.configure_scope() as scope:
                 parent_span_id = scope.span.span_id
