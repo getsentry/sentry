@@ -78,7 +78,6 @@ def save_userreport(
                 email=report["email"],
                 comments=report["comments"],
                 date_added=timezone.now(),
-                event_user_id=euser.id if euser else None,
             )
             report_instance = existing_report
 
