@@ -3,7 +3,7 @@ import {useEffect, useState} from 'react';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {OnboardingLayout} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
-import {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {ConfigType, Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import type {
@@ -21,7 +21,7 @@ type SdkDocumentationProps = {
   platform: PlatformIntegration;
   projectId: Project['id'];
   projectSlug: Project['slug'];
-  isReplayOnboarding?: boolean;
+  configType?: ConfigType;
   newOrg?: boolean;
 };
 
@@ -50,7 +50,7 @@ export function SdkDocumentation({
   newOrg,
   organization,
   projectId,
-  isReplayOnboarding,
+  configType,
 }: SdkDocumentationProps) {
   const sourcePackageRegistries = useSourcePackageRegistries(organization);
 
@@ -99,22 +99,17 @@ export function SdkDocumentation({
 
   useEffect(() => {
     async function getGettingStartedDoc() {
-      const mod = isReplayOnboarding
-        ? await import(
-            /* webpackExclude: /.spec/ */
-            `sentry/gettingStartedDocs/replay-onboarding/${platformPath}`
-          )
-        : await import(
-            /* webpackExclude: /.spec/ */
-            `sentry/gettingStartedDocs/${platformPath}`
-          );
+      const mod = await import(
+        /* webpackExclude: /.spec/ */
+        `sentry/gettingStartedDocs/${platformPath}`
+      );
       setModule(mod);
     }
     getGettingStartedDoc();
     return () => {
       setModule(null);
     };
-  }, [platformPath, isReplayOnboarding]);
+  }, [platformPath]);
 
   if (!module || projectKeysIsLoading) {
     return <LoadingIndicator />;
@@ -151,6 +146,7 @@ export function SdkDocumentation({
       platformKey={platform.id}
       projectId={projectId}
       projectSlug={projectSlug}
+      configType={configType}
     />
   );
 }
