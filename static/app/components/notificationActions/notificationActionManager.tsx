@@ -185,8 +185,8 @@ function NotificationActionManager({
     }
   };
 
-  const getMenuItems = () => {
-    const menuItems: MenuItemProps[] = [];
+  const menuItems = useMemo(() => {
+    const dropdownMenuItems: MenuItemProps[] = [];
     Object.entries(availableServices).forEach(([serviceType, validActions]) => {
       if (validActions.length === 0) {
         return;
@@ -199,7 +199,7 @@ function NotificationActionManager({
         return;
       }
       const label = getLabel(serviceType);
-      menuItems.push({
+      dropdownMenuItems.push({
         key: serviceType,
         label,
         onAction: () => {
@@ -210,10 +210,8 @@ function NotificationActionManager({
         },
       });
     });
-    return menuItems;
-  };
-
-  const menuItems = getMenuItems();
+    return dropdownMenuItems;
+  }, [actionsMap, availableServices, notificationActions, project, updateAlertCount]);
 
   const toolTipText = () => {
     if (disabled) {
