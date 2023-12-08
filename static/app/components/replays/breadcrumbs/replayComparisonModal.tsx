@@ -1,4 +1,5 @@
-import {useEffect} from 'react';
+import {useEffect, useState} from 'react';
+import beautify from 'js-beautify';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Flex} from 'sentry/components/profiling/flex';
@@ -7,6 +8,7 @@ import {
   useReplayContext,
 } from 'sentry/components/replays/replayContext';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
+import SplitDiff from 'sentry/components/splitDiff';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -30,6 +32,11 @@ export default function ReplayComparisonModal({
 }: Props) {
   const fetching = false;
 
+  const [leftBody, setLeftBody] = useState(null);
+  const [rightBody, setRightBody] = useState(null);
+
+  console.log({leftBody, rightBody});
+
   return (
     <OrganizationContext.Provider value={organization}>
       <Header closeButton>
@@ -42,36 +49,59 @@ export default function ReplayComparisonModal({
             replay={replay}
             initialTimeOffsetMs={{offsetMs: leftTimestamp - 1}}
           >
-            <Flex id="leftSide">
-              <ReplaySide selector="#leftSide iframe" expectedTime={leftTimestamp - 1} />
-            </Flex>
+            <div id="leftSide" style={{display: 'contents', width: '50%'}}>
+              <ReplaySide
+                selector="#leftSide iframe"
+                expectedTime={leftTimestamp - 1}
+                onLoad={setLeftBody}
+              />
+            </div>
           </ReplayContextProvider>
           <ReplayContextProvider
             isFetching={fetching}
             replay={replay}
             initialTimeOffsetMs={{offsetMs: rightTimestamp + 1}}
           >
-            <Flex id="rightSide">
+            <div id="rightSide" style={{display: 'contents', width: '50%'}}>
               <ReplaySide
                 selector="#rightSide iframe"
                 expectedTime={rightTimestamp + 1}
+                onLoad={setRightBody}
               />
-            </Flex>
+            </div>
           </ReplayContextProvider>
+        </Flex>
+        <Flex>
+          {leftBody && rightBody ? (
+            <SplitDiff base={leftBody} target={rightBody} type="words" />
+          ) : null}
         </Flex>
       </Body>
     </OrganizationContext.Provider>
   );
 }
 
-function ReplaySide({expectedTime, selector}) {
+function ReplaySide({expectedTime, selector, onLoad}) {
   const {currentTime} = useReplayContext();
 
   useEffect(() => {
     if (currentTime === expectedTime) {
-      const iframe = document.querySelector(selector);
-      console.log({iframe});
+      setTimeout(() => {
+        const iframe = document.querySelector(selector) as HTMLIFrameElement;
+        const body = iframe.contentWindow?.document.body;
+        onLoad(
+          beautify.html(body?.innerHTML, {
+            indent_size: 2,
+          })
+        );
+
+        console.log({
+          iframe,
+          body,
+          innerHtml: body?.innerHTML,
+        });
+      }, 0);
     }
-  }, [currentTime, expectedTime, selector]);
+  }, [currentTime, expectedTime, selector, onLoad]);
   return <ReplayPlayer isPreview />;
 }

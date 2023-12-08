@@ -1,4 +1,5 @@
 import {CSSProperties, isValidElement, memo, MouseEvent, useMemo} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
@@ -115,20 +116,23 @@ function BreadcrumbItem({
         {'data' in frame && frame.data && 'mutations' in frame.data ? (
           <Button
             onClick={() => {
-              openModal(deps => (
-                <ReplayComparisonModal
-                  replay={replay}
-                  organization={organization}
-                  leftTimestamp={frame.offsetMs}
-                  rightTimestamp={
-                    // @ts-expect-error
-                    frame.data.mutations.next.timestamp -
-                    // @ts-expect-error
-                    (replay?.getReplay().started_at ?? 0)
-                  }
-                  {...deps}
-                />
-              ));
+              openModal(
+                deps => (
+                  <ReplayComparisonModal
+                    replay={replay}
+                    organization={organization}
+                    leftTimestamp={frame.offsetMs}
+                    rightTimestamp={
+                      // @ts-expect-error
+                      frame.data.mutations.next.timestamp -
+                      // @ts-expect-error
+                      (replay?.getReplay().started_at ?? 0)
+                    }
+                    {...deps}
+                  />
+                ),
+                {modalCss}
+              );
             }}
           >
             Show Side by side
@@ -156,6 +160,12 @@ function BreadcrumbItem({
     </CrumbItem>
   );
 }
+
+export const modalCss = css`
+  width: auto;
+  height: 100%;
+  max-width: 90vw;
+`;
 
 function CrumbProject({projectSlug}: {projectSlug: string}) {
   const {projects} = useProjects();
