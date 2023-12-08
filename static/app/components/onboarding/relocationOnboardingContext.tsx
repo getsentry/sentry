@@ -3,7 +3,9 @@ import {createContext, useCallback} from 'react';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
 type Data = {
-  formData?: FormData;
+  orgSlugs: string;
+  region: string;
+  file?: File;
 };
 
 export type RelocationOnboardingContextProps = {
@@ -14,21 +16,25 @@ export type RelocationOnboardingContextProps = {
 export const RelocationOnboardingContext =
   createContext<RelocationOnboardingContextProps>({
     data: {
-      formData: undefined,
+      orgSlugs: '',
+      region: '',
+      file: undefined,
     },
     setData: () => {},
   });
 
 type ProviderProps = {
   children: React.ReactNode;
-  value?: FormData;
+  value?: Data;
 };
 
 export function RelocationOnboardingContextProvider({children, value}: ProviderProps) {
   const [sessionStorage, setSessionStorage] = useSessionStorage<Data>(
     'relocationOnboarding',
     {
-      formData: value,
+      orgSlugs: value?.orgSlugs || '',
+      region: value?.region || '',
+      file: value?.file || undefined,
     }
   );
 
