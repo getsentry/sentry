@@ -14,9 +14,12 @@ from sentry.seer.utils import BreakpointData
 from sentry.utils import metrics
 
 
-def fingerprint_regression(transaction):
+def fingerprint_regression(transaction, full=False):
     prehashed_fingerprint = f"p95_transaction_duration_regression-{transaction}"
-    return hashlib.sha1((prehashed_fingerprint).encode()).hexdigest()
+    fingerprint = hashlib.sha1((prehashed_fingerprint).encode()).hexdigest()
+    if not full:
+        fingerprint = fingerprint[:16]
+    return fingerprint
 
 
 def send_regression_to_platform(regression: BreakpointData, released: bool):
@@ -40,7 +43,9 @@ def send_regression_to_platform(regression: BreakpointData, released: bool):
         resource_id=None,
         project_id=project_id,
         event_id=uuid.uuid4().hex,
-        fingerprint=[fingerprint_regression(regression["transaction"])],
+        # This uses the full fingerprint to avoid creating a new group for existing
+        # issues but in theory this could be switched to the abbreviated fingerprint.
+        fingerprint=[fingerprint_regression(regression["transaction"], full=True)],
         type=issue_type,
         issue_title=issue_type.description,
         subtitle=f"Increased from {displayed_old_baseline}ms to {displayed_new_baseline}ms (P95)",

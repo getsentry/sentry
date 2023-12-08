@@ -517,7 +517,7 @@ def get_sources_for_project(project):
             # Source configs should be validated when they are saved. If this
             # did not happen, this indicates a bug. Record this, but do not stop
             # processing at this point.
-            logger.error("Invalid symbolicator source config", exc_info=True)
+            logger.exception("Invalid symbolicator source config")
 
     def resolve_alias(source):
         for key in source.get("sources") or ():
@@ -628,7 +628,6 @@ def redact_internal_sources_from_module(module):
     for candidate in module.get("candidates", []):
         source_id = candidate["source"]
         if is_internal_source_id(source_id):
-
             # Only keep location for sentry:project.
             if source_id != "sentry:project":
                 candidate.pop("location", None)

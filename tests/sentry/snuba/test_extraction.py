@@ -7,8 +7,8 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     OnDemandMetricSpec,
     SearchQueryConverter,
+    _cleanup_query,
     apdex_tag_spec,
-    cleanup_query,
     failure_tag_spec,
     query_tokens_to_string,
     should_use_on_demand_metrics,
@@ -144,6 +144,7 @@ class TestCreatesOndemandMetricSpec:
                 "",
             ),  # apdex with specified threshold is on-demand metric even without query
             ("count()", "transaction.duration:>0 my-transaction"),
+            ("count()", "transaction.source:route"),
         ],
     )
     def test_creates_on_demand_spec(self, aggregate, query):
@@ -643,7 +644,7 @@ def test_query_tokens_to_string(query):
 def test_cleanup_query(dirty, clean):
     dirty_tokens = parse_search_query(dirty)
     clean_tokens = parse_search_query(clean)
-    actual_clean = cleanup_query(dirty_tokens)
+    actual_clean = _cleanup_query(dirty_tokens)
 
     assert actual_clean == clean_tokens
 
@@ -662,7 +663,7 @@ def test_cleanup_query_with_empty_parens():
         + [paren([paren([paren(["AND", "OR", paren([])])])])]  # ((()))
     )
     clean_tokens = parse_search_query("release:initial AND os.name:android")
-    actual_clean = cleanup_query(dirty_tokens)
+    actual_clean = _cleanup_query(dirty_tokens)
     assert actual_clean == clean_tokens
 
 
