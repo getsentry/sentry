@@ -534,6 +534,34 @@ class BuildGroupAttachmentReplaysTest(TestCase):
             == f"\n\n<http://testserver/organizations/baz/issues/{event.group.id}/replays/?referrer=slack|View Replays>"
         )
 
+    @with_feature("organizations:slack-block-kit")
+    @patch("sentry.models.group.Group.has_replays")
+    def test_build_replay_issue_block_kit(self, has_replays):
+        replay1_id = "46eb3948be25448abd53fe36b5891ff2"
+        self.project.flags.has_replays = True
+        self.project.save()
+
+        event = self.store_event(
+            data={
+                "message": "Hello world",
+                "level": "error",
+                "contexts": {"replay": {"replay_id": replay1_id}},
+                "timestamp": iso_format(before_now(minutes=1)),
+            },
+            project_id=self.project.id,
+        )
+        assert event.group is not None
+
+        with self.feature(
+            ["organizations:session-replay", "organizations:session-replay-slack-new-issue"]
+        ):
+            blocks = SlackIssuesMessageBuilder(event.group, event.for_group(event.group)).build()
+        assert isinstance(blocks, dict)
+        assert (
+            f"\n\n<http://testserver/organizations/baz/issues/{event.group.id}/replays/?referrer=slack|View Replays>"
+            in blocks["blocks"][0]["text"]["text"]
+        )
+
 
 @region_silo_test
 class BuildIncidentAttachmentTest(TestCase):
@@ -821,6 +849,11 @@ class ActionsTest(TestCase):
             group, self.project, "test txt", "red", [MessageAction(name="TEST")], MOCKIDENTITY
         ) == ([], "test txt\n", "_actioned_issue")
 
+        with self.feature("organizations:slack-block-kit"):
+            assert build_actions(
+                group, self.project, "test txt", "red", [MessageAction(name="TEST")], MOCKIDENTITY
+            ) == ([], "test txt\n", "_actioned_issue")
+
     def _assert_message_actions_list(self, actions, expected):
         actions_dict = [
             {"name": a.name, "label": a.label, "type": a.type, "value": a.value} for a in actions
@@ -835,15 +868,24 @@ class ActionsTest(TestCase):
         res = build_actions(
             group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
         )
-
+        expected = {
+            "label": "Stop Ignoring",
+            "name": "status",
+            "type": "button",
+            "value": "unresolved:ongoing",
+        }
         self._assert_message_actions_list(
             res[0],
-            {
-                "label": "Stop Ignoring",
-                "name": "status",
-                "type": "button",
-                "value": "unresolved:ongoing",
-            },
+            expected,
+        )
+
+        with self.feature("organizations:slack-block-kit"):
+            res = build_actions(
+                group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
+            )
+        self._assert_message_actions_list(
+            res[0],
+            expected,
         )
 
     def test_ignore_does_not_have_escalating(self):
@@ -856,15 +898,26 @@ class ActionsTest(TestCase):
                 group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
             )
 
+        expected = {
+            "label": "Mark as Ongoing",
+            "name": "status",
+            "type": "button",
+            "value": "unresolved:ongoing",
+        }
         self._assert_message_actions_list(
             res[0],
-            {
-                "label": "Mark as Ongoing",
-                "name": "status",
-                "type": "button",
-                "value": "unresolved:ongoing",
-            },
+            expected,
         )
+        with self.feature("organizations:escalating-issues"), self.feature(
+            "organizations:slack-block-kit"
+        ):
+            res = build_actions(
+                group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
+            )
+            self._assert_message_actions_list(
+                res[0],
+                expected,
+            )
 
     def test_ignore_unresolved_no_escalating(self):
         group = self.create_group(project=self.project)
@@ -874,16 +927,25 @@ class ActionsTest(TestCase):
         res = build_actions(
             group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
         )
-
+        expected = {
+            "label": "Ignore",
+            "name": "status",
+            "type": "button",
+            "value": "ignored:forever",
+        }
         self._assert_message_actions_list(
             res[0],
-            {
-                "label": "Ignore",
-                "name": "status",
-                "type": "button",
-                "value": "ignored:forever",
-            },
+            expected,
         )
+
+        with self.feature("organizations:slack-block-kit"):
+            res = build_actions(
+                group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
+            )
+            self._assert_message_actions_list(
+                res[0],
+                expected,
+            )
 
     def test_ignore_unresolved_has_escalating(self):
         group = self.create_group(project=self.project)
@@ -894,16 +956,26 @@ class ActionsTest(TestCase):
             res = build_actions(
                 group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
             )
-
+        expected = {
+            "label": "Archive",
+            "name": "status",
+            "type": "button",
+            "value": "ignored:until_escalating",
+        }
         self._assert_message_actions_list(
             res[0],
-            {
-                "label": "Archive",
-                "name": "status",
-                "type": "button",
-                "value": "ignored:until_escalating",
-            },
+            expected,
         )
+        with self.feature("organizations:slack-block-kit"), self.feature(
+            "organizations:escalating-issues"
+        ):
+            res = build_actions(
+                group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
+            )
+            self._assert_message_actions_list(
+                res[0],
+                expected,
+            )
 
     def test_no_ignore_if_feedback(self):
         group = self.create_group(project=self.project, type=FeedbackGroup.type_id)
@@ -913,6 +985,13 @@ class ActionsTest(TestCase):
         # no ignore action if feedback issue, so only assign and resolve
         assert len(res[0]) == 2
 
+        with self.feature("organizations:slack-block-kit"):
+            res = build_actions(
+                group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
+            )
+            # no ignore action if feedback issue, so only assign and resolve
+            assert len(res[0]) == 2
+
     def test_resolve_resolved(self):
         group = self.create_group(project=self.project)
         group.status = GroupStatus.RESOLVED
@@ -921,15 +1000,15 @@ class ActionsTest(TestCase):
         res = build_actions(
             group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
         )
-
+        expected = {
+            "label": "Unresolve",
+            "name": "status",
+            "type": "button",
+            "value": "unresolved:ongoing",
+        }
         self._assert_message_actions_list(
             res[0],
-            {
-                "label": "Unresolve",
-                "name": "status",
-                "type": "button",
-                "value": "unresolved:ongoing",
-            },
+            expected,
         )
 
     def test_resolve_unresolved_no_releases(self):
@@ -989,3 +1068,12 @@ class ActionsTest(TestCase):
             res[0],
             {"label": "Select Assignee...", "name": "assign", "type": "select", "value": None},
         )
+        with self.feature("organizations:slack-block-kit"):
+            res = build_actions(
+                group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
+            )
+
+            self._assert_message_actions_list(
+                res[0],
+                {"label": "Select Assignee...", "name": "assign", "type": "select", "value": None},
+            )

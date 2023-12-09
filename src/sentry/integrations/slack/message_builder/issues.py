@@ -237,6 +237,8 @@ def build_actions(
 
     def _resolve_button(use_block_kit) -> MessageAction:
         if use_block_kit:
+            # TODO(CEO): handle if the issue is resolved - render a button that unresolves
+            # TODO(CEO): handle if not project.flags.has_releases in block kit - render a resolve button instead of a modal
             return MessageAction(
                 name="status",
                 label="Resolve",
