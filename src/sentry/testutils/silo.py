@@ -229,9 +229,12 @@ class _SiloModeTestModification:
             )
             new_sig = orig_sig.replace(parameters=new_params)
             new_test_method.__setattr__("__signature__", new_sig)
-        return pytest.mark.parametrize(
-            "silo_mode", sorted(self.silo_modes | frozenset([SiloMode.MONOLITH]), key=str)
-        )(new_test_method)
+
+        mode_parameters = self.silo_modes
+        if self.include_monolith_run:
+            mode_parameters |= frozenset([SiloMode.MONOLITH])
+        parametrize = pytest.mark.parametrize("silo_mode", sorted(mode_parameters, key=str))
+        return parametrize(new_test_method)
 
     def apply(self, decorated_obj: Any) -> Any:
         is_test_case_class = isinstance(decorated_obj, type) and issubclass(decorated_obj, TestCase)
