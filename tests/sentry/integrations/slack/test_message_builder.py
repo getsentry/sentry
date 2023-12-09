@@ -15,6 +15,7 @@ from sentry.integrations.slack.message_builder.issues import (
     SlackIssuesMessageBuilder,
     build_actions,
     get_option_groups,
+    get_option_groups_block_kit,
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.issues.grouptype import (
@@ -307,11 +308,38 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert len(team_option_groups["options"]) == 2
         assert len(member_option_groups["options"]) == 2
 
+    @with_feature("organizations:slack-block-kit")
+    @patch(
+        "sentry.integrations.slack.message_builder.issues.get_option_groups_block_kit",
+        wraps=get_option_groups_block_kit,
+    )
+    def test_build_group_block_prune_duplicate_assignees(self, mock_get_option_groups_block_kit):
+        user2 = self.create_user()
+        team2 = self.create_team(organization=self.organization, members=[self.user])
+        self.create_member(user=user2, organization=self.organization, teams=[team2])
+        project2 = self.create_project(organization=self.organization, teams=[self.team, team2])
+        group = self.create_group(project=project2)
+
+        SlackIssuesMessageBuilder(group).build()
+        assert mock_get_option_groups_block_kit.called
+
+        team_option_groups, member_option_groups = mock_get_option_groups_block_kit(group)
+        assert len(team_option_groups["options"]) == 2
+        assert len(member_option_groups["options"]) == 2
+
     def test_build_group_attachment_issue_alert(self):
         issue_alert_group = self.create_group(project=self.project)
         ret = SlackIssuesMessageBuilder(issue_alert_group, issue_details=True).build()
         assert isinstance(ret, dict)
         assert ret["actions"] == []
+
+    @with_feature("organizations:slack-block-kit")
+    def test_build_group_attachment_issue_alert_block_kit(self):
+        issue_alert_group = self.create_group(project=self.project)
+        ret = SlackIssuesMessageBuilder(issue_alert_group, issue_details=True).build()
+        assert isinstance(ret, dict)
+        for section in ret["blocks"]:
+            assert section["type"] != "actions"
 
     def test_team_recipient(self):
         issue_alert_group = self.create_group(project=self.project)
@@ -321,6 +349,21 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert isinstance(ret, dict)
         assert ret["actions"] != []
 
+    @with_feature("organizations:slack-block-kit")
+    def test_team_recipient_block_kit(self):
+        issue_alert_group = self.create_group(project=self.project)
+        ret = SlackIssuesMessageBuilder(
+            issue_alert_group, recipient=RpcActor.from_object(self.team)
+        ).build()
+        assert isinstance(ret, dict)
+        has_actions = False
+        for section in ret["blocks"]:
+            if section["type"] == "actions":
+                has_actions = True
+
+        assert has_actions
+
+    # XXX(CEO): skipping replicating tests relating to color since there is no block kit equivalent
     def test_build_group_attachment_color_no_event_error_fallback(self):
         group_with_no_events = self.create_group(project=self.project)
         ret = SlackIssuesMessageBuilder(group_with_no_events).build()
@@ -368,12 +411,41 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert attachments["fallback"] == f"[{self.project.slug}] {occurrence.issue_title}"
         assert attachments["color"] == "#2788CE"  # blue for info level
 
+    @with_feature("organizations:slack-block-kit")
+    def test_build_group_generic_issue_block(self):
+        """Test that a generic issue type's Slack alert contains the expected values"""
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+        )
+        group_event = event.for_group(event.groups[0])
+        occurrence = self.build_occurrence(level="info")
+        occurrence.save()
+        group_event.occurrence = occurrence
+
+        group_event.group.type = ProfileFileIOGroupType.type_id
+
+        blocks = SlackIssuesMessageBuilder(group=group_event.group, event=group_event).build()
+        assert isinstance(blocks, dict)
+        for section in blocks["blocks"]:
+            if section["type"] == "text":
+                assert occurrence.issue_title in section["text"]["text"]
+        assert occurrence.evidence_display[0].value in blocks["blocks"][0]["text"]["text"]
+        assert blocks["text"] == f"[{self.project.slug}] {occurrence.issue_title}"
+
     def test_build_error_issue_fallback_text(self):
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
         attachments = SlackIssuesMessageBuilder(event.group, event.for_group(event.group)).build()
         assert isinstance(attachments, dict)
         assert attachments["fallback"] == f"[{self.project.slug}] {event.group.title}"
+
+    @with_feature("organizations:slack-block-kit")
+    def test_build_error_issue_fallback_text_block_kit(self):
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+        blocks = SlackIssuesMessageBuilder(event.group, event.for_group(event.group)).build()
+        assert isinstance(blocks, dict)
+        assert blocks["text"] == f"[{self.project.slug}] {event.group.title}"
 
     def test_build_performance_issue(self):
         event = self.create_performance_issue()
@@ -387,6 +459,19 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
         assert attachments["fallback"] == f"[{self.project.slug}] N+1 Query"
         assert attachments["color"] == "#2788CE"  # blue for info level
+
+    @with_feature("organizations:slack-block-kit")
+    def test_build_performance_issue_block_kit(self):
+        event = self.create_performance_issue()
+        with self.feature("organizations:performance-issues"):
+            blocks = SlackIssuesMessageBuilder(event.group, event).build()
+        assert isinstance(blocks, dict)
+        assert "N+1 Query" in blocks["blocks"][0]["text"]["text"]
+        assert (
+            "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+            in blocks["blocks"][0]["text"]["text"]
+        )
+        assert blocks["text"] == f"[{self.project.slug}] N+1 Query"
 
     def test_build_performance_issue_color_no_event_passed(self):
         """This test doesn't pass an event to the SlackIssuesMessageBuilder to mimic what
@@ -407,6 +492,16 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         ret = SlackIssuesMessageBuilder(group, None).build()
         assert isinstance(ret, dict)
         assert ret["text"] == "&lt;https://example.com/|*Click Here*&gt;"
+
+    @with_feature("organizations:slack-block-kit")
+    def test_escape_slack_message_block_kit(self):
+        group = self.create_group(
+            project=self.project,
+            data={"type": "error", "metadata": {"value": "<https://example.com/|*Click Here*>"}},
+        )
+        ret = SlackIssuesMessageBuilder(group, None).build()
+        assert isinstance(ret, dict)
+        assert "&lt;https://example.com/|*Click Here*&gt;" in ret["blocks"][0]["text"]["text"]
 
 
 class BuildGroupAttachmentReplaysTest(TestCase):
