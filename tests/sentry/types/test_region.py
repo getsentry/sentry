@@ -33,7 +33,7 @@ from sentry.utils import json
 def _override_region_config(region_config: Any, monolith_region_name: str):
     with override_settings(SENTRY_MONOLITH_REGION=monolith_region_name):
         test_directory = load_from_config(json.dumps(region_config))
-        with load_global_regions().override(test_directory):
+        with load_global_regions().swap_directory(test_directory):
             yield
 
 
