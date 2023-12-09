@@ -38,6 +38,14 @@ def _override_region_config(region_config: Any, monolith_region_name: str):
 
 
 class RegionMappingTest(TestCase):
+    def setUp(self):
+        super().setUp()
+
+        # As part of testing GlobalRegionDirectory itself, we call override_regions
+        # in some unusual contexts. Load from base settings first to ensure there's
+        # an instance in a good state for override_regions to swap into.
+        load_global_regions()
+
     def test_region_mapping(self):
         regions = [
             Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
@@ -56,12 +64,12 @@ class RegionMappingTest(TestCase):
             Region("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT),
         ]
 
-        with override_regions(regions):
-            with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="us"):
+        with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="us"):
+            with override_regions(regions):
                 assert get_local_region() == regions[0]
 
-        with override_regions(()):
-            with override_settings(SILO_MODE=SiloMode.MONOLITH):
+        with override_settings(SILO_MODE=SiloMode.MONOLITH):
+            with override_regions(()):
                 # The relative address and the 0 id are the only important parts of this region value
                 assert get_local_region() == Region(
                     settings.SENTRY_MONOLITH_REGION,

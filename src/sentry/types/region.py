@@ -152,9 +152,9 @@ class RegionDirectory:
             regions_with_monolith_name = [r for r in self.regions if r.name == monolith_region_name]
             if not regions_with_monolith_name:
                 raise RegionConfigurationError(
-                    "The SENTRY_MONOLITH_REGION setting must point to a region name "
-                    f"({monolith_region_name=!r}; "
-                    f"region names = {[r.name for r in self.regions]!r})"
+                    self._error_msg_for_region_setting(
+                        "SENTRY_MONOLITH_REGION", monolith_region_name
+                    )
                 )
             (self.monolith_region,) = regions_with_monolith_name
 
@@ -166,7 +166,18 @@ class RegionDirectory:
                 raise RegionConfigurationError(
                     "SENTRY_REGION must be set when server is in REGION silo mode"
                 )
-            self.local_region = self._by_name[settings.SENTRY_REGION]
+            try:
+                self.local_region = self._by_name[settings.SENTRY_REGION]
+            except KeyError:
+                raise RegionConfigurationError(
+                    self._error_msg_for_region_setting("SENTRY_REGION", settings.SENTRY_REGION)
+                )
+
+    def _error_msg_for_region_setting(self, name: str, value: str) -> str:
+        return (
+            f"The {name} setting (value={value!r}) must point to a region name "
+            f"(region names = {[r.name for r in self.regions]!r})"
+        )
 
     def get(self, region_name: str) -> Region | None:
         return self._by_name.get(region_name)
