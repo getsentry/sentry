@@ -2,33 +2,24 @@ import {makeColorBuffer} from 'sentry/utils/profiling/colors/utils';
 
 import {ColorChannels, FlamegraphTheme} from './flamegraph/flamegraphTheme';
 import {Profile} from './profile/profile';
-import {Flamegraph} from './flamegraph';
+import {Flamegraph, sortFlamegraphAlphabetically} from './flamegraph';
 import {FlamegraphFrame} from './flamegraphFrame';
 
-function makeFrameMap(frames: ReadonlyArray<FlamegraphFrame>): Map<string, number> {
-  const counts = new Map<string, number>();
-
-  for (const frame of frames) {
-    const key = DifferentialFlamegraph.FrameKey(frame);
-    counts.set(key, frame.node.selfWeight + (counts.get(key) ?? 0));
-  }
-
-  return counts;
-}
-
 export class DifferentialFlamegraph extends Flamegraph {
-  colors: Map<string, ColorChannels> = new Map();
+  colors: Map<FlamegraphFrame['node'], ColorChannels> = new Map();
   colorBuffer: number[] = [];
-  beforeCounts: Map<string, number> = new Map();
-  afterCounts: Map<string, number> = new Map();
+
+  isDifferentialFlamegraph: boolean = true;
 
   newFrames: FlamegraphFrame[] = [];
   removedFrames: FlamegraphFrame[] = [];
-  increasedFrames: [number, FlamegraphFrame][] = [];
-  decreasedFrames: [number, FlamegraphFrame][] = [];
+  increasedFrames: FlamegraphFrame[] = [];
+  decreasedFrames: FlamegraphFrame[] = [];
 
   static ALPHA_SCALING = 0.8;
   public negated: boolean = false;
+
+  weights: Map<FlamegraphFrame['node'], {after: number; before: number}> = new Map();
 
   static FrameKey(frame: FlamegraphFrame): string {
     return (
@@ -62,15 +53,9 @@ export class DifferentialFlamegraph extends Flamegraph {
       sort: after.sort,
     });
 
-    const colorMap = new Map<string, ColorChannels>();
-
-    const beforeCounts = makeFrameMap(before.frames);
-    const afterCounts = makeFrameMap(after.frames);
-
-    const newFrames: FlamegraphFrame[] = [];
-    const removedFrames: FlamegraphFrame[] = [];
-    const increasedFrames: [number, FlamegraphFrame][] = [];
-    const decreasedFrames: [number, FlamegraphFrame][] = [];
+    const colorMap = new Map<FlamegraphFrame['node'], ColorChannels>();
+    const increasedFrames: FlamegraphFrame[] = [];
+    const decreasedFrames: FlamegraphFrame[] = [];
 
     const INCREASED_FRAME_COLOR = theme.COLORS.DIFFERENTIAL_INCREASE;
     const DECREASED_FRAME_COLOR = theme.COLORS.DIFFERENTIAL_DECREASE;
@@ -86,82 +71,62 @@ export class DifferentialFlamegraph extends Flamegraph {
     let maxIncrease = 0;
     let maxDecrease = 0;
 
-    // Find frames that are in the before state, but not in the after state
-    for (const frame of before.frames) {
-      const key = DifferentialFlamegraph.FrameKey(frame);
-
-      !afterCounts.has(key) &&
-        removedFrames.push(frame) &&
-        colorMap.set(key, REMOVED_FRAME_COLOR as ColorChannels);
-    }
-
-    for (const frame of after.frames) {
-      const key = DifferentialFlamegraph.FrameKey(frame);
-
-      const beforeCount = beforeCounts.get(key);
-      const afterCount = afterCounts.get(key);
-
-      // In a negated view, frames missing in before state are new frames
-      if (beforeCount === undefined && negated) {
-        newFrames.push(frame);
-        continue;
-      }
-
-      if (afterCount === undefined) {
-        throw new Error(`Missing count for frame ${key}, this should never happen`);
-      }
-
-      // In a non-negated view, frames missing in the before state are new frames
-      if (beforeCount === undefined) {
-        newFrames.push(frame);
-        continue;
-      }
+    const {weights, addedFrames, removedFrames} = diffFlamegraphTreeRecursive(
+      before,
+      after,
+      negated
+    );
+    for (const frame of sourceFlamegraph.frames) {
+      const change = weights.get(frame.node);
 
       // If frames have same count, we don't need to color them
-      if (beforeCount === afterCount) {
+      if (!change) {
         continue;
       }
 
       // If the frame count increased, color it red
-      if (afterCount > beforeCount) {
-        if (afterCount - beforeCount > maxIncrease) {
-          maxIncrease = afterCount - beforeCount;
-        }
-        increasedFrames.push([afterCount - beforeCount, frame]);
+      if (change.after > change.before) {
+        maxIncrease = Math.max(maxIncrease, change.after - change.before);
+        increasedFrames.push(frame);
         continue;
       }
 
       // If the frame count decreased, color it blue
-      if (beforeCount > afterCount) {
-        if (beforeCount - afterCount > maxDecrease) {
-          maxDecrease = beforeCount - afterCount;
-        }
-        decreasedFrames.push([beforeCount - afterCount, frame]);
+      if (change.after < change.before) {
+        maxDecrease = Math.min(maxDecrease, change.after - change.before);
+        decreasedFrames.push(frame);
         continue;
       }
     }
 
-    for (const frame of newFrames) {
-      colorMap.set(
-        DifferentialFlamegraph.FrameKey(frame),
-        NEW_FRAME_COLOR as ColorChannels
-      );
+    for (const frame of addedFrames) {
+      colorMap.set(frame.node, NEW_FRAME_COLOR as ColorChannels);
+    }
+
+    for (const frame of removedFrames) {
+      colorMap.set(frame.node, REMOVED_FRAME_COLOR as ColorChannels);
     }
 
     for (const frame of increasedFrames) {
+      const {before: beforeCount, after: afterCount} = weights.get(frame.node)!;
+
       colorMap.set(
-        DifferentialFlamegraph.FrameKey(frame[1]),
+        frame.node,
         INCREASED_FRAME_COLOR.concat(
-          (frame[0] / maxIncrease) * DifferentialFlamegraph.ALPHA_SCALING
+          ((afterCount - beforeCount) / maxIncrease) *
+            DifferentialFlamegraph.ALPHA_SCALING
         ) as ColorChannels
       );
     }
 
     for (const frame of decreasedFrames) {
+      const {before: beforeCount, after: afterCount} = weights.get(frame.node)!;
+
       colorMap.set(
-        DifferentialFlamegraph.FrameKey(frame[1]),
+        frame.node,
         DECREASED_FRAME_COLOR.concat(
-          (frame[0] / maxDecrease) * DifferentialFlamegraph.ALPHA_SCALING
+          ((afterCount - beforeCount) / maxDecrease) *
+            DifferentialFlamegraph.ALPHA_SCALING
         ) as ColorChannels
       );
     }
@@ -170,18 +135,82 @@ export class DifferentialFlamegraph extends Flamegraph {
     differentialFlamegraph.colorBuffer = makeColorBuffer(
       sourceFlamegraph.frames,
       colorMap,
-      theme.COLORS.FRAME_FALLBACK_COLOR as unknown as ColorChannels,
-      DifferentialFlamegraph.FrameKey
+      theme.COLORS.FRAME_FALLBACK_COLOR as unknown as ColorChannels
     );
 
-    differentialFlamegraph.newFrames = newFrames;
+    differentialFlamegraph.newFrames = addedFrames;
     differentialFlamegraph.removedFrames = removedFrames;
     differentialFlamegraph.increasedFrames = increasedFrames;
     differentialFlamegraph.decreasedFrames = decreasedFrames;
-    differentialFlamegraph.beforeCounts = beforeCounts;
-    differentialFlamegraph.afterCounts = afterCounts;
+    differentialFlamegraph.weights = weights;
     differentialFlamegraph.negated = negated;
 
     return differentialFlamegraph;
   }
 }
+
+export function diffFlamegraphTreeRecursive(
+  beforeFlamegraph: Flamegraph,
+  afterFlamegraph: Flamegraph,
+  negated
+): {
+  addedFrames: FlamegraphFrame[];
+  removedFrames: FlamegraphFrame[];
+  weights: Map<FlamegraphFrame['node'], {after: number; before: number}>;
+} {
+  let removedFrames: FlamegraphFrame[] = [];
+  let addedFrames: FlamegraphFrame[] = [];
+  const weights = new Map<FlamegraphFrame['node'], {after: number; before: number}>();
+
+  function visit(beforeNode: FlamegraphFrame, afterNode: FlamegraphFrame) {
+    const node = negated ? beforeNode : afterNode;
+    weights.set(node.node, {
+      before: beforeNode.node.totalWeight,
+      after: afterNode.node.totalWeight,
+    });
+
+    for (let i = 0; i < afterNode.children.length; i++) {
+      for (let j = 0; j < beforeNode.children.length; j++) {
+        const result = compareFrames(beforeNode.children[j], afterNode.children[i]);
+        if (result === 0) {
+          visit(beforeNode.children[j], afterNode.children[i]);
+          break;
+        }
+        if (result === -1) {
+          // removed frame
+          removedFrames = removedFrames.concat(getTreeNodes(beforeNode.children[j]));
+          continue;
+        }
+        if (result === 1) {
+          // added frame
+          addedFrames = addedFrames.concat(getTreeNodes(afterNode.children[i]));
+          break;
+        }
+      }
+    }
+  }
+
+  visit(beforeFlamegraph.root, afterFlamegraph.root);
+
+  return {weights, removedFrames, addedFrames};
+}
+
+function getTreeNodes(frame: FlamegraphFrame): FlamegraphFrame[] {
+  const frames: FlamegraphFrame[] = [];
+  const stack: FlamegraphFrame[] = [frame];
+
+  while (stack.length > 0) {
+    const node = stack.pop()!;
+    frames.push(node);
+
+    for (const child of node.children) {
+      stack.push(child);
+    }
+  }
+
+  return frames;
+}
+
+const compareFrames = (a: FlamegraphFrame, b: FlamegraphFrame) => {
+  return sortFlamegraphAlphabetically(a.node, b.node);
+};
