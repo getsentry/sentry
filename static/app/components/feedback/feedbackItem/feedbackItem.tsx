@@ -24,7 +24,7 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import TextOverflow from 'sentry/components/textOverflow';
-import {IconChevron, IconLink} from 'sentry/icons';
+import {IconChevron, IconFire, IconLink, IconPlay, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Group} from 'sentry/types';
@@ -124,30 +124,26 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
                 feedbackEvent={eventData}
               />
             </ErrorBoundary>
-            <ErrorBoundary mini>
-              <Button
-                onClick={() => {
-                  addLoadingMessage(t('Updating feedback...'));
-                  const newStatus =
-                    feedbackItem.status === 'resolved'
-                      ? GroupStatus.UNRESOLVED
-                      : GroupStatus.RESOLVED;
-                  resolve(newStatus, mutationOptions);
-                }}
-              >
-                {feedbackItem.status === 'resolved' ? t('Unresolve') : t('Resolve')}
-              </Button>
-            </ErrorBoundary>
-            <ErrorBoundary mini>
-              <Button
-                onClick={() => {
-                  addLoadingMessage(t('Updating feedback...'));
-                  markAsRead(!feedbackItem.hasSeen, mutationOptions);
-                }}
-              >
-                {feedbackItem.hasSeen ? t('Mark Unread') : t('Mark Read')}
-              </Button>
-            </ErrorBoundary>
+            <Button
+              onClick={() => {
+                addLoadingMessage(t('Updating feedback...'));
+                const newStatus =
+                  feedbackItem.status === 'resolved'
+                    ? GroupStatus.UNRESOLVED
+                    : GroupStatus.RESOLVED;
+                resolve(newStatus, mutationOptions);
+              }}
+            >
+              {feedbackItem.status === 'resolved' ? t('Unresolve') : t('Resolve')}
+            </Button>
+            <Button
+              onClick={() => {
+                addLoadingMessage(t('Updating feedback...'));
+                markAsRead(!feedbackItem.hasSeen, mutationOptions);
+              }}
+            >
+              {feedbackItem.hasSeen ? t('Mark Unread') : t('Mark Read')}
+            </Button>
           </Flex>
         </Flex>
         {eventData && (
@@ -165,38 +161,46 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
       <OverflowPanelItem>
         <Section
           title={t('Description')}
-          contentRight={
-            <ErrorBoundary>
-              <FeedbackViewers feedbackItem={feedbackItem} />
-            </ErrorBoundary>
-          }
+          contentRight={<FeedbackViewers feedbackItem={feedbackItem} />}
         >
           <Blockquote>
             <pre>{feedbackItem.metadata.message}</pre>
           </Blockquote>
         </Section>
+
         <Section icon={<IconLink size="xs" />} title={t('URL')}>
-          <ErrorBoundary mini>
-            <TextCopyInput size="sm">
-              {eventData?.tags ? (url ? url.value : t('URL not found')) : ''}
-            </TextCopyInput>
-          </ErrorBoundary>
+          <TextCopyInput size="sm">
+            {eventData?.tags ? (url ? url.value : t('URL not found')) : ''}
+          </TextCopyInput>
         </Section>
+
         {crashReportId && (
-          <CrashReportSection
-            organization={organization}
-            crashReportId={crashReportId}
-            projSlug={feedbackItem.project.slug}
-          />
+          <Section icon={<IconFire size="xs" />} title={t('Linked Error')}>
+            <ErrorBoundary mini>
+              <CrashReportSection
+                organization={organization}
+                crashReportId={crashReportId}
+                projectSlug={feedbackItem.project.slug}
+              />
+            </ErrorBoundary>
+          </Section>
         )}
+
         {hasReplayId && replayId && (
-          <ReplaySection
-            eventTimestampMs={new Date(feedbackItem.firstSeen).getTime()}
-            organization={organization}
-            replayId={replayId}
-          />
+          <Section icon={<IconPlay size="xs" />} title={t('Linked Replay')}>
+            <ErrorBoundary mini>
+              <ReplaySection
+                eventTimestampMs={new Date(feedbackItem.firstSeen).getTime()}
+                organization={organization}
+                replayId={replayId}
+              />
+            </ErrorBoundary>
+          </Section>
         )}
-        <TagsSection tags={tags} />
+
+        <Section icon={<IconTag size="xs" />} title={t('Tags')}>
+          <TagsSection tags={tags} />
+        </Section>
       </OverflowPanelItem>
     </Fragment>
   );
@@ -213,7 +217,7 @@ const OverflowPanelItem = styled(PanelItem)`
 
   flex-direction: column;
   flex-grow: 1;
-  gap: ${space(3)};
+  gap: ${space(4)};
 `;
 
 const RowGapLinks = styled('div')`
