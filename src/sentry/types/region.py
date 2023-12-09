@@ -236,21 +236,18 @@ class GlobalRegionDirectory:
     @contextmanager
     def swap_local_region(self, region: Region) -> Generator[None, None, None]:
         self._allow_only_in_test_env()
-        if self._temporary_local_region is not None:
-            raise Exception(
-                f"A local region ({self._temporary_local_region.name}) is already being swapped"
-            )
         if region not in self.regions:
             raise Exception(
                 f"The swapped region {region.name} is not in this directory "
                 f"({[r.name for r in self.regions]})"
             )
 
+        old_tmp_local_region = self._temporary_local_region
         try:
             self._temporary_local_region = region
             yield
         finally:
-            self._temporary_local_region = None
+            self._temporary_local_region = old_tmp_local_region
 
 
 def _parse_raw_config(region_config: Any) -> Iterable[Region]:
