@@ -2701,23 +2701,23 @@
   dependencies:
     "@sinonjs/commons" "^2.0.0"
 
-"@spotlightjs/overlay@1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@spotlightjs/overlay/-/overlay-1.0.0.tgz#1fa67d3a631fc87db63eda931681ed4ac8df4203"
-  integrity sha512-PAytV9acAqF8UHFD4236eAMlvOrh46T14508UuhM4fTRKSpJPktNpm+EO5wIa1Z1V+DtycJRi93tskbm6H4Faw==
+"@spotlightjs/overlay@1.0.1":
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/@spotlightjs/overlay/-/overlay-1.0.1.tgz#2761cbf1675e19e8fec2a9327ec69a9d11d7841b"
+  integrity sha512-uyL3MMSjPXDjDNw/6Waf98k5lvqccC6VR+vPuLTPf2QTQxr9EQ3y1p4Arbhid9NZ1BXqJfi2cqvXEwj0MvKVxQ==
 
-"@spotlightjs/sidecar@1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@spotlightjs/sidecar/-/sidecar-1.0.0.tgz#fe5ef4909c065e15dd7bc9deaac692ca54871cfb"
-  integrity sha512-OVyIetoyF8+POvfLbKuW6U3+STjiudxF4ugpxwCWCM+KIp9ZMJNmtQyXAsxkCrXTbWVtt88Pj2duZRPsQiYr7Q==
+"@spotlightjs/sidecar@1.1.1":
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/@spotlightjs/sidecar/-/sidecar-1.1.1.tgz#498d5742628a16e11c0a411e25a7c563eb5e4a52"
+  integrity sha512-fRWQJHwT7r3WlCzGdIyFb+dh88T7aleLd76d7mEUXLRRkqvSZPP2uO48OlBXFJJoATFfm+1XSIedehvlVjHqUw==
 
-"@spotlightjs/spotlight@^1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@spotlightjs/spotlight/-/spotlight-1.0.0.tgz#9d89096c3de2ad95d712e77999cafd82e59c65a3"
-  integrity sha512-cYeKHUt6ntR6assWnwzm5NlEKF70bGlXJnzDAbpyGKgyE5wIawwEzSj5Jq80/c7BOx4NrETxhJX+mX3y9hztrA==
+"@spotlightjs/spotlight@^1.1.1":
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/@spotlightjs/spotlight/-/spotlight-1.1.1.tgz#01706182f406a8589e44b4e65ccfcab22999fc5c"
+  integrity sha512-MqGfh/pSa3S7KhnRx09lxKUbpWs02IU5tzYOlDAYd4PBtFVDQ2yDOLahxgxO0v12NE11Wh06aL1KfdNwY+zfdw==
   dependencies:
-    "@spotlightjs/overlay" "1.0.0"
-    "@spotlightjs/sidecar" "1.0.0"
+    "@spotlightjs/overlay" "1.0.1"
+    "@spotlightjs/sidecar" "1.1.1"
 
 "@styled/typescript-styled-plugin@^1.0.0":
   version "1.0.0"
