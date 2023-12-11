@@ -113,10 +113,10 @@ class LayoutField(serializers.Field):
         return convert_dict_key_case(layout_to_store, snake_to_camel_case)
 
 
-class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
+class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
-    fields = serializers.ListField(child=serializers.CharField(), required=False)
+    fields = serializers.ListField(child=serializers.CharField(), required=False)  # type: ignore[assignment]  # XXX: clobbering Serializer.fields
     aggregates = serializers.ListField(
         child=serializers.CharField(), required=False, allow_null=True
     )
@@ -172,8 +172,8 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
         params = {
             "start": datetime.now() - timedelta(days=1),
             "end": datetime.now(),
-            "project_id": [p.id for p in self.context.get("projects")],
-            "organization_id": self.context.get("organization").id,
+            "project_id": [p.id for p in self.context["projects"]],
+            "organization_id": self.context["organization"].id,
             "environment": self.context.get("environment"),
         }
 
@@ -196,7 +196,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
                 params=params,
                 config=QueryBuilderConfig(
                     equation_config={
-                        "auto_add": not is_table or injected_orderby_equation,
+                        "auto_add": bool(not is_table or injected_orderby_equation),
                         "aggregates_only": not is_table,
                     },
                     use_aggregate_conditions=True,
@@ -243,7 +243,7 @@ class ThresholdMaxKeys(Enum):
     MAX_2 = "max2"
 
 
-class DashboardWidgetSerializer(CamelSnakeSerializer):
+class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
     title = serializers.CharField(required=False, max_length=255)
@@ -354,7 +354,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
         return data
 
 
-class DashboardDetailsSerializer(CamelSnakeSerializer):
+class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
     title = serializers.CharField(required=False, max_length=255)
@@ -427,8 +427,10 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         self.instance = Dashboard.objects.create(
             organization=self.context.get("organization"),
             title=validated_data["title"],
-            created_by_id=self.context.get("request").user.id,
+            created_by_id=self.context["request"].user.id,
         )
+
+        assert self.instance is not None
 
         if "widgets" in validated_data:
             self.update_widgets(self.instance, validated_data["widgets"])
@@ -459,7 +461,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
 
         self.update_dashboard_filters(instance, validated_data)
 
-        schedule_update_project_configs(self.instance)
+        schedule_update_project_configs(instance)
 
         return instance
 

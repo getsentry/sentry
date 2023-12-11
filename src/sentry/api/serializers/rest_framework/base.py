@@ -1,6 +1,12 @@
+from __future__ import annotations
+
+from typing import TypeVar
+
 from django.utils.text import re_camel_case
 from rest_framework.fields import empty
 from rest_framework.serializers import ModelSerializer, Serializer
+
+T = TypeVar("T")
 
 
 def camel_to_snake_case(value):
@@ -37,7 +43,7 @@ def convert_dict_key_case(obj, converter):
     return obj
 
 
-class CamelSnakeSerializer(Serializer):
+class CamelSnakeSerializer(Serializer[T]):
     """
     Allows parameters to be defined in snake case, but passed as camel case.
 
