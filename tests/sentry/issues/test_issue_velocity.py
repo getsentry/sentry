@@ -18,11 +18,13 @@ from sentry.issues.issue_velocity import (
 )
 from sentry.tasks.post_process import locks
 from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.silo import region_silo_test
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 WEEK_IN_HOURS = 7 * 24
 
 
+@region_silo_test
 class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
     def setUp(self):
         self.now = timezone.now()
