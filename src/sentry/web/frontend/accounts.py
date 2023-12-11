@@ -23,6 +23,15 @@ from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger("sentry.accounts")
 
+ERR_CONFIRMING_EMAIL = _(
+    "There was an error confirming your email. Please try again or "
+    "visit your Account Settings to resend the verification email."
+)
+
+
+class InvalidRequest(Exception):
+    pass
+
 
 def get_template(mode, name):
     return f"sentry/account/{mode}/{name}.html"
@@ -205,16 +214,18 @@ def confirm_email(request, user_id, hash):
     msg = _("Thanks for confirming your email")
     level = messages.SUCCESS
     try:
+        if request.user.id != int(user_id):
+            raise InvalidRequest
         email = UserEmail.objects.get(user=user_id, validation_hash=hash)
         if not email.hash_is_valid():
             raise UserEmail.DoesNotExist
     except UserEmail.DoesNotExist:
         if request.user.is_anonymous or request.user.has_unverified_emails():
-            msg = _(
-                "There was an error confirming your email. Please try again or "
-                "visit your Account Settings to resend the verification email."
-            )
+            msg = ERR_CONFIRMING_EMAIL
             level = messages.ERROR
+    except InvalidRequest:
+        msg = ERR_CONFIRMING_EMAIL
+        level = messages.ERROR
     else:
         email.is_verified = True
         email.validation_hash = ""
