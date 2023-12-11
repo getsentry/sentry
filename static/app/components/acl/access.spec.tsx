@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 import {Team} from 'sentry-fixture/team';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -10,7 +11,7 @@ describe('Access', function () {
   const organization = Organization({
     access: ['project:write', 'project:read'],
   });
-  const routerContext = TestStubs.routerContext([{organization}]);
+  const routerContext = RouterContextFixture([{organization}]);
 
   describe('as render prop', function () {
     const childrenMock = jest.fn().mockReturnValue(null);
@@ -45,7 +46,7 @@ describe('Access', function () {
 
     it('read access from team', function () {
       const org = Organization({access: []});
-      const nextRouterContext = TestStubs.routerContext([{organization: org}]);
+      const nextRouterContext = RouterContextFixture([{organization: org}]);
 
       const team1 = Team({access: []});
       render(
@@ -82,7 +83,7 @@ describe('Access', function () {
 
     it('read access from project', function () {
       const org = Organization({access: []});
-      const nextRouterContext = TestStubs.routerContext([{organization: org}]);
+      const nextRouterContext = RouterContextFixture([{organization: org}]);
 
       const proj1 = TestStubs.Project({access: []});
       render(
