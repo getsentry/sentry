@@ -44,6 +44,32 @@ from sentry.testutils.pytest.fixtures import django_db_all
             "transaction.duration:>1",
             True,
         ),  # transaction.duration query is on-demand
+        ("p90(transaction.duration)", "release:a", False),  # supported by standard metrics
+        (
+            "p90(transaction.duration)",
+            "transaction.duration:>1",
+            True,
+        ),  # transaction.duration query is on-demand
+        (
+            "percentile(transaction.duration, 0.9)",
+            "release:a",
+            False,
+        ),  # supported by standard metrics
+        (
+            "percentile(transaction.duration, 0.9)",
+            "transaction.duration:>1",
+            True,
+        ),  # transaction.duration query is on-demand
+        (
+            "percentile(transaction.duration, 0.90)",
+            "release:a",
+            False,
+        ),  # supported by standard metrics
+        (
+            "percentile(transaction.duration, 0.90)",
+            "transaction.duration:>1",
+            True,
+        ),
         ("count()", "", False),  # Malformed aggregate should return false
         (
             "count()",
@@ -120,6 +146,8 @@ class TestCreatesOndemandMetricSpec:
             # we don't support custom percentiles that can be mapped to one of standard percentiles
             ("percentile(transaction.duration, 0.5)", "transaction.duration>0"),
             ("percentile(transaction.duration, 0.50)", "transaction.duration>0"),
+            ("percentile(transaction.duration, 0.9)", "transaction.duration>0"),
+            ("percentile(transaction.duration, 0.90)", "transaction.duration>0"),
             ("percentile(transaction.duration, 0.95)", "transaction.duration>0"),
             ("percentile(transaction.duration, 0.99)", "transaction.duration>0"),
             ("percentile(transaction.duration, 1)", "transaction.duration>0"),
@@ -183,6 +211,24 @@ class TestCreatesOndemandMetricSpec:
     )
     def test_does_not_create_on_demand_spec(self, aggregate, query):
         assert not create_spec_if_needed(self.dataset, aggregate, query)
+
+
+@pytest.mark.parametrize(
+    "percentile",
+    [0.5, 0.75, 0.9, 0.95, 0.99],
+)
+def test_spec_equivalence_with_percentiles(percentile):
+    fixed_percentile = f"p{int(percentile * 100)}"
+
+    spec_1 = OnDemandMetricSpec(f"{fixed_percentile}(measurements.fp)", "transaction.duration:>1s")
+    spec_2 = OnDemandMetricSpec(
+        f"percentile(measurements.fp, {percentile})", "transaction.duration:>1s"
+    )
+
+    assert spec_1._metric_type == spec_2._metric_type
+    assert spec_1.field_to_extract == spec_2.field_to_extract
+    assert spec_1.op == spec_2.op
+    assert spec_1.condition == spec_2.condition
 
 
 def test_spec_simple_query_count():

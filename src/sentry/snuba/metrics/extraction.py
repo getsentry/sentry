@@ -176,6 +176,7 @@ _SEARCH_TO_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
     "max": "max",
     "p50": "p50",
     "p75": "p75",
+    "p90": "p90",
     "p95": "p95",
     "p99": "p99",
     # p100 is not supported in the metrics layer, so we convert to max which is equivalent.
@@ -202,6 +203,7 @@ _AGGREGATE_TO_METRIC_TYPE = {
     "max": "d",
     "p50": "d",
     "p75": "d",
+    "p90": "d",
     "p95": "d",
     "p99": "d",
     "p100": "d",
@@ -253,7 +255,7 @@ QueryToken = Union[SearchFilter, QueryOp, ParenExpression]
 Variables = Dict[str, Any]
 
 query_builder = UnresolvedQuery(
-    dataset=Dataset.Discover, params={}
+    dataset=Dataset.Transactions, params={}
 )  # Workaround to get all updated discover functions instead of using the deprecated events fields.
 
 
@@ -375,6 +377,26 @@ def _parse_search_query(
     return tokens
 
 
+def _parse_function(aggregate: str) -> Tuple[str, List[str], str]:
+    """
+    Parses an aggregate and returns its components.
+
+    This function is a slightly modified version of the `parse_function` method of the query builders.
+    """
+    match = fields.is_function(aggregate)
+    if not match:
+        raise InvalidSearchQuery(f"Invalid characters in field {aggregate}")
+
+    function = match.group("function")
+    arguments = fields.parse_arguments(function, match.group("columns"))
+    alias = match.group("alias")
+
+    if alias is None:
+        alias = fields.get_function_alias_with_columns(function, arguments)
+
+    return function, arguments, alias
+
+
 @dataclass(frozen=True)
 class SupportedBy:
     """Result of a check for standard and on-demand metric support."""
@@ -442,11 +464,7 @@ def _extract_aggregate_components(aggregate: str) -> Optional[Tuple[str, List[st
         if is_equation(aggregate):
             return None
 
-        match = fields.is_function(aggregate)
-        if not match:
-            raise InvalidSearchQuery(f"Invalid characters in field {aggregate}")
-
-        function, _, args, _ = query_builder.parse_function(match)
+        function, args, _ = _parse_function(aggregate)
         return function, args
     except InvalidSearchQuery:
         logger.exception("Failed to parse aggregate: %s", aggregate)
@@ -502,6 +520,8 @@ def _get_percentile_op(args: Sequence[str]) -> Optional[MetricOperationType]:
         return "p50"
     if percentile == "0.75":
         return "p75"
+    if percentile in ["0.9", "0.90"]:
+        return "p90"
     if percentile == "0.95":
         return "p95"
     if percentile == "0.99":
@@ -1249,14 +1269,11 @@ class OnDemandMetricSpec:
     @staticmethod
     def _parse_field(value: str) -> FieldParsingResult:
         try:
-            match = fields.is_function(value)
-            if not match:
-                raise InvalidSearchQuery(f"Invalid characters in field {value}")
-
-            function, _, arguments, alias = query_builder.parse_function(match)
-
+            function, arguments, alias = _parse_function(value)
             if function:
                 return FieldParsingResult(function=function, arguments=arguments, alias=alias)
+
+            # TODO: why is this here?
             column = query_builder.resolve_column(value)
             return column
         except InvalidSearchQuery as e:
