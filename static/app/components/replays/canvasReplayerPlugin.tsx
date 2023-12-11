@@ -3,13 +3,15 @@ import {
   canvasMutation,
   type canvasMutationData,
   type canvasMutationParam,
-  deserializeArg,
   EventType,
   type eventWithTime,
   IncrementalSource,
   type Replayer,
   type ReplayPlugin,
 } from '@sentry-internal/rrweb';
+import type {CanvasArg} from '@sentry-internal/rrweb-types';
+
+import {deserializeCanvasArg} from './deserializeCanvasArgs';
 
 export function CanvasReplayerPlugin(events: eventWithTime[]) {
   const canvases = new Map<number, HTMLCanvasElement>([]);
@@ -18,12 +20,13 @@ export function CanvasReplayerPlugin(events: eventWithTime[]) {
   const canvasEventMap = new Map<eventWithTime | string, canvasMutationParam>();
 
   /**
+   *
    * Taken from rrweb: https://github.com/rrweb-io/rrweb/blob/8e318c44f26ac25c80d8bd0811f19f5e3fe9903b/packages/rrweb/src/replay/index.ts#L1039
    */
   async function deserializeAndPreloadCanvasEvents(
     data: canvasMutationData,
     event: eventWithTime
-  ) {
+  ): Promise<void> {
     if (!canvasEventMap.has(event)) {
       const status = {
         isUnchanged: true,
@@ -32,8 +35,7 @@ export function CanvasReplayerPlugin(events: eventWithTime[]) {
         const commands = await Promise.all(
           data.commands.map(async c => {
             const args = await Promise.all(
-              // @ts-expect-error rrweb typing issue
-              c.args.map(deserializeArg(imageMap, null, status))
+              (c.args as CanvasArg[]).map(deserializeCanvasArg(imageMap, null, status))
             );
             return {...c, args};
           })
@@ -43,8 +45,7 @@ export function CanvasReplayerPlugin(events: eventWithTime[]) {
         }
       } else {
         const args = await Promise.all(
-          // @ts-expect-error rrweb typing issue
-          data.args.map(deserializeArg(imageMap, null, status))
+          (data.args as CanvasArg[]).map(deserializeCanvasArg(imageMap, null, status))
         );
         if (status.isUnchanged === false) {
           canvasEventMap.set(event, {...data, args});
@@ -91,11 +92,6 @@ export function CanvasReplayerPlugin(events: eventWithTime[]) {
             event.data.source === IncrementalSource.CanvasMutation
           ) {
             promises.push(deserializeAndPreloadCanvasEvents(event.data, event));
-            // const commands =
-            //   'commands' in event.data ? event.data.commands : [event.data];
-            // commands.forEach((c) => {
-            //   preloadImages(c, event);
-            // });
           }
         }
 
