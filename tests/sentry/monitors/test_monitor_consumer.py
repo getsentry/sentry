@@ -179,7 +179,7 @@ class MonitorConsumerTest(TestCase):
         )
 
     def test_muted(self):
-        monitor = self._create_monitor(status=MonitorObjectStatus.MUTED)
+        monitor = self._create_monitor(is_muted=True, status=MonitorObjectStatus.MUTED)
         self.send_checkin(monitor.slug, status="error")
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)

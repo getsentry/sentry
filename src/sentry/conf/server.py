@@ -494,6 +494,7 @@ if ENVIRONMENT == "development":
     ]
     CSP_CONNECT_SRC += [
         "ws://127.0.0.1:8000",
+        "http://localhost:8969/stream",
     ]
 
 # Before enforcing Content Security Policy, we recommend creating a separate
@@ -1532,8 +1533,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:escalating-metrics-backend": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
-    # Enable querying Snuba to get the EventUser
-    "organizations:eventuser-from-snuba": True,
     # Enable the frontend to request from region & control silo domains.
     "organizations:frontend-domainsplit": False,
     # Enable disabling gitlab integrations when broken is detected
@@ -1666,6 +1665,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:on-demand-metrics-prefill": False,
     # Display on demand metrics related UI elements
     "organizations:on-demand-metrics-ui": False,
+    # Query on demand metrics with the new environment logic
+    "organizations:on-demand-query-with-new-env-logic": False,
     # Enable the SDK selection feature in the onboarding
     "organizations:onboarding-sdk-selection": False,
     # Enable the setting of org roles for team
@@ -4000,17 +4001,23 @@ if SILO_DEVSERVER:
     ]
     SENTRY_MONOLITH_REGION = SENTRY_REGION_CONFIG[0]["name"]
 
-    # RPC authentication and address information
+    # Cross region RPC authentication
     RPC_SHARED_SECRET = [
         "a-long-value-that-is-shared-but-also-secret",
     ]
     RPC_TIMEOUT = 15.0
 
-    bind = str(os.environ.get("SENTRY_DEVSERVER_BIND")).split(":")
-    SENTRY_WEB_HOST = bind[0]
-    SENTRY_WEB_PORT = int(bind[1])
+    # Key for signing integration proxy requests.
+    SENTRY_SUBNET_SECRET = "secret-subnet-signature"
 
     control_port = os.environ.get("SENTRY_CONTROL_SILO_PORT", "8000")
     SENTRY_CONTROL_ADDRESS = f"http://127.0.0.1:{control_port}"
+
+    # Webserver config
+    bind_address = os.environ.get("SENTRY_DEVSERVER_BIND")
+    if bind_address:
+        bind = str(bind_address).split(":")
+        SENTRY_WEB_HOST = bind[0]
+        SENTRY_WEB_PORT = int(bind[1])
 
     CELERYBEAT_SCHEDULE_FILENAME = f"celerybeat-schedule-{SILO_MODE}"
