@@ -17,7 +17,7 @@ function checkUserRole(user: User, organization: Organization, role: RoleProps['
     return false;
   }
 
-  if (isActiveSuperuser()) {
+  if (isActiveSuperuser(organization)) {
     return true;
   }
 

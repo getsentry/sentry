@@ -59,7 +59,7 @@ function TeamStatsControls({
     slugs: currentTeam?.projects?.map(project => project.slug) ?? [],
   });
   const organization = useOrganization();
-  const isSuperuser = isActiveSuperuser();
+  const isSuperuser = isActiveSuperuser(organization);
   const theme = useTheme();
 
   const query = location?.query ?? {};

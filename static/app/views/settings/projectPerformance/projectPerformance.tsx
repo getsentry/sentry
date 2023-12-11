@@ -822,7 +822,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
     const params = {orgId: organization.slug, projectId: project.slug};
     const projectEndpoint = this.getProjectEndpoint(params);
     const performanceIssuesEndpoint = this.getPerformanceIssuesEndpoint(params);
-    const isSuperUser = isActiveSuperuser();
+    const isSuperUser = isActiveSuperuser(organization);
 
     return (
       <Fragment>

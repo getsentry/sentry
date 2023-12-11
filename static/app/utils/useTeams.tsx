@@ -359,7 +359,7 @@ export function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
     }
   }, [shouldLoadUserTeams, loadUserTeams]);
 
-  const isSuperuser = isActiveSuperuser();
+  const isSuperuser = isActiveSuperuser(organization);
 
   const filteredTeams = useMemo(() => {
     return slugs

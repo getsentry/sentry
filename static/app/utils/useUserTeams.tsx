@@ -52,7 +52,7 @@ export function useUserTeams(): UseTeamsResult {
     }
   }, [additionalTeams]);
 
-  const isSuperuser = isActiveSuperuser();
+  const isSuperuser = isActiveSuperuser(organization);
   const teams = useMemo<Team[]>(() => {
     return isSuperuser ? storeState.teams : storeState.teams.filter(t => t.isMember);
   }, [storeState.teams, isSuperuser]);

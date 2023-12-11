@@ -75,7 +75,7 @@ export function EnvironmentPageFilter({
   } = usePageFilters();
 
   const environments = useMemo<string[]>(() => {
-    const isSuperuser = isActiveSuperuser();
+    const isSuperuser = isActiveSuperuser(organization);
 
     const unsortedEnvironments = projects.flatMap(project => {
       const projectId = parseInt(project.id, 10);
@@ -102,7 +102,7 @@ export function EnvironmentPageFilter({
       !envPageFilterValue.includes(env),
       env,
     ]);
-  }, [projects, projectPageFilterValue, envPageFilterValue]);
+  }, [projects, projectPageFilterValue, envPageFilterValue, organization]);
 
   /**
    * Validated values that only includes the currently available environments

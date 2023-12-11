@@ -211,7 +211,7 @@ function MonitorForm({
     ? projects.find(p => p.id === selectedProjectId + '')
     : null;
 
-  const isSuperuser = isActiveSuperuser();
+  const isSuperuser = isActiveSuperuser(organization);
   const filteredProjects = projects.filter(project => isSuperuser || project.isMember);
 
   const alertRuleTarget = monitor?.alertRule?.targets.map(

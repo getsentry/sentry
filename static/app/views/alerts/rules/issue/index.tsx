@@ -1131,7 +1131,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       !rule || !rule.environment ? ALL_ENVIRONMENTS_KEY : rule.environment;
 
     const canCreateAlert = hasEveryAccess(['alerts:write'], {organization, project});
-    const disabled = loading || !(canCreateAlert || isActiveSuperuser());
+    const disabled = loading || !(canCreateAlert || isActiveSuperuser(organization));
     const displayDuplicateError =
       detailedError?.name?.some(str => isExactDuplicateExp.test(str)) ?? false;
 

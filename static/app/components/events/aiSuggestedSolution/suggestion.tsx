@@ -14,7 +14,7 @@ import {IconFile, IconFlag, IconHappy, IconMeh, IconSad} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {Event, Project} from 'sentry/types';
+import {Event, Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -34,7 +34,7 @@ type Props = {
 
 function ErrorDescription({
   restriction,
-  organizationSlug,
+  organization,
   onRefetch,
   onSetIndividualConsent,
   onHideSuggestion,
@@ -42,7 +42,7 @@ function ErrorDescription({
   onHideSuggestion: () => void;
   onRefetch: () => void;
   onSetIndividualConsent: (consent: boolean) => void;
-  organizationSlug: string;
+  organization: Organization;
   restriction?: 'subprocessor' | 'individual_consent';
 }) {
   if (restriction === 'subprocessor') {
@@ -56,7 +56,7 @@ function ErrorDescription({
         action={
           <ButtonBar gap={2}>
             <Button onClick={onHideSuggestion}>{t('Dismiss')}</Button>
-            <Button priority="primary" to={`/settings/${organizationSlug}/legal/`}>
+            <Button priority="primary" to={`/settings/${organization.slug}/legal/`}>
               {t('Accept in Settings')}
             </Button>
           </ButtonBar>
@@ -77,7 +77,7 @@ function ErrorDescription({
           'By using this feature, you agree that OpenAI is a subprocessor and may process the data that you’ve chosen to submit. Sentry makes no guarantees as to the accuracy of the feature’s AI-generated recommendations.'
         );
 
-    const activeSuperUser = isActiveSuperuser();
+    const activeSuperUser = isActiveSuperuser(organization);
     return (
       <EmptyMessage
         icon={<IconFlag size="xl" />}
@@ -158,7 +158,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
         ) : dataIsError ? (
           <ErrorDescription
             onRefetch={dataRefetch}
-            organizationSlug={organization.slug}
+            organization={organization}
             onSetIndividualConsent={() =>
               setSuggestedSolutionLocalConfig({individualConsent: true})
             }

@@ -16,7 +16,7 @@ const SUPERUSER_COOKIE_DOMAIN = window.superUserCookieDomain;
  *
  * Documented here: https://getsentry.atlassian.net/browse/ER-1602
  */
-export function isActiveSuperuser(organization?: Organization) {
+export function isActiveSuperuser(organization?: Organization | null) {
   if (organization) {
     return organization.access.includes('org:superuser');
   }

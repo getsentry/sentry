@@ -192,7 +192,7 @@ export default function MonitorCreateForm() {
     ? projects.find(p => p.id === selectedProjectId + '')
     : null;
 
-  const isSuperuser = isActiveSuperuser();
+  const isSuperuser = isActiveSuperuser(organization);
   const filteredProjects = projects.filter(project => isSuperuser || project.isMember);
 
   function onCreateMonitor(data: Monitor) {

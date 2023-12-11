@@ -52,7 +52,7 @@ export function getProjectOptions({
     },
   ];
 
-  return hasOpenMembership || hasOrgWrite || isActiveSuperuser()
+  return hasOpenMembership || hasOrgWrite || isActiveSuperuser(organization)
     ? openMembershipProjects
     : myProjectOptions;
 }
