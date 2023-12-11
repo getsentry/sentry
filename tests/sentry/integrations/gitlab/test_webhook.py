@@ -9,9 +9,10 @@ from fixtures.gitlab import (
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.grouplink import GroupLink
+from sentry.models.integrations import Integration
 from sentry.models.pullrequest import PullRequest
 from sentry.silo import SiloMode
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, region_silo_test
 from sentry.utils import json
 
 
@@ -88,7 +89,7 @@ class WebhookTest(GitLabTestCase):
             HTTP_X_GITLAB_TOKEN=f"{EXTERNAL_ID}:wrong",
             HTTP_X_GITLAB_EVENT="Push Hook",
         )
-        assert response.status_code == 400
+        assert response.status_code == 409
         assert (
             response.reason_phrase
             == "Gitlab's webhook secret does not match. Refresh token (or re-install the integration) by following this https://docs.sentry.io/product/integrations/integration-platform/public-integration/#refreshing-tokens."
@@ -385,3 +386,20 @@ class WebhookTest(GitLabTestCase):
         # url has been updated
         repo_out_of_date_url.refresh_from_db()
         assert repo_out_of_date_url.url == "http://example.com/cool-group/sentry"
+
+    def test_no_valid_integration_for_organization(self):
+        self.create_repo("getsentry/sentry")
+        self.create_group(project=self.project, short_id=9)
+
+        with assume_test_silo_mode_of(Integration):
+            self.integration.delete()
+
+        response = self.client.post(
+            self.url,
+            data=MERGE_REQUEST_OPENED_EVENT,
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Merge Request Hook",
+        )
+        assert response.status_code == 409
+        assert response.reason_phrase == "There is no integration that matches your organization."

@@ -59,6 +59,10 @@ class ApiRateLimitedError(ApiError):
     code = 429
 
 
+class ApiConflictError(ApiError):
+    code = 409
+
+
 class ApiConnectionResetError(ApiError):
     code = errno.ECONNRESET
 
