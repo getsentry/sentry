@@ -449,7 +449,7 @@ class ProcessControlOutboxTest(TestCase):
             parent_mock.attach_mock(mock_cache.set, "cache_set")
             parent_mock.attach_mock(mock_cache.delete, "cache_delete")
 
-            expected_exception = ApiTimeoutError
+            expected_exception: Exception = ApiTimeoutError
             if api_host_error == ApiConnectionResetError:
                 expected_exception = ApiConnectionResetError
 
