@@ -3,6 +3,7 @@ from __future__ import annotations
 import functools
 import ipaddress
 import socket
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
 from django.conf import settings
@@ -11,7 +12,9 @@ from urllib3.exceptions import LocationParseError
 from urllib3.util.connection import _set_socket_options, allowed_gai_family
 
 from sentry.exceptions import RestrictedIPAddress
-from sentry.net.http import IsIpAddressPermitted
+
+if TYPE_CHECKING:
+    from sentry.net.http import IsIpAddressPermitted
 
 DISALLOWED_IPS = frozenset(
     ipaddress.ip_network(str(i), strict=False) for i in settings.SENTRY_DISALLOWED_IPS
