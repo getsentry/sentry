@@ -43,9 +43,10 @@ def maybe_multiprocess_step(
     mp: MultiProcessConfig | None,
     function: Callable[[Message[TInput]], TOutput],
     next_step: ProcessingStrategy[FilteredPayload | TOutput],
-    pool: MultiprocessingPool,
+    pool: Optional[MultiprocessingPool],
 ) -> ProcessingStrategy[FilteredPayload | TInput]:
     if mp is not None:
+        assert pool is not None
         return RunTaskWithMultiprocessing(
             function=function,
             next_step=next_step,
@@ -76,11 +77,19 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.is_attachment_topic = consumer_type == ConsumerType.Attachments
 
         self.multi_process = None
+        self._pool = None
+        self._attachments_pool = None
+
         if num_processes > 1:
             self.multi_process = MultiProcessConfig(
                 num_processes, max_batch_size, max_batch_time, input_block_size, output_block_size
             )
             self._pool = MultiprocessingPool(num_processes)
+
+            # XXX: Attachment topic has two multiprocessing strategies chained together so we use
+            # two pools.
+            if self.is_attachment_topic:
+                self._attachments_pool = MultiprocessingPool(num_processes)
 
         self.health_checker = HealthChecker("ingest")
 
@@ -109,7 +118,9 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         # are being handled in a step before the event depending on them is processed in a
         # later step.
 
-        step_2 = maybe_multiprocess_step(mp, process_attachments_and_events, final_step)
+        step_2 = maybe_multiprocess_step(
+            mp, process_attachments_and_events, final_step, self._attachments_pool
+        )
         # This `FilterStep` will skip over processing `None` (aka already handled attachment chunks)
         # in the second step. We filter this here explicitly,
         # to avoid arroyo from needlessly dispatching `None` messages.
@@ -118,7 +129,9 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         # As the steps are defined (and types inferred) in reverse order, we would get a type error here,
         # as `step_1` outputs an `| None`, but the `filter_step` does not mention that in its type,
         # as it is inferred from the `step_2` input type which does not mention `| None`.
-        step_1 = maybe_multiprocess_step(mp, decode_and_process_chunks, filter_step)  # type:ignore
+        step_1 = maybe_multiprocess_step(
+            mp, decode_and_process_chunks, filter_step, self._pool
+        )  # type:ignore
 
         return create_backpressure_step(health_checker=self.health_checker, next_step=step_1)
 
