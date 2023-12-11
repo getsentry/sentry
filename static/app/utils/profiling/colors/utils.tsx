@@ -54,15 +54,10 @@ function uniqueBy<T>(arr: ReadonlyArray<T>, predicate: (t: T) => unknown): Array
   return set;
 }
 
-function defaultKeyFn(frame: FlamegraphFrame): string | number {
-  return frame.key;
-}
-
-export function makeColorBuffer(
+export function makeColorBufferForNodes(
   frames: ReadonlyArray<FlamegraphFrame>,
-  colorMap: Map<string | number, ColorChannels>,
-  fallbackColor: ColorChannels,
-  keyFn: (frame: FlamegraphFrame) => string | number = defaultKeyFn
+  colorMap: Map<any, ColorChannels>,
+  fallbackColor: ColorChannels
 ): number[] {
   const length = frames.length;
   // Length * number of frames * color components
@@ -75,7 +70,38 @@ export function makeColorBuffer(
       continue;
     }
 
-    const c = colorMap.get(keyFn(frame));
+    const c = colorMap.get(frame.node);
+    const colorWithAlpha = c && c.length === 3 ? c.concat(1) : c ? c : fallbackColor;
+
+    for (let i = 0; i < 6; i++) {
+      const offset = index * 6 * 4 + i * 4;
+      colorBuffer[offset] = colorWithAlpha[0];
+      colorBuffer[offset + 1] = colorWithAlpha[1];
+      colorBuffer[offset + 2] = colorWithAlpha[2];
+      colorBuffer[offset + 3] = colorWithAlpha[3];
+    }
+  }
+
+  return colorBuffer;
+}
+
+export function makeColorBuffer(
+  frames: ReadonlyArray<FlamegraphFrame>,
+  colorMap: Map<any, ColorChannels>,
+  fallbackColor: ColorChannels
+): number[] {
+  const length = frames.length;
+  // Length * number of frames * color components
+  const colorBuffer: number[] = new Array(length * 4 * 6);
+
+  for (let index = 0; index < length; index++) {
+    const frame = frames[index];
+
+    if (!frame) {
+      continue;
+    }
+
+    const c = colorMap.get(frame.key);
     const colorWithAlpha = c && c.length === 3 ? c.concat(1) : c ? c : fallbackColor;
 
     for (let i = 0; i < 6; i++) {
