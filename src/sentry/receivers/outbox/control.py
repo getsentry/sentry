@@ -89,7 +89,7 @@ def process_async_webhooks(payload: Mapping[str, Any], region_name: str, **kwds:
                 },
             )
         except ApiConflictError as e:
-            logger.info("webhook_proxy.conflict_occurred", extra={"conflict_text": e.text})
+            logger.warning("webhook_proxy.conflict_occurred", extra={"conflict_text": e.text})
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.SEND_SIGNAL)
