@@ -1,9 +1,5 @@
-import pytest
-
 from sentry.testutils.cases import SpansIndexedTestCase
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
-
-pytestmark = pytest.mark.sentry_metrics
 
 
 class OrganizationEventsSpanIndexedEndpointTest(

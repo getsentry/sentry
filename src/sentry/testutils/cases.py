@@ -2884,7 +2884,7 @@ class SpansIndexedTestCase(TestCase):
         "measurements": {},
     }
 
-    max_time = 5
+    max_time = 30
 
     def setUp(self):
         super().setUp()
