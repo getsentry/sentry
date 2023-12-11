@@ -1,9 +1,11 @@
-import {createContext, ReactNode, useCallback, useContext} from 'react';
+import {createContext, ReactNode, useCallback, useContext, useMemo} from 'react';
 
 import {ApiResult} from 'sentry/api';
 import {Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import useAggregatedQueryKeys from 'sentry/utils/api/useAggregatedQueryKeys';
-import {ApiQueryKey} from 'sentry/utils/queryClient';
+import {ApiQueryKey, useQueryClient} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface QueryKeyGenProps {
   dataSource: string;
@@ -76,6 +78,25 @@ function reducer(data: CountState, response: ApiResult) {
   return {...data, ...newData};
 }
 
+function useDefaultData() {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+
+  return useMemo(() => {
+    const cache = queryClient.getQueryCache();
+    const queries = cache.findAll({
+      predicate: ({queryKey}) => {
+        const url = queryKey[0];
+        return url === `/organizations/${organization.slug}/replay-count/`;
+      },
+    });
+    const allQueryData = queries
+      .map(({queryKey}) => queryClient.getQueryData<ApiResult>(queryKey))
+      .filter(defined);
+    return allQueryData.reduce(reducer, {});
+  }, [organization, queryClient]);
+}
+
 /**
  * Base ReactContext for fetching and reducing data from /replay-count/
  *
@@ -89,10 +110,11 @@ function reducer(data: CountState, response: ApiResult) {
  * @private
  */
 export function ReplayCountCache({children, queryKeyGenProps}: Props) {
+  const defaultData = useDefaultData();
   const cache = useAggregatedQueryKeys<string, CountState>({
     genQueryKey: queryKeyGen(queryKeyGenProps),
     reducer,
-    defaultData: {},
+    defaultData,
   });
 
   const getMany = useCallback(
