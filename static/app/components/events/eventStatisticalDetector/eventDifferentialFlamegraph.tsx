@@ -224,7 +224,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
       return DifferentialFlamegraphModel.Empty();
     }
 
-    return DifferentialFlamegraphModel.FromDiff(
+    const flamegraph = DifferentialFlamegraphModel.FromDiff(
       {
         before: beforeFlamegraph,
         after: afterFlamegraph,
@@ -232,6 +232,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
       {negated},
       theme
     );
+    return flamegraph;
   }, [beforeFlamegraph, afterFlamegraph, theme, negated]);
 
   const makeFunctionFlamechartLink = useCallback(

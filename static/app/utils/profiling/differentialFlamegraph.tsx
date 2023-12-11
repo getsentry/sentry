@@ -71,11 +71,12 @@ export class DifferentialFlamegraph extends Flamegraph {
     let maxIncrease = 0;
     let maxDecrease = 0;
 
-    const {weights, addedFrames, removedFrames} = diffFlamegraphTreeRecursive(
+    const {weights, newFrames, removedFrames} = diffFlamegraphTreeRecursive(
       before,
       after,
       negated
     );
+
     for (const frame of sourceFlamegraph.frames) {
       const change = weights.get(frame.node);
 
@@ -99,7 +100,7 @@ export class DifferentialFlamegraph extends Flamegraph {
       }
     }
 
-    for (const frame of addedFrames) {
+    for (const frame of newFrames) {
       colorMap.set(frame.node, NEW_FRAME_COLOR as ColorChannels);
     }
 
@@ -138,7 +139,7 @@ export class DifferentialFlamegraph extends Flamegraph {
       theme.COLORS.FRAME_FALLBACK_COLOR as unknown as ColorChannels
     );
 
-    differentialFlamegraph.newFrames = addedFrames;
+    differentialFlamegraph.newFrames = newFrames;
     differentialFlamegraph.removedFrames = removedFrames;
     differentialFlamegraph.increasedFrames = increasedFrames;
     differentialFlamegraph.decreasedFrames = decreasedFrames;
@@ -154,45 +155,72 @@ export function diffFlamegraphTreeRecursive(
   afterFlamegraph: Flamegraph,
   negated
 ): {
-  addedFrames: FlamegraphFrame[];
+  newFrames: FlamegraphFrame[];
   removedFrames: FlamegraphFrame[];
   weights: Map<FlamegraphFrame['node'], {after: number; before: number}>;
 } {
   let removedFrames: FlamegraphFrame[] = [];
-  let addedFrames: FlamegraphFrame[] = [];
+  let newFrames: FlamegraphFrame[] = [];
+
   const weights = new Map<FlamegraphFrame['node'], {after: number; before: number}>();
 
-  function visit(beforeNode: FlamegraphFrame, afterNode: FlamegraphFrame) {
-    const node = negated ? beforeNode : afterNode;
-    weights.set(node.node, {
-      before: beforeNode.node.totalWeight,
-      after: afterNode.node.totalWeight,
+  function visit(beforeFrame: FlamegraphFrame, afterFrame: FlamegraphFrame) {
+    weights.set(negated ? beforeFrame.node : afterFrame.node, {
+      before: beforeFrame.node.totalWeight,
+      after: afterFrame.node.totalWeight,
     });
 
-    for (let i = 0; i < afterNode.children.length; i++) {
-      for (let j = 0; j < beforeNode.children.length; j++) {
-        const result = compareFrames(beforeNode.children[j], afterNode.children[i]);
+    const beforeFrameChildrenLength = beforeFrame.children.length;
+    const afterFrameChildrenLength = afterFrame.children.length;
+
+    // In case the current node has no children, we need to check if the
+    // other node has children, add them to the removedFrames list
+    if (!afterFrameChildrenLength && beforeFrameChildrenLength) {
+      for (let i = 0; i < beforeFrameChildrenLength; i++) {
+        removedFrames = removedFrames.concat(getTreeNodes(beforeFrame.children[i]));
+      }
+      return;
+    }
+
+    // In case the current node has children, but the other node doesn't,
+    // we mark the entire part of the tree as new
+    if (!beforeFrameChildrenLength && afterFrameChildrenLength) {
+      for (let i = 0; i < afterFrameChildrenLength; i++) {
+        newFrames = newFrames.concat(getTreeNodes(afterFrame.children[i]));
+      }
+      return;
+    }
+
+    for (let i = 0; i < afterFrameChildrenLength; i++) {
+      for (let j = 0; j < beforeFrameChildrenLength; j++) {
+        const result = compareFrames(beforeFrame.children[j], afterFrame.children[i]);
+
         if (result === 0) {
-          visit(beforeNode.children[j], afterNode.children[i]);
+          visit(beforeFrame.children[j], afterFrame.children[i]);
           break;
         }
         if (result === -1) {
           // removed frame
-          removedFrames = removedFrames.concat(getTreeNodes(beforeNode.children[j]));
+          removedFrames = removedFrames.concat(getTreeNodes(beforeFrame.children[j]));
           continue;
         }
         if (result === 1) {
           // added frame
-          addedFrames = addedFrames.concat(getTreeNodes(afterNode.children[i]));
+          newFrames = newFrames.concat(getTreeNodes(afterFrame.children[i]));
           break;
         }
+      }
+    }
+
+    if (beforeFrameChildrenLength > afterFrameChildrenLength) {
+      for (let i = afterFrameChildrenLength; i < beforeFrameChildrenLength; i++) {
+        removedFrames = removedFrames.concat(getTreeNodes(beforeFrame.children[i]));
       }
     }
   }
 
   visit(beforeFlamegraph.root, afterFlamegraph.root);
-
-  return {weights, removedFrames, addedFrames};
+  return {weights, removedFrames, newFrames};
 }
 
 function getTreeNodes(frame: FlamegraphFrame): FlamegraphFrame[] {
