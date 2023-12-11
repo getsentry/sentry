@@ -190,7 +190,6 @@ const localeChunkGroups: CacheGroups = {};
  * Main Webpack config for Sentry React SPA.
  */
 
-console.log('devMode:', DEV_MODE);
 const appConfig: rspack.Configuration = {
   mode: WEBPACK_MODE,
   entry: {
@@ -730,9 +729,4 @@ if (IS_PRODUCTION) {
 if (env.WEBPACK_CACHE_PATH) {
   appConfig.cache = true;
 }
-
-console.log(
-  'appConfig:',
-  require('util').inspect(appConfig, {colors: true, depth: null})
-);
 export default appConfig;
