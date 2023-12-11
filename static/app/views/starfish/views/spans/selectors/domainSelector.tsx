@@ -36,7 +36,6 @@ interface DomainData {
 interface DomainCacheValue {
   domains: Set<string>;
   initialLoadHadMoreData: boolean;
-  loadCount: number;
 }
 
 export function DomainSelector({
@@ -86,7 +85,6 @@ export function DomainSelector({
   const domainCache = useRef<DomainCacheValue>({
     domains: new Set(),
     initialLoadHadMoreData: true,
-    loadCount: 0,
   });
 
   // The current selected table might not be in the cached set. Ensure it's always there
@@ -94,20 +92,14 @@ export function DomainSelector({
     domainCache.current.domains.add(value);
   }
 
-  // Keep track of load count, so we can run some effects after exactly one load
+  // When caching the unfiltered domain data result, check if it had more data. If not, there's no point making any more requests when users update the search filter that narrows the search
   useEffect(() => {
-    if (!isLoading) {
-      domainCache.current.loadCount += 1;
-    }
-  }, [isLoading]);
-
-  // When caching the first domain data result, check if it had more data. If not, there's no point making any more requests when users update the search filter
-  useEffect(() => {
-    if (domainCache.current.loadCount === 1) {
+    if (domainQuery === '' && !isLoading) {
       const {next} = parseLinkHeader(pageLinks ?? '');
+
       domainCache.current.initialLoadHadMoreData = next?.results ?? false;
     }
-  }, [pageLinks]);
+  }, [domainQuery, pageLinks, isLoading]);
 
   // Cache all known domains from previous requests
   useEffect(() => {
