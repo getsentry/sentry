@@ -244,7 +244,7 @@ def check_missing(current_datetime: datetime):
         )
         .exclude(
             monitor__status__in=[
-                MonitorObjectStatus.DISABLED,
+                MonitorObjectStatus.MUTED,
                 MonitorObjectStatus.PENDING_DELETION,
                 MonitorObjectStatus.DELETION_IN_PROGRESS,
             ]

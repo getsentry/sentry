@@ -376,15 +376,17 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
             team=self.team, organizationmember=self.member
         ).exists()
 
-    def test_org_token_needs_elevated_permissions(self):
-        # Org tokens with org:read should generate an access request when open membership is off
-        org_token = self.create_org_auth_token(self.org, self.user, ["org:read"])
+    def test_integration_token_needs_elevated_permissions(self):
+        # Integration tokens with org:read should generate an access request when open membership is off
+        integration_token = self.create_internal_integration_token(
+            user=self.user, org=self.org, scopes=["org:read"]
+        )
 
         self.get_success_response(
             self.org.slug,
             self.member.id,
             self.team.slug,
-            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {org_token.token}"},
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {integration_token.token}"},
             status_code=status.HTTP_202_ACCEPTED,
         )
 

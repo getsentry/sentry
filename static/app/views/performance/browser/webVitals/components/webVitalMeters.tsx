@@ -68,7 +68,7 @@ export default function WebVitalMeters({
           const webVitalExists = projectScore[`${webVital}Score`] !== null;
           const formattedMeterValueText = webVitalExists ? (
             WEB_VITALS_METERS_CONFIG[webVital].formatter(
-              projectData?.data?.[0]?.[`avg(measurements.${webVital})`] as number
+              projectData?.data?.[0]?.[`p75(measurements.${webVital})`] as number
             )
           ) : (
             <NoValue />
@@ -84,7 +84,7 @@ export default function WebVitalMeters({
                     title={
                       <span>
                         {tct(
-                          `The average [webVital] value and aggregate [webVital] score of your selected project(s).
+                          `The p75 [webVital] value and aggregate [webVital] score of your selected project(s).
                           Scores and values may share some (but not perfect) correlation.`,
                           {
                             webVital: toUpper(webVital),

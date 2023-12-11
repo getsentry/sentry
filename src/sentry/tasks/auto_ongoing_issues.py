@@ -5,7 +5,6 @@ from typing import List
 
 import sentry_sdk
 from django.db.models import Max
-from sentry_sdk.crons.decorator import monitor
 
 from sentry.conf.server import CELERY_ISSUE_STATES_QUEUE
 from sentry.issues.ongoing import bulk_transition_group_to_ongoing
@@ -59,7 +58,6 @@ def log_error_if_queue_has_items(func):
     acks_late=True,
     silo_mode=SiloMode.REGION,
 )
-@monitor(monitor_slug="schedule_auto_transition_to_ongoing")
 @log_error_if_queue_has_items
 def schedule_auto_transition_to_ongoing() -> None:
     """
