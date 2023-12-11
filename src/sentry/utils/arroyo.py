@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import atexit
 import logging
 import pickle
-from functools import lru_cache, partial
+from functools import partial
 from typing import Any, Callable, Mapping, Optional, Union
 
 from arroyo.processing.strategies.run_task_with_multiprocessing import MultiprocessingPool
@@ -129,22 +128,6 @@ def initialize_arroyo_main() -> None:
 
     metrics_wrapper = MetricsWrapper(backend, name="consumer")
     configure_metrics(metrics_wrapper)
-
-
-@lru_cache(maxsize=None)
-def get_reusable_multiprocessing_pool(
-    num_processes: int,
-    initializer: Optional[Callable[[], None]] = None,
-) -> MultiprocessingPool:
-    pool = MultiprocessingPool(num_processes, initializer=initializer)
-
-    def shutdown() -> None:
-        logger.info("Shutting down multiprocessing pool")
-        pool.close()
-
-    atexit.register(shutdown)
-
-    return pool
 
 
 class RunTaskWithMultiprocessing(ArroyoRunTaskWithMultiprocessing[TStrategyPayload, TResult]):

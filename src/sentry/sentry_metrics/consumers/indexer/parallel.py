@@ -11,6 +11,7 @@ from arroyo.processing.strategies import MessageRejected
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.processing.strategies import ProcessingStrategyFactory
+from arroyo.processing.strategies.run_task_with_multiprocessing import MultiprocessingPool
 from arroyo.types import Commit, FilteredPayload, Message, Partition
 
 from sentry.sentry_metrics.configuration import (
@@ -25,7 +26,7 @@ from sentry.sentry_metrics.consumers.indexer.routing_producer import (
     RoutingProducerStep,
 )
 from sentry.sentry_metrics.consumers.indexer.slicing_router import SlicingRouter
-from sentry.utils.arroyo import RunTaskWithMultiprocessing, get_reusable_multiprocessing_pool
+from sentry.utils.arroyo import RunTaskWithMultiprocessing
 
 logger = logging.getLogger(__name__)
 
@@ -137,11 +138,20 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.__max_parallel_batch_size = max_parallel_batch_size
         self.__max_parallel_batch_time = max_parallel_batch_time
 
-        self.__processes = processes
-
         self.__input_block_size = input_block_size
         self.__output_block_size = output_block_size
         self.__slicing_router = slicing_router
+        self.__pool = MultiprocessingPool(
+            num_processes=processes,
+            # It is absolutely crucial that we pass a function reference here
+            # where the function lives in a module that does not depend on
+            # Django settings. `sentry.sentry_metrics.configuration` fulfills
+            # that requirement, but if you were to create a wrapper function in
+            # this module, and pass that function here, it would attempt to
+            # pull in a bunch of modules that try to read django settings at
+            # import time
+            initializer=functools.partial(initialize_subprocess_state, self.config),
+        )
 
     def create_with_partitions(
         self,
@@ -154,21 +164,10 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             slicing_router=self.__slicing_router,
         )
 
-        pool = get_reusable_multiprocessing_pool(
-            num_processes=self.__processes,
-            # It is absolutely crucial that we pass a function reference here
-            # where the function lives in a module that does not depend on
-            # Django settings. `sentry.sentry_metrics.configuration` fulfills
-            # that requirement, but if you were to create a wrapper function in
-            # this module, and pass that function here, it would attempt to
-            # pull in a bunch of modules that try to read django settings at
-            # import time
-            initializer=functools.partial(initialize_subprocess_state, self.config),
-        )
         parallel_strategy = RunTaskWithMultiprocessing(
             function=MessageProcessor(self.config).process_messages,
             next_step=Unbatcher(next_step=producer),
-            pool=pool,
+            pool=self.__pool,
             max_batch_size=self.__max_parallel_batch_size,
             # This is in seconds
             max_batch_time=self.__max_parallel_batch_time / 1000,

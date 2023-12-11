@@ -14,13 +14,14 @@ from arroyo.processing.strategies import (
     ProcessingStrategyFactory,
     RunTask,
 )
+from arroyo.processing.strategies.run_task_with_multiprocessing import MultiprocessingPool
 from arroyo.types import Commit, FilteredPayload, Message, Partition
 from django.conf import settings
 
 from sentry.ingest.types import ConsumerType
 from sentry.processing.backpressure.arroyo import HealthChecker, create_backpressure_step
 from sentry.utils import kafka_config
-from sentry.utils.arroyo import RunTaskWithMultiprocessing, get_reusable_multiprocessing_pool
+from sentry.utils.arroyo import RunTaskWithMultiprocessing
 
 from .attachment_event import decode_and_process_chunks, process_attachments_and_events
 from .simple_event import process_simple_event_message
@@ -42,6 +43,7 @@ def maybe_multiprocess_step(
     mp: MultiProcessConfig | None,
     function: Callable[[Message[TInput]], TOutput],
     next_step: ProcessingStrategy[FilteredPayload | TOutput],
+    pool: MultiprocessingPool,
 ) -> ProcessingStrategy[FilteredPayload | TInput]:
     if mp is not None:
         return RunTaskWithMultiprocessing(
@@ -49,7 +51,7 @@ def maybe_multiprocess_step(
             next_step=next_step,
             max_batch_size=mp.max_batch_size,
             max_batch_time=mp.max_batch_time,
-            pool=get_reusable_multiprocessing_pool(mp.num_processes),
+            pool=pool,
             input_block_size=mp.input_block_size,
             output_block_size=mp.output_block_size,
         )
@@ -78,6 +80,7 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             self.multi_process = MultiProcessConfig(
                 num_processes, max_batch_size, max_batch_time, input_block_size, output_block_size
             )
+            self._pool = MultiprocessingPool(num_processes)
 
         self.health_checker = HealthChecker("ingest")
 
@@ -91,7 +94,9 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         final_step = CommitOffsets(commit)
 
         if not self.is_attachment_topic:
-            next_step = maybe_multiprocess_step(mp, process_simple_event_message, final_step)
+            next_step = maybe_multiprocess_step(
+                mp, process_simple_event_message, final_step, self._pool
+            )
             return create_backpressure_step(health_checker=self.health_checker, next_step=next_step)
 
         # The `attachments` topic is a bit different, as it allows multiple event types:

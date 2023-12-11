@@ -9,6 +9,7 @@ import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from arroyo.processing.strategies import CommitOffsets, Produce
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
+from arroyo.processing.strategies.run_task_with_multiprocessing import MultiprocessingPool
 from arroyo.types import FILTERED_PAYLOAD, Commit, FilteredPayload, Message, Partition, Topic
 from django.conf import settings
 from sentry_kafka_schemas import get_codec
@@ -19,7 +20,7 @@ from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.spans.grouping.strategy.base import Span
 from sentry.utils import metrics
-from sentry.utils.arroyo import RunTaskWithMultiprocessing, get_reusable_multiprocessing_pool
+from sentry.utils.arroyo import RunTaskWithMultiprocessing
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 INGEST_SPAN_SCHEMA: Codec[IngestSpanMessage] = get_codec("ingest-spans")
@@ -157,7 +158,6 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     ):
         super().__init__()
 
-        self.__num_processes = num_processes
         self.__max_batch_size = max_batch_size
         self.__max_batch_time = max_batch_time
         self.__input_block_size = input_block_size
@@ -173,6 +173,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             )
         )
         self.__output_topic = Topic(name=output_topic)
+        self.__pool = MultiprocessingPool(num_processes)
 
     def create_with_partitions(
         self,
@@ -188,7 +189,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         return RunTaskWithMultiprocessing(
             max_batch_size=self.__max_batch_size,
             max_batch_time=self.__max_batch_time,
-            pool=get_reusable_multiprocessing_pool(self.__num_processes),
+            pool=self.__pool,
             input_block_size=self.__input_block_size,
             output_block_size=self.__output_block_size,
             function=process_message,

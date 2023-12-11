@@ -15,12 +15,13 @@ from arroyo.processing.strategies import (
     ProcessingStrategyFactory,
     RunTask,
 )
+from arroyo.processing.strategies.run_task_with_multiprocessing import MultiprocessingPool
 from arroyo.types import BrokerValue, Commit, Message, Partition
 from sentry_kafka_schemas import get_codec
 
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_subscriptions.constants import dataset_to_logical_topic, topic_to_dataset
-from sentry.utils.arroyo import RunTaskWithMultiprocessing, get_reusable_multiprocessing_pool
+from sentry.utils.arroyo import RunTaskWithMultiprocessing
 
 logger = logging.getLogger(__name__)
 
@@ -41,10 +42,10 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.logical_topic = dataset_to_logical_topic[self.dataset]
         self.max_batch_size = max_batch_size
         self.max_batch_time = max_batch_time
-        self.num_processes = num_processes
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
         self.multi_proc = multi_proc
+        self.pool = MultiprocessingPool(num_processes)
 
     def create_with_partitions(
         self,
@@ -58,7 +59,7 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 next_step=CommitOffsets(commit),
                 max_batch_size=self.max_batch_size,
                 max_batch_time=self.max_batch_time,
-                pool=get_reusable_multiprocessing_pool(self.num_processes),
+                pool=self.pool,
                 input_block_size=self.input_block_size,
                 output_block_size=self.output_block_size,
             )
