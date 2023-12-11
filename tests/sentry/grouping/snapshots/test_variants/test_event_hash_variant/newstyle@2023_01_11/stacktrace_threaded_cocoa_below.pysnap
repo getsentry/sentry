@@ -1,0 +1,253 @@
+---
+created: '2023-12-11T20:32:31.909685Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (threads of system take precedence)
+      threads (ignored because hash matches system variant)
+        stacktrace*
+          frame (non app frame)
+            function (ignored unknown function)
+              "<redacted>"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "main"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "unicorn"
+          frame (non app frame)
+            function*
+              "UIApplicationMain"
+          frame (non app frame)
+            function*
+              "-[UIApplication _run]"
+          frame (non app frame)
+            function*
+              "GSEventRunModal"
+          frame (non app frame)
+            function*
+              "CFRunLoopRunSpecific"
+          frame (non app frame)
+            function*
+              "__CFRunLoopRun"
+          frame (non app frame)
+            function*
+              "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_dispatch_main_queue_callback_4CF"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_dispatch_main_queue_drain"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_dispatch_client_callout"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_dispatch_block_async_invoke2"
+          frame (non app frame)
+            function*
+              "__NSOQSchedule_f"
+          frame (non app frame)
+            function*
+              "__NSOPERATIONQUEUE_IS_STARTING_AN_OPERATION__"
+          frame (non app frame)
+            function*
+              "-[NSOperation start]"
+          frame (non app frame)
+            function*
+              "__NSOPERATION_IS_INVOKING_MAIN__"
+          frame (non app frame)
+            function*
+              "-[NSBlockOperation main]"
+          frame (non app frame)
+            function*
+              "__NSBLOCKOPERATION_IS_CALLING_OUT_TO_A_BLOCK__"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "FudgeLogTaggedError"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "FudgeLogAtLevel"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "thunk for closure"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "SentrySetupInteractor.setupSentry"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_dispatch_lane_barrier_sync_invoke_and_complete"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_dispatch_client_callout"
+          frame*
+            function*
+              "thunk for closure"
+          frame (ignored due to recursion)
+            function*
+              "thunk for closure"
+          frame*
+            function*
+              "SentrySetupInteractor.setupSentry"
+          frame*
+            function*
+              "SentryWrapperImpl"
+          frame*
+            function*
+              "BugsnagWrapperImpl.start"
+          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app -group))
+            function*
+              "+[SentrySDK captureEvent:]"
+          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app -group))
+            function*
+              "+[SentrySDK captureEvent:withScope:]"
+          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app -group))
+            function*
+              "-[SentryHub captureEvent:withScope:additionalEnvelopeItems:]"
+          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app -group))
+            function*
+              "-[SentryClient sendEvent:withScope:alwaysAttachStacktrace:isCrashEvent:additionalEnvelopeItems:]"
+          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app -group))
+            function*
+              "-[SentryClient prepareEvent:withScope:alwaysAttachStacktrace:isCrashEvent:]"
+          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app -group))
+            function*
+              "-[SentryThreadInspector getCurrentThreads]"
+          frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app -group))
+            function*
+              "-[SentryStacktraceBuilder buildStacktraceForCurrentThread]"
+--------------------------------------------------------------------------
+default:
+  hash: null
+  component:
+    default (threads of system take precedence)
+      message (threads of system take precedence)
+        "API v2 SDK Global Handler: Path root error: FoobarPathRootError[{\n    ErrorContent = \"invalid/..\";..."
+--------------------------------------------------------------------------
+system:
+  hash: "dda0be795bc27f60c942bb2aab70f423"
+  component:
+    system*
+      threads*
+        stacktrace*
+          frame
+            function (ignored unknown function)
+              "<redacted>"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "main"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "unicorn"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "UIApplicationMain"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "-[UIApplication _run]"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "GSEventRunModal"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "CFRunLoopRunSpecific"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "__CFRunLoopRun"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "_dispatch_main_queue_callback_4CF"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "_dispatch_main_queue_drain"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "_dispatch_client_callout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "_dispatch_block_async_invoke2"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "__NSOQSchedule_f"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "__NSOPERATIONQUEUE_IS_STARTING_AN_OPERATION__"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "-[NSOperation start]"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "__NSOPERATION_IS_INVOKING_MAIN__"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "-[NSBlockOperation main]"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "__NSBLOCKOPERATION_IS_CALLING_OUT_TO_A_BLOCK__"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "FudgeLogTaggedError"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "FudgeLogAtLevel"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "thunk for closure"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "SentrySetupInteractor.setupSentry"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "_dispatch_lane_barrier_sync_invoke_and_complete"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "_dispatch_client_callout"
+          frame*
+            function*
+              "thunk for closure"
+          frame (ignored due to recursion)
+            function*
+              "thunk for closure"
+          frame*
+            function*
+              "SentrySetupInteractor.setupSentry"
+          frame*
+            function*
+              "SentryWrapperImpl"
+          frame*
+            function*
+              "BugsnagWrapperImpl.start"
+          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -app -group))
+            function*
+              "+[SentrySDK captureEvent:]"
+          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -app -group))
+            function*
+              "+[SentrySDK captureEvent:withScope:]"
+          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -app -group))
+            function*
+              "-[SentryHub captureEvent:withScope:additionalEnvelopeItems:]"
+          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -app -group))
+            function*
+              "-[SentryClient sendEvent:withScope:alwaysAttachStacktrace:isCrashEvent:additionalEnvelopeItems:]"
+          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -app -group))
+            function*
+              "-[SentryClient prepareEvent:withScope:alwaysAttachStacktrace:isCrashEvent:]"
+          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -app -group))
+            function*
+              "-[SentryThreadInspector getCurrentThreads]"
+          frame (ignored by stack trace rule (family:native function:?[[]Sentry* -app -group))
+            function*
+              "-[SentryStacktraceBuilder buildStacktraceForCurrentThread]"
