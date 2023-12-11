@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import contextlib
 import functools
 import inspect
 import os
@@ -314,21 +313,17 @@ def assume_test_silo_mode(desired_silo: SiloMode, can_be_monolith: bool = True) 
     if can_be_monolith and SiloMode.get_current_mode() == SiloMode.MONOLITH:
         desired_silo = SiloMode.MONOLITH
 
-    silo_setting = (
-        override_settings(SILO_MODE=desired_silo)
-        if desired_silo != SiloMode.get_current_mode()
-        else contextlib.nullcontext()
-    )
-
-    global_regions = load_global_regions()
-    region_setting = (
-        global_regions.swap_local_region(global_regions.historic_monolith_region)
-        if desired_silo == SiloMode.REGION
-        else contextlib.nullcontext()
-    )
-
-    with silo_setting, region_setting:
+    if desired_silo == SiloMode.get_current_mode():
         yield
+        return
+
+    with override_settings(SILO_MODE=desired_silo):
+        global_regions = load_global_regions()
+        if desired_silo == SiloMode.REGION:
+            with global_regions.swap_local_region(global_regions.historic_monolith_region):
+                yield
+        else:
+            yield
 
 
 @contextmanager
