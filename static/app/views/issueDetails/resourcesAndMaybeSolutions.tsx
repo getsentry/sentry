@@ -34,7 +34,11 @@ export function ResourcesAndMaybeSolutions({event, projectSlug, group}: Props) {
     >
       <Content>
         {config.resources && (
-          <Resources eventPlatform={event.platform} configResources={config.resources} />
+          <Resources
+            eventPlatform={event.platform}
+            groupId={group.id}
+            configResources={config.resources}
+          />
         )}
         {displayAiSuggestedSolution && (
           <AiSuggestedSolution event={event} projectSlug={projectSlug} />
