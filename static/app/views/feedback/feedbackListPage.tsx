@@ -81,7 +81,6 @@ export default function FeedbackListPage({}: Props) {
 
 const LayoutGrid = styled('div')`
   background: ${p => p.theme.background};
-  padding: ${space(2)} ${space(4)} ${space(2)} ${space(4)};
   overflow: hidden;
 
   flex-grow: 1;
@@ -90,11 +89,33 @@ const LayoutGrid = styled('div')`
   gap: ${space(2)};
   place-items: stretch;
 
-  grid-template-columns: minmax(390px, 1fr) 2fr;
   grid-template-rows: max-content 1fr;
   grid-template-areas:
     'filters search'
     'list details';
+
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    padding: ${space(2)};
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'filters'
+      'search'
+      'list'
+      'details';
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    padding: ${space(2)};
+    grid-template-columns: minmax(1fr, 195px) 1fr;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    padding: ${space(2)} ${space(4)} ${space(2)} ${space(4)};
+    grid-template-columns: 390px 1fr;
+  }
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    grid-template-columns: minmax(390px, 1fr) 2fr;
+  }
 `;
 
 const Container = styled(FluidHeight)`

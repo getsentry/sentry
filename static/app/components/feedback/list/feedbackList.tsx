@@ -154,6 +154,7 @@ const OverflowPanelItem = styled(PanelItem)`
   display: grid;
   overflow: scroll;
   flex-grow: 1;
+  min-height: 300px;
 `;
 
 const FloatingContainer = styled('div')`
