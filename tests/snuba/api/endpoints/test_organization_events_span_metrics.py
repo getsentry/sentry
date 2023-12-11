@@ -424,6 +424,46 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["fields"]["ttfd_count()"] == "integer"
         assert meta["fields"]["ttfd_contribution_rate()"] == "percentage"
 
+    def test_main_thread_count(self):
+        for _ in range(8):
+            self.store_span_metric(
+                1,
+                internal_metric=constants.SELF_TIME_LIGHT,
+                tags={"span.main_thread": "true"},
+                timestamp=self.min_ago,
+            )
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            tags={},
+            timestamp=self.min_ago,
+        )
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            tags={"span.main_thread": ""},
+            timestamp=self.min_ago,
+        )
+        response = self.do_request(
+            {
+                "field": [
+                    "main_thread_count()",
+                ],
+                "query": "",
+                "orderby": ["-main_thread_count()"],
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["main_thread_count()"] == 8
+        assert meta["dataset"] == "spansMetrics"
+        assert meta["fields"]["main_thread_count()"] == "integer"
+
     def test_use_self_time_light(self):
         self.store_span_metric(
             100,
