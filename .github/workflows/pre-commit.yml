@@ -1,6 +1,7 @@
 name: pre-commit
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - master
@@ -26,8 +27,7 @@ env:
   SECRET_ACCESS: ${{toJSON(secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY != null)}}
 
 jobs:
-  lint:
-    name: pre-commit lint
+  pre-commit:
     runs-on: ubuntu-20.04
     timeout-minutes: 10
     steps:
@@ -38,7 +38,10 @@ jobs:
         with:
           app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
-      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+
+      # We need to checkout the sentry repo for requirements-dev.txt
+      - name: Checkout sentry
+        uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
       - name: Get changed files
         id: changes
         uses: getsentry/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
@@ -50,16 +53,23 @@ jobs:
           # It doesn't make sense to lint deleted files.
           # Therefore we specify we are only interested in added or modified files.
           filters: |
-            all:
+            any:
               - added|modified: '**/*'
 
       - uses: getsentry/action-setup-venv@9e3bbae3836b1b6f129955bf55a19e1d99a61c67 # v1.0.5
+        if: steps.changes.outputs.any == 'true'
         with:
           python-version: 3.8.18
           cache-dependency-path: |
             requirements-dev.txt
             requirements-dev-frozen.txt
-          install-cmd: python3 -m tools.hack_pip && pip install -r requirements-dev.txt -c requirements-dev-frozen.txt
+          install-cmd: |
+            set -ex
+            python3 -m tools.hack_pip
+            pip install \
+              -r requirements-dev.txt \
+              -c requirements-dev-frozen.txt \
+            ;
       - uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
         with:
           path: ~/.cache/pre-commit
@@ -72,15 +82,16 @@ jobs:
         run: |
           pre-commit install-hooks
 
-      - name: Run pre-commit on PR commits
+      - name: Run pre-commit
+        if: steps.changes.outputs.any == 'true'
         run: |
           jq '.[]' --raw-output <<< '${{steps.changes.outputs.all_files}}' |
             # Run pre-commit to lint and format check files that were changed (but not deleted) compared to master.
-            xargs pre-commit run --files
+            xargs -r pre-commit run --files
 
       - name: Apply any pre-commit fixed files
         # note: this runs "always" or else it's skipped when pre-commit fails
-        if: env.SECRET_ACCESS == 'true' && startsWith(github.ref, 'refs/pull') && always()
+        if: always() && startsWith(github.ref, 'refs/pull') && env.SECRET_ACCESS == 'true'
         uses: getsentry/action-github-commit@748c31dd78cffe76f51bef49a0be856b6effeda7 # v1.1.0
         with:
           github-token: ${{ steps.token.outputs.token }}
