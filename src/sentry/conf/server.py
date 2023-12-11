@@ -1726,6 +1726,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-remove-metrics-compatibility-fallback": False,
     # Enable screens view powered by span metrics
     "organizations:performance-screens-view": False,
+    # Enable column that shows ttid ttfd contributing spans
+    "organizations:mobile-ttid-ttfd-contribution": False,
     # Enable slow DB performance issue type
     "organizations:performance-slow-db-issue": False,
     # Enable histogram view in span details
