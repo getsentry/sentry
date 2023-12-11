@@ -9,6 +9,7 @@ from responses import matchers
 
 from sentry.api.serializers import ExternalEventSerializer, serialize
 from sentry.integrations.pagerduty.client import PagerDutyProxyClient
+from sentry.integrations.pagerduty.utils import add_service
 from sentry.models.integrations.integration import Integration
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
@@ -48,7 +49,8 @@ class PagerDutyProxyClientTest(APITestCase):
             metadata={"services": SERVICES},
         )
         self.integration.add_organization(self.organization, self.user)
-        self.service = self.integration.organizationintegration_set.first().add_pagerduty_service(
+        self.service = add_service(
+            self.integration.organizationintegration_set.first(),
             service_name=SERVICES[0]["service_name"],
             integration_key=SERVICES[0]["integration_key"],
         )
@@ -149,7 +151,8 @@ class PagerDutyProxyApiClientTest(APITestCase):
             metadata={"services": SERVICES},
         )
         self.integration.add_organization(self.organization, self.user)
-        self.service = self.integration.organizationintegration_set.first().add_pagerduty_service(
+        self.service = add_service(
+            self.integration.organizationintegration_set.first(),
             service_name=SERVICES[0]["service_name"],
             integration_key=SERVICES[0]["integration_key"],
         )

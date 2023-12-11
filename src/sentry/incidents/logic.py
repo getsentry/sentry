@@ -1381,9 +1381,12 @@ def get_alert_rule_trigger_action_pagerduty_service(
     input_channel_id=None,
     integrations=None,
 ):
-    service = integration_service.find_pagerduty_service(
-        organization_id=organization.id, integration_id=integration_id, service_id=target_value
+    from sentry.integrations.pagerduty.utils import get_service
+
+    org_integration = integration_service.get_organization_integration(
+        integration_id=integration_id, organization_id=organization.id
     )
+    service = get_service(target_value, org_integration)
     if not service:
         raise InvalidTriggerActionError("No PagerDuty service found.")
 
@@ -1416,6 +1419,7 @@ def get_alert_rule_trigger_action_opsgenie_team(
         integration=integration,
         integration_key=integration_key,
         org_integration_id=oi.id,
+        keyid=team["id"],
     )
     try:
         client.authorize_integration(type="sentry")
