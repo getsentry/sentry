@@ -1,3 +1,5 @@
+import type {ReactNode} from 'react';
+import {useMemo} from 'react';
 import {SerializedStyles, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -61,64 +63,74 @@ function PerformanceScoreRing({
   onUnhover,
   ...p
 }: Props) {
-  const textNode = (
-    <Text key={text?.toString()} {...{textCss}}>
-      {text}
-    </Text>
-  );
-
   const foreignObjectSize = size / 2;
   const foreignObjectOffset = size / 4;
 
   const radius = size / 2 - barWidth / 2;
   const circumference = 2 * Math.PI * radius;
-  const sumMaxValues = maxValues.reduce((acc, val) => acc + val, 0);
 
-  const rings: React.ReactNode[] = [];
-  let currentRotate = BASE_ROTATE;
+  const rings = useMemo<ReactNode[]>(() => {
+    const sumMaxValues = maxValues.reduce((acc, val) => acc + val, 0);
+    let currentRotate = BASE_ROTATE;
 
-  maxValues.forEach((maxValue, index) => {
-    const boundedValue = Math.min(Math.max(values[index], 0), maxValue);
-    const ringSegmentPadding = values.length > 1 ? PADDING : 0;
-    // TODO: Hacky way to add padding to ring segments. Should clean this up so it's more accurate to the value.
-    // This only mostly works because we expect values to be somewhere between 0 and 100.
-    const maxOffset =
-      (1 - Math.max(maxValue - ringSegmentPadding, 0) / sumMaxValues) * circumference;
-    const progressOffset =
-      (1 - Math.max(boundedValue - ringSegmentPadding, 0) / sumMaxValues) * circumference;
-    const rotate = currentRotate;
-    currentRotate += (360 * maxValue) / sumMaxValues;
+    return maxValues.flatMap((maxValue, index) => {
+      const boundedValue = Math.min(Math.max(values[index], 0), maxValue);
+      const ringSegmentPadding = values.length > 1 ? PADDING : 0;
+      // TODO: Hacky way to add padding to ring segments. Should clean this up so it's more accurate to the value.
+      // This only mostly works because we expect values to be somewhere between 0 and 100.
+      const maxOffset =
+        (1 - Math.max(maxValue - ringSegmentPadding, 0) / sumMaxValues) * circumference;
+      const progressOffset =
+        (1 - Math.max(boundedValue - ringSegmentPadding, 0) / sumMaxValues) *
+        circumference;
+      const rotate = currentRotate;
+      currentRotate += (360 * maxValue) / sumMaxValues;
 
-    rings.push(
-      <RingBackground
-        strokeDashoffset={maxOffset}
-        r={radius}
-        barWidth={barWidth}
-        circumference={circumference}
-        cx={radius + barWidth / 2}
-        cy={radius + barWidth / 2}
-        color={backgroundColors[index]}
-        rotate={rotate}
-        onMouseOver={() => onHoverActions?.[index]()}
-        onMouseLeave={() => onUnhover?.()}
-      />
-    );
-    rings.push(
-      <RingBar
-        strokeDashoffset={progressOffset}
-        strokeLinecap={progressEndcaps}
-        circumference={circumference}
-        r={radius}
-        barWidth={barWidth}
-        cx={radius + barWidth / 2}
-        cy={radius + barWidth / 2}
-        color={segmentColors[index]}
-        rotate={rotate}
-        onMouseOver={() => onHoverActions?.[index]()}
-        onMouseLeave={() => onUnhover?.()}
-      />
-    );
-  });
+      const cx = radius + barWidth / 2;
+      const key = `${cx}-${backgroundColors[index]}`;
+
+      return [
+        <RingBackground
+          key={`ring-bg-${key}`}
+          strokeDashoffset={maxOffset}
+          r={radius}
+          barWidth={barWidth}
+          circumference={circumference}
+          cx={cx}
+          cy={cx}
+          color={backgroundColors[index]}
+          rotate={rotate}
+          onMouseOver={() => onHoverActions?.[index]()}
+          onMouseLeave={() => onUnhover?.()}
+        />,
+        <RingBar
+          key={`ring-bar-${key}`}
+          strokeDashoffset={progressOffset}
+          strokeLinecap={progressEndcaps}
+          circumference={circumference}
+          r={radius}
+          barWidth={barWidth}
+          cx={cx}
+          cy={cx}
+          color={segmentColors[index]}
+          rotate={rotate}
+          onMouseOver={() => onHoverActions?.[index]()}
+          onMouseLeave={() => onUnhover?.()}
+        />,
+      ];
+    });
+  }, [
+    backgroundColors,
+    barWidth,
+    circumference,
+    maxValues,
+    onHoverActions,
+    onUnhover,
+    progressEndcaps,
+    radius,
+    segmentColors,
+    values,
+  ]);
 
   return (
     <RingSvg
@@ -134,7 +146,7 @@ function PerformanceScoreRing({
         x={foreignObjectOffset}
         y={foreignObjectOffset}
       >
-        {text !== undefined && textNode}
+        {text !== undefined ? <Text {...{textCss}}>{text}</Text> : null}
       </foreignObject>
     </RingSvg>
   );
