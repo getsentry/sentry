@@ -381,7 +381,7 @@ class EventManagerGroupingTest(TestCase):
                 exception={
                     "values": [
                         {
-                            "type": "Error",
+                            "type": "ChunkLoadError",
                             "stacktrace": {
                                 "frames": [
                                     {
@@ -389,7 +389,7 @@ class EventManagerGroupingTest(TestCase):
                                     }
                                 ]
                             },
-                            "value": "ChunkLoadError: Loading chunk 321 failed",
+                            "value": "Loading chunk 321 failed",
                             "in_app": True,
                         }
                     ]
@@ -440,7 +440,7 @@ class EventManagerGroupingTest(TestCase):
                 exception={
                     "values": [
                         {
-                            "type": "Error",
+                            "type": "ChunkLoadError",
                             "stacktrace": {
                                 "frames": [
                                     {
@@ -448,7 +448,7 @@ class EventManagerGroupingTest(TestCase):
                                     }
                                 ]
                             },
-                            "value": "ChunkLoadError: Loading chunk 321 failed",
+                            "value": "Loading chunk 321 failed",
                             "in_app": True,
                         }
                     ]

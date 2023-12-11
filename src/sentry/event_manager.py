@@ -2606,13 +2606,14 @@ def get_chunk_load_error_hash(event: Event) -> Optional[CalculatedHashes]:
     """
     try:
         exception_value = event.data["exception"]["values"][0]["value"]
+        exception_type = event.data["exception"]["values"][0]["type"]
     except KeyError:
         return None
 
     hashes = None
     # Only check for the flag after it is established if it's a ChunkLoadError to avoid
     # unnecessary querying
-    if "ChunkLoadError" in exception_value:
+    if "ChunkLoadError" in exception_value or exception_type == "ChunkLoadError":
         organization = Project.objects.get(id=event.project_id).organization
         if features.has("organizations:group-chunk-load-errors", organization):
             hashes = CalculatedHashes(
