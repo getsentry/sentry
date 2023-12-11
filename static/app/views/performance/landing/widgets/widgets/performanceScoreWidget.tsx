@@ -58,23 +58,18 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
                   inPerformanceWidget
                   projectScore={projectScore}
                   projectData={projectData}
-                  y={25}
+                  y={40}
                   text={
                     <span style={{fontSize: 'xxx-large'}}>{projectScore.totalScore}</span>
                   }
                   width={280}
                   height={240}
-                  size={200}
-                  barWidth={20}
-                  webVitalLabelCoordinates={{
-                    lcp: {x: 80, y: 25},
-                    fcp: {x: 60, y: 55},
-                    fid: {x: 10, y: 65},
-                    cls: {x: -5, y: 15},
-                    ttfb: {x: 10, y: -10},
-                  }}
+                  size={160}
+                  barWidth={16}
                   ringBackgroundColors={ringBackgroundColors}
                   ringSegmentColors={ringSegmentColors}
+                  radiusPadding={10}
+                  labelHeightPadding={0}
                 />
               ) : isLoading ? (
                 <StyledLoadingIndicator size={40} />
