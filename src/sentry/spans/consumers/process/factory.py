@@ -204,3 +204,4 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
     def shutdown(self) -> None:
         self.__producer.close()
+        self.__pool.close()

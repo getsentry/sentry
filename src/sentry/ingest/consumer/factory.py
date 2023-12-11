@@ -135,6 +135,13 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
         return create_backpressure_step(health_checker=self.health_checker, next_step=step_1)
 
+    def shutdown(self) -> None:
+        if self._pool:
+            self._pool.close()
+
+        if self._attachments_pool:
+            self._attachments_pool.close()
+
 
 def get_ingest_consumer(
     consumer_type: str,

@@ -115,6 +115,9 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             output_block_size=self.output_block_size,
         )
 
+    def shutdown(self) -> None:
+        self.pool.close()
+
 
 def process_message(message: Message[KafkaPayload]) -> None:
     from sentry.issues.occurrence_consumer import (

@@ -61,7 +61,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         self.output_block_size = output_block_size
         self.use_processes = self.num_processes > 1
         self.force_synchronous = force_synchronous
-        self.pool = MultiprocessingPool(num_processes)
+        self.pool = MultiprocessingPool(num_processes) if self.use_processes else None
 
     def create_with_partitions(
         self,
@@ -94,6 +94,10 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
                     next_step=CommitOffsets(commit),
                 ),
             )
+
+    def shutdown(self) -> None:
+        if self.pool:
+            self.pool.close()
 
 
 def initialize_threaded_context(message: Message[KafkaPayload]) -> MessageContext:

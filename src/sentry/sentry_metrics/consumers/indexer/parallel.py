@@ -181,6 +181,9 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
         return strategy
 
+    def shutdown(self) -> None:
+        self.__pool.close()
+
 
 def get_metrics_producer_strategy(
     config: MetricsIngestConfiguration,

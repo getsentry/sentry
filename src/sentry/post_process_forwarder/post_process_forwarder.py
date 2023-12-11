@@ -67,3 +67,6 @@ class PostProcessForwarderStrategyFactory(ProcessingStrategyFactory[KafkaPayload
             )
         else:
             raise ValueError(f"Invalid mode {self.mode}")
+
+    def shutdown(self) -> None:
+        self.pool.close()

@@ -45,7 +45,7 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
         self.multi_proc = multi_proc
-        self.pool = MultiprocessingPool(num_processes)
+        self.pool = MultiprocessingPool(num_processes) if self.multi_proc else None
 
     def create_with_partitions(
         self,
@@ -65,6 +65,10 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             )
         else:
             return RunTask(callable, CommitOffsets(commit))
+
+    def shutdown(self) -> None:
+        if self.pool:
+            self.pool.close()
 
 
 def process_message(
