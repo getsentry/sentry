@@ -1,31 +1,37 @@
-import {Organization} from 'sentry-fixture/organization';
+import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
+import {screen} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 
-import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import docs from './nextjs';
 
-import {GettingStartedWithNextJs, steps} from './nextjs';
+describe('javascript-nextjs onboarding docs', function () {
+  it('renders onboarding docs correctly', () => {
+    renderWithOnboardingLayout(docs);
 
-describe('GettingStartedWithNextJs', function () {
-  const organization = Organization();
-  it('renders doc correctly', function () {
-    render(
-      <GettingStartedWithNextJs
-        dsn="test-dsn"
-        projectSlug="test-project"
-        organization={organization}
-      />
-    );
+    // Renders main headings
+    expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
 
-    // Steps
-    for (const step of steps({
-      dsn: 'test-dsn',
-      projectSlug: 'test-project',
-      organization,
-    })) {
-      expect(
-        screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
-      ).toBeInTheDocument();
-    }
+    // Includes configure statement
+    expect(
+      screen.getByText(textWithMarkupMatcher(/npx @sentry\/wizard@latest -i nextjs/))
+    ).toBeInTheDocument();
+  });
+
+  it('displays the configure instructions', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.PERFORMANCE_MONITORING,
+        ProductSolution.SESSION_REPLAY,
+      ],
+    });
+
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/sentry.client.config.js/))
+    ).toBeInTheDocument();
+    expect(screen.queryByText(textWithMarkupMatcher(/Sentry.init/))).toBeInTheDocument();
+    expect(screen.queryByText(textWithMarkupMatcher(/.sentryclirc/))).toBeInTheDocument();
   });
 });

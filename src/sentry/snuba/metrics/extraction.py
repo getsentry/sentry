@@ -82,6 +82,7 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "http.method": "request.method",
     "http.url": "request.url",
     "http.referer": "request.headers.Referer",
+    "transaction.source": "transaction.source",
     # url is a tag extracted by Sentry itself, on Relay it's received as `request.url`
     "url": "request.url",
     "sdk.name": "sdk.name",
@@ -175,6 +176,7 @@ _SEARCH_TO_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
     "max": "max",
     "p50": "p50",
     "p75": "p75",
+    "p90": "p90",
     "p95": "p95",
     "p99": "p99",
     # p100 is not supported in the metrics layer, so we convert to max which is equivalent.
@@ -201,6 +203,7 @@ _AGGREGATE_TO_METRIC_TYPE = {
     "max": "d",
     "p50": "d",
     "p75": "d",
+    "p90": "d",
     "p95": "d",
     "p99": "d",
     "p100": "d",
@@ -238,10 +241,10 @@ _STANDARD_METRIC_FIELDS = [
     "browser.name",
     "os.name",
     "geo.country_code",
-    # These are skipped during on demand spec generation and will not be converted to metric extraction conditions
-    "event.type",
-    "project",
 ]
+
+# Query fields that we do not consider for the extraction since they are not needed.
+_BLACKLISTED_METRIC_FIELDS = ["event.type", "project"]
 
 # Operators used in ``ComparingRuleCondition``.
 CompareOp = Literal["eq", "gt", "gte", "lt", "lte", "glob"]
@@ -252,7 +255,7 @@ QueryToken = Union[SearchFilter, QueryOp, ParenExpression]
 Variables = Dict[str, Any]
 
 query_builder = UnresolvedQuery(
-    dataset=Dataset.Discover, params={}
+    dataset=Dataset.Transactions, params={}
 )  # Workaround to get all updated discover functions instead of using the deprecated events fields.
 
 
@@ -356,12 +359,42 @@ def _transform_search_query(query: Sequence[QueryToken]) -> Sequence[QueryToken]
     return transformed_query
 
 
-def _parse_search_query(query: Optional[str]) -> Sequence[QueryToken]:
+def _parse_search_query(
+    query: Optional[str], removed_blacklisted: bool = False
+) -> Sequence[QueryToken]:
     """
     Parses a search query with the discover grammar and performs some transformations on the AST in order to account for
     edge cases.
     """
-    return _transform_search_query(event_search.parse_search_query(query))
+    tokens = cast(Sequence[QueryToken], event_search.parse_search_query(query))
+    # As first step, we transform the search query by applying basic transformations.
+    tokens = _transform_search_query(tokens)
+
+    # As second step, if enabled, we remove elements from the query which are blacklisted.
+    if removed_blacklisted:
+        tokens = _cleanup_query(_remove_blacklisted_search_filters(tokens))
+
+    return tokens
+
+
+def _parse_function(aggregate: str) -> Tuple[str, List[str], str]:
+    """
+    Parses an aggregate and returns its components.
+
+    This function is a slightly modified version of the `parse_function` method of the query builders.
+    """
+    match = fields.is_function(aggregate)
+    if not match:
+        raise InvalidSearchQuery(f"Invalid characters in field {aggregate}")
+
+    function = match.group("function")
+    arguments = fields.parse_arguments(function, match.group("columns"))
+    alias = match.group("alias")
+
+    if alias is None:
+        alias = fields.get_function_alias_with_columns(function, arguments)
+
+    return function, arguments, alias
 
 
 @dataclass(frozen=True)
@@ -431,11 +464,7 @@ def _extract_aggregate_components(aggregate: str) -> Optional[Tuple[str, List[st
         if is_equation(aggregate):
             return None
 
-        match = fields.is_function(aggregate)
-        if not match:
-            raise InvalidSearchQuery(f"Invalid characters in field {aggregate}")
-
-        function, _, args, _ = query_builder.parse_function(match)
+        function, args, _ = _parse_function(aggregate)
         return function, args
     except InvalidSearchQuery:
         logger.exception("Failed to parse aggregate: %s", aggregate)
@@ -491,6 +520,8 @@ def _get_percentile_op(args: Sequence[str]) -> Optional[MetricOperationType]:
         return "p50"
     if percentile == "0.75":
         return "p75"
+    if percentile in ["0.9", "0.90"]:
+        return "p90"
     if percentile == "0.95":
         return "p95"
     if percentile == "0.99":
@@ -528,7 +559,7 @@ def _get_groupbys_support(groupbys: Sequence[str]) -> SupportedBy:
 
 def _get_query_supported_by(query: Optional[str]) -> SupportedBy:
     try:
-        parsed_query = _parse_search_query(query)
+        parsed_query = _parse_search_query(query=query, removed_blacklisted=False)
 
         standard_metrics = _is_standard_metrics_query(parsed_query)
         on_demand_metrics = _is_on_demand_supported_query(parsed_query)
@@ -543,7 +574,6 @@ def _is_standard_metrics_query(tokens: Sequence[QueryToken]) -> bool:
     """
     Recursively checks if any of the supplied token contain search filters that can't be handled by standard metrics.
     """
-
     for token in tokens:
         if not _is_standard_metrics_search_filter(token):
             return False
@@ -565,7 +595,6 @@ def _is_on_demand_supported_query(tokens: Sequence[QueryToken]) -> bool:
     """
     Recursively checks if any of the supplied token contain search filters that can't be handled by standard metrics.
     """
-
     for token in tokens:
         if not _is_on_demand_supported_search_filter(token):
             return False
@@ -621,6 +650,10 @@ def _is_standard_metrics_search_term(field: str) -> bool:
 
 
 def _is_on_demand_supported_field(field: str) -> bool:
+    # If it's a black listed field, we consider it as compatible with on demand.
+    if field in _BLACKLISTED_METRIC_FIELDS:
+        return True
+
     try:
         _map_field_name(field)
         return True
@@ -646,7 +679,7 @@ def to_standard_metrics_query(query: str) -> str:
         "transaction.duration:>=1s AND browser.version:1" -> ""
     """
     try:
-        tokens = _parse_search_query(query)
+        tokens = _parse_search_query(query=query, removed_blacklisted=False)
     except InvalidSearchQuery:
         logger.exception("Failed to parse search query: %s", query)
         raise
@@ -661,7 +694,7 @@ def to_standard_metrics_tokens(tokens: Sequence[QueryToken]) -> Sequence[QueryTo
     that has all on-demand filters removed and can be run using only standard metrics.
     """
     remaining_tokens = _remove_on_demand_search_filters(tokens)
-    cleaned_query = cleanup_query(remaining_tokens)
+    cleaned_query = _cleanup_query(remaining_tokens)
     return cleaned_query
 
 
@@ -680,7 +713,7 @@ def query_tokens_to_string(tokens: Sequence[QueryToken]) -> str:
 
 def _remove_on_demand_search_filters(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
     """
-    removes tokens that contain filters that can only be handled by on demand metrics.
+    Removes tokens that contain filters that can only be handled by on demand metrics.
     """
     ret_val: List[QueryToken] = []
     for token in tokens:
@@ -691,26 +724,28 @@ def _remove_on_demand_search_filters(tokens: Sequence[QueryToken]) -> Sequence[Q
             ret_val.append(ParenExpression(_remove_on_demand_search_filters(token.children)))
         else:
             ret_val.append(token)
+
     return ret_val
 
 
-def _remove_event_type_and_project_filter(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
+def _remove_blacklisted_search_filters(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
     """
-    removes event.type: transaction and project:* from the query
+    Removes tokens that contain filters that are blacklisted.
     """
     ret_val: List[QueryToken] = []
     for token in tokens:
         if isinstance(token, SearchFilter):
-            if token.key.name not in ["event.type", "project"]:
+            if token.key.name not in _BLACKLISTED_METRIC_FIELDS:
                 ret_val.append(token)
         elif isinstance(token, ParenExpression):
-            ret_val.append(ParenExpression(_remove_event_type_and_project_filter(token.children)))
+            ret_val.append(ParenExpression(_remove_blacklisted_search_filters(token.children)))
         else:
             ret_val.append(token)
+
     return ret_val
 
 
-def cleanup_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
+def _cleanup_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
     """
     Recreates a valid query from an original query that has had on demand search filters removed.
 
@@ -729,9 +764,10 @@ def cleanup_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
         if not isinstance(token, ParenExpression):
             removed_empty_parens.append(token)
         else:
-            children = cleanup_query(token.children)
+            children = _cleanup_query(token.children)
             if len(children) > 0:
                 removed_empty_parens.append(ParenExpression(children))
+
     # remove AND and OR operators at the start of the query
     while len(removed_empty_parens) > 0 and isinstance(removed_empty_parens[0], str):
         removed_empty_parens.pop(0)
@@ -761,6 +797,7 @@ def cleanup_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
         elif previous_token is not None:
             ret_val.append(previous_token)
         previous_token = token
+
     # take care of the last token (if any)
     if previous_token is not None:
         ret_val.append(previous_token)
@@ -1232,14 +1269,11 @@ class OnDemandMetricSpec:
     @staticmethod
     def _parse_field(value: str) -> FieldParsingResult:
         try:
-            match = fields.is_function(value)
-            if not match:
-                raise InvalidSearchQuery(f"Invalid characters in field {value}")
-
-            function, _, arguments, alias = query_builder.parse_function(match)
-
+            function, arguments, alias = _parse_function(value)
             if function:
                 return FieldParsingResult(function=function, arguments=arguments, alias=alias)
+
+            # TODO: why is this here?
             column = query_builder.resolve_column(value)
             return column
         except InvalidSearchQuery as e:
@@ -1249,9 +1283,8 @@ class OnDemandMetricSpec:
     def _parse_query(value: str) -> QueryParsingResult:
         """Parse query string into our internal AST format."""
         try:
-            conditions = _parse_search_query(value)
-            clean_conditions = cleanup_query(_remove_event_type_and_project_filter(conditions))
-            return QueryParsingResult(conditions=clean_conditions)
+            conditions = _parse_search_query(query=value, removed_blacklisted=True)
+            return QueryParsingResult(conditions=conditions)
         except InvalidSearchQuery as e:
             raise Exception(f"Invalid search query '{value}' in on demand spec: {e}")
 
