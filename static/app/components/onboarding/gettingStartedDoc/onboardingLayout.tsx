@@ -38,6 +38,7 @@ export type OnboardingLayoutProps = {
   projectId: Project['id'];
   projectSlug: Project['slug'];
   activeProductSelection?: ProductSolution[];
+  cdn?: string;
   configType?: ConfigType;
   newOrg?: boolean;
 };
