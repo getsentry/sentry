@@ -169,6 +169,14 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     },
   });
 
+  if (process.env.NODE_ENV !== 'production') {
+    if (sentryConfig.environment === 'development') {
+      import('@spotlightjs/spotlight').then(Spotlight => {
+        /* #__PURE__ */ Spotlight.init();
+      });
+    }
+  }
+
   // Event processor to fill the debug_meta field with debug IDs based on the
   // files the error touched. (files inside the stacktrace)
   const debugIdPolyfillEventProcessor = async (event: Event, hint: Sentry.EventHint) => {
