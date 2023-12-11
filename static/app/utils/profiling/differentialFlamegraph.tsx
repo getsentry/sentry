@@ -191,8 +191,9 @@ export function diffFlamegraphTreeRecursive(
       return;
     }
 
+    let j = 0;
     for (let i = 0; i < afterFrameChildrenLength; i++) {
-      for (let j = 0; j < beforeFrameChildrenLength; j++) {
+      for (; j < beforeFrameChildrenLength; j++) {
         const result = compareFrames(beforeFrame.children[j], afterFrame.children[i]);
 
         if (result === 0) {
