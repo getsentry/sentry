@@ -22,8 +22,8 @@ SETUP_WIZARD_CACHE_TIMEOUT = 600
 class SetupWizard(Endpoint):
     owner = ApiOwner.WEB_FRONTEND_SDKS
     publish_status = {
-        "DELETE": ApiPublishStatus.PRIVATE,
-        "GET": ApiPublishStatus.PRIVATE,
+        "DELETE": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     permission_classes = ()
 
