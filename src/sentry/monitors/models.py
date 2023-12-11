@@ -225,7 +225,6 @@ class Monitor(Model):
     check-in payloads. The slug can be changed.
     """
 
-    # TODO(epurkhiser): Migrate the status MonitorObjectStatus.MUTED to use this
     is_muted = models.BooleanField(default=False)
     """
     Monitor is operating normally but will not produce incidents or produce

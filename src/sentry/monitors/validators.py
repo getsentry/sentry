@@ -249,6 +249,10 @@ class MonitorValidator(CamelSnakeSerializer):
         default="active",
         help_text="Status of the monitor. Muted monitors do not generate events or notifications.",
     )
+    is_muted = serializers.BooleanField(
+        required=False,
+        help_text="Disable creation of monitor incidents",
+    )
     type = serializers.ChoiceField(choices=list(zip(MONITOR_TYPES.keys(), MONITOR_TYPES.keys())))
     config = ConfigValidator()
     alert_rule = MonitorAlertRuleValidator(required=False)
