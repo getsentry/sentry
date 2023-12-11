@@ -2604,11 +2604,12 @@ def get_chunk_load_error_hash(event: Event) -> Optional[CalculatedHashes]:
     """
     Return the same hash if the event is a ChunkLoadError, otherwise return None
     """
-    try:
-        exception_value = event.data["exception"]["values"][0]["value"]
-        exception_type = event.data["exception"]["values"][0]["type"]
-    except KeyError:
-        return None
+    if event and event.data:
+        try:
+            exception_value = event.data["exception"]["values"][0]["value"]
+            exception_type = event.data["exception"]["values"][0]["type"]
+        except KeyError:
+            return None
 
     hashes = None
     # Only check for the flag after it is established if it's a ChunkLoadError to avoid
