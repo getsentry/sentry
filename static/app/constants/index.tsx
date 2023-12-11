@@ -301,6 +301,14 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Indexed Transactions'),
     uid: 9,
   },
+  [DataCategoryExact.MONITOR]: {
+    name: DataCategoryExact.MONITOR,
+    apiName: 'monitor',
+    plural: 'monitor check-ins',
+    displayName: 'monitor check-in',
+    titleName: t('Monitor Check-Ins'),
+    uid: 10,
+  },
 } satisfies Record<DataCategoryExact, DataCategoryInfo>;
 
 // Special Search characters
