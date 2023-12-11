@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 from requests import Response
 
+from sentry.shared_integrations.exceptions import ApiConflictError
 from sentry.utils import json
 
 
@@ -69,4 +70,7 @@ class ApiError(Exception):
             return ApiUnauthorized(response.text, url=url)
         elif response.status_code == 429:
             return ApiRateLimitedError(response.text, url=url)
+        elif response.status_code == 409:
+            return ApiConflictError(response.text, url=url)
+
         return cls(response.text, response.status_code, url=url)

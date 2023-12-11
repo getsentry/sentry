@@ -19,7 +19,7 @@ from sentry.models.outbox import OutboxCategory, process_control_outbox
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.services.hybrid_cloud.issue import issue_service
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSignal, organization_service
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiConflictError
 from sentry.silo.base import SiloMode
 
 logger = logging.getLogger(__name__)
@@ -88,11 +88,8 @@ def process_async_webhooks(payload: Mapping[str, Any], region_name: str, **kwds:
                     "request_method": webhook_payload.method,
                 },
             )
-        except ApiError as e:
-            if e.code == 409:
-                logger.info("webhook_proxy.conflict_occurred", extra={"conflict_text": e.text})
-            else:
-                raise
+        except ApiConflictError as e:
+            logger.info("webhook_proxy.conflict_occurred", extra={"conflict_text": e.text})
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.SEND_SIGNAL)
