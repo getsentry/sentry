@@ -3,7 +3,6 @@ from __future__ import annotations
 import functools
 import ipaddress
 import socket
-from typing import Callable
 from urllib.parse import urlparse
 
 from django.conf import settings
@@ -12,6 +11,7 @@ from urllib3.exceptions import LocationParseError
 from urllib3.util.connection import _set_socket_options, allowed_gai_family
 
 from sentry.exceptions import RestrictedIPAddress
+from sentry.net.http import IsIpAddressPermitted
 
 DISALLOWED_IPS = frozenset(
     ipaddress.ip_network(str(i), strict=False) for i in settings.SENTRY_DISALLOWED_IPS
@@ -105,7 +105,7 @@ def safe_create_connection(
     timeout=socket._GLOBAL_DEFAULT_TIMEOUT,
     source_address=None,
     socket_options=None,
-    is_ipaddress_permitted: Callable[[str], bool] | None = None,
+    is_ipaddress_permitted: IsIpAddressPermitted = None,
 ):
     if is_ipaddress_permitted is None:
         is_ipaddress_permitted = is_ipaddress_allowed
