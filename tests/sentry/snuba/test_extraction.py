@@ -652,6 +652,7 @@ def test_cleanup_equivalent_specs():
 @pytest.mark.parametrize(
     "query",
     [
+        "device:iPhone"
         "isNightlyBuild:true environment:production OR isNightlyBuild:True environment:production",
         "isNightlyBuild:true (environment:production OR isNightlyBuild:True) environment:production",
         "isNightlyBuild:true AND environment:production OR isNightlyBuild:True AND environment:production",
