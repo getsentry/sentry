@@ -75,9 +75,9 @@ def _validate_rules(project):
         "allowedDomains": ["*"],
         "piiConfig": None,
         "trustedRelays": [],
-        "dynamicSampling": {
-            "rules": [],
-            "rulesV2": rules,
+        "sampling": {
+            "version": 2,
+            "rules": rules,
             "mode": "total",
         },
     }

@@ -54,7 +54,7 @@ export interface FlamegraphTooltipProps {
 function isDifferentiableFlamegraph(
   flamegraph: Flamegraph | DifferentialFlamegraph
 ): flamegraph is DifferentialFlamegraph {
-  return 'beforeCounts' in flamegraph && 'afterCounts' in flamegraph;
+  return 'isDifferentialFlamegraph' in flamegraph && flamegraph.isDifferentialFlamegraph;
 }
 
 export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
@@ -94,16 +94,23 @@ interface DifferentialFlamegraphTooltipProps extends FlamegraphTooltipProps {
   frameInConfigSpace: Rect;
 }
 function DifferentialFlamegraphTooltip(props: DifferentialFlamegraphTooltipProps) {
-  const countAfter = useMemo(() => {
-    return (
-      props.flamegraph.afterCounts.get(DifferentialFlamegraph.FrameKey(props.frame)) ?? 0
-    );
+  const flamegraph = props.flamegraph as DifferentialFlamegraph;
+  const count = useMemo(() => {
+    return props.flamegraph.weights.get(props.frame.node);
   }, [props.frame, props.flamegraph]);
-  const countBefore = useMemo(() => {
-    return (
-      props.flamegraph.beforeCounts.get(DifferentialFlamegraph.FrameKey(props.frame)) ?? 0
-    );
-  }, [props.frame, props.flamegraph]);
+
+  // A change can only happen if a frame was present in previous and current profiles
+  const shouldShowChange = !!count;
+
+  const relative = shouldShowChange ? relativeChange(count.after, count.before) : 0;
+
+  const formattedChange = shouldShowChange
+    ? relative === 0
+      ? t('no change')
+      : `${relative > 0 ? '+' : ''}${formatPercentage(relative)}`
+    : props.flamegraph.negated
+    ? t('removed function')
+    : t(`new function`);
 
   return (
     <BoundTooltip
@@ -116,15 +123,9 @@ function DifferentialFlamegraphTooltip(props: DifferentialFlamegraphTooltipProps
         <FlamegraphTooltipColorIndicator
           backgroundColor={formatColorForFrame(props.frame, props.flamegraphRenderer)}
         />
-        {props.flamegraphRenderer.flamegraph.formatter(props.frame.node.totalWeight)}{' '}
-        {t('samples, ') +
-          `${countAfter > countBefore ? '+' : ''}${formatPercentage(
-            relativeChange(countAfter, countBefore)
-          )}`}{' '}
-        {`(${formatWeightToProfileDuration(
-          props.frame.node,
-          props.flamegraphRenderer.flamegraph
-        )})`}{' '}
+        {flamegraph.formatter(props.frame.node.totalWeight)}{' '}
+        {t('samples, ') + formattedChange}{' '}
+        {`(${formatWeightToProfileDuration(props.frame.node, flamegraph)})`}{' '}
         {props.frame.frame.name}
       </FlamegraphTooltipFrameMainInfo>
       <FlamegraphTooltipTimelineInfo>

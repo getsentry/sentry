@@ -7,8 +7,8 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     OnDemandMetricSpec,
     SearchQueryConverter,
+    _cleanup_query,
     apdex_tag_spec,
-    cleanup_query,
     failure_tag_spec,
     query_tokens_to_string,
     should_use_on_demand_metrics,
@@ -44,6 +44,32 @@ from sentry.testutils.pytest.fixtures import django_db_all
             "transaction.duration:>1",
             True,
         ),  # transaction.duration query is on-demand
+        ("p90(transaction.duration)", "release:a", False),  # supported by standard metrics
+        (
+            "p90(transaction.duration)",
+            "transaction.duration:>1",
+            True,
+        ),  # transaction.duration query is on-demand
+        (
+            "percentile(transaction.duration, 0.9)",
+            "release:a",
+            False,
+        ),  # supported by standard metrics
+        (
+            "percentile(transaction.duration, 0.9)",
+            "transaction.duration:>1",
+            True,
+        ),  # transaction.duration query is on-demand
+        (
+            "percentile(transaction.duration, 0.90)",
+            "release:a",
+            False,
+        ),  # supported by standard metrics
+        (
+            "percentile(transaction.duration, 0.90)",
+            "transaction.duration:>1",
+            True,
+        ),
         ("count()", "", False),  # Malformed aggregate should return false
         (
             "count()",
@@ -120,6 +146,8 @@ class TestCreatesOndemandMetricSpec:
             # we don't support custom percentiles that can be mapped to one of standard percentiles
             ("percentile(transaction.duration, 0.5)", "transaction.duration>0"),
             ("percentile(transaction.duration, 0.50)", "transaction.duration>0"),
+            ("percentile(transaction.duration, 0.9)", "transaction.duration>0"),
+            ("percentile(transaction.duration, 0.90)", "transaction.duration>0"),
             ("percentile(transaction.duration, 0.95)", "transaction.duration>0"),
             ("percentile(transaction.duration, 0.99)", "transaction.duration>0"),
             ("percentile(transaction.duration, 1)", "transaction.duration>0"),
@@ -144,6 +172,7 @@ class TestCreatesOndemandMetricSpec:
                 "",
             ),  # apdex with specified threshold is on-demand metric even without query
             ("count()", "transaction.duration:>0 my-transaction"),
+            ("count()", "transaction.source:route"),
         ],
     )
     def test_creates_on_demand_spec(self, aggregate, query):
@@ -182,6 +211,24 @@ class TestCreatesOndemandMetricSpec:
     )
     def test_does_not_create_on_demand_spec(self, aggregate, query):
         assert not create_spec_if_needed(self.dataset, aggregate, query)
+
+
+@pytest.mark.parametrize(
+    "percentile",
+    [0.5, 0.75, 0.9, 0.95, 0.99],
+)
+def test_spec_equivalence_with_percentiles(percentile):
+    fixed_percentile = f"p{int(percentile * 100)}"
+
+    spec_1 = OnDemandMetricSpec(f"{fixed_percentile}(measurements.fp)", "transaction.duration:>1s")
+    spec_2 = OnDemandMetricSpec(
+        f"percentile(measurements.fp, {percentile})", "transaction.duration:>1s"
+    )
+
+    assert spec_1._metric_type == spec_2._metric_type
+    assert spec_1.field_to_extract == spec_2.field_to_extract
+    assert spec_1.op == spec_2.op
+    assert spec_1.condition == spec_2.condition
 
 
 def test_spec_simple_query_count():
@@ -240,15 +287,18 @@ def test_spec_context_mapping():
     }
 
 
-def test_spec_query_with_parentheses_and_environment():
-    spec = OnDemandMetricSpec(
+def test_spec_query_or_precedence_with_environment():
+    spec_1 = OnDemandMetricSpec(
         "count()", "(transaction.duration:>1s OR http.status_code:200)", "dev"
     )
+    spec_2 = OnDemandMetricSpec(
+        "count()", "transaction.duration:>1s OR http.status_code:200", "dev"
+    )
 
-    assert spec._metric_type == "c"
-    assert spec.field_to_extract is None
-    assert spec.op == "sum"
-    assert spec.condition == {
+    assert spec_1._metric_type == "c"
+    assert spec_1.field_to_extract is None
+    assert spec_1.op == "sum"
+    assert spec_1.condition == {
         "inner": [
             {"name": "event.environment", "op": "eq", "value": "dev"},
             {
@@ -261,11 +311,16 @@ def test_spec_query_with_parentheses_and_environment():
         ],
         "op": "and",
     }
+    # We check whether the conditions are identical, since we expect that the environment injection preserves the
+    # semantics of the query.
+    assert spec_1.condition == spec_2.condition
 
 
 def test_spec_count_if_query_with_environment():
     spec = OnDemandMetricSpec(
-        "count_if(transaction.duration,equals,300)", "http.method:GET", "production"
+        "count_if(transaction.duration,equals,300)",
+        "(http.method:GET AND endpoint:/hello)",
+        "production",
     )
 
     assert spec._metric_type == "c"
@@ -274,12 +329,14 @@ def test_spec_count_if_query_with_environment():
     assert spec.condition == {
         "inner": [
             {"name": "event.environment", "op": "eq", "value": "production"},
-            {"name": "event.request.method", "op": "eq", "value": "GET"},
             {
-                "name": "event.duration",
-                "op": "eq",
-                "value": 300.0,
+                "inner": [
+                    {"name": "event.request.method", "op": "eq", "value": "GET"},
+                    {"name": "event.tags.endpoint", "op": "eq", "value": "/hello"},
+                ],
+                "op": "and",
             },
+            {"name": "event.duration", "op": "eq", "value": 300.0},
         ],
         "op": "and",
     }
@@ -295,19 +352,30 @@ def test_spec_complex_query_with_environment():
     assert spec._metric_type == "c"
     assert spec.field_to_extract is None
     assert spec.op == "sum"
+    # We care about keeping the precedence order being preserved and not the environment being injected taking
+    # precedence.
     assert spec.condition == {
         "inner": [
+            {"name": "event.environment", "op": "eq", "value": "staging"},
             {
                 "inner": [
-                    {"name": "event.environment", "op": "eq", "value": "staging"},
-                    {"name": "event.duration", "op": "gt", "value": 1000.0},
-                    {"name": "event.contexts.response.status_code", "op": "eq", "value": "200"},
+                    {
+                        "inner": [
+                            {"name": "event.duration", "op": "gt", "value": 1000.0},
+                            {
+                                "name": "event.contexts.response.status_code",
+                                "op": "eq",
+                                "value": "200",
+                            },
+                        ],
+                        "op": "and",
+                    },
+                    {"name": "event.tags.os.browser", "op": "eq", "value": "Chrome"},
                 ],
-                "op": "and",
+                "op": "or",
             },
-            {"name": "event.tags.os.browser", "op": "eq", "value": "Chrome"},
         ],
-        "op": "or",
+        "op": "and",
     }
 
 
@@ -587,6 +655,45 @@ def test_cleanup_equivalent_specs():
     assert simple_spec.query_hash == event_type_spec.query_hash == parens_spec.query_hash
 
 
+@pytest.mark.parametrize(
+    "query",
+    [
+        "device:iPhone"
+        "isNightlyBuild:true environment:production OR isNightlyBuild:True environment:production",
+        "isNightlyBuild:true (environment:production OR isNightlyBuild:True) environment:production",
+        "isNightlyBuild:true AND environment:production OR isNightlyBuild:True AND environment:production",
+        "isNightlyBuild:true AND (environment:production OR isNightlyBuild:True) AND environment:production",
+        "isNightlyBuild:true environment:production",
+        "isNightlyBuild:true AND environment:production",
+        "(isNightlyBuild:true environment:production)",
+        "(isNightlyBuild:true AND environment:production)",
+        "isNightlyBuild:true OR environment:production",
+        "(isNightlyBuild:true OR environment:production)",
+    ],
+)
+def test_cleanup_with_environment_injection(query):
+    # We are simulating the transformation that the frontend performs in the query, since they add the
+    # AND (`event.type:transaction`) at the end.
+    field = "count()"
+    transformed_query = f"({query}) AND (event.type:transaction)"
+    environment = "production"
+
+    # We test with both new and old env logic, in this case queries should be identical in both logics since we
+    # scrape away parentheses.
+    for updated_env_logic in (True, False):
+        spec = OnDemandMetricSpec(
+            field, query, environment=environment, use_updated_env_logic=updated_env_logic
+        )
+        transformed_spec = OnDemandMetricSpec(
+            field,
+            transformed_query,
+            environment=environment,
+            use_updated_env_logic=updated_env_logic,
+        )
+
+        assert spec.query_hash == transformed_spec.query_hash
+
+
 @django_db_all
 @patch("sentry.snuba.metrics.extraction._get_satisfactory_threshold_and_metric")
 def test_spec_apdex_without_condition(_get_satisfactory_threshold_and_metric, default_project):
@@ -643,7 +750,7 @@ def test_query_tokens_to_string(query):
 def test_cleanup_query(dirty, clean):
     dirty_tokens = parse_search_query(dirty)
     clean_tokens = parse_search_query(clean)
-    actual_clean = cleanup_query(dirty_tokens)
+    actual_clean = _cleanup_query(dirty_tokens)
 
     assert actual_clean == clean_tokens
 
@@ -662,7 +769,7 @@ def test_cleanup_query_with_empty_parens():
         + [paren([paren([paren(["AND", "OR", paren([])])])])]  # ((()))
     )
     clean_tokens = parse_search_query("release:initial AND os.name:android")
-    actual_clean = cleanup_query(dirty_tokens)
+    actual_clean = _cleanup_query(dirty_tokens)
     assert actual_clean == clean_tokens
 
 

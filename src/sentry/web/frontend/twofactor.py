@@ -40,7 +40,7 @@ class TwoFactorAuthView(BaseView):
             if not interface.is_backup_interface:
                 rv.set_cookie(
                     COOKIE_NAME,
-                    str(interface.type).encode("utf-8"),
+                    str(interface.type),
                     max_age=COOKIE_MAX_AGE,
                     path="/",
                 )

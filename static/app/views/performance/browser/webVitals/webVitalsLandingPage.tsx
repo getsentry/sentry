@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
+import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -76,7 +76,7 @@ export default function WebVitalsLandingPage() {
       </Layout.Header>
 
       <Layout.Body>
-        <FeedbackWidget />
+        <FloatingFeedbackWidget />
         <Layout.Main fullWidth>
           <TopMenuContainer>
             <PageFilterBar condensed>

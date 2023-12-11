@@ -1806,6 +1806,8 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "measurements.score.weight.fid": "metrics_distributions",
         "measurements.score.weight.cls": "metrics_distributions",
         "measurements.score.weight.ttfb": "metrics_distributions",
+        "measurements.app_start_cold": "metrics_distributions",
+        "measurements.app_start_warm": "metrics_distributions",
         "spans.http": "metrics_distributions",
         "user": "metrics_sets",
     }
@@ -2850,7 +2852,7 @@ class MonitorIngestTestCase(MonitorTestCase):
         app = self.create_sentry_app_installation(
             slug=sentry_app.slug, organization=self.organization
         )
-        self.token = self.create_internal_integration_token(app, user=self.user)
+        self.token = self.create_internal_integration_token(install=app, user=self.user)
 
     def _get_path_functions(self):
         # Monitor paths are supported both with an org slug and without.  We test both as long as we support both.

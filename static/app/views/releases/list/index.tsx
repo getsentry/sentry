@@ -9,7 +9,7 @@ import {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
+import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -145,24 +145,30 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
   fetchThresholdStatuses() {
     const {selection, organization, api} = this.props;
     const {releases} = this.state;
+    if (releases.length < 1) {
+      return;
+    }
 
     // Grab earliest release and latest release - then fetch all statuses within
-    let start = releases[0].dateCreated;
-    let end = releases[0].dateCreated;
+    const fuzzSec = 30;
+    const initialRelease = releases[0];
+    let start = new Date(new Date(initialRelease.dateCreated).getTime() - fuzzSec * 1000);
+    let end = new Date(new Date(initialRelease.dateCreated).getTime() + fuzzSec * 1000);
     const releaseVersions: string[] = [];
     releases.forEach(release => {
-      if (release.dateCreated < start) {
-        start = release.dateCreated;
+      const created = new Date(release.dateCreated);
+      if (created < start) {
+        start = created;
       }
-      if (release.dateCreated > end) {
-        end = release.dateCreated;
+      if (created > end) {
+        end = created;
       }
       releaseVersions.push(release.version);
     });
 
     const query: ThresholdStatusesQuery = {
-      start,
-      end,
+      start: start.toISOString(),
+      end: end.toISOString(),
       release: releaseVersions,
     };
     if (selection.projects.length) {
@@ -661,7 +667,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
               {error
                 ? super.renderError()
                 : this.renderInnerBody(activeDisplay, showReleaseAdoptionStages)}
-              <FeedbackWidget />
+              <FloatingFeedbackWidget />
             </Layout.Main>
           </Layout.Body>
         </NoProjectMessage>

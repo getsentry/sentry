@@ -410,6 +410,11 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     default_result_type="integer",
                 ),
                 fields.MetricsFunction(
+                    "main_thread_count",
+                    snql_distribution=self._resolve_main_thread_count,
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
                     "avg_compare",
                     required_args=[
                         fields.MetricArg(
@@ -612,6 +617,29 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 ],
             ),
             condition,
+            alias,
+        )
+
+    def _resolve_main_thread_count(
+        self,
+        _: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+    ) -> SelectType:
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            Function(
+                "equals",
+                [
+                    self.builder.column("span.main_thread"),
+                    self.builder.resolve_tag_value("true"),
+                ],
+            ),
             alias,
         )
 
