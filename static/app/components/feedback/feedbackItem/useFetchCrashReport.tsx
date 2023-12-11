@@ -17,7 +17,7 @@ export default function useFetchCrashReport({
     [eventEndpoint],
     {
       // The default delay is starts at 1000ms and doubles with each try. That's too slow, we'll just show the error quickly instead.
-      retryDelay: 100,
+      retryDelay: 250,
       staleTime: 0,
     }
   );
