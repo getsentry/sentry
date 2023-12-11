@@ -24,6 +24,9 @@ from sentry.profiles.utils import parse_profile_filters, proxy_profiling_service
 
 class OrganizationProfilingBaseEndpoint(OrganizationEventsV2EndpointBase):
     owner = ApiOwner.PROFILING
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
 
     def get_profiling_params(self, request: Request, organization: Organization) -> Dict[str, Any]:
         try:
@@ -38,8 +41,9 @@ class OrganizationProfilingBaseEndpoint(OrganizationEventsV2EndpointBase):
 
 @region_silo_endpoint
 class OrganizationProfilingFiltersEndpoint(OrganizationProfilingBaseEndpoint):
+    owner = ApiOwner.PROFILING
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization: Organization) -> HttpResponse:
@@ -58,8 +62,9 @@ class OrganizationProfilingFiltersEndpoint(OrganizationProfilingBaseEndpoint):
 
 @region_silo_endpoint
 class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint):
+    owner = ApiOwner.PROFILING
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization: Organization) -> HttpResponse:
