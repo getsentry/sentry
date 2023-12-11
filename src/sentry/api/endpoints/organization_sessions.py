@@ -23,7 +23,7 @@ from sentry.utils.cursors import Cursor, CursorResult
 @region_silo_endpoint
 class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.UNKNOWN,
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
