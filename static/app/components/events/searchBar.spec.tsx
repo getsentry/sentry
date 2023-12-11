@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -46,7 +47,7 @@ describe('Events > SearchBar', function () {
       {totalValues: 0, key: 'browser', name: 'Browser'},
     ]);
 
-    options = TestStubs.routerContext();
+    options = RouterContextFixture();
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',

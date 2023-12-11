@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -22,7 +23,7 @@ describe('CreateAlertFromViewButton', () => {
   });
 
   it('should trigger onClick callback', async () => {
-    const context = TestStubs.routerContext();
+    const context = RouterContextFixture();
 
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,
@@ -63,7 +64,7 @@ describe('CreateAlertFromViewButton', () => {
         onClick={onClickMock}
       />,
       {
-        context: TestStubs.routerContext([{organization: noAccessOrg}]),
+        context: RouterContextFixture([{organization: noAccessOrg}]),
         organization: noAccessOrg,
       }
     );
@@ -88,7 +89,7 @@ describe('CreateAlertFromViewButton', () => {
         onClick={onClickMock}
       />,
       {
-        context: TestStubs.routerContext([{organization}]),
+        context: RouterContextFixture([{organization}]),
         organization,
       }
     );
@@ -127,7 +128,7 @@ describe('CreateAlertFromViewButton', () => {
         onClick={onClickMock}
       />,
       {
-        context: TestStubs.routerContext([{organization: noAccessOrg}]),
+        context: RouterContextFixture([{organization: noAccessOrg}]),
         organization: noAccessOrg,
       }
     );
@@ -188,7 +189,7 @@ describe('CreateAlertFromViewButton', () => {
   });
 
   it('removes a duplicate project filter', async () => {
-    const context = TestStubs.routerContext();
+    const context = RouterContextFixture();
 
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,

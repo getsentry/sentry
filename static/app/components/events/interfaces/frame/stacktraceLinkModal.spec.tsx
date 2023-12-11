@@ -1,6 +1,7 @@
 import {Organization} from 'sentry-fixture/organization';
 import {Repository} from 'sentry-fixture/repository';
 import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {
   act,
@@ -121,7 +122,7 @@ describe('StacktraceLinkModal', () => {
       statusCode: 400,
     });
 
-    renderGlobalModal({context: TestStubs.routerContext()});
+    renderGlobalModal({context: RouterContextFixture()});
     act(() =>
       openModal(modalProps => (
         <StacktraceLinkModal

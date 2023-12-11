@@ -1,3 +1,4 @@
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 import {Team} from 'sentry-fixture/team';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -286,7 +287,7 @@ describe('AssigneeSelector', () => {
   it('shows invite member button', async () => {
     MemberListStore.loadInitialData([USER_1, USER_2]);
     render(<AssigneeSelectorComponent id={GROUP_1.id} />, {
-      context: TestStubs.routerContext(),
+      context: RouterContextFixture(),
     });
     jest.spyOn(ConfigStore, 'get').mockImplementation(() => true);
 

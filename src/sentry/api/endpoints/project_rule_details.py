@@ -25,11 +25,12 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
 from sentry.apidocs.parameters import GlobalParams, IssueAlertParams
-from sentry.constants import ObjectStatus
+from sentry.constants import ObjectStatus, SentryAppStatus
 from sentry.integrations.jira.actions.create_ticket import JiraCreateTicketAction
 from sentry.integrations.jira_server.actions.create_ticket import JiraServerCreateTicketAction
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators.project_rules.updater import Updater
+from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_component import SentryAppComponent
 from sentry.models.integrations.sentry_app_installation import (
     SentryAppInstallation,
@@ -135,7 +136,27 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         # Prepare Rule Actions that are SentryApp components using the meta fields
         for action in serialized_rule.get("actions", []):
             if action.get("_sentry_app_installation") and action.get("_sentry_app_component"):
+                # TODO(hybridcloud) This is nasty and should be fixed.
+                # Because all of the prepare_* functions currently operate on ORM
+                # records we need to convert our RpcSentryApp and dict data into detached
+                # ORM models and stitch together relations used in preparing UI components.
                 installation = SentryAppInstallation(**action.get("_sentry_app_installation", {}))
+                rpc_app = action.get("_sentry_app")
+                installation.sentry_app = SentryApp(
+                    id=rpc_app.id,
+                    scope_list=rpc_app.scope_list,
+                    application_id=rpc_app.application_id,
+                    application=None,
+                    proxy_user_id=rpc_app.proxy_user_id,
+                    owner_id=rpc_app.owner_id,
+                    name=rpc_app.name,
+                    slug=rpc_app.slug,
+                    uuid=rpc_app.uuid,
+                    events=rpc_app.events,
+                    webhook_url=rpc_app.webhook_url,
+                    status=SentryAppStatus.as_int(rpc_app.status),
+                    metadata=rpc_app.metadata,
+                )
                 component = prepare_ui_component(
                     installation,
                     SentryAppComponent(**action.get("_sentry_app_component")),

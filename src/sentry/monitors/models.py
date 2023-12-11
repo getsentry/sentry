@@ -203,6 +203,16 @@ class Monitor(Model):
     organization_id = BoundedBigIntegerField(db_index=True)
     project_id = BoundedBigIntegerField(db_index=True)
 
+    # TODO(epurkhiser): Muted is moving to its own boolean column, this should
+    # become object status again
+    status = BoundedPositiveIntegerField(
+        default=MonitorObjectStatus.ACTIVE, choices=MonitorObjectStatus.as_choices()
+    )
+    """
+    Active status of the monitor. This is similar to most other ObjectStatus's
+    within the app. Used to mark monitors as disabled and pending deletions
+    """
+
     guid = UUIDField(unique=True, auto_add=True)
     """
     Globally unique identifier for the monitor. Mostly legacy, used in legacy
@@ -215,17 +225,16 @@ class Monitor(Model):
     check-in payloads. The slug can be changed.
     """
 
+    # TODO(epurkhiser): Migrate the status MonitorObjectStatus.MUTED to use this
+    is_muted = models.BooleanField(default=False)
+    """
+    Monitor is operating normally but will not produce incidents or produce
+    occurances into the issues platform.
+    """
+
     name = models.CharField(max_length=128)
     """
     Human readible name of the monitor. Used for display purposes.
-    """
-
-    status = BoundedPositiveIntegerField(
-        default=MonitorObjectStatus.ACTIVE, choices=MonitorObjectStatus.as_choices()
-    )
-    """
-    Active status of the monitor. This is similar to most other ObjectStatus's
-    within the app. Used to mark monitors as disabled and pending deletions
     """
 
     type = BoundedPositiveIntegerField(
