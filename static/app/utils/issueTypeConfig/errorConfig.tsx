@@ -26,6 +26,7 @@ export const errorConfig: IssueCategoryConfigMapping = {
 
 const enum ErrorHelpType {
   CHUNK_LOAD_ERROR = 'chunk_load_error',
+  DOCUMENT_OR_WINDOW_OBJECT_ERROR = 'document_or_window_object_error',
 }
 
 const errorHelpTypeResourceMap: Record<
@@ -50,6 +51,20 @@ check out the following:`,
       linksByPlatform: {},
     },
   },
+  [ErrorHelpType.DOCUMENT_OR_WINDOW_OBJECT_ERROR]: {
+    resources: {
+      description: t(
+        'Document/Window object errors occur when the global objects `window` or `document` are not defined. This typically happens in server-side rendering (SSR) or other non-browser environments. To learn more about how to fix these errors, check out these resources:'
+      ),
+      links: [
+        {
+          text: t('How to fix Document/Window Object Error'),
+          link: 'https://sentry.io/answers/window-is-not-defined/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
 };
 
 export function getErrorHelpResource(
@@ -57,6 +72,12 @@ export function getErrorHelpResource(
 ): Pick<IssueTypeConfig, 'resources'> | null {
   if (title.includes('ChunkLoadError')) {
     return errorHelpTypeResourceMap[ErrorHelpType.CHUNK_LOAD_ERROR];
+  }
+  if (
+    title.includes('window is not defined') ||
+    title.includes('document is not defined')
+  ) {
+    return errorHelpTypeResourceMap[ErrorHelpType.DOCUMENT_OR_WINDOW_OBJECT_ERROR];
   }
 
   return null;
