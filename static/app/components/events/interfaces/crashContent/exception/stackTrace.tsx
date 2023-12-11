@@ -1,3 +1,5 @@
+import uniq from 'lodash/uniq';
+
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import Panel from 'sentry/components/panels/panel';
@@ -29,6 +31,17 @@ type Props = {
   stackView?: StackView;
   threadId?: number;
 };
+
+// Render native stacktrace when:
+// 1. All frames have a native platform override in `frame.platform`, or
+// 2. The event platform is native
+function shouldRenderNativeContent({data, platform}: Pick<Props, 'data' | 'platform'>) {
+  const framePlatforms = uniq(data?.frames?.map(frame => frame.platform) ?? []);
+  const stackTracePlatform =
+    (framePlatforms.length === 1 ? framePlatforms[0] : null) ?? platform;
+
+  return isNativePlatform(stackTracePlatform);
+}
 
 function StackTrace({
   stackView,
@@ -76,7 +89,6 @@ function StackTrace({
   const includeSystemFrames =
     stackView === StackView.FULL ||
     (chainedException && data.frames?.every(frame => !frame.inApp));
-
   /**
    * Armin, Markus:
    * If all frames are in app, then no frame is in app.
@@ -86,7 +98,7 @@ function StackTrace({
    * It is easier to fix the UI logic to show a non-empty stack trace for chained exceptions
    */
 
-  if (isNativePlatform(platform)) {
+  if (shouldRenderNativeContent({data, platform})) {
     return (
       <NativeContent
         data={data}
