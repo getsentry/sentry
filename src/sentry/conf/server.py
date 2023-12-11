@@ -1766,6 +1766,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:profiling-cpu-chart": False,
     # Enables differential flamegraph in profiling
     "organizations:profiling-differential-flamegraph": False,
+    # Enables separate differential flamegraph page
+    "organizations:profiling-differential-flamegraph-page": False,
     # Enable global suspect functions in profiling
     "organizations:profiling-global-suspect-functions": False,
     # Enable profiling Memory chart
