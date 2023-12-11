@@ -3524,10 +3524,6 @@ SOUTH_MIGRATION_CONVERSIONS = (
     ),
 )
 
-# Whether to use Django migrations to create the database, or just build it based off
-# of models, similar to how syncdb used to work. The former is more correct, the latter
-# is much faster.
-MIGRATIONS_TEST_MIGRATE = os.environ.get("MIGRATIONS_TEST_MIGRATE", "0") == "1"
 # Specifies the list of django apps to include in the lockfile. If Falsey then include
 # all apps with migrations
 MIGRATIONS_LOCKFILE_APP_WHITELIST = (
