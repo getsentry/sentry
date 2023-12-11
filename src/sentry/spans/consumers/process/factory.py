@@ -48,7 +48,13 @@ def _process_relay_span_v1(relay_span: Mapping[str, Any]) -> SpanEvent:
         trace_id=_format_event_id(relay_span["trace_id"]),
     )
 
-    for key in {"description", "tags", "measurements", "sentry_tags"}:
+    for key in {
+        "_metrics_summary",
+        "description",
+        "measurements",
+        "sentry_tags",
+        "tags",
+    }:
         if value := relay_span.get(key):
             snuba_span[key] = value  # type: ignore
 

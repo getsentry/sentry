@@ -4,6 +4,7 @@ import * as qs from 'query-string';
 
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -24,7 +25,6 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
-import CronsFeedbackButton from './components/cronsFeedbackButton';
 import {
   CronsLandingPanel,
   isValidGuide,
@@ -85,7 +85,7 @@ export default function Monitors() {
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
-              <CronsFeedbackButton />
+              <FeedbackWidgetButton />
               {showAddMonitor && (
                 <NewMonitorButton size="sm" icon={<IconAdd isCircled size="xs" />}>
                   {t('Add Monitor')}

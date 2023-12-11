@@ -17,7 +17,7 @@ from sentry.incidents.models import (
     IncidentStatus,
     IncidentStatusMethod,
 )
-from sentry.incidents.utils.types import SubscriptionUpdate
+from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -130,7 +130,7 @@ def build_activity_context(
 
 @register_subscriber(SUBSCRIPTION_METRICS_LOGGER)
 def handle_subscription_metrics_logger(
-    subscription_update: SubscriptionUpdate, subscription: QuerySubscription
+    subscription_update: QuerySubscriptionUpdate, subscription: QuerySubscription
 ) -> None:
     """
     Logs results from a `QuerySubscription`.
@@ -160,7 +160,7 @@ def handle_subscription_metrics_logger(
 
 @register_subscriber(INCIDENTS_SNUBA_SUBSCRIPTION_TYPE)
 def handle_snuba_query_update(
-    subscription_update: SubscriptionUpdate, subscription: QuerySubscription
+    subscription_update: QuerySubscriptionUpdate, subscription: QuerySubscription
 ) -> None:
     """
     Handles a subscription update for a `QuerySubscription`.

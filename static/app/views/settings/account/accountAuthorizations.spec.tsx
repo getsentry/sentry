@@ -1,3 +1,5 @@
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import AccountAuthorizations from 'sentry/views/settings/account/accountAuthorizations';
@@ -25,7 +27,7 @@ describe('AccountAuthorizations', function () {
         router={router}
       />,
       {
-        context: TestStubs.routerContext(),
+        context: RouterContextFixture(),
       }
     );
   });

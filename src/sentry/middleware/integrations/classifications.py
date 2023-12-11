@@ -128,7 +128,8 @@ class IntegrationClassification(BaseClassification):
             response_handler=self.response_handler,
         )
         self.logger.info(
-            f"integration_control.routing_request.{parser.provider}",
+            "integration_control.routing_request.%s",
+            parser.provider,
             extra={"path": request.path, "method": request.method},
         )
         response = parser.get_response()
