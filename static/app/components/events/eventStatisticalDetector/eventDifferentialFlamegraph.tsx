@@ -224,6 +224,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
       return DifferentialFlamegraphModel.Empty();
     }
 
+    const txn = Sentry.startTransaction({name: 'differential_flamegraph.import'});
     const flamegraph = DifferentialFlamegraphModel.FromDiff(
       {
         before: beforeFlamegraph,
@@ -232,6 +233,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
       {negated},
       theme
     );
+    txn.finish();
     return flamegraph;
   }, [beforeFlamegraph, afterFlamegraph, theme, negated]);
 

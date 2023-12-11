@@ -105,7 +105,9 @@ function DifferentialFlamegraphTooltip(props: DifferentialFlamegraphTooltipProps
   const relative = shouldShowChange ? relativeChange(count.after, count.before) : 0;
 
   const formattedChange = shouldShowChange
-    ? `${relative > 0 ? '+' : ''}${formatPercentage(relative)}`
+    ? relative === 0
+      ? t('no change')
+      : `${relative > 0 ? '+' : ''}${formatPercentage(relative)}`
     : props.flamegraph.negated
     ? t('removed function')
     : t(`new function`);
