@@ -171,9 +171,9 @@ export function ScreenLoadSpansTable({
         : 0;
       const ttfd = row['ttfd_count()'] ? parseInt(row['ttfd_count()'], 10) : ttid;
 
-      if (!isNaN(ttid) && ttid > 0) {
+      if (!isNaN(ttid) && ttid_contribution_rate === 1) {
         const tooltipValue =
-          ttid === ttfd
+          ttid_contribution_rate === ttfd_contribution_rate
             ? tn(
                 '%s (%s) span ended before TTID and TTFD and may affect load times.',
                 '%s (%s) spans ended before TTID and TTFD and may affect load times.',
@@ -202,7 +202,7 @@ export function ScreenLoadSpansTable({
         );
       }
 
-      if (!isNaN(ttfd) && ttfd > 0) {
+      if (!isNaN(ttfd) && ttfd_contribution_rate === 1) {
         const tooltipValue = tn(
           '%s (%s) span ended before TTFD and may affect final display.',
           '%s (%s) spans ended before TTFD and may affect final display.',
@@ -225,7 +225,7 @@ export function ScreenLoadSpansTable({
         ? parseFloat(row['ttid_contribution_rate()'])
         : 0;
 
-      if (!isNaN(ttid) && ttid > 0) {
+      if (!isNaN(ttid) && ttid_contribution_rate === 1) {
         const tooltipValue = tn(
           '%s (%s) span ended before TTID and may affect load times.',
           '%s (%s) spans ended before TTID and may affect load times.',
