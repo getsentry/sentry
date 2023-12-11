@@ -14,6 +14,7 @@ from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     PROXY_BASE_PATH,
     PROXY_BASE_URL_HEADER,
+    PROXY_KEYID_HEADER,
     PROXY_OI_HEADER,
     PROXY_SIGNATURE_HEADER,
     clean_outbound_headers,
@@ -104,8 +105,16 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         installation = self.integration.get_installation(
             organization_id=self.org_integration.organization_id
         )
-        self.client: IntegrationProxyClient = installation.get_client()
+
+        # Get the client, some integrations use a keyring approach so
+        # we need to pass in the keyid
+        keyid = request.headers.get(PROXY_KEYID_HEADER)
+        if keyid:
+            self.client: IntegrationProxyClient = installation.get_keyring_client(keyid)
+        else:
+            self.client: IntegrationProxyClient = installation.get_client()
         client_class = self.client.__class__
+
         self.log_extra["client_type"] = client_class.__name__
         if not issubclass(client_class, IntegrationProxyClient):
             logger.info("integration_proxy.invalid_client", extra=self.log_extra)
