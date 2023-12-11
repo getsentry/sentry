@@ -101,7 +101,8 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
 
         if ExternalIssue.objects.has_linked_issue(event, integration):
             logger.info(
-                f"{integration.provider}.rule_trigger.link_already_exists",
+                "%s.rule_trigger.link_already_exists",
+                integration.provider,
                 extra={
                     "rule_id": rule_id,
                     "project_id": event.group.project.id,

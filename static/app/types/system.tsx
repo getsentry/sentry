@@ -139,6 +139,10 @@ export interface Config {
   enableAnalytics: boolean;
   features: Set<string>;
   gravatarBaseUrl: string;
+  initialTrace: {
+    baggage: string;
+    sentry_trace: string;
+  };
   invitesEnabled: boolean;
   isAuthenticated: boolean;
 

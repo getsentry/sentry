@@ -7,7 +7,6 @@ from django.utils import timezone
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.environment import Environment
-from sentry.models.eventuser import EventUser
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
 from sentry.search.events.constants import (
@@ -27,6 +26,7 @@ from sentry.tagstore.types import GroupTagValue, TagValue
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.eventuser import EventUser
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -697,7 +697,16 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
     @mock.patch("sentry.analytics.record")
     def test_get_group_tag_values_for_users(self, mock_record):
         result = self.ts.get_group_tag_values_for_users(
-            [EventUser(project_id=self.proj1.id, ident="user1")],
+            [
+                EventUser(
+                    project_id=self.proj1.id,
+                    email=None,
+                    username=None,
+                    name=None,
+                    ip_address=None,
+                    user_ident="user1",
+                )
+            ],
             tenant_ids={"referrer": "r", "organization_id": 1234},
         )
         assert len(result) == 2
@@ -713,7 +722,16 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             assert v.value == "user1"
 
         result = self.ts.get_group_tag_values_for_users(
-            [EventUser(project_id=self.proj1.id, ident="user2")],
+            [
+                EventUser(
+                    project_id=self.proj1.id,
+                    email=None,
+                    username=None,
+                    name=None,
+                    ip_address=None,
+                    user_ident="user2",
+                )
+            ],
             tenant_ids={"referrer": "r", "organization_id": 1234},
         )
         assert len(result) == 1

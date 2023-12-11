@@ -230,7 +230,7 @@ export function MetricSearchBar({
     [projectIds]
   );
 
-  const {data: tags = EMPTY_ARRAY} = useMetricsTags(mri, projectIdNumbers);
+  const {data: tags = EMPTY_ARRAY, isLoading} = useMetricsTags(mri, projectIdNumbers);
 
   const supportedTags: TagCollection = useMemo(
     () => tags.reduce((acc, tag) => ({...acc, [tag.key]: tag}), {}),
@@ -273,7 +273,8 @@ export function MetricSearchBar({
       organization={org}
       onGetTagValues={getTagValues}
       supportedTags={supportedTags}
-      highlightUnsupportedTags
+      // don't highlight tags while loading as we don't know yet if they are supported
+      highlightUnsupportedTags={!isLoading}
       disallowedLogicalOperators={DISSALLOWED_LOGICAL_OPERATORS}
       disallowFreeText
       onClose={handleChange}
