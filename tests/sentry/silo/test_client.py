@@ -110,7 +110,7 @@ class SiloClientTest(TestCase):
             assert mock_cache.set.call_count == 0
             assert mock_cache.delete.call_count == 1
 
-            hash = sha1(f"{prefix_hash}{self.region.name}GET{path}".encode("utf-8")).hexdigest()
+            hash = sha1(f"{prefix_hash}{self.region.name}GET{path}".encode()).hexdigest()
             cache_key = f"region_silo_client:request_attempts:{hash}"
             mock_cache.delete.assert_called_with(cache_key)
 
@@ -129,7 +129,7 @@ class SiloClientTest(TestCase):
             )
 
             prefix_hash = "123"
-            hash = sha1(f"{prefix_hash}{self.region.name}POST{path}".encode("utf-8")).hexdigest()
+            hash = sha1(f"{prefix_hash}{self.region.name}POST{path}".encode()).hexdigest()
             cache_key = f"region_silo_client:request_attempts:{hash}"
             num_of_request_attempts = 0
 
@@ -208,7 +208,7 @@ class SiloClientTest(TestCase):
             )
 
             prefix_hash = "123"
-            hash = sha1(f"{prefix_hash}{self.region.name}POST{path}".encode("utf-8")).hexdigest()
+            hash = sha1(f"{prefix_hash}{self.region.name}POST{path}".encode()).hexdigest()
             cache_key = f"region_silo_client:request_attempts:{hash}"
             num_of_request_attempts = 0
 

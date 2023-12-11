@@ -237,9 +237,7 @@ class RegionSiloClient(BaseSiloClient):
         """
         hash = None
         if prefix_hash is not None:
-            hash = sha1(
-                f"{prefix_hash}{self.region.name}{method}{path}".encode("utf-8")
-            ).hexdigest()
+            hash = sha1(f"{prefix_hash}{self.region.name}{method}{path}".encode()).hexdigest()
 
         try:
             response = super().request(

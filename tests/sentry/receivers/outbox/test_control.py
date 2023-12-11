@@ -53,10 +53,10 @@ class ProcessControlOutboxTest(TestCase):
         outbox.refresh_from_db()
 
         prefix_hash = sha1(
-            f"{outbox.shard_identifier}{outbox.object_identifier}".encode("utf-8")
+            f"{outbox.shard_identifier}{outbox.object_identifier}".encode()
         ).hexdigest()
         hash = sha1(
-            f"{prefix_hash}{_TEST_REGION.name}POST/extensions/github/webhook/".encode("utf-8")
+            f"{prefix_hash}{_TEST_REGION.name}POST/extensions/github/webhook/".encode()
         ).hexdigest()
         cache_key = f"region_silo_client:request_attempts:{hash}"
 
