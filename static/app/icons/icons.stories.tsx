@@ -999,6 +999,18 @@ const SECTIONS: TSection[] = [
         name: 'KeyDown',
         defaultProps: {},
       },
+      {
+        id: 'zoom-out',
+        keywords: [],
+        name: 'Zoom',
+        defaultProps: {isZoomIn: false},
+      },
+      {
+        id: 'zoom-in',
+        keywords: [],
+        name: 'Zoom',
+        defaultProps: {isZoomIn: true},
+      },
     ],
   },
   {
