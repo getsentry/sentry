@@ -21,7 +21,6 @@ from sentry.monitors.models import (
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorIncident,
-    MonitorObjectStatus,
     MonitorStatus,
 )
 
@@ -106,7 +105,7 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
 
     monitor_env = failed_checkin.monitor_environment
 
-    monitor_muted = monitor_env.monitor.status == MonitorObjectStatus.MUTED
+    monitor_muted = monitor_env.monitor.is_muted
 
     fingerprint = None
 
@@ -186,7 +185,7 @@ def mark_failed_no_threshold(failed_checkin: MonitorCheckIn):
     monitor_env = failed_checkin.monitor_environment
 
     # Do not create event if monitor is muted
-    if monitor_env.monitor.status == MonitorObjectStatus.MUTED:
+    if monitor_env.monitor.is_muted:
         return True
 
     use_issue_platform = False
