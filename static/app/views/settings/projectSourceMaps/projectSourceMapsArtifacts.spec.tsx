@@ -1,3 +1,4 @@
+import {Organization} from 'sentry-fixture/organization';
 import {SourceMapArchive} from 'sentry-fixture/sourceMapArchive';
 import {SourceMapArtifact} from 'sentry-fixture/sourceMapArtifact';
 import {SourceMapsDebugIDBundlesArtifacts} from 'sentry-fixture/sourceMapsDebugIDBundlesArtifacts';
@@ -81,6 +82,9 @@ describe('ProjectSourceMapsArtifacts', function () {
   describe('Release Bundles', function () {
     it('renders default state', async function () {
       const {organization, routerContext, project, routerProps} = initializeOrg({
+        organization: Organization({
+          access: ['org:superuser'],
+        }),
         router: {
           location: {
             query: {},
@@ -174,6 +178,9 @@ describe('ProjectSourceMapsArtifacts', function () {
   describe('Artifact Bundles', function () {
     it('renders default state', async function () {
       const {organization, project, routerProps, routerContext} = initializeOrg({
+        organization: Organization({
+          access: ['org:superuser', 'project:releases'],
+        }),
         router: {
           location: {
             pathname: `/settings/${initializeOrg().organization.slug}/projects/${
