@@ -17,12 +17,8 @@
   "files.trimFinalNewlines": true,
   "files.insertFinalNewline": true,
 
-  "files.associations": {
-    "*.jsx": "javascriptreact"
-  },
-
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": true
+    "source.fixAll.eslint": "explicit"
   },
 
   "[javascript]": {
@@ -60,8 +56,8 @@
   "[python]": {
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-      "source.organizeImports": true,
-      "source.fixAll.eslint": false
+      "source.organizeImports": "explicit",
+      "source.fixAll.eslint": "never"
     },
     "editor.defaultFormatter": "ms-python.black-formatter"
   },
