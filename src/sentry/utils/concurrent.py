@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import collections
 import functools
 import logging
@@ -7,14 +9,22 @@ from concurrent.futures._base import FINISHED, RUNNING
 from contextlib import contextmanager
 from queue import Full, PriorityQueue
 from time import time
+from typing import TYPE_CHECKING, Callable, TypeVar
 
 from sentry_sdk import Hub
 
 logger = logging.getLogger(__name__)
 
+T = TypeVar("T")
 
-def execute(function, daemon=True):
-    future = Future()
+if TYPE_CHECKING:
+    FutureBase = Future[T]
+else:
+    FutureBase = Future
+
+
+def execute(function: Callable[..., T], daemon=True):
+    future: Future[T] = Future()
 
     def run():
         if not future.set_running_or_notify_cancel():
@@ -43,9 +53,12 @@ class PriorityTask(collections.namedtuple("PriorityTask", "priority item")):
         return self.priority < b.priority
 
 
-class TimedFuture(Future):
+class TimedFuture(FutureBase):
+    _condition: threading.Condition
+    _state: str
+
     def __init__(self, *args, **kwargs):
-        self.__timing = [None, None]  # [started, finished/cancelled]
+        self.__timing: list[float | None] = [None, None]  # [started, finished/cancelled]
         super().__init__(*args, **kwargs)
 
     def get_timing(self):
@@ -178,7 +191,7 @@ class ThreadedExecutor(Executor):
         self.__worker_count = worker_count
         self.__workers = set()
         self.__started = False
-        self.__queue = PriorityQueue(maxsize)
+        self.__queue: PriorityQueue[PriorityTask] = PriorityQueue(maxsize)
         self.__lock = threading.Lock()
 
     def __worker(self):

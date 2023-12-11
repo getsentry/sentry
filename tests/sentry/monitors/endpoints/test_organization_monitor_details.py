@@ -139,11 +139,12 @@ class UpdateMonitorTest(MonitorTestCase):
 
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.status == MonitorObjectStatus.MUTED
+        assert monitor.is_muted
 
     def test_can_unmute(self):
         monitor = self._create_monitor()
 
-        monitor.update(status=MonitorObjectStatus.MUTED)
+        monitor.update(is_muted=True, status=MonitorObjectStatus.MUTED)
 
         resp = self.get_success_response(
             self.organization.slug, monitor.slug, method="PUT", **{"status": "active"}
@@ -152,6 +153,7 @@ class UpdateMonitorTest(MonitorTestCase):
 
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.status == MonitorObjectStatus.ACTIVE
+        assert not monitor.is_muted
 
     def test_timezone(self):
         monitor = self._create_monitor()

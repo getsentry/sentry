@@ -266,13 +266,13 @@ export function PageOverviewWebVitalsDetailPanel({
             value={
               webVital !== 'cls'
                 ? getDuration(
-                    (projectData?.data[0][`avg(measurements.${webVital})`] as number) /
+                    (projectData?.data[0][`p75(measurements.${webVital})`] as number) /
                       1000,
                     2,
                     true
                   )
                 : (
-                    projectData?.data[0][`avg(measurements.${webVital})`] as number
+                    projectData?.data[0][`p75(measurements.${webVital})`] as number
                   )?.toFixed(2)
             }
             webVital={webVital}
