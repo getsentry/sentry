@@ -121,14 +121,12 @@ class CustomRulePermission(BasePermission):
 
 @region_silo_endpoint
 class CustomRulesEndpoint(OrganizationEndpoint):
-    permission_classes = (CustomRulePermission,)
-
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
-
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    permission_classes = (CustomRulePermission,)
 
     def post(self, request: Request, organization: Organization) -> Response:
 

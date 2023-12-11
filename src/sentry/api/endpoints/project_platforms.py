@@ -11,10 +11,10 @@ from sentry.models.projectplatform import ProjectPlatform
 
 @region_silo_endpoint
 class ProjectPlatformsEndpoint(ProjectEndpoint):
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     def get(self, request: Request, project) -> Response:
         queryset = ProjectPlatform.objects.filter(project_id=project.id)

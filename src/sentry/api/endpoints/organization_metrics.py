@@ -50,9 +50,9 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
-    """Get the metadata of all the stored metrics including metric name, available operations and metric unit"""
-
     owner = ApiOwner.TELEMETRY_EXPERIENCE
+
+    """Get the metadata of all the stored metrics including metric name, available operations and metric unit"""
 
     def get(self, request: Request, organization) -> Response:
         projects = self.get_projects(request, organization)
@@ -67,9 +67,9 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
-    """Get metric name, available operations, metric unit and available tags"""
-
     owner = ApiOwner.TELEMETRY_EXPERIENCE
+
+    """Get metric name, available operations, metric unit and available tags"""
 
     def get(self, request: Request, organization, metric_name) -> Response:
         projects = self.get_projects(request, organization)
@@ -93,6 +93,8 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
+
     """Get list of tag names for this project
 
     If the ``metric`` query param is provided, only tags for a certain metric
@@ -101,8 +103,6 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
     If the ``metric`` query param is provided more than once, the *intersection*
     of available tags is used.
     """
-
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     def get(self, request: Request, organization) -> Response:
         metric_names = request.GET.getlist("metric") or []
@@ -125,9 +125,9 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
-    """Get all existing tag values for a metric"""
-
     owner = ApiOwner.TELEMETRY_EXPERIENCE
+
+    """Get all existing tag values for a metric"""
 
     def get(self, request: Request, organization, tag_name) -> Response:
         metric_names = request.GET.getlist("metric") or None
@@ -151,13 +151,14 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
+
     """Get the time series data for one or more metrics.
 
     The data can be filtered and grouped by tags.
     Based on `OrganizationSessionsEndpoint`.
     """
 
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
     default_per_page = 50
 
     def _new_get(self, request: Request, organization) -> Response:

@@ -111,7 +111,7 @@ class OrganizationSdkUpdatesEndpoint(OrganizationEventsEndpointBase):
 @region_silo_endpoint
 class OrganizationSdksEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 

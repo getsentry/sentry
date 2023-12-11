@@ -54,11 +54,11 @@ class ArtifactBundlesMixin:
 
 @region_silo_endpoint
 class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
     }
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project) -> Response:

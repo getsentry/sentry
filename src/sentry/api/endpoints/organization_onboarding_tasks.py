@@ -16,10 +16,10 @@ class OnboardingTaskPermission(OrganizationPermission):
 
 @region_silo_endpoint
 class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
     permission_classes = (OnboardingTaskPermission,)
 
     def post(self, request: Request, organization) -> Response:
