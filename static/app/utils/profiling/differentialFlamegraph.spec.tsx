@@ -132,7 +132,7 @@ describe('differentialFlamegraph', () => {
     expect(flamegraph.newFrames?.length).toBe(0);
     expect(flamegraph.removedFrames?.length).toBe(0);
 
-    expect([...flamegraph.colors.values()][0]).toEqual([
+    expect([...flamegraph.colors.values()][2]).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_INCREASE,
       1 * DifferentialFlamegraph.ALPHA_SCALING,
     ]);
@@ -252,11 +252,11 @@ describe('differentialFlamegraph', () => {
 
     expect([...flamegraph.colors.values()][1]).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_INCREASE,
-      1 * DifferentialFlamegraph.ALPHA_SCALING, // (11 - 1) / 10
+      0.3 * DifferentialFlamegraph.ALPHA_SCALING, // (11 - 1) / 10
     ]);
-    expect([...flamegraph.colors.values()][2]).toEqual([
+    expect([...flamegraph.colors.values()][0]).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_INCREASE,
-      0.3 * DifferentialFlamegraph.ALPHA_SCALING, // (4 - 1) / 10
+      1 * DifferentialFlamegraph.ALPHA_SCALING, // (4 - 1) / 10
     ]);
   });
 
@@ -292,11 +292,11 @@ describe('differentialFlamegraph', () => {
       THEME
     );
 
-    expect([...flamegraph.colors.values()][1]).toEqual([
+    expect([...flamegraph.colors.values()][0]).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_DECREASE,
       1 * DifferentialFlamegraph.ALPHA_SCALING, // (11 - 1) / 10
     ]);
-    expect([...flamegraph.colors.values()][2]).toEqual([
+    expect([...flamegraph.colors.values()][1]).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_DECREASE,
       0.2 * DifferentialFlamegraph.ALPHA_SCALING, // (4 - 1) / 10
     ]);
