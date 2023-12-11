@@ -1665,6 +1665,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:on-demand-metrics-prefill": False,
     # Display on demand metrics related UI elements
     "organizations:on-demand-metrics-ui": False,
+    # Query on demand metrics with the new environment logic
+    "organizations:on-demand-query-with-new-env-logic": False,
     # Enable the SDK selection feature in the onboarding
     "organizations:onboarding-sdk-selection": False,
     # Enable the setting of org roles for team
