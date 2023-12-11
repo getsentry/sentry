@@ -67,21 +67,6 @@ export type Choice = [
 export type Choices = Choice[];
 
 /**
- * @deprecated in favour of `DataCategoryExact` and `DATA_CATEGORY_INFO`.
- * This legacy type used plurals which will cause compatibility issues when categories
- * become more complex, e.g. processed transactions, session replays. Instead, access these values
- * with `DATA_CATEGORY_INFO[category].plural`, where category is the `DataCategoryExact` enum value.
- */
-export enum DataCategory {
-  DEFAULT = 'default',
-  ERRORS = 'errors',
-  TRANSACTIONS = 'transactions',
-  ATTACHMENTS = 'attachments',
-  PROFILES = 'profiles',
-  REPLAYS = 'replays',
-}
-
-/**
  * https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
  * Matches the backend singular backend enum directly.
  * For display variations, refer to `DATA_CATEGORY_INFO` rather than manipulating these strings
