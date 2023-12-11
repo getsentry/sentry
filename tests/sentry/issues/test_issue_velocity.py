@@ -7,7 +7,7 @@ from django.utils import timezone
 from sentry.issues.issue_velocity import (
     DATE_FORMAT,
     DEFAULT_TTL,
-    NONE_TTL,
+    FALLBACK_TTL,
     STALE_DATE_KEY,
     THRESHOLD_KEY,
     calculate_threshold,
@@ -235,7 +235,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
     def test_update_threshold_none(self, mock_calculation):
         """
         Tests that we return 0 and save a threshold for a shorter amount of time than the default
-        if the calculation returned None.
+        if the calculation returned None and we did not have an existing threshold already.
         """
         mock_calculation.return_value = None
         assert update_threshold(self.project, "threshold-key", "date-key") == 0
@@ -244,7 +244,22 @@ class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
             "0",
             self.utcnow.strftime(DATE_FORMAT),
         ]
-        assert redis_client.ttl("threshold-key") == NONE_TTL
+        assert redis_client.ttl("threshold-key") == FALLBACK_TTL
+
+    @patch("sentry.issues.issue_velocity.calculate_threshold")
+    def test_update_threshold_with_stale(self, mock_calculation):
+        """
+        Tests that we return the stale threshold and save it for a shorter amount of time than the
+        default if the calculation returned None and we had an existing threhsold.
+        """
+        mock_calculation.return_value = None
+        assert update_threshold(self.project, "threshold-key", "date-key", 0.5) == 0.5
+        redis_client = get_redis_client()
+        assert redis_client.mget(["threshold-key", "date-key"]) == [
+            "0.5",
+            self.utcnow.strftime(DATE_FORMAT),
+        ]
+        assert redis_client.ttl("threshold-key") == FALLBACK_TTL
 
     @patch("sentry.issues.issue_velocity.calculate_threshold")
     def test_update_threshold_nan(self, mock_calculation):

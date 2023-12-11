@@ -26,7 +26,6 @@ from snuba_sdk import (
 
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.tasks.post_process import locks
-from sentry.utils import json
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.redis import redis_clusters
 
@@ -43,7 +42,7 @@ WEEK_IN_HOURS = 7 * 24
 
 # for redis operations
 DEFAULT_TTL = 48 * 60 * 60  # 2 days
-NONE_TTL = 10 * 60  # 10 minutes
+FALLBACK_TTL = 10 * 60  # 10 minutes; TTL for storing temporary values while we can't query Snuba
 THRESHOLD_KEY = "new-issue-escalation-threshold:{project_id}"
 STALE_DATE_KEY = "new-issue-escalation-threshold-stale-date:{project_id}"
 DATE_FORMAT = "%Y%m%d"
@@ -133,35 +132,38 @@ def calculate_threshold(project: Project) -> Optional[float]:
         tenant_ids={"referrer": REFERRER, "organization_id": project.organization.id},
     )
 
-    result = raw_snql_query(request, referrer=REFERRER)["data"]
-    if len(result) == 0:
-        return None
-
     try:
-        return result[0][THRESHOLD_QUANTILE["name"]]
+        result = raw_snql_query(request, referrer=REFERRER)["data"]
     except Exception:
         logger.exception(
-            "Unexpected shape for threshold query results",
-            extra={"project_id": project.id, "result": json.dumps(result)},
+            "sentry.issues.issue_velocity.calculate_threshold.error",
+            extra={"project_id": project.id},
         )
         return None
 
+    return result[0][THRESHOLD_QUANTILE["name"]]
 
-def update_threshold(project: Project, threshold_key: str, stale_date_key: str) -> float:
+
+def update_threshold(
+    project: Project,
+    threshold_key: str,
+    stale_date_key: str,
+    stale_threshold: Optional[float] = None,
+) -> float:
     """
     Runs the calculation for the threshold and saves it and the date it is last updated to Redis.
-    If the threshold is NaN, we save it as 0 at the normal TTL. If the threshold is None (due to errors
-    in the query or any other reason), we save it as 0 at the shortened TTL.
+    If the threshold is NaN, we save it as 0 at the normal TTL. If the threshold is None (due to
+    Snuba errors), we save it as 0 with the fallback TTL.
     """
     threshold = calculate_threshold(project)
     ttl = DEFAULT_TTL
     if threshold is None:
-        logger.error(
-            "Velocity threshold couldn't be calculated, query returned nothing",
-            extra={"project_id": project.id},
+        logger.info(
+            "sentry.issues.issue_velocity.update_threshold.fallback",
+            extra={"project_id": project.id, "fallback_value": stale_threshold},
         )
-        threshold = 0
-        ttl = NONE_TTL
+        threshold = stale_threshold if stale_threshold is not None else 0
+        ttl = FALLBACK_TTL
     elif math.isnan(threshold):  # indicates there were no valid events to base the calculation
         threshold = 0
 
@@ -195,7 +197,7 @@ def get_latest_threshold(project: Project) -> float:
         )
         try:
             with lock.acquire():
-                threshold = update_threshold(project, keys[0], keys[1])
+                threshold = update_threshold(project, keys[0], keys[1], threshold)
         except UnableToAcquireLock as error:  # another process is already updating
             logger.warning(
                 "issue_velocity.get_latest_threshold.unable_to_acquire_lock",
