@@ -14,7 +14,7 @@ from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOAD_SCHEMA
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.project import Project
-from sentry.signals import first_feedback_received
+from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.utils import metrics
 from sentry.utils.dates import ensure_aware
 from sentry.utils.safe import get_path
@@ -167,6 +167,12 @@ def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
 
     if not project.flags.has_feedbacks:
         first_feedback_received.send_robust(project=project, sender=Project)
+
+    if (
+        source is not FeedbackCreationSource.CRASH_REPORT_EMBED_FORM
+        and not project.flags.has_new_feedbacks
+    ):
+        first_new_feedback_received.send_robust(project=project, sender=Project)
 
     produce_occurrence_to_kafka(
         payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_fixed
