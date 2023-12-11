@@ -41,11 +41,6 @@ class OrganizationProfilingBaseEndpoint(OrganizationEventsV2EndpointBase):
 
 @region_silo_endpoint
 class OrganizationProfilingFiltersEndpoint(OrganizationProfilingBaseEndpoint):
-    owner = ApiOwner.PROFILING
-    publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-    }
-
     def get(self, request: Request, organization: Organization) -> HttpResponse:
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
@@ -62,11 +57,6 @@ class OrganizationProfilingFiltersEndpoint(OrganizationProfilingBaseEndpoint):
 
 @region_silo_endpoint
 class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint):
-    owner = ApiOwner.PROFILING
-    publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-    }
-
     def get(self, request: Request, organization: Organization) -> HttpResponse:
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
