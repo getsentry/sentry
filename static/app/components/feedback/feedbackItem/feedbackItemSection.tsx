@@ -6,7 +6,7 @@ import {space} from 'sentry/styles/space';
 const SectionWrapper = styled('section')`
   display: flex;
   flex-direction: column;
-  gap: ${space(3)};
+  gap: ${space(1.5)};
 `;
 
 const SectionTitle = styled('h3')`

@@ -15,7 +15,7 @@ import {Flex} from 'sentry/components/profiling/flex';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconCircleFill, IconIssues, IconPlay} from 'sentry/icons';
+import {IconCircleFill, IconFatal, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -118,8 +118,8 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
                 <IssueTrackingSignals group={feedbackItem as unknown as Group} />
 
                 {isCrashReport && (
-                  <Tooltip title={t('Linked Issue')} containerDisplayMode="flex">
-                    <IconIssues size="xs" />
+                  <Tooltip title={t('Linked Error')} containerDisplayMode="flex">
+                    <IconFatal color="red400" size="xs" />
                   </Tooltip>
                 )}
 
