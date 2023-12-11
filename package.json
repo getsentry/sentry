@@ -30,7 +30,7 @@
     "@react-aria/focus": "^3.12.1",
     "@react-aria/gridlist": "^3.4.0",
     "@react-aria/i18n": "^3.7.2",
-    "@react-aria/interactions": "^3.15.1",
+    "@react-aria/interactions": "^3.20.0",
     "@react-aria/listbox": "^3.9.1",
     "@react-aria/menu": "^3.9.1",
     "@react-aria/numberfield": "^3.5.1",
