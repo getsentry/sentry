@@ -1,5 +1,4 @@
 import {Sort} from 'sentry/utils/discover/fields';
-import {USE_STORED_SCORES} from 'sentry/views/performance/browser/webVitals/settings';
 
 export type Row = {
   'avg(measurements.cls)': number;
@@ -59,14 +58,10 @@ export const SORTABLE_FIELDS = [
   'avg(measurements.fid)',
   'avg(measurements.lcp)',
   'avg(measurements.ttfb)',
-  ...(USE_STORED_SCORES
-    ? [
-        'score',
-        'opportunity',
-        'avg(measurements.score.total)',
-        'opportunity_score(measurements.score.total)',
-      ]
-    : []),
+  'score',
+  'opportunity',
+  'avg(measurements.score.total)',
+  'opportunity_score(measurements.score.total)',
 ] as const;
 
 export const SORTABLE_INDEXED_FIELDS = [
@@ -75,7 +70,8 @@ export const SORTABLE_INDEXED_FIELDS = [
   'measurements.cls',
   'measurements.ttfb',
   'measurements.fid',
-  ...(USE_STORED_SCORES ? ['score', 'measurements.score.total'] : []),
+  'score',
+  'measurements.score.total',
 ] as const;
 
 export const DEFAULT_SORT: Sort = {

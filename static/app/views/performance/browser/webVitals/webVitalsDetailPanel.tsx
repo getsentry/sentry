@@ -23,7 +23,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {WebVitalDescription} from 'sentry/views/performance/browser/webVitals/components/webVitalDescription';
 import {WebVitalStatusLineChart} from 'sentry/views/performance/browser/webVitals/components/webVitalStatusLineChart';
-import {USE_STORED_SCORES} from 'sentry/views/performance/browser/webVitals/settings';
 import {calculateOpportunity} from 'sentry/views/performance/browser/webVitals/utils/calculateOpportunity';
 import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
@@ -36,6 +35,7 @@ import {
   RowWithScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 
 type Column = GridColumnHeader;
@@ -61,21 +61,22 @@ export function WebVitalsDetailPanel({
 }) {
   const organization = useOrganization();
   const location = useLocation();
+  const shouldUseStoredScores = useStoredScoresSetting();
 
   const {data: projectData} = useProjectRawWebVitalsQuery({});
   const {data: projectScoresData} = useProjectWebVitalsScoresQuery({
-    enabled: USE_STORED_SCORES,
+    enabled: shouldUseStoredScores,
     weightWebVital: webVital ?? 'total',
   });
 
-  const projectScore = USE_STORED_SCORES
+  const projectScore = shouldUseStoredScores
     ? calculatePerformanceScoreFromStoredTableDataRow(projectScoresData?.data?.[0])
     : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
 
   const {data, isLoading} = useTransactionWebVitalsQuery({
     limit: 100,
     opportunityWebVital: webVital ?? 'total',
-    ...(USE_STORED_SCORES && webVital
+    ...(shouldUseStoredScores && webVital
       ? {
           defaultSort: {
             field: `opportunity_score(measurements.score.${webVital})`,
@@ -97,7 +98,7 @@ export function WebVitalsDetailPanel({
     return data
       .map(row => ({
         ...row,
-        opportunity: USE_STORED_SCORES
+        opportunity: shouldUseStoredScores
           ? Math.round(((row.opportunity ?? 0) * 100 * 100) / sumWeights) / 100
           : count !== undefined
           ? calculateOpportunity(
@@ -118,7 +119,14 @@ export function WebVitalsDetailPanel({
         return b.opportunity - a.opportunity;
       })
       .slice(0, MAX_ROWS);
-  }, [data, projectData?.data, projectScore, projectScoresData?.data, webVital]);
+  }, [
+    data,
+    projectData?.data,
+    projectScore,
+    projectScoresData?.data,
+    shouldUseStoredScores,
+    webVital,
+  ]);
 
   const {data: timeseriesData, isLoading: isTimeseriesLoading} =
     useProjectRawWebVitalsValuesTimeseriesQuery({});

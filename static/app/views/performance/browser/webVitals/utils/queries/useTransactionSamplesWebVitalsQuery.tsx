@@ -1,7 +1,7 @@
-import {USE_STORED_SCORES} from 'sentry/views/performance/browser/webVitals/settings';
 import {useTransactionRawSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useTransactionRawSamplesWebVitalsQuery';
 import {useTransactionSamplesWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useTransactionSamplesWebVitalsScoresQuery';
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 
 type Props = {
   transaction: string;
@@ -24,13 +24,14 @@ export const useTransactionSamplesWebVitalsQuery = ({
   sortName,
   webVital,
 }: Props) => {
+  const shouldUseStoredScores = useStoredScoresSetting();
   const storedScoresResult = useTransactionSamplesWebVitalsScoresQuery({
     orderBy,
     limit,
     transaction,
     query,
     withProfiles,
-    enabled: USE_STORED_SCORES && enabled,
+    enabled: shouldUseStoredScores && enabled,
     sortName,
     webVital,
   });
@@ -40,10 +41,10 @@ export const useTransactionSamplesWebVitalsQuery = ({
     transaction,
     query,
     withProfiles,
-    enabled: !USE_STORED_SCORES && enabled,
+    enabled: !shouldUseStoredScores && enabled,
     sortName,
   });
-  if (USE_STORED_SCORES) {
+  if (shouldUseStoredScores) {
     return storedScoresResult;
   }
   return rawWebVitalsResult;
