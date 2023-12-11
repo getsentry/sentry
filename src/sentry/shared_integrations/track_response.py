@@ -68,4 +68,4 @@ class TrackResponseMixin:
             log_params[self.integration_type] = self.name
 
         log_params.update(getattr(self, "logging_context", None) or {})
-        self.logger.info(f"{self.integration_type}.http_response", extra=log_params)
+        self.logger.info("%s.http_response", self.integration_type, extra=log_params)

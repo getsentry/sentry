@@ -13,11 +13,10 @@ from sentry.sentry_metrics.querying.metadata import get_code_locations
 
 @region_silo_endpoint
 class OrganizationDDMMetaEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
-
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     """Get meta data for one or more metrics for a given set of projects in a time interval"""
     # Returns only code locations for now

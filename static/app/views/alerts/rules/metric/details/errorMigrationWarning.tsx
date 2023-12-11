@@ -29,6 +29,14 @@ interface ErrorMigrationWarningProps {
 
 const METRIC_ALERT_IGNORE_ARCHIVED_ISSUES = 'metric_alert_ignore_archived_issues';
 
+function createdOrModifiedAfterMigration(rule: MetricRule) {
+  const migrationDate = new Date('2023-12-11T00:00:00Z').getTime();
+  return (
+    (rule.dateCreated && new Date(rule.dateCreated).getTime() > migrationDate) ||
+    (rule.dateModified && new Date(rule.dateModified).getTime() > migrationDate)
+  );
+}
+
 /**
  * Displays a message to filter events from archived issues when the metric alert
  * is counting error events.
@@ -39,13 +47,14 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
   const queryClient = useQueryClient();
   const showErrorMigrationWarning =
     rule && hasIgnoreArchivedFeatureFlag(organization) && ruleNeedsErrorMigration(rule);
+  const isCreatedAfterMigration = rule && createdOrModifiedAfterMigration(rule);
   const prompt = usePromptsCheck(
     {
       feature: METRIC_ALERT_IGNORE_ARCHIVED_ISSUES,
       organizationId: organization.id,
       projectId: project?.id,
     },
-    {staleTime: Infinity, enabled: showErrorMigrationWarning}
+    {staleTime: Infinity, enabled: showErrorMigrationWarning && !isCreatedAfterMigration}
   );
 
   const isPromptDismissed =
@@ -56,7 +65,12 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
         })
       : false;
 
-  if (!showErrorMigrationWarning || !rule || isPromptDismissed) {
+  if (
+    !showErrorMigrationWarning ||
+    !rule ||
+    isPromptDismissed ||
+    isCreatedAfterMigration
+  ) {
     return null;
   }
 
