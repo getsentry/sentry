@@ -34,7 +34,7 @@ interface Props<QueryKeyAggregate, Data> {
  * A reducer function for similar query calls.
  *
  * `useAggregatedQueryKeys` is a reducer for query calls. Instead of individually
- * fetching a handfull of records; you can batch the requests by emitting a new
+ * fetching a handful of records; you can batch the requests by emitting a new
  * queryKey.
  *
  * EXAMPLE: parallel request like: `GET /api/item/?id=1` & `GET /api/item/?id=2`
