@@ -8,10 +8,11 @@ import GridEditable, {
   GridColumnHeader,
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
-import {t, tn} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {NewQuery} from 'sentry/types';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView, {
@@ -165,13 +166,13 @@ export function ScreenLoadSpansTable({
       const ttfd_contribution_rate = row['ttfd_contribution_rate()']
         ? parseFloat(row['ttfd_contribution_rate()'])
         : 0;
-      const total = row['count()'];
 
       if (!isNaN(ttid_contribution_rate) && ttid_contribution_rate === 1) {
-        const tooltipValue = tn(
-          'Span ended before TTID and TTFD and may affect initial and final display.',
-          'Spans ended before TTID and TTFD and may affect initial and final display.',
-          total
+        const tooltipValue = tct(
+          'This span always ends before TTID and TTFD and may affect initial and final display. [link: Learn more.]',
+          {
+            link: <ExternalLink href="https://docs.sentry.io" />,
+          }
         );
         return (
           <Tooltip isHoverable title={tooltipValue} showUnderline>
@@ -181,10 +182,11 @@ export function ScreenLoadSpansTable({
       }
 
       if (!isNaN(ttfd_contribution_rate) && ttfd_contribution_rate === 1) {
-        const tooltipValue = tn(
-          'Span ended before TTFD and may affect final display.',
-          'Spans ended before TTFD and may affect final display.',
-          total
+        const tooltipValue = tct(
+          'This span always ends before TTFD and may affect final display. [link: Learn more.]',
+          {
+            link: <ExternalLink href="https://docs.sentry.io" />,
+          }
         );
         return (
           <Tooltip isHoverable title={tooltipValue} showUnderline>
@@ -197,16 +199,16 @@ export function ScreenLoadSpansTable({
     }
 
     if (column.key === 'affects') {
-      const total = row['count()'];
       const ttid_contribution_rate = row['ttid_contribution_rate()']
         ? parseFloat(row['ttid_contribution_rate()'])
         : 0;
 
       if (!isNaN(ttid_contribution_rate) && ttid_contribution_rate === 1) {
-        const tooltipValue = tn(
-          'Span ended before TTID and may affect initial display.',
-          'Spans ended before TTID and may affect initial display.',
-          total
+        const tooltipValue = tct(
+          'This span always ends before TTID and may affect initial display. [link: Learn more.]',
+          {
+            link: <ExternalLink href="https://docs.sentry.io" />,
+          }
         );
         return (
           <Tooltip isHoverable title={tooltipValue} showUnderline>
@@ -215,7 +217,18 @@ export function ScreenLoadSpansTable({
         );
       }
 
-      return <Container>{t('No')}</Container>;
+      const tooltipValue = tct(
+        'This span may not affect initial display. [link: Learn more.]',
+        {
+          link: <ExternalLink href="https://docs.sentry.io" />,
+        }
+      );
+
+      return (
+        <Tooltip isHoverable title={tooltipValue} showUnderline>
+          <Container>{t('No')}</Container>
+        </Tooltip>
+      );
     }
 
     const renderer = getFieldRenderer(column.key, data?.meta.fields, false);
