@@ -22,7 +22,7 @@ type Props = {
 function ReplayView({toggleFullscreen}: Props) {
   const isFullscreen = useIsFullscreen();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const {replay} = useReplayContext();
+  const {isFetching, replay} = useReplayContext();
 
   return (
     <Fragment>
@@ -41,7 +41,7 @@ function ReplayView({toggleFullscreen}: Props) {
               </Button>
             ) : null}
           </ContextContainer>
-          {replay?.hasProcessingErrors() ? (
+          {!isFetching && replay?.hasProcessingErrors() ? (
             <ReplayProcessingError processingErrors={replay.processingErrors()} />
           ) : (
             <Panel>
