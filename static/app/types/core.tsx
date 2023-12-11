@@ -94,6 +94,7 @@ export enum DataCategoryExact {
   REPLAY = 'replay',
   TRANSACTION_PROCESSED = 'transaction_processed',
   TRANSACTION_INDEXED = 'transaction_indexed',
+  MONITOR = 'monitor',
 }
 
 export interface DataCategoryInfo {
