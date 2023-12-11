@@ -6,6 +6,7 @@ import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ButtonBar from 'sentry/components/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
+import EventVitals from 'sentry/components/events/eventVitals';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
@@ -13,8 +14,10 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {EventTransaction, Organization} from 'sentry/types';
+import {generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
+import {formatTagKey} from 'sentry/utils/discover/fields';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {getDuration} from 'sentry/utils/formatters';
 import {
@@ -22,8 +25,10 @@ import {
   TraceFullDetailed,
   TraceMeta,
 } from 'sentry/utils/performance/quickTrace/types';
+import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import Tags from 'sentry/views/discover/tags';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import {MetaData} from 'sentry/views/performance/transactionDetails/styles';
 
@@ -224,6 +229,48 @@ function NewTraceDetailsContent(props: Props) {
     return warning;
   };
 
+  const renderFooter = () => {
+    const {traceEventView, organization, location, meta, traces, orphanErrors} = props;
+    const traceInfo = traces ? getTraceInfo(traces, orphanErrors) : undefined;
+    const orphanErrorsCount = orphanErrors?.length ?? 0;
+    const transactionsCount = meta?.transactions ?? traceInfo?.transactions.size ?? 0;
+    const totalNumOfEvents = transactionsCount + orphanErrorsCount;
+    const webVitals = Object.keys(rootEvent?.measurements ?? {})
+      .filter(name => Boolean(WEB_VITAL_DETAILS[`measurements.${name}`]))
+      .sort();
+
+    return (
+      rootEvent && (
+        <TraceHeaderWrapper>
+          {webVitals.length > 0 && (
+            <div style={{flex: 1}}>
+              <EventVitals event={rootEvent} />
+            </div>
+          )}
+          <div style={{flex: 1, maxWidth: '800px'}}>
+            <Tags
+              generateUrl={(key: string, value: string) => {
+                const url = traceEventView.getResultsViewUrlTarget(
+                  organization.slug,
+                  false
+                );
+                url.query = generateQueryWithTag(url.query, {
+                  key: formatTagKey(key),
+                  value,
+                });
+                return url;
+              }}
+              totalValues={totalNumOfEvents}
+              eventView={traceEventView}
+              organization={organization}
+              location={location}
+            />
+          </div>
+        </TraceHeaderWrapper>
+      )
+    );
+  };
+
   const renderContent = () => {
     const {
       dateSelected,
@@ -281,6 +328,7 @@ function NewTraceDetailsContent(props: Props) {
             />
           </VisuallyCompleteWithData>
         </Margin>
+        {renderFooter()}
       </Fragment>
     );
   };
@@ -349,4 +397,8 @@ const Margin = styled('div')`
   margin-top: ${space(2)};
 `;
 
+const TraceHeaderWrapper = styled('div')`
+  display: flex;
+  gap: ${space(2)};
+`;
 export default NewTraceDetailsContent;
