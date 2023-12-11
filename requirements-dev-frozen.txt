@@ -171,7 +171,7 @@ rfc3986-validator==0.1.1
 rsa==4.8
 s3transfer==0.6.1
 selenium==4.16.0
-sentry-arroyo==2.15.0
+sentry-arroyo==2.15.2
 sentry-cli==2.16.0
 sentry-forked-django-stubs==4.2.7.post1
 sentry-forked-djangorestframework-stubs==3.14.5.post1
