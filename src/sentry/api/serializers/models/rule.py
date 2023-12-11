@@ -119,10 +119,12 @@ class RuleSerializer(Serializer):
             )
             if sentry_app_uuid is not None
         ]
+        sentry_app_installs = app_service.get_many(filter=dict(uuids=sentry_app_uuids))
+        sentry_app_map = {
+            install.sentry_app.id: install.sentry_app for install in sentry_app_installs
+        }
+        sentry_app_ids: List[int] = list(sentry_app_map.keys())
 
-        sentry_app_ids: List[int] = [
-            i.sentry_app.id for i in app_service.get_many(filter=dict(uuids=sentry_app_uuids))
-        ]
         sentry_app_installations_by_uuid = app_service.get_related_sentry_app_components(
             organization_ids=[rule.project.organization_id for rule in rules.values()],
             sentry_app_ids=sentry_app_ids,
@@ -152,8 +154,10 @@ class RuleSerializer(Serializer):
                     str(action.get("sentryAppInstallationUuid"))
                 )
                 if install:
+                    installation = install.get("sentry_app_installation")
                     action["_sentry_app_component"] = install.get("sentry_app_component")
-                    action["_sentry_app_installation"] = install.get("sentry_app_installation")
+                    action["_sentry_app_installation"] = installation
+                    action["_sentry_app"] = sentry_app_map.get(installation.get("sentry_app_id"))
 
         if "lastTriggered" in self.expand:
             last_triggered_lookup = {
