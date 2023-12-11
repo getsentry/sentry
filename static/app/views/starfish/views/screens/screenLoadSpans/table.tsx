@@ -3,7 +3,10 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {getInterval} from 'sentry/components/charts/utils';
-import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  GridColumnHeader,
+} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
@@ -19,14 +22,12 @@ import EventView, {
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {formatPercentage} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {TableColumn} from 'sentry/views/discover/table/types';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import {useTTFDConfigured} from 'sentry/views/starfish/queries/useHasTtfdConfigured';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
@@ -95,9 +96,7 @@ export function ScreenLoadSpansTable({
       `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
       `avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`,
       'ttid_contribution_rate()',
-      'ttid_count()',
       'ttfd_contribution_rate()',
-      'ttfd_count()',
       'count()',
       'time_spent_percentage()',
       `sum(${SPAN_SELF_TIME})`,
@@ -118,13 +117,11 @@ export function ScreenLoadSpansTable({
     referrer: 'api.starfish.mobile-span-table',
   });
 
-  const eventViewColumns = eventView.getColumns();
-
   const columnNameMap = {
     [SPAN_OP]: t('Operation'),
     [SPAN_DESCRIPTION]: t('Span Description'),
     'count()': t('Total Count'),
-    'ttid_count()': hasTTFD ? t('Affects') : t('Affects TTID'),
+    affects: hasTTFD ? t('Affects') : t('Affects TTID'),
     'time_spent_percentage()': t('Total Time Spent'),
     [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t(
       'Duration (%s)',
@@ -161,40 +158,21 @@ export function ScreenLoadSpansTable({
       );
     }
 
-    if (column.key === 'ttid_count()' && hasTTFD) {
-      const ttid = row['ttid_count()'] ? parseInt(row['ttid_count()'], 10) : 0;
+    if (column.key === 'affects' && hasTTFD) {
       const ttid_contribution_rate = row['ttid_contribution_rate()']
         ? parseFloat(row['ttid_contribution_rate()'])
         : 0;
       const ttfd_contribution_rate = row['ttfd_contribution_rate()']
         ? parseFloat(row['ttfd_contribution_rate()'])
         : 0;
-      const ttfd = row['ttfd_count()'] ? parseInt(row['ttfd_count()'], 10) : ttid;
+      const total = row['count()'];
 
-      if (!isNaN(ttid) && ttid_contribution_rate === 1) {
-        const tooltipValue =
-          ttid_contribution_rate === ttfd_contribution_rate
-            ? tn(
-                '%s (%s) span ended before TTID and TTFD and may affect load times.',
-                '%s (%s) spans ended before TTID and TTFD and may affect load times.',
-                ttid,
-                formatPercentage(ttid_contribution_rate)
-              )
-            : ttid === 1
-            ? t(
-                '%s (%s) span ended before TTID and %s (%s) spans ended before TTFD and may affect load times.',
-                ttid,
-                formatPercentage(ttid_contribution_rate),
-                ttfd,
-                formatPercentage(ttfd_contribution_rate)
-              )
-            : t(
-                '%s (%s) spans ended before TTID and %s (%s) spans ended before TTFD and may affect load times.',
-                ttid,
-                formatPercentage(ttid_contribution_rate),
-                ttfd,
-                formatPercentage(ttfd_contribution_rate)
-              );
+      if (!isNaN(ttid_contribution_rate) && ttid_contribution_rate === 1) {
+        const tooltipValue = tn(
+          'Span ended before TTID and TTFD and may affect initial and final display.',
+          'Spans ended before TTID and TTFD and may affect initial and final display.',
+          total
+        );
         return (
           <Tooltip isHoverable title={tooltipValue} showUnderline>
             <Container>{t('TTID, TTFD')}</Container>
@@ -202,12 +180,11 @@ export function ScreenLoadSpansTable({
         );
       }
 
-      if (!isNaN(ttfd) && ttfd_contribution_rate === 1) {
+      if (!isNaN(ttfd_contribution_rate) && ttfd_contribution_rate === 1) {
         const tooltipValue = tn(
-          '%s (%s) span ended before TTFD and may affect final display.',
-          '%s (%s) spans ended before TTFD and may affect final display.',
-          ttfd,
-          formatPercentage(ttfd_contribution_rate)
+          'Span ended before TTFD and may affect final display.',
+          'Spans ended before TTFD and may affect final display.',
+          total
         );
         return (
           <Tooltip isHoverable title={tooltipValue} showUnderline>
@@ -219,18 +196,17 @@ export function ScreenLoadSpansTable({
       return <Container>{'--'}</Container>;
     }
 
-    if (column.key === 'ttid_count()') {
-      const ttid = row['ttid_count()'] ? parseInt(row['ttid_count()'], 10) : 0;
+    if (column.key === 'affects') {
+      const total = row['count()'];
       const ttid_contribution_rate = row['ttid_contribution_rate()']
         ? parseFloat(row['ttid_contribution_rate()'])
         : 0;
 
-      if (!isNaN(ttid) && ttid_contribution_rate === 1) {
+      if (!isNaN(ttid_contribution_rate) && ttid_contribution_rate === 1) {
         const tooltipValue = tn(
-          '%s (%s) span ended before TTID and may affect load times.',
-          '%s (%s) spans ended before TTID and may affect load times.',
-          ttid,
-          formatPercentage(ttid_contribution_rate)
+          'Span ended before TTID and may affect initial display.',
+          'Spans ended before TTID and may affect initial display.',
+          total
         );
         return (
           <Tooltip isHoverable title={tooltipValue} showUnderline>
@@ -256,7 +232,11 @@ export function ScreenLoadSpansTable({
     tableMeta?: MetaType
   ): React.ReactNode {
     const fieldType = tableMeta?.fields?.[column.key];
-    const alignment = fieldAlignment(column.key as string, fieldType);
+
+    let alignment = fieldAlignment(column.key as string, fieldType);
+    if (column.key === 'affects') {
+      alignment = 'right';
+    }
     const field = {
       field: column.key as string,
       width: column.width,
@@ -308,21 +288,17 @@ export function ScreenLoadSpansTable({
       <GridEditable
         isLoading={isLoading || hasTTFDLoading}
         data={data?.data as TableDataRow[]}
-        columnOrder={eventViewColumns
-          .filter(
-            (col: TableColumn<React.ReactText>) =>
-              ![
-                String(PROJECT_ID),
-                String(SPAN_GROUP),
-                `sum(${SPAN_SELF_TIME})`,
-                'ttid_contribution_rate()',
-                'ttfd_contribution_rate()',
-                'ttfd_count()',
-              ].includes(col.name)
-          )
-          .map((col: TableColumn<React.ReactText>) => {
-            return {...col, name: columnNameMap[col.key] ?? col.key};
-          })}
+        columnOrder={[
+          String(SPAN_OP),
+          String(SPAN_DESCRIPTION),
+          `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
+          `avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`,
+          'affects',
+          'count()',
+          'time_spent_percentage()',
+        ].map(col => {
+          return {key: col, name: columnNameMap[col] ?? col, width: COL_WIDTH_UNDEFINED};
+        })}
         columnSortBy={columnSortBy}
         location={location}
         grid={{
