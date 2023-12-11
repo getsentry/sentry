@@ -1,4 +1,4 @@
-import {IssueType, PlatformKey} from 'sentry/types';
+import type {IssueType, PlatformKey} from 'sentry/types';
 
 export type ResourceLink = {
   link: string;
