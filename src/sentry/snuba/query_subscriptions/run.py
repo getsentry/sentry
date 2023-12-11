@@ -54,6 +54,7 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     ) -> ProcessingStrategy[KafkaPayload]:
         callable = partial(process_message, self.dataset, self.topic, self.logical_topic)
         if self.multi_proc:
+            assert self.pool is not None
             return RunTaskWithMultiprocessing(
                 function=callable,
                 next_step=CommitOffsets(commit),

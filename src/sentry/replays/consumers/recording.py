@@ -74,6 +74,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
                 next_step=CommitOffsets(commit),
             )
         elif self.use_processes:
+            assert self.pool is not None
             return RunTaskWithMultiprocessing(
                 function=process_message,
                 next_step=CommitOffsets(commit),
