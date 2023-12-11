@@ -60,6 +60,9 @@ def build_test_message_blocks(
         if link_to_event:
             title_link += f"/events/{event.event_id}"
     title_link += "/?referrer=slack"
+    ts = group.last_seen
+    timestamp = max(ts, event.datetime) if event else ts
+    event_date = timestamp.strftime("%b %d")
     return {
         "blocks": [
             {
@@ -69,7 +72,7 @@ def build_test_message_blocks(
             },
             {
                 "type": "context",
-                "elements": [{"type": "mrkdwn", "text": f"BAR-{group.short_id} | Dec 08"}],
+                "elements": [{"type": "mrkdwn", "text": f"BAR-{group.short_id} | {event_date}"}],
             },
             {
                 "type": "actions",
