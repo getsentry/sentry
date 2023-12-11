@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import copy
-import hashlib
 import ipaddress
 import logging
 import mimetypes
@@ -2552,13 +2551,7 @@ def _calculate_event_grouping(
             # event. If that config has since been deleted (because it was an
             # experimental grouping config) we fall back to the default.
             try:
-                hashes = None
-                # If the event platform is javascript, it could have a ChunkLoadError that we want to force group
-                if event.platform == "javascript":
-                    hashes = get_chunk_load_error_hash(event)
-
-                if not hashes:
-                    hashes = event.get_hashes(grouping_config)
+                hashes = event.get_hashes(grouping_config)
             except GroupingConfigNotFound:
                 event.data["grouping_config"] = get_grouping_config_dict_for_project(project)
                 hashes = event.get_hashes()
@@ -2598,30 +2591,6 @@ def _detect_performance_problems(jobs: Sequence[Job], projects: ProjectsMapping)
         job["performance_problems"] = detect_performance_problems(
             job["data"], projects[job["project_id"]]
         )
-
-
-def get_chunk_load_error_hash(event: Event) -> Optional[CalculatedHashes]:
-    """
-    Return the same hash if the event is a ChunkLoadError, otherwise return None
-    """
-    try:
-        exception_value = event.data["exception"]["values"][0]["value"]
-        exception_type = event.data["exception"]["values"][0]["type"]
-    except KeyError:
-        return None
-
-    hashes = None
-    # Only check for the flag after it is established if it's a ChunkLoadError to avoid
-    # unnecessary querying
-    if "ChunkLoadError" in exception_value or exception_type == "ChunkLoadError":
-        organization = Project.objects.get(id=event.project_id).organization
-        if features.has("organizations:group-chunk-load-errors", organization):
-            hashes = CalculatedHashes(
-                hashes=[hashlib.md5(b"chunkloaderror").hexdigest()],
-                hierarchical_hashes=[],
-                tree_labels=[],
-            )
-    return hashes
 
 
 class PerformanceJob(TypedDict, total=False):
