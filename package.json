@@ -37,7 +37,7 @@
     "@react-aria/overlays": "^3.14.1",
     "@react-aria/radio": "^3.6.1",
     "@react-aria/separator": "^3.3.2",
-    "@react-aria/slider": "^3.4.1",
+    "@react-aria/slider": "^3.7.3",
     "@react-aria/tabs": "^3.6.0",
     "@react-aria/utils": "^3.17.0",
     "@react-aria/visually-hidden": "^3.8.1",
