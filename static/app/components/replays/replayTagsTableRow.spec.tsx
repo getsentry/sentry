@@ -1,3 +1,5 @@
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ReplayTagsTableRow from './replayTagsTableRow';
@@ -26,7 +28,7 @@ describe('ReplayTagsTableRow', () => {
         values={['bar', 'baz']}
         generateUrl={(name, value) => ({pathname: '/home', query: {[name]: value}})}
       />,
-      {context: TestStubs.routerContext()}
+      {context: RouterContextFixture()}
     );
 
     expect(screen.getByText('bar').closest('a')).toHaveAttribute('href', '/home?foo=bar');
@@ -40,7 +42,7 @@ describe('ReplayTagsTableRow', () => {
         values={['biz baz']}
         generateUrl={(name, value) => ({pathname: '/home', query: {[name]: value}})}
       />,
-      {context: TestStubs.routerContext()}
+      {context: RouterContextFixture()}
     );
 
     expect(screen.getByText('foo bar')).toBeInTheDocument();

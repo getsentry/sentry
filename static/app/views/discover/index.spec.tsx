@@ -1,5 +1,6 @@
 import selectEvent from 'react-select-event';
 import {Organization} from 'sentry-fixture/organization';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -110,7 +111,7 @@ describe('Discover > Landing', function () {
     const org = Organization({features});
 
     render(<DiscoverLanding organization={org} {...TestStubs.routeComponentProps()} />, {
-      context: TestStubs.routerContext(),
+      context: RouterContextFixture(),
     });
 
     expect(screen.getByText('Discover')).toHaveAttribute(

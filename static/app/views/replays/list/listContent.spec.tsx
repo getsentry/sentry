@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -58,7 +59,7 @@ function getMockOrganization({features}: {features: string[]}) {
 }
 
 function getMockContext(mockOrg: TOrganization) {
-  return TestStubs.routerContext([{organization: mockOrg}]);
+  return RouterContextFixture([{organization: mockOrg}]);
 }
 
 describe('ReplayList', () => {

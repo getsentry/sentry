@@ -1,5 +1,6 @@
 import selectEvent from 'react-select-event';
 import {Organization} from 'sentry-fixture/organization';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 import {SentryApp} from 'sentry-fixture/sentryApp';
 import {SentryAppToken} from 'sentry-fixture/sentryAppToken';
 
@@ -35,7 +36,7 @@ describe('Sentry Application Details', function () {
           route={{path: 'new-public/'}}
           params={{}}
         />,
-        {context: TestStubs.routerContext([{organization: org}])}
+        {context: RouterContextFixture([{organization: org}])}
       );
     }
 
@@ -146,7 +147,7 @@ describe('Sentry Application Details', function () {
           route={{path: 'new-internal/'}}
           params={{}}
         />,
-        {context: TestStubs.routerContext([{organization: org}])}
+        {context: RouterContextFixture([{organization: org}])}
       );
     }
 
@@ -182,7 +183,7 @@ describe('Sentry Application Details', function () {
           params={{appSlug: sentryApp.slug}}
         />,
         {
-          context: TestStubs.routerContext([{organization: org}]),
+          context: RouterContextFixture([{organization: org}]),
         }
       );
     }
@@ -246,7 +247,7 @@ describe('Sentry Application Details', function () {
           params={{appSlug: sentryApp.slug}}
         />,
         {
-          context: TestStubs.routerContext([{organization: org}]),
+          context: RouterContextFixture([{organization: org}]),
         }
       );
     }
@@ -317,7 +318,7 @@ describe('Sentry Application Details', function () {
           params={{appSlug: sentryApp.slug}}
         />,
         {
-          context: TestStubs.routerContext([{organization: org}]),
+          context: RouterContextFixture([{organization: org}]),
         }
       );
     }
@@ -366,7 +367,7 @@ describe('Sentry Application Details', function () {
           params={{appSlug: sentryApp.slug}}
         />,
         {
-          context: TestStubs.routerContext([{organization: org}]),
+          context: RouterContextFixture([{organization: org}]),
         }
       );
     }
@@ -443,7 +444,7 @@ describe('Sentry Application Details', function () {
           params={{appSlug: sentryApp.slug}}
         />,
         {
-          context: TestStubs.routerContext([{organization: org}]),
+          context: RouterContextFixture([{organization: org}]),
         }
       );
     }
@@ -537,7 +538,7 @@ describe('Sentry Application Details', function () {
           params={{appSlug: sentryApp.slug}}
         />,
         {
-          context: TestStubs.routerContext([{organization: org}]),
+          context: RouterContextFixture([{organization: org}]),
         }
       );
     }

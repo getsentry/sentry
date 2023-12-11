@@ -1,5 +1,6 @@
 import Cookies from 'js-cookie';
 import {Organization} from 'sentry-fixture/organization';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -36,7 +37,7 @@ describe('Role', function () {
       },
     ],
   });
-  const routerContext = TestStubs.routerContext([
+  const routerContext = RouterContextFixture([
     {
       organization,
     },

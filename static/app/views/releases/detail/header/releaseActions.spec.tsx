@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import {Organization} from 'sentry-fixture/organization';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {
   render,
@@ -130,7 +131,7 @@ describe('ReleaseActions', function () {
   });
 
   it('navigates to a next/prev release', function () {
-    const routerContext = TestStubs.routerContext();
+    const routerContext = RouterContextFixture();
     const {rerender} = render(
       <ReleaseActions
         organization={organization}

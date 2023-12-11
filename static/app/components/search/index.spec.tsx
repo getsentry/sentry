@@ -1,4 +1,5 @@
 import Fuse from 'fuse.js';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -73,7 +74,7 @@ describe('Search', () => {
   it('renders search results from source', async () => {
     jest.useFakeTimers();
     render(<Search {...makeSearchProps()} />, {
-      context: TestStubs.routerContext(),
+      context: RouterContextFixture(),
     });
 
     await userEvent.click(screen.getByPlaceholderText('Search Input'), {delay: null});
@@ -108,7 +109,7 @@ describe('Search', () => {
         })}
       />,
       {
-        context: TestStubs.routerContext(),
+        context: RouterContextFixture(),
       }
     );
 
@@ -147,7 +148,7 @@ describe('Search', () => {
         })}
       />,
       {
-        context: TestStubs.routerContext(),
+        context: RouterContextFixture(),
       }
     );
 
@@ -184,7 +185,7 @@ describe('Search', () => {
         })}
       />,
       {
-        context: TestStubs.routerContext(),
+        context: RouterContextFixture(),
       }
     );
 
@@ -207,7 +208,7 @@ describe('Search', () => {
         })}
       />,
       {
-        context: TestStubs.routerContext(),
+        context: RouterContextFixture(),
       }
     );
 

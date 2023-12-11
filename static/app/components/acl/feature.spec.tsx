@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -13,7 +14,7 @@ describe('Feature', function () {
   const project = TestStubs.Project({
     features: ['project-foo', 'project-bar'],
   });
-  const routerContext = TestStubs.routerContext([
+  const routerContext = RouterContextFixture([
     {
       organization,
       project,

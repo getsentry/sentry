@@ -1,5 +1,6 @@
 import {AuthProviders} from 'sentry-fixture/authProviders';
 import {Organization} from 'sentry-fixture/organization';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -28,7 +29,7 @@ describe('OrganizationAuthList', function () {
   });
 
   it('renders for members', function () {
-    const context = TestStubs.routerContext([
+    const context = RouterContextFixture([
       {organization: Organization({access: ['org:read']})},
     ]);
 
@@ -51,7 +52,7 @@ describe('OrganizationAuthList', function () {
 
     it('renders', function () {
       const organization = Organization({...require2fa, ...withSSO});
-      const context = TestStubs.routerContext([{organization}]);
+      const context = RouterContextFixture([{organization}]);
 
       render(
         <OrganizationAuthList
@@ -68,7 +69,7 @@ describe('OrganizationAuthList', function () {
 
     it('renders with saml available', function () {
       const organization = Organization({...require2fa, ...withSAML});
-      const context = TestStubs.routerContext([{organization}]);
+      const context = RouterContextFixture([{organization}]);
 
       render(
         <OrganizationAuthList
@@ -85,7 +86,7 @@ describe('OrganizationAuthList', function () {
 
     it('does not render without sso available', function () {
       const organization = Organization({...require2fa});
-      const context = TestStubs.routerContext([{organization}]);
+      const context = RouterContextFixture([{organization}]);
 
       render(
         <OrganizationAuthList
@@ -102,7 +103,7 @@ describe('OrganizationAuthList', function () {
 
     it('does not render with sso and require 2fa disabled', function () {
       const organization = Organization({...withSSO});
-      const context = TestStubs.routerContext([{organization}]);
+      const context = RouterContextFixture([{organization}]);
 
       render(
         <OrganizationAuthList
@@ -119,7 +120,7 @@ describe('OrganizationAuthList', function () {
 
     it('does not render with saml and require 2fa disabled', function () {
       const organization = Organization({...withSAML});
-      const context = TestStubs.routerContext([{organization}]);
+      const context = RouterContextFixture([{organization}]);
 
       render(
         <OrganizationAuthList

@@ -1,3 +1,5 @@
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
@@ -202,7 +204,7 @@ describe('Tabs', () => {
   });
 
   it('renders tab links', async () => {
-    const routerContext = TestStubs.routerContext();
+    const routerContext = RouterContextFixture();
     render(
       <Tabs>
         <TabList>

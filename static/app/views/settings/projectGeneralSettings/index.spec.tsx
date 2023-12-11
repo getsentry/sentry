@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
 import {GroupingConfigs} from 'sentry-fixture/groupingConfigs';
 import {Organization} from 'sentry-fixture/organization';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {
   act,
@@ -52,7 +53,7 @@ describe('projectGeneralSettings', function () {
 
   beforeEach(function () {
     jest.spyOn(window.location, 'assign');
-    routerContext = TestStubs.routerContext([
+    routerContext = RouterContextFixture([
       {
         router: TestStubs.router({
           params: {

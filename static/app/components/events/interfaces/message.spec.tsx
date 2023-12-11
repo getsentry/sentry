@@ -1,5 +1,6 @@
 import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
 import {Event as EventFixture} from 'sentry-fixture/event';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -7,7 +8,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {Message} from 'sentry/components/events/interfaces/message';
 
 describe('Message entry', function () {
-  const routerContext = TestStubs.routerContext();
+  const routerContext = RouterContextFixture();
   it('display redacted data', async function () {
     const event = EventFixture({
       entries: [

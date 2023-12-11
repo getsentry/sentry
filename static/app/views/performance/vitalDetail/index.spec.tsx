@@ -1,6 +1,7 @@
 import {browserHistory, InjectedRouter} from 'react-router';
 import {MetricsField} from 'sentry-fixture/metrics';
 import {Organization} from 'sentry-fixture/organization';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -277,7 +278,7 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    const context = TestStubs.routerContext([
+    const context = RouterContextFixture([
       {
         organization,
         project,
@@ -331,7 +332,7 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    const context = TestStubs.routerContext([
+    const context = RouterContextFixture([
       {
         organization,
         project,
@@ -386,7 +387,7 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    const context = TestStubs.routerContext([
+    const context = RouterContextFixture([
       {
         organization,
         project,

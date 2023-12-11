@@ -1,5 +1,6 @@
 import {Members} from 'sentry-fixture/members';
 import {Organization} from 'sentry-fixture/organization';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 import {Team} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -93,7 +94,7 @@ describe('Command Palette Modal', function () {
         Footer={ModalFooter}
       />,
       {
-        context: TestStubs.routerContext([
+        context: RouterContextFixture([
           {
             router: TestStubs.router({
               params: {orgId: 'org-slug'},

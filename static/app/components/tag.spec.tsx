@@ -1,10 +1,12 @@
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import Tag from 'sentry/components/tag';
 import {IconFire} from 'sentry/icons';
 
 describe('Tag', () => {
-  const routerContext = TestStubs.routerContext();
+  const routerContext = RouterContextFixture();
   it('basic', () => {
     render(<Tag>Text</Tag>);
     expect(screen.getByText('Text')).toBeInTheDocument();

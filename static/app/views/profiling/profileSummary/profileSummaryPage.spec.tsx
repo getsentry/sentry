@@ -1,6 +1,7 @@
 import {Location} from 'history';
 import {GlobalSelection} from 'sentry-fixture/globalSelection';
 import {Organization} from 'sentry-fixture/organization';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -95,7 +96,7 @@ describe('ProfileSummaryPage', () => {
         organization: Organization({
           features: ['profiling-summary-redesign'],
         }),
-        context: TestStubs.routerContext(),
+        context: RouterContextFixture(),
       }
     );
 
