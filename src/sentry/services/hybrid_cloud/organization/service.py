@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 import abc
 from abc import abstractmethod
-from typing import Any, Iterable, List, Mapping, Optional, Union
+from typing import Any, List, Mapping, Optional, Union
 
 from django.dispatch import Signal
 
@@ -30,7 +30,6 @@ from sentry.services.hybrid_cloud.region import (
     ByOrganizationSlug,
     ByRegionName,
     RequireSingleOrganization,
-    UnimplementedRegionResolution,
 )
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
 from sentry.services.hybrid_cloud.user.model import RpcUser
@@ -267,11 +266,6 @@ class OrganizationService(RpcService):
         organization_id: int,
         new_team_slug: str,
     ) -> RpcTeam:
-        pass
-
-    @regional_rpc_method(resolve=UnimplementedRegionResolution("organization", "get_team_members"))
-    @abstractmethod
-    def get_team_members(self, *, team_id: int) -> Iterable[RpcOrganizationMember]:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationIdAttribute("organization_member"))

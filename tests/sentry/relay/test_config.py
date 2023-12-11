@@ -145,7 +145,7 @@ def test_get_experimental_config_dyn_sampling(mock_logger, _, default_project):
     # "dynamicSampling", so we also test for that:
     subconfig = cfg.to_dict()["config"]
     assert "dynamicSampling" not in subconfig and "sampling" not in subconfig
-    assert mock_logger.error.call_args == mock.call(ANY, exc_info=True)
+    assert mock_logger.exception.call_args == mock.call(ANY)
 
 
 @django_db_all
