@@ -2995,11 +2995,11 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
             {
                 # TODO: Create environment for organization
                 # "environment": "production",  # Adding this gives a 404
-                "field": ["user_misery(300)"],
+                "field": ["user_misery(300)", "apdex(300)"],
                 "query": "",
                 "project": self.project.id,
                 "sort": "-user_misery(300)",
-                "yAxis": "user_misery(300)",
+                "yAxis": ["user_misery(300)", "apdex(300)"],
                 "name": "",
                 "per_page": "20",
                 "query": "",
@@ -3009,10 +3009,10 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
             groupbys=["transaction"],
         )
         assert resp.data == {
-            "data": [{"user_misery_300": 0.05}],
+            "data": [{"user_misery(300)": 0.0, "apdex(300)": 0.0}],
             "meta": {
-                "fields": {"user_misery_300": "number"},
-                "units": {"user_misery_300": None},
+                "fields": {"user_misery(300)": "number", "apdex(300)": "number"},
+                "units": {"user_misery(300)": None, "apdex(300)": None},
                 "isMetricsData": True,
                 "isMetricsExtractedData": True,
                 "tips": {},

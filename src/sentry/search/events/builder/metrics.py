@@ -341,6 +341,16 @@ class MetricsQueryBuilder(QueryBuilder):
                 self.orderby = self.resolve_orderby(orderby)
             with sentry_sdk.start_span(op="QueryBuilder", description="resolve_groupby"):
                 self.groupby = self.resolve_groupby(groupby_columns)
+        else:
+            # On demand still needs to call resolve since resolving columns has a side_effect
+            # of adding their alias to the function_alias_map, which is required to convert snuba
+            # aliases back to their original functions.
+            for column in selected_columns:
+                try:
+                    self.resolve_select([column], [])
+                except IncompatibleMetricsQuery:
+                    # This may fail for some columns like apdex but it will still enter into the field_alias_map
+                    pass
 
         if len(self.metric_ids) > 0 and not self.use_metrics_layer:
             self.where.append(
