@@ -34,8 +34,8 @@ import {MetaData} from 'sentry/views/performance/transactionDetails/styles';
 
 import {BrowserDisplay} from '../transactionDetails/eventMetas';
 
+import NewTraceView from './newTraceDetailsTraceView';
 import TraceNotFound from './traceNotFound';
-import TraceView from './traceView';
 import {TraceInfo} from './types';
 import {getTraceInfo, hasTraceData, isRootTransaction} from './utils';
 
@@ -313,7 +313,7 @@ function NewTraceDetailsContent(props: Props) {
         {traceInfo && renderTraceHeader(traceInfo)}
         <Margin>
           <VisuallyCompleteWithData id="PerformanceDetails-TraceView" hasData={hasData}>
-            <TraceView
+            <NewTraceView
               traceType={getTraceType()}
               rootEvent={rootEvent}
               traceInfo={traceInfo}
@@ -324,7 +324,6 @@ function NewTraceDetailsContent(props: Props) {
               traces={traces || []}
               meta={meta}
               orphanErrors={orphanErrors || []}
-              handleLimitChange={props.handleLimitChange}
             />
           </VisuallyCompleteWithData>
         </Margin>

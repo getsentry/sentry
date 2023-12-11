@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/react';
 
 import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
 import MeasurementsPanel from 'sentry/components/events/interfaces/spans/measurementsPanel';
+import TraceViewHeader from 'sentry/components/events/interfaces/spans/newTraceDetailsHeader';
 import * as ScrollbarManager from 'sentry/components/events/interfaces/spans/scrollbarManager';
 import {
   boundsGenerator,
@@ -20,7 +21,7 @@ import {
 } from 'sentry/components/performance/waterfall/miniHeader';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {tct} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import {EventTransaction, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import toPercent from 'sentry/utils/number/toPercent';
@@ -43,6 +44,7 @@ import {
 } from 'sentry/views/performance/traceDetails/utils';
 
 import LimitExceededMessage from './limitExceededMessage';
+import {TraceType} from './newTraceDetailsContent';
 import TraceNotFound from './traceNotFound';
 
 type AccType = {
@@ -54,8 +56,10 @@ type AccType = {
 type Props = Pick<RouteComponentProps<{}, {}>, 'location'> & {
   meta: TraceMeta | null;
   organization: Organization;
+  rootEvent: EventTransaction | undefined;
   traceEventView: EventView;
   traceSlug: string;
+  traceType: TraceType;
   traces: TraceFullDetailed[];
   filteredEventIds?: Set<string>;
   handleLimitChange?: (newLimit: number) => void;
@@ -131,7 +135,7 @@ function generateBounds(traceInfo: TraceInfo) {
   });
 }
 
-export default function TraceView({
+export default function NewTraceView({
   location,
   meta,
   organization,
@@ -140,6 +144,7 @@ export default function TraceView({
   traceEventView,
   filteredEventIds,
   orphanErrors,
+  traceType,
   handleLimitChange,
   ...props
 }: Props) {
@@ -383,6 +388,13 @@ export default function TraceView({
               isEmbedded
             >
               <StyledTracePanel>
+                <TraceViewHeader
+                  traceInfo={traceInfo}
+                  traceType={traceType}
+                  traceViewHeaderRef={traceViewRef}
+                  organization={organization}
+                  event={props.rootEvent}
+                />
                 <TraceViewHeaderContainer>
                   <ScrollbarManager.Consumer>
                     {({virtualScrollbarRef, scrollBarAreaRef, onDragStart, onScroll}) => {
