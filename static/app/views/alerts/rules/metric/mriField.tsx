@@ -42,7 +42,9 @@ function MriField({aggregate, project, onChange}: Props) {
 
   const selectedValues = parseField(aggregate) ?? {mri: '' as MRI, op: ''};
 
-  const selectedMriMeta = selectedValues.mri ? meta[selectedValues.mri] : null;
+  const selectedMriMeta = useMemo(() => {
+    return meta.find(metric => metric.mri === selectedValues.mri);
+  }, [meta, selectedValues.mri]);
 
   useEffect(() => {
     // Auto-select the first mri if none of the available ones is selected
