@@ -94,19 +94,27 @@ export function DomainSelector({
     domainCache.current.domains.add(value);
   }
 
+  // Keep track of load count, so we can run some effects after exactly one load
   useEffect(() => {
-    // When caching the first domain data result, check if it had more data. If not, there's no point making any more requests when users update the search filter
-    if (domainCache.current.loadCount === 0) {
+    if (!isLoading) {
+      domainCache.current.loadCount += 1;
+    }
+  }, [isLoading]);
+
+  // When caching the first domain data result, check if it had more data. If not, there's no point making any more requests when users update the search filter
+  useEffect(() => {
+    if (domainCache.current.loadCount === 1) {
       const {next} = parseLinkHeader(pageLinks ?? '');
       domainCache.current.initialLoadHadMoreData = next?.results ?? false;
     }
+  }, [pageLinks]);
 
-    domainCache.current.loadCount += 1;
-
+  // Cache all known domains from previous requests
+  useEffect(() => {
     incomingDomains?.forEach(domain => {
       domainCache.current.domains.add(domain);
     });
-  }, [incomingDomains, pageLinks]);
+  }, [incomingDomains]);
 
   const emptyOption = {
     value: EMPTY_OPTION_VALUE,
