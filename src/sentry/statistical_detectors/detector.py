@@ -10,7 +10,15 @@ import sentry_sdk
 
 from sentry import options
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
+from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.issues.status_change_message import StatusChangeMessage
+from sentry.models.group import GroupStatus
 from sentry.models.project import Project
+from sentry.models.statistical_detectors import (
+    RegressionGroup,
+    RegressionType,
+    get_regression_groups,
+)
 from sentry.search.events.fields import get_function_alias
 from sentry.seer.utils import BreakpointData, detect_breakpoints
 from sentry.utils import metrics
@@ -28,7 +36,7 @@ class TrendType(Enum):
 class DetectorPayload:
     project_id: int
     group: str | int
-    fingerprint: str | int
+    fingerprint: str
     count: float
     value: float
     timestamp: datetime
@@ -43,6 +51,10 @@ class DetectorState(ABC):
 
     @abstractmethod
     def to_redis_dict(self) -> Mapping[str | bytes, bytes | float | int | str]:
+        ...
+
+    @abstractmethod
+    def should_auto_resolve(self, target: float, rel_threshold: float) -> bool:
         ...
 
     @classmethod
@@ -95,11 +107,13 @@ class DetectorAlgorithm(ABC, Generic[T]):
 class RegressionDetector(ABC):
     source: str
     kind: str
+    regression_type: RegressionType
     config: DetectorConfig
     store: DetectorStore
     state_cls: type[DetectorState]
     detector_cls: type[DetectorAlgorithm]
     min_change: int
+    resolution_rel_threshold: float
 
     @classmethod
     def all_payloads(
@@ -265,3 +279,70 @@ class RegressionDetector(ABC):
                     "statistical_detectors.breakpoint.errors",
                     tags={"source": cls.source, "kind": cls.kind},
                 )
+
+    @classmethod
+    @abstractmethod
+    def make_status_change_message(
+        cls,
+        payload: DetectorPayload,
+        status: int,
+        substatus: Optional[int] = None,
+    ) -> StatusChangeMessage:
+        ...
+
+    @classmethod
+    def redirect_resolutions(
+        cls,
+        trends: Generator[
+            Tuple[Optional[TrendType], float, DetectorPayload, DetectorState], None, None
+        ],
+        timestamp: datetime,
+        batch_size=1_000,
+    ) -> Generator[Tuple[Optional[TrendType], float, DetectorPayload, DetectorState], None, None]:
+        groups_to_update = []
+
+        for trend_chunk in chunked(trends, batch_size):
+            active_regression_groups = {
+                (group.project_id, group.fingerprint): group
+                for group in get_regression_groups(
+                    cls.regression_type,
+                    [
+                        (payload.project_id, payload.fingerprint)
+                        for trend_type, score, payload, state in trend_chunk
+                    ],
+                    active=True,
+                )
+            }
+
+            for trend_type, score, payload, state in trend_chunk:
+                try:
+                    group = active_regression_groups.get((payload.project_id, payload.fingerprint))
+                    if group is not None and state.should_auto_resolve(
+                        group.baseline, cls.resolution_rel_threshold
+                    ):
+                        group.active = False
+                        group.date_resolved = timestamp
+                        groups_to_update.append(group)
+
+                        status_change = cls.make_status_change_message(
+                            payload, status=GroupStatus.RESOLVED
+                        )
+                        produce_occurrence_to_kafka(
+                            payload_type=PayloadType.STATUS_CHANGE,
+                            status_change=status_change,
+                        )
+
+                        continue
+                except Exception as e:
+                    sentry_sdk.capture_exception(e)
+
+                yield trend_type, score, payload, state
+
+        RegressionGroup.objects.bulk_update(groups_to_update, ["active", "date_resolved"])
+
+        metrics.incr(
+            "statistical_detectors.objects.auto_resolved",
+            amount=len(groups_to_update),
+            tags={"source": cls.source, "kind": cls.kind},
+            sample_rate=1.0,
+        )

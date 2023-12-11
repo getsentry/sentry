@@ -187,6 +187,26 @@ def test_moving_average_detector_state_from_redis_dict_error(data, error):
 
 
 @pytest.mark.parametrize(
+    ["baseline", "rel_threshold", "auto_resolve"],
+    [
+        pytest.param(100, 0.1, True, id="equal"),
+        pytest.param(105, 0.1, True, id="within threshold above"),
+        pytest.param(95, 0.1, True, id="within threshold below"),
+        pytest.param(115, 0.1, False, id="exceed threshold above"),
+        pytest.param(85, 0.1, True, id="exceed threshold below"),
+    ],
+)
+def test_moving_average_detector_state_should_auto_resolve(baseline, rel_threshold, auto_resolve):
+    state = MovingAverageDetectorState(
+        timestamp=datetime(2023, 8, 31, 11, 28, 52),
+        count=10,
+        moving_avg_short=100,
+        moving_avg_long=100,
+    )
+    assert state.should_auto_resolve(baseline, rel_threshold) == auto_resolve
+
+
+@pytest.mark.parametrize(
     ["min_data_points", "short_moving_avg_factory", "long_moving_avg_factory", "threshold"],
     [
         pytest.param(
@@ -244,7 +264,7 @@ def test_moving_average_relative_change_detector(
         DetectorPayload(
             project_id=1,
             group=0,
-            fingerprint=0,
+            fingerprint="0",
             count=i + 1,
             value=value,
             timestamp=now + timedelta(hours=i + 1),
