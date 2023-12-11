@@ -38,12 +38,7 @@ import useRouter from 'sentry/utils/useRouter';
 
 import FilterBar from '../../filterBar';
 import {AlertRuleType, CombinedMetricIssueAlerts} from '../../types';
-import {
-  datasetToQueryParam,
-  getQueryDataset,
-  getTeamParams,
-  isIssueAlert,
-} from '../../utils';
+import {getTeamParams, isIssueAlert} from '../../utils';
 import AlertHeader from '../header';
 
 import RuleListRow from './row';
@@ -55,7 +50,6 @@ function getAlertListQueryKey(orgSlug: string, query: Location['query']): ApiQue
   const queryParams = {...query};
   queryParams.expand = ['latestIncident', 'lastTriggered'];
   queryParams.team = getTeamParams(queryParams.team!);
-  queryParams.dataset = datasetToQueryParam[getQueryDataset(queryParams.dataset!)];
 
   if (!queryParams.sort) {
     queryParams.sort = defaultSort;
