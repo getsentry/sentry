@@ -14,7 +14,14 @@ function getWebVitalScore(data: TableDataRow, webVital: WebVitals): number {
 }
 
 function getWebVitalWeight(data: TableDataRow, webVital: WebVitals): number {
-  return data[`avg(measurements.score.weight.${webVital})`] as number;
+  const weight = data[`avg(measurements.score.weight.${webVital})`] as number;
+  if (weight > 1) {
+    throw new Error(`${webVital} weight should not exceed 1: ${weight}`);
+  }
+  if (weight < 0) {
+    throw new Error(`${webVital} weight should not be less than 0: ${weight}`);
+  }
+  return weight;
 }
 
 function getTotalScore(data: TableDataRow): number {
