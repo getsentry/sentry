@@ -72,6 +72,9 @@ export type StackTraceEventParameters = {
     project_slug: string;
     platform?: string;
   };
+  'stack_trace.prism_missing_language': {
+    attempted_language: string;
+  };
   'stack_trace.threads.thread_selected': {
     has_stacktrace: boolean;
     num_in_app_frames: number;
@@ -114,4 +117,5 @@ export const stackTraceEventMap: Record<keyof StackTraceEventParameters, string>
     'Stack Trace: Sort Option - Recent Last - Clicked',
   'stack_trace.threads.thread_selected': 'Stack Trace: Thread Selected',
   'stack_trace.threads.thread_selector_opened': 'Stack Trace: Thread Selector Opened',
+  'stack_trace.prism_missing_language': 'Stack Trace: Prism.js Language Not Found',
 };

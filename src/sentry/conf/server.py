@@ -494,6 +494,7 @@ if ENVIRONMENT == "development":
     ]
     CSP_CONNECT_SRC += [
         "ws://127.0.0.1:8000",
+        "http://localhost:8969/stream",
     ]
 
 # Before enforcing Content Security Policy, we recommend creating a separate
@@ -1532,8 +1533,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:escalating-metrics-backend": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
-    # Enable querying Snuba to get the EventUser
-    "organizations:eventuser-from-snuba": True,
     # Enable the frontend to request from region & control silo domains.
     "organizations:frontend-domainsplit": False,
     # Enable disabling gitlab integrations when broken is detected
@@ -1666,6 +1665,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:on-demand-metrics-prefill": False,
     # Display on demand metrics related UI elements
     "organizations:on-demand-metrics-ui": False,
+    # Query on demand metrics with the new environment logic
+    "organizations:on-demand-query-with-new-env-logic": False,
     # Enable the SDK selection feature in the onboarding
     "organizations:onboarding-sdk-selection": False,
     # Enable the setting of org roles for team
@@ -1725,6 +1726,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-remove-metrics-compatibility-fallback": False,
     # Enable screens view powered by span metrics
     "organizations:performance-screens-view": False,
+    # Enable column that shows ttid ttfd contributing spans
+    "organizations:mobile-ttid-ttfd-contribution": False,
     # Enable slow DB performance issue type
     "organizations:performance-slow-db-issue": False,
     # Enable histogram view in span details
@@ -2379,6 +2382,8 @@ SENTRY_SCOPES = {
     "org:admin",
     "org:integrations",
     "org:ci",
+    # "org:superuser",  Do not use for any type of superuser permission/access checks
+    # Assigned to active SU sessions in src/sentry/auth/access.py to enable UI elements
     "member:read",
     "member:write",
     "member:admin",
@@ -3519,10 +3524,6 @@ SOUTH_MIGRATION_CONVERSIONS = (
     ),
 )
 
-# Whether to use Django migrations to create the database, or just build it based off
-# of models, similar to how syncdb used to work. The former is more correct, the latter
-# is much faster.
-MIGRATIONS_TEST_MIGRATE = os.environ.get("MIGRATIONS_TEST_MIGRATE", "0") == "1"
 # Specifies the list of django apps to include in the lockfile. If Falsey then include
 # all apps with migrations
 MIGRATIONS_LOCKFILE_APP_WHITELIST = (

@@ -561,6 +561,7 @@ class MarkFailedTestCase(TestCase):
                 "checkin_margin": None,
             },
             status=MonitorObjectStatus.MUTED,
+            is_muted=True,
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
@@ -578,6 +579,7 @@ class MarkFailedTestCase(TestCase):
         monitor.refresh_from_db()
         monitor_environment.refresh_from_db()
         assert monitor.status == MonitorObjectStatus.MUTED
+        assert monitor.is_muted
         assert monitor_environment.status == MonitorStatus.ERROR
 
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
@@ -801,6 +803,7 @@ class MarkFailedTestCase(TestCase):
                 "checkin_margin": None,
             },
             status=MonitorObjectStatus.MUTED,
+            is_muted=True,
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
@@ -819,6 +822,7 @@ class MarkFailedTestCase(TestCase):
         monitor.refresh_from_db()
         monitor_environment.refresh_from_db()
         assert monitor.status == MonitorObjectStatus.MUTED
+        assert monitor.is_muted
         assert monitor_environment.status == MonitorStatus.ERROR
 
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
