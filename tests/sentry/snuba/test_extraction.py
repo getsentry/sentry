@@ -287,15 +287,18 @@ def test_spec_context_mapping():
     }
 
 
-def test_spec_query_with_parentheses_and_environment():
-    spec = OnDemandMetricSpec(
+def test_spec_query_or_precedence_with_environment():
+    spec_1 = OnDemandMetricSpec(
         "count()", "(transaction.duration:>1s OR http.status_code:200)", "dev"
     )
+    spec_2 = OnDemandMetricSpec(
+        "count()", "transaction.duration:>1s OR http.status_code:200", "dev"
+    )
 
-    assert spec._metric_type == "c"
-    assert spec.field_to_extract is None
-    assert spec.op == "sum"
-    assert spec.condition == {
+    assert spec_1._metric_type == "c"
+    assert spec_1.field_to_extract is None
+    assert spec_1.op == "sum"
+    assert spec_1.condition == {
         "inner": [
             {"name": "event.environment", "op": "eq", "value": "dev"},
             {
@@ -308,6 +311,9 @@ def test_spec_query_with_parentheses_and_environment():
         ],
         "op": "and",
     }
+    # We check whether the conditions are identical, since we expect that the environment injection preserves the
+    # semantics of the query.
+    assert spec_1.condition == spec_2.condition
 
 
 def test_spec_count_if_query_with_environment():
