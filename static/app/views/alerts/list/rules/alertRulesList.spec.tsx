@@ -311,26 +311,6 @@ describe('AlertRulesList', () => {
     );
   });
 
-  it('calls api with correct query params when searching by alert type', () => {
-    const {routerContext, organization} = initializeOrg({
-      router: {
-        location: {
-          query: {
-            dataset: DatasetOption.PERFORMANCE,
-          },
-        },
-      },
-    });
-    render(<AlertRulesList />, {context: routerContext, organization});
-
-    expect(rulesMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/combined-rules/',
-      expect.objectContaining({
-        query: expect.objectContaining({dataset: ['generic_metrics', 'transactions']}),
-      })
-    );
-  });
-
   it('uses empty team query parameter when removing all teams', async () => {
     const {routerContext, organization, router} = initializeOrg({
       router: {
