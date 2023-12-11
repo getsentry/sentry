@@ -284,7 +284,7 @@ jobs:
 
       - name: setup sentry (lite)
         run: |
-          SENTRY_LIGHT_BUILD=1 pip install --no-deps -e .
+          python3 -m tools.fast_editable --path .
           sentry init
 
       - run: mypy
@@ -308,6 +308,7 @@ jobs:
           ! grep "'Settings' object has no attribute" .artifacts/mypy-all
           ! grep 'Cannot override class variable' .artifacts/mypy-all
           ! grep 'Exception type must be derived from BaseException' .artifacts/mypy-all
+          ! grep 'Incompatible return value type (got "HttpResponseBase"' .artifacts/mypy-all
           ! grep 'Incompatible types in "yield"' .artifacts/mypy-all
           ! grep 'does not explicitly export attribute' .artifacts/mypy-all
 

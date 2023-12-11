@@ -26,6 +26,9 @@ class CodeLocationPayload:
     filename: Optional[str]
     abs_path: Optional[str]
     lineno: Optional[int]
+    pre_context: Sequence[str]
+    context_line: Optional[str]
+    post_context: Sequence[str]
 
 
 @dataclass(frozen=True)
@@ -119,6 +122,9 @@ class CodeLocationsFetcher:
                 filename=decoded_location.get("filename"),
                 abs_path=decoded_location.get("abs_path"),
                 lineno=decoded_location.get("lineno"),
+                pre_context=decoded_location.get("pre_context", []),
+                context_line=decoded_location.get("context_line"),
+                post_context=decoded_location.get("post_context", []),
             )
         except Exception:
             raise InvalidParams("Invalid code location payload encountered")

@@ -141,9 +141,11 @@ def test_get_experimental_config_dyn_sampling(mock_logger, _, default_project):
     with Feature({"organizations:dynamic-sampling": True}):
         # Does not raise:
         cfg = get_project_config(default_project, full_config=True, project_keys=keys)
-    # Key is missing from config:
-    assert "dynamicSampling" not in cfg.to_dict()["config"]
-    assert mock_logger.error.call_args == mock.call(ANY, exc_info=True)
+    # Check that the "sampling" key is missing from config. It used to be called
+    # "dynamicSampling", so we also test for that:
+    subconfig = cfg.to_dict()["config"]
+    assert "dynamicSampling" not in subconfig and "sampling" not in subconfig
+    assert mock_logger.exception.call_args == mock.call(ANY)
 
 
 @django_db_all
@@ -343,10 +345,10 @@ def test_project_config_with_all_biases_enabled(
 
     cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
-    dynamic_sampling = get_path(cfg, "config", "dynamicSampling")
+    dynamic_sampling = get_path(cfg, "config", "sampling")
     assert dynamic_sampling == {
-        "rules": [],
-        "rulesV2": [
+        "version": 2,
+        "rules": [
             {
                 "samplingValue": {"type": "sampleRate", "value": 0.02},
                 "type": "transaction",
@@ -755,11 +757,11 @@ def test_performance_calculate_score(default_project):
         assert performance_score[0] == {
             "name": "Chrome",
             "scoreComponents": [
-                {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600},
-                {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400},
-                {"measurement": "fid", "weight": 0.3, "p10": 100, "p50": 300},
-                {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25},
-                {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400},
+                {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": False},
+                {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": False},
+                {"measurement": "fid", "weight": 0.3, "p10": 100, "p50": 300, "optional": False},
+                {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": False},
+                {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": False},
             ],
             "condition": {
                 "op": "eq",
@@ -770,9 +772,35 @@ def test_performance_calculate_score(default_project):
         assert performance_score[1] == {
             "name": "Firefox",
             "scoreComponents": [
-                {"measurement": "fcp", "weight": 0.30, "p10": 900.0, "p50": 1600.0},
-                {"measurement": "fid", "weight": 0.55, "p10": 100.0, "p50": 300.0},
-                {"measurement": "ttfb", "weight": 0.15, "p10": 200.0, "p50": 400.0},
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 900.0,
+                    "p50": 1600.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.0,
+                    "p10": 1200.0,
+                    "p50": 2400.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "fid",
+                    "weight": 0.3,
+                    "p10": 100.0,
+                    "p50": 300.0,
+                    "optional": False,
+                },
+                {"measurement": "cls", "weight": 0.0, "p10": 0.1, "p50": 0.25, "optional": False},
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.1,
+                    "p10": 200.0,
+                    "p50": 400.0,
+                    "optional": False,
+                },
             ],
             "condition": {
                 "op": "eq",
@@ -783,8 +811,35 @@ def test_performance_calculate_score(default_project):
         assert performance_score[2] == {
             "name": "Safari",
             "scoreComponents": [
-                {"measurement": "fcp", "weight": 0.60, "p10": 900.0, "p50": 1600.0},
-                {"measurement": "ttfb", "weight": 0.40, "p10": 200.0, "p50": 400.0},
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 900.0,
+                    "p50": 1600.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.0,
+                    "p10": 1200.0,
+                    "p50": 2400.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "fid",
+                    "weight": 0.0,
+                    "p10": 100.0,
+                    "p50": 300.0,
+                    "optional": False,
+                },
+                {"measurement": "cls", "weight": 0.0, "p10": 0.1, "p50": 0.25, "optional": False},
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.1,
+                    "p10": 200.0,
+                    "p50": 400.0,
+                    "optional": False,
+                },
             ],
             "condition": {
                 "op": "eq",
@@ -795,11 +850,11 @@ def test_performance_calculate_score(default_project):
         assert performance_score[3] == {
             "name": "Edge",
             "scoreComponents": [
-                {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600},
-                {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400},
-                {"measurement": "fid", "weight": 0.3, "p10": 100, "p50": 300},
-                {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25},
-                {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400},
+                {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": False},
+                {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": False},
+                {"measurement": "fid", "weight": 0.3, "p10": 100, "p50": 300, "optional": False},
+                {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": False},
+                {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": False},
             ],
             "condition": {
                 "op": "eq",
@@ -810,11 +865,11 @@ def test_performance_calculate_score(default_project):
         assert performance_score[4] == {
             "name": "Opera",
             "scoreComponents": [
-                {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600},
-                {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400},
-                {"measurement": "fid", "weight": 0.3, "p10": 100, "p50": 300},
-                {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25},
-                {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400},
+                {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": False},
+                {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": False},
+                {"measurement": "fid", "weight": 0.3, "p10": 100, "p50": 300, "optional": False},
+                {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": False},
+                {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": False},
             ],
             "condition": {
                 "op": "eq",

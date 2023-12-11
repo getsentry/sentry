@@ -70,6 +70,7 @@ class MonitorConsumerTest(TestCase):
         payload.update(overrides)
 
         wrapper = {
+            "message_type": "check_in",
             "start_time": ts.timestamp(),
             "project_id": self.project.id,
             "payload": json.dumps(payload),
@@ -177,8 +178,8 @@ class MonitorConsumerTest(TestCase):
             checkin.date_added
         )
 
-    def test_disabled(self):
-        monitor = self._create_monitor(status=MonitorObjectStatus.DISABLED)
+    def test_muted(self):
+        monitor = self._create_monitor(is_muted=True, status=MonitorObjectStatus.MUTED)
         self.send_checkin(monitor.slug, status="error")
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
@@ -458,6 +459,23 @@ class MonitorConsumerTest(TestCase):
         )
         assert monitor_environment is not None
 
+    def test_monitor_upsert_empty_timezone(self):
+        self.send_checkin(
+            "my-monitor",
+            monitor_config={
+                "schedule": {"type": "crontab", "value": "13 * * * *"},
+                "timezone": "",
+            },
+            environment="my-environment",
+        )
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.OK
+
+        monitor = Monitor.objects.get(slug="my-monitor")
+        assert monitor is not None
+        assert "timezone" not in monitor.config
+
     def test_monitor_upsert_invalid_slug(self):
         self.send_checkin(
             "some/slug@with-weird|stuff",
@@ -578,5 +596,5 @@ class MonitorConsumerTest(TestCase):
             try_monitor_tasks_trigger.side_effect = Exception()
             self.send_checkin(monitor.slug, ts=now + timedelta(minutes=5))
             assert MonitorCheckIn.objects.filter(guid=self.guid).exists()
-            logger.exception.assert_called_with("Failed to trigger monitor tasks", exc_info=True)
+            logger.exception.assert_called_with("Failed to trigger monitor tasks")
             try_monitor_tasks_trigger.side_effect = None

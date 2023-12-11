@@ -1,4 +1,4 @@
-import {Fragment, Profiler, useEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import LazyLoad, {forceCheck} from 'react-lazyload';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
@@ -25,7 +25,11 @@ import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import {space} from 'sentry/styles/space';
 import {Organization, Project, TeamWithProjects} from 'sentry/types';
 import {sortProjects} from 'sentry/utils';
-import {onRenderCallback, setGroupedEntityTag} from 'sentry/utils/performanceForSentry';
+import {
+  onRenderCallback,
+  Profiler,
+  setGroupedEntityTag,
+} from 'sentry/utils/performanceForSentry';
 import useOrganization from 'sentry/utils/useOrganization';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -87,7 +91,7 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
     []
   );
 
-  const {canCreateProject} = useProjectCreationAccess({organization, teams});
+  const {canCreateProject} = useProjectCreationAccess({organization});
   if (loadingTeams) {
     return <LoadingIndicator />;
   }

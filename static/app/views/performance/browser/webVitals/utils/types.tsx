@@ -50,6 +50,7 @@ export const SORTABLE_FIELDS = [
   'p75(measurements.fid)',
   'p75(measurements.lcp)',
   'p75(measurements.ttfb)',
+  'avg(measurements.score.total)',
 ] as const;
 
 export const SORTABLE_INDEXED_FIELDS = [

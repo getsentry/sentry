@@ -13,29 +13,6 @@ For SaaS deployment, we want to introduce sensitive data residency as part of th
 
 To set up the region silos locally, you'll need to make a few changes:
 
-1. Set up your local configuration in `~/.sentry/sentry.conf.py`:
-
-```python
-SENTRY_SUBNET_SECRET = 'secretsecretsecret' # Used for silos to verify HTTP requests coming from one another
-SENTRY_MONOLITH_REGION = "us" # Default region for organizations created while in monolith mode
-```
-
-> 💡 If you're using ngrok, you'll need to add the following as well:
-
-```python
-from sentry.types.region import Region, RegionCategory
-SENTRY_REGION_CONFIG = (
-    Region(
-        name="us", # user-friendly name of the region silo
-        snowflake_id=1, # globally unique identifier of the region silo
-        address="https://us.yourusername.ngrok.io", # full web address of the region silo
-        category=RegionCategory.MULTI_TENANT, # MULTI_TENANT = many customers, SINGLE_TENTANT = single customer
-        api_token="dev-region-silo-token" # An internal token used by the RPC for service calls
-    ),
-)
-SENTRY_CONTROL_ADDRESS = "https://yourusername.ngrok.io"
-```
-
 1. Create the split databases for the two silo modes with `make create-db`
 2. Split your local database with `bin/split-silo-database`
 
@@ -61,8 +38,46 @@ $ bin/split-silo-database
 To spin up the silos, run:
 
 ```sh
-SENTRY_USE_SILOS=1 sentry devserver
+sentry devserver --silo=control --workers
+sentry devserver --silo=region --workers --ingest
 ```
+
+This will expose the following ports:
+
+| Port | Purpose  | Silo    |
+| ---- | -------- | ------- |
+| 8000 | Webpack  | Control |
+| 8001 | HTTP API | Control |
+| 8010 | HTTP API | Region  |
+
+You can omit the `--workers` and `--ingest` options if you don't want those services running.
+If you're using `--ingest` and relay isn't being started make sure `settings.SENTRY_USE_RELAY` is enabled.
+
+## Using Silos & ngrok
+
+To use a siloed dev environment with ngrok you'll need to make a few application
+configuration changes. Assuming your ngrok domain is `acme` add the following
+to either `~/.sentry/sentry.conf` or `devlocal.py` in getsentry:
+
+```python
+SENTRY_OPTIONS["system.url-prefix"] = "https://acme.ngrok.dev"
+CSRF_TRUSTED_ORIGINS = [".acme.ngrok.dev"]
+ALLOWED_HOSTS = [".acme.ngrok.dev", ".ngrok.dev", "localhost", "127.0.0.1"]
+
+SESSION_COOKIE_DOMAIN = ".acme.ngrok.dev"
+CSRF_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
+SUDO_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
+```
+
+Then start ngrok with the desired hostname:
+
+```bash
+ngrok http 8000 --domain=acme.ngrok.dev --host-header="localhost"
+```
+
+_Note:_ Some UI functionality relies on directly accessing the region silo API, so you may also need to expose it as well.
+
+## Using ngrok configuration file
 
 If using ngrok, it'll help to set up a config. Modify your `ngrok.yml` (`ngrok config edit`) to contain:
 
@@ -72,12 +87,14 @@ authtoken: <YOUR-NGROK-AUTHTOKEN>
 tunnels:
   control-silo:
     proto: http
-    hostname: yourusername.ngrok.io
-    addr: 8001
+    hostname: yourdomain.ngrok.io
+    host_header: 'rewrite'
+    addr: 8000
   region-silo:
     proto: http
-    hostname: us.yourusername.ngrok.io
-    addr: 8011
+    hostname: us.yourdomain.ngrok.io
+    addr: 8010
+    host_header: 'rewrite'
 ```
 
 Now you can spin up all the tunnels in the file with:

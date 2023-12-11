@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from sentry.hybridcloud.rpc.services.caching import back_with_silo_cache
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
@@ -144,7 +144,7 @@ class UserService(RpcService):
         email: str,
         ident: Optional[str] = None,
         referrer: Optional[str] = None,
-    ) -> RpcUser:
+    ) -> Tuple[RpcUser, bool]:
         pass
 
     @rpc_method

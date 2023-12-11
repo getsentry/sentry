@@ -32,7 +32,7 @@ import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import {
   getForceMetricsLayerQueryExtras,
-  hasDdmAlertsSupport,
+  hasDDMFeature,
 } from 'sentry/utils/metrics/features';
 import {DEFAULT_METRIC_ALERT_FIELD, formatMRIField} from 'sentry/utils/metrics/mri';
 import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
@@ -872,7 +872,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   }
 
   renderTriggerChart() {
-    const {organization, ruleId, rule} = this.props;
+    const {organization, ruleId, rule, location} = this.props;
 
     const {
       query,
@@ -889,12 +889,12 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       dataset,
       alertType,
       isQueryValid,
-      location,
     } = this.state;
 
-    const isMigration = this.props.location?.query?.migration === '1';
+    const isMigration = location?.query?.migration === '1';
     // TODO(telemetry-experience): Remove this and all connected logic once the migration is complete
     const isTransactionMigration = isMigration && ruleNeedsMigration(rule);
+    const isOnDemand = isOnDemandMetricAlert(dataset, aggregate, query);
 
     const chartProps = {
       organization,
@@ -913,7 +913,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       comparisonDelta,
       comparisonType,
       isQueryValid,
-      isOnDemandMetricAlert: isOnDemandMetricAlert(dataset, aggregate, query),
+      isOnDemandMetricAlert: isOnDemand,
+      showTotalCount: alertType !== 'custom_metrics' && !isOnDemand,
       onDataLoaded: this.handleTimeSeriesDataFetched,
     };
 
@@ -1023,6 +1024,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       !!ruleId && hasMigrationFeatureFlag(organization) && ruleNeedsMigration(rule);
     const showErrorMigrationWarning =
       !!ruleId &&
+      isMigration &&
       hasIgnoreArchivedFeatureFlag(organization) &&
       ruleNeedsErrorMigration(rule);
 
@@ -1083,13 +1085,14 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
               project={project}
               aggregate={aggregate}
               organization={organization}
-              isMigration={isMigration}
+              isTransactionMigration={isMigration && !showErrorMigrationWarning}
+              isErrorMigration={showErrorMigrationWarning}
               router={router}
               disabled={formDisabled}
               thresholdChart={wizardBuilderChart}
               onFilterSearch={this.handleFilterUpdate}
               allowChangeEventTypes={
-                hasDdmAlertsSupport(organization)
+                hasDDMFeature(organization)
                   ? dataset === Dataset.ERRORS
                   : dataset === Dataset.ERRORS || alertType === 'custom_transactions'
               }
@@ -1135,8 +1138,11 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             )}
             {showErrorMigrationWarning && (
               <Alert type="warning" showIcon>
-                {t(
-                  'Check the chart above and make sure the current thresholds are still valid, given that this alert is now filtering out resolved and archived errors.'
+                {tct(
+                  "We've added [code:is:unresolved] to your events filter; please make sure the current thresholds are still valid as this alert is now filtering out resolved and archived errors.",
+                  {
+                    code: <code />,
+                  }
                 )}
               </Alert>
             )}

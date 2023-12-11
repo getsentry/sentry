@@ -4,7 +4,7 @@ import io
 import tempfile
 from copy import deepcopy
 from datetime import datetime, timedelta
-from functools import cached_property, cmp_to_key, lru_cache
+from functools import cached_property, cmp_to_key
 from pathlib import Path
 from typing import Tuple
 from unittest.mock import MagicMock
@@ -18,7 +18,12 @@ from django.db import connections, router
 from django.utils import timezone
 from sentry_relay.auth import generate_key_pair
 
-from sentry.backup.dependencies import NormalizedModelName, get_model, sorted_dependencies
+from sentry.backup.dependencies import (
+    NormalizedModelName,
+    get_model,
+    reversed_dependencies,
+    sorted_dependencies,
+)
 from sentry.backup.exports import (
     export_in_config_scope,
     export_in_global_scope,
@@ -30,6 +35,7 @@ from sentry.backup.helpers import (
     KeyManagementServiceClient,
     LocalFileDecryptor,
     LocalFileEncryptor,
+    Printer,
     decrypt_encrypted_tarball,
 )
 from sentry.backup.imports import import_in_global_scope
@@ -57,6 +63,7 @@ from sentry.models.dashboard import Dashboard, DashboardTombstone
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetQuery,
+    DashboardWidgetQueryOnDemand,
     DashboardWidgetTypes,
 )
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
@@ -98,7 +105,7 @@ __all__ = [
     "ValidationError",
 ]
 
-NOOP_PRINTER = lambda *args, **kwargs: None
+NOOP_PRINTER = Printer()
 
 
 class FakeKeyManagementServiceClient:
@@ -216,14 +223,6 @@ def export_to_encrypted_tarball(
         return json.loads(
             decrypt_encrypted_tarball(f, LocalFileDecryptor.from_bytes(private_key_pem))
         )
-
-
-# No arguments, so we lazily cache the result after the first calculation.
-@lru_cache(maxsize=1)
-def reversed_dependencies():
-    sorted = list(sorted_dependencies())
-    sorted.reverse()
-    return sorted
 
 
 def is_control_model(model):
@@ -487,7 +486,14 @@ class BackupTestCase(TransactionTestCase):
             display_type=0,
             widget_type=DashboardWidgetTypes.DISCOVER,
         )
-        DashboardWidgetQuery.objects.create(widget=widget, order=1, name=f"Test Query for {slug}")
+        widget_query = DashboardWidgetQuery.objects.create(
+            widget=widget, order=1, name=f"Test Query for {slug}"
+        )
+        DashboardWidgetQueryOnDemand.objects.create(
+            dashboard_widget_query=widget_query,
+            extraction_state=DashboardWidgetQueryOnDemand.OnDemandExtractionState.DISABLED_NOT_APPLICABLE,
+            spec_hashes=[],
+        )
         DashboardTombstone.objects.create(organization=org, slug=f"test-tombstone-in-{slug}")
 
         # *Search

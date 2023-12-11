@@ -3,6 +3,7 @@ from __future__ import annotations
 from functools import cached_property
 from typing import Any, Iterable, List, Mapping, MutableMapping, Tuple
 
+import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.messages import get_messages
@@ -158,6 +159,13 @@ class _ClientConfig:
             "sentryUrl": options.get("system.url-prefix"),
         }
 
+    @cached_property
+    def tracing_data(self) -> Mapping[str, str]:
+        return {
+            "sentry_trace": sentry_sdk.get_traceparent() or "",
+            "baggage": sentry_sdk.get_baggage() or "",
+        }
+
     @property
     def enabled_features(self) -> Iterable[str]:
         if features.has("organizations:create", actor=self.user):
@@ -168,7 +176,10 @@ class _ClientConfig:
             self.last_org and features.has("organizations:customer-domains", self.last_org)
         ):
             yield "organizations:customer-domains"
-        if options.get("hybrid_cloud.multi-region-selector"):
+        # TODO (Gabe): Remove selector option check once GetSentry side lands
+        if options.get("hybrid_cloud.multi-region-selector") or features.has(
+            "organizations:multi-region-selector", actor=self.user
+        ):
             yield "organizations:multi-region-selector"
 
     @property
@@ -296,6 +307,7 @@ class _ClientConfig:
 
     def get_context(self) -> Mapping[str, Any]:
         return {
+            "initialTrace": self.tracing_data,
             "customerDomain": self.customer_domain,
             "singleOrganization": settings.SENTRY_SINGLE_ORGANIZATION,
             "supportEmail": get_support_mail(),

@@ -10,7 +10,7 @@ import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function
-from typing_extensions import TypedDict
+from typing_extensions import NotRequired, TypedDict
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
@@ -69,6 +69,17 @@ FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
 
 class EventsMeta(TypedDict):
     fields: Dict[str, str]
+    datasetReason: NotRequired[str]
+    isMetricsData: NotRequired[bool]
+    isMetricsExtractedData: NotRequired[bool]
+
+
+# When calling make build-spectacular-docs we hit this issue
+# https://github.com/tfranzel/drf-spectacular/issues/1041
+# This is a work around
+EventsMeta.__annotations__["datasetReason"] = str
+EventsMeta.__annotations__["isMetricsData"] = bool
+EventsMeta.__annotations__["isMetricsExtractedData"] = bool
 
 
 class EventsResponse(TypedDict):
@@ -132,7 +143,7 @@ def zerofill(data, start, end, rollup, orderby, time_col_name=None):
     data_by_time = {}
 
     for obj in data:
-        if time_col_name:
+        if time_col_name and time_col_name in obj:
             obj["time"] = obj.pop(time_col_name)
         # This is needed for SnQL, and was originally done in utils.snuba.get_snuba_translators
         if isinstance(obj["time"], str):

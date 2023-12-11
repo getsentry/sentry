@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from botocore.exceptions import ClientError
+from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -93,6 +94,9 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
                 aws_external_id=aws_external_id,
             )
         return self._client
+
+    def get_client(self) -> AwsLambdaProxyClient:
+        return self.client
 
     def get_one_lambda_function(self, name):
         # https://boto3.amazonaws.com/v1/documentation/api/1.22.12/reference/services/lambda.html
@@ -253,7 +257,7 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
 
 
 class AwsLambdaProjectSelectPipelineView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponseBase:
         # if we have the projectId, go to the next step
         if "projectId" in request.GET:
             pipeline.bind_state("project_id", request.GET["projectId"])
@@ -328,7 +332,7 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
                 # if we have a configuration error, we should blow up the pipeline
                 raise
             except Exception as e:
-                logger.error(
+                logger.exception(
                     "AwsLambdaCloudFormationPipelineView.unexpected_error",
                     extra={"error": str(e)},
                 )
@@ -341,7 +345,7 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
 
 
 class AwsLambdaListFunctionsPipelineView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponseBase:
         if request.method == "POST":
             raw_data = request.POST
             data = {}
@@ -369,7 +373,7 @@ class AwsLambdaListFunctionsPipelineView(PipelineView):
 
 
 class AwsLambdaSetupLayerPipelineView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponseBase:
         if "finish_pipeline" in request.GET:
             return pipeline.finish_pipeline()
 
