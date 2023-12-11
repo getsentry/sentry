@@ -10,7 +10,7 @@ from sentry.grouping.strategies.configurations import CONFIGURATIONS
 
 @region_silo_endpoint
 class GroupingConfigsEndpoint(Endpoint):
-    owner = ApiOwner.PROFILING
+    owner = ApiOwner.PERFORMANCE
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
