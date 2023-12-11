@@ -77,8 +77,9 @@ type Props = {
   allowChangeEventTypes?: boolean;
   comparisonDelta?: number;
   disableProjectSelector?: boolean;
+  isErrorMigration?: boolean;
   isExtrapolatedChartData?: boolean;
-  isMigration?: boolean;
+  isTransactionMigration?: boolean;
   loadingProjects?: boolean;
 };
 
@@ -160,7 +161,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 
   renderEventTypeFilter() {
-    const {organization, disabled, alertType} = this.props;
+    const {organization, disabled, alertType, isErrorMigration} = this.props;
 
     const dataSourceOptions = [
       {
@@ -242,7 +243,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 model.setValue('eventTypes', eventTypes);
               }}
               options={dataSourceOptions}
-              isDisabled={disabled}
+              isDisabled={disabled || isErrorMigration}
             />
           );
         }}
@@ -385,7 +386,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       allowChangeEventTypes,
       dataset,
       isExtrapolatedChartData,
-      isMigration,
+      isTransactionMigration,
+      isErrorMigration,
       aggregate,
       project,
     } = this.props;
@@ -406,7 +408,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         <ChartPanel>
           <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
         </ChartPanel>
-        {isMigration ? (
+        {isTransactionMigration ? (
           <Fragment>
             <Spacer />
             <HiddenListItem />
@@ -421,7 +423,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 )}
               />
             )}
-            {this.renderInterval()}
+            {!isErrorMigration && this.renderInterval()}
             <StyledListItem>{t('Filter events')}</StyledListItem>
             <FormRow noMargin columns={1 + (allowChangeEventTypes ? 1 : 0) + 1}>
               {this.renderProjectSelector()}
@@ -442,7 +444,9 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   }),
                 }}
                 options={environmentOptions}
-                isDisabled={disabled || this.state.environments === null}
+                isDisabled={
+                  disabled || this.state.environments === null || isErrorMigration
+                }
                 isClearable
                 inline={false}
                 flexibleControlStateSize
@@ -503,7 +507,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                         defaultQuery={initialData?.query ?? ''}
                         {...getSupportedAndOmittedTags(dataset, organization)}
                         includeSessionTagsValues={dataset === Dataset.SESSIONS}
-                        disabled={disabled}
+                        disabled={disabled || isErrorMigration}
                         useFormWrapper={false}
                         organization={organization}
                         placeholder={this.searchPlaceholder}

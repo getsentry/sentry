@@ -130,7 +130,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
 
         queryset = queryset.annotate(
             environment_status_ordering=Case(
-                When(status=MonitorStatus.DISABLED, then=Value(len(DEFAULT_ORDERING))),
+                When(status=MonitorObjectStatus.MUTED, then=Value(len(DEFAULT_ORDERING))),
                 default=Subquery(
                     monitor_environments_query.annotate(
                         status_ordering=MONITOR_ENVIRONMENT_ORDERING
@@ -164,7 +164,9 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
                 elif key == "status":
                     try:
                         queryset = queryset.filter(
-                            status__in=map_value_to_constant(MonitorStatus, value)
+                            monitorenvironment__status__in=map_value_to_constant(
+                                MonitorStatus, value
+                            )
                         )
                     except ValueError:
                         queryset = queryset.none()

@@ -95,15 +95,24 @@ interface DifferentialFlamegraphTooltipProps extends FlamegraphTooltipProps {
 }
 function DifferentialFlamegraphTooltip(props: DifferentialFlamegraphTooltipProps) {
   const countAfter = useMemo(() => {
-    return (
-      props.flamegraph.afterCounts.get(DifferentialFlamegraph.FrameKey(props.frame)) ?? 0
-    );
+    return props.flamegraph.afterCounts.get(DifferentialFlamegraph.FrameKey(props.frame));
   }, [props.frame, props.flamegraph]);
+
   const countBefore = useMemo(() => {
-    return (
-      props.flamegraph.beforeCounts.get(DifferentialFlamegraph.FrameKey(props.frame)) ?? 0
+    return props.flamegraph.beforeCounts.get(
+      DifferentialFlamegraph.FrameKey(props.frame)
     );
   }, [props.frame, props.flamegraph]);
+
+  // A change can only happen if a frame was present in previous and current profiles
+  const shouldShowChange = countAfter !== undefined && countBefore !== undefined;
+
+  const change = shouldShowChange ? relativeChange(countAfter, countBefore) : 0;
+  const formattedChange = shouldShowChange
+    ? `${countAfter > countBefore ? '+' : ''}${formatPercentage(change)}`
+    : props.flamegraph.negated
+    ? t('removed function')
+    : t(`new function`);
 
   return (
     <BoundTooltip
@@ -117,10 +126,7 @@ function DifferentialFlamegraphTooltip(props: DifferentialFlamegraphTooltipProps
           backgroundColor={formatColorForFrame(props.frame, props.flamegraphRenderer)}
         />
         {props.flamegraphRenderer.flamegraph.formatter(props.frame.node.totalWeight)}{' '}
-        {t('samples, ') +
-          `${countAfter > countBefore ? '+' : ''}${formatPercentage(
-            relativeChange(countAfter, countBefore)
-          )}`}{' '}
+        {t('samples, ') + formattedChange}{' '}
         {`(${formatWeightToProfileDuration(
           props.frame.node,
           props.flamegraphRenderer.flamegraph

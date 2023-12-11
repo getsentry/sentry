@@ -8,6 +8,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.http import HttpResponse, HttpResponseRedirect
+from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
@@ -88,14 +89,14 @@ class AuthLoginView(BaseView):
     }
 
     @method_decorator(never_cache)
-    def handle(self, request: Request, *args, **kwargs) -> HttpResponse:
+    def handle(self, request: Request, *args, **kwargs) -> HttpResponseBase:
         """
         Hooks in to the django view dispatch which delegates request to GET/POST/PUT/DELETE.
         Base view overwrites dispatch to include functionality for csrf, superuser, customer domains, etc.
         """
         return super().handle(request=request, *args, **kwargs)
 
-    def get(self, request: Request, **kwargs) -> HttpResponse:
+    def get(self, request: Request, **kwargs) -> HttpResponseBase:
         next_uri = self.get_next_uri(request=request)
         if request.user.is_authenticated:
             return self.redirect_authenticated_user(request=request, next_uri=next_uri)
@@ -136,7 +137,7 @@ class AuthLoginView(BaseView):
             next_uri_fallback = request.session.pop("_next")
         return request.GET.get(REDIRECT_FIELD_NAME, next_uri_fallback)
 
-    def redirect_authenticated_user(self, request: Request, next_uri: str) -> HttpResponseRedirect:
+    def redirect_authenticated_user(self, request: Request, next_uri: str) -> HttpResponseBase:
         """
         If an authenticated user sends a GET request to AuthLoginView, we redirect them forwards in the auth process.
         """
@@ -319,7 +320,7 @@ class AuthLoginView(BaseView):
 
     def add_to_org_and_redirect_to_next_register_step(
         self, request: Request, user: User
-    ) -> HttpResponseRedirect:
+    ) -> HttpResponseBase:
         """
         Given a valid register form, adds them to their org, accepts their invite, and
         redirects the user to their next step.
@@ -356,7 +357,7 @@ class AuthLoginView(BaseView):
 
     def accept_invite_and_redirect_to_org(
         self, request: Request, invite_helper: ApiInviteHelper
-    ) -> HttpResponseRedirect:
+    ) -> HttpResponseBase:
         """
         Accepts an invite on behalf of a user and redirects them to their org login
         """
@@ -555,9 +556,7 @@ class AuthLoginView(BaseView):
         redirect_uri = construct_link_with_query(path=path, query_params=query_params)
         return redirect_uri
 
-    def handle_basic_auth(
-        self, request: Request, **kwargs
-    ) -> Union[HttpResponse, HttpResponseRedirect]:
+    def handle_basic_auth(self, request: Request, **kwargs) -> HttpResponseBase:
         """
         Legacy handler that handles GET and POST requests for registration and login.
         This is still here because it's used by OAuthAuthorizeView and AuthOrganizationLoginView.
