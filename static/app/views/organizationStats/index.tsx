@@ -74,32 +74,22 @@ export type OrganizationStatsProps = {
 } & RouteComponentProps<{}, {}>;
 
 export class OrganizationStats extends Component<OrganizationStatsProps> {
-  get dataCategory(): DataCategoryInfo['plural'] {
-    const dataCategory = this.props.location?.query?.dataCategory;
-
-    switch (dataCategory) {
-      case DATA_CATEGORY_INFO.error.plural:
-      case DATA_CATEGORY_INFO.transaction.plural:
-      case DATA_CATEGORY_INFO.attachment.plural:
-      case DATA_CATEGORY_INFO.profile.plural:
-      case DATA_CATEGORY_INFO.replay.plural:
-        return dataCategory;
-      default:
-        return DATA_CATEGORY_INFO.error.plural;
-    }
-  }
-
   get dataCategoryInfo(): DataCategoryInfo {
     const dataCategoryPlural = this.props.location?.query?.dataCategory;
-    const dataCategoryInfo =
-      Object.values(DATA_CATEGORY_INFO).find(
-        categoryInfo => categoryInfo.plural === dataCategoryPlural
-      ) ?? DATA_CATEGORY_INFO.error;
-    return dataCategoryInfo;
+
+    const categories = Object.values(DATA_CATEGORY_INFO);
+    const info = categories.find(c => c.plural === dataCategoryPlural);
+
+    // Default to errors
+    return info ?? DATA_CATEGORY_INFO.error;
   }
 
-  get dataCategoryName(): string {
-    return this.dataCategoryInfo.titleName ?? t('Unknown Data Category');
+  get dataCategory() {
+    return this.dataCategoryInfo.plural;
+  }
+
+  get dataCategoryName() {
+    return this.dataCategoryInfo.titleName;
   }
 
   get dataDatetime(): DateTimeObject {
@@ -362,7 +352,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
         projectIds={this.projectIds}
         organization={organization}
         dataCategory={this.dataCategory}
-        dataCategoryName={this.dataCategoryName}
+        dataCategoryName={this.dataCategoryInfo.titleName}
         dataDatetime={this.dataDatetime}
         chartTransform={this.chartTransform}
         handleChangeState={this.setStateOnUrl}
@@ -406,8 +396,8 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
               <ErrorBoundary mini>
                 <UsageStatsProjects
                   organization={organization}
-                  dataCategory={this.dataCategory}
-                  dataCategoryName={this.dataCategoryName}
+                  dataCategory={this.dataCategoryInfo}
+                  dataCategoryName={this.dataCategoryInfo.titleName}
                   isSingleProject={this.isSingleProject}
                   projectIds={this.projectIds}
                   dataDatetime={this.dataDatetime}

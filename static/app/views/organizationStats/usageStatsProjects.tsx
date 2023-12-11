@@ -21,7 +21,7 @@ import UsageTable, {CellProject, CellStat, TableStat} from './usageTable';
 import {getOffsetFromCursor, getPaginationPageLink} from './utils';
 
 type Props = {
-  dataCategory: DataCategoryInfo['plural'];
+  dataCategory: DataCategoryInfo;
   dataCategoryName: string;
   dataDatetime: DateTimeObject;
   getNextLocations: (project: Project) => Record<string, LocationDescriptorObject>;
@@ -115,7 +115,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
       field: ['sum(quantity)'],
       // If only one project is in selected, display the entire project list
       project: isSingleProject ? [ALL_ACCESS_PROJECTS] : projectIds,
-      category: dataCategory.slice(0, -1), // backend is singular
+      category: dataCategory.apiName,
     };
   }
 
@@ -276,7 +276,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
     const {performance, projectDetail, settings} = getNextLocations(project);
 
     if (
-      dataCategory === DATA_CATEGORY_INFO.transaction.plural &&
+      dataCategory === DATA_CATEGORY_INFO.transaction &&
       organization.features.includes('performance-view')
     ) {
       return {
