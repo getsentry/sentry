@@ -30,6 +30,30 @@ interface Props<QueryKeyAggregate, Data> {
   onError?: (error: Error) => void;
 }
 
+/**
+ * A reducer function for similar query calls.
+ *
+ * `useAggregatedQueryKeys` is a reducer for query calls. Instead of individually
+ * fetching a handfull of records; you can batch the requests by emitting a new
+ * queryKey.
+ *
+ * EXAMPLE: parallel request like: `GET /api/item/?id=1` & `GET /api/item/?id=2`
+ * would be reduced into a single request `GET /api/item/id=[1,2]`
+ *
+ * This works well with our search endpoints, which have support for querying
+ * multiple ids.
+ *
+ * How it works:
+ * - The hook returns a method called `buffer(aggregates: Array<any>)` and the
+ *   value `data`.
+ * - You will implement the props `getQueryKey(aggregates: Array<any>)` which
+ *   takes the unique list of `aggregates` that have been passed into `buffer()`.
+ *   Your `getQueryKey()` function will be invoked after `buffer()` has stopped
+ *   being called for BUFFER_WAIT_MS, this is a debounce mechanic.
+ * - The new queryKey will be used to fetch some data
+ * - You will implement `reducer(prev: Data, result: ApiResult)` which combines
+ *   `defaultData` with the data that was fetched with the queryKey.
+ */
 export default function useAggregatedQueryKeys<QueryKeyAggregate, Data>({
   defaultData,
   genQueryKey,
@@ -42,7 +66,7 @@ export default function useAggregatedQueryKeys<QueryKeyAggregate, Data>({
   const buffered = useRef<Set<QueryKeyAggregate>>(new Set());
   const inFlight = useRef<Set<QueryKeyAggregate>>(new Set());
   const done = useRef<Set<QueryKeyAggregate>>(new Set());
-  const timer = useRef<NodeJS.Timeout>(null);
+  const timer = useRef<null | NodeJS.Timeout>(null);
 
   const [data, setData] = useState<Data>(defaultData);
 
@@ -76,14 +100,12 @@ export default function useAggregatedQueryKeys<QueryKeyAggregate, Data>({
   const clearTimer = useCallback(() => {
     if (timer.current) {
       clearTimeout(timer.current);
-      // @ts-expect-error: Cannot assign to current because it is a read-only property.
       timer.current = null;
     }
   }, []);
 
   const setTimer = useCallback(() => {
     clearTimer();
-    // @ts-expect-error: Cannot assign to current because it is a read-only property.
     timer.current = setTimeout(() => {
       fetchData();
       clearTimer();
