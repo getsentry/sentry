@@ -173,10 +173,19 @@ export function diffFlamegraphTreeRecursive(
     const beforeFrameChildrenLength = beforeFrame.children.length;
     const afterFrameChildrenLength = afterFrame.children.length;
 
+    // console.log(
+    //   'after children',
+    //   afterFrame.children.map(n => n.frame.name)
+    // );
+    // console.log(
+    //   'before children',
+    //   beforeFrame.children.map(n => n.frame.name)
+    // );
     // In case the current node has no children, we need to check if the
     // other node has children, add them to the removedFrames list
     if (!afterFrameChildrenLength && beforeFrameChildrenLength) {
       for (let i = 0; i < beforeFrameChildrenLength; i++) {
+        // console.log(beforeFrame.children[i].frame.name);
         removedFrames = removedFrames.concat(getTreeNodes(beforeFrame.children[i]));
       }
       return;
@@ -198,15 +207,15 @@ export function diffFlamegraphTreeRecursive(
 
         if (result === 0) {
           visit(beforeFrame.children[j], afterFrame.children[i]);
+          ++j;
           break;
         }
         if (result === -1) {
-          // removed frame
           removedFrames = removedFrames.concat(getTreeNodes(beforeFrame.children[j]));
+          ++j;
           continue;
         }
         if (result === 1) {
-          // added frame
           newFrames = newFrames.concat(getTreeNodes(afterFrame.children[i]));
           break;
         }
