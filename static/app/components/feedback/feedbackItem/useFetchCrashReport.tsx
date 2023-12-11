@@ -15,7 +15,11 @@ export default function useFetchCrashReport({
   const eventEndpoint = `/projects/${organization.slug}/${projectSlug}/events/${crashReportId}/`;
   const {data: eventData, isFetching: isEventFetching} = useApiQuery<Event>(
     [eventEndpoint],
-    {retryDelay: 100, staleTime: 0}
+    {
+      // The default delay is starts at 1000ms and doubles with each try. That's too slow, we'll just show the error quickly instead.
+      retryDelay: 100,
+      staleTime: 0,
+    }
   );
 
   const issueEndpoint = `/organizations/${organization.slug}/issues/${eventData?.groupID}/`;
