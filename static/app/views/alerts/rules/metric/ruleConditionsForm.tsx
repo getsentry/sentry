@@ -154,7 +154,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       case Dataset.METRICS:
       case Dataset.SESSIONS:
         return t('Filter sessions by release version\u2026');
-      case Dataset.TRANSACTIONS:
       default:
         return t('Filter transactions by URL, tags, and other properties\u2026');
     }
@@ -485,11 +484,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                           ),
                         }}
                         customInvalidTagMessage={item => {
-                          if (
-                            ![Dataset.GENERIC_METRICS, Dataset.TRANSACTIONS].includes(
-                              dataset
-                            )
-                          ) {
+                          if (dataset !== Dataset.GENERIC_METRICS) {
                             return null;
                           }
                           return (
@@ -520,9 +515,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                           (hasOnDemandMetricAlertFeature(organization) &&
                             isOnDemandQueryString(initialData.query))
                             ? false
-                            : [Dataset.GENERIC_METRICS, Dataset.TRANSACTIONS].includes(
-                                dataset
-                              )
+                            : dataset === Dataset.GENERIC_METRICS
                         }
                         onKeyDown={e => {
                           /**
@@ -584,7 +577,7 @@ const StyledListTitle = styled('div')`
 `;
 
 // This is a temporary hacky solution to hide list items without changing the numbering of the rest of the list
-// TODO(telemetry-experience): Remove this once the migration is complete
+// TODO(issues): Remove this once the migration is complete
 const HiddenListItem = styled(ListItem)`
   position: absolute;
   width: 0px;

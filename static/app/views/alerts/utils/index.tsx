@@ -230,9 +230,5 @@ export const datasetToQueryParam: Record<DatasetOption, Dataset[] | undefined> =
   [DatasetOption.ALL]: undefined,
   [DatasetOption.ERRORS]: [Dataset.ERRORS],
   [DatasetOption.SESSIONS]: [Dataset.METRICS],
-  [DatasetOption.PERFORMANCE]: [
-    Dataset.GENERIC_METRICS,
-    // TODO(telemetry-experience): remove this once we migrated all performance alerts to generic metrics
-    Dataset.TRANSACTIONS,
-  ],
+  [DatasetOption.PERFORMANCE]: [Dataset.GENERIC_METRICS],
 };
