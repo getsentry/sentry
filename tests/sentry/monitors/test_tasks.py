@@ -476,6 +476,7 @@ class MonitorTaskCheckMissingTest(TestCase):
         assert mark_environment_missing_mock.delay.call_count == 0
 
     def test_missing_checkin_but_muted(self):
+        # TODO(epurkhiser): Switch to disalbed when we re-introduce the disabled status
         self.assert_state_does_not_change_for_status(MonitorObjectStatus.MUTED)
 
     def test_missing_checkin_but_pending_deletion(self):

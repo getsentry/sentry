@@ -19,7 +19,6 @@ from sentry.monitors.models import (
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorIncident,
-    MonitorObjectStatus,
     MonitorStatus,
     MonitorType,
     ScheduleType,
@@ -560,7 +559,6 @@ class MarkFailedTestCase(TestCase):
                 "max_runtime": None,
                 "checkin_margin": None,
             },
-            status=MonitorObjectStatus.MUTED,
             is_muted=True,
         )
         monitor_environment = MonitorEnvironment.objects.create(
@@ -578,7 +576,6 @@ class MarkFailedTestCase(TestCase):
 
         monitor.refresh_from_db()
         monitor_environment.refresh_from_db()
-        assert monitor.status == MonitorObjectStatus.MUTED
         assert monitor.is_muted
         assert monitor_environment.status == MonitorStatus.ERROR
 
@@ -802,7 +799,6 @@ class MarkFailedTestCase(TestCase):
                 "max_runtime": None,
                 "checkin_margin": None,
             },
-            status=MonitorObjectStatus.MUTED,
             is_muted=True,
         )
         monitor_environment = MonitorEnvironment.objects.create(
@@ -821,7 +817,6 @@ class MarkFailedTestCase(TestCase):
 
         monitor.refresh_from_db()
         monitor_environment.refresh_from_db()
-        assert monitor.status == MonitorObjectStatus.MUTED
         assert monitor.is_muted
         assert monitor_environment.status == MonitorStatus.ERROR
 
