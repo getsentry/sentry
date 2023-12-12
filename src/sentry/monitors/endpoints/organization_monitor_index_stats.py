@@ -14,13 +14,8 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import StatsMixin, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.helpers.environments import get_environments
-from sentry.monitors.models import (
-    CheckInStatus,
-    Environment,
-    Monitor,
-    MonitorCheckIn,
-    MonitorEnvironment,
-)
+from sentry.models.environment import Environment
+from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorEnvironment
 from sentry.utils.dates import to_timestamp
 
 
@@ -135,7 +130,6 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
                 "monitor_environment_id",
                 "status",
             )
-            .order_by("bucket")
             .annotate(count=Count("*"))
             .values_list(
                 "monitor_id",
@@ -169,7 +163,9 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
                 stats[slug][ts] = defaultdict(status_obj_factory)
                 ts += args["rollup"]
 
-        for mid, ts, meid, status, count in history.iterator():
+        for mid, ts, meid, status, count in sorted(
+            list(history), key=lambda k: (monitor_map[k[0]], k[1])
+        ):
             slug = monitor_map[mid]
 
             # Monitor environments can be null.  If we find a null monitor environment we
@@ -189,7 +185,7 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
         # known (they're provided as a query parameter) and there is no pagination.
         stats_list = {
             slug: [[ts, env_mapping] for ts, env_mapping in ts_to_envs.items()]
-            for slug, ts_to_envs in sorted(stats.items(), key=lambda k: k[0])
+            for slug, ts_to_envs in stats.items()
         }
 
         return Response(stats_list)
