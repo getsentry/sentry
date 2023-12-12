@@ -499,13 +499,9 @@ function Sidebar({organization}: Props) {
   );
 
   return (
-    <SidebarWrapper
-      aria-label={t('Primary Navigation')}
-      collapsed={collapsed}
-      isSuperuser={hasSuperuserSession}
-    >
+    <SidebarWrapper aria-label={t('Primary Navigation')} collapsed={collapsed}>
       <SidebarSectionGroupPrimary>
-        <SidebarSection>
+        <DropdownSidebarSection isSuperuser={hasSuperuserSession}>
           <SidebarDropdown
             orientation={orientation}
             collapsed={collapsed}
@@ -513,7 +509,7 @@ function Sidebar({organization}: Props) {
             user={config.user}
             config={config}
           />
-        </SidebarSection>
+        </DropdownSidebarSection>
 
         <PrimaryItems>
           {hasOrganization && (
@@ -640,12 +636,11 @@ const responsiveFlex = css`
   }
 `;
 
-export const SidebarWrapper = styled('nav')<{collapsed: boolean; isSuperuser?: boolean}>`
-  background: ${p =>
-    p.isSuperuser ? p.theme.superuserSidebar : p.theme.sidebarGradient};
-  color: ${p => (p.isSuperuser ? 'white' : p.theme.sidebar.color)};
+export const SidebarWrapper = styled('nav')<{collapsed: boolean}>`
+  background: ${p => p.theme.sidebarGradient};
+  color: ${p => p.theme.sidebar.color};
   line-height: 1;
-  padding: 12px 0 2px; /* Allows for 32px avatars  */
+  padding-bottom: 2px; /* Allows for 32px avatars  */
   width: ${p => p.theme.sidebar[p.collapsed ? 'collapsedWidth' : 'expandedWidth']};
   position: fixed;
   top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
@@ -738,6 +733,24 @@ const SidebarSection = styled(SidebarSectionGroup)<{
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     margin: 0;
     padding: 0;
+  }
+
+  &:empty {
+    display: none;
+  }
+`;
+
+const DropdownSidebarSection = styled(SidebarSectionGroup)<{
+  isSuperuser?: boolean;
+}>`
+  margin: 0 0 0 0;
+  padding: 20px ${space(2)} ${space(1)} ${space(2)};
+  background: ${p => (p.isSuperuser ? p.theme.superuserSidebar : 'none')};
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    margin: 0;
+    padding: 0;
+    background: none;
   }
 
   &:empty {
