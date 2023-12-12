@@ -210,7 +210,7 @@ class JiraWebhookBaseTest(TestCase):
             request = self.make_request(method="GET")
             response = mock_endpoint(request)
 
-            assert response.status_code == status.HTTP_400_BAD_REQUEST
+            assert response.status_code == status.HTTP_409_CONFLICT
             # This kind of error shouldn't be sent to Sentry
             assert mock_capture_exception.call_count == 0
 
