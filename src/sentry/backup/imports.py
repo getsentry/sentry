@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from typing import BinaryIO, Iterator, Optional, Tuple, Type
 from uuid import uuid4
 
-import click
 from django.core import serializers
 from django.db import DatabaseError, connections, router, transaction
 from django.db.models.base import Model
@@ -18,7 +17,7 @@ from sentry.backup.dependencies import (
     get_model_name,
     reversed_dependencies,
 )
-from sentry.backup.helpers import Decryptor, Filter, ImportFlags, decrypt_encrypted_tarball
+from sentry.backup.helpers import Decryptor, Filter, ImportFlags, Printer, decrypt_encrypted_tarball
 from sentry.backup.scopes import ImportScope
 from sentry.db.models.paranoia import ParanoidModel
 from sentry.models.importchunk import ControlImportChunkReplica
@@ -76,7 +75,7 @@ def _import(
     decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
     filter_by: Filter | None = None,
-    printer=click.echo,
+    printer: Printer,
 ):
     """
     Imports core data for a Sentry installation.
@@ -94,7 +93,7 @@ def _import(
 
     if SiloMode.get_current_mode() == SiloMode.CONTROL:
         errText = "Imports must be run in REGION or MONOLITH instances only"
-        printer(errText, err=True)
+        printer.echo(errText, err=True)
         raise RuntimeError(errText)
 
     flags = flags if flags is not None else ImportFlags()
@@ -258,10 +257,10 @@ def _import(
         )
 
         if isinstance(result, RpcImportError):
-            printer(result.pretty(), err=True)
+            printer.echo(result.pretty(), err=True)
             if result.get_kind() == RpcImportErrorKind.IntegrityError:
                 warningText = ">> Are you restoring from a backup of the same version of Sentry?\n>> Are you restoring onto a clean database?\n>> If so then this IntegrityError might be our fault, you can open an issue here:\n>> https://github.com/getsentry/sentry/issues/new/choose"
-                printer(warningText, err=True)
+                printer.echo(warningText, err=True)
             raise ImportingError(result)
 
         out_pk_map: PrimaryKeyMap = result.mapped_pks.from_rpc()
@@ -347,10 +346,18 @@ def _import(
     if SiloMode.get_current_mode() == SiloMode.MONOLITH and not is_split_db():
         with unguarded_write(using="default"), transaction.atomic(using="default"):
             if scope == ImportScope.Global:
+                confirmed = printer.confirm(
+                    """Proceeding with this operation will irrecoverably delete all existing
+                    low-volume data - are you sure want to continue?"""
+                )
+                if not confirmed:
+                    printer.echo("Import cancelled.")
+                    return
+
                 try:
                     _clear_model_tables_before_import()
                 except DatabaseError as e:
-                    printer("Database could not be reset before importing")
+                    printer.echo("Database could not be reset before importing")
                     raise e
             do_writes(pk_map)
     else:
@@ -368,7 +375,7 @@ def import_in_user_scope(
     decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
     user_filter: set[str] | None = None,
-    printer=click.echo,
+    printer: Printer,
 ):
     """
     Perform an import in the `User` scope, meaning that only models with `RelocationScope.User` will
@@ -397,7 +404,7 @@ def import_in_organization_scope(
     decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
     org_filter: set[str] | None = None,
-    printer=click.echo,
+    printer: Printer,
 ):
     """
     Perform an import in the `Organization` scope, meaning that only models with
@@ -428,7 +435,7 @@ def import_in_config_scope(
     decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
     user_filter: set[str] | None = None,
-    printer=click.echo,
+    printer: Printer,
 ):
     """
     Perform an import in the `Config` scope, meaning that we will import all models required to
@@ -459,7 +466,7 @@ def import_in_global_scope(
     *,
     decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
-    printer=click.echo,
+    printer: Printer,
 ):
     """
     Perform an import in the `Global` scope, meaning that all models will be imported from the

@@ -281,6 +281,27 @@ function buildRoutes() {
       />
       {usingCustomerDomain && (
         <Route
+          path="/relocation/"
+          component={errorHandler(withDomainRequired(OrganizationContextContainer))}
+          key="orgless-relocation"
+        >
+          <IndexRedirect to="welcome/" />
+          <Route
+            path=":step/"
+            component={make(() => import('sentry/views/relocation'))}
+          />
+        </Route>
+      )}
+      <Route
+        path="/relocation/:orgId/"
+        component={withDomainRedirect(errorHandler(OrganizationContextContainer))}
+        key="org-relocation"
+      >
+        <IndexRedirect to="welcome/" />
+        <Route path=":step/" component={make(() => import('sentry/views/relocation'))} />
+      </Route>
+      {usingCustomerDomain && (
+        <Route
           path="/onboarding/"
           component={errorHandler(withDomainRequired(OrganizationContextContainer))}
           key="orgless-onboarding"
@@ -1849,10 +1870,16 @@ function buildRoutes() {
         />
       </Route>
       <Redirect from="database/" to="/performance/database" />
-      <Route path="initialization/">
+      <Route path="appStartup/">
         <IndexRoute
           component={make(
-            () => import('sentry/views/starfish/modules/mobile/initialization')
+            () => import('sentry/views/starfish/modules/mobile/appStartup')
+          )}
+        />
+        <Route
+          path="spans/"
+          component={make(
+            () => import('sentry/views/starfish/views/appStartup/screenSummary')
           )}
         />
       </Route>

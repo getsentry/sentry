@@ -18,7 +18,6 @@ from sentry.monitors.models import (
     Monitor,
     MonitorCheckIn,
     MonitorEnvironment,
-    MonitorObjectStatus,
     MonitorStatus,
     MonitorType,
     ScheduleType,
@@ -70,6 +69,7 @@ class MonitorConsumerTest(TestCase):
         payload.update(overrides)
 
         wrapper = {
+            "message_type": "check_in",
             "start_time": ts.timestamp(),
             "project_id": self.project.id,
             "payload": json.dumps(payload),
@@ -177,8 +177,8 @@ class MonitorConsumerTest(TestCase):
             checkin.date_added
         )
 
-    def test_disabled(self):
-        monitor = self._create_monitor(status=MonitorObjectStatus.DISABLED)
+    def test_muted(self):
+        monitor = self._create_monitor(is_muted=True)
         self.send_checkin(monitor.slug, status="error")
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
@@ -595,5 +595,5 @@ class MonitorConsumerTest(TestCase):
             try_monitor_tasks_trigger.side_effect = Exception()
             self.send_checkin(monitor.slug, ts=now + timedelta(minutes=5))
             assert MonitorCheckIn.objects.filter(guid=self.guid).exists()
-            logger.exception.assert_called_with("Failed to trigger monitor tasks", exc_info=True)
+            logger.exception.assert_called_with("Failed to trigger monitor tasks")
             try_monitor_tasks_trigger.side_effect = None

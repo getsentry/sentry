@@ -9,6 +9,7 @@ from typing import Optional
 from zipfile import ZipFile
 
 import yaml
+from celery.app.task import Task
 from cryptography.fernet import Fernet
 from django.db import router, transaction
 from google.cloud.devtools.cloudbuild_v1 import Build
@@ -51,7 +52,8 @@ from sentry.utils.env import gcp_project_id, log_gcp_credentials_details
 from sentry.utils.relocation import (
     RELOCATION_BLOB_SIZE,
     RELOCATION_FILE_TYPE,
-    EmailKind,
+    TASK_TO_STEP,
+    LoggingPrinter,
     OrderedTask,
     create_cloudbuild_yaml,
     fail_relocation,
@@ -142,7 +144,6 @@ def uploading_complete(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.UPLOADING,
         task=OrderedTask.UPLOADING_COMPLETE,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
@@ -205,7 +206,6 @@ def preprocessing_scan(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.PREPROCESSING,
         task=OrderedTask.PREPROCESSING_SCAN,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
@@ -322,7 +322,7 @@ def preprocessing_scan(uuid: str) -> None:
             # hours" email.
             send_relocation_update_email(
                 relocation,
-                EmailKind.STARTED,
+                Relocation.EmailKind.STARTED,
                 {
                     "uuid": str(relocation.uuid),
                     "orgs": relocation.want_org_slugs,
@@ -350,7 +350,6 @@ def preprocessing_baseline_config(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.PREPROCESSING,
         task=OrderedTask.PREPROCESSING_BASELINE_CONFIG,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
@@ -371,6 +370,7 @@ def preprocessing_baseline_config(uuid: str) -> None:
         export_in_config_scope(
             fp,
             encryptor=GCPKMSEncryptor.from_crypto_key_version(get_default_crypto_key_version()),
+            printer=LoggingPrinter(uuid),
         )
         fp.seek(0)
         kind = RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA
@@ -406,7 +406,6 @@ def preprocessing_colliding_users(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.PREPROCESSING,
         task=OrderedTask.PREPROCESSING_COLLIDING_USERS,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
@@ -425,6 +424,7 @@ def preprocessing_colliding_users(uuid: str) -> None:
             fp,
             encryptor=GCPKMSEncryptor.from_crypto_key_version(get_default_crypto_key_version()),
             user_filter=set(relocation.want_usernames),
+            printer=LoggingPrinter(uuid),
         )
         fp.seek(0)
         kind = RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA
@@ -461,7 +461,6 @@ def preprocessing_complete(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.PREPROCESSING,
         task=OrderedTask.PREPROCESSING_COMPLETE,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
@@ -692,7 +691,6 @@ def validating_start(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.VALIDATING,
         task=OrderedTask.VALIDATING_START,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
@@ -769,7 +767,6 @@ def validating_poll(uuid: str, build_id: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.VALIDATING,
         task=OrderedTask.VALIDATING_POLL,
         allowed_task_attempts=MAX_VALIDATION_POLL_ATTEMPTS,
     )
@@ -865,7 +862,6 @@ def validating_complete(uuid: str, build_id: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.VALIDATING,
         task=OrderedTask.VALIDATING_COMPLETE,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
@@ -931,7 +927,6 @@ def importing(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.IMPORTING,
         task=OrderedTask.IMPORTING,
         allowed_task_attempts=1,
     )
@@ -944,21 +939,6 @@ def importing(uuid: str) -> None:
         attempts_left,
         ERR_IMPORTING_INTERNAL,
     ):
-        # A custom logger that roughly matches the parts of the `click.echo` interface that the
-        # `import_*` methods rely on.
-        def printer(text: str, *, err: bool = False, **kwargs) -> None:
-            nonlocal uuid
-            if err:
-                logger.error(
-                    "Import failed",
-                    extra={"uuid": uuid, "task": OrderedTask.IMPORTING.name},
-                )
-            else:
-                logger.info(
-                    "Import info",
-                    extra={"uuid": uuid, "task": OrderedTask.IMPORTING.name},
-                )
-
         # The `uploading_complete` task above should have verified that this is ready for use.
         raw_relocation_file = (
             RelocationFile.objects.filter(
@@ -980,7 +960,7 @@ def importing(uuid: str) -> None:
                     merge_users=False, overwrite_configs=False, import_uuid=str(uuid)
                 ),
                 org_filter=set(relocation.want_org_slugs),
-                printer=printer,
+                printer=LoggingPrinter(uuid),
             )
 
         postprocessing.delay(uuid)
@@ -1004,7 +984,6 @@ def postprocessing(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.POSTPROCESSING,
         task=OrderedTask.POSTPROCESSING,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
@@ -1076,7 +1055,6 @@ def notifying_users(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.NOTIFYING,
         task=OrderedTask.NOTIFYING_USERS,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
@@ -1116,6 +1094,9 @@ def notifying_users(uuid: str) -> None:
             hash = lost_password_hash_service.get_or_create(user_id=user.id).hash
             LostPasswordHash.send_relocate_account_email(user, hash, relocation.want_org_slugs)
 
+        relocation.latest_unclaimed_emails_sent_at = datetime.now()
+        relocation.save()
+
         notifying_owner.delay(uuid)
 
 
@@ -1137,7 +1118,6 @@ def notifying_owner(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.NOTIFYING,
         task=OrderedTask.NOTIFYING_OWNER,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
@@ -1152,7 +1132,7 @@ def notifying_owner(uuid: str) -> None:
     ):
         send_relocation_update_email(
             relocation,
-            EmailKind.SUCCEEDED,
+            Relocation.EmailKind.SUCCEEDED,
             {
                 "uuid": str(relocation.uuid),
                 "orgs": relocation.want_org_slugs,
@@ -1179,7 +1159,6 @@ def completed(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.COMPLETED,
         task=OrderedTask.COMPLETED,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
@@ -1194,3 +1173,36 @@ def completed(uuid: str) -> None:
     ):
         relocation.status = Relocation.Status.SUCCESS.value
         relocation.save()
+
+
+TASK_MAP: dict[OrderedTask, Task] = {
+    OrderedTask.NONE: Task(),
+    OrderedTask.UPLOADING_COMPLETE: uploading_complete,
+    OrderedTask.PREPROCESSING_SCAN: preprocessing_scan,
+    OrderedTask.PREPROCESSING_BASELINE_CONFIG: preprocessing_baseline_config,
+    OrderedTask.PREPROCESSING_COLLIDING_USERS: preprocessing_colliding_users,
+    OrderedTask.PREPROCESSING_COMPLETE: preprocessing_complete,
+    OrderedTask.VALIDATING_START: validating_start,
+    OrderedTask.VALIDATING_POLL: validating_poll,
+    OrderedTask.VALIDATING_COMPLETE: validating_complete,
+    OrderedTask.IMPORTING: importing,
+    OrderedTask.POSTPROCESSING: postprocessing,
+    OrderedTask.NOTIFYING_USERS: notifying_users,
+    OrderedTask.NOTIFYING_OWNER: notifying_owner,
+    OrderedTask.COMPLETED: completed,
+}
+
+assert list(OrderedTask._member_map_.keys()) == [k.name for k in TASK_MAP.keys()]
+
+
+def get_first_task_for_step(target_step: Relocation.Step) -> Task | None:
+    min_task: OrderedTask | None = None
+    for ordered_task, step in TASK_TO_STEP.items():
+        if step == target_step:
+            if min_task is None or ordered_task.value < min_task.value:
+                min_task = ordered_task
+
+    if min_task is None or min_task == OrderedTask.NONE:
+        return None
+
+    return TASK_MAP.get(min_task, None)

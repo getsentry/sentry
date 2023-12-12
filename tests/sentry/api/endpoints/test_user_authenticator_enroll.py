@@ -463,8 +463,8 @@ class AcceptOrganizationInviteTest(APITestCase):
         assert om.user_id is None
         assert om.email == "newuser@example.com"
 
-        assert log.error.call_count == 1
-        assert log.error.call_args[0][0] == "Invalid pending invite cookie"
+        assert log.exception.call_count == 1
+        assert log.exception.call_args[0][0] == "Invalid pending invite cookie"
 
     @mock.patch("sentry.api.endpoints.user_authenticator_enroll.logger")
     @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)

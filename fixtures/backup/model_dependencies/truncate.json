@@ -36,6 +36,7 @@
   "sentry_regionoutbox",
   "sentry_regionscheduleddeletion",
   "sentry_regiontombstone",
+  "sentry_regressiongroup",
   "sentry_relay",
   "sentry_relayusage",
   "sentry_repository",
@@ -84,7 +85,6 @@
   "sentry_externalissue",
   "sentry_externalactor",
   "sentry_exporteddata",
-  "sentry_eventuser",
   "sentry_eventprocessingissue",
   "sentry_eventattachment",
   "sentry_environment",
@@ -222,6 +222,7 @@
   "sentry_incidentseen",
   "sentry_incidentproject",
   "sentry_incidentactivity",
+  "sentry_dashboardwidgetqueryondemand",
   "sentry_alertruletriggerexclusion",
   "sentry_alertruletriggeraction",
   "sentry_servicehookproject"

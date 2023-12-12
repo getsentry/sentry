@@ -1,5 +1,6 @@
 import {mat3, vec2} from 'gl-matrix';
 
+import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphColorCodings} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
@@ -28,7 +29,7 @@ export interface FlamegraphRendererConstructor {
 export abstract class FlamegraphRenderer {
   ctx: CanvasRenderingContext2D | WebGLRenderingContext | null = null;
   canvas: HTMLCanvasElement;
-  flamegraph: Flamegraph;
+  flamegraph: Flamegraph | DifferentialFlamegraph;
   theme: FlamegraphTheme;
   options: FlamegraphRendererOptions;
 
@@ -36,11 +37,13 @@ export abstract class FlamegraphRenderer {
   roots: ReadonlyArray<FlamegraphFrame>;
 
   colorBuffer: Array<number>;
-  colorMap: Map<string | number, number[]>;
+  colorMap: Map<string | number | FlamegraphFrame['node'], number[]>;
+
+  isDifferentialFlamegraph: boolean = false;
 
   constructor(
     canvas: HTMLCanvasElement,
-    flamegraph: Flamegraph,
+    flamegraph: Flamegraph | DifferentialFlamegraph,
     theme: FlamegraphTheme,
     options: FlamegraphRendererOptions = DEFAULT_FLAMEGRAPH_RENDERER_OPTIONS
   ) {
@@ -52,18 +55,28 @@ export abstract class FlamegraphRenderer {
     this.frames = this.flamegraph.frames;
     this.roots = this.flamegraph.root.children;
 
-    const {colorBuffer, colorMap} = this.theme.COLORS.STACK_TO_COLOR(
-      this.frames,
-      this.theme.COLORS.COLOR_MAPS[this.options.colorCoding],
-      this.theme.COLORS.COLOR_BUCKET,
-      this.theme
-    );
-    this.colorBuffer = colorBuffer;
-    this.colorMap = colorMap;
+    if (flamegraph instanceof DifferentialFlamegraph) {
+      this.colorBuffer = flamegraph.colorBuffer;
+      this.colorMap = flamegraph.colors;
+      this.isDifferentialFlamegraph = true;
+    } else {
+      const {colorBuffer, colorMap} = this.theme.COLORS.STACK_TO_COLOR(
+        this.frames,
+        this.theme.COLORS.COLOR_MAPS[this.options.colorCoding],
+        this.theme.COLORS.COLOR_BUCKET,
+        this.theme
+      );
+
+      this.colorBuffer = colorBuffer;
+      this.colorMap = colorMap;
+    }
   }
 
   getColorForFrame(frame: FlamegraphFrame): number[] {
-    return this.colorMap.get(frame.key) ?? this.theme.COLORS.FRAME_GRAYSCALE_COLOR;
+    if (this.isDifferentialFlamegraph) {
+      return this.colorMap.get(frame.node) ?? this.theme.COLORS.FRAME_FALLBACK_COLOR;
+    }
+    return this.colorMap.get(frame.key) ?? this.theme.COLORS.FRAME_FALLBACK_COLOR;
   }
 
   findHoveredNode(configSpaceCursor: vec2): FlamegraphFrame | null {

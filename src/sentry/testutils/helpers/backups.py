@@ -35,6 +35,7 @@ from sentry.backup.helpers import (
     KeyManagementServiceClient,
     LocalFileDecryptor,
     LocalFileEncryptor,
+    Printer,
     decrypt_encrypted_tarball,
 )
 from sentry.backup.imports import import_in_global_scope
@@ -62,6 +63,7 @@ from sentry.models.dashboard import Dashboard, DashboardTombstone
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetQuery,
+    DashboardWidgetQueryOnDemand,
     DashboardWidgetTypes,
 )
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
@@ -103,7 +105,7 @@ __all__ = [
     "ValidationError",
 ]
 
-NOOP_PRINTER = lambda *args, **kwargs: None
+NOOP_PRINTER = Printer()
 
 
 class FakeKeyManagementServiceClient:
@@ -484,7 +486,14 @@ class BackupTestCase(TransactionTestCase):
             display_type=0,
             widget_type=DashboardWidgetTypes.DISCOVER,
         )
-        DashboardWidgetQuery.objects.create(widget=widget, order=1, name=f"Test Query for {slug}")
+        widget_query = DashboardWidgetQuery.objects.create(
+            widget=widget, order=1, name=f"Test Query for {slug}"
+        )
+        DashboardWidgetQueryOnDemand.objects.create(
+            dashboard_widget_query=widget_query,
+            extraction_state=DashboardWidgetQueryOnDemand.OnDemandExtractionState.DISABLED_NOT_APPLICABLE,
+            spec_hashes=[],
+        )
         DashboardTombstone.objects.create(organization=org, slug=f"test-tombstone-in-{slug}")
 
         # *Search

@@ -1,4 +1,4 @@
-import {Fragment, useRef} from 'react';
+import {Fragment, useContext, useEffect, useRef} from 'react';
 import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -9,6 +9,7 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
+import FormContext from 'sentry/components/forms/formContext';
 import FormModel, {FieldValue} from 'sentry/components/forms/model';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -64,9 +65,14 @@ const DEFAULT_SCHEDULE_CONFIG = {
   intervalUnit: 'day',
 };
 
-function MockTimelineVisualization(props: ScheduleConfig) {
-  const {scheduleType, cronSchedule, intervalFrequency, intervalUnit} = props;
+interface Props {
+  schedule: ScheduleConfig;
+}
+
+function MockTimelineVisualization({schedule}: Props) {
+  const {scheduleType, cronSchedule, intervalFrequency, intervalUnit} = schedule;
   const organization = useOrganization();
+  const {form} = useContext(FormContext);
 
   const query = {
     num_ticks: NUM_SAMPLE_TICKS,
@@ -82,10 +88,28 @@ function MockTimelineVisualization(props: ScheduleConfig) {
     `/organizations/${organization.slug}/monitors-schedule-data/`,
     {query},
   ] as const;
-  const {data, isLoading} = useApiQuery<number[]>(sampleDataQueryKey, {
+  const {data, isLoading, isError, error} = useApiQuery<number[]>(sampleDataQueryKey, {
     staleTime: 0,
-    enabled: isValidConfig(props),
+    enabled: isValidConfig(schedule),
+    retry: false,
   });
+
+  const errorMessage =
+    isError || !isValidConfig(schedule)
+      ? error?.responseJSON?.schedule?.[0] ?? t('Invalid Schedule')
+      : null;
+
+  useEffect(() => {
+    if (!form) {
+      return;
+    }
+
+    if (scheduleType === ScheduleType.INTERVAL) {
+      form.setError('config.schedule.frequency', errorMessage);
+    } else if (scheduleType === ScheduleType.CRONTAB) {
+      form.setError('config.schedule', errorMessage);
+    }
+  }, [errorMessage, form, scheduleType]);
 
   const mockTimestamps = data?.map(ts => new Date(ts * 1000));
   const start = mockTimestamps?.[0];
@@ -98,9 +122,8 @@ function MockTimelineVisualization(props: ScheduleConfig) {
       <TimelineWidthTracker ref={elementRef} />
       {isLoading || !start || !end || !timeWindowConfig || !mockTimestamps ? (
         <Fragment>
-          {/* TODO(davidenwang): Improve loading placeholder */}
           <Placeholder height="40px" />
-          <TimelinePlaceholder />
+          {errorMessage ? <Placeholder height="100px" /> : <TimelinePlaceholder />}
         </Fragment>
       ) : (
         <Fragment>
@@ -173,8 +196,18 @@ export default function MonitorCreateForm() {
   const filteredProjects = projects.filter(project => isSuperuser || project.isMember);
 
   function onCreateMonitor(data: Monitor) {
-    const url = normalizeUrl(`/organizations/${organization.slug}/crons/${data.slug}/`);
-    browserHistory.push(url);
+    const endpointOptions = {
+      query: {
+        project: selection.projects,
+        environment: selection.environments,
+      },
+    };
+    browserHistory.push(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/crons/${data.slug}/`,
+        query: endpointOptions.query,
+      })
+    );
   }
 
   function changeScheduleType(type: ScheduleType) {
@@ -221,14 +254,17 @@ export default function MonitorCreateForm() {
           <Observer>
             {() => {
               const currScheduleType = form.current.getValue('config.schedule_type');
-              const parsedSchedule = crontabAsText(
-                form.current.getValue('config.schedule')?.toString() ?? ''
-              );
+              const selectedCrontab = currScheduleType === ScheduleType.CRONTAB;
+              const parsedSchedule = form.current.getError('config.schedule')
+                ? ''
+                : crontabAsText(
+                    form.current.getValue('config.schedule')?.toString() ?? ''
+                  );
 
               return (
                 <Fragment>
                   <SchedulePanel
-                    highlighted={currScheduleType === ScheduleType.CRONTAB}
+                    highlighted={selectedCrontab}
                     onClick={() => changeScheduleType(ScheduleType.CRONTAB)}
                   >
                     <PanelBody withPadding>
@@ -239,15 +275,16 @@ export default function MonitorCreateForm() {
                           placeholder="* * * * *"
                           defaultValue={DEFAULT_SCHEDULE_CONFIG.cronSchedule}
                           css={{input: {fontFamily: commonTheme.text.familyMono}}}
-                          required={currScheduleType === ScheduleType.CRONTAB}
+                          required={selectedCrontab}
                           stacked
                           inline={false}
+                          hideControlState={!selectedCrontab}
                         />
                         <StyledSelectField
                           name="config.timezone"
                           defaultValue="UTC"
                           options={timezoneOptions}
-                          required={currScheduleType === ScheduleType.CRONTAB}
+                          required={selectedCrontab}
                           stacked
                           inline={false}
                         />
@@ -256,7 +293,7 @@ export default function MonitorCreateForm() {
                     </PanelBody>
                   </SchedulePanel>
                   <SchedulePanel
-                    highlighted={currScheduleType === ScheduleType.INTERVAL}
+                    highlighted={!selectedCrontab}
                     onClick={() => changeScheduleType(ScheduleType.INTERVAL)}
                   >
                     <PanelBody withPadding>
@@ -267,9 +304,10 @@ export default function MonitorCreateForm() {
                           name="config.schedule.frequency"
                           placeholder="e.g. 1"
                           defaultValue={DEFAULT_SCHEDULE_CONFIG.intervalFrequency}
-                          required={currScheduleType === ScheduleType.INTERVAL}
+                          required={!selectedCrontab}
                           stacked
                           inline={false}
+                          hideControlState={selectedCrontab}
                         />
                         <StyledSelectField
                           name="config.schedule.interval"
@@ -279,7 +317,7 @@ export default function MonitorCreateForm() {
                             )
                           )}
                           defaultValue={DEFAULT_SCHEDULE_CONFIG.intervalUnit}
-                          required={currScheduleType === ScheduleType.INTERVAL}
+                          required={!selectedCrontab}
                           stacked
                           inline={false}
                         />
@@ -298,14 +336,14 @@ export default function MonitorCreateForm() {
             const intervalFrequency = form.current.getValue('config.schedule.frequency');
             const intervalUnit = form.current.getValue('config.schedule.interval');
 
-            return (
-              <MockTimelineVisualization
-                scheduleType={scheduleType}
-                cronSchedule={cronSchedule}
-                intervalFrequency={intervalFrequency}
-                intervalUnit={intervalUnit}
-              />
-            );
+            const schedule = {
+              scheduleType,
+              cronSchedule,
+              intervalFrequency,
+              intervalUnit,
+            };
+
+            return <MockTimelineVisualization schedule={schedule} />;
           }}
         </Observer>
       </FieldContainer>

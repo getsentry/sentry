@@ -1,3 +1,5 @@
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -35,7 +37,7 @@ describe('AccountSecuritySessionHistory', function () {
       ],
     });
 
-    render(<SessionHistory {...routerProps} />, {context: TestStubs.routerContext()});
+    render(<SessionHistory {...routerProps} />, {context: RouterContextFixture()});
 
     expect(screen.getByText('127.0.0.1')).toBeInTheDocument();
     expect(screen.getByText('192.168.0.1')).toBeInTheDocument();

@@ -13,7 +13,7 @@ from sentry.options.manager import (
     FLAG_PRIORITIZE_DISK,
     FLAG_REQUIRED,
 )
-from sentry.utils.types import Any, Bool, Dict, Int, Sequence, String
+from sentry.utils.types import Any, Bool, Dict, Float, Int, Sequence, String
 
 # Cache
 # register('cache.backend', flags=FLAG_NOSTORE)
@@ -741,6 +741,13 @@ register(
     "processing.severity-backlog-test.error",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.severity.high-priority-alerts-projects-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 
@@ -1748,3 +1755,38 @@ register(
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Enables on-demand metric extraction for Dashboard Widgets.
+register(
+    "on_demand_metrics.check_widgets.enable",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Rollout % for easing out rollout based on the dashboard widget query id
+register(
+    "on_demand_metrics.check_widgets.rollout",
+    default=0.0,
+    type=Float,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Number of DashboardWidgetQuery to be checked at once.
+register(
+    "on_demand_metrics.check_widgets.query.batch_size",
+    type=Int,
+    default=50,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Number of chunks to split queries across.
+register(
+    "on_demand_metrics.check_widgets.query.total_batches",
+    default=100,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Relocation
+register("relocation.enabled", default=False)
+
+# Throttling limits for relocation requests
+register("relocation.daily-limit-small", default=0)
+register("relocation.daily-limit-medium", default=0)
+register("relocation.daily-limit-large", default=0)

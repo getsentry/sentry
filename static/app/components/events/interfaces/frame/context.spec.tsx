@@ -1,6 +1,8 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
 import {Organization} from 'sentry-fixture/organization';
 import {Repository} from 'sentry-fixture/repository';
 import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
@@ -12,7 +14,7 @@ import Context, {getLineCoverage} from './context';
 describe('Frame - Context', function () {
   const org = Organization();
   const project = TestStubs.Project({});
-  const event = TestStubs.Event({projectID: project.id});
+  const event = EventFixture({projectID: project.id});
   const integration = TestStubs.GitHubIntegration();
   const repo = Repository({integrationId: integration.id});
   const frame = {filename: '/sentry/app.py', lineNo: 233} as Frame;
@@ -63,7 +65,7 @@ describe('Frame - Context', function () {
         components={[]}
       />,
       {
-        context: TestStubs.routerContext([{organization: org}]),
+        context: RouterContextFixture([{organization: org}]),
         organization: org,
         project,
       }

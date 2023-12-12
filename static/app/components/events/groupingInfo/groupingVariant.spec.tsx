@@ -1,3 +1,5 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
+
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {EventGroupVariantType} from 'sentry/types';
@@ -5,8 +7,7 @@ import {EventGroupVariantType} from 'sentry/types';
 import GroupingVariant from './groupingVariant';
 
 describe('Grouping Variant', () => {
-  const event = {
-    ...TestStubs.Event(),
+  const event = EventFixture({
     entries: [
       {
         type: 'spans',
@@ -22,8 +23,8 @@ describe('Grouping Variant', () => {
         ],
       },
     ],
-  };
-  const occurrenceEvent = {
+  });
+  const occurrenceEvent = EventFixture({
     ...event,
     occurrence: {
       fingerprint: ['test-fingerprint'],
@@ -34,7 +35,7 @@ describe('Grouping Variant', () => {
         parentSpanIds: [],
       },
     },
-  };
+  });
   const performanceIssueVariant = {
     type: EventGroupVariantType.PERFORMANCE_PROBLEM,
     description: 'performance issue',

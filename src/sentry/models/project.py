@@ -150,7 +150,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
 
 
 class ProjectManager(BaseManager["Project"]):
-    def get_by_users(self, users: Iterable[User]) -> Mapping[int, Iterable[int]]:
+    def get_by_users(self, users: Iterable[User | RpcUser]) -> Mapping[int, Iterable[int]]:
         """Given a list of users, return a mapping of each user to the projects they are a member of."""
         project_rows = self.filter(
             projectteam__team__organizationmemberteam__is_active=True,
@@ -192,7 +192,7 @@ class ProjectManager(BaseManager["Project"]):
             try:
                 team = team_list[team_list.index(team)]
             except ValueError:
-                logging.info(f"User does not have access to team: {team.id}")
+                logging.info("User does not have access to team: %s", team.id)
                 return []
 
         base_qs = self.filter(teams=team, status=ObjectStatus.ACTIVE)
@@ -260,9 +260,11 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         # This project has sent feedbacks
         has_feedbacks: bool
 
-        # spike_protection_error_currently_active
-        spike_protection_error_currently_active: bool
+        # This project has sent new feedbacks, from the user-initiated widget
+        has_new_feedbacks: bool
 
+        # spike protection flags are DEPRECATED
+        spike_protection_error_currently_active: bool
         spike_protection_transaction_currently_active: bool
         spike_protection_attachment_currently_active: bool
 

@@ -32,6 +32,11 @@ export type ProjectScore = {
   lcpScore: number | null;
   totalScore: number | null;
   ttfbScore: number | null;
+  clsWeight?: number | null;
+  fcpWeight?: number | null;
+  fidWeight?: number | null;
+  lcpWeight?: number | null;
+  ttfbWeight?: number | null;
 };
 
 type Vitals = {

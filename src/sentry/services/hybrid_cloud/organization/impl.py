@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, List, Mapping, Optional, Union
+from typing import Any, List, Mapping, Optional, Union
 
 from django.db import IntegrityError, models, router, transaction
-from django.db.models.expressions import F
+from django.db.models.expressions import CombinedExpression, F
 from django.dispatch import Signal
 
 from sentry import roles
@@ -16,6 +16,7 @@ from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
@@ -24,6 +25,7 @@ from sentry.models.team import Team, TeamStatus
 from sentry.services.hybrid_cloud import OptionValue, logger
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.organization import (
+    OrganizationCheckService,
     OrganizationService,
     OrganizationSignalService,
     RpcOrganization,
@@ -258,17 +260,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
                     return None
         return serialize_member(org_member)
 
-    def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
-        try:
-            org = Organization.objects.get_from_cache(slug=slug)
-            if only_visible and org.status != OrganizationStatus.ACTIVE:
-                raise Organization.DoesNotExist
-            return org.id
-        except Organization.DoesNotExist:
-            logger.info("Organization by slug [%s] not found", slug)
-
-        return None
-
     def _query_organizations(
         self, user_id: int, scope: Optional[str], only_visible: bool
     ) -> List[Organization]:
@@ -294,7 +285,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         return [r.organization for r in results]
 
     def update_flags(self, *, organization_id: int, flags: RpcOrganizationFlagsUpdate) -> None:
-        updates: models.F | models.CombinedExpression = models.F("flags")
+        updates: F | CombinedExpression = models.F("flags")
         for (name, value) in flags.items():
             if value is True:
                 updates = updates.bitor(getattr(Organization.flags, name))
@@ -426,10 +417,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
         # It might be nice to return an RpcTeamMember to represent what we just
         # created, but doing so would require a list of project IDs. We can implement
         # that if a return value is needed in the future.
-
-    def get_team_members(self, *, team_id: int) -> Iterable[RpcOrganizationMember]:
-        team_members = OrganizationMemberTeam.objects.filter(team_id=team_id)
-        return [serialize_member(team_member.organizationmember) for team_member in team_members]
 
     def update_membership_flags(self, *, organization_member: RpcOrganizationMember) -> None:
         model = OrganizationMember.objects.get(id=organization_member.id)
@@ -630,6 +617,34 @@ class DatabaseBackedOrganizationService(OrganizationService):
         owner_members = org.get_members_with_org_roles(roles=[roles.get_top_dog().id])
 
         return list(map(serialize_member, owner_members))
+
+
+class ControlOrganizationCheckService(OrganizationCheckService):
+    def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
+        # See RegionOrganizationCheckService below
+        try:
+            org = OrganizationMapping.objects.get(slug=slug)
+            if only_visible and org.status != OrganizationStatus.ACTIVE:
+                raise OrganizationMapping.DoesNotExist
+            return org.organization_id
+        except OrganizationMapping.DoesNotExist:
+            logger.info("OrganizationMapping by slug [%s] not found", slug)
+
+        return None
+
+
+class RegionOrganizationCheckService(OrganizationCheckService):
+    def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
+        # See ControlOrganizationCheckService above
+        try:
+            org = Organization.objects.get_from_cache(slug=slug)
+            if only_visible and org.status != OrganizationStatus.ACTIVE:
+                raise Organization.DoesNotExist
+            return org.id
+        except Organization.DoesNotExist:
+            logger.info("Organization by slug [%s] not found", slug)
+
+        return None
 
 
 class OutboxBackedOrganizationSignalService(OrganizationSignalService):

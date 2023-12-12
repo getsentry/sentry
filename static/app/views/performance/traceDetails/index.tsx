@@ -24,6 +24,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 import TraceDetailsContent from './content';
 import {DEFAULT_TRACE_ROWS_LIMIT} from './limitExceededMessage';
+import NewTraceDetailsContent from './newTraceDetailsContent';
 import {getTraceSplitResults} from './utils';
 
 type Props = RouteComponentProps<{traceSlug: string}, {}> & {
@@ -112,21 +113,25 @@ class TraceSummary extends Component<Props> {
         organization
       );
 
-      return (
-        <TraceDetailsContent
-          location={location}
-          organization={organization}
-          params={params}
-          traceSlug={traceSlug}
-          traceEventView={this.getTraceEventView()}
-          dateSelected={dateSelected}
-          isLoading={isLoading}
-          error={error}
-          orphanErrors={orphanErrors}
-          traces={transactions ?? (traces as TraceFullDetailed[])}
-          meta={meta}
-          handleLimitChange={this.handleLimitChange}
-        />
+      const commonProps = {
+        location,
+        organization,
+        params,
+        traceSlug,
+        traceEventView: this.getTraceEventView(),
+        dateSelected,
+        isLoading,
+        error,
+        orphanErrors,
+        traces: transactions ?? (traces as TraceFullDetailed[]),
+        meta,
+        handleLimitChange: this.handleLimitChange,
+      };
+
+      return organization.features.includes('performance-trace-details') ? (
+        <NewTraceDetailsContent {...commonProps} />
+      ) : (
+        <TraceDetailsContent {...commonProps} />
       );
     };
 

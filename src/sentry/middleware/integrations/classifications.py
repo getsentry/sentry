@@ -128,12 +128,22 @@ class IntegrationClassification(BaseClassification):
             response_handler=self.response_handler,
         )
         self.logger.info(
-            f"integration_control.routing_request.{parser.provider}", extra={"path": request.path}
+            "integration_control.routing_request.%s",
+            parser.provider,
+            extra={"path": request.path, "method": request.method},
         )
         response = parser.get_response()
         metrics.incr(
             f"hybrid_cloud.integration_control.integration.{parser.provider}",
             tags={"url_name": parser.match.url_name, "status_code": response.status_code},
             sample_rate=1.0,
+        )
+        self.logger.info(
+            f"integration_control.routing_request.{parser.provider}.response",
+            extra={
+                "path": request.path,
+                "url_name": parser.match.url_name,
+                "status_code": response.status_code,
+            },
         )
         return response

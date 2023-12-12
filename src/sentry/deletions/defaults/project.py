@@ -23,7 +23,6 @@ class ProjectDeletionTask(ModelDeletionTask):
             models.Activity,
             models.AppConnectBuild,
             models.EnvironmentProject,
-            models.EventUser,
             models.GroupAssignee,
             models.GroupBookmark,
             models.GroupEmailThread,
@@ -36,6 +35,7 @@ class ProjectDeletionTask(ModelDeletionTask):
             models.LatestAppConnectBuildsCheck,
             models.ProjectBookmark,
             models.ProjectKey,
+            models.ReleaseThreshold,
             ProjectTeam,
             models.PromptsActivity,
             # order matters, ProjectCodeOwners to be deleted before RepositoryProjectPathConfig

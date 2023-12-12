@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import toUpper from 'lodash/toUpper';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import ExternalLink from 'sentry/components/links/externalLink';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -20,6 +22,7 @@ type Props = {
   onClick?: (webVital: WebVitals) => void;
   projectData?: TableData;
   projectScore?: ProjectScore;
+  showTooltip?: boolean;
   transaction?: string;
 };
 
@@ -46,7 +49,12 @@ const WEB_VITALS_METERS_CONFIG = {
   },
 };
 
-export default function WebVitalMeters({onClick, projectData, projectScore}: Props) {
+export default function WebVitalMeters({
+  onClick,
+  projectData,
+  projectScore,
+  showTooltip = true,
+}: Props) {
   if (!projectScore) {
     return null;
   }
@@ -69,6 +77,27 @@ export default function WebVitalMeters({onClick, projectData, projectScore}: Pro
           const meterBody = (
             <Fragment>
               <MeterBarBody>
+                {showTooltip && (
+                  <StyledQuestionTooltip
+                    isHoverable
+                    size="xs"
+                    title={
+                      <span>
+                        {tct(
+                          `The p75 [webVital] value and aggregate [webVital] score of your selected project(s).
+                          Scores and values may share some (but not perfect) correlation.`,
+                          {
+                            webVital: toUpper(webVital),
+                          }
+                        )}
+                        <br />
+                        <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#performance-score">
+                          {t('Find out how performance scores are calculated here.')}
+                        </ExternalLink>
+                      </span>
+                    }
+                  />
+                )}
                 <MeterHeader>{headerText}</MeterHeader>
                 <MeterValueText>{formattedMeterValueText}</MeterValueText>
               </MeterBarBody>
@@ -183,4 +212,9 @@ function NoValue() {
 
 const StyledTooltip = styled(Tooltip)`
   display: block;
+`;
+
+const StyledQuestionTooltip = styled(QuestionTooltip)`
+  position: absolute;
+  right: ${space(1)};
 `;

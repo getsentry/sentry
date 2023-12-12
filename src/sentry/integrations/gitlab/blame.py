@@ -62,7 +62,7 @@ def fetch_file_blames(
                 and rate_limit_info.remaining < (MINIMUM_REQUESTS - len(files))
             ):
                 metrics.incr("integrations.gitlab.get_blame_for_files.rate_limit")
-                logger.exception(
+                logger.error(
                     "get_blame_for_files.rate_limit_too_low",
                     extra={
                         **extra,
@@ -100,7 +100,7 @@ def _fetch_file_blame(
         client.set_cache(cache_key, response, 60)
 
     if not isinstance(response, SequenceApiResponse):
-        raise ApiError("Response is not in expected format")
+        raise ApiError("Response is not in expected format", code=500)
 
     rate_limit_info = get_rate_limit_info_from_response(response)
 
@@ -115,18 +115,25 @@ def _create_file_blame_info(commit: CommitInfo, file: SourceLineInfo) -> FileBla
 
 
 def _handle_file_blame_error(error: ApiError, file: SourceLineInfo, extra: Mapping[str, Any]):
-    if error.code == 429:
-        metrics.incr("integrations.gitlab.get_blame_for_files.rate_limit")
-    logger.exception(
-        "get_blame_for_files.api_error",
-        extra={
-            **extra,
-            "repo_name": file.repo.name,
-            "file_path": file.path,
-            "branch_name": file.ref,
-            "file_lineno": file.lineno,
-        },
-    )
+    metrics.incr("integrations.gitlab.get_blame_for_files.api_error", tags={"status": error.code})
+
+    # Ignore expected error codes
+    if error.code in (401, 403, 404):
+        logger.warning(
+            "get_blame_for_files.api_error",
+            extra={
+                **extra,
+                "code": error.code,
+                "error_message": error.text,
+                "repo_name": file.repo.name,
+                "file_path": file.path,
+                "branch_name": file.ref,
+                "file_lineno": file.lineno,
+            },
+        )
+        return
+
+    raise error
 
 
 def _get_commit_info_from_blame_response(

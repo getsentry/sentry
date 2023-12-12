@@ -18,7 +18,7 @@ skip = "migrations"
 python_files = "test_*.py sentry/testutils/*"
 # note: When updating the traceback format, make sure to update .github/pytest.json
 # We don't use the celery pytest plugin.
-addopts = "-ra --tb=short --strict-markers -p no:celery"
+addopts = "-ra --tb=short --strict-markers -p no:celery --nomigrations"
 # TODO: --import-mode=importlib will become the default soon,
 # currently we have a few relative imports that don't work with that.
 markers = [
@@ -31,6 +31,16 @@ selenium_driver = "chrome"
 filterwarnings = [
     # Consider all warnings to be errors other than the ignored ones.
     "error",
+
+    # TODO: after upgrading to django 4.x
+    "ignore:'index_together' is deprecated. Use 'Meta.indexes' in.*",
+    "ignore:Passing unsaved model instances to related filters is deprecated.",
+    "ignore:The django.utils.timezone.utc alias is deprecated.*",
+    "ignore:django.core.files.storage.get_storage_class is deprecated in favor of using django.core.files.storage.storages.",
+
+    # a bunch of google packages use legacy namespace packages
+    "ignore:pkg_resources is deprecated as an API",
+    "ignore:Deprecated call to `pkg_resources.declare_namespace\\('google.*'\\)`.",
 
     # The following warning filters are for pytest only.
     # This is so we don't have to wrap most datetime objects in testing code
@@ -75,14 +85,12 @@ follow_imports = "skip"
 # - or find a 3rd party stub
 [[tool.mypy.overrides]]
 module = [
-    "amqp.*",
     "boto3.*",
     "botocore.client.*",
     "botocore.exceptions.*",
     "celery.*",
     "confluent_kafka.*",
     "cssselect.*",
-    "datadog.*",
     "django_zero_downtime_migrations.backends.postgres.schema.*",
     "docker.*",
     "fido2.*",
@@ -141,14 +149,12 @@ module = [
     "sentry.api.endpoints.chunk",
     "sentry.api.endpoints.codeowners",
     "sentry.api.endpoints.codeowners.index",
-    "sentry.api.endpoints.event_ai_suggested_fix",
     "sentry.api.endpoints.event_apple_crash_report",
     "sentry.api.endpoints.event_attachments",
     "sentry.api.endpoints.group_details",
     "sentry.api.endpoints.group_event_details",
     "sentry.api.endpoints.group_events",
     "sentry.api.endpoints.group_external_issues",
-    "sentry.api.endpoints.group_hashes",
     "sentry.api.endpoints.group_hashes_split",
     "sentry.api.endpoints.group_integration_details",
     "sentry.api.endpoints.group_integrations",
@@ -160,7 +166,6 @@ module = [
     "sentry.api.endpoints.index",
     "sentry.api.endpoints.integration_features",
     "sentry.api.endpoints.integrations.install_request",
-    "sentry.api.endpoints.integrations.plugins.configs_index",
     "sentry.api.endpoints.integrations.sentry_apps.details",
     "sentry.api.endpoints.integrations.sentry_apps.index",
     "sentry.api.endpoints.integrations.sentry_apps.installation.details",
@@ -179,7 +184,6 @@ module = [
     "sentry.api.endpoints.organization_code_mapping_details",
     "sentry.api.endpoints.organization_code_mappings",
     "sentry.api.endpoints.organization_dashboard_details",
-    "sentry.api.endpoints.organization_dashboards",
     "sentry.api.endpoints.organization_details",
     "sentry.api.endpoints.organization_events",
     "sentry.api.endpoints.organization_events_facets",
@@ -193,7 +197,6 @@ module = [
     "sentry.api.endpoints.organization_events_trends",
     "sentry.api.endpoints.organization_group_index",
     "sentry.api.endpoints.organization_index",
-    "sentry.api.endpoints.organization_integration_repos",
     "sentry.api.endpoints.organization_issues_count",
     "sentry.api.endpoints.organization_member.details",
     "sentry.api.endpoints.organization_member.index",
@@ -263,7 +266,6 @@ module = [
     "sentry.api.endpoints.user_roles",
     "sentry.api.endpoints.user_subscriptions",
     "sentry.api.event_search",
-    "sentry.api.fields.actor",
     "sentry.api.helpers.deprecation",
     "sentry.api.helpers.events",
     "sentry.api.helpers.group_index.delete",
@@ -298,7 +300,6 @@ module = [
     "sentry.api.serializers.models.team",
     "sentry.api.serializers.models.user",
     "sentry.api.serializers.models.user_identity_config",
-    "sentry.api.serializers.rest_framework.dashboard",
     "sentry.api.serializers.rest_framework.doc_integration",
     "sentry.api.serializers.rest_framework.mentions",
     "sentry.api.serializers.rest_framework.notification_action",
@@ -307,7 +308,6 @@ module = [
     "sentry.api.serializers.rest_framework.sentry_app_request",
     "sentry.api.serializers.snuba",
     "sentry.api.validators.email",
-    "sentry.auth.access",
     "sentry.auth.helper",
     "sentry.auth.provider",
     "sentry.auth.providers.dummy",
@@ -318,7 +318,6 @@ module = [
     "sentry.auth.providers.saml2.provider",
     "sentry.auth.providers.saml2.rippling.provider",
     "sentry.auth.providers.saml2.views",
-    "sentry.auth.superuser",
     "sentry.auth.system",
     "sentry.auth.view",
     "sentry.db.mixin",
@@ -497,12 +496,10 @@ module = [
     "sentry.plugins.config",
     "sentry.plugins.endpoints",
     "sentry.plugins.providers.base",
-    "sentry.plugins.providers.integration_repository",
     "sentry.plugins.providers.repository",
     "sentry.profiles.task",
     "sentry.profiles.utils",
     "sentry.quotas.redis",
-    "sentry.receivers.outbox.control",
     "sentry.receivers.releases",
     "sentry.receivers.sentry_apps",
     "sentry.release_health.metrics_sessions_v2",
@@ -515,19 +512,15 @@ module = [
     "sentry.rules.actions.integrations.create_ticket.form",
     "sentry.rules.actions.integrations.create_ticket.utils",
     "sentry.rules.actions.notify_event_service",
-    "sentry.rules.conditions.event_attribute",
     "sentry.rules.conditions.event_frequency",
     "sentry.rules.conditions.level",
     "sentry.rules.conditions.tagged_event",
     "sentry.rules.filters.assigned_to",
     "sentry.rules.filters.latest_release",
-    "sentry.rules.history.endpoints.project_rule_group_history",
-    "sentry.rules.history.endpoints.project_rule_stats",
     "sentry.rules.history.preview",
     "sentry.scim.endpoints.members",
     "sentry.scim.endpoints.teams",
     "sentry.scim.endpoints.utils",
-    "sentry.sdk_updates",
     "sentry.search.events.builder.discover",
     "sentry.search.events.builder.errors",
     "sentry.search.events.builder.metrics",
@@ -612,7 +605,6 @@ module = [
     "sentry.utils.audit",
     "sentry.utils.auth",
     "sentry.utils.committers",
-    "sentry.utils.concurrent",
     "sentry.utils.distutils.commands.base",
     "sentry.utils.distutils.commands.build_assets",
     "sentry.utils.email.signer",
@@ -624,7 +616,6 @@ module = [
     "sentry.utils.performance_issues.detectors.render_blocking_asset_span_detector",
     "sentry.utils.performance_issues.detectors.slow_db_query_detector",
     "sentry.utils.performance_issues.performance_detection",
-    "sentry.utils.query",
     "sentry.utils.redis",
     "sentry.utils.sentry_apps.webhooks",
     "sentry.utils.services",
@@ -654,7 +645,6 @@ module = [
     "sentry.web.frontend.debug.debug_organization_join_request",
     "sentry.web.frontend.debug.debug_password_changed_email",
     "sentry.web.frontend.debug.debug_recovery_codes_regenerated_email",
-    "sentry.web.frontend.debug.debug_trigger_error",
     "sentry.web.frontend.disabled_member_view",
     "sentry.web.frontend.generic",
     "sentry.web.frontend.group_plugin_action",
@@ -708,7 +698,6 @@ module = [
     "tests.sentry.api.test_authentication",
     "tests.sentry.api.test_base",
     "tests.sentry.api.test_event_search",
-    "tests.sentry.api.test_issue_search",
     "tests.sentry.digests.test_notifications",
     "tests.sentry.eventstore.test_base",
     "tests.sentry.grouping.test_result",

@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useRef} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -40,8 +40,6 @@ function NoFeedback({title, subtitle}: {subtitle: string; title: string}) {
 
 export default function FeedbackList() {
   const {
-    hasNextPage,
-    isFetching, // If the network is active
     isFetchingNextPage,
     isFetchingPreviousPage,
     isLoading, // If anything is loaded yet
@@ -59,17 +57,12 @@ export default function FeedbackList() {
 
   const listRef = useRef<ReactVirtualizedList>(null);
 
-  const hasRows = !isLoading;
-  const deps = useMemo(() => [hasRows], [hasRows]);
+  const deps = useMemo(() => [isLoading, issues.length], [isLoading, issues.length]);
   const {cache, updateList} = useVirtualizedList({
     cellMeasurer,
     ref: listRef,
     deps,
   });
-
-  useEffect(() => {
-    updateList();
-  }, [updateList, issues.length]);
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
     const item = getRow({index});
@@ -104,7 +97,7 @@ export default function FeedbackList() {
         <InfiniteLoader
           isRowLoaded={isRowLoaded}
           loadMoreRows={loadMoreRows}
-          rowCount={hasNextPage ? issues.length + 1 : issues.length}
+          rowCount={hits}
         >
           {({onRowsRendered, registerChild}) => (
             <AutoSizer onResize={updateList}>
@@ -113,7 +106,7 @@ export default function FeedbackList() {
                   deferredMeasurementCache={cache}
                   height={height}
                   noRowsRenderer={() =>
-                    isFetching ? (
+                    isLoading ? (
                       <LoadingIndicator />
                     ) : (
                       <NoFeedback
@@ -124,7 +117,11 @@ export default function FeedbackList() {
                   }
                   onRowsRendered={onRowsRendered}
                   overscanRowCount={5}
-                  ref={registerChild}
+                  ref={e => {
+                    // @ts-expect-error: Cannot assign to current because it is a read-only property.
+                    listRef.current = e;
+                    registerChild(e);
+                  }}
                   rowCount={issues.length}
                   rowHeight={cache.rowHeight}
                   rowRenderer={renderRow}
@@ -157,6 +154,7 @@ const OverflowPanelItem = styled(PanelItem)`
   display: grid;
   overflow: scroll;
   flex-grow: 1;
+  min-height: 300px;
 `;
 
 const FloatingContainer = styled('div')`
