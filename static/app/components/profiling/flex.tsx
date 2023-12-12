@@ -7,6 +7,7 @@ import toPixels from 'sentry/utils/number/toPixels';
 interface FlexProps {
   align?: CSSProperties['alignItems'];
   column?: boolean;
+  flex?: CSSProperties['flex'];
   gap?: number | CssSize;
   h?: number | CssSize;
   justify?: CSSProperties['justifyContent'];
@@ -56,6 +57,7 @@ const FlexContainer = styled('div')<FlexProps>`
   align-items: ${p => p.align};
   gap: ${p => toPixels(p.gap)};
   flex-wrap: ${p => p.wrap};
+  flex: ${p => p.flex ?? 'initial'};
 `;
 
 interface FlexItemProps {

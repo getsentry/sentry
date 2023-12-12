@@ -1,3 +1,5 @@
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -53,7 +55,7 @@ describe('TransactionsList', function () {
     let generateLink, routerContext;
 
     beforeEach(function () {
-      routerContext = TestStubs.routerContext([{organization}]);
+      routerContext = RouterContextFixture([{organization}]);
       initialize();
       eventView = EventView.fromSavedQuery({
         id: '',

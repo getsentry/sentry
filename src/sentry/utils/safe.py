@@ -39,7 +39,7 @@ def safe_execute(func, *args, **kwargs):
         if expected_errors and isinstance(e, expected_errors):
             logger.info("%s.process_error_ignored", func_name, extra={"exception": e})
             return
-        logger.error("%s.process_error", func_name, exc_info=True, extra={"exception": e})
+        logger.exception("%s.process_error", func_name, extra={"exception": e})
     else:
         return result
 

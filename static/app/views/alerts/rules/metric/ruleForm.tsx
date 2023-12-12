@@ -1,4 +1,4 @@
-import {Fragment, ReactNode} from 'react';
+import {ReactNode} from 'react';
 import {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -19,10 +19,8 @@ import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent
 import Form, {FormProps} from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import {space} from 'sentry/styles/space';
@@ -56,9 +54,7 @@ import {
 import {AlertRuleType} from 'sentry/views/alerts/types';
 import {
   hasIgnoreArchivedFeatureFlag,
-  hasMigrationFeatureFlag,
   ruleNeedsErrorMigration,
-  ruleNeedsMigration,
 } from 'sentry/views/alerts/utils/migrationUi';
 import {
   AlertWizardAlertNames,
@@ -136,8 +132,6 @@ type State = {
   triggers: Trigger[];
   comparisonDelta?: number;
   isExtrapolatedChartData?: boolean;
-  // TODO(telemetry-experiment): remove this state once the migration is complete
-  triggersHaveChanged?: boolean;
   uuid?: string;
 } & DeprecatedAsyncComponent['state'];
 
@@ -891,9 +885,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       isQueryValid,
     } = this.state;
 
-    const isMigration = location?.query?.migration === '1';
-    // TODO(telemetry-experience): Remove this and all connected logic once the migration is complete
-    const isTransactionMigration = isMigration && ruleNeedsMigration(rule);
     const isOnDemand = isOnDemandMetricAlert(dataset, aggregate, query);
 
     const chartProps = {
@@ -903,8 +894,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       location,
       query: this.chartQuery,
       aggregate,
-      // If the alert is being migrated, we want to use the generic metrics dataset to allow users to edit their thresholds
-      dataset: isTransactionMigration ? Dataset.GENERIC_METRICS : dataset,
+      dataset,
       newAlertOrQuery: !ruleId || query !== rule.query,
       timeWindow,
       environment,
@@ -973,7 +963,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     } = this.state;
 
     const wizardBuilderChart = this.renderTriggerChart();
-    // TODO(telemetry-experience): Remove this and all connected logic once the migration is complete
+    // TODO(issues): Remove this and all connected logic once the migration is complete
     const isMigration = location?.query?.migration === '1';
 
     const triggerForm = (disabled: boolean) => (
@@ -1020,11 +1010,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const formDisabled = loading || !hasAlertWrite;
     const submitDisabled = formDisabled || !this.state.isQueryValid;
 
-    const showTransactionMigrationWarning =
-      !!ruleId && hasMigrationFeatureFlag(organization) && ruleNeedsMigration(rule);
     const showErrorMigrationWarning =
       !!ruleId &&
-      location?.query?.migration === '1' &&
+      isMigration &&
       hasIgnoreArchivedFeatureFlag(organization) &&
       ruleNeedsErrorMigration(rule);
 
@@ -1085,7 +1073,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
               project={project}
               aggregate={aggregate}
               organization={organization}
-              isMigration={isMigration}
+              isTransactionMigration={isMigration && !showErrorMigrationWarning}
+              isErrorMigration={showErrorMigrationWarning}
               router={router}
               disabled={formDisabled}
               thresholdChart={wizardBuilderChart}
@@ -1109,41 +1098,18 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             />
             <AlertListItem>{t('Set thresholds')}</AlertListItem>
             {thresholdTypeForm(formDisabled)}
-            {showTransactionMigrationWarning && (
+            {showErrorMigrationWarning && (
               <Alert type="warning" showIcon>
                 {tct(
-                  'Check the chart above and make sure the current thresholds are still valid, given that this alert is now based on [tooltip:total events].',
+                  "We've added [code:is:unresolved] to your events filter; please make sure the current thresholds are still valid as this alert is now filtering out resolved and archived errors.",
                   {
-                    tooltip: (
-                      <Tooltip
-                        showUnderline
-                        isHoverable
-                        title={
-                          <Fragment>
-                            {t(
-                              'Performance alerts are based on all the events you send to Sentry, not just the ones that are stored'
-                            )}
-                            <br />
-                            <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/">
-                              {t('Learn more')}
-                            </ExternalLink>
-                          </Fragment>
-                        }
-                      />
-                    ),
+                    code: <code />,
                   }
                 )}
               </Alert>
             )}
-            {showErrorMigrationWarning && (
-              <Alert type="warning" showIcon>
-                {t(
-                  'Check the chart above and make sure the current thresholds are still valid, given that this alert is now filtering out resolved and archived errors.'
-                )}
-              </Alert>
-            )}
             {triggerForm(formDisabled)}
-            {isMigration ? <Fragment /> : ruleNameOwnerForm(formDisabled)}
+            {ruleNameOwnerForm(formDisabled)}
           </List>
         </Form>
       </Main>

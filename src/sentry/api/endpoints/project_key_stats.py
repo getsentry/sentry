@@ -22,10 +22,10 @@ from sentry.utils.outcomes import Outcome
 
 @region_silo_endpoint
 class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
     enforce_rate_limit = True
     rate_limits = {
         "GET": {

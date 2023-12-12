@@ -63,6 +63,7 @@ from sentry.models.dashboard import Dashboard, DashboardTombstone
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetQuery,
+    DashboardWidgetQueryOnDemand,
     DashboardWidgetTypes,
 )
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
@@ -485,7 +486,14 @@ class BackupTestCase(TransactionTestCase):
             display_type=0,
             widget_type=DashboardWidgetTypes.DISCOVER,
         )
-        DashboardWidgetQuery.objects.create(widget=widget, order=1, name=f"Test Query for {slug}")
+        widget_query = DashboardWidgetQuery.objects.create(
+            widget=widget, order=1, name=f"Test Query for {slug}"
+        )
+        DashboardWidgetQueryOnDemand.objects.create(
+            dashboard_widget_query=widget_query,
+            extraction_state=DashboardWidgetQueryOnDemand.OnDemandExtractionState.DISABLED_NOT_APPLICABLE,
+            spec_hashes=[],
+        )
         DashboardTombstone.objects.create(organization=org, slug=f"test-tombstone-in-{slug}")
 
         # *Search

@@ -315,12 +315,14 @@ class LoggingPrinter(Printer):
     ) -> None:
         if err:
             logger.error(
-                f"Import failed: {text}",
+                "Import failed: %s",
+                text,
                 extra={"uuid": self.uuid, "task": OrderedTask.IMPORTING.name},
             )
         else:
             logger.info(
-                f"Import info: {text}",
+                "Import info: %s",
+                text,
                 extra={"uuid": self.uuid, "task": OrderedTask.IMPORTING.name},
             )
 
@@ -366,8 +368,8 @@ def start_relocation_task(
     logger_data = {"uuid": uuid}
     try:
         relocation: Relocation = Relocation.objects.get(uuid=uuid)
-    except Relocation.DoesNotExist as exc:
-        logger.error(f"Could not locate Relocation model by UUID: {uuid}", exc_info=exc)
+    except Relocation.DoesNotExist:
+        logger.exception("Could not locate Relocation model by UUID: %s", uuid)
         return (None, 0)
 
     if relocation.status not in {
@@ -375,7 +377,8 @@ def start_relocation_task(
         Relocation.Status.PAUSE.value,
     }:
         logger.warning(
-            f"Relocation has already completed as `{Relocation.Status(relocation.status)}`",
+            "Relocation has already completed as `%s`",
+            Relocation.Status(relocation.status),
             extra=logger_data,
         )
         return (None, 0)
@@ -383,7 +386,7 @@ def start_relocation_task(
     try:
         prev_task_name = "" if task.value == 1 else OrderedTask(task.value - 1).name
     except Exception:
-        logger.error("Attempted to execute unknown relocation task", extra=logger_data)
+        logger.exception("Attempted to execute unknown relocation task", extra=logger_data)
         fail_relocation(relocation, OrderedTask.NONE)
         return (None, 0)
 
@@ -392,7 +395,9 @@ def start_relocation_task(
         relocation.latest_task_attempts += 1
     elif relocation.latest_task not in {prev_task_name, task.name}:
         logger.error(
-            f"Task {task.name} tried to follow {relocation.latest_task} which is the wrong order",
+            "Task %s tried to follow %s which is the wrong order",
+            task.name,
+            relocation.latest_task,
             extra=logger_data,
         )
         fail_relocation(relocation, task)

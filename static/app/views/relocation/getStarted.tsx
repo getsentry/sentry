@@ -50,7 +50,7 @@ function GetStarted(props: StepProps) {
             onChange={evt => setOrgSlugs(evt.target.value)}
             required
             minLength={3}
-            placeholder="org-slugs-here"
+            placeholder="org-slug-1, org-slug-2, ..."
           />
           <Label>{t('Choose a datacenter region')}</Label>
           <RegionSelect
@@ -58,7 +58,7 @@ function GetStarted(props: StepProps) {
             name="region"
             aria-label="region"
             placeholder="Select Region"
-            options={regions.map(r => ({label: r.name, value: r.url}))}
+            options={regions.map(r => ({label: r.name, value: r.name}))}
             onChange={opt => setRegionUrl(opt.value)}
           />
           {regionUrl && (

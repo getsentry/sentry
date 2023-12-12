@@ -312,9 +312,9 @@ function CreateProject() {
     }
 
     return {
-      alertSetting: String(RuleAction.ALERT_ON_EVERY_ISSUE),
+      alertSetting: String(RuleAction.DEFAULT_ALERT),
     };
-  }, [gettingStartedWithProjectContext, autoFill]);
+  }, [autoFill, gettingStartedWithProjectContext.project?.alertRules]);
 
   return (
     <Access access={canCreateProject ? ['project:read'] : ['project:admin']}>
@@ -343,6 +343,7 @@ function CreateProject() {
           <StyledListItem>{t('Set your alert frequency')}</StyledListItem>
           <IssueAlertOptions
             {...alertFrequencyDefaultValues}
+            platformLanguage={platform?.language as SupportedLanguages}
             onChange={updatedData => setAlertRuleConfig(updatedData)}
           />
           <StyledListItem>{t('Name your project and assign it a team')}</StyledListItem>

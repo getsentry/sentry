@@ -35,11 +35,11 @@ import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {DataSection} from 'sentry/components/events/styles';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
-import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, Group, IssueCategory, IssueType, Project} from 'sentry/types';
 import {EntryType, EventTransaction} from 'sentry/types/event';
+import {shouldShowCustomErrorResourceConfig} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ResourcesAndMaybeSolutions} from 'sentry/views/issueDetails/resourcesAndMaybeSolutions';
@@ -87,6 +87,7 @@ function DefaultGroupEventDetailsContent({
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
   const hasAnrImprovementsFeature = organization.features.includes('anr-improvements');
+  const showMaybeSolutionsHigher = shouldShowCustomErrorResourceConfig(group);
 
   const eventEntryProps = {group, event, project};
 
@@ -125,6 +126,13 @@ function DefaultGroupEventDetailsContent({
         projectSlug={project.slug}
         location={location}
       />
+      {showMaybeSolutionsHigher && (
+        <ResourcesAndMaybeSolutions
+          event={event}
+          projectSlug={project.slug}
+          group={group}
+        />
+      )}
       <EventEvidence event={event} group={group} projectSlug={project.slug} />
       <GroupEventEntry entryType={EntryType.MESSAGE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.EXCEPTION} {...eventEntryProps} />
@@ -147,11 +155,13 @@ function DefaultGroupEventDetailsContent({
       <GroupEventEntry entryType={EntryType.EXPECTSTAPLE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.TEMPLATE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.BREADCRUMBS} {...eventEntryProps} />
-      <ResourcesAndMaybeSolutions
-        event={event}
-        projectSlug={project.slug}
-        group={group}
-      />
+      {!showMaybeSolutionsHigher && (
+        <ResourcesAndMaybeSolutions
+          event={event}
+          projectSlug={project.slug}
+          group={group}
+        />
+      )}
       <GroupEventEntry entryType={EntryType.DEBUGMETA} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.REQUEST} {...eventEntryProps} />
       <EventContexts group={group} event={event} />
@@ -223,6 +233,9 @@ function ProfilingDurationRegressionIssueDetailsContent({
         <ErrorBoundary mini>
           <EventFunctionBreakpointChart event={event} />
         </ErrorBoundary>
+        <ErrorBoundary mini>
+          <EventAffectedTransactions event={event} group={group} project={project} />
+        </ErrorBoundary>
         <Feature features="profiling-differential-flamegraph" organization={organization}>
           <ErrorBoundary mini>
             <DataSection>
@@ -232,15 +245,11 @@ function ProfilingDurationRegressionIssueDetailsContent({
                 frame with the largest increase in call stack population likely
                 contributed to the cause for the duration regression.`)}
               </p>
-              <Panel>
-                <EventDifferentialFlamegraph event={event} />
-              </Panel>
+
+              <EventDifferentialFlamegraph event={event} />
             </DataSection>
           </ErrorBoundary>
         </Feature>
-        <ErrorBoundary mini>
-          <EventAffectedTransactions event={event} group={group} project={project} />
-        </ErrorBoundary>
         <ErrorBoundary mini>
           <EventFunctionComparisonList event={event} group={group} project={project} />
         </ErrorBoundary>

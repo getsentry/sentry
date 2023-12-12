@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 import {MOCK_RESP_VERBOSE} from 'sentry-fixture/ruleConditions';
 import {Team} from 'sentry-fixture/team';
 
@@ -92,8 +93,15 @@ describe('CreateProject', function () {
 
   it('should block if you have access to no teams without team-roles', function () {
     render(<CreateProject />, {
-      context: TestStubs.routerContext([
-        {organization: {id: '1', slug: 'testOrg', access: ['project:read']}},
+      context: RouterContextFixture([
+        {
+          organization: {
+            id: '1',
+            slug: 'testOrg',
+            access: ['project:read'],
+            features: [],
+          },
+        },
       ]),
     });
   });
@@ -110,12 +118,13 @@ describe('CreateProject', function () {
     TeamStore.loadUserTeams([Team({id: '2', slug: 'team-two', access: []})]);
 
     render(<CreateProject />, {
-      context: TestStubs.routerContext([
+      context: RouterContextFixture([
         {
           organization: {
             id: '1',
             slug: 'testOrg',
             access: ['project:read'],
+            features: [],
           },
         },
       ]),
@@ -144,7 +153,7 @@ describe('CreateProject', function () {
       Team({id: '3', slug: 'team-three', access: ['team:admin']}),
     ]);
     render(<CreateProject />, {
-      context: TestStubs.routerContext([{organization}]),
+      context: RouterContextFixture([{organization}]),
       organization,
     });
 
@@ -162,12 +171,13 @@ describe('CreateProject', function () {
     });
 
     render(<CreateProject />, {
-      context: TestStubs.routerContext([
+      context: RouterContextFixture([
         {
           organization: {
             id: '1',
             slug: 'testOrg',
             access: ['project:read'],
+            features: [],
           },
         },
       ]),
@@ -273,12 +283,13 @@ describe('CreateProject', function () {
       teamSlug: teamNoAccess.slug,
     });
     render(<CreateProject />, {
-      context: TestStubs.routerContext([
+      context: RouterContextFixture([
         {
           organization: {
             id: '1',
             slug: 'testOrg',
             access: ['project:read'],
+            features: [],
           },
         },
       ]),

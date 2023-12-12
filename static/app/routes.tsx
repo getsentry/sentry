@@ -1876,6 +1876,12 @@ function buildRoutes() {
             () => import('sentry/views/starfish/modules/mobile/appStartup')
           )}
         />
+        <Route
+          path="spans/"
+          component={make(
+            () => import('sentry/views/starfish/views/appStartup/screenSummary')
+          )}
+        />
       </Route>
       <Route path="responsiveness/">
         <IndexRoute

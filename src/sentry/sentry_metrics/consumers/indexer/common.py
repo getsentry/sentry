@@ -148,7 +148,9 @@ class BatchMessages(ProcessingStep[KafkaPayload]):
         if self.__batch:
             last = self.__batch.messages[-1]
             logger.debug(
-                f"Abandoning batch of {len(self.__batch)} messages...latest offset: {last.committable}"
+                "Abandoning batch of %s messages...latest offset: %s",
+                len(self.__batch),
+                last.committable,
             )
 
         self.__next_step.close()

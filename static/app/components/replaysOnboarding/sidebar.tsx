@@ -219,6 +219,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     );
   }
 
+  const migrated = ['javascript-react'];
+
   return (
     <Fragment>
       <IntroText>
@@ -227,14 +229,14 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           {platform: currentPlatform?.name || currentProject.slug}
         )}
       </IntroText>
-      {newOnboarding ? (
+      {newOnboarding && migrated.includes(currentPlatform.id) ? (
         <SdkDocumentation
           platform={currentPlatform}
           organization={organization}
           projectSlug={currentProject.slug}
           projectId={currentProject.id}
           activeProductSelection={[]}
-          isReplayOnboarding
+          configType="replayOnboarding"
         />
       ) : (
         docKeys.map((docKey, index) => {
