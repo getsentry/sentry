@@ -20,8 +20,7 @@ from sentry.integrations.discord.client import DiscordClient, DiscordNonProxyCli
 from sentry.models.integrations.integration import Integration
 from sentry.pipeline.views.base import PipelineView
 from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
-from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
 
 from .utils import logger

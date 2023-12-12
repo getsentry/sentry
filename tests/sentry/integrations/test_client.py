@@ -17,10 +17,10 @@ from sentry.identity.oauth2 import OAuth2Provider
 from sentry.integrations.client import ApiClient
 from sentry.shared_integrations.exceptions import (
     ApiConnectionResetError,
+    ApiError,
     ApiHostError,
     ApiTimeoutError,
 )
-from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.testutils.cases import TestCase
 

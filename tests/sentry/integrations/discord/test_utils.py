@@ -8,8 +8,7 @@ from requests.exceptions import Timeout
 from sentry.integrations.discord.utils.auth import verify_signature
 from sentry.integrations.discord.utils.channel import ChannelType, validate_channel_id
 from sentry.integrations.discord.utils.channel_from_url import get_channel_id_from_url
-from sentry.shared_integrations.exceptions import ApiTimeoutError, IntegrationError
-from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.shared_integrations.exceptions import ApiError, ApiTimeoutError, IntegrationError
 from sentry.testutils.cases import TestCase
 
 

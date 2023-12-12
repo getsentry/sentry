@@ -6,7 +6,7 @@ from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.message_builder.issues import DiscordIssuesMessageBuilder
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture, EventState
-from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.rules import RuleFuture
 from sentry.utils import metrics
 
