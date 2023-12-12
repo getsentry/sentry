@@ -4,7 +4,10 @@ import {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {
+  getReplayConfigureDescription,
+  getUploadSourceMapsStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -52,75 +55,81 @@ root.render(<App />);
 const getVerifyGatsbySnippet = () => `
 myUndefinedFunction();`;
 
+const getConfigureStep = (params: Params) => {
+  return {
+    type: StepType.CONFIGURE,
+    configurations: [
+      {
+        description: tct(
+          'Register the [codeSentry@sentry/gatsby] plugin in your Gatsby configuration file (typically [codeGatsby:gatsby-config.js]).',
+          {codeSentry: <code />, codeGatsby: <code />}
+        ),
+        code: [
+          {
+            label: 'JavaScript',
+            value: 'javascript',
+            language: 'javascript',
+            code: `module.exports = {
+            plugins: [{
+              resolve: "@sentry/gatsby",
+            }],
+          };`,
+          },
+        ],
+      },
+      {
+        description: tct('Then, configure your [codeSentry:Sentry.init:]', {
+          codeSentry: <code />,
+        }),
+        code: [
+          {
+            label: 'JavaScript',
+            value: 'javascript',
+            language: 'javascript',
+            code: getSdkSetupSnippet(params),
+          },
+        ],
+      },
+    ],
+  };
+};
+
+const getInstallConfig = () => [
+  {
+    language: 'bash',
+    code: [
+      {
+        label: 'npm',
+        value: 'npm',
+        language: 'bash',
+        code: 'npm install --save @sentry/gatsby',
+      },
+      {
+        label: 'yarn',
+        value: 'yarn',
+        language: 'bash',
+        code: 'yarn add @sentry/gatsby',
+      },
+    ],
+  },
+];
+
 const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      configurations: [
+      description: tct(
+        'Add the Sentry SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn]:',
         {
-          description: tct(
-            'Add the Sentry SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn]:',
-            {
-              codeYarn: <code />,
-              codeNpm: <code />,
-            }
-          ),
-          language: 'bash',
-          code: [
-            {
-              label: 'npm',
-              value: 'npm',
-              language: 'bash',
-              code: 'npm install --save @sentry/gatsby',
-            },
-            {
-              label: 'yarn',
-              value: 'yarn',
-              language: 'bash',
-              code: 'yarn add @sentry/gatsby',
-            },
-          ],
-        },
-      ],
+          codeYarn: <code />,
+          codeNpm: <code />,
+        }
+      ),
+      configurations: getInstallConfig(),
     },
   ],
   configure: (params: Params) => [
-    {
-      type: StepType.CONFIGURE,
-      configurations: [
-        {
-          description: tct(
-            'Register the [codeSentry@sentry/gatsby] plugin in your Gatsby configuration file (typically [codeGatsby:gatsby-config.js]).',
-            {codeSentry: <code />, codeGatsby: <code />}
-          ),
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: `module.exports = {
-                plugins: [{
-                  resolve: "@sentry/gatsby",
-                }],
-              };`,
-            },
-          ],
-        },
-        {
-          description: tct('Then, configure your [codeSentry:Sentry.init:]', {
-            codeSentry: <code />,
-          }),
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: getSdkSetupSnippet(params),
-            },
-          ],
-        },
-      ],
-    },
+    getConfigureStep(params),
     getUploadSourceMapsStep({
       guideLink: 'https://docs.sentry.io/platforms/javascript/guides/gatsby/sourcemaps//',
     }),
@@ -165,8 +174,44 @@ const onboarding: OnboardingConfig = {
   ],
 };
 
+const replayOnboarding: OnboardingConfig = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'You need a minimum version 7.27.0 of [code:@sentry/gatsby] in order to use Session Replay. You do not need to install any additional packages.',
+        {
+          code: <code />,
+        }
+      ),
+      configurations: getInstallConfig(),
+    },
+  ],
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: getReplayConfigureDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/gatsby/session-replay/',
+      }),
+      configurations: [getConfigureStep({...params, isReplaySelected: true})],
+      additionalInfo: tct(
+        'Note: If [codeGatsby:gatsby-config.js] has any settings for the [codeSentry:@sentry/gatsby] plugin, they need to be moved into [codeConfig:sentry.config.js]. The [codeGatsby:gatsby-config.js] file does not support non-serializable options, like [codeNew:new Replay()].',
+        {
+          codeGatsby: <code />,
+          codeSentry: <code />,
+          codeConfig: <code />,
+          codeNew: <code />,
+        }
+      ),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  replayOnboarding,
 };
 
 export default docs;
