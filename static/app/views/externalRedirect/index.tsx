@@ -2,21 +2,23 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Panel from 'sentry/components/panels/panel';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
+import {isUrl} from 'sentry/utils';
 
 function ExternalRedirect() {
   const [count, setCount] = useState<number>(5);
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
+  const [isError, setIsError] = useState(false);
 
   useEffect(() => {
     const queryParams = new URLSearchParams(window.location.search);
     const url = queryParams.get('url');
 
-    if (!url) {
-      return;
+    if (url && isUrl(url)) {
+      setRedirectUrl(url);
+    } else {
+      setIsError(true);
     }
-
-    setRedirectUrl(url);
 
     const intervalId = setInterval(() => {
       setCount(prevCount => prevCount - 1);
@@ -28,8 +30,23 @@ function ExternalRedirect() {
 
   if (redirectUrl && count <= 0) {
     window.location.href = redirectUrl;
+  } else if (count <= 0) {
+    window.close();
   }
 
+  if (isError) {
+    return (
+      <div className="app">
+        <RedirectContainer>
+          <div className="pattern-bg" />
+          <AuthPanel>
+            <div>{t('Error: Invalid URL')}</div>
+            <div>{tct('In [count] seconds, this tab will close', {count})}</div>
+          </AuthPanel>
+        </RedirectContainer>
+      </div>
+    );
+  }
   return (
     <div className="app">
       <RedirectContainer>
