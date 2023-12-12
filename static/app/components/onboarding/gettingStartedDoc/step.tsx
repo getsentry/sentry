@@ -2,7 +2,9 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
+import {Button} from 'sentry/components/button';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -129,6 +131,10 @@ interface BaseStepProps {
    * A brief description of the step
    */
   description?: React.ReactNode | React.ReactNode[];
+  /**
+   * Whether the step is optional
+   */
+  isOptional?: boolean;
 }
 interface StepPropsWithTitle extends BaseStepProps {
   title: string;
@@ -195,8 +201,58 @@ export function Step({
   configurations,
   additionalInfo,
   description,
+  isOptional = false,
 }: StepProps) {
-  return (
+  const [showOptionalConfig, setShowOptionalConfig] = useState(false);
+
+  return isOptional ? (
+    <div>
+      <OptionalConfigWrapper>
+        <ToggleButton
+          priority="link"
+          borderless
+          size="zero"
+          icon={<IconChevron direction={showOptionalConfig ? 'down' : 'right'} />}
+          aria-label={t('Toggle optional configuration')}
+          onClick={() => setShowOptionalConfig(!showOptionalConfig)}
+        >
+          <h4 style={{marginBottom: 0}}>
+            {title ?? StepTitle[type]}
+            {t(' (Optional)')}
+          </h4>
+        </ToggleButton>
+      </OptionalConfigWrapper>
+      {showOptionalConfig ? (
+        <Fragment>
+          {description && <Description>{description}</Description>}
+          {!!configurations?.length && (
+            <Configurations>
+              {configurations.map((configuration, index) => {
+                if (configuration.configurations) {
+                  return (
+                    <Fragment key={index}>
+                      {getConfiguration(configuration)}
+                      {configuration.configurations.map(
+                        (nestedConfiguration, nestedConfigurationIndex) => (
+                          <Fragment key={nestedConfigurationIndex}>
+                            {getConfiguration(nestedConfiguration)}
+                          </Fragment>
+                        )
+                      )}
+                    </Fragment>
+                  );
+                }
+                return <Fragment key={index}>{getConfiguration(configuration)}</Fragment>;
+              })}
+            </Configurations>
+          )}
+          {additionalInfo && (
+            <GeneralAdditionalInfo>{additionalInfo}</GeneralAdditionalInfo>
+          )}
+        </Fragment>
+      ) : null}
+    </div>
+  ) : (
     <div>
       <h4>{title ?? StepTitle[type]}</h4>
       {description && <Description>{description}</Description>}
@@ -248,4 +304,17 @@ const AdditionalInfo = styled(Description)``;
 
 const GeneralAdditionalInfo = styled(Description)`
   margin-top: ${space(2)};
+`;
+
+const OptionalConfigWrapper = styled('div')`
+  display: flex;
+  cursor: pointer;
+  margin-bottom: 0.5em;
+`;
+
+const ToggleButton = styled(Button)`
+  &,
+  :hover {
+    color: ${p => p.theme.gray500};
+  }
 `;
