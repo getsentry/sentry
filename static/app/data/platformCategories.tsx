@@ -340,4 +340,6 @@ export const replayOnboardingPlatforms: readonly PlatformKey[] = [
 ];
 
 // These are the supported platforms that can also be set up using the loader
-export const replayPlatformsLoader: readonly PlatformKey[] = ['javascript'];
+export const replayJsLoaderInstructionsPlatformList: readonly PlatformKey[] = [
+  'javascript',
+];

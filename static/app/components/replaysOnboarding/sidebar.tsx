@@ -19,7 +19,10 @@ import {DocumentationWrapper} from 'sentry/components/sidebar/onboardingStep';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import {CommonSidebarProps, SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {Tooltip} from 'sentry/components/tooltip';
-import {replayPlatforms, replayPlatformsLoader} from 'sentry/data/platformCategories';
+import {
+  replayJsLoaderInstructionsPlatformList,
+  replayPlatforms,
+} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
@@ -108,7 +111,7 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
   const showLoaderInstructions =
     currentProject &&
     currentProject.platform &&
-    replayPlatformsLoader.includes(currentProject.platform);
+    replayJsLoaderInstructionsPlatformList.includes(currentProject.platform);
 
   return (
     <TaskSidebarPanel
