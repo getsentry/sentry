@@ -101,7 +101,6 @@ function DifferentialFlamegraphTooltip(props: DifferentialFlamegraphTooltipProps
 
   // A change can only happen if a frame was present in previous and current profiles
   const shouldShowChange = !!count;
-
   const relative = shouldShowChange ? relativeChange(count.after, count.before) : 0;
 
   const formattedChange = shouldShowChange

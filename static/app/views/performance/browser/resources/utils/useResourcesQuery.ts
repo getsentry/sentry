@@ -4,7 +4,10 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {FONT_FILE_EXTENSIONS} from 'sentry/views/performance/browser/resources/shared/constants';
+import {
+  FONT_FILE_EXTENSIONS,
+  IMAGE_FILE_EXTENSIONS,
+} from 'sentry/views/performance/browser/resources/shared/constants';
 import {
   ModuleFilters,
   useResourceModuleFilters,
@@ -156,6 +159,10 @@ const SPAN_OP_FILTER = {
   'resource.script': [`${SPAN_OP}:resource.script`],
   'resource.css': [`${FILE_EXTENSION}:css`],
   'resource.font': [`${FILE_EXTENSION}:[${FONT_FILE_EXTENSIONS.join(',')}]`],
+  'resource.img': [
+    `${FILE_EXTENSION}:[${IMAGE_FILE_EXTENSIONS.join(',')}]`,
+    `${SPAN_OP}:resource.img`,
+  ],
 };
 
 export const getResourceTypeFilter = (

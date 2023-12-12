@@ -888,6 +888,23 @@ class NullColumn(FunctionArg):
         return None
 
 
+class IntArg(FunctionArg):
+    def __init__(self, name: str, negative: bool):
+        super().__init__(name)
+        self.negative = negative
+
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> int:
+        try:
+            normalized_value = int(value)
+        except ValueError:
+            raise InvalidFunctionArgument(f"{value} is not an integer")
+
+        if not self.negative and normalized_value < 0:
+            raise InvalidFunctionArgument(f"{value} must be non negative")
+
+        return normalized_value
+
+
 class NumberRange(FunctionArg):
     def __init__(self, name: str, start: Optional[float], end: Optional[float]):
         super().__init__(name)
