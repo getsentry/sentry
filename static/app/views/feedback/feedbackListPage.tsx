@@ -107,6 +107,7 @@ const LayoutGrid = styled('div')`
     'list details';
 
   &[data-banner='true'] {
+    grid-template-rows: max-content max-content 1fr;
     grid-template-areas:
       'banner banner'
       'filters search'
@@ -123,7 +124,6 @@ const LayoutGrid = styled('div')`
       'details';
 
     &[data-banner='true'] {
-      grid-template-rows: max-content max-content 1fr;
       grid-template-areas:
         'banner'
         'filters'
