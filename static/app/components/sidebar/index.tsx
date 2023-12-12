@@ -740,22 +740,12 @@ const SidebarSection = styled(SidebarSectionGroup)<{
   }
 `;
 
-const DropdownSidebarSection = styled(SidebarSectionGroup)<{
+const DropdownSidebarSection = styled(SidebarSection)<{
   isSuperuser?: boolean;
 }>`
-  margin: 0 0 0 0;
-  padding: 20px ${space(2)} ${space(1)} ${space(2)};
+  margin: 0;
+  padding: ${space(1)} ${space(2)};
   background: ${p => (p.isSuperuser ? p.theme.superuserSidebar : 'none')};
-
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    margin: 0;
-    padding: 0;
-    background: none;
-  }
-
-  &:empty {
-    display: none;
-  }
 `;
 
 const SidebarCollapseItem = styled(SidebarItem)`
