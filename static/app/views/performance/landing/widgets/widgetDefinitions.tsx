@@ -289,7 +289,7 @@ export const WIDGET_DEFINITIONS: ({
     subTitle: t('Pages to improve your performance score'),
     titleTooltip: '',
     fields: [`count()`],
-    dataType: GenericPerformanceWidgetDataType.STACKED_AREA,
+    dataType: GenericPerformanceWidgetDataType.PERFORMANCE_SCORE_LIST,
   },
   [PerformanceWidgetSetting.OVERALL_PERFORMANCE_SCORE]: {
     title: t('Performance Score'),

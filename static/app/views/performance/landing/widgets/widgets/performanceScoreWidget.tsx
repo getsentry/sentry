@@ -7,8 +7,12 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import PerformanceScoreRingWithTooltips from 'sentry/views/performance/browser/webVitals/components/performanceScoreRingWithTooltips';
+import {USE_STORED_SCORES} from 'sentry/views/performance/browser/webVitals/settings';
+import {getWeights} from 'sentry/views/performance/browser/webVitals/utils/getWeights';
 import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
+import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
+import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {Subtitle, WidgetEmptyStateWarning} from '../components/selectableList';
@@ -19,12 +23,16 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
   const {InteractiveTitle, organization} = props;
   const theme = useTheme();
   const {data: projectData, isLoading} = useProjectRawWebVitalsQuery();
+  const {data: projectScores, isLoading: isProjectScoresLoading} =
+    useProjectWebVitalsScoresQuery({enabled: USE_STORED_SCORES});
 
   const noTransactions = !isLoading && !projectData?.data?.[0]?.['count()'];
 
   const projectScore =
-    isLoading || noTransactions
+    (USE_STORED_SCORES && isProjectScoresLoading) || isLoading || noTransactions
       ? undefined
+      : USE_STORED_SCORES
+      ? calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0])
       : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
   const ringSegmentColors = theme.charts.getColorPalette(3);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
@@ -70,6 +78,7 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
                   ringSegmentColors={ringSegmentColors}
                   radiusPadding={10}
                   labelHeightPadding={0}
+                  weights={getWeights(projectScore)}
                 />
               ) : isLoading ? (
                 <StyledLoadingIndicator size={40} />

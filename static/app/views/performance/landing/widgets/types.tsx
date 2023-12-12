@@ -25,6 +25,7 @@ export enum GenericPerformanceWidgetDataType {
   STACKED_AREA = 'stacked_area',
   PERFORMANCE_SCORE = 'performance_score',
   SLOW_SCREENS_BY_TTID = 'slow_screens_by_ttid',
+  PERFORMANCE_SCORE_LIST = 'performance_score_list',
 }
 
 export type PerformanceWidgetProps = {
