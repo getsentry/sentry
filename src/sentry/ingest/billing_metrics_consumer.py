@@ -7,27 +7,21 @@ from arroyo.processing.strategies import (
     CommitOffsets,
     ProcessingStrategy,
     ProcessingStrategyFactory,
+    RunTask,
 )
 from arroyo.types import Commit, Message, Partition
 from typing_extensions import NotRequired
 
 from sentry.constants import DataCategory
+from sentry.models.project import Project
 from sentry.sentry_metrics.indexer.strings import SHARED_TAG_STRINGS, TRANSACTION_METRICS_NAMES
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import reverse_resolve_tag_value
+from sentry.signals import first_custom_metric_received
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
-
-
-class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    def create_with_partitions(
-        self,
-        commit: Commit,
-        partitions: Mapping[Partition, int],
-    ) -> ProcessingStrategy[KafkaPayload]:
-        return BillingTxCountMetricConsumerStrategy(CommitOffsets(commit))
 
 
 class MetricsBucket(TypedDict):
@@ -44,6 +38,29 @@ class MetricsBucket(TypedDict):
     tags: Union[Mapping[str, str], Mapping[str, int]]
     # not used here but allows us to use the TypedDict for assignments
     type: NotRequired[str]
+
+
+def flag_metric_received_for_project(message: Message[MetricsBucket]) -> Message[MetricsBucket]:
+    project_id = message.payload["project_id"]
+    try:
+        project = Project.objects.get_from_cache(id=project_id)
+        if not project.flags.has_custom_metrics:
+            first_custom_metric_received.send_robust(project=project, sender=Project)
+    except Project.DoesNotExist:
+        pass
+
+    return message
+
+
+class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
+    def create_with_partitions(
+        self,
+        commit: Commit,
+        partitions: Mapping[Partition, int],
+    ) -> ProcessingStrategy[KafkaPayload]:
+        # This task is used to track when a metric has been received for the first time for a project.
+        flag_metric = RunTask(flag_metric_received_for_project, CommitOffsets(commit))
+        return BillingTxCountMetricConsumerStrategy(flag_metric)
 
 
 class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
@@ -75,7 +92,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
         payload = self._get_payload(message)
         self._produce_billing_outcomes(payload)
-        self.__next_step.submit(message)
+        self.__next_step.submit(message.replace(payload))
 
     def _get_payload(self, message: Message[KafkaPayload]) -> MetricsBucket:
         payload = json.loads(message.payload.value.decode("utf-8"), use_rapid_json=True)

@@ -4,29 +4,37 @@ from datetime import datetime, timezone
 from unittest import mock
 
 from arroyo.backends.kafka import KafkaPayload
+from arroyo.processing.strategies import RunTask
 from arroyo.types import BrokerValue, Message, Partition, Topic
 
 from sentry.constants import DataCategory
 from sentry.ingest.billing_metrics_consumer import (
     BillingTxCountMetricConsumerStrategy,
     MetricsBucket,
+    flag_metric_received_for_project,
 )
 from sentry.sentry_metrics.indexer.strings import SHARED_TAG_STRINGS, TRANSACTION_METRICS_NAMES
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome
 
 
+@django_db_all
 @mock.patch("sentry.ingest.billing_metrics_consumer.track_outcome")
+@mock.patch("sentry.ingest.billing_metrics_consumer.first_custom_metric_received")
 @freeze_time("1985-10-26 21:00:00")
-def test_outcomes_consumed(track_outcome):
+def test_outcomes_consumed(first_custom_metric_received, track_outcome, factories):
     # Based on test_ingest_consumer_kafka.py
-
     topic = Topic("snuba-generic-metrics")
 
     # NOTE: For a more realistic test, the usage metric is always emitted
     # alongside the transaction duration metric. Formerly, the consumer used the
     # duration metric to generate outcomes.
+
+    organization = factories.create_organization()
+    project_1 = factories.create_project(organization=organization)
+    project_2 = factories.create_project(organization=organization)
 
     empty_tags: dict[str, str] = {}
     profile_tags: dict[str, str] = {str(SHARED_TAG_STRINGS["has_profile"]): "true"}
@@ -35,7 +43,7 @@ def test_outcomes_consumed(track_outcome):
             "metric_id": 123,
             "type": "c",
             "org_id": 1,
-            "project_id": 2,
+            "project_id": project_1.id,
             "timestamp": 123,
             "value": 123.4,
             "tags": empty_tags,
@@ -44,7 +52,7 @@ def test_outcomes_consumed(track_outcome):
             "metric_id": 123,
             "type": "d",
             "org_id": 1,
-            "project_id": 2,
+            "project_id": project_1.id,
             "timestamp": 123456,
             "value": [1.0, 2.0],
             "tags": empty_tags,
@@ -55,7 +63,7 @@ def test_outcomes_consumed(track_outcome):
             "metric_id": TRANSACTION_METRICS_NAMES["c:transactions/usage@none"],
             "type": "c",
             "org_id": 1,
-            "project_id": 2,
+            "project_id": project_1.id,
             "timestamp": 123456,
             "value": 0.0,
             "tags": empty_tags,
@@ -64,7 +72,7 @@ def test_outcomes_consumed(track_outcome):
             "metric_id": TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"],
             "type": "d",
             "org_id": 1,
-            "project_id": 2,
+            "project_id": project_1.id,
             "timestamp": 123456,
             "value": [],
             "tags": empty_tags,
@@ -74,7 +82,7 @@ def test_outcomes_consumed(track_outcome):
             "metric_id": TRANSACTION_METRICS_NAMES["c:transactions/usage@none"],
             "type": "c",
             "org_id": 1,
-            "project_id": 2,
+            "project_id": project_2.id,
             "timestamp": 123456,
             "value": 3.0,
             "tags": empty_tags,
@@ -83,7 +91,7 @@ def test_outcomes_consumed(track_outcome):
             "metric_id": TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"],
             "type": "d",
             "org_id": 1,
-            "project_id": 2,
+            "project_id": project_2.id,
             "timestamp": 123456,
             "value": [1.0, 2.0, 3.0],
             "tags": empty_tags,
@@ -92,7 +100,7 @@ def test_outcomes_consumed(track_outcome):
             "metric_id": 123,
             "type": "c",
             "org_id": 1,
-            "project_id": 2,
+            "project_id": project_2.id,
             "timestamp": 123456,
             "value": 123.4,
             "tags": empty_tags,
@@ -121,7 +129,7 @@ def test_outcomes_consumed(track_outcome):
     next_step = mock.MagicMock()
 
     strategy = BillingTxCountMetricConsumerStrategy(
-        next_step=next_step,
+        next_step=RunTask(flag_metric_received_for_project, next_step),
     )
 
     generate_kafka_message_counter = 0
@@ -159,7 +167,7 @@ def test_outcomes_consumed(track_outcome):
             assert track_outcome.mock_calls == [
                 mock.call(
                     org_id=1,
-                    project_id=2,
+                    project_id=project_2.id,
                     key_id=None,
                     outcome=Outcome.ACCEPTED,
                     reason=None,
@@ -194,6 +202,9 @@ def test_outcomes_consumed(track_outcome):
                     quantity=1,
                 ),
             ]
+
+        first_custom_metric_received.send_robust.assert_called_once()
+        first_custom_metric_received.send_robust.reset_mock()
 
     assert next_step.submit.call_count == 9
 
