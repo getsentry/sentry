@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any, DefaultDict, Dict, List, TypedDict
+from typing import TYPE_CHECKING, Any, DefaultDict, Dict, List, Tuple, TypedDict
 
 from dateutil import parser
 from django.db.models import F, Q
@@ -366,7 +366,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
 
 def is_error_count_healthy(
     ethreshold: EnrichedThreshold, timeseries: List[Dict[str, Any]]
-) -> (bool, int):
+) -> Tuple[bool, int]:
     """
     Iterate through timeseries given threshold window and determine health status
     enriched threshold (ethreshold) includes `start`, `end`, and a constructed `key` identifier

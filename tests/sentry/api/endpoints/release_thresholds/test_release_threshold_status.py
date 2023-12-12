@@ -422,6 +422,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "trigger_type": TriggerType.OVER_STR,
             "value": 4,  # error counts _not_ be over threshold value
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
         is_healthy, metric_count = is_error_count_healthy(
             ethreshold=current_threshold_healthy, timeseries=timeseries
@@ -444,6 +445,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "trigger_type": TriggerType.OVER_STR,
             "value": 1,  # error counts equal to threshold limit value
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
         is_healthy, metric_count = is_error_count_healthy(
             ethreshold=threshold_at_limit_healthy, timeseries=timeseries
@@ -466,6 +468,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "trigger_type": TriggerType.OVER_STR,
             "value": 2,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
         is_healthy, metric_count = is_error_count_healthy(
             ethreshold=past_threshold_healthy, timeseries=timeseries
@@ -488,6 +491,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "trigger_type": TriggerType.UNDER_STR,
             "value": 4,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
         is_healthy, metric_count = is_error_count_healthy(
             ethreshold=threshold_under_unhealthy, timeseries=timeseries
@@ -510,6 +514,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "trigger_type": TriggerType.OVER_STR,
             "value": 4,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
         is_healthy, metric_count = is_error_count_healthy(
             ethreshold=threshold_unfinished, timeseries=timeseries
@@ -593,6 +598,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "trigger_type": TriggerType.OVER_STR,
             "value": 4,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
         is_healthy, metric_count = is_error_count_healthy(
             ethreshold=threshold_healthy, timeseries=timeseries
@@ -615,6 +621,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "trigger_type": TriggerType.OVER_STR,
             "value": 1,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
         is_healthy, metric_count = is_error_count_healthy(
             ethreshold=threshold_unhealthy, timeseries=timeseries
@@ -699,6 +706,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "trigger_type": TriggerType.OVER_STR,
             "value": 4,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
         is_healthy, metric_count = is_error_count_healthy(
             ethreshold=threshold_healthy, timeseries=timeseries
@@ -721,6 +729,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "trigger_type": TriggerType.OVER_STR,
             "value": 1,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
         is_healthy, metric_count = is_error_count_healthy(
             ethreshold=threshold_unhealthy, timeseries=timeseries
@@ -804,6 +813,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "trigger_type": TriggerType.OVER_STR,
             "value": 2,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
         is_healthy, metric_count = is_error_count_healthy(
             ethreshold=threshold_healthy, timeseries=timeseries
@@ -826,6 +836,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "trigger_type": TriggerType.OVER_STR,
             "value": 1,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
         is_healthy, metric_count = is_error_count_healthy(
             ethreshold=threshold_unhealthy, timeseries=timeseries
@@ -889,6 +900,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "trigger_type": TriggerType.OVER_STR,
             "value": 4,  # error counts _not_ be over threshold value
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
         is_healthy, metric_count = is_error_count_healthy(
             ethreshold=current_threshold_healthy, timeseries=timeseries
@@ -911,6 +923,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "trigger_type": TriggerType.OVER_STR,
             "value": 1,  # error counts equal to threshold limit value
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
         is_healthy, metric_count = is_error_count_healthy(
             ethreshold=threshold_at_limit_healthy, timeseries=timeseries
@@ -933,6 +946,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "trigger_type": TriggerType.OVER_STR,
             "value": 2,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
         is_healthy, metric_count = is_error_count_healthy(
             ethreshold=past_threshold_healthy, timeseries=timeseries
@@ -955,6 +969,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "trigger_type": TriggerType.UNDER_STR,
             "value": 4,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
         is_healthy, metric_count = is_error_count_healthy(
             ethreshold=threshold_under_unhealthy, timeseries=timeseries
@@ -977,6 +992,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "trigger_type": TriggerType.OVER_STR,
             "value": 4,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
         is_healthy, metric_count = is_error_count_healthy(
             ethreshold=threshold_unfinished, timeseries=timeseries
