@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Collection, Mapping, Sequence
 
+import sentry_sdk
 from sentry_sdk import configure_scope
 
 from sentry.auth.exceptions import IdentityNotValid
@@ -50,6 +51,7 @@ class RepositoryMixin:
         try:
             client = self.get_client()
         except (Identity.DoesNotExist, IntegrationError):
+            sentry_sdk.capture_exception()
             return None
         try:
             response = client.check_file(repo, filepath, branch)
@@ -60,6 +62,8 @@ class RepositoryMixin:
         except ApiError as e:
             if e.code != 404:
                 raise
+
+            sentry_sdk.capture_exception()
             return None
 
         return self.format_source_url(repo, filepath, branch)
