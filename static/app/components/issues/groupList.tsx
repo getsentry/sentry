@@ -13,7 +13,6 @@ import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
-import IssuesReplayCountProvider from 'sentry/components/replays/issuesReplayCountProvider';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
 import StreamGroup, {
@@ -23,6 +22,7 @@ import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import {Group} from 'sentry/types';
+import {ReplayCountForIssues} from 'sentry/utils/replayCount/replayCountForIssues';
 import withApi from 'sentry/utils/withApi';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
@@ -280,7 +280,7 @@ class GroupList extends Component<Props, State> {
         : DEFAULT_STREAM_GROUP_STATS_PERIOD;
 
     return (
-      <IssuesReplayCountProvider groupIds={groups.map(({id}) => id)}>
+      <ReplayCountForIssues>
         <Panel>
           <GroupListHeader
             withChart={!!withChart}
@@ -327,7 +327,7 @@ class GroupList extends Component<Props, State> {
         {withPagination && (
           <Pagination pageLinks={pageLinks} onCursor={this.handleCursorChange} />
         )}
-      </IssuesReplayCountProvider>
+      </ReplayCountForIssues>
     );
   }
 }

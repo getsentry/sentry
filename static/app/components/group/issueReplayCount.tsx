@@ -1,12 +1,11 @@
-import {useContext} from 'react';
 import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
-import ReplayCountContext from 'sentry/components/replays/replayCountContext';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconPlay} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useReplayCountForIssues} from 'sentry/utils/replayCount/replayCountForIssues';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
@@ -19,7 +18,8 @@ type Props = {
  */
 function IssueReplayCount({groupId}: Props) {
   const organization = useOrganization();
-  const count = useContext(ReplayCountContext)[groupId];
+  const {getReplayCountForIssue} = useReplayCountForIssues();
+  const count = getReplayCountForIssue(groupId);
 
   if (count === undefined || count === 0) {
     return null;
