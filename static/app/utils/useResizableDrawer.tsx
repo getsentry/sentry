@@ -17,6 +17,10 @@ export interface UseResizableDrawerOptions {
    * Triggered while dragging
    */
   onResize: (newSize: number, maybeOldSize?: number) => void;
+  /**
+   * The local storage key used to persist the size of the container
+   */
+  sizeStorageKey?: string;
 }
 
 /**
@@ -53,8 +57,25 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
 } {
   const rafIdRef = useRef<number | null>(null);
   const currentMouseVectorRaf = useRef<[number, number] | null>(null);
-  const [size, setSize] = useState<number>(options.initialSize ?? 0);
+  const [size, setSize] = useState<number>(() => {
+    const storedSize = options.sizeStorageKey
+      ? parseInt(localStorage.getItem(options.sizeStorageKey) ?? '', 10)
+      : undefined;
+
+    return storedSize || options.initialSize;
+  });
   const [isHeld, setIsHeld] = useState(false);
+
+  const updateSize = useCallback(
+    (newSize: number) => {
+      setSize(newSize);
+      options.onResize(newSize);
+      if (options.sizeStorageKey) {
+        localStorage.setItem(options.sizeStorageKey, newSize.toString());
+      }
+    },
+    [options]
+  );
 
   // We intentionally fire this once at mount to ensure the dimensions are set and
   // any potentional values set by CSS will be overriden. If no initialDimensions are provided,
@@ -104,11 +125,10 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
           Math.max(options.min, sizeRef.current + positionDelta * (isInverted ? -1 : 1))
         );
 
-        options.onResize(newSize);
-        setSize(newSize);
+        updateSize(newSize);
       });
     },
-    [options]
+    [options.direction, options.min, updateSize]
   );
 
   const onMouseUp = useCallback(() => {
@@ -131,17 +151,9 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
     [onMouseMove, onMouseUp]
   );
 
-  const onSetSize = useCallback(
-    (newSize: number) => {
-      setSize(newSize);
-      options.onResize(newSize);
-    },
-    [options]
-  );
-
   const onDoubleClick = useCallback(() => {
-    onSetSize(options.initialSize);
-  }, [onSetSize, options.initialSize]);
+    updateSize(options.initialSize);
+  }, [updateSize, options.initialSize]);
 
   useLayoutEffect(() => {
     return () => {
@@ -151,5 +163,5 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
     };
   });
 
-  return {size, isHeld, onMouseDown, onDoubleClick, setSize: onSetSize};
+  return {size, isHeld, onMouseDown, onDoubleClick, setSize: updateSize};
 }
