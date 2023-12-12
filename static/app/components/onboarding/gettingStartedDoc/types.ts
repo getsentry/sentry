@@ -46,6 +46,7 @@ export interface DocsParams<
   projectId: Project['id'];
   projectSlug: Project['slug'];
   sourcePackageRegistries: {isLoading: boolean; data?: ReleaseRegistrySdk};
+  cdn?: string;
   newOrg?: boolean;
 }
 
@@ -71,7 +72,11 @@ export interface OnboardingConfig<
 export interface Docs<PlatformOptions extends BasePlatformOptions = BasePlatformOptions> {
   onboarding: OnboardingConfig<PlatformOptions>;
   platformOptions?: PlatformOptions;
-  replayOnboarding?: OnboardingConfig<PlatformOptions>;
+  replayOnboardingJsLoader?: OnboardingConfig<PlatformOptions>;
+  replayOnboardingNpm?: OnboardingConfig<PlatformOptions>;
 }
 
-export type ConfigType = 'onboarding' | 'replayOnboarding';
+export type ConfigType =
+  | 'onboarding'
+  | 'replayOnboardingNpm'
+  | 'replayOnboardingJsLoader';

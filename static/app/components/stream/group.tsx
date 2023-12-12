@@ -96,7 +96,7 @@ function BaseGroupRow({
 }: Props) {
   const groups = useLegacyStore(GroupStore);
   const group = groups.find(item => item.id === id) as Group;
-  const issueTypeConfig = getConfigForIssueType(group);
+  const issueTypeConfig = getConfigForIssueType(group, group.project);
 
   const selectedGroups = useLegacyStore(SelectedGroupStore);
   const isSelected = selectedGroups[id];
