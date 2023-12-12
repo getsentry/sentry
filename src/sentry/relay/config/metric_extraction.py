@@ -286,10 +286,6 @@ def convert_widget_query_to_metric(
     if not widget_query.aggregates:
         return metrics_specs
 
-    if check_cardinality and not _is_widget_query_low_cardinality(widget_query, project):
-        # High cardinality widgets don't have metrics specs created
-        return metrics_specs
-
     for aggregate in widget_query.aggregates:
         metrics.incr(
             "on_demand_metrics.before_widget_spec_generation",
@@ -321,6 +317,14 @@ def convert_widget_query_to_metric(
                 tags={"prefilling": prefilling},
             )
             metrics_specs.append(result)
+
+    if (
+        metrics_specs
+        and check_cardinality
+        and not _is_widget_query_low_cardinality(widget_query, project)
+    ):
+        # High cardinality widgets don't have metrics specs created
+        return []
 
     return metrics_specs
 
