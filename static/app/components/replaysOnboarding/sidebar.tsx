@@ -252,7 +252,18 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     );
   }
 
-  const migrated = ['javascript-react'];
+  const migrated = [
+    'javascript',
+    'javascript-react',
+    'javascript-ember',
+    'javascript-sveltekit',
+    'javascript-svelte',
+    'javascript-astro',
+    'javascript-nextjs',
+    'javascript-remix',
+    'javascript-gatsby',
+    'electron',
+  ];
   const newOnboarding = organization.features.includes('session-replay-new-zero-state');
   const showNewOnboardingUI = newOnboarding && migrated.includes(currentPlatform.id);
 
