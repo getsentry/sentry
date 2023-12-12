@@ -12,7 +12,7 @@ function sortByTotalWeight(a: CallTreeNode, b: CallTreeNode) {
   return b.totalWeight - a.totalWeight;
 }
 
-function sortAlphabetically(a: CallTreeNode, b: CallTreeNode) {
+export function sortFlamegraphAlphabetically(a: CallTreeNode, b: CallTreeNode) {
   return a.frame.name.localeCompare(b.frame.name);
 }
 
@@ -32,7 +32,7 @@ function makeTreeSort(sortFn: (a: CallTreeNode, b: CallTreeNode) => number) {
   };
 }
 
-const alphabeticTreeSort = makeTreeSort(sortAlphabetically);
+const alphabeticTreeSort = makeTreeSort(sortFlamegraphAlphabetically);
 const leftHeavyTreeSort = makeTreeSort(sortByTotalWeight);
 
 export class Flamegraph {

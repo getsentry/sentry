@@ -2,6 +2,7 @@ import {Event as EventFixture} from 'sentry-fixture/event';
 import {Organization} from 'sentry-fixture/organization';
 import {Repository} from 'sentry-fixture/repository';
 import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
@@ -64,7 +65,7 @@ describe('Frame - Context', function () {
         components={[]}
       />,
       {
-        context: TestStubs.routerContext([{organization: org}]),
+        context: RouterContextFixture([{organization: org}]),
         organization: org,
         project,
       }

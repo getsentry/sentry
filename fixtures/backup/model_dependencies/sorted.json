@@ -85,7 +85,6 @@
   "sentry.externalissue",
   "sentry.externalactor",
   "sentry.exporteddata",
-  "sentry.eventuser",
   "sentry.eventprocessingissue",
   "sentry.eventattachment",
   "sentry.environment",
@@ -223,6 +222,7 @@
   "sentry.incidentseen",
   "sentry.incidentproject",
   "sentry.incidentactivity",
+  "sentry.dashboardwidgetqueryondemand",
   "sentry.alertruletriggerexclusion",
   "sentry.alertruletriggeraction",
   "sentry.servicehookproject"

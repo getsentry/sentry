@@ -97,6 +97,8 @@ export function PageOverviewWebVitalsDetailPanel({
         : undefined,
       enabled: Boolean(webVital),
       withProfiles: true,
+      sortName: 'webVitalSort',
+      webVital: webVital ?? undefined,
     });
 
   const {data: mehData, isLoading: isMehTransactionWebVitalsQueryLoading} =
@@ -108,6 +110,8 @@ export function PageOverviewWebVitalsDetailPanel({
         : undefined,
       enabled: Boolean(webVital),
       withProfiles: true,
+      sortName: 'webVitalSort',
+      webVital: webVital ?? undefined,
     });
 
   const {data: poorData, isLoading: isPoorTransactionWebVitalsQueryLoading} =
@@ -119,6 +123,8 @@ export function PageOverviewWebVitalsDetailPanel({
         : undefined,
       enabled: Boolean(webVital),
       withProfiles: true,
+      sortName: 'webVitalSort',
+      webVital: webVital ?? undefined,
     });
 
   const data = [...goodData, ...mehData, ...poorData];
@@ -266,13 +272,13 @@ export function PageOverviewWebVitalsDetailPanel({
             value={
               webVital !== 'cls'
                 ? getDuration(
-                    (projectData?.data[0][`avg(measurements.${webVital})`] as number) /
+                    (projectData?.data[0][`p75(measurements.${webVital})`] as number) /
                       1000,
                     2,
                     true
                   )
                 : (
-                    projectData?.data[0][`avg(measurements.${webVital})`] as number
+                    projectData?.data[0][`p75(measurements.${webVital})`] as number
                   )?.toFixed(2)
             }
             webVital={webVital}

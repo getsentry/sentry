@@ -4,19 +4,16 @@ import ListItem from 'sentry/components/list/listItem';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   Docs,
-  DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
-
-type Params = DocsParams;
 
 const onboarding: OnboardingConfig = {
   introduction: () =>
     tct("Sentry's integration with [remixLink:Remix] supports Remix 1.0.0 and above.", {
       remixLink: <ExternalLink href="https://remix.run/" />,
     }),
-  install: (_params: Params) => [
+  install: () => [
     {
       type: StepType.INSTALL,
       configurations: [

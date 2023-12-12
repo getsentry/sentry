@@ -244,10 +244,13 @@ def check_missing(current_datetime: datetime):
         )
         .exclude(
             monitor__status__in=[
-                MonitorObjectStatus.DISABLED,
+                # TODO(epurkhiser): This will change to DISABLED when this
+                # moves back to regual ObjectStatus. This means we will create
+                # missed check-ins for muted monitors.
+                MonitorObjectStatus.MUTED,
                 MonitorObjectStatus.PENDING_DELETION,
                 MonitorObjectStatus.DELETION_IN_PROGRESS,
-            ]
+            ],
         )[:MONITOR_LIMIT]
     )
 
