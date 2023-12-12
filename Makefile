@@ -132,7 +132,7 @@ test-js-ci: node-version-check
 # See that workflow for more info
 COV_ARGS = --cov-report="xml:.artifacts/python.coverage.xml"
 
-test-python-ci: create-db
+test-python-ci:
 	@echo "--> Running CI Python tests"
 	pytest \
 		tests \
@@ -148,7 +148,7 @@ test-python-ci: create-db
 #   * https://docs.djangoproject.com/en/4.2/topics/testing/tools/#overriding-settings
 #   * https://code.djangoproject.com/ticket/19031
 #   * https://github.com/pombredanne/django-database-constraints/blob/master/runtests.py#L61-L77
-test-monolith-dbs: create-db
+test-monolith-dbs:
 	@echo "--> Running CI Python tests (SENTRY_USE_MONOLITH_DBS=1)"
 	SENTRY_LEGACY_TEST_SUITE=1 \
 	SENTRY_USE_MONOLITH_DBS=1 \
@@ -170,7 +170,7 @@ test-tools:
 
 # JavaScript relay tests are meant to be run within Symbolicator test suite, as they are parametrized to verify both processing pipelines during migration process.
 # Running Locally: Run `sentry devservices up kafka` before starting these tests
-test-symbolicator: create-db
+test-symbolicator:
 	@echo "--> Running symbolicator tests"
 	pytest tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml"
 	pytest tests/relay_integration/lang/javascript/ -vv -m symbolicator
