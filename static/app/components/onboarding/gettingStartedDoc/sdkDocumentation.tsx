@@ -29,7 +29,6 @@ export type ModuleProps = {
   dsn: string;
   projectSlug: Project['slug'];
   activeProductSelection?: ProductSolution[];
-  hideHeader?: boolean;
   newOrg?: boolean;
   organization?: Organization;
   platformKey?: PlatformKey;
