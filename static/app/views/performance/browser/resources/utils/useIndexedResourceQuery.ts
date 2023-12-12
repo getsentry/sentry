@@ -1,27 +1,25 @@
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
 
-const {
-  SPAN_DESCRIPTION,
-  HTTP_RESPONSE_CONTENT_LENGTH,
-  SPAN_SELF_TIME,
-  RESOURCE_RENDER_BLOCKING_STATUS,
-} = SpanIndexedField;
+const {SPAN_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH} = SpanIndexedField;
 
 type Options = {
   limit?: number;
   queryConditions?: string[];
   referrer?: string;
+  sorts?: Sort[];
 };
 
 export const useIndexedResourcesQuery = ({
   queryConditions = [],
   limit = 50,
+  sorts,
   referrer,
 }: Options) => {
   const pageFilters = usePageFilters();
@@ -32,14 +30,11 @@ export const useIndexedResourcesQuery = ({
   const eventView = EventView.fromNewQueryWithPageFilters(
     {
       fields: [
-        'id',
+        `any(id)`,
         'project',
         'span.group',
-        'transaction.id',
         SPAN_DESCRIPTION,
-        SPAN_SELF_TIME,
         HTTP_RESPONSE_CONTENT_LENGTH,
-        RESOURCE_RENDER_BLOCKING_STATUS,
       ],
       name: 'Indexed Resource Query',
       query: queryConditions.join(' '),
@@ -49,6 +44,10 @@ export const useIndexedResourcesQuery = ({
     },
     pageFilters.selection
   );
+
+  if (sorts) {
+    eventView.sorts = sorts;
+  }
 
   const result = useDiscoverQuery({
     eventView,
@@ -63,15 +62,9 @@ export const useIndexedResourcesQuery = ({
 
   const data =
     result?.data?.data.map(row => ({
-      id: row.id as string,
       project: row.project as string,
       'transaction.id': row['transaction.id'] as string,
-      [SPAN_DESCRIPTION]: row[SPAN_DESCRIPTION].toString(),
-      [SPAN_SELF_TIME]: row[SPAN_SELF_TIME] as number,
-      [RESOURCE_RENDER_BLOCKING_STATUS]: row[RESOURCE_RENDER_BLOCKING_STATUS] as
-        | ''
-        | 'non-blocking'
-        | 'blocking',
+      [SPAN_DESCRIPTION]: row[SPAN_DESCRIPTION]?.toString(),
       // TODO - parseFloat here is temporary, we should be parsing from the backend
       [HTTP_RESPONSE_CONTENT_LENGTH]: parseFloat(
         (row[HTTP_RESPONSE_CONTENT_LENGTH] as string) || '0'

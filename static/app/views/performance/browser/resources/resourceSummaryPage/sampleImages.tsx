@@ -15,6 +15,7 @@ const imageWidth = '200px';
 function SampleImages({groupId}: Props) {
   const imageResources = useIndexedResourcesQuery({
     queryConditions: [`${SPAN_GROUP}:${groupId}`],
+    sorts: [{field: HTTP_RESPONSE_CONTENT_LENGTH, kind: 'desc'}],
     limit: 100,
   });
 
@@ -22,18 +23,13 @@ function SampleImages({groupId}: Props) {
 
   const filteredResources = imageResources.data
     .filter(resource => {
-      const size = resource[HTTP_RESPONSE_CONTENT_LENGTH];
       const fileName = getFileNameFromDescription(resource[SPAN_DESCRIPTION]);
-      const key = `${fileName}-${size}`;
+      const key = `${fileName}`;
       if (uniqueResources.has(key)) {
         return false;
       }
       uniqueResources.add(key);
       return true;
-    })
-    // TODO - we should be sorting on the backend, this is more for a POC
-    .sort((a, b) => {
-      return b[HTTP_RESPONSE_CONTENT_LENGTH] - a[HTTP_RESPONSE_CONTENT_LENGTH];
     })
     .splice(0, 5);
 
