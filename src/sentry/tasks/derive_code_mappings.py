@@ -15,7 +15,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration, integration_service
-from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.base import instrumented_task
 from sentry.utils.json import JSONData
 from sentry.utils.locking import UnableToAcquireLock

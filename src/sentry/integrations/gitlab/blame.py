@@ -15,8 +15,7 @@ from sentry.integrations.gitlab.utils import (
 )
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
 from sentry.shared_integrations.client.base import BaseApiClient
-from sentry.shared_integrations.exceptions import ApiRateLimitedError
-from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.shared_integrations.response.sequence import SequenceApiResponse
 from sentry.utils import json, metrics
 
@@ -81,9 +80,12 @@ def _fetch_file_blame(
     client: BaseApiClient, file: SourceLineInfo, extra: Mapping[str, Any]
 ) -> Tuple[Optional[CommitInfo], Optional[GitLabRateLimitInfo]]:
     project_id = file.repo.config.get("project_id")
-    encoded_path = quote(file.path, safe="")
+
+    # GitLab returns an invalid file path error if there are leading or trailing slashes
+    encoded_path = quote(file.path.strip("/"), safe="")
     request_path = GitLabApiClientPath.blame.format(project=project_id, path=encoded_path)
     params = {"ref": file.ref, "range[start]": file.lineno, "range[end]": file.lineno}
+
     cache_key = client.get_cache_key(request_path, json.dumps(params))
     response = client.check_cache(cache_key)
     if response:

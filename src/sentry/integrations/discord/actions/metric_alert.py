@@ -9,7 +9,7 @@ from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.message_builder.metric_alerts import (
     DiscordMetricAlertMessageBuilder,
 )
-from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.shared_integrations.exceptions import ApiError
 
 from ..utils import logger
 

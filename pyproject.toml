@@ -18,7 +18,7 @@ skip = "migrations"
 python_files = "test_*.py sentry/testutils/*"
 # note: When updating the traceback format, make sure to update .github/pytest.json
 # We don't use the celery pytest plugin.
-addopts = "-ra --tb=short --strict-markers -p no:celery"
+addopts = "-ra --tb=short --strict-markers -p no:celery --nomigrations"
 # TODO: --import-mode=importlib will become the default soon,
 # currently we have a few relative imports that don't work with that.
 markers = [
@@ -85,7 +85,6 @@ follow_imports = "skip"
 # - or find a 3rd party stub
 [[tool.mypy.overrides]]
 module = [
-    "amqp.*",
     "boto3.*",
     "botocore.client.*",
     "botocore.exceptions.*",
@@ -301,7 +300,6 @@ module = [
     "sentry.api.serializers.models.team",
     "sentry.api.serializers.models.user",
     "sentry.api.serializers.models.user_identity_config",
-    "sentry.api.serializers.rest_framework.dashboard",
     "sentry.api.serializers.rest_framework.doc_integration",
     "sentry.api.serializers.rest_framework.mentions",
     "sentry.api.serializers.rest_framework.notification_action",
@@ -498,12 +496,10 @@ module = [
     "sentry.plugins.config",
     "sentry.plugins.endpoints",
     "sentry.plugins.providers.base",
-    "sentry.plugins.providers.integration_repository",
     "sentry.plugins.providers.repository",
     "sentry.profiles.task",
     "sentry.profiles.utils",
     "sentry.quotas.redis",
-    "sentry.receivers.outbox.control",
     "sentry.receivers.releases",
     "sentry.receivers.sentry_apps",
     "sentry.release_health.metrics_sessions_v2",
@@ -609,7 +605,6 @@ module = [
     "sentry.utils.audit",
     "sentry.utils.auth",
     "sentry.utils.committers",
-    "sentry.utils.concurrent",
     "sentry.utils.distutils.commands.base",
     "sentry.utils.distutils.commands.build_assets",
     "sentry.utils.email.signer",

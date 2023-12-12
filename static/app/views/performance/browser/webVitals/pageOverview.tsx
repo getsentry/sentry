@@ -35,7 +35,10 @@ import {
 } from 'sentry/views/performance/browser/webVitals/pageSamplePerformanceTable';
 import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
+import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
+import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 
 import {transactionSummaryRouteWithQuery} from '../../transactionSummary/utils';
@@ -84,6 +87,7 @@ export default function PageOverview() {
   const location = useLocation();
   const {projects} = useProjects();
   const router = useRouter();
+  const shouldUseStoredScores = useStoredScoresSetting();
   const transaction = location.query.transaction
     ? Array.isArray(location.query.transaction)
       ? location.query.transaction[0]
@@ -106,6 +110,8 @@ export default function PageOverview() {
   const query = decodeScalar(location.query.query);
 
   const {data: pageData, isLoading} = useProjectRawWebVitalsQuery({transaction});
+  const {data: projectScores, isLoading: isProjectScoresLoading} =
+    useProjectWebVitalsScoresQuery({transaction, enabled: shouldUseStoredScores});
 
   if (transaction === undefined) {
     // redirect user to webvitals landing page
@@ -126,9 +132,12 @@ export default function PageOverview() {
       projectID: project.id,
     });
 
-  const projectScore = isLoading
-    ? undefined
-    : calculatePerformanceScoreFromTableDataRow(pageData?.data?.[0]);
+  const projectScore =
+    (shouldUseStoredScores && isProjectScoresLoading) || isLoading
+      ? undefined
+      : shouldUseStoredScores
+      ? calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0])
+      : calculatePerformanceScoreFromTableDataRow(pageData?.data?.[0]);
 
   return (
     <ModulePageProviders title={[t('Performance'), t('Web Vitals')].join(' — ')}>

@@ -6,7 +6,6 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Any, DefaultDict, Dict, Generator, Iterable, List, Optional, Tuple
 
-from django.db.models import Q
 from django.utils import timezone as django_timezone
 from snuba_sdk import (
     And,
@@ -31,9 +30,14 @@ from snuba_sdk import (
 from sentry import features, options, projectoptions
 from sentry.api.endpoints.project_performance_issue_settings import InternalProjectOptions
 from sentry.constants import ObjectStatus
+from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
-from sentry.models.statistical_detectors import RegressionGroup, RegressionType
+from sentry.models.statistical_detectors import (
+    RegressionGroup,
+    RegressionType,
+    get_regression_groups,
+)
 from sentry.profiles.utils import get_from_profiling_service
 from sentry.seer.utils import BreakpointData
 from sentry.sentry_metrics import indexer
@@ -167,6 +171,7 @@ def run_detection() -> None:
 class EndpointRegressionDetector(RegressionDetector):
     source = "transaction"
     kind = "endpoint"
+    regression_type = RegressionType.ENDPOINT
     config = MovingAverageRelativeChangeDetectorConfig(
         min_data_points=6,
         short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
@@ -177,6 +182,22 @@ class EndpointRegressionDetector(RegressionDetector):
     state_cls = MovingAverageDetectorState
     detector_cls = MovingAverageRelativeChangeDetector
     min_change = 200  # 200ms in ms
+    resolution_rel_threshold = 0.1
+
+    @classmethod
+    def make_status_change_message(
+        cls,
+        payload: DetectorPayload,
+        status: int,
+        substatus: Optional[int] = None,
+    ) -> StatusChangeMessage:
+        return StatusChangeMessage(
+            # To align with the issue, we need to use the full fingerprint here
+            fingerprint=[fingerprint_regression(payload.group, full=True)],
+            project_id=payload.project_id,
+            new_status=status,
+            new_substatus=substatus,
+        )
 
     @classmethod
     def query_payloads(
@@ -199,6 +220,7 @@ class EndpointRegressionDetector(RegressionDetector):
 class FunctionRegressionDetector(RegressionDetector):
     source = "profile"
     kind = "function"
+    regression_type = RegressionType.FUNCTION
     config = MovingAverageRelativeChangeDetectorConfig(
         min_data_points=6,
         short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
@@ -209,6 +231,24 @@ class FunctionRegressionDetector(RegressionDetector):
     state_cls = MovingAverageDetectorState
     detector_cls = MovingAverageRelativeChangeDetector
     min_change = 100_000_000  # 100ms in ns
+    resolution_rel_threshold = 0.1
+
+    @classmethod
+    def make_status_change_message(
+        cls,
+        payload: DetectorPayload,
+        status: int,
+        substatus: Optional[int] = None,
+    ) -> StatusChangeMessage:
+        return StatusChangeMessage(
+            # This needs to match the implementation in vroom where the issue
+            # fingerprint is generated.
+            # See https://github.com/getsentry/vroom/blob/711cb69765f8192a4bbc029a23801dd2bc4012a0/internal/occurrence/occurrence.go#L285
+            fingerprint=[f"{payload.group:x}"],
+            project_id=payload.project_id,
+            new_status=status,
+            new_substatus=substatus,
+        )
 
     @classmethod
     def query_payloads(
@@ -245,8 +285,10 @@ def detect_transaction_trends(
         project_option=InternalProjectOptions.TRANSACTION_DURATION_REGRESSION,
     )
 
-    ratelimit = options.get("statistical_detectors.ratelimit.ema")
     trends = EndpointRegressionDetector.detect_trends(projects, start)
+    trends = EndpointRegressionDetector.redirect_resolutions(trends, start)
+
+    ratelimit = options.get("statistical_detectors.ratelimit.ema")
     regressions = limit_regressions_by_project(trends, ratelimit)
 
     delay = 12  # hours
@@ -324,8 +366,10 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
         feature_name="organizations:profiling-statistical-detectors-ema",
     )
 
-    ratelimit = options.get("statistical_detectors.ratelimit.ema")
     trends = FunctionRegressionDetector.detect_trends(projects, start)
+    trends = FunctionRegressionDetector.redirect_resolutions(trends, start)
+
+    ratelimit = options.get("statistical_detectors.ratelimit.ema")
     regressions = limit_regressions_by_project(trends, ratelimit)
 
     delay = 12  # hours
@@ -811,7 +855,7 @@ def query_functions(projects: List[Project], start: datetime) -> List[DetectorPa
         DetectorPayload(
             project_id=row["project.id"],
             group=row["fingerprint"],
-            fingerprint=row["fingerprint"],
+            fingerprint=f"{row['fingerprint']:x}",
             count=row["count()"],
             value=row["p95()"],
             timestamp=datetime.fromisoformat(row["timestamp"]),
@@ -918,24 +962,10 @@ def limit_regressions_by_project(
             yield regression
 
 
-def get_regression_groups(
-    regression_type: RegressionType, pairs: List[Tuple[int, str]]
-) -> List[RegressionGroup]:
-    conditions = Q()
-    for project_id, fingerprint in pairs:
-        conditions |= Q(project_id=project_id, fingerprint=fingerprint)
-
-    return (
-        RegressionGroup.objects.filter(conditions, type=regression_type.value)
-        .order_by("type", "project_id", "fingerprint", "-version")
-        .distinct("type", "project_id", "fingerprint")
-    )
-
-
 def redirect_escalations(
     regressions: Generator[BreakpointData, None, None],
     regression_type: RegressionType,
-    batch_size=100,
+    batch_size=1_000,
 ) -> Generator[Tuple[int, BreakpointData], None, None]:
     for regression_chunk in chunked(regressions, batch_size):
         existing_regression_groups = {

@@ -1,10 +1,12 @@
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 
 describe('ProjectBadge', function () {
   it('renders with Avatar and team name', function () {
-    const routerContext = TestStubs.routerContext();
+    const routerContext = RouterContextFixture();
     render(<ProjectBadge project={TestStubs.Project()} />, {context: routerContext});
 
     expect(screen.getByRole('img')).toBeInTheDocument();
