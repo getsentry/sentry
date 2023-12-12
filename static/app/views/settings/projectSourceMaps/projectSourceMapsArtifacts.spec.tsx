@@ -1,3 +1,4 @@
+import {Organization} from 'sentry-fixture/organization';
 import {SourceMapArchive} from 'sentry-fixture/sourceMapArchive';
 import {SourceMapArtifact} from 'sentry-fixture/sourceMapArtifact';
 import {SourceMapsDebugIDBundlesArtifacts} from 'sentry-fixture/sourceMapsDebugIDBundlesArtifacts';
@@ -13,6 +14,7 @@ import {
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
+import OrganizationStore from 'sentry/stores/organizationStore';
 import {ProjectSourceMapsArtifacts} from 'sentry/views/settings/projectSourceMaps/projectSourceMapsArtifacts';
 
 function renderReleaseBundlesMockRequests({
@@ -78,9 +80,16 @@ function renderDebugIdBundlesMockRequests({
 }
 
 describe('ProjectSourceMapsArtifacts', function () {
+  beforeEach(function () {
+    OrganizationStore.init();
+  });
+
   describe('Release Bundles', function () {
     it('renders default state', async function () {
       const {organization, routerContext, project, routerProps} = initializeOrg({
+        organization: Organization({
+          access: ['org:superuser'],
+        }),
         router: {
           location: {
             query: {},
@@ -88,6 +97,8 @@ describe('ProjectSourceMapsArtifacts', function () {
           params: {},
         },
       });
+
+      OrganizationStore.onUpdate(organization, {replace: true});
 
       ConfigStore.config = {
         ...ConfigStore.config,
@@ -174,6 +185,9 @@ describe('ProjectSourceMapsArtifacts', function () {
   describe('Artifact Bundles', function () {
     it('renders default state', async function () {
       const {organization, project, routerProps, routerContext} = initializeOrg({
+        organization: Organization({
+          access: ['org:superuser', 'project:releases'],
+        }),
         router: {
           location: {
             pathname: `/settings/${initializeOrg().organization.slug}/projects/${
@@ -184,6 +198,8 @@ describe('ProjectSourceMapsArtifacts', function () {
           params: {},
         },
       });
+
+      OrganizationStore.onUpdate(organization, {replace: true});
 
       ConfigStore.config = {
         ...ConfigStore.config,

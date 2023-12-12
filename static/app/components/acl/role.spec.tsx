@@ -1,4 +1,3 @@
-import Cookies from 'js-cookie';
 import {Organization} from 'sentry-fixture/organization';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
@@ -6,6 +5,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Role} from 'sentry/components/acl/role';
 import ConfigStore from 'sentry/stores/configStore';
+import OrganizationStore from 'sentry/stores/organizationStore';
 
 describe('Role', function () {
   const organization = Organization({
@@ -46,6 +46,7 @@ describe('Role', function () {
   describe('as render prop', function () {
     const childrenMock = jest.fn().mockReturnValue(null);
     beforeEach(function () {
+      OrganizationStore.init();
       childrenMock.mockClear();
     });
 
@@ -68,20 +69,14 @@ describe('Role', function () {
     });
 
     it('gives access to a superuser with insufficient role', function () {
-      ConfigStore.config.user = TestStubs.User({isSuperuser: true});
-      Cookies.set = jest.fn();
+      organization.access = ['org:superuser'];
+      OrganizationStore.onUpdate(organization, {replace: true});
 
       render(<Role role="owner">{childrenMock}</Role>, {context: routerContext});
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasRole: true,
       });
-      expect(Cookies.set).toHaveBeenCalledWith(
-        'su-test-cookie',
-        'set-in-isActiveSuperuser',
-        {domain: '.sentry.io'}
-      );
-      ConfigStore.config.user = TestStubs.User({isSuperuser: false});
     });
 
     it('does not give access to a made up role', function () {
