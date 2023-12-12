@@ -81,14 +81,14 @@ function AllEventsTable(props: Props) {
 
   eventView.statsPeriod = '90d';
 
+  const isRegressionIssue =
+    group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION ||
+    group.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION;
+
   let idQuery = `issue.id:${issueId}`;
   if (group.issueCategory === IssueCategory.PERFORMANCE && !groupIsOccurrenceBacked) {
     idQuery = `performance.issue_ids:${issueId} event.type:transaction`;
-  } else if (
-    (group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION ||
-      group.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION) &&
-    groupIsOccurrenceBacked
-  ) {
+  } else if (isRegressionIssue && groupIsOccurrenceBacked) {
     const {transaction, aggregateRange2, breakpoint} =
       data?.occurrence?.evidenceData ?? {};
 
@@ -118,6 +118,7 @@ function AllEventsTable(props: Props) {
       eventView={eventView}
       location={location}
       issueId={issueId}
+      isRegressionIssue={isRegressionIssue}
       organization={organization}
       routes={routes}
       excludedTags={excludedTags}
