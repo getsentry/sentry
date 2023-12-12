@@ -39,7 +39,7 @@ const makeGroupPreviewRequestUrl = ({groupId}: {groupId: string}) => {
 
 function AllEventsTable(props: Props) {
   const {location, organization, issueId, excludedTags, group} = props;
-  const config = getConfigForIssueType(props.group);
+  const config = getConfigForIssueType(props.group, group.project);
   const [error, setError] = useState<string>('');
   const routes = useRoutes();
   const {fields, columnTitles} = getColumns(group, organization);

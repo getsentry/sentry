@@ -95,7 +95,7 @@ export function Actions(props: Props) {
   const hasEscalatingIssues = organization.features.includes('escalating-issues');
   const hasDeleteAccess = organization.access.includes('event:admin');
 
-  const config = useMemo(() => getConfigForIssueType(group), [group]);
+  const config = useMemo(() => getConfigForIssueType(group, project), [group, project]);
 
   const {
     actions: {

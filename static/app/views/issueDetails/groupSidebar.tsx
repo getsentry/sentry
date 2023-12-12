@@ -252,7 +252,7 @@ export default function GroupSidebar({
     );
   };
 
-  const issueTypeConfig = getConfigForIssueType(group);
+  const issueTypeConfig = getConfigForIssueType(group, project);
 
   return (
     <Container>

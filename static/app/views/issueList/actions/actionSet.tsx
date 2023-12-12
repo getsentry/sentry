@@ -313,7 +313,7 @@ function isActionSupported(
   actionType: keyof IssueTypeConfig['actions']
 ) {
   for (const issue of selectedIssues) {
-    const info = getConfigForIssueType(issue).actions[actionType];
+    const info = getConfigForIssueType(issue, issue.project).actions[actionType];
 
     if (!info.enabled) {
       return info;

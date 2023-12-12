@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {Project} from 'sentry/types';
 import type {
   IssueCategoryConfigMapping,
   IssueTypeConfig,
@@ -27,6 +28,7 @@ export const errorConfig: IssueCategoryConfigMapping = {
 const enum ErrorHelpType {
   CHUNK_LOAD_ERROR = 'chunk_load_error',
   DOCUMENT_OR_WINDOW_OBJECT_ERROR = 'document_or_window_object_error',
+  HANDLE_HARD_NAVIGATE_ERROR = 'handle_hard_navigate_error',
 }
 
 const errorHelpTypeResourceMap: Record<
@@ -65,11 +67,30 @@ check out the following:`,
       linksByPlatform: {},
     },
   },
+  [ErrorHelpType.HANDLE_HARD_NAVIGATE_ERROR]: {
+    resources: {
+      description: t(
+        'Handle hard navigation errors occur in Next.js applications when trying to redirect to the same page. To learn more about how to fix these errors, check out these resources:'
+      ),
+      links: [
+        {
+          text: t('Fixing handleHardNavigation errors in Next.js'),
+          link: 'https://sentry.io/answers/handle-hard-navigation-errors-in-nextjs/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
 };
 
-export function getErrorHelpResource(
-  title: string
-): Pick<IssueTypeConfig, 'resources'> | null {
+export function getErrorHelpResource({
+  title,
+  project,
+}: {
+  project: Project;
+  title: string;
+}): Pick<IssueTypeConfig, 'resources'> | null {
+  // TODO: more scaleable logic
   if (title.includes('ChunkLoadError')) {
     return errorHelpTypeResourceMap[ErrorHelpType.CHUNK_LOAD_ERROR];
   }
@@ -78,6 +99,12 @@ export function getErrorHelpResource(
     title.includes('document is not defined')
   ) {
     return errorHelpTypeResourceMap[ErrorHelpType.DOCUMENT_OR_WINDOW_OBJECT_ERROR];
+  }
+  if (
+    (project.platform || '').includes('nextjs') &&
+    title.includes('Invariant: attempted to hard navigate to the same URL')
+  ) {
+    return errorHelpTypeResourceMap[ErrorHelpType.HANDLE_HARD_NAVIGATE_ERROR];
   }
 
   return null;
