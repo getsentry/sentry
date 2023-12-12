@@ -295,10 +295,10 @@ class IntegrationService(RpcService):
     def get_integration_identity_context(
         self,
         *,
-        integration_provider: str,
-        integration_external_id: str,
-        identity_external_id: str,
-        identity_provider_external_id: str,
+        integration_provider: Optional[str] = None,
+        integration_external_id: Optional[str] = None,
+        identity_external_id: Optional[str] = None,
+        identity_provider_external_id: Optional[str] = None,
     ) -> RpcIntegrationIdentityContext:
         pass
 

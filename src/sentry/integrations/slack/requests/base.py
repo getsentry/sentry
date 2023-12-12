@@ -85,11 +85,19 @@ class SlackRequest:
         return False
 
     def _get_context(self):
+        team_id = None
+        user_id = None
+        # Let the intended validation methods handle the errors from reading these fields
+        try:
+            team_id = self.team_id
+            user_id = self.user_id
+        except Exception:
+            pass
         context = integration_service.get_integration_identity_context(
             integration_provider="slack",
-            integration_external_id=self.team_id,
-            identity_external_id=self.user_id,
-            identity_provider_external_id=self.team_id,
+            integration_external_id=team_id,
+            identity_external_id=user_id,
+            identity_provider_external_id=team_id,
         )
         if not context:
             return

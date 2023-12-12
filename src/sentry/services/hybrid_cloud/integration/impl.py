@@ -439,10 +439,10 @@ class DatabaseBackedIntegrationService(IntegrationService):
     def get_integration_identity_context(
         self,
         *,
-        integration_provider: str,
-        integration_external_id: str,
-        identity_external_id: str,
-        identity_provider_external_id: str,
+        integration_provider: str | None = None,
+        integration_external_id: str | None = None,
+        identity_external_id: str | None = None,
+        identity_provider_external_id: str | None = None,
     ) -> RpcIntegrationIdentityContext:
         from sentry.services.hybrid_cloud.identity.service import identity_service
         from sentry.services.hybrid_cloud.user.service import user_service
