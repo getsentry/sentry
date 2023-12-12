@@ -20,7 +20,6 @@ export enum ScheduleType {
 
 export enum MonitorObjectStatus {
   ACTIVE = 'active',
-  MUTED = 'muted',
 }
 
 export enum MonitorStatus {
@@ -89,6 +88,7 @@ export interface Monitor {
   dateCreated: string;
   environments: MonitorEnvironment[];
   id: string;
+  isMuted: boolean;
   name: string;
   project: Project;
   slug: string;
