@@ -147,7 +147,7 @@ const replayOnboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
-  replayOnboarding,
+  replayOnboardingNpm: replayOnboarding,
 };
 
 export default docs;
