@@ -7,7 +7,7 @@ from sentry.types.region import Region, RegionDirectory, load_global_regions
 
 
 @contextmanager
-def override_regions(regions: Sequence[Region]):
+def override_regions(regions: Sequence[Region], local_region: Region | None = None):
     """Override the global set of existing regions.
 
     The overriding value takes the place of the `SENTRY_REGION_CONFIG` setting and
@@ -17,7 +17,7 @@ def override_regions(regions: Sequence[Region]):
     """
 
     monolith_region = regions[0] if regions else None
-    replacement = RegionDirectory(regions, monolith_region)
+    replacement = RegionDirectory(regions, monolith_region, local_region)
 
     with load_global_regions().swap_state(replacement):
         yield
