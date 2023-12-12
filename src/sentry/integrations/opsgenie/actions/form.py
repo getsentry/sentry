@@ -62,7 +62,7 @@ class OpsgenieNotifyTeamForm(forms.Form):
         org_integration: RpcOrganizationIntegration,
     ) -> int:
         team = get_team(team_id, org_integration)
-        if not team:
+        if not team or not team_id:
             return INVALID_TEAM
 
         integration_key = team["integration_key"]
@@ -70,6 +70,7 @@ class OpsgenieNotifyTeamForm(forms.Form):
             integration=integration,
             integration_key=integration_key,
             org_integration_id=org_integration.id,
+            keyid=team_id,
         )
         # the integration should be of type "sentry"
         # there's no way to authenticate that a key is an integration key

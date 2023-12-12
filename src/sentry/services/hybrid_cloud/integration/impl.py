@@ -22,7 +22,10 @@ from sentry.services.hybrid_cloud.integration import (
     RpcIntegration,
     RpcOrganizationIntegration,
 )
-from sentry.services.hybrid_cloud.integration.model import RpcIntegrationExternalProject
+from sentry.services.hybrid_cloud.integration.model import (
+    RpcIntegrationExternalProject,
+    RpcIntegrationIdentityContext,
+)
 from sentry.services.hybrid_cloud.integration.serial import (
     serialize_integration,
     serialize_integration_external_project,
@@ -138,6 +141,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         external_id: str | None = None,
         organization_id: int | None = None,
         organization_integration_id: Optional[int] = None,
+        status: int | None = None,
     ) -> RpcIntegration | None:
         integration_kwargs: Dict[str, Any] = {}
         if integration_id is not None:
@@ -150,7 +154,8 @@ class DatabaseBackedIntegrationService(IntegrationService):
             integration_kwargs["organizationintegration__organization_id"] = organization_id
         if organization_integration_id is not None:
             integration_kwargs["organizationintegration__id"] = organization_integration_id
-
+        if status is not None:
+            integration_kwargs["status"] = status
         if not integration_kwargs:
             return None
 
@@ -430,3 +435,40 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if external_project is None:
             return None
         return serialize_integration_external_project(external_project)
+
+    def get_integration_identity_context(
+        self,
+        *,
+        integration_provider: str | None = None,
+        integration_external_id: str | None = None,
+        identity_external_id: str | None = None,
+        identity_provider_external_id: str | None = None,
+    ) -> RpcIntegrationIdentityContext:
+        from sentry.services.hybrid_cloud.identity.service import identity_service
+        from sentry.services.hybrid_cloud.user.service import user_service
+
+        integration = self.get_integration(
+            provider=integration_provider,
+            external_id=integration_external_id,
+        )
+        identity_provider = identity_service.get_provider(
+            provider_type=integration_provider,
+            provider_ext_id=identity_provider_external_id,
+        )
+        identity = (
+            identity_service.get_identity(
+                filter={
+                    "provider_id": identity_provider.id,
+                    "identity_ext_id": identity_external_id,
+                }
+            )
+            if identity_provider
+            else None
+        )
+        user = user_service.get_user(identity.user_id) if identity else None
+        return RpcIntegrationIdentityContext(
+            integration=integration,
+            identity_provider=identity_provider,
+            identity=identity,
+            user=user,
+        )

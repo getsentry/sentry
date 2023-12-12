@@ -5,7 +5,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import ReplayController from 'sentry/components/replays/replayController';
 import ReplayView from 'sentry/components/replays/replayView';
 import {space} from 'sentry/styles/space';
-import {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
+import useReplayLayout, {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useFullscreen from 'sentry/utils/window/useFullscreen';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
@@ -21,11 +21,10 @@ const MIN_CONTENT_HEIGHT = 180;
 
 const DIVIDER_SIZE = 16;
 
-type Props = {
-  layout?: LayoutKey;
-};
+function ReplayLayout() {
+  const {getLayout} = useReplayLayout();
+  const layout = getLayout() ?? LayoutKey.TOPBAR;
 
-function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
   const fullscreenRef = useRef(null);
   const {toggle: toggleFullscreen} = useFullscreen({
     elementRef: fullscreenRef,
@@ -43,7 +42,7 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
   );
 
   const controller = (
-    <ErrorBoundary>
+    <ErrorBoundary mini>
       <ReplayController toggleFullscreen={toggleFullscreen} />
     </ErrorBoundary>
   );
@@ -58,11 +57,11 @@ function ReplayLayout({layout = LayoutKey.TOPBAR}: Props) {
   }
 
   const focusArea = (
-    <ErrorBoundary mini>
-      <FluidPanel title={<SmallMarginFocusTabs />}>
+    <FluidPanel title={<SmallMarginFocusTabs />}>
+      <ErrorBoundary mini>
         <FocusArea />
-      </FluidPanel>
-    </ErrorBoundary>
+      </ErrorBoundary>
+    </FluidPanel>
   );
 
   const hasSize = width + height > 0;

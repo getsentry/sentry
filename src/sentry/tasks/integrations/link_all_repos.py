@@ -6,7 +6,7 @@ from sentry.plugins.providers.integration_repository import (
 )
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import metrics
@@ -42,7 +42,8 @@ def link_all_repos(
     integration = integration_service.get_integration(integration_id=integration_id)
     if not integration:
         logger.error(
-            f"{integration_key}.link_all_repos.integration_missing",
+            "%s.link_all_repos.integration_missing",
+            integration_key,
             extra={"organization_id": organization_id},
         )
         metrics.incr("github.link_all_repos.error", tags={"type": "missing_integration"})
@@ -51,7 +52,8 @@ def link_all_repos(
     rpc_org = organization_service.get(id=organization_id)
     if rpc_org is None:
         logger.error(
-            f"{integration_key}.link_all_repos.organization_missing",
+            "%s.link_all_repos.organization_missing",
+            integration_key,
             extra={"organization_id": organization_id},
         )
         metrics.incr(

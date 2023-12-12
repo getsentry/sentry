@@ -57,7 +57,7 @@ export interface FlamegraphTheme {
     DIFFERENTIAL_INCREASE: ColorChannels;
     FOCUSED_FRAME_BORDER_COLOR: string;
     FRAME_APPLICATION_COLOR: ColorChannels;
-    FRAME_GRAYSCALE_COLOR: ColorChannels;
+    FRAME_FALLBACK_COLOR: ColorChannels;
     FRAME_SYSTEM_COLOR: ColorChannels;
     GRID_FRAME_BACKGROUND_COLOR: string;
     GRID_LINE_COLOR: string;
@@ -211,10 +211,10 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
     CHART_CURSOR_INDICATOR: 'rgba(31,35,58,.75)',
     CHART_LABEL_COLOR: 'rgba(31,35,58,.75)',
     CURSOR_CROSSHAIR: '#bbbbbb',
-    DIFFERENTIAL_DECREASE: [0.309, 0.2058, 0.98],
-    DIFFERENTIAL_INCREASE: [0.98, 0.2058, 0.4381],
+    DIFFERENTIAL_DECREASE: [0.309, 0.2558, 0.78],
+    DIFFERENTIAL_INCREASE: [0.84, 0.3, 0.33],
     FOCUSED_FRAME_BORDER_COLOR: lightTheme.focus,
-    FRAME_GRAYSCALE_COLOR: [0.5, 0.5, 0.6, 0.1],
+    FRAME_FALLBACK_COLOR: [0.5, 0.5, 0.6, 0.1],
     FRAME_APPLICATION_COLOR: [0.1, 0.1, 0.8, 0.2],
     FRAME_SYSTEM_COLOR: [0.7, 0.1, 0.1, 0.2],
     SPAN_FALLBACK_COLOR: [0, 0, 0, 0.1],
@@ -268,7 +268,7 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
     DIFFERENTIAL_DECREASE: [0.309, 0.2058, 0.98],
     DIFFERENTIAL_INCREASE: [0.98, 0.2058, 0.4381],
     FOCUSED_FRAME_BORDER_COLOR: darkTheme.focus,
-    FRAME_GRAYSCALE_COLOR: [0.5, 0.5, 0.5, 0.4],
+    FRAME_FALLBACK_COLOR: [0.5, 0.5, 0.5, 0.4],
     FRAME_APPLICATION_COLOR: [0.1, 0.1, 0.5, 0.4],
     FRAME_SYSTEM_COLOR: [0.6, 0.15, 0.25, 0.3],
     SPAN_FALLBACK_COLOR: [1, 1, 1, 0.3],

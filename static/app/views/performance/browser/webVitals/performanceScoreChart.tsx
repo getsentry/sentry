@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {PerformanceScoreBreakdownChart} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
-import {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+import {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 
 import PerformanceScoreRingWithTooltips from './components/performanceScoreRingWithTooltips';
@@ -19,6 +19,9 @@ type Props = {
   projectScore?: ProjectScore;
   transaction?: string;
   webVital?: WebVitals | null;
+  weights?: {
+    [key in WebVitals]: number;
+  };
 };
 
 export const ORDER = ['lcp', 'fcp', 'fid', 'cls', 'ttfb'];
@@ -54,6 +57,35 @@ export function PerformanceScoreChart({
   const period = pageFilters.selection.datetime.period;
   const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
 
+  const containsWeights = (
+    weights: ProjectScore
+  ): weights is ProjectScore & {
+    clsWeight: number;
+    fcpWeight: number;
+    fidWeight: number;
+    lcpWeight: number;
+    ttfbWeight: number;
+  } => {
+    return !!(
+      weights?.clsWeight &&
+      weights?.fcpWeight &&
+      weights?.fidWeight &&
+      weights?.lcpWeight &&
+      weights?.ttfbWeight
+    );
+  };
+
+  const weights =
+    projectScore && containsWeights(projectScore)
+      ? {
+          cls: projectScore.clsWeight,
+          fcp: projectScore.fcpWeight,
+          fid: projectScore.fidWeight,
+          lcp: projectScore.lcpWeight,
+          ttfb: projectScore.ttfbWeight,
+        }
+      : undefined;
+
   return (
     <Flex>
       <PerformanceScoreLabelContainer>
@@ -79,9 +111,10 @@ export function PerformanceScoreChart({
             projectScore={projectScore}
             text={score}
             width={220}
-            height={180}
+            height={190}
             ringBackgroundColors={ringBackgroundColors}
             ringSegmentColors={ringSegmentColors}
+            weights={weights}
           />
         )}
         {!isProjectScoreLoading && !projectScore && (

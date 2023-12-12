@@ -12,7 +12,10 @@ from sentry.models.integrations.organization_integration import (
     PagerDutyServiceDict,
 )
 from sentry.services.hybrid_cloud.integration import RpcIntegration, RpcOrganizationIntegration
-from sentry.services.hybrid_cloud.integration.model import RpcIntegrationExternalProject
+from sentry.services.hybrid_cloud.integration.model import (
+    RpcIntegrationExternalProject,
+    RpcIntegrationIdentityContext,
+)
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
@@ -92,6 +95,7 @@ class IntegrationService(RpcService):
         external_id: Optional[str] = None,
         organization_id: Optional[int] = None,
         organization_integration_id: Optional[int] = None,
+        status: Optional[int] = None,
     ) -> Optional[RpcIntegration]:
         """
         Returns an RpcIntegration using either the id or a combination of the provider and external_id
@@ -284,6 +288,18 @@ class IntegrationService(RpcService):
     def get_integration_external_project(
         self, *, organization_id: int, integration_id: int, external_id: str
     ) -> Optional[RpcIntegrationExternalProject]:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def get_integration_identity_context(
+        self,
+        *,
+        integration_provider: Optional[str] = None,
+        integration_external_id: Optional[str] = None,
+        identity_external_id: Optional[str] = None,
+        identity_provider_external_id: Optional[str] = None,
+    ) -> RpcIntegrationIdentityContext:
         pass
 
 

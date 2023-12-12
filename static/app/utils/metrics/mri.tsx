@@ -27,7 +27,7 @@ function _parseMRI(mri: MRI): ParsedMRI {
   const mriArray = mri.split(new RegExp(/[:/@]/));
 
   if (mriArray.length !== 4) {
-    Sentry.captureMessage(`Invalid MRI: ${mri}`);
+    Sentry.captureMessage(`Failed to parse invalid MRI`, {extra: {mri}});
     throw new Error('Invalid MRI');
   }
 
@@ -35,10 +35,23 @@ function _parseMRI(mri: MRI): ParsedMRI {
 
   return {
     type: metricType as MetricType,
-    name,
+    name: parseName(name, useCase as UseCase),
     unit,
     useCase: useCase as UseCase,
   };
+}
+
+function parseName(name: string, useCase: UseCase): string {
+  if (useCase === 'custom') {
+    return name;
+  }
+  if (useCase === 'transactions') {
+    if (name === 'duration') {
+      return 'transaction.duration';
+    }
+    return name;
+  }
+  return `${useCase}.${name}`;
 }
 
 export function toMRI({type, useCase, name, unit}: ParsedMRI): MRI {

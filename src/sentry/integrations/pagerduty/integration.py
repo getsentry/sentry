@@ -69,11 +69,24 @@ metadata = IntegrationMetadata(
 
 
 class PagerDutyIntegration(IntegrationInstallation):
-    def get_client(self, integration_key):
+    def get_keyring_client(self, keyid: str) -> PagerDutyProxyClient:
+        org_integration = self.org_integration
+        assert org_integration, "Cannot get client without an organization integration"
+
+        integration_key = None
+        for pds in org_integration.config.get("pagerduty_services", []):
+            if str(pds["id"]) == str(keyid):
+                integration_key = pds["integration_key"]
+        assert integration_key, "Cannot get client without an an integration_key"
+
         return PagerDutyProxyClient(
             org_integration_id=self.org_integration.id,
             integration_key=integration_key,
+            keyid=keyid,
         )
+
+    def get_client(self):
+        raise NotImplementedError("Use get_keyring_client instead.")
 
     def get_organization_config(self):
         fields = [

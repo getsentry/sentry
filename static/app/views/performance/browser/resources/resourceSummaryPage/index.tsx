@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
+import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -12,10 +12,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {FilterOptionsContainer} from 'sentry/views/performance/browser/resources/jsCssView';
 import ResourceInfo from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceInfo';
 import ResourceSummaryCharts from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceSummaryCharts';
 import ResourceSummaryTable from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceSummaryTable';
+import {FilterOptionsContainer} from 'sentry/views/performance/browser/resources/resourceView';
 import RenderBlockingSelector from 'sentry/views/performance/browser/resources/shared/renderBlockingSelector';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
@@ -87,9 +87,9 @@ function ResourceSummary() {
 
       <Layout.Body>
         <Layout.Main fullWidth>
-          <FeedbackWidget />
+          <FloatingFeedbackWidget />
           <HeaderContainer>
-            <FilterOptionsContainer>
+            <FilterOptionsContainer columnCount={2}>
               <PageFilterBar condensed>
                 <ProjectPageFilter />
                 <EnvironmentPageFilter />

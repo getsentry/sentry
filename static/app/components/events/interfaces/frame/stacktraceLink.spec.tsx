@@ -1,7 +1,9 @@
 import {Commit} from 'sentry-fixture/commit';
+import {Event as EventFixture} from 'sentry-fixture/event';
 import {Organization} from 'sentry-fixture/organization';
 import {Repository} from 'sentry-fixture/repository';
 import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -16,7 +18,7 @@ describe('StacktraceLink', function () {
   const org = Organization();
   const platform = 'python';
   const project = TestStubs.Project({});
-  const event = TestStubs.Event({
+  const event = EventFixture({
     projectID: project.id,
     release: TestStubs.Release({lastCommit: Commit()}),
     platform,
@@ -48,7 +50,7 @@ describe('StacktraceLink', function () {
       body: {config: null, sourceUrl: null, integrations: []},
     });
     render(<StacktraceLink frame={frame} event={event} line="" />, {
-      context: TestStubs.routerContext(),
+      context: RouterContextFixture(),
     });
     expect(
       await screen.findByText(
@@ -91,7 +93,7 @@ describe('StacktraceLink', function () {
       body: {},
     });
     const {container} = render(<StacktraceLink frame={frame} event={event} line="" />, {
-      context: TestStubs.routerContext(),
+      context: RouterContextFixture(),
     });
     expect(
       await screen.findByText(
@@ -124,7 +126,7 @@ describe('StacktraceLink', function () {
       body: {config: null, sourceUrl: null, integrations: [integration]},
     });
     render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
-      context: TestStubs.routerContext(),
+      context: RouterContextFixture(),
     });
     expect(
       await screen.findByText('Tell us where your source code is')
@@ -137,7 +139,7 @@ describe('StacktraceLink', function () {
       body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
     });
     render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
-      context: TestStubs.routerContext(),
+      context: RouterContextFixture(),
     });
     expect(await screen.findByRole('link')).toHaveAttribute(
       'href',
@@ -156,7 +158,7 @@ describe('StacktraceLink', function () {
       },
     });
     render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
-      context: TestStubs.routerContext(),
+      context: RouterContextFixture(),
     });
     expect(
       await screen.findByRole('button', {
@@ -180,7 +182,7 @@ describe('StacktraceLink', function () {
         event={{...event, platform: 'javascript'}}
         line="{snip} somethingInsane=e.IsNotFound {snip}"
       />,
-      {context: TestStubs.routerContext()}
+      {context: RouterContextFixture()}
     );
     await waitFor(() => {
       expect(container).toBeEmptyDOMElement();
@@ -198,7 +200,7 @@ describe('StacktraceLink', function () {
     });
     const {container} = render(
       <StacktraceLink frame={frame} event={{...event, platform: 'unreal'}} line="" />,
-      {context: TestStubs.routerContext()}
+      {context: RouterContextFixture()}
     );
     await waitFor(() => {
       expect(container).toBeEmptyDOMElement();
@@ -224,7 +226,7 @@ describe('StacktraceLink', function () {
       },
     });
     render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
-      context: TestStubs.routerContext(),
+      context: RouterContextFixture(),
       organization,
     });
 
@@ -255,7 +257,7 @@ describe('StacktraceLink', function () {
       },
     });
     render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
-      context: TestStubs.routerContext(),
+      context: RouterContextFixture(),
       organization,
     });
     expect(await screen.findByText('Code Coverage not found')).toBeInTheDocument();
@@ -283,7 +285,7 @@ describe('StacktraceLink', function () {
       },
     });
     render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
-      context: TestStubs.routerContext(),
+      context: RouterContextFixture(),
       organization,
     });
     expect(await screen.findByTestId('codecov-link')).toBeInTheDocument();
@@ -308,7 +310,7 @@ describe('StacktraceLink', function () {
         line="foo()"
       />,
       {
-        context: TestStubs.routerContext(),
+        context: RouterContextFixture(),
       }
     );
     expect(await screen.findByRole('link')).toHaveAttribute(
@@ -338,7 +340,7 @@ describe('StacktraceLink', function () {
         line="foo()"
       />,
       {
-        context: TestStubs.routerContext(),
+        context: RouterContextFixture(),
       }
     );
     expect(await screen.findByRole('link')).toHaveAttribute(
@@ -358,7 +360,7 @@ describe('StacktraceLink', function () {
     });
     const {container} = render(
       <StacktraceLink frame={frame} event={{...event, platform: 'csharp'}} line="" />,
-      {context: TestStubs.routerContext()}
+      {context: RouterContextFixture()}
     );
     await waitFor(() => {
       expect(container).toBeEmptyDOMElement();

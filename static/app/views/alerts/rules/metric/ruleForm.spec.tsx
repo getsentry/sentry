@@ -7,9 +7,11 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import FormModel from 'sentry/components/forms/model';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {metric} from 'sentry/utils/analytics';
 import RuleFormContainer from 'sentry/views/alerts/rules/metric/ruleForm';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {permissionAlertText} from 'sentry/views/settings/project/permissionAlert';
 
 jest.mock('sentry/actionCreators/indicator');
@@ -264,11 +266,11 @@ describe('Incident Rules Form', () => {
       });
 
       await userEvent.click(screen.getAllByText('Number of Errors').at(1)!);
-      await userEvent.click(await screen.findByText('Custom Metric'));
+      await userEvent.click(await screen.findByText('Custom Measurement'));
 
       await userEvent.click(screen.getAllByText('event.type:transaction').at(1)!);
       await userEvent.click(await screen.findByText('event.type:error'));
-      expect(screen.getAllByText('Custom Metric')).toHaveLength(2);
+      expect(screen.getAllByText('Custom Measurement')).toHaveLength(2);
       await userEvent.click(screen.getByLabelText('Save Rule'));
 
       expect(createRule).toHaveBeenLastCalledWith(
@@ -432,6 +434,36 @@ describe('Incident Rules Form', () => {
 
       await userEvent.click(screen.getByLabelText('Save Rule'), {delay: null});
       expect(onSubmitSuccess).not.toHaveBeenCalled();
+    });
+
+    it('hides fields when migrating error metric alerts to filter archived issues', async () => {
+      const errorAlert = MetricRule({
+        dataset: Dataset.ERRORS,
+        query: 'example-error',
+      });
+      organization.features = [...organization.features, 'metric-alert-ignore-archived'];
+      location = {...location, query: {migration: '1'}};
+
+      const onSubmitSuccess = jest.fn();
+
+      createWrapper({
+        ruleId: errorAlert.id,
+        rule: {
+          ...errorAlert,
+          eventTypes: ['transaction'],
+        },
+        onSubmitSuccess,
+      });
+
+      expect(
+        await screen.findByText(/please make sure the current thresholds are still valid/)
+      ).toBeInTheDocument();
+      await userEvent.click(screen.getByLabelText('Looks good to me!'), {delay: null});
+      expect(onSubmitSuccess).toHaveBeenCalled();
+      const formModel = onSubmitSuccess.mock.calls[0][1] as FormModel;
+      expect(formModel.getData()).toEqual(
+        expect.objectContaining({query: 'is:unresolved example-error'})
+      );
     });
   });
 

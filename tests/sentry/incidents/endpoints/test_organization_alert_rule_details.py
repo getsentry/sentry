@@ -29,8 +29,11 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.integrations.integration import Integration
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.services.hybrid_cloud.app import app_service
-from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo import SiloMode
+from sentry.tasks.integrations.slack.find_channel_id_for_alert_rule import (
+    find_channel_id_for_alert_rule,
+)
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -655,7 +658,7 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=("#", None, True),
     )
-    @patch("sentry.tasks.integrations.slack.find_channel_id_for_alert_rule.apply_async")
+    @patch.object(find_channel_id_for_alert_rule, "apply_async")
     @patch("sentry.integrations.slack.utils.rule_status.uuid4")
     def test_kicks_off_slack_async_job(
         self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
@@ -780,7 +783,7 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
             ]
         }
 
-    @patch("sentry.tasks.integrations.slack.find_channel_id_for_alert_rule.apply_async")
+    @patch.object(find_channel_id_for_alert_rule, "apply_async")
     @patch("sentry.integrations.slack.utils.rule_status.uuid4")
     @responses.activate
     def test_create_slack_alert_with_empty_channel_id(

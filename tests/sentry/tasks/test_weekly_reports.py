@@ -2,6 +2,7 @@ import copy
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 
+import pytest
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 from django.db import router
@@ -665,13 +666,14 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             assert context["user_project_count"] == 1
             assert f"Weekly Report for {self.organization.name}" in message_params["subject"]
 
-        record.assert_any_call(
-            "weekly_report.sent",
-            user_id=user.id,
-            organization_id=self.organization.id,
-            notification_uuid=mock.ANY,
-            user_project_count=1,
-        )
+        with pytest.raises(AssertionError):
+            record.assert_any_call(
+                "weekly_report.sent",
+                user_id=user.id,
+                organization_id=self.organization.id,
+                notification_uuid=mock.ANY,
+                user_project_count=1,
+            )
 
         message_builder.return_value.send.assert_called_with(to=("joseph@speedwagon.org",))
 
@@ -715,13 +717,14 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             assert context["organization"] == self.organization
             assert context["user_project_count"] == 3
 
-        record.assert_any_call(
-            "weekly_report.sent",
-            user_id=None,
-            organization_id=self.organization.id,
-            notification_uuid=mock.ANY,
-            user_project_count=3,
-        )
+        with pytest.raises(AssertionError):
+            record.assert_any_call(
+                "weekly_report.sent",
+                user_id=None,
+                organization_id=self.organization.id,
+                notification_uuid=mock.ANY,
+                user_project_count=1,
+            )
 
         message_builder.return_value.send.assert_called_with(to=("jonathan@speedwagon.org",))
 
@@ -755,7 +758,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             email_override="doesntmatter@smad.com",
         )
 
-        logger.exception.assert_called_with(
+        logger.error.assert_called_with(
             "Target user must have an ID",
             extra={
                 "organization": org.id,
@@ -763,3 +766,45 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
                 "email_override": "doesntmatter@smad.com",
             },
         )
+
+    @mock.patch("sentry.analytics.record")
+    @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
+    def test_dry_run_simple(self, message_builder, record):
+        now = django_timezone.now()
+        two_days_ago = now - timedelta(days=2)
+        timestamp = to_timestamp(floor_to_utc_day(now))
+        org = self.create_organization()
+        proj = self.create_project(organization=org)
+
+        # fill with data so report not skipped
+        self.store_outcomes(
+            {
+                "org_id": org.id,
+                "project_id": proj.id,
+                "outcome": Outcome.ACCEPTED,
+                "category": DataCategory.ERROR,
+                "timestamp": two_days_ago,
+                "key_id": 1,
+            },
+            num_times=2,
+        )
+
+        prepare_organization_report(
+            timestamp,
+            ONE_DAY * 7,
+            org.id,
+            dry_run=True,
+            target_user=None,
+            email_override="doesntmatter@smad.com",
+        )
+
+        with pytest.raises(AssertionError):
+            record.assert_any_call(
+                "weekly_report.sent",
+                user_id=None,
+                organization_id=self.organization.id,
+                notification_uuid=mock.ANY,
+                user_project_count=1,
+            )
+
+        message_builder.return_value.send.assert_not_called()

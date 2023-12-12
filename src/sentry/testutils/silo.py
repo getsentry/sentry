@@ -34,12 +34,12 @@ from django.db.models.fields.related import RelatedField
 from django.test import override_settings
 
 from sentry import deletions
+from sentry.api.utils import generate_region_url
 from sentry.db.models.base import BaseModel, ModelSiloLimit
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionModel
 from sentry.deletions.base import BaseDeletionTask
 from sentry.models.actor import Actor
-from sentry.models.notificationsetting import NotificationSetting
 from sentry.silo import SiloMode, match_fence_query
 from sentry.testutils.region import override_regions
 from sentry.types.region import Region, RegionCategory
@@ -49,11 +49,22 @@ TestMethod = Callable[..., None]
 
 SENTRY_USE_MONOLITH_DBS = os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
 
-_DEFAULT_TEST_REGIONS = (
-    Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
-    Region("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT),
-    Region("acme-single-tenant", 3, "acme.my.sentry.io", RegionCategory.SINGLE_TENANT),
-)
+
+def create_test_regions(*names: str, single_tenants: Iterable[str] = ()) -> tuple[Region, ...]:
+    single_tenants = frozenset(single_tenants)
+    return tuple(
+        Region(
+            name=name,
+            snowflake_id=index + 1,
+            address=generate_region_url(name),
+            category=(
+                RegionCategory.SINGLE_TENANT
+                if name in single_tenants
+                else RegionCategory.MULTI_TENANT
+            ),
+        )
+        for (index, name) in enumerate(names)
+    )
 
 
 def _model_silo_limit(t: type[Model]) -> ModelSiloLimit:
@@ -85,22 +96,25 @@ def strip_silo_mode_test_suffix(name: str) -> str:
 class SiloModeTestDecorator:
     """Decorate a test case that is expected to work in a given silo mode.
 
-    Tests marked to work in monolith mode are always executed.
-    Tests marked additionally to work in region or control mode only do so when the test is marked as stable=True
+    A test marked with a single silo mode runs only in that mode by default. An
+    `include_monolith_run=True` will add a secondary run in monolith mode.
 
-    When testing in a silo mode, if the decorator is on a test case class,
+    If a test is marked with both control and region modes, then the primary run will
+    be in monolith mode and a secondary run will be generated in each silo mode.
+
+    When testing on more than one mode, if the decorator is on a test case class,
     an additional class is dynamically generated and added to the module for Pytest
     to pick up. For example, if you write
 
     ```
-        @control_silo_test
+        @control_silo_test(include_monolith_run=True)
         class MyTest(TestCase):
             def setUp(self):      ...
             def test_stuff(self): ...
     ```
 
-    then your result set should include test runs for both `MyTest` (in monolith
-    mode) and `MyTest__InControlMode`.
+    then your result set should include test runs for both `MyTest` (in control mode)
+    and `MyTest__InMonolithMode`.
     """
 
     def __init__(self, *silo_modes: SiloMode) -> None:
@@ -109,14 +123,12 @@ class SiloModeTestDecorator:
     def __call__(
         self,
         decorated_obj: Any = None,
-        stable: bool = True,
         regions: Sequence[Region] = (),
         include_monolith_run: bool = False,
     ) -> Any:
         mod = _SiloModeTestModification(
             silo_modes=self.silo_modes,
-            regions=tuple(regions or _DEFAULT_TEST_REGIONS),
-            stable=stable,
+            regions=tuple(regions),
             include_monolith_run=include_monolith_run,
         )
 
@@ -129,14 +141,13 @@ class _SiloModeTestModification:
 
     silo_modes: frozenset[SiloMode]
     regions: tuple[Region, ...]
-    stable: bool
     include_monolith_run: bool
 
     run_original_class_in_silo_mode: bool = True
 
     @contextmanager
     def test_config(self, silo_mode: SiloMode):
-        monolith_region = self.regions[0].name
+        monolith_region = self.regions[0].name if self.regions else settings.SENTRY_MONOLITH_REGION
         with contextlib.ExitStack() as stack:
             stack.enter_context(
                 override_settings(
@@ -218,9 +229,12 @@ class _SiloModeTestModification:
             )
             new_sig = orig_sig.replace(parameters=new_params)
             new_test_method.__setattr__("__signature__", new_sig)
-        return pytest.mark.parametrize(
-            "silo_mode", sorted(self.silo_modes | frozenset([SiloMode.MONOLITH]), key=str)
-        )(new_test_method)
+
+        mode_parameters = self.silo_modes
+        if self.include_monolith_run:
+            mode_parameters |= frozenset([SiloMode.MONOLITH])
+        parametrize = pytest.mark.parametrize("silo_mode", sorted(mode_parameters, key=str))
+        return parametrize(new_test_method)
 
     def apply(self, decorated_obj: Any) -> Any:
         is_test_case_class = isinstance(decorated_obj, type) and issubclass(decorated_obj, TestCase)
@@ -234,10 +248,9 @@ class _SiloModeTestModification:
             # _silo_modes is used to mark the class as silo decorated in the above validation
             decorated_obj._silo_modes = self.silo_modes
 
-        # Only run non monolith tests when they are marked stable or we are explicitly running for
-        # that mode.
-        if SENTRY_USE_MONOLITH_DBS or not (self.stable or settings.FORCE_SILOED_TESTS):
-            # In this case, simply force the current silo mode (monolith)
+        if SENTRY_USE_MONOLITH_DBS:
+            # In this case, skip modifying the object and let it run in the default
+            # silo mode (monolith)
             return decorated_obj
 
         if is_test_case_class:
@@ -276,18 +289,12 @@ control_silo_test = SiloModeTestDecorator(SiloMode.CONTROL)
 """
 Apply to test functions/classes to indicate that tests are
 expected to pass with the current silo mode set to CONTROL.
-
-When the stable=True parameter is provided tests will be
-run twice as both CONTROL and MONOLITH modes.
 """
 
 region_silo_test = SiloModeTestDecorator(SiloMode.REGION)
 """
 Apply to test functions/classes to indicate that tests are
 expected to pass with the current silo mode set to REGION.
-
-When the stable=True parameter is provided tests will be
-run twice as both REGION and MONOLITH modes.
 """
 
 
@@ -319,8 +326,6 @@ def assume_test_silo_mode(desired_silo: SiloMode, can_be_monolith: bool = True) 
     overrides: MutableMapping[str, Any] = {}
     if desired_silo != SiloMode.get_current_mode():
         overrides["SILO_MODE"] = desired_silo
-    if desired_silo == SiloMode.REGION and not getattr(settings, "SENTRY_REGION"):
-        overrides["SENTRY_REGION"] = "na"
 
     if overrides:
         with override_settings(**overrides):
@@ -563,7 +568,7 @@ def validate_hcfk_has_global_id(model: Type[Model], related_model: Type[Model]):
         return
 
     # This particular relation is being removed before we go multi region.
-    if related_model is Actor and model is NotificationSetting:
+    if related_model is Actor:
         return
 
     # but they cannot point to region models otherwise.

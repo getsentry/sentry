@@ -33,13 +33,13 @@ import {
 } from 'sentry/utils/profiling/gl/utils';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useInternalFlamegraphDebugMode} from 'sentry/utils/profiling/hooks/useInternalFlamegraphDebugMode';
+import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 import {FlamegraphTextRenderer} from 'sentry/utils/profiling/renderers/flamegraphTextRenderer';
 import {GridRenderer} from 'sentry/utils/profiling/renderers/gridRenderer';
 import {SampleTickRenderer} from 'sentry/utils/profiling/renderers/sampleTickRenderer';
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
 import {Rect} from 'sentry/utils/profiling/speedscope';
-import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';
 import {useCanvasZoomOrScroll} from './interactions/useCanvasZoomOrScroll';
@@ -69,6 +69,7 @@ interface FlamegraphZoomViewProps {
   flamegraphOverlayCanvasRef: HTMLCanvasElement | null;
   flamegraphRenderer: FlamegraphRenderer | null;
   flamegraphView: CanvasView<Flamegraph> | null;
+  profileGroup: ProfileGroup;
   setFlamegraphCanvasRef: React.Dispatch<React.SetStateAction<HTMLCanvasElement | null>>;
   setFlamegraphOverlayCanvasRef: React.Dispatch<
     React.SetStateAction<HTMLCanvasElement | null>
@@ -89,6 +90,7 @@ function FlamegraphZoomView({
   flamegraphCanvasRef,
   flamegraphOverlayCanvasRef,
   flamegraphView,
+  profileGroup,
   setFlamegraphCanvasRef,
   setFlamegraphOverlayCanvasRef,
   disablePanX = false,
@@ -98,7 +100,6 @@ function FlamegraphZoomView({
   disableColorCoding = false,
 }: FlamegraphZoomViewProps): React.ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
-  const profileGroup = useProfileGroup();
   const flamegraphSearch = useFlamegraphSearch();
   const isInternalFlamegraphDebugModeEnabled = useInternalFlamegraphDebugMode();
 
@@ -729,6 +730,23 @@ function FlamegraphZoomView({
       });
   }, []);
 
+  const handleCopyFunctionSource = useCallback(() => {
+    if (!hoveredNodeOnContextMenuOpen.current) {
+      return;
+    }
+
+    const frame = hoveredNodeOnContextMenuOpen.current.frame;
+
+    navigator.clipboard
+      .writeText(frame.file ?? frame.path ?? '')
+      .then(() => {
+        addSuccessMessage(t('Function source copied to clipboard'));
+      })
+      .catch(() => {
+        addErrorMessage(t('Failed to copy function source to clipboard'));
+      });
+  }, []);
+
   return (
     <CanvasContainer ref={canvasContainerRef}>
       <Canvas
@@ -749,6 +767,7 @@ function FlamegraphZoomView({
         hoveredNode={hoveredNodeOnContextMenuOpen.current}
         isHighlightingAllOccurrences={highlightingAllOccurrences}
         onCopyFunctionNameClick={handleCopyFunctionName}
+        onCopyFunctionSource={handleCopyFunctionSource}
         onHighlightAllOccurrencesClick={handleHighlightAllFramesClick}
         disableCallOrderSort={disableCallOrderSort}
         disableColorCoding={disableColorCoding}
@@ -759,6 +778,7 @@ function FlamegraphZoomView({
       configSpaceCursor &&
       hoveredNode ? (
         <FlamegraphTooltip
+          flamegraph={flamegraph}
           frame={hoveredNode}
           configSpaceCursor={configSpaceCursor}
           flamegraphCanvas={flamegraphCanvas}

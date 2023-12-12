@@ -3,6 +3,7 @@ import {incrementalSnapshotEvent, IncrementalSource} from '@sentry-internal/rrwe
 import memoize from 'lodash/memoize';
 import {duration} from 'moment';
 
+import {defined} from 'sentry/utils';
 import domId from 'sentry/utils/domId';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import hydrateBreadcrumbs, {
@@ -170,7 +171,8 @@ export default class ReplayReader {
     // few seconds later.
     this._sortedBreadcrumbFrames = hydrateBreadcrumbs(
       replayRecord,
-      breadcrumbFrames
+      breadcrumbFrames,
+      this._sortedRRWebEvents
     ).sort(sortFrames);
     // Spans must be sorted so components like the Timeline and Network Chart
     // can have an easier time to render.
@@ -194,6 +196,21 @@ export default class ReplayReader {
   private _sortedSpanFrames: SpanFrame[] = [];
 
   toJSON = () => this._cacheKey;
+
+  processingErrors = memoize(() => {
+    return [
+      this.getRRWebFrames().length < 2
+        ? `Replay has ${this.getRRWebFrames().length} frames`
+        : null,
+      !this.getRRWebFrames().some(frame => frame.type === EventType.Meta)
+        ? 'Missing Meta Frame'
+        : null,
+    ].filter(defined);
+  });
+
+  hasProcessingErrors = () => {
+    return this.processingErrors().length;
+  };
 
   /**
    * @returns Duration of Replay (milliseonds)
@@ -265,7 +282,7 @@ export default class ReplayReader {
     [
       ...this.getPerfFrames(),
       ...this._sortedBreadcrumbFrames.filter(frame =>
-        ['replay.init', 'replay.mutations'].includes(frame.category)
+        ['replay.init', 'replay.mutations', 'replay.hydrate'].includes(frame.category)
       ),
       ...this._errors,
     ].sort(sortFrames)

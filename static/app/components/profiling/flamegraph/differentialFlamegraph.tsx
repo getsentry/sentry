@@ -1,40 +1,35 @@
-import {ReactElement, useEffect, useLayoutEffect, useMemo, useState} from 'react';
+import {ReactElement, useLayoutEffect, useMemo, useState} from 'react';
+import * as Sentry from '@sentry/react';
 import {mat3, vec2} from 'gl-matrix';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
-import {defined} from 'sentry/utils';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {DifferentialFlamegraph as DifferentialFlamegraphModel} from 'sentry/utils/profiling/differentialFlamegraph';
-import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
-import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
-import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {
   computeConfigViewWithStrategy,
+  initializeFlamegraphRenderer,
   useResizeCanvasObserver,
 } from 'sentry/utils/profiling/gl/utils';
+import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphRenderer2D';
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
-import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 interface DifferentialFlamegraphProps {
   canvasPoolManager: CanvasPoolManager;
-  fromFlamegraph: FlamegraphModel;
+  differentialFlamegraph: DifferentialFlamegraphModel;
+  profileGroup: ProfileGroup;
   scheduler: CanvasScheduler;
-  toFlamegraph: FlamegraphModel;
 }
 
 export function DifferentialFlamegraph(props: DifferentialFlamegraphProps): ReactElement {
-  const dispatch = useDispatchFlamegraphState();
-
-  const profileGroup = useProfileGroup();
-
   const flamegraphTheme = useFlamegraphTheme();
-  const profiles = useFlamegraphProfiles();
   const {colorCoding} = useFlamegraphPreferences();
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
@@ -49,30 +44,18 @@ export function DifferentialFlamegraph(props: DifferentialFlamegraphProps): Reac
     return new FlamegraphCanvas(flamegraphCanvasRef, vec2.fromValues(0, 0));
   }, [flamegraphCanvasRef]);
 
-  const differentialFlamegraph = useMemo<DifferentialFlamegraphModel>(() => {
-    if (!props.fromFlamegraph || !props.toFlamegraph) {
-      return DifferentialFlamegraphModel.Empty();
-    }
-
-    return DifferentialFlamegraphModel.FromDiff(
-      props.fromFlamegraph,
-      props.toFlamegraph,
-      flamegraphTheme
-    );
-  }, [props.fromFlamegraph, props.toFlamegraph, flamegraphTheme]);
-
   const flamegraphView = useMemo<CanvasView<DifferentialFlamegraphModel> | null>(
     () => {
-      if (!flamegraphCanvas) {
+      if (!flamegraphCanvas || !props.differentialFlamegraph) {
         return null;
       }
 
       const newView = new CanvasView({
         canvas: flamegraphCanvas,
-        model: differentialFlamegraph,
+        model: props.differentialFlamegraph,
         options: {
-          inverted: differentialFlamegraph.inverted,
-          minWidth: differentialFlamegraph.profile.minFrameDuration,
+          inverted: props.differentialFlamegraph.inverted,
+          minWidth: props.differentialFlamegraph.profile.minFrameDuration,
           barHeight: flamegraphTheme.SIZES.BAR_HEIGHT,
           depthOffset: flamegraphTheme.SIZES.AGGREGATE_FLAMEGRAPH_DEPTH_OFFSET,
           configSpaceTransform: undefined,
@@ -81,7 +64,7 @@ export function DifferentialFlamegraph(props: DifferentialFlamegraphProps): Reac
 
       // Find p75 of the graphtree depth and set the view to 3/4 of that
       const depths: number[] = [];
-      for (const frame of differentialFlamegraph.frames) {
+      for (const frame of props.differentialFlamegraph.frames) {
         if (frame.children.length > 0) {
           continue;
         }
@@ -103,7 +86,7 @@ export function DifferentialFlamegraph(props: DifferentialFlamegraphProps): Reac
 
     // We skip position.view dependency because it will go into an infinite loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [differentialFlamegraph, flamegraphCanvas, flamegraphTheme]
+    [props.differentialFlamegraph, flamegraphCanvas, flamegraphTheme]
   );
 
   // Uses a useLayoutEffect to ensure that these top level/global listeners are added before
@@ -178,47 +161,41 @@ export function DifferentialFlamegraph(props: DifferentialFlamegraphProps): Reac
   );
 
   const flamegraphRenderer = useMemo(() => {
-    if (!flamegraphCanvasRef) {
+    if (!flamegraphCanvasRef || !props.differentialFlamegraph) {
       return null;
     }
 
-    return new FlamegraphRendererWebGL(
-      flamegraphCanvasRef,
-      differentialFlamegraph,
-      flamegraphTheme,
-      {
-        colorCoding,
-        draw_border: true,
-      }
+    const renderer = initializeFlamegraphRenderer(
+      [FlamegraphRendererWebGL, FlamegraphRenderer2D],
+      [
+        flamegraphCanvasRef,
+        props.differentialFlamegraph,
+        flamegraphTheme,
+        {
+          colorCoding,
+          draw_border: true,
+        },
+      ]
     );
-  }, [colorCoding, differentialFlamegraph, flamegraphCanvasRef, flamegraphTheme]);
 
-  useEffect(() => {
-    if (defined(profiles.threadId)) {
-      return;
+    if (renderer === null) {
+      Sentry.captureException('Failed to initialize a flamegraph renderer');
+      addErrorMessage('Failed to initialize renderer');
+      return null;
     }
-    const threadID =
-      typeof profileGroup.activeProfileIndex === 'number'
-        ? profileGroup.profiles[profileGroup.activeProfileIndex]?.threadId
-        : null;
-    // fall back case, when we finally load the active profile index from the profile,
-    // make sure we update the thread id so that it is show first
-    if (defined(threadID)) {
-      dispatch({
-        type: 'set thread id',
-        payload: threadID,
-      });
-    }
-  }, [profileGroup, profiles.threadId, dispatch]);
+
+    return renderer;
+  }, [colorCoding, props.differentialFlamegraph, flamegraphCanvasRef, flamegraphTheme]);
 
   return (
     <FlamegraphZoomView
+      profileGroup={props.profileGroup}
       disableGrid
       disableCallOrderSort
       disableColorCoding
       canvasBounds={flamegraphCanvasBounds}
       canvasPoolManager={props.canvasPoolManager}
-      flamegraph={differentialFlamegraph}
+      flamegraph={props.differentialFlamegraph}
       flamegraphRenderer={flamegraphRenderer}
       flamegraphCanvas={flamegraphCanvas}
       flamegraphCanvasRef={flamegraphCanvasRef}

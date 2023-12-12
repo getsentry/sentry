@@ -23,11 +23,12 @@ from sentry.incidents.models import (
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.user import User
 from sentry.notifications.types import NotificationSettingEnum
-from sentry.notifications.utils.participants import get_notification_recipients_v2
+from sentry.notifications.utils.participants import get_notification_recipients
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import RpcUserOption, user_option_service
+from sentry.snuba.metrics import format_mri_field, is_mri_field
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.email import MessageBuilder, get_email_addresses
@@ -130,7 +131,7 @@ class EmailActionHandler(ActionHandler):
 
         elif self.action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
             users = None
-            out = get_notification_recipients_v2(
+            out = get_notification_recipients(
                 recipients=list(
                     RpcActor(id=member.user_id, actor_type=ActorType.USER)
                     for member in target.member_set
@@ -392,7 +393,9 @@ def generate_incident_trigger_email_context(
     environment_string = snuba_query.environment.name if snuba_query.environment else "All"
 
     aggregate = alert_rule.snuba_query.aggregate
-    if CRASH_RATE_ALERT_AGGREGATE_ALIAS in aggregate:
+    if is_mri_field(aggregate):
+        aggregate = format_mri_field(aggregate)
+    elif CRASH_RATE_ALERT_AGGREGATE_ALIAS in aggregate:
         aggregate = aggregate.split(f"AS {CRASH_RATE_ALERT_AGGREGATE_ALIAS}")[0].strip()
 
     threshold = trigger.alert_threshold if is_active else alert_rule.resolve_threshold

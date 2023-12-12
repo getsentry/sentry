@@ -99,7 +99,7 @@ class BetterSignal(Signal):
                     ):
                         raise
 
-                logging.error("signal.failure", extra={"receiver": repr(receiver)}, exc_info=True)
+                logging.exception("signal.failure", extra={"receiver": repr(receiver)})
                 responses.append((receiver, err))
             else:
                 responses.append((receiver, response))
@@ -191,6 +191,9 @@ monitor_environment_failed = BetterSignal()  # ["monitor"]
 join_request_created = BetterSignal()  # ["member"]
 join_request_link_viewed = BetterSignal()  # ["organization"]
 user_signup = BetterSignal()  # ["user", "source"]
+
+# relocation
+relocated = BetterSignal()  # ["relocation_uuid"]
 
 # After `sentry upgrade` has completed.  Better than post_migrate because it won't run in tests.
 post_upgrade = BetterSignal()  # []

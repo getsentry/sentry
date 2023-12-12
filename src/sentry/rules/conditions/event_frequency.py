@@ -124,9 +124,13 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         if not (interval and value is not None):
             return False
 
+        # Assumes that the first event in a group will always be below the threshold.
+        if state.is_new and value > 1:
+            return False
+
         # TODO(mgaeta): Bug: Rule is optional.
         current_value = self.get_rate(event, interval, self.rule.environment_id)  # type: ignore
-        logging.info(f"event_frequency_rule current: {current_value}, threshold: {value}")
+        logging.info("event_frequency_rule current: %s, threshold: %s", current_value, value)
         return current_value > value
 
     def passes_activity_frequency(

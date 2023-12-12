@@ -144,28 +144,28 @@ class UpdateMonitorTest(MonitorTestCase):
             self.organization.slug, monitor.slug, method="PUT", **{"slug": "my-test-monitor"}
         )
 
-    def test_can_disable(self):
+    def test_can_mute(self):
         monitor = self._create_monitor()
         resp = self.get_success_response(
-            self.organization.slug, monitor.slug, method="PUT", **{"status": "disabled"}
+            self.organization.slug, monitor.slug, method="PUT", **{"isMuted": True}
         )
         assert resp.data["slug"] == monitor.slug
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == MonitorObjectStatus.DISABLED
+        assert monitor.is_muted
 
-    def test_can_enable(self):
+    def test_can_unmute(self):
         monitor = self._create_monitor()
 
-        monitor.update(status=MonitorObjectStatus.DISABLED)
+        monitor.update(is_muted=True)
 
         resp = self.get_success_response(
-            self.organization.slug, monitor.slug, method="PUT", **{"status": "active"}
+            self.organization.slug, monitor.slug, method="PUT", **{"isMuted": False}
         )
         assert resp.data["slug"] == monitor.slug
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == MonitorObjectStatus.ACTIVE
+        assert not monitor.is_muted
 
     def test_timezone(self):
         monitor = self._create_monitor()

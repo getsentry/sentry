@@ -38,8 +38,13 @@ from sentry.api.endpoints.release_thresholds.release_threshold_index import (
 from sentry.api.endpoints.release_thresholds.release_threshold_status_index import (
     ReleaseThresholdStatusIndexEndpoint,
 )
+from sentry.api.endpoints.relocations.abort import RelocationAbortEndpoint
+from sentry.api.endpoints.relocations.cancel import RelocationCancelEndpoint
+from sentry.api.endpoints.relocations.details import RelocationDetailsEndpoint
 from sentry.api.endpoints.relocations.index import RelocationIndexEndpoint
+from sentry.api.endpoints.relocations.pause import RelocationPauseEndpoint
 from sentry.api.endpoints.relocations.public_key import RelocationPublicKeyEndpoint
+from sentry.api.endpoints.relocations.unpause import RelocationUnpauseEndpoint
 from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
@@ -165,9 +170,7 @@ from .endpoints.authenticator_index import AuthenticatorIndexEndpoint
 from .endpoints.avatar import (
     DocIntegrationAvatarEndpoint,
     OrganizationAvatarEndpoint,
-    ProjectAvatarEndpoint,
     SentryAppAvatarEndpoint,
-    TeamAvatarEndpoint,
     UserAvatarEndpoint,
 )
 from .endpoints.broadcast_details import BroadcastDetailsEndpoint
@@ -463,7 +466,6 @@ from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
 from .endpoints.project_details import ProjectDetailsEndpoint
 from .endpoints.project_docs_platform import ProjectDocsPlatformEndpoint
-from .endpoints.project_dynamic_sampling import ProjectDynamicSamplingRateEndpoint
 from .endpoints.project_environment_details import ProjectEnvironmentDetailsEndpoint
 from .endpoints.project_environments import ProjectEnvironmentsEndpoint
 from .endpoints.project_event_details import EventJsonEndpoint, ProjectEventDetailsEndpoint
@@ -583,7 +585,7 @@ from .endpoints.user_identity_details import UserIdentityDetailsEndpoint
 from .endpoints.user_index import UserIndexEndpoint
 from .endpoints.user_ips import UserIPsEndpoint
 from .endpoints.user_notification_details import UserNotificationDetailsEndpoint
-from .endpoints.user_notification_fine_tuning import UserNotificationFineTuningEndpoint
+from .endpoints.user_notification_email import UserNotificationEmailEndpoint
 from .endpoints.user_notification_settings_options import UserNotificationSettingsOptionsEndpoint
 from .endpoints.user_notification_settings_options_detail import (
     UserNotificationSettingsOptionsDetailEndpoint,
@@ -750,9 +752,29 @@ RELOCATION_URLS = [
         name="sentry-api-0-relocations-index",
     ),
     re_path(
-        r"^public-key/$",
-        RelocationPublicKeyEndpoint.as_view(),
-        name="sentry-api-0-relocations-public-key",
+        r"^(?P<relocation_uuid>[^\/]+)/$",
+        RelocationDetailsEndpoint.as_view(),
+        name="sentry-api-0-relocations-details",
+    ),
+    re_path(
+        r"^(?P<relocation_uuid>[^\/]+)/abort/$",
+        RelocationAbortEndpoint.as_view(),
+        name="sentry-api-0-relocations-abort",
+    ),
+    re_path(
+        r"^(?P<relocation_uuid>[^\/]+)/cancel/$",
+        RelocationCancelEndpoint.as_view(),
+        name="sentry-api-0-relocations-cancel",
+    ),
+    re_path(
+        r"^(?P<relocation_uuid>[^\/]+)/pause/$",
+        RelocationPauseEndpoint.as_view(),
+        name="sentry-api-0-relocations-pause",
+    ),
+    re_path(
+        r"^(?P<relocation_uuid>[^\/]+)/unpause/$",
+        RelocationUnpauseEndpoint.as_view(),
+        name="sentry-api-0-relocations-unpause",
     ),
 ]
 
@@ -876,9 +898,9 @@ USER_URLS = [
         name="sentry-api-0-user-notifications",
     ),
     re_path(
-        r"^(?P<user_id>[^\/]+)/notifications/(?P<notification_type>[^\/]+)/$",
-        UserNotificationFineTuningEndpoint.as_view(),
-        name="sentry-api-0-user-notifications-fine-tuning",
+        r"^(?P<user_id>[^\/]+)/notifications/email/$",
+        UserNotificationEmailEndpoint.as_view(),
+        name="sentry-api-0-user-notifications-email",
     ),
     re_path(
         r"^(?P<user_id>[^\/]+)/notification-options/$",
@@ -2028,11 +2050,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-combined-rules",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/avatar/$",
-        ProjectAvatarEndpoint.as_view(),
-        name="sentry-api-0-project-avatar",
-    ),
-    re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/create-sample/$",
         ProjectCreateSampleEndpoint.as_view(),
         name="sentry-api-0-project-create-sample",
@@ -2583,11 +2600,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         ProjectProfilingTransactionIDProfileIDEndpoint.as_view(),
         name="sentry-api-0-project-profiling-transactions",
     ),
-    re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/dynamic-sampling/rate/$",
-        ProjectDynamicSamplingRateEndpoint.as_view(),
-        name="sentry-api-0-project-dynamic-sampling-rate",
-    ),
 ]
 
 TEAM_URLS = [
@@ -2650,11 +2662,6 @@ TEAM_URLS = [
         r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/stats/$",
         TeamStatsEndpoint.as_view(),
         name="sentry-api-0-team-stats",
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/avatar/$",
-        TeamAvatarEndpoint.as_view(),
-        name="sentry-api-0-team-avatar",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/external-teams/$",
@@ -3052,6 +3059,11 @@ urlpatterns = [
     re_path(
         r"^relocations/",
         include(RELOCATION_URLS),
+    ),
+    re_path(
+        r"^publickeys/relocations/$",
+        RelocationPublicKeyEndpoint.as_view(),
+        name="sentry-api-0-relocations-public-key",
     ),
     # Catch all
     re_path(

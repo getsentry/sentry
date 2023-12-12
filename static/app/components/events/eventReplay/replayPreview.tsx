@@ -1,4 +1,4 @@
-import {ComponentProps, useMemo} from 'react';
+import {ComponentProps, Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
@@ -11,30 +11,56 @@ import Placeholder from 'sentry/components/placeholder';
 import {Flex} from 'sentry/components/profiling/flex';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
+import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
 import {IconDelete, IconPlay} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
+import RequestError from 'sentry/utils/requestError/requestError';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
   eventTimestampMs: number;
   orgSlug: string;
   replaySlug: string;
   buttonProps?: Partial<ComponentProps<typeof LinkButton>>;
-  fromFeedback?: boolean;
+  focusTab?: TabKey;
 };
 
+function getReplayAnalyticsStatus({
+  fetchError,
+  replayRecord,
+}: {
+  fetchError?: RequestError;
+  replayRecord?: ReplayRecord;
+}) {
+  if (fetchError) {
+    return 'error';
+  }
+
+  if (replayRecord?.is_archived) {
+    return 'archived';
+  }
+
+  if (replayRecord) {
+    return 'success';
+  }
+
+  return 'none';
+}
+
 function ReplayPreview({
+  buttonProps,
+  eventTimestampMs,
+  focusTab,
   orgSlug,
   replaySlug,
-  eventTimestampMs,
-  buttonProps,
-  fromFeedback,
 }: Props) {
   const routes = useRoutes();
   const {fetching, replay, replayRecord, fetchError, replayId} = useReplayReader({
@@ -51,6 +77,10 @@ function ReplayPreview({
     return 0;
   }, [eventTimestampMs, startTimestampMs]);
 
+  useRouteAnalyticsParams({
+    event_replay_status: getReplayAnalyticsStatus({fetchError, replayRecord}),
+  });
+
   if (replayRecord?.is_archived) {
     return (
       <Alert type="warning" data-test-id="replay-error">
@@ -64,6 +94,7 @@ function ReplayPreview({
 
   if (fetchError) {
     const reasons = [
+      t('The replay is still processing'),
       tct(
         'The replay was rate-limited and could not be accepted. [link:View the stats page] for more information.',
         {
@@ -122,7 +153,7 @@ function ReplayPreview({
     pathname: normalizeUrl(`/organizations/${orgSlug}/replays/${replayId}/`),
     query: {
       referrer: getRouteStringFromRoutes(routes),
-      t_main: fromFeedback ? TabKey.BREADCRUMBS : TabKey.ERRORS,
+      t_main: focusTab ?? TabKey.ERRORS,
       t: initialTimeOffsetMs / 1000,
     },
   };
@@ -134,19 +165,26 @@ function ReplayPreview({
       initialTimeOffsetMs={{offsetMs: initialTimeOffsetMs}}
     >
       <PlayerContainer data-test-id="player-container">
-        <StaticPanel>
-          <ReplayPlayer isPreview />
-        </StaticPanel>
-        <CTAOverlay>
-          <LinkButton
-            {...buttonProps}
-            icon={<IconPlay />}
-            priority="primary"
-            to={fullReplayUrl}
-          >
-            {t('Open Replay')}
-          </LinkButton>
-        </CTAOverlay>
+        {replay?.hasProcessingErrors() ? (
+          <ReplayProcessingError processingErrors={replay.processingErrors()} />
+        ) : (
+          <Fragment>
+            <StaticPanel>
+              <ReplayPlayer isPreview />
+            </StaticPanel>
+
+            <CTAOverlay>
+              <LinkButton
+                {...buttonProps}
+                icon={<IconPlay />}
+                priority="primary"
+                to={fullReplayUrl}
+              >
+                {t('Open Replay')}
+              </LinkButton>
+            </CTAOverlay>
+          </Fragment>
+        )}
       </PlayerContainer>
     </ReplayContextProvider>
   );

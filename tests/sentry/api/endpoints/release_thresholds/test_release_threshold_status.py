@@ -154,12 +154,10 @@ class ReleaseThresholdStatusTest(APITestCase):
 
         so response should look like
         {
-            {p1.slug}-{canary}-{release1.version}: [threshold1, threshold2]
-            {p1.slug}-{prod}-{release1.version}: [threshold]
-            {p2.slug}-{canary}-{release1.version}: [threshold]
-            {p1.slug}-{prod}-{release2.version}: [threshold, threshold]
-            {p1.slug}-{prod}-{release2.version}: [threshold]
-            {p1.slug}-None-{release3.version}: [threshold]
+            {p1.slug}-{release1.version}: [threshold, threshold1, threshold2]
+            {p1.slug}-{release2.version}: [threshold, threshold, threshold]
+            {p1.slug}-{release3.version}: [threshold]
+            {p2.slug}-{release1.version}: [threshold]
         }
         """
         now = str(datetime.now())
@@ -171,41 +169,33 @@ class ReleaseThresholdStatusTest(APITestCase):
 
         response = self.get_success_response(self.organization.slug, start=yesterday, end=now)
 
-        assert len(response.data.keys()) == 6
+        assert len(response.data.keys()) == 4
         for key in response.data.keys():
             # NOTE: special characters *can* be included in release versions or environment names
             assert release_old.version not in key  # old release is filtered out of response
         data = response.data
         # release1
-        r1_keys = [k for k, v in data.items() if k.split("-")[2] == self.release1.version]
-        assert len(r1_keys) == 3  # 3 keys produced in release 1 (p1-canary, p1-prod, p2-canary)
+        r1_keys = [k for k, v in data.items() if k.split("-")[1] == self.release1.version]
+        assert len(r1_keys) == 2  # 2 keys produced in release 1 (p1, p2)
 
-        temp_key = f"{self.project1.slug}-{self.canary_environment.name}-{self.release1.version}"
+        temp_key = f"{self.project1.slug}-{self.release1.version}"
         assert temp_key in r1_keys
-        assert len(data[temp_key]) == 2
-        temp_key = f"{self.project2.slug}-{self.canary_environment.name}-{self.release1.version}"
-        assert temp_key in r1_keys
-        assert len(data[temp_key]) == 1
-        temp_key = (
-            f"{self.project1.slug}-{self.production_environment.name}-{self.release1.version}"
-        )
+        assert len(data[temp_key]) == 3
+        temp_key = f"{self.project2.slug}-{self.release1.version}"
         assert temp_key in r1_keys
         assert len(data[temp_key]) == 1
+
         # release2
-        r2_keys = [k for k, v in data.items() if k.split("-")[2] == self.release2.version]
-        assert len(r2_keys) == 2  # 2 keys produced in release 2 (p1-canary, p1-prod)
-        temp_key = f"{self.project1.slug}-{self.canary_environment.name}-{self.release2.version}"
+        r2_keys = [k for k, v in data.items() if k.split("-")[1] == self.release2.version]
+        assert len(r2_keys) == 1  # 1 key produced in release 2 (p1)
+        temp_key = f"{self.project1.slug}-{self.release2.version}"
         assert temp_key in r2_keys
-        assert len(data[temp_key]) == 2
-        temp_key = (
-            f"{self.project1.slug}-{self.production_environment.name}-{self.release2.version}"
-        )
-        assert temp_key in r2_keys
-        assert len(data[temp_key]) == 1
+        assert len(data[temp_key]) == 3
+
         # release3
-        r3_keys = [k for k, v in data.items() if k.split("-")[2] == self.release3.version]
-        assert len(r3_keys) == 1  # 1 key produced in release 3 (p1-None)
-        temp_key = f"{self.project3.slug}-None-{self.release3.version}"
+        r3_keys = [k for k, v in data.items() if k.split("-")[1] == self.release3.version]
+        assert len(r3_keys) == 1  # 1 key produced in release 3 (p1)
+        temp_key = f"{self.project3.slug}-{self.release3.version}"
         assert temp_key in r3_keys
         assert len(data[temp_key]) == 1
 
@@ -228,8 +218,8 @@ class ReleaseThresholdStatusTest(APITestCase):
 
         We'll filter for _only_ canary releases, so the response should look like
         {
-            {p1.slug}-{canary}-{release1.version}: [threshold1, threshold2]
-            {p2.slug}-{canary}-{release1.version}: [threshold]
+            {p1.slug}-{release1.version}: [threshold1, threshold2]
+            {p2.slug}-{release1.version}: [threshold]
         }
         """
         now = str(datetime.now())
@@ -241,16 +231,18 @@ class ReleaseThresholdStatusTest(APITestCase):
         assert len(response.data.keys()) == 2
         data = response.data
         # release1
-        r1_keys = [k for k, v in data.items() if k.split("-")[2] == self.release1.version]
+        r1_keys = [k for k, v in data.items() if k.split("-")[1] == self.release1.version]
         assert len(r1_keys) == 2  # 2 keys produced in release 1 (p1-canary, p2-canary)
 
-        temp_key = f"{self.project1.slug}-{self.canary_environment.name}-{self.release1.version}"
+        temp_key = f"{self.project1.slug}-{self.release1.version}"
         assert temp_key in r1_keys
         assert len(data[temp_key]) == 2
+        assert data[temp_key][0].get("environment", {}).get("name") == "canary"
 
-        temp_key = f"{self.project2.slug}-{self.canary_environment.name}-{self.release1.version}"
+        temp_key = f"{self.project2.slug}-{self.release1.version}"
         assert temp_key in r1_keys
         assert len(data[temp_key]) == 1
+        assert data[temp_key][0].get("environment", {}).get("name") == "canary"
 
     def test_get_success_release_filter(self):
         """
@@ -271,9 +263,8 @@ class ReleaseThresholdStatusTest(APITestCase):
 
         We'll filter for _only_ release1, so the response should look like
         {
-            {p1.slug}-{canary}-{release1.version}: [threshold1, threshold2]
-            {p1.slug}-{prod}-{release1.version}: [threshold]
-            {p2.slug}-{canary}-{release1.version}: [threshold]
+            {p1.slug}-{release1.version}: [threshold1, threshold2, threshold]
+            {p2.slug}-{release1.version}: [threshold]
         }
         """
         now = str(datetime.now())
@@ -282,26 +273,21 @@ class ReleaseThresholdStatusTest(APITestCase):
             self.organization.slug, start=yesterday, end=now, release=[self.release1.version]
         )
 
-        assert len(response.data.keys()) == 3
+        assert len(response.data.keys()) == 2
         data = response.data
         # release1
-        r1_keys = [k for k, v in data.items() if k.split("-")[2] == self.release1.version]
-        assert len(r1_keys) == 3  # 3 keys produced in release 1 (p1-canary, p1-prod, p2-canary)
+        r1_keys = [k for k, v in data.items() if k.split("-")[1] == self.release1.version]
+        assert len(r1_keys) == 2  # 2 keys produced in release 1 (p1, p2)
 
-        temp_key = f"{self.project1.slug}-{self.canary_environment.name}-{self.release1.version}"
+        temp_key = f"{self.project1.slug}-{self.release1.version}"
         assert temp_key in r1_keys
-        assert len(data[temp_key]) == 2
-        temp_key = f"{self.project2.slug}-{self.canary_environment.name}-{self.release1.version}"
-        assert temp_key in r1_keys
-        assert len(data[temp_key]) == 1
-        temp_key = (
-            f"{self.project1.slug}-{self.production_environment.name}-{self.release1.version}"
-        )
+        assert len(data[temp_key]) == 3
+        temp_key = f"{self.project2.slug}-{self.release1.version}"
         assert temp_key in r1_keys
         assert len(data[temp_key]) == 1
 
         # release2
-        r2_keys = [k for k, v in data.items() if k.split("-")[2] == self.release2.version]
+        r2_keys = [k for k, v in data.items() if k.split("-")[1] == self.release2.version]
         assert len(r2_keys) == 0
 
     def test_get_success_project_slug_filter(self):
@@ -329,7 +315,7 @@ class ReleaseThresholdStatusTest(APITestCase):
         We'll filter for _only_ project2, so the response should look like
         since project2 was only ever added to release1
         {
-            {p2.slug}-{canary}-{release1.version}: [threshold]
+            {p2.slug}-{release1.version}: [threshold]
         }
         """
         now = str(datetime.now())
@@ -341,12 +327,12 @@ class ReleaseThresholdStatusTest(APITestCase):
         assert len(response.data.keys()) == 1
         data = response.data
         # release1
-        r1_keys = [k for k, v in data.items() if k.split("-")[2] == self.release1.version]
+        r1_keys = [k for k, v in data.items() if k.split("-")[1] == self.release1.version]
         assert len(r1_keys) == 1  # 1 key produced in release 1 (p2-canary)
 
-        temp_key = f"{self.project1.slug}-{self.canary_environment.name}-{self.release1.version}"
+        temp_key = f"{self.project1.slug}-{self.release1.version}"
         assert temp_key not in r1_keys
-        temp_key = f"{self.project2.slug}-{self.canary_environment.name}-{self.release1.version}"
+        temp_key = f"{self.project2.slug}-{self.release1.version}"
         assert temp_key in r1_keys
         assert len(data[temp_key]) == 1
         temp_key = (
@@ -355,7 +341,7 @@ class ReleaseThresholdStatusTest(APITestCase):
         assert temp_key not in r1_keys
 
         # release2
-        r2_keys = [k for k, v in data.items() if k.split("-")[2] == self.release2.version]
+        r2_keys = [k for k, v in data.items() if k.split("-")[1] == self.release2.version]
         assert len(r2_keys) == 0
 
 
@@ -436,8 +422,12 @@ class ErrorCountThresholdCheckTest(TestCase):
             "trigger_type": TriggerType.OVER_STR,
             "value": 4,  # error counts _not_ be over threshold value
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
-        assert is_error_count_healthy(ethreshold=current_threshold_healthy, timeseries=timeseries)
+        is_healthy, metric_count = is_error_count_healthy(
+            ethreshold=current_threshold_healthy, timeseries=timeseries
+        )
+        assert is_healthy
 
         # threshold equal to count
         threshold_at_limit_healthy: EnrichedThreshold = {
@@ -455,8 +445,12 @@ class ErrorCountThresholdCheckTest(TestCase):
             "trigger_type": TriggerType.OVER_STR,
             "value": 1,  # error counts equal to threshold limit value
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
-        assert is_error_count_healthy(ethreshold=threshold_at_limit_healthy, timeseries=timeseries)
+        is_healthy, metric_count = is_error_count_healthy(
+            ethreshold=threshold_at_limit_healthy, timeseries=timeseries
+        )
+        assert is_healthy
 
         # past healthy threshold within series
         past_threshold_healthy: EnrichedThreshold = {
@@ -474,8 +468,12 @@ class ErrorCountThresholdCheckTest(TestCase):
             "trigger_type": TriggerType.OVER_STR,
             "value": 2,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
-        assert is_error_count_healthy(ethreshold=past_threshold_healthy, timeseries=timeseries)
+        is_healthy, metric_count = is_error_count_healthy(
+            ethreshold=past_threshold_healthy, timeseries=timeseries
+        )
+        assert is_healthy
 
         # threshold within series but trigger is under
         threshold_under_unhealthy: EnrichedThreshold = {
@@ -493,10 +491,12 @@ class ErrorCountThresholdCheckTest(TestCase):
             "trigger_type": TriggerType.UNDER_STR,
             "value": 4,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
-        assert not is_error_count_healthy(
+        is_healthy, metric_count = is_error_count_healthy(
             ethreshold=threshold_under_unhealthy, timeseries=timeseries
         )
+        assert not is_healthy
 
         # threshold within series but end is in future
         threshold_unfinished: EnrichedThreshold = {
@@ -514,8 +514,12 @@ class ErrorCountThresholdCheckTest(TestCase):
             "trigger_type": TriggerType.OVER_STR,
             "value": 4,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
-        assert is_error_count_healthy(ethreshold=threshold_unfinished, timeseries=timeseries)
+        is_healthy, metric_count = is_error_count_healthy(
+            ethreshold=threshold_unfinished, timeseries=timeseries
+        )
+        assert is_healthy
 
     def test_multiple_releases_within_timeseries(self):
         now = datetime.utcnow()
@@ -594,8 +598,12 @@ class ErrorCountThresholdCheckTest(TestCase):
             "trigger_type": TriggerType.OVER_STR,
             "value": 4,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
-        assert is_error_count_healthy(ethreshold=threshold_healthy, timeseries=timeseries)
+        is_healthy, metric_count = is_error_count_healthy(
+            ethreshold=threshold_healthy, timeseries=timeseries
+        )
+        assert is_healthy
 
         # threshold within series but separate unhealthy release
         threshold_unhealthy: EnrichedThreshold = {
@@ -613,8 +621,12 @@ class ErrorCountThresholdCheckTest(TestCase):
             "trigger_type": TriggerType.OVER_STR,
             "value": 1,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
-        assert not is_error_count_healthy(ethreshold=threshold_unhealthy, timeseries=timeseries)
+        is_healthy, metric_count = is_error_count_healthy(
+            ethreshold=threshold_unhealthy, timeseries=timeseries
+        )
+        assert not is_healthy
 
     def test_multiple_projects_within_timeseries(self):
         now = datetime.utcnow()
@@ -694,8 +706,12 @@ class ErrorCountThresholdCheckTest(TestCase):
             "trigger_type": TriggerType.OVER_STR,
             "value": 4,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
-        assert is_error_count_healthy(ethreshold=threshold_healthy, timeseries=timeseries)
+        is_healthy, metric_count = is_error_count_healthy(
+            ethreshold=threshold_healthy, timeseries=timeseries
+        )
+        assert is_healthy
 
         # threshold within series but separate unhealthy project
         threshold_unhealthy: EnrichedThreshold = {
@@ -713,8 +729,12 @@ class ErrorCountThresholdCheckTest(TestCase):
             "trigger_type": TriggerType.OVER_STR,
             "value": 1,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
-        assert not is_error_count_healthy(ethreshold=threshold_unhealthy, timeseries=timeseries)
+        is_healthy, metric_count = is_error_count_healthy(
+            ethreshold=threshold_unhealthy, timeseries=timeseries
+        )
+        assert not is_healthy
 
     def test_multiple_environments_within_timeseries(self):
         now = datetime.utcnow()
@@ -793,8 +813,12 @@ class ErrorCountThresholdCheckTest(TestCase):
             "trigger_type": TriggerType.OVER_STR,
             "value": 2,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
-        assert is_error_count_healthy(ethreshold=threshold_healthy, timeseries=timeseries)
+        is_healthy, metric_count = is_error_count_healthy(
+            ethreshold=threshold_healthy, timeseries=timeseries
+        )
+        assert is_healthy
 
         # threshold within series but separate unhealthy environment
         threshold_unhealthy: EnrichedThreshold = {
@@ -812,8 +836,12 @@ class ErrorCountThresholdCheckTest(TestCase):
             "trigger_type": TriggerType.OVER_STR,
             "value": 1,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
-        assert not is_error_count_healthy(ethreshold=threshold_unhealthy, timeseries=timeseries)
+        is_healthy, metric_count = is_error_count_healthy(
+            ethreshold=threshold_unhealthy, timeseries=timeseries
+        )
+        assert not is_healthy
 
     def test_unordered_timeseries(self):
         """
@@ -872,8 +900,12 @@ class ErrorCountThresholdCheckTest(TestCase):
             "trigger_type": TriggerType.OVER_STR,
             "value": 4,  # error counts _not_ be over threshold value
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
-        assert is_error_count_healthy(ethreshold=current_threshold_healthy, timeseries=timeseries)
+        is_healthy, metric_count = is_error_count_healthy(
+            ethreshold=current_threshold_healthy, timeseries=timeseries
+        )
+        assert is_healthy
 
         # threshold equal to count
         threshold_at_limit_healthy: EnrichedThreshold = {
@@ -891,8 +923,12 @@ class ErrorCountThresholdCheckTest(TestCase):
             "trigger_type": TriggerType.OVER_STR,
             "value": 1,  # error counts equal to threshold limit value
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
-        assert is_error_count_healthy(ethreshold=threshold_at_limit_healthy, timeseries=timeseries)
+        is_healthy, metric_count = is_error_count_healthy(
+            ethreshold=threshold_at_limit_healthy, timeseries=timeseries
+        )
+        assert is_healthy
 
         # past healthy threshold within series
         past_threshold_healthy: EnrichedThreshold = {
@@ -910,8 +946,12 @@ class ErrorCountThresholdCheckTest(TestCase):
             "trigger_type": TriggerType.OVER_STR,
             "value": 2,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
-        assert is_error_count_healthy(ethreshold=past_threshold_healthy, timeseries=timeseries)
+        is_healthy, metric_count = is_error_count_healthy(
+            ethreshold=past_threshold_healthy, timeseries=timeseries
+        )
+        assert is_healthy
 
         # threshold within series but trigger is under
         threshold_under_unhealthy: EnrichedThreshold = {
@@ -929,10 +969,12 @@ class ErrorCountThresholdCheckTest(TestCase):
             "trigger_type": TriggerType.UNDER_STR,
             "value": 4,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
-        assert not is_error_count_healthy(
+        is_healthy, metric_count = is_error_count_healthy(
             ethreshold=threshold_under_unhealthy, timeseries=timeseries
         )
+        assert not is_healthy
 
         # threshold within series but end is in future
         threshold_unfinished: EnrichedThreshold = {
@@ -950,5 +992,9 @@ class ErrorCountThresholdCheckTest(TestCase):
             "trigger_type": TriggerType.OVER_STR,
             "value": 4,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
-        assert is_error_count_healthy(ethreshold=threshold_unfinished, timeseries=timeseries)
+        is_healthy, metric_count = is_error_count_healthy(
+            ethreshold=threshold_unfinished, timeseries=timeseries
+        )
+        assert is_healthy

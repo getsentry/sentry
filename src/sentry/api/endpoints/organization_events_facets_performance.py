@@ -408,6 +408,7 @@ def query_facet_performance(
             sample_rate=sample_rate,
             turbo=sample_rate is not None,
             limit=limit,
+            offset=offset,
             limitby=["tags_key", tag_key_limit] if not tag_key else None,
         )
     translated_aggregate_column = tag_query.resolve_column(aggregate_column)

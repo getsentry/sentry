@@ -1,10 +1,12 @@
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import MemberBadge from 'sentry/components/idBadge/memberBadge';
 
 describe('MemberBadge', function () {
   let member;
-  const routerContext = TestStubs.routerContext();
+  const routerContext = RouterContextFixture();
   beforeEach(() => {
     member = TestStubs.Member();
   });

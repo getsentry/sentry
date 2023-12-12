@@ -105,6 +105,7 @@ type Props = {
   }>;
   onMouseOut?: EChartMouseOutHandler;
   onMouseOver?: EChartMouseOverHandler;
+  preserveIncompletePoints?: boolean;
   previousData?: Series[];
   rateUnit?: RateUnits;
   scatterPlot?: Series[];
@@ -187,6 +188,7 @@ function Chart({
   onLegendSelectChanged,
   onDataZoom,
   legendFormatter,
+  preserveIncompletePoints,
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
@@ -352,7 +354,7 @@ function Chart({
 
   // Trims off the last data point because it's incomplete
   const trimmedSeries =
-    period && !start && !end
+    !preserveIncompletePoints && period && !start && !end
       ? series.map(serie => {
           return {
             ...serie,

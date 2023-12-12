@@ -299,7 +299,7 @@ class AbstractFile(Model):
             offset += blob.size
         self.size = offset
         self.checksum = checksum.hexdigest()
-        metrics.timing("filestore.file-size", offset)
+        metrics.distribution("filestore.file-size", offset, unit="byte")
         if commit:
             self.save()
         return results
@@ -326,7 +326,7 @@ class AbstractFile(Model):
             except Exception:
                 # Most likely a `KeyError` like `SENTRY-11QP` because an `id` in
                 # `file_blob_ids` does suddenly not exist anymore
-                logger.error("`FileBlob` disappeared during `assemble_file`", exc_info=True)
+                logger.exception("`FileBlob` disappeared during `assemble_file`")
                 raise
 
             new_checksum = sha1(b"")
@@ -337,9 +337,7 @@ class AbstractFile(Model):
                 except IntegrityError:
                     # Most likely a `ForeignKeyViolation` like `SENTRY-11P5`, because
                     # the blob we want to link does not exist anymore
-                    logger.error(
-                        "`FileBlob` disappeared trying to link `FileBlobIndex`", exc_info=True
-                    )
+                    logger.exception("`FileBlob` disappeared trying to link `FileBlobIndex`")
                     raise
 
                 with blob.getfile() as blobfile:
@@ -355,7 +353,7 @@ class AbstractFile(Model):
                 tf.close()
                 raise AssembleChecksumMismatch("Checksum mismatch")
 
-        metrics.timing("filestore.file-size", offset)
+        metrics.distribution("filestore.file-size", offset, unit="byte")
         self.save()
 
         tf.flush()

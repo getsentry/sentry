@@ -14,6 +14,7 @@ from sentry import options
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.silo import SiloMode, single_process_silo_mode_state
 from sentry.utils import json
+from sentry.utils.env import in_test_environment
 
 
 class RegionCategory(Enum):
@@ -259,7 +260,10 @@ def get_local_region() -> Region:
         return single_process_silo_mode_state.region
 
     if not settings.SENTRY_REGION:
-        raise Exception("SENTRY_REGION must be set when server is in REGION silo mode")
+        if in_test_environment():
+            return get_region_by_name(settings.SENTRY_MONOLITH_REGION)
+        else:
+            raise Exception("SENTRY_REGION must be set when server is in REGION silo mode")
     return get_region_by_name(settings.SENTRY_REGION)
 
 

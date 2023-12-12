@@ -86,7 +86,7 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
     try:
         headers, recording_segment = process_headers(message.payload_with_headers)
     except MissingRecordingSegmentHeaders:
-        logger.warning(f"missing header on {message.replay_id}")
+        logger.warning("missing header on %s", message.replay_id)
         return None
 
     # Normalize ingest data into a standardized ingest format.
@@ -163,9 +163,13 @@ def _report_size_metrics(
     size_compressed: Optional[int] = None, size_uncompressed: Optional[int] = None
 ) -> None:
     if size_compressed:
-        metrics.timing("replays.usecases.ingest.size_compressed", size_compressed)
+        metrics.distribution(
+            "replays.usecases.ingest.size_compressed", size_compressed, unit="byte"
+        )
     if size_uncompressed:
-        metrics.timing("replays.usecases.ingest.size_uncompressed", size_uncompressed)
+        metrics.distribution(
+            "replays.usecases.ingest.size_uncompressed", size_uncompressed, unit="byte"
+        )
 
 
 def replay_click_post_processor(
@@ -201,10 +205,9 @@ def replay_click_post_processor(
             )
     except Exception:
         logging.exception(
-            "Failed to parse recording org={}, project={}, replay={}, segment={}".format(
-                message.org_id,
-                message.project_id,
-                message.replay_id,
-                headers["segment_id"],
-            )
+            "Failed to parse recording org=%s, project=%s, replay=%s, segment=%s",
+            message.org_id,
+            message.project_id,
+            message.replay_id,
+            headers["segment_id"],
         )

@@ -1,3 +1,4 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
 import {EventEntryStacktrace} from 'sentry-fixture/eventEntryStacktrace';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -7,7 +8,7 @@ import {EventOrGroupType} from 'sentry/types';
 import {StacktraceType} from 'sentry/types/stacktrace';
 
 const eventEntryStacktrace = EventEntryStacktrace();
-const event = TestStubs.Event({
+const event = EventFixture({
   entries: [eventEntryStacktrace],
   type: EventOrGroupType.ERROR,
 });
@@ -255,7 +256,10 @@ describe('StackTrace', function () {
 
       renderedComponent({
         data: newData,
-        event: {...event, entries: [{...event.entries[0], stacktrace: newData.frames}]},
+        event: EventFixture({
+          ...event,
+          entries: [{...event.entries[0], stacktace: newData.frames}],
+        }),
         includeSystemFrames: false,
       });
 
@@ -286,7 +290,10 @@ describe('StackTrace', function () {
 
       renderedComponent({
         data: newData,
-        event: {...event, entries: [{...event.entries[0], stacktrace: newData.frames}]},
+        event: EventFixture({
+          ...event,
+          entries: [{...event.entries[0], stacktrace: newData.frames}],
+        }),
         includeSystemFrames: false,
       });
 
@@ -319,7 +326,10 @@ describe('StackTrace', function () {
 
       renderedComponent({
         data: newData,
-        event: {...event, entries: [{...event.entries[0], stacktrace: newData.frames}]},
+        event: EventFixture({
+          ...event,
+          entries: [{...event.entries[0], stacktrace: newData.frames}],
+        }),
         includeSystemFrames: false,
       });
 
@@ -352,11 +362,11 @@ describe('StackTrace', function () {
 
       renderedComponent({
         data: newData,
-        event: {
+        event: EventFixture({
           ...event,
           entries: [{...event.entries[0], stacktrace: newData.frames}],
           type: EventOrGroupType.TRANSACTION,
-        },
+        }),
         includeSystemFrames: false,
       });
 
@@ -386,12 +396,12 @@ describe('StackTrace', function () {
 
       renderedComponent({
         data: newData,
-        event: {
+        event: EventFixture({
           ...event,
           entries: [{...event.entries[0], stacktrace: newData.frames}],
           type: EventOrGroupType.ERROR,
           tags: [{key: 'mechanism', value: 'ANR'}],
-        },
+        }),
         includeSystemFrames: false,
       });
 

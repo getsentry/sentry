@@ -7,8 +7,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import PerformanceScoreRingWithTooltips from 'sentry/views/performance/browser/webVitals/components/performanceScoreRingWithTooltips';
-import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
-import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
+import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
+import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {Subtitle, WidgetEmptyStateWarning} from '../components/selectableList';
@@ -18,7 +18,7 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
   const {InteractiveTitle, organization} = props;
   const theme = useTheme();
-  const {data: projectData, isLoading} = useProjectWebVitalsQuery();
+  const {data: projectData, isLoading} = useProjectRawWebVitalsQuery();
 
   const noTransactions = !isLoading && !projectData?.data?.[0]?.['count()'];
 
@@ -58,23 +58,18 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
                   inPerformanceWidget
                   projectScore={projectScore}
                   projectData={projectData}
-                  y={25}
+                  y={40}
                   text={
                     <span style={{fontSize: 'xxx-large'}}>{projectScore.totalScore}</span>
                   }
                   width={280}
                   height={240}
-                  size={200}
-                  barWidth={20}
-                  webVitalLabelCoordinates={{
-                    lcp: {x: 80, y: 25},
-                    fcp: {x: 60, y: 55},
-                    fid: {x: 10, y: 65},
-                    cls: {x: -5, y: 15},
-                    ttfb: {x: 10, y: -10},
-                  }}
+                  size={160}
+                  barWidth={16}
                   ringBackgroundColors={ringBackgroundColors}
                   ringSegmentColors={ringSegmentColors}
+                  radiusPadding={10}
+                  labelHeightPadding={0}
                 />
               ) : isLoading ? (
                 <StyledLoadingIndicator size={40} />

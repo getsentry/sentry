@@ -51,7 +51,7 @@ def project_location_function_name(
 
 def create_function_pubsub_topic(funcId):
     logger = logging.getLogger("sentry.functions")
-    logger.info(f"Created topic {function_pubsub_name(funcId)}")
+    logger.info("Created topic %s", function_pubsub_name(funcId))
     publisher = PublisherClient()
     publisher.create_topic(name=function_pubsub_name(funcId))
 
@@ -66,7 +66,7 @@ def upload_function_files(client, code, env_variables):
     f.seek(0)
 
     logger = logging.getLogger("sentry.functions")
-    logger.info(f"The region is {settings.SENTRY_FUNCTIONS_REGION}")
+    logger.info("The region is %s", settings.SENTRY_FUNCTIONS_REGION)
 
     upload_url = client.generate_upload_url(
         request=GenerateUploadUrlRequest(

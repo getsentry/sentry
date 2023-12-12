@@ -189,6 +189,18 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
 
+    def test_errors_dataset_no_query(self):
+        response = self.do_request(
+            {
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "dataset": "errors",
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
+
     def test_misaligned_last_bucket(self):
         response = self.do_request(
             data={

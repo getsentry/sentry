@@ -31,14 +31,14 @@ import {
   calculatePerformanceScoreFromTableDataRow,
   PERFORMANCE_SCORE_MEDIANS,
   PERFORMANCE_SCORE_P90S,
-} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
+import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
+import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
+import {useTransactionSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionSamplesWebVitalsQuery';
 import {
   TransactionSampleRowWithScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
-import {useProjectWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsValuesTimeseriesQuery';
-import {useTransactionSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useTransactionSamplesWebVitalsQuery';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 
@@ -82,7 +82,7 @@ export function PageOverviewWebVitalsDetailPanel({
       : location.query.transaction
     : undefined;
 
-  const {data: projectData} = useProjectWebVitalsQuery({transaction});
+  const {data: projectData} = useProjectRawWebVitalsQuery({transaction});
 
   const projectScore = calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
 
@@ -97,6 +97,8 @@ export function PageOverviewWebVitalsDetailPanel({
         : undefined,
       enabled: Boolean(webVital),
       withProfiles: true,
+      sortName: 'webVitalSort',
+      webVital: webVital ?? undefined,
     });
 
   const {data: mehData, isLoading: isMehTransactionWebVitalsQueryLoading} =
@@ -108,6 +110,8 @@ export function PageOverviewWebVitalsDetailPanel({
         : undefined,
       enabled: Boolean(webVital),
       withProfiles: true,
+      sortName: 'webVitalSort',
+      webVital: webVital ?? undefined,
     });
 
   const {data: poorData, isLoading: isPoorTransactionWebVitalsQueryLoading} =
@@ -119,6 +123,8 @@ export function PageOverviewWebVitalsDetailPanel({
         : undefined,
       enabled: Boolean(webVital),
       withProfiles: true,
+      sortName: 'webVitalSort',
+      webVital: webVital ?? undefined,
     });
 
   const data = [...goodData, ...mehData, ...poorData];
@@ -133,7 +139,7 @@ export function PageOverviewWebVitalsDetailPanel({
   );
 
   const {data: timeseriesData, isLoading: isTimeseriesLoading} =
-    useProjectWebVitalsValuesTimeseriesQuery({transaction});
+    useProjectRawWebVitalsValuesTimeseriesQuery({transaction});
 
   const webVitalData: LineChartSeries = {
     data:
@@ -273,7 +279,7 @@ export function PageOverviewWebVitalsDetailPanel({
                   )
                 : (
                     projectData?.data[0][`p75(measurements.${webVital})`] as number
-                  ).toFixed(2)
+                  )?.toFixed(2)
             }
             webVital={webVital}
             score={webVitalScore}

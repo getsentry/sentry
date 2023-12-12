@@ -20,7 +20,7 @@ logger = logging.getLogger("sentry.security")
 
 def capture_security_activity(
     account: User | RpcUser | AnonymousUser,
-    type: str,
+    type: str,  # FIXME: "type" is a built-in function, so this isn't a great name
     actor: User | RpcUser | AnonymousUser,
     ip_address: str,
     context: Optional[Mapping[str, Any]] = None,
@@ -38,7 +38,7 @@ def capture_security_activity(
         assert context is not None
         logger_context["authenticator_id"] = context["authenticator"].id
 
-    logger.info(f"user.{type}", extra=logger_context)
+    logger.info("user.%s", type, extra=logger_context)
 
     if send_email:
         msg = generate_security_email(

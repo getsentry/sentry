@@ -24,15 +24,18 @@ import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/compo
 import {WebVitalDescription} from 'sentry/views/performance/browser/webVitals/components/webVitalDescription';
 import {WebVitalStatusLineChart} from 'sentry/views/performance/browser/webVitals/components/webVitalStatusLineChart';
 import {calculateOpportunity} from 'sentry/views/performance/browser/webVitals/utils/calculateOpportunity';
-import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
+import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
+import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
+import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
+import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
+import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionWebVitalsQuery';
 import {
   Row,
   RowWithScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
-import {useProjectWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsValuesTimeseriesQuery';
-import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useTransactionWebVitalsQuery';
+import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 
 type Column = GridColumnHeader;
@@ -58,20 +61,30 @@ export function WebVitalsDetailPanel({
 }) {
   const organization = useOrganization();
   const location = useLocation();
-  const transaction = location.query.transaction
-    ? Array.isArray(location.query.transaction)
-      ? location.query.transaction[0]
-      : location.query.transaction
-    : undefined;
+  const shouldUseStoredScores = useStoredScoresSetting();
 
-  const {data: projectData} = useProjectWebVitalsQuery({transaction});
+  const {data: projectData} = useProjectRawWebVitalsQuery({});
+  const {data: projectScoresData} = useProjectWebVitalsScoresQuery({
+    enabled: shouldUseStoredScores,
+    weightWebVital: webVital ?? 'total',
+  });
 
-  const projectScore = calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
+  const projectScore = shouldUseStoredScores
+    ? calculatePerformanceScoreFromStoredTableDataRow(projectScoresData?.data?.[0])
+    : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
 
   const {data, isLoading} = useTransactionWebVitalsQuery({
-    transaction,
-    orderBy: webVital,
     limit: 100,
+    opportunityWebVital: webVital ?? 'total',
+    ...(shouldUseStoredScores && webVital
+      ? {
+          defaultSort: {
+            field: `opportunity_score(measurements.score.${webVital})`,
+            kind: 'desc',
+          },
+        }
+      : {}),
+    enabled: webVital !== null,
   });
 
   const dataByOpportunity = useMemo(() => {
@@ -79,18 +92,22 @@ export function WebVitalsDetailPanel({
       return [];
     }
     const count = projectData?.data?.[0]?.['count()'] as number;
+    const sumWeights = projectScoresData?.data?.[0]?.[
+      `sum(measurements.score.weight.${webVital})`
+    ] as number;
     return data
       .map(row => ({
         ...row,
-        opportunity:
-          count !== undefined
-            ? calculateOpportunity(
-                projectScore[`${webVital}Score`],
-                count,
-                row[`${webVital}Score`],
-                row['count()']
-              )
-            : undefined,
+        opportunity: shouldUseStoredScores
+          ? Math.round(((row.opportunity ?? 0) * 100 * 100) / sumWeights) / 100
+          : count !== undefined
+          ? calculateOpportunity(
+              projectScore[`${webVital}Score`],
+              count,
+              row[`${webVital}Score`],
+              row['count()']
+            )
+          : undefined,
       }))
       .sort((a, b) => {
         if (a.opportunity === undefined) {
@@ -102,10 +119,17 @@ export function WebVitalsDetailPanel({
         return b.opportunity - a.opportunity;
       })
       .slice(0, MAX_ROWS);
-  }, [data, projectData?.data, projectScore, webVital]);
+  }, [
+    data,
+    projectData?.data,
+    projectScore,
+    projectScoresData?.data,
+    shouldUseStoredScores,
+    webVital,
+  ]);
 
   const {data: timeseriesData, isLoading: isTimeseriesLoading} =
-    useProjectWebVitalsValuesTimeseriesQuery({transaction});
+    useProjectRawWebVitalsValuesTimeseriesQuery({});
 
   const webVitalData: LineChartSeries = {
     data:
@@ -222,7 +246,7 @@ export function WebVitalsDetailPanel({
                   )
                 : (
                     projectData?.data?.[0]?.[mapWebVitalToColumn(webVital)] as number
-                  ).toFixed(2)
+                  )?.toFixed(2)
             }
             webVital={webVital}
             score={webVitalScore}
@@ -232,21 +256,19 @@ export function WebVitalsDetailPanel({
           {webVital && <WebVitalStatusLineChart webVitalSeries={webVitalData} />}
         </ChartContainer>
 
-        {!transaction && (
-          <TableContainer>
-            <GridEditable
-              data={dataByOpportunity}
-              isLoading={isLoading}
-              columnOrder={columnOrder}
-              columnSortBy={[sort]}
-              grid={{
-                renderHeadCell,
-                renderBodyCell,
-              }}
-              location={location}
-            />
-          </TableContainer>
-        )}
+        <TableContainer>
+          <GridEditable
+            data={dataByOpportunity}
+            isLoading={isLoading}
+            columnOrder={columnOrder}
+            columnSortBy={[sort]}
+            grid={{
+              renderHeadCell,
+              renderBodyCell,
+            }}
+            location={location}
+          />
+        </TableContainer>
         <PageErrorAlert />
       </DetailPanel>
     </PageErrorProvider>

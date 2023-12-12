@@ -1,12 +1,18 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, Mapping
+import ipaddress
+import socket
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, Set
 
-from django.conf import settings
+import sentry_sdk
+import urllib3
 from django.http import HttpResponse
 from django.http.request import HttpRequest
+from django.utils.encoding import force_str
 from requests import Request
 
+from sentry.http import build_session
+from sentry.net.http import SafeSession
 from sentry.shared_integrations.client.base import BaseApiClient, BaseApiResponseX
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
@@ -14,7 +20,15 @@ from sentry.silo.util import (
     clean_outbound_headers,
     clean_proxy_headers,
 )
-from sentry.types.region import Region, get_region_by_name
+from sentry.types.region import (
+    Region,
+    RegionResolutionError,
+    get_region_by_name,
+    load_global_regions,
+)
+
+if TYPE_CHECKING:
+    from typing import FrozenSet
 
 
 class SiloClientError(Exception):
@@ -107,6 +121,51 @@ class BaseSiloClient(BaseApiClient):
         return client_response
 
 
+def get_region_ip_addresses() -> FrozenSet[ipaddress.IPv4Address | ipaddress.IPv6Address]:
+    """
+    Infers the Region Silo IP addresses from the SENTRY_REGION_CONFIG setting.
+    """
+    global_regions = load_global_regions()
+
+    region_ip_addresses: Set[ipaddress.IPv4Address | ipaddress.IPv6Address] = set()
+
+    for region in global_regions.regions:
+        address = region.address
+        url = urllib3.util.parse_url(address)
+        if url.host:
+            # This is an IPv4 address.
+            # In the future we can consider adding IPv4/v6 dual stack support if and when we start using IPv6 addresses.
+            ip = socket.gethostbyname(url.host)
+            region_ip_addresses.add(ipaddress.ip_address(force_str(ip, strings_only=True)))
+        else:
+            sentry_sdk.capture_exception(
+                RegionResolutionError(f"Unable to parse url to host for: {address}")
+            )
+
+    return frozenset(region_ip_addresses)
+
+
+def validate_region_ip_address(ip: str) -> bool:
+    """
+    Checks if the provided IP address is a Region Silo IP address.
+    """
+    allowed_region_ip_addresses = get_region_ip_addresses()
+    if not allowed_region_ip_addresses:
+        sentry_sdk.capture_exception(
+            RegionResolutionError(f"allowed_region_ip_addresses is empty for: {ip}")
+        )
+        return False
+
+    ip_address = ipaddress.ip_address(force_str(ip, strings_only=True))
+    result = ip_address in allowed_region_ip_addresses
+
+    if not result:
+        sentry_sdk.capture_exception(
+            RegionResolutionError(f"Disallowed Region Silo IP address: {ip}")
+        )
+    return result
+
+
 class RegionSiloClient(BaseSiloClient):
     access_modes = [SiloMode.CONTROL]
 
@@ -123,19 +182,9 @@ class RegionSiloClient(BaseSiloClient):
         self.region = get_region_by_name(region.name)
         self.base_url = self.region.address
 
-
-class ControlSiloClient(BaseSiloClient):
-    access_modes = [SiloMode.REGION]
-
-    metrics_prefix = "silo_client.control"
-    log_path = "sentry.silo.client.control"
-    silo_client_name = "control"
-
-    def __init__(self) -> None:
-        super().__init__()
-
-        self.base_url = getattr(settings, "SENTRY_CONTROL_ADDRESS")
-        if not self.base_url:
-            raise AttributeError(
-                "Configure 'SENTRY_CONTROL_ADDRESS' in sentry configuration settings to use the ControlSiloClient"
-            )
+    def build_session(self) -> SafeSession:
+        """
+        Generates a safe Requests session for the API client to use.
+        This injects a custom is_ipaddress_permitted function to allow only connections to Region Silo IP addresses.
+        """
+        return build_session(is_ipaddress_permitted=validate_region_ip_address)

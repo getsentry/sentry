@@ -15,7 +15,7 @@ import PerformanceScoreRing from 'sentry/views/performance/browser/webVitals/com
 import {
   PERFORMANCE_SCORE_WEIGHTS,
   ProjectScore,
-} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 
 import {ORDER} from '../performanceScoreChart';
@@ -49,9 +49,15 @@ type Props = {
   barWidth?: number;
   hideWebVitalLabels?: boolean;
   inPerformanceWidget?: boolean;
+  labelHeightPadding?: number;
+  labelWidthPadding?: number;
   projectData?: TableData;
+  radiusPadding?: number;
   size?: number;
   webVitalLabelCoordinates?: WebVitalsLabelCoordinates;
+  weights?: {
+    [key in WebVitals]: number;
+  };
   x?: number;
   y?: number;
 };
@@ -130,12 +136,22 @@ function PerformanceScoreRingWithTooltips({
   height,
   text,
   webVitalLabelCoordinates,
+  weights = {
+    lcp: LCP_WEIGHT,
+    fcp: FCP_WEIGHT,
+    fid: FID_WEIGHT,
+    cls: CLS_WEIGHT,
+    ttfb: TTFB_WEIGHT,
+  },
   barWidth = 16,
   hideWebVitalLabels = false,
   inPerformanceWidget = false,
   size = 140,
   x = 40,
-  y = 20,
+  y = 25,
+  labelWidthPadding = 28,
+  labelHeightPadding = 14,
+  radiusPadding = 4,
 }: Props) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -174,6 +190,18 @@ function PerformanceScoreRingWithTooltips({
     onUnHover: () => setLabelHovered(null),
   };
 
+  const {lcpX, lcpY, fcpX, fcpY, fidX, fidY, clsX, clsY, ttfbX, ttfbY} =
+    calculateLabelCoordinates(
+      size,
+      x,
+      y,
+      barWidth,
+      weights,
+      labelWidthPadding,
+      labelHeightPadding,
+      radiusPadding
+    );
+
   return (
     <ProgressRingContainer ref={elem} {...mouseTrackingProps}>
       {webVitalTooltip && (
@@ -204,53 +232,53 @@ function PerformanceScoreRingWithTooltips({
               {...commonWebVitalLabelProps}
               webVital="lcp"
               coordinates={{
-                x: 160,
-                y: 30,
+                x: lcpX,
+                y: lcpY,
               }}
             />
             <WebVitalLabel
               {...commonWebVitalLabelProps}
               webVital="fcp"
               coordinates={{
-                x: 175,
-                y: 140,
+                x: fcpX,
+                y: fcpY,
               }}
             />
             <WebVitalLabel
               {...commonWebVitalLabelProps}
               webVital="fid"
               coordinates={{
-                x: 20,
-                y: 140,
+                x: fidX,
+                y: fidY,
               }}
             />
             <WebVitalLabel
               {...commonWebVitalLabelProps}
               webVital="cls"
               coordinates={{
-                x: 10,
-                y: 60,
+                x: clsX,
+                y: clsY,
               }}
             />
             <WebVitalLabel
               {...commonWebVitalLabelProps}
               webVital="ttfb"
               coordinates={{
-                x: 50,
-                y: 20,
+                x: ttfbX,
+                y: ttfbY,
               }}
             />
           </Fragment>
         )}
         <PerformanceScoreRing
           values={[
-            (projectScore.lcpScore ?? 0) * LCP_WEIGHT * 0.01,
-            (projectScore.fcpScore ?? 0) * FCP_WEIGHT * 0.01,
-            (projectScore.fidScore ?? 0) * FID_WEIGHT * 0.01,
-            (projectScore.clsScore ?? 0) * CLS_WEIGHT * 0.01,
-            (projectScore.ttfbScore ?? 0) * TTFB_WEIGHT * 0.01,
+            (projectScore.lcpScore ?? 0) * weights.lcp * 0.01,
+            (projectScore.fcpScore ?? 0) * weights.fcp * 0.01,
+            (projectScore.fidScore ?? 0) * weights.fid * 0.01,
+            (projectScore.clsScore ?? 0) * weights.cls * 0.01,
+            (projectScore.ttfbScore ?? 0) * weights.ttfb * 0.01,
           ]}
-          maxValues={[LCP_WEIGHT, FCP_WEIGHT, FID_WEIGHT, CLS_WEIGHT, TTFB_WEIGHT]}
+          maxValues={[weights.lcp, weights.fcp, weights.fid, weights.cls, weights.ttfb]}
           text={text}
           size={size}
           barWidth={barWidth}
@@ -275,6 +303,96 @@ function PerformanceScoreRingWithTooltips({
       </svg>
     </ProgressRingContainer>
   );
+}
+
+function calculateLabelCoordinates(
+  size: number,
+  x: number,
+  y: number,
+  barWidth: number,
+  weights: {
+    [key in WebVitals]: number;
+  },
+  labelWidthPadding: number,
+  labelHeightPadding: number,
+  radiusPadding: number
+) {
+  const radius = size / 2 + barWidth + radiusPadding;
+  const center = {
+    x: x + size / 2 - labelWidthPadding / 2,
+    y: y + size / 2 + labelHeightPadding / 2,
+  };
+  const sumMaxValues = Object.values(weights).reduce((acc, val) => acc + val, 0);
+  const BASE_ANGLE = -90;
+  const weightToAngle = (weight: number) => (weight / sumMaxValues) * 360;
+  const [lcpAngle, fcpAngle, fidAngle, clsAngle, ttfbAngle] = [
+    weights.lcp,
+    weights.fcp,
+    weights.fid,
+    weights.cls,
+    weights.ttfb,
+  ].map(weightToAngle);
+  const lcpX =
+    center.x + radius * Math.cos(((BASE_ANGLE + lcpAngle / 2) * Math.PI) / 180);
+  const lcpY =
+    center.y + radius * Math.sin(((BASE_ANGLE + lcpAngle / 2) * Math.PI) / 180);
+  const fcpX =
+    center.x +
+    radius * Math.cos(((BASE_ANGLE + lcpAngle + fcpAngle / 2) * Math.PI) / 180);
+  const fcpY =
+    center.y +
+    radius * Math.sin(((BASE_ANGLE + lcpAngle + fcpAngle / 2) * Math.PI) / 180);
+  const fidX =
+    center.x +
+    radius *
+      Math.cos(((BASE_ANGLE + lcpAngle + fcpAngle + fidAngle / 2) * Math.PI) / 180);
+  const fidY =
+    center.y +
+    radius *
+      Math.sin(((BASE_ANGLE + lcpAngle + fcpAngle + fidAngle / 2) * Math.PI) / 180);
+  const clsX =
+    center.x +
+    radius *
+      Math.cos(
+        ((BASE_ANGLE + lcpAngle + fcpAngle + fidAngle + clsAngle / 2) * Math.PI) / 180
+      );
+  const clsY =
+    center.y +
+    radius *
+      Math.sin(
+        ((BASE_ANGLE + lcpAngle + fcpAngle + fidAngle + clsAngle / 2) * Math.PI) / 180
+      );
+  // Padding hack for now since ttfb label is longer than the others
+  const ttfbX =
+    center.x -
+    12 +
+    radius *
+      Math.cos(
+        ((BASE_ANGLE + lcpAngle + fcpAngle + fidAngle + clsAngle + ttfbAngle / 2) *
+          Math.PI) /
+          180
+      );
+  const ttfbY =
+    center.y +
+    radius *
+      Math.sin(
+        ((BASE_ANGLE + lcpAngle + fcpAngle + fidAngle + clsAngle + ttfbAngle / 2) *
+          Math.PI) /
+          180
+      );
+
+  return {
+    lcpX,
+    lcpY,
+    fcpX,
+    fcpY,
+    fidX,
+    fidY,
+    clsX,
+    clsY,
+    ttfbX,
+    ttfbY,
+  };
 }
 
 const ProgressRingContainer = styled('div')``;

@@ -32,12 +32,12 @@ import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
+import {useTransactionSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionSamplesWebVitalsQuery';
 import {
   DEFAULT_INDEXED_SORT,
   SORTABLE_INDEXED_FIELDS,
   TransactionSampleRow,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useTransactionSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useTransactionSamplesWebVitalsQuery';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -110,14 +110,15 @@ export function PageSamplePerformanceTable({
 
   function renderHeadCell(col: Column) {
     function generateSortLink() {
+      const key = col.key === 'score' ? 'measurements.score.total' : col.key;
       let newSortDirection: Sort['kind'] = 'desc';
-      if (sort?.field === col.key) {
+      if (sort?.field === key) {
         if (sort.kind === 'desc') {
           newSortDirection = 'asc';
         }
       }
 
-      const newSort = `${newSortDirection === 'desc' ? '-' : ''}${col.key}`;
+      const newSort = `${newSortDirection === 'desc' ? '-' : ''}${key}`;
 
       return {
         ...location,
@@ -156,22 +157,30 @@ export function PageSamplePerformanceTable({
     }
     if (col.key === 'score') {
       return (
-        <AlignCenter>
-          <StyledTooltip
-            isHoverable
-            title={
-              <span>
-                {t('The overall performance rating of this page.')}
-                <br />
-                <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#performance-score">
-                  {t('How is this calculated?')}
-                </ExternalLink>
-              </span>
-            }
-          >
-            <TooltipHeader>{t('Perf Score')}</TooltipHeader>
-          </StyledTooltip>
-        </AlignCenter>
+        <SortLink
+          title={
+            <AlignCenter>
+              <StyledTooltip
+                isHoverable
+                title={
+                  <span>
+                    {t('The overall performance rating of this page.')}
+                    <br />
+                    <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#performance-score">
+                      {t('How is this calculated?')}
+                    </ExternalLink>
+                  </span>
+                }
+              >
+                <TooltipHeader>{t('Perf Score')}</TooltipHeader>
+              </StyledTooltip>
+            </AlignCenter>
+          }
+          direction={sort?.field === col.key ? sort.kind : undefined}
+          canSort={canSort}
+          generateSortLink={generateSortLink}
+          align={undefined}
+        />
       );
     }
     if (col.key === 'replayId' || col.key === 'profile.id') {
@@ -368,6 +377,8 @@ const AlignRight = styled('span')<{color?: string}>`
 `;
 
 const AlignCenter = styled('div')`
+  display: block;
+  margin: auto;
   text-align: center;
   width: 100%;
 `;

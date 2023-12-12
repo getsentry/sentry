@@ -17,10 +17,11 @@ import AggregateSpanDiff from 'sentry/components/events/eventStatisticalDetector
 import EventBreakpointChart from 'sentry/components/events/eventStatisticalDetector/breakpointChart';
 import {EventAffectedTransactions} from 'sentry/components/events/eventStatisticalDetector/eventAffectedTransactions';
 import EventComparison from 'sentry/components/events/eventStatisticalDetector/eventComparison';
-import {EventDifferenialFlamegraph} from 'sentry/components/events/eventStatisticalDetector/eventDifferentialFlamegraph';
+import {EventDifferentialFlamegraph} from 'sentry/components/events/eventStatisticalDetector/eventDifferentialFlamegraph';
 import {EventFunctionComparisonList} from 'sentry/components/events/eventStatisticalDetector/eventFunctionComparisonList';
 import {EventRegressionSummary} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
+import {TransactionsDeltaProvider} from 'sentry/components/events/eventStatisticalDetector/transactionsDeltaProvider';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
@@ -31,12 +32,14 @@ import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrR
 import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
 import {EventPackageData} from 'sentry/components/events/packageData';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
+import {DataSection} from 'sentry/components/events/styles';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, Group, IssueCategory, IssueType, Project} from 'sentry/types';
 import {EntryType, EventTransaction} from 'sentry/types/event';
+import {shouldShowCustomErrorResourceConfig} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ResourcesAndMaybeSolutions} from 'sentry/views/issueDetails/resourcesAndMaybeSolutions';
@@ -84,6 +87,7 @@ function DefaultGroupEventDetailsContent({
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
   const hasAnrImprovementsFeature = organization.features.includes('anr-improvements');
+  const showMaybeSolutionsHigher = shouldShowCustomErrorResourceConfig(group);
 
   const eventEntryProps = {group, event, project};
 
@@ -122,6 +126,13 @@ function DefaultGroupEventDetailsContent({
         projectSlug={project.slug}
         location={location}
       />
+      {showMaybeSolutionsHigher && (
+        <ResourcesAndMaybeSolutions
+          event={event}
+          projectSlug={project.slug}
+          group={group}
+        />
+      )}
       <EventEvidence event={event} group={group} projectSlug={project.slug} />
       <GroupEventEntry entryType={EntryType.MESSAGE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.EXCEPTION} {...eventEntryProps} />
@@ -144,11 +155,13 @@ function DefaultGroupEventDetailsContent({
       <GroupEventEntry entryType={EntryType.EXPECTSTAPLE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.TEMPLATE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.BREADCRUMBS} {...eventEntryProps} />
-      <ResourcesAndMaybeSolutions
-        event={event}
-        projectSlug={project.slug}
-        group={group}
-      />
+      {!showMaybeSolutionsHigher && (
+        <ResourcesAndMaybeSolutions
+          event={event}
+          projectSlug={project.slug}
+          group={group}
+        />
+      )}
       <GroupEventEntry entryType={EntryType.DEBUGMETA} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.REQUEST} {...eventEntryProps} />
       <EventContexts group={group} event={event} />
@@ -212,28 +225,36 @@ function ProfilingDurationRegressionIssueDetailsContent({
   const organization = useOrganization();
 
   return (
-    <Fragment>
-      <ErrorBoundary mini>
-        <EventRegressionSummary event={event} group={group} />
-      </ErrorBoundary>
-      <ErrorBoundary mini>
-        <EventFunctionBreakpointChart event={event} />
-      </ErrorBoundary>
-      <Feature
-        features={['profiling-differential-flamegraph']}
-        organization={organization}
-      >
+    <TransactionsDeltaProvider event={event} project={project}>
+      <Fragment>
         <ErrorBoundary mini>
-          <EventDifferenialFlamegraph event={event} />
+          <EventRegressionSummary event={event} group={group} />
         </ErrorBoundary>
-      </Feature>
-      <ErrorBoundary mini>
-        <EventAffectedTransactions event={event} group={group} project={project} />
-      </ErrorBoundary>
-      <ErrorBoundary mini>
-        <EventFunctionComparisonList event={event} group={group} project={project} />
-      </ErrorBoundary>
-    </Fragment>
+        <ErrorBoundary mini>
+          <EventFunctionBreakpointChart event={event} />
+        </ErrorBoundary>
+        <ErrorBoundary mini>
+          <EventAffectedTransactions event={event} group={group} project={project} />
+        </ErrorBoundary>
+        <Feature features="profiling-differential-flamegraph" organization={organization}>
+          <ErrorBoundary mini>
+            <DataSection>
+              <b>{t('Largest Changes in Call Stack Frequency')}</b>
+              <p>
+                {t(`See which functions changed the most before and after the regression. The
+                frame with the largest increase in call stack population likely
+                contributed to the cause for the duration regression.`)}
+              </p>
+
+              <EventDifferentialFlamegraph event={event} />
+            </DataSection>
+          </ErrorBoundary>
+        </Feature>
+        <ErrorBoundary mini>
+          <EventFunctionComparisonList event={event} group={group} project={project} />
+        </ErrorBoundary>
+      </Fragment>
+    </TransactionsDeltaProvider>
   );
 }
 

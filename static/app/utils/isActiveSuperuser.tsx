@@ -1,6 +1,7 @@
 import Cookies from 'js-cookie';
 
 import ConfigStore from 'sentry/stores/configStore';
+import OrganizationStore from 'sentry/stores/organizationStore';
 
 const SUPERUSER_COOKIE_NAME = window.superUserCookieName ?? 'su';
 const SUPERUSER_COOKIE_DOMAIN = window.superUserCookieDomain;
@@ -16,6 +17,12 @@ const SUPERUSER_COOKIE_DOMAIN = window.superUserCookieDomain;
  * Documented here: https://getsentry.atlassian.net/browse/ER-1602
  */
 export function isActiveSuperuser() {
+  const {organization} = OrganizationStore.getState();
+
+  if (organization) {
+    return organization.access.includes('org:superuser');
+  }
+
   const {isSuperuser} = ConfigStore.get('user') || {};
 
   if (isSuperuser) {

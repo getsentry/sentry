@@ -388,7 +388,6 @@ const StyledBadge = styled(Badge)`
 `;
 
 const TraceTableWrapper = styled('div')`
-  margin-top: ${space(3)};
   pointer-events: none;
 
   width: 100%;

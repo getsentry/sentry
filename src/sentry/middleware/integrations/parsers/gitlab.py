@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Tuple
 
-from django.http import HttpResponse
+from django.http.response import HttpResponseBase
 from django.urls import resolve
 
 from sentry.integrations.gitlab.webhooks import GitlabWebhookEndpoint, GitlabWebhookMixin
@@ -22,7 +22,7 @@ class GitlabRequestParser(BaseRequestParser, GitlabWebhookMixin):
     webhook_identifier = WebhookProviderIdentifier.GITLAB
     _integration: Integration | None = None
 
-    def _resolve_external_id(self) -> Tuple[str, str] | HttpResponse:
+    def _resolve_external_id(self) -> Tuple[str, str] | HttpResponseBase:
         clear_tags_and_context()
         extra = {
             # This tells us the Gitlab version being used (e.g. current gitlab.com version -> GitLab/15.4.0-pre)
@@ -63,17 +63,17 @@ class GitlabRequestParser(BaseRequestParser, GitlabWebhookMixin):
 
     def get_response_from_gitlab_webhook(self):
         maybe_http_response = self._resolve_external_id()
-        if isinstance(maybe_http_response, HttpResponse):
+        if isinstance(maybe_http_response, HttpResponseBase):
             return maybe_http_response
 
         regions = self.get_regions_from_organizations()
         if len(regions) == 0:
-            logger.info(f"{self.provider}.no_regions", extra={"path": self.request.path})
+            logger.info("%s.no_regions", self.provider, extra={"path": self.request.path})
             return self.get_response_from_control_silo()
 
         return self.get_response_from_outbox_creation(regions=regions)
 
-    def get_response(self) -> HttpResponse:
+    def get_response(self) -> HttpResponseBase:
         if self.view_class == GitlabWebhookEndpoint:
             return self.get_response_from_gitlab_webhook()
         return self.get_response_from_control_silo()

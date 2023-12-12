@@ -1,8 +1,7 @@
 import {Organization} from 'sentry/types';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useQuery} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 import {semverCompare} from 'sentry/utils/versions';
-
-import {ProjectSdkUpdates} from '../types/project';
 
 type Opts = {
   minVersion: string;
@@ -18,9 +17,20 @@ function useProjectSdkNeedsUpdate({
   | {isError: false; isFetching: true; needsUpdate: undefined}
   | {isError: true; isFetching: false; needsUpdate: undefined}
   | {isError: false; isFetching: false; needsUpdate: boolean} {
-  const {data, isLoading, isError} = useApiQuery<ProjectSdkUpdates[]>(
-    [`/organizations/${organization.slug}/sdk-updates/`],
-    {staleTime: 5000}
+  const path = `/organizations/${organization.slug}/sdk-updates/`;
+  const api = useApi({persistInFlight: true});
+  const {data, isLoading, isError} = useQuery(
+    [path],
+    async () => {
+      try {
+        return await api.requestPromise(path, {
+          method: 'GET',
+        });
+      } catch {
+        return [];
+      }
+    },
+    {staleTime: 5000, refetchOnMount: false}
   );
 
   if (isLoading) {

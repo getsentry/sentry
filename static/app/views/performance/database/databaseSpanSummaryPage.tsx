@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
+import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -19,8 +19,7 @@ import {ModulePageProviders} from 'sentry/views/performance/database/modulePageP
 import {ThroughputChart} from 'sentry/views/performance/database/throughputChart';
 import {useSelectedDurationAggregate} from 'sentry/views/performance/database/useSelectedDurationAggregate';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
-import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
-import {useFullSpanFromTrace} from 'sentry/views/starfish/queries/useFullSpanFromTrace';
+import {DatabaseSpanDescription} from 'sentry/views/starfish/components/spanDescription';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {
@@ -67,8 +66,6 @@ function SpanSummaryPage({params}: Props) {
   }
 
   const sort = useModuleSort(QueryParameterNames.ENDPOINTS_SORT, DEFAULT_SORT);
-
-  const {data: fullSpan} = useFullSpanFromTrace(groupId);
 
   const {data: spanMetrics} = useSpanMetrics(
     filters,
@@ -142,7 +139,7 @@ function SpanSummaryPage({params}: Props) {
       </Layout.Header>
 
       <Layout.Body>
-        <FeedbackWidget />
+        <FloatingFeedbackWidget />
         <Layout.Main fullWidth>
           <HeaderContainer>
             <PaddedContainer>
@@ -155,15 +152,11 @@ function SpanSummaryPage({params}: Props) {
             <SpanMetricsRibbon spanMetrics={span} />
           </HeaderContainer>
 
-          {span?.[SpanMetricsField.SPAN_DESCRIPTION] && (
+          {groupId && (
             <DescriptionContainer>
-              <SpanDescription
-                span={{
-                  ...span,
-                  [SpanMetricsField.SPAN_DESCRIPTION]:
-                    fullSpan?.description ??
-                    spanMetrics?.[SpanMetricsField.SPAN_DESCRIPTION],
-                }}
+              <DatabaseSpanDescription
+                groupId={groupId}
+                preliminaryDescription={spanMetrics?.['span.description']}
               />
             </DescriptionContainer>
           )}

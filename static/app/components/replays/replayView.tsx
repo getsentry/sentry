@@ -2,9 +2,11 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import ReplayController from 'sentry/components/replays/replayController';
 import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
+import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -20,6 +22,7 @@ type Props = {
 function ReplayView({toggleFullscreen}: Props) {
   const isFullscreen = useIsFullscreen();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const {isFetching, replay} = useReplayContext();
 
   return (
     <Fragment>
@@ -38,9 +41,13 @@ function ReplayView({toggleFullscreen}: Props) {
               </Button>
             ) : null}
           </ContextContainer>
-          <Panel>
-            <ReplayPlayer />
-          </Panel>
+          {!isFetching && replay?.hasProcessingErrors() ? (
+            <ReplayProcessingError processingErrors={replay.processingErrors()} />
+          ) : (
+            <Panel>
+              <ReplayPlayer />
+            </Panel>
+          )}
         </PlayerContainer>
         {isFullscreen && isSidebarOpen ? (
           <BreadcrumbContainer>

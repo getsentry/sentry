@@ -1,8 +1,10 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
+import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Flex} from 'sentry/components/profiling/flex';
 import {
   ProfilingContextMenu,
@@ -14,8 +16,6 @@ import {
 } from 'sentry/components/profiling/profilingContextMenu';
 import {IconChevron, IconCopy, IconGithub, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {RequestState} from 'sentry/types';
-import {StacktraceLinkResult} from 'sentry/types/integrations';
 import {defined} from 'sentry/utils';
 import {getShortEventId} from 'sentry/utils/events';
 import {
@@ -27,9 +27,9 @@ import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
+import {useSourceCodeLink} from 'sentry/utils/profiling/hooks/useSourceLink';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {generateProfileFlamechartRouteWithHighlightFrame} from 'sentry/utils/profiling/routes';
-import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -49,11 +49,19 @@ const FLAMEGRAPH_SORTING_OPTIONS: FlamegraphSorting[] = [
   'left heavy',
 ];
 
+const DIFFERENTIAL_FLAMEGRAPH_SORTING_OPTIONS: FlamegraphSorting[] = [
+  'alphabetical',
+  'left heavy',
+];
+
+const DIFFERENTIAL_FLAMEGRAPH_FRAME_OPTIONS = ['all', 'application', 'system'] as const;
+
 interface FlamegraphContextMenuProps {
   contextMenu: ReturnType<typeof useContextMenu>;
   hoveredNode: FlamegraphFrame | null;
   isHighlightingAllOccurrences: boolean;
   onCopyFunctionNameClick: () => void;
+  onCopyFunctionSource: () => void;
   onHighlightAllOccurrencesClick: () => void;
   profileGroup: ProfileGroup | null;
   disableCallOrderSort?: boolean;
@@ -65,78 +73,36 @@ function isSupportedPlatformForGitHubLink(platform: string | undefined): boolean
     return false;
   }
 
-  return platform === 'node' || platform === 'python';
+  return platform.includes('javascript') || platform === 'node' || platform === 'python';
 }
 
 export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
-  const api = useApi();
   const {projects} = useProjects();
   const organization = useOrganization();
   const preferences = useFlamegraphPreferences();
   const dispatch = useDispatchFlamegraphState();
 
-  const [githubLink, setGithubLinkState] = useState<RequestState<StacktraceLinkResult>>({
-    type: 'initial',
-  });
-
   const project = projects.find(
     p => p.id === String(props.profileGroup?.metadata?.projectID)
   );
 
-  useEffect(() => {
-    if (!props.hoveredNode || !props.profileGroup) {
-      return setGithubLinkState({type: 'initial'});
-    }
-
-    if (
-      !project ||
-      !props.hoveredNode ||
-      // the profile ids indicate this is an aggregate flamegraph
-      // and they do not support source code links
-      props.hoveredNode.profileIds
-    ) {
-      return undefined;
-    }
-
-    if (!isSupportedPlatformForGitHubLink(props.profileGroup.metadata.platform)) {
-      return setGithubLinkState({type: 'errored', error: 'Unsupported platform'});
-    }
-
-    const metadata = props.profileGroup.metadata;
-    const commitId = metadata.release?.lastCommit?.id;
-    const platform = metadata.platform;
-
-    const frame = props.hoveredNode.frame;
-
-    setGithubLinkState({type: 'loading'});
-
-    api
-      .requestPromise(`/projects/${organization.slug}/${project.slug}/stacktrace-link/`, {
-        query: {
-          file: frame.file,
-          platform,
-          commitId,
-          ...(frame.path && {absPath: frame.path}),
-        },
-      })
-      .then(response => {
-        setGithubLinkState({type: 'resolved', data: response});
-      });
-
-    return () => {
-      api.clear();
-    };
-  }, [props.hoveredNode, api, project, organization, props.profileGroup]);
+  const sourceCodeLink = useSourceCodeLink({
+    project,
+    organization,
+    commitId: props.profileGroup?.metadata?.release?.lastCommit?.id,
+    platform: props.profileGroup?.metadata?.platform,
+    frame: {file: props.hoveredNode?.frame.file, path: props.hoveredNode?.frame.path},
+  });
 
   // @TODO: this only works for github right now, other providers will not work
   const onOpenInGithubClick = useCallback(() => {
-    if (githubLink.type !== 'resolved') {
+    if (!sourceCodeLink.isSuccess) {
       return;
     }
 
     if (
-      !githubLink.data.sourceUrl ||
-      githubLink.data.config?.provider?.key !== 'github'
+      !sourceCodeLink.data.sourceUrl ||
+      sourceCodeLink.data.config?.provider?.key !== 'github'
     ) {
       return;
     }
@@ -144,11 +110,11 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
     // make a best effort to link to the exact line if we can
     const url =
       defined(props.hoveredNode) && defined(props.hoveredNode.frame.line)
-        ? `${githubLink.data.sourceUrl}#L${props.hoveredNode.frame.line}`
-        : githubLink.data.sourceUrl;
+        ? `${sourceCodeLink.data.sourceUrl}#L${props.hoveredNode.frame.line}`
+        : sourceCodeLink.data.sourceUrl;
 
     window.open(url, '_blank', 'noopener,noreferrer');
-  }, [props.hoveredNode, githubLink]);
+  }, [props.hoveredNode, sourceCodeLink]);
 
   return props.contextMenu.open ? (
     <Fragment>
@@ -186,6 +152,7 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
             </ProfilingContextMenuItemCheckbox>
 
             <ProfilingContextMenuItemButton
+              disabled={!(props.hoveredNode.frame.file ?? props.hoveredNode.frame.path)}
               {...props.contextMenu.getMenuItemProps({
                 onClick: () => {
                   props.onCopyFunctionNameClick();
@@ -197,31 +164,44 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
             >
               {t('Copy function name')}
             </ProfilingContextMenuItemButton>
-            {githubLink.type !== 'initial' && (
-              <ProfilingContextMenuItemButton
-                disabled={
-                  githubLink.type !== 'resolved' ||
-                  !(githubLink.type === 'resolved' && githubLink.data.sourceUrl)
-                }
-                tooltip={
-                  !isSupportedPlatformForGitHubLink(
-                    props.profileGroup?.metadata?.platform
-                  )
-                    ? t('Open in GitHub is not yet supported for this platform')
-                    : githubLink.type === 'resolved' &&
-                      (!githubLink.data.sourceUrl ||
-                        githubLink.data.config?.provider?.key !== 'github')
-                    ? t('Could not find source code location in GitHub')
-                    : undefined
-                }
-                {...props.contextMenu.getMenuItemProps({
-                  onClick: onOpenInGithubClick,
-                })}
-                icon={<IconGithub size="xs" />}
-              >
-                {t('Open in GitHub')}
-              </ProfilingContextMenuItemButton>
-            )}
+            <ProfilingContextMenuItemButton
+              {...props.contextMenu.getMenuItemProps({
+                onClick: () => {
+                  props.onCopyFunctionSource();
+                  // This is a button, so close the context menu.
+                  props.contextMenu.setOpen(false);
+                },
+              })}
+              icon={<IconCopy size="xs" />}
+            >
+              {t('Copy source location')}
+            </ProfilingContextMenuItemButton>
+            <ProfilingContextMenuItemButton
+              disabled={!sourceCodeLink.isSuccess || !sourceCodeLink.data?.sourceUrl}
+              tooltip={
+                !isSupportedPlatformForGitHubLink(props.profileGroup?.metadata?.platform)
+                  ? t('Open in GitHub is not supported for this platform')
+                  : sourceCodeLink.isLoading
+                  ? 'Resolving link'
+                  : sourceCodeLink.isSuccess &&
+                    (!sourceCodeLink.data.sourceUrl ||
+                      sourceCodeLink.data.config?.provider?.key !== 'github')
+                  ? t('Could not find source code location in GitHub')
+                  : undefined
+              }
+              {...props.contextMenu.getMenuItemProps({
+                onClick: onOpenInGithubClick,
+              })}
+              icon={
+                sourceCodeLink.isLoading ? (
+                  <StyledLoadingIndicator size={10} hideMessage />
+                ) : (
+                  <IconGithub size="xs" />
+                )
+              }
+            >
+              {t('Open in GitHub')}
+            </ProfilingContextMenuItemButton>
           </ProfilingContextMenuGroup>
         ) : null}
         {props.disableColorCoding ? null : (
@@ -233,7 +213,6 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
                 {...props.contextMenu.getMenuItemProps({
                   onClick: () => dispatch({type: 'set color coding', payload: coding}),
                 })}
-                onClick={() => dispatch({type: 'set color coding', payload: coding})}
                 checked={preferences.colorCoding === coding}
               >
                 {coding}
@@ -249,7 +228,6 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
               {...props.contextMenu.getMenuItemProps({
                 onClick: () => dispatch({type: 'set view', payload: view}),
               })}
-              onClick={() => dispatch({type: 'set view', payload: view})}
               checked={preferences.view === view}
             >
               {view}
@@ -268,7 +246,6 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
                 {...props.contextMenu.getMenuItemProps({
                   onClick: () => dispatch({type: 'set sorting', payload: sorting}),
                 })}
-                onClick={() => dispatch({type: 'set sorting', payload: sorting})}
                 checked={preferences.sorting === sorting}
               >
                 {sorting}
@@ -281,6 +258,80 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
     </Fragment>
   ) : null;
 }
+
+interface DifferentialFlamegraphMenuProps {
+  contextMenu: ReturnType<typeof useContextMenu>;
+  frameFilter: 'application' | 'system' | 'all';
+  onClose: () => void;
+  onFrameFilterChange: (type: 'application' | 'system' | 'all') => void;
+}
+export function DifferentialFlamegraphMenu(props: DifferentialFlamegraphMenuProps) {
+  const preferences = useFlamegraphPreferences();
+  const dispatch = useDispatchFlamegraphState();
+
+  return (
+    <ProfilingContextMenu>
+      <ProfilingContextMenuGroup>
+        <ProfilingContextMenuHeading>{t('Functions')}</ProfilingContextMenuHeading>
+        {DIFFERENTIAL_FLAMEGRAPH_FRAME_OPTIONS.map((filter, idx) => (
+          <ProfilingContextMenuItemCheckbox
+            key={idx}
+            {...props.contextMenu.getMenuItemProps({
+              onClick: () => props.onFrameFilterChange(filter),
+            })}
+            checked={props.frameFilter === filter}
+          >
+            {filter === 'all'
+              ? t('All frames')
+              : filter === 'application'
+              ? t('Application frames')
+              : t('System frames')}
+          </ProfilingContextMenuItemCheckbox>
+        ))}
+      </ProfilingContextMenuGroup>
+      <ProfilingContextMenuGroup>
+        <ProfilingContextMenuHeading>{t('View')}</ProfilingContextMenuHeading>
+        {FLAMEGRAPH_VIEW_OPTIONS.map((view, idx) => (
+          <ProfilingContextMenuItemCheckbox
+            key={idx}
+            {...props.contextMenu.getMenuItemProps({
+              onClick: () => dispatch({type: 'set view', payload: view}),
+            })}
+            checked={preferences.view === view}
+          >
+            {view}
+          </ProfilingContextMenuItemCheckbox>
+        ))}
+      </ProfilingContextMenuGroup>
+      <ProfilingContextMenuGroup>
+        <ProfilingContextMenuHeading>{t('Sorting')}</ProfilingContextMenuHeading>
+        {DIFFERENTIAL_FLAMEGRAPH_SORTING_OPTIONS.map((sorting, idx) => {
+          return (
+            <ProfilingContextMenuItemCheckbox
+              key={idx}
+              {...props.contextMenu.getMenuItemProps({
+                onClick: () => dispatch({type: 'set sorting', payload: sorting}),
+              })}
+              checked={preferences.sorting === sorting}
+            >
+              {sorting}
+            </ProfilingContextMenuItemCheckbox>
+          );
+        })}
+      </ProfilingContextMenuGroup>
+    </ProfilingContextMenu>
+  );
+}
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  margin: 0;
+  transform: translateX(-2px);
+
+  > div {
+    border: 2px solid ${p => p.theme.gray100} !important;
+    border-left-color: ${p => p.theme.gray200} !important;
+  }
+`;
 
 function ProfileIdsSubMenu(props: {
   contextMenu: FlamegraphContextMenuProps['contextMenu'];

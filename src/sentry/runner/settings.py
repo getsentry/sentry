@@ -3,7 +3,8 @@ import warnings
 
 import click
 
-DEFAULT_SETTINGS_MODULE = "sentry.conf.server"
+from sentry.runner import importer
+
 DEFAULT_SETTINGS_CONF = "config.yml"
 DEFAULT_SETTINGS_OVERRIDE = "sentry.conf.py"
 
@@ -109,8 +110,6 @@ def configure(ctx, py, yaml, skip_service_validation=False):
     ):
         mimetypes.add_type(type, "." + ext)
 
-    from .importer import install
-
     if yaml is None:
         # `yaml` will be None when SENTRY_CONF is pointed
         # directly to a file, in which case, this file must exist
@@ -135,9 +134,9 @@ def configure(ctx, py, yaml, skip_service_validation=False):
 
         reload_on_change(yaml)
 
-    os.environ["DJANGO_SETTINGS_MODULE"] = "sentry_config"
+    importer.SENTRY_CONF_PY = py
 
-    install("sentry_config", py, DEFAULT_SETTINGS_MODULE)
+    os.environ["DJANGO_SETTINGS_MODULE"] = "sentry.runner.default_settings"
 
     from django.conf import settings
 

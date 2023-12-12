@@ -5,6 +5,7 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Iterable,
     Mapping,
     MutableMapping,
     MutableSequence,
@@ -83,8 +84,9 @@ class IndexerBatch:
         self.schema_validator = schema_validator
 
         self.__message_count: MutableMapping[UseCaseID, int] = defaultdict(int)
-        self.__message_size_sum: MutableMapping[UseCaseID, int] = defaultdict(int)
-        self.__message_size_max: MutableMapping[UseCaseID, int] = defaultdict(int)
+        self.__message_bytes: MutableMapping[UseCaseID, int] = defaultdict(int)
+        self.__message_tags_len: MutableMapping[UseCaseID, int] = defaultdict(int)
+        self.__message_value_len: MutableMapping[UseCaseID, int] = defaultdict(int)
 
         # Invalid messages and filtered messages are both skipped during processing
         # (reconstruct_messages), but we want to put the invalid messages into the
@@ -129,10 +131,9 @@ class IndexerBatch:
                 self.parsed_payloads_by_meta[broker_meta] = parsed_payload
             except Exception as e:
                 self.invalid_msg_meta.add(broker_meta)
-                logger.error(
-                    e,
+                logger.exception(
+                    str(e),
                     extra={"payload_value": str(msg.payload.value)},
-                    exc_info=True,
                 )
 
         for namespace, cnt in skipped_msgs_cnt.items():
@@ -152,10 +153,9 @@ class IndexerBatch:
                 msg.payload.value.decode("utf-8"), use_rapid_json=True
             )
         except rapidjson.JSONDecodeError:
-            logger.error(
+            logger.exception(
                 "process_messages.invalid_json",
                 extra={"payload_value": str(msg.payload.value)},
-                exc_info=True,
             )
             raise
 
@@ -174,10 +174,12 @@ class IndexerBatch:
             )
 
         self.__message_count[use_case_id] += 1
-        self.__message_size_max[use_case_id] = max(
-            len(msg.payload.value), self.__message_size_max[use_case_id]
+
+        self.__message_bytes[use_case_id] += len(msg.payload.value)
+        self.__message_tags_len[use_case_id] += len(parsed_payload.get("tags", {}))
+        self.__message_value_len[use_case_id] += (
+            len(parsed_payload["value"]) if isinstance(parsed_payload["value"], Iterable) else 1
         )
-        self.__message_size_sum[use_case_id] += len(msg.payload.value)
 
         return parsed_payload
 
@@ -362,7 +364,7 @@ class IndexerBatch:
 
                     new_tags[str(new_k)] = value_to_write
             except KeyError:
-                logger.error("process_messages.key_error", extra={"tags": tags}, exc_info=True)
+                logger.exception("process_messages.key_error", extra={"tags": tags})
                 continue
 
             if exceeded_org_quotas or exceeded_global_quotas:
@@ -501,16 +503,25 @@ class IndexerBatch:
                 amount=self.__message_count[use_case_id],
                 tags={"use_case_id": use_case_id.value},
             )
-            metrics.timing(
-                "metrics_consumer.process_message.message.size.avg",
-                self.__message_size_sum[use_case_id] / self.__message_count[use_case_id],
+            metrics.distribution(
+                "metrics_consumer.process_message.message.size",
+                self.__message_bytes[use_case_id],
                 tags={"use_case_id": use_case_id.value},
+                unit="byte",
             )
-            metrics.timing(
-                "metrics_consumer.process_message.message.size.max",
-                self.__message_size_max[use_case_id],
+            metrics.distribution(
+                "metrics_consumer.process_message.message.tags_len",
+                self.__message_tags_len[use_case_id],
                 tags={"use_case_id": use_case_id.value},
+                unit="int",
             )
+            metrics.distribution(
+                "metrics_consumer.process_message.message.value_len",
+                self.__message_value_len[use_case_id],
+                tags={"use_case_id": use_case_id.value},
+                unit="int",
+            )
+
         return IndexerOutputMessageBatch(
             new_messages,
             cogs_usage,
