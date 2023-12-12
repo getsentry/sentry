@@ -58,7 +58,9 @@ export function TrayContent() {
             disabled={isCodeLocationsDisabled}
           >
             <Tooltip
-              title="This metric is automatically collected by Sentry. It is not bound to a specific line of your code."
+              title={t(
+                'This metric is automatically collected by Sentry. It is not bound to a specific line of your code.'
+              )}
               disabled={!isCodeLocationsDisabled}
             >
               <span style={{pointerEvents: 'all'}}>{t('Code Location')}</span>
