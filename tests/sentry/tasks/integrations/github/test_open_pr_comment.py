@@ -9,6 +9,7 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import CommentType, PullRequest, PullRequestComment
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.integrations.github.open_pr_comment import (
+    UNALLOWED_PROJECT_IDS,
     format_issue_table,
     format_open_pr_comment,
     get_issue_table_contents,
@@ -36,7 +37,7 @@ class CreateEventTestCase(TestCase):
         filenames=None,
         project_id=None,
         user_id=None,
-        handled=True,
+        handled=False,
     ):
         if culprit is None:
             culprit = "issue0"
@@ -237,6 +238,15 @@ class TestGetFilenames(GithubCommentTestCase):
                 default_branch="master",
             )
 
+        project = self.create_project(organization=self.organization, id=UNALLOWED_PROJECT_IDS[0])
+        # matching code mapping from unallowed project
+        self.create_code_mapping(
+            project=project,
+            repo=self.gh_repo,
+            source_root="",
+            stack_root="./",
+        )
+
         # matching code mapping from a different org
         other_org_code_mapping = self.create_code_mapping(
             project=self.another_org_project,
@@ -297,6 +307,14 @@ class TestGetCommentIssues(CreateEventTestCase):
         top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"])
         assert len(top_5_issues) == 0
 
+    def test_filters_handled_issue(self):
+        group_id = self._create_event(filenames=["bar.py", "baz.py"], handled=True).group.id
+
+        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"])
+        top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
+        assert group_id != self.group_id
+        assert top_5_issue_ids == [self.group_id]
+
     def test_project_group_id_mismatch(self):
         # we fetch all group_ids that belong to the projects passed into the function
         self._create_event(project_id=self.another_org_project.id)
@@ -330,20 +348,20 @@ class TestGetCommentIssues(CreateEventTestCase):
             self._create_event(filenames=["bar.py", "baz.py"], user_id=str(i), handled=False)
             for i in range(5)
         ][0].group.id
-        group_id_2 = [
+        [
             self._create_event(filenames=["hello.py", "baz.py"], user_id=str(i), handled=True)
             for i in range(4)
-        ][0].group.id
+        ]
         group_id_3 = [
             self._create_event(filenames=["base.py", "baz.py"], user_id=str(i), handled=False)
             for i in range(3)
         ][0].group.id
-        group_id_4 = [
+        [
             self._create_event(filenames=["nom.py", "baz.py"], user_id=str(i), handled=True)
             for i in range(2)
-        ][0].group.id
+        ]
         # 6th issue
-        self._create_event(filenames=["nan.py", "baz.py"])
+        self._create_event(filenames=["nan.py", "baz.py"], handled=True)
         # unrelated issue with same stack trace in different project
         self._create_event(project_id=self.another_org_project.id)
 
@@ -351,8 +369,9 @@ class TestGetCommentIssues(CreateEventTestCase):
         top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
         is_handled = [issue["is_handled"] for issue in top_5_issues]
 
-        assert top_5_issue_ids == [self.group_id, group_id_1, group_id_2, group_id_3, group_id_4]
-        assert is_handled == [1, 0, 1, 0, 1]
+        # filters handled issues
+        assert top_5_issue_ids == [self.group_id, group_id_1, group_id_3]
+        assert is_handled == [0, 0, 0]
 
     def test_get_issue_table_contents(self):
         group_id_1 = [
@@ -363,7 +382,7 @@ class TestGetCommentIssues(CreateEventTestCase):
         ][0].group.id
         group_id_2 = [
             self._create_event(
-                culprit="issue2", filenames=["hello.py", "baz.py"], user_id=str(i), handled=True
+                culprit="issue2", filenames=["hello.py", "baz.py"], user_id=str(i), handled=False
             )
             for i in range(4)
         ][0].group.id
@@ -375,7 +394,7 @@ class TestGetCommentIssues(CreateEventTestCase):
         ][0].group.id
         group_id_4 = [
             self._create_event(
-                culprit="issue4", filenames=["nom.py", "baz.py"], user_id=str(i), handled=True
+                culprit="issue4", filenames=["nom.py", "baz.py"], user_id=str(i), handled=False
             )
             for i in range(2)
         ][0].group.id
@@ -442,25 +461,25 @@ class TestFormatComment(TestCase):
 
         assert (
             comment
-            == """## 🚀 Sentry Issue Report
-You modified these files in this pull request and we noticed these issues associated with them.
+            == """## 🔍 Existing Sentry Issues - For Review
+Your pull request files have the following pre-existing issues:
 
 📄 **tests/sentry/tasks/integrations/github/test_open_pr_comment.py**
 
-| Issue  | Additional Info |
-| :--------- | :-------- |
-| ‼️ [**file1 0**](http://testserver/organizations/baz/issues/0/?referrer=github-open-pr-bot) subtitle0 | `Handled:` **True** `Event Count:` **5k** `Users:` **5k** |
-| ‼️ [**file1 1**](http://testserver/organizations/baz/issues/1/?referrer=github-open-pr-bot) subtitle1 | `Handled:` **True** `Event Count:` **4k** `Users:` **4k** |
-| ‼️ [**file1 2**](http://testserver/organizations/baz/issues/2/?referrer=github-open-pr-bot) subtitle2 | `Handled:` **True** `Event Count:` **3k** `Users:` **3k** |
-| ‼️ [**file1 3**](http://testserver/organizations/baz/issues/3/?referrer=github-open-pr-bot) subtitle3 | `Handled:` **True** `Event Count:` **2k** `Users:` **2k** |
-| ‼️ [**file1 4**](http://testserver/organizations/baz/issues/4/?referrer=github-open-pr-bot) subtitle4 | `Handled:` **True** `Event Count:` **1k** `Users:` **1k** |
+| Issue  |
+| :--------- |
+| [**file1 0**](http://testserver/organizations/baz/issues/0/?referrer=github-open-pr-bot) subtitle0 <br> `Handled:` **True** `Event Count:` **5k** `Users:` **5k** |
+| [**file1 1**](http://testserver/organizations/baz/issues/1/?referrer=github-open-pr-bot) subtitle1 <br> `Handled:` **True** `Event Count:` **4k** `Users:` **4k** |
+| [**file1 2**](http://testserver/organizations/baz/issues/2/?referrer=github-open-pr-bot) subtitle2 <br> `Handled:` **True** `Event Count:` **3k** `Users:` **3k** |
+| [**file1 3**](http://testserver/organizations/baz/issues/3/?referrer=github-open-pr-bot) subtitle3 <br> `Handled:` **True** `Event Count:` **2k** `Users:` **2k** |
+| [**file1 4**](http://testserver/organizations/baz/issues/4/?referrer=github-open-pr-bot) subtitle4 <br> `Handled:` **True** `Event Count:` **1k** `Users:` **1k** |
 <details>
 <summary><b>📄 tests/sentry/tasks/integrations/github/test_pr_comment.py (Click to Expand)</b></summary>
 
-| Issue  | Additional Info |
-| :--------- | :-------- |
-| ‼️ [**SoftTimeLimitExceeded 0**](http://testserver/organizations/baz/issues/5/?referrer=github-open-pr-bot) sentry.tasks.low_priority... | `Handled:` **False** `Event Count:` **20k** `Users:` **20k** |
-| ‼️ [**SoftTimeLimitExceeded 1**](http://testserver/organizations/baz/issues/6/?referrer=github-open-pr-bot) sentry.tasks.low_priority... | `Handled:` **False** `Event Count:` **10k** `Users:` **10k** |
+| Issue  |
+| :--------- |
+| [**SoftTimeLimitExceeded 0**](http://testserver/organizations/baz/issues/5/?referrer=github-open-pr-bot) sentry.tasks.low_priority... <br> `Handled:` **False** `Event Count:` **20k** `Users:` **20k** |
+| [**SoftTimeLimitExceeded 1**](http://testserver/organizations/baz/issues/6/?referrer=github-open-pr-bot) sentry.tasks.low_priority... <br> `Handled:` **False** `Event Count:` **10k** `Users:` **10k** |
 </details>
 ---
 
@@ -499,7 +518,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
             {
                 "group_id": g.id,
                 "event_count": 1000 * (i + 1),
-                "is_handled": True,
+                "is_handled": False,
             }
             for i, g in enumerate(Group.objects.all())
         ]
@@ -538,7 +557,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
         assert (
             responses.calls[0].request.body
-            == f'{{"body": "## \\ud83d\\ude80 Sentry Issue Report\\nYou modified these files in this pull request and we noticed these issues associated with them.\\n\\n\\ud83d\\udcc4 **foo.py**\\n\\n| Issue  | Additional Info |\\n| :--------- | :-------- |\\n| \\u203c\\ufe0f [**Error**](http://testserver/organizations/baz/issues/{self.group_id_2}/?referrer=github-open-pr-bot) issue2 | `Handled:` **True** `Event Count:` **2k** `Users:` **6** |\\n| \\u203c\\ufe0f [**Error**](http://testserver/organizations/baz/issues/{self.group_id_1}/?referrer=github-open-pr-bot) issue1 | `Handled:` **True** `Event Count:` **1k** `Users:` **5** |\\n<details>\\n<summary><b>\\ud83d\\udcc4 bar.py (Click to Expand)</b></summary>\\n\\n| Issue  | Additional Info |\\n| :--------- | :-------- |\\n| \\u203c\\ufe0f [**Error**](http://testserver/organizations/baz/issues/{self.group_id_2}/?referrer=github-open-pr-bot) issue2 | `Handled:` **True** `Event Count:` **2k** `Users:` **6** |\\n| \\u203c\\ufe0f [**Error**](http://testserver/organizations/baz/issues/{self.group_id_1}/?referrer=github-open-pr-bot) issue1 | `Handled:` **True** `Event Count:` **1k** `Users:` **5** |\\n</details>\\n---\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e or let us know in #proj-github-pr-comments</sub>"}}'.encode()
+            == f'{{"body": "## \\ud83d\\udd0d Existing Sentry Issues - For Review\\nYour pull request files have the following pre-existing issues:\\n\\n\\ud83d\\udcc4 **foo.py**\\n\\n| Issue  |\\n| :--------- |\\n| [**Error**](http://testserver/organizations/baz/issues/{self.group_id_2}/?referrer=github-open-pr-bot) issue2 <br> `Handled:` **False** `Event Count:` **2k** `Users:` **6** |\\n| [**Error**](http://testserver/organizations/baz/issues/{self.group_id_1}/?referrer=github-open-pr-bot) issue1 <br> `Handled:` **False** `Event Count:` **1k** `Users:` **5** |\\n<details>\\n<summary><b>\\ud83d\\udcc4 bar.py (Click to Expand)</b></summary>\\n\\n| Issue  |\\n| :--------- |\\n| [**Error**](http://testserver/organizations/baz/issues/{self.group_id_2}/?referrer=github-open-pr-bot) issue2 <br> `Handled:` **False** `Event Count:` **2k** `Users:` **6** |\\n| [**Error**](http://testserver/organizations/baz/issues/{self.group_id_1}/?referrer=github-open-pr-bot) issue1 <br> `Handled:` **False** `Event Count:` **1k** `Users:` **5** |\\n</details>\\n---\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e or let us know in #proj-github-pr-comments</sub>"}}'.encode()
         )
 
         pull_request_comment_query = PullRequestComment.objects.all()
