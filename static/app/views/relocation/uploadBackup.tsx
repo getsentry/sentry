@@ -138,10 +138,7 @@ export function UploadBackup(__props: StepProps) {
             aria-label="dropzone"
             draggedOver={dragCounter > 0}
           >
-            <IconFile className="file-icon" size="xl" />
-            <IconUploadWrapper>
-              <IconUpload className="upload-icon" size="xs" />
-            </IconUploadWrapper>
+            <StyledUploadIcon className="upload-icon" size="xl" />
             <UploadWrapper>
               <p>{t('Drag and Drop file here or')}</p>
               <a onClick={onFileUploadLinkClick}>{t('Choose file')}</a>
@@ -164,6 +161,11 @@ export function UploadBackup(__props: StepProps) {
 }
 
 export default UploadBackup;
+
+const StyledUploadIcon = styled(IconUpload)`
+  margin-top: ${space(2)};
+  margin-bottom: ${space(1)};
+`;
 
 const Wrapper = styled('div')`
   max-width: 769px;
@@ -243,10 +245,4 @@ const UploadWrapper = styled('div')`
   input[type='file'] {
     display: none;
   }
-`;
-
-const IconUploadWrapper = styled('div')`
-  position: relative;
-  left: 20px;
-  top: -14px;
 `;
