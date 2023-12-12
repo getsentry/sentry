@@ -31,6 +31,10 @@ function SampleImages({groupId}: Props) {
       uniqueResources.add(key);
       return true;
     })
+    // TODO - we should be sorting on the backend, this is more for a POC
+    .sort((a, b) => {
+      return b[HTTP_RESPONSE_CONTENT_LENGTH] - a[HTTP_RESPONSE_CONTENT_LENGTH];
+    })
     .splice(0, 5);
 
   return (
