@@ -20,6 +20,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {ReplayCountForFeedbacks} from 'sentry/utils/replayCount/replayCountForFeedbacks';
+import {ReplayCountForIssues} from 'sentry/utils/replayCount/replayCountForIssues';
 import useOrganization from 'sentry/utils/useOrganization';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
@@ -64,7 +65,9 @@ export default function FeedbackListPage({}: Props) {
                       </Container>
                       <FeedbackSearch style={{gridArea: 'search'}} />
                       <Container style={{gridArea: 'details'}}>
-                        <FeedbackItemLoader />
+                        <ReplayCountForIssues>
+                          <FeedbackItemLoader />
+                        </ReplayCountForIssues>
                       </Container>
                     </Fragment>
                   ) : (

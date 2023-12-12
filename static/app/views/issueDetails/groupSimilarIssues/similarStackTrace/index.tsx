@@ -9,11 +9,11 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
-import IssuesReplayCountProvider from 'sentry/components/replays/issuesReplayCountProvider';
 import {t} from 'sentry/locale';
 import GroupingStore, {SimilarItem} from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
+import {ReplayCountForIssues} from 'sentry/utils/replayCount/replayCountForIssues';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePrevious from 'sentry/utils/usePrevious';
 
@@ -134,8 +134,6 @@ function SimilarStackTrace({params, location, project}: Props) {
   const hasSimilarItems =
     hasSimilarityFeature && (items.similar.length > 0 || items.filtered.length > 0);
 
-  const groupsIds = items.similar.concat(items.filtered).map(({issue}) => issue.id);
-
   return (
     <Layout.Body>
       <Layout.Main fullWidth>
@@ -162,7 +160,7 @@ function SimilarStackTrace({params, location, project}: Props) {
           </Panel>
         )}
         {status === 'ready' && hasSimilarItems && (
-          <IssuesReplayCountProvider groupIds={groupsIds}>
+          <ReplayCountForIssues>
             <List
               items={items.similar}
               filteredItems={items.filtered}
@@ -172,7 +170,7 @@ function SimilarStackTrace({params, location, project}: Props) {
               groupId={groupId}
               pageLinks={items.pageLinks}
             />
-          </IssuesReplayCountProvider>
+          </ReplayCountForIssues>
         )}
       </Layout.Main>
     </Layout.Body>
