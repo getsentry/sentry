@@ -211,6 +211,7 @@ default_manager.add("organizations:session-replay-recording-scrubbing", Organiza
 default_manager.add("organizations:session-replay-onboarding-cta-button", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:session-replay-sdk-errors-only", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:session-replay-sdk", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:session-replay-show-hydration-errors", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:session-replay-slack-new-issue", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:session-replay-trace-table", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:session-replay-event-linking", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
