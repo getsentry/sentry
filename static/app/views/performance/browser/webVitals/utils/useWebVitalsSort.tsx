@@ -5,7 +5,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {
   DEFAULT_SORT,
   SORTABLE_FIELDS,
+  SORTABLE_SCORE_FIELDS,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 
 export function useWebVitalsSort({
   sortName = 'sort',
@@ -17,10 +19,14 @@ export function useWebVitalsSort({
   sortableFields?: string[];
 } = {}) {
   const location = useLocation();
+  const shouldUseStoredScores = useStoredScoresSetting();
+  const filteredSortableFields = shouldUseStoredScores
+    ? sortableFields
+    : sortableFields.filter(field => !SORTABLE_SCORE_FIELDS.includes(field));
 
   const sort =
     fromSorts(decodeScalar(location.query[sortName])).filter(s =>
-      (sortableFields as unknown as string[]).includes(s.field)
+      (filteredSortableFields as unknown as string[]).includes(s.field)
     )[0] ?? defaultSort;
 
   return sort;
