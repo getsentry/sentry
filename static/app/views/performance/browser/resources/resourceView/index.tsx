@@ -3,11 +3,17 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import FeatureBadge from 'sentry/components/featureBadge';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
-import ResourceTable from 'sentry/views/performance/browser/resources/jsCssView/resourceTable';
+import ResourceTable from 'sentry/views/performance/browser/resources/resourceView/resourceTable';
+import {
+  FONT_FILE_EXTENSIONS,
+  IMAGE_FILE_EXTENSIONS,
+} from 'sentry/views/performance/browser/resources/shared/constants';
 import RenderBlockingSelector from 'sentry/views/performance/browser/resources/shared/renderBlockingSelector';
 import SelectControlWithProps from 'sentry/views/performance/browser/resources/shared/selectControlWithProps';
 import {
@@ -36,11 +42,11 @@ export const DEFAULT_RESOURCE_TYPES = [
 ];
 
 type Option = {
-  label: string;
+  label: string | React.ReactElement;
   value: string;
 };
 
-function JSCSSView() {
+function ResourceView() {
   const filters = useResourceModuleFilters();
   const sort = useResourceSort();
 
@@ -75,13 +81,32 @@ function JSCSSView() {
 
 function ResourceTypeSelector({value}: {value?: string}) {
   const location = useLocation();
+  const {features} = useOrganization();
+  const hasImageView = features.includes('starfish-browser-resource-module-image-view');
 
   const options: Option[] = [
     {value: '', label: 'All'},
     {value: 'resource.script', label: `${t('JavaScript')} (.js)`},
     {value: 'resource.css', label: `${t('Stylesheet')} (.css)`},
-    {value: 'resource.font', label: `${t('Font')} (.woff, .woff2, .ttf, .otf, .eot)`},
+    {
+      value: 'resource.font',
+      label: `${t('Font')} (${FONT_FILE_EXTENSIONS.map(e => `.${e}`).join(', ')})`,
+    },
+    ...(hasImageView
+      ? [
+          {
+            value: 'resource.img',
+            label: (
+              <span>
+                {`${t('Image')} (${IMAGE_FILE_EXTENSIONS.map(e => `.${e}`).join(', ')})`}
+                <FeatureBadge type="alpha"> </FeatureBadge>
+              </span>
+            ),
+          },
+        ]
+      : []),
   ];
+
   return (
     <SelectControlWithProps
       inFieldLabel={`${t('Type')}:`}
@@ -181,4 +206,4 @@ export const FilterOptionsContainer = styled('div')<{columnCount: number}>`
   max-width: 800px;
 `;
 
-export default JSCSSView;
+export default ResourceView;
