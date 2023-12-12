@@ -77,10 +77,13 @@ def send_incident_alert_notification(
         return False
 
     integration_key = team["integration_key"]
+
+    # TODO(hybridcloud) Use integration.get_keyring_client instead.
     client = OpsgenieClient(
         integration=integration,
         integration_key=integration_key,
         org_integration_id=incident.organization_id,
+        keyid=team["id"],
     )
     attachment = build_incident_attachment(incident, new_status, metric_value, notification_uuid)
     try:

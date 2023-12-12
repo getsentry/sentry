@@ -133,6 +133,66 @@ def test_get_metric_extraction_config_single_alert(default_project):
 
 
 @django_db_all
+def test_get_metric_extraction_config_with_double_write_env_alert(
+    default_project, default_environment
+):
+    with Feature(ON_DEMAND_METRICS):
+        create_alert(
+            "count()",
+            "device.platform:android OR device.platform:ios",
+            default_project,
+            environment=default_environment,
+        )
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 2
+        # The new way parenthesizes correctly the environment expression, making the original expression resolve first
+        # and then AND with the injected environment.
+        assert config["metrics"][0] == {
+            "category": "transaction",
+            "condition": {
+                "inner": [
+                    {"name": "event.environment", "op": "eq", "value": "development"},
+                    {
+                        "inner": [
+                            {"name": "event.tags.device.platform", "op": "eq", "value": "android"},
+                            {"name": "event.tags.device.platform", "op": "eq", "value": "ios"},
+                        ],
+                        "op": "or",
+                    },
+                ],
+                "op": "and",
+            },
+            "field": None,
+            "mri": "c:transactions/on_demand@none",
+            "tags": [{"key": "query_hash", "value": ANY}],
+        }
+        # The old way of generating the config has no parentheses, thus if we have lower binding in the original
+        # expression, we will prioritize our filter.
+        assert config["metrics"][1] == {
+            "category": "transaction",
+            "condition": {
+                "inner": [
+                    {
+                        "inner": [
+                            {"name": "event.environment", "op": "eq", "value": "development"},
+                            {"name": "event.tags.device.platform", "op": "eq", "value": "android"},
+                        ],
+                        "op": "and",
+                    },
+                    {"name": "event.tags.device.platform", "op": "eq", "value": "ios"},
+                ],
+                "op": "or",
+            },
+            "field": None,
+            "mri": "c:transactions/on_demand@none",
+            "tags": [{"key": "query_hash", "value": ANY}],
+        }
+
+
+@django_db_all
 def test_get_metric_extraction_config_single_alert_with_mri(default_project):
     with Feature(ON_DEMAND_METRICS):
         create_alert(

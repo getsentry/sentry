@@ -43,6 +43,7 @@ class MonitorSerializerResponse(MonitorSerializerResponseOptional):
     name: str
     slug: str
     status: str
+    isMuted: bool
     type: str
     config: Any
     dateCreated: datetime
@@ -112,6 +113,7 @@ class MonitorSerializer(Serializer):
         result: MonitorSerializerResponse = {
             "id": str(obj.guid),
             "status": obj.get_status_display(),
+            "isMuted": obj.is_muted,
             "type": obj.get_type_display(),
             "name": obj.name,
             "slug": obj.slug,

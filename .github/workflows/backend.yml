@@ -139,7 +139,7 @@ jobs:
 
       - name: run tests
         run: |
-          MIGRATIONS_TEST_MIGRATE=1 PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations" make test-python-ci
+          PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations --migrations" make test-python-ci
 
       # Upload coverage data even if running the tests step fails since
       # it reduces large coverage fluctuations

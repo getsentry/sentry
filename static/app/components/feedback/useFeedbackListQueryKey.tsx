@@ -30,7 +30,7 @@ export default function useFeedbackListQueryKey({organization}: Props): ApiQuery
     },
   });
 
-  const {mailbox, ...fixedQueryView} = useMemo(() => {
+  const queryViewWithStatsPeriod = useMemo(() => {
     // We don't want to use `statsPeriod` directly, because that will mean the
     // start time of our infinite list will change, shifting the index/page
     // where items appear if we invalidate the cache and refetch specific pages.
@@ -52,8 +52,9 @@ export default function useFeedbackListQueryKey({organization}: Props): ApiQuery
         rest;
   }, [queryView]);
 
-  return useMemo(
-    () => [
+  return useMemo(() => {
+    const {mailbox, ...fixedQueryView} = queryViewWithStatsPeriod;
+    return [
       `/organizations/${organization.slug}/issues/`,
       {
         query: {
@@ -69,7 +70,6 @@ export default function useFeedbackListQueryKey({organization}: Props): ApiQuery
           query: `issue.category:feedback status:${mailbox} ${fixedQueryView.query}`,
         },
       },
-    ],
-    [fixedQueryView, mailbox, organization.slug]
-  );
+    ];
+  }, [queryViewWithStatsPeriod, organization.slug]);
 }
