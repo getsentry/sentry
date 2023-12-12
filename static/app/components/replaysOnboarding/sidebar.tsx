@@ -219,7 +219,18 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     );
   }
 
-  const migrated = ['javascript-react'];
+  const migrated = [
+    'javascript',
+    'javascript-react',
+    'javascript-ember',
+    'javascript-sveltekit',
+    'javascript-svelte',
+    'javascript-astro',
+    'javascript-nextjs',
+    'javascript-remix',
+    'javascript-gatsby',
+    'electron',
+  ];
 
   return (
     <Fragment>
