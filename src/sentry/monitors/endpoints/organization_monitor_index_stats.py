@@ -183,10 +183,13 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
             stats[slug][ts][env_name][named_status] = count
 
         # Flatten the timestamp to env mapping dict into a tuple list, this
-        # maintains the ordering
+        # maintains the ordering.
+        #
+        # We manually sort the response output by slug. This is fine because the set of slugs is
+        # known (they're provided as a query parameter) and there is no pagination.
         stats_list = {
             slug: [[ts, env_mapping] for ts, env_mapping in ts_to_envs.items()]
-            for slug, ts_to_envs in stats.items()
+            for slug, ts_to_envs in sorted(stats.items(), key=lambda k: k[0])
         }
 
         return Response(stats_list)
