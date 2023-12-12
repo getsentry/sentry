@@ -169,7 +169,7 @@ def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
         first_feedback_received.send_robust(project=project, sender=Project)
 
     if (
-        source is not FeedbackCreationSource.CRASH_REPORT_EMBED_FORM
+        source is FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
         and not project.flags.has_new_feedbacks
     ):
         first_new_feedback_received.send_robust(project=project, sender=Project)
