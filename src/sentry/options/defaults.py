@@ -3,6 +3,7 @@ import os
 from sentry.logging import LoggingFormat
 from sentry.options import register
 from sentry.options.manager import (
+    FLAG_ADMIN_MODIFIABLE,
     FLAG_ALLOW_EMPTY,
     FLAG_AUTOMATOR_MODIFIABLE,
     FLAG_CREDENTIAL,
@@ -1784,9 +1785,30 @@ register(
 )
 
 # Relocation
-register("relocation.enabled", default=False)
-
-# Throttling limits for relocation requests
-register("relocation.daily-limit-small", default=0)
-register("relocation.daily-limit-medium", default=0)
-register("relocation.daily-limit-large", default=0)
+register(
+    "relocation.enabled",
+    default=False,
+    # TODO(getsentry/team-ospo#214): Eventually change this to `FLAG_BOOL |
+    # FLAG_AUTOMATOR_MODIFIABLE`, to enforce it only being toggled from code.
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "relocation.self-serve",
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "relocation.daily-limit.small",
+    default=0,
+    flags=FLAG_ADMIN_MODIFIABLE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "relocation.daily-limit.medium",
+    default=0,
+    flags=FLAG_ADMIN_MODIFIABLE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "relocation.daily-limit.large",
+    default=0,
+    flags=FLAG_ADMIN_MODIFIABLE | FLAG_AUTOMATOR_MODIFIABLE,
+)
