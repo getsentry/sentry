@@ -338,3 +338,8 @@ export const replayOnboardingPlatforms: readonly PlatformKey[] = [
   'javascript-vue',
   'javascript',
 ];
+
+// These are the supported platforms that can also be set up using the loader
+export const replayJsLoaderInstructionsPlatformList: readonly PlatformKey[] = [
+  'javascript',
+];

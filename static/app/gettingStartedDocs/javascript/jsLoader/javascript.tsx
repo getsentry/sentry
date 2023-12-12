@@ -29,13 +29,13 @@ const getInstallConfig = (params: Params) => [
   },
 ];
 
-const replayOnboardingJsLoaderReact: OnboardingConfig = {
+const replayOnboardingJsLoaderJavascript: OnboardingConfig = {
   install: (params: Params) => getInstallConfig(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
       description: getReplayConfigureDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/react/session-replay/',
+        link: 'https://docs.sentry.io/platforms/javascript/session-replay/',
       }),
       configurations: [
         {
@@ -50,4 +50,4 @@ const replayOnboardingJsLoaderReact: OnboardingConfig = {
   nextSteps: () => [],
 };
 
-export default replayOnboardingJsLoaderReact;
+export default replayOnboardingJsLoaderJavascript;
