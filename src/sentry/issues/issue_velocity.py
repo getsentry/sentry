@@ -26,6 +26,7 @@ from snuba_sdk import (
 
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.tasks.post_process import locks
+from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.redis import redis_clusters
 
@@ -158,7 +159,7 @@ def update_threshold(
     threshold = calculate_threshold(project)
     ttl = DEFAULT_TTL
     if threshold is None:
-        logger.info(
+        logger.warning(
             "sentry.issues.issue_velocity.update_threshold.fallback",
             extra={"project_id": project.id, "fallback_value": stale_threshold},
         )
@@ -172,6 +173,9 @@ def update_threshold(
         p.set(threshold_key, threshold, ex=ttl)
         p.set(stale_date_key, convert_date_to_int(datetime.utcnow()), ex=ttl),
         p.execute()
+    metrics.incr(
+        "issues.update_new_escalation_threshold", tags={"useFallback": ttl == FALLBACK_TTL}
+    )
 
     return threshold
 
