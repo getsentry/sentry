@@ -13,16 +13,15 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Commit, Message, Partition
 from django.db import router, transaction
-from django.utils.text import slugify
 from sentry_sdk.tracing import Span, Transaction
 
 from sentry import ratelimits
+from sentry.constants import DataCategory
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.logic.mark_ok import mark_ok
 from sentry.monitors.models import (
-    MAX_SLUG_LENGTH,
     CheckInStatus,
     Monitor,
     MonitorCheckIn,
@@ -34,7 +33,7 @@ from sentry.monitors.models import (
     MonitorType,
 )
 from sentry.monitors.tasks import try_monitor_tasks_trigger
-from sentry.monitors.types import CheckinMessage, CheckinPayload, ClockPulseMessage
+from sentry.monitors.types import CheckinItem, CheckinMessage, ClockPulseMessage
 from sentry.monitors.utils import (
     get_new_timeout_at,
     get_timeout_at,
@@ -45,6 +44,7 @@ from sentry.monitors.utils import (
 from sentry.monitors.validators import ConfigValidator, MonitorCheckInValidator
 from sentry.utils import json, metrics
 from sentry.utils.dates import to_datetime
+from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
 
@@ -280,17 +280,16 @@ def update_existing_check_in(
     return
 
 
-def _process_checkin(
-    params: CheckinPayload,
-    message_ts: datetime,
-    start_time: datetime,
-    project_id: int,
-    source_sdk: str,
-    txn: Transaction | Span,
-):
-    monitor_slug = slugify(params["monitor_slug"])[:MAX_SLUG_LENGTH].strip("-")
+def _process_checkin(item: CheckinItem, txn: Transaction | Span):
+    params = item.payload
 
+    start_time = to_datetime(float(item.message["start_time"]))
+    project_id = int(item.message["project_id"])
+    source_sdk = item.message["sdk"]
+
+    monitor_slug = item.valid_monitor_slug
     environment = params.get("environment")
+
     project = Project.objects.get_from_cache(id=project_id)
 
     # Strip sdk version to reduce metric cardinality
@@ -302,9 +301,27 @@ def _process_checkin(
     }
 
     if check_killswitch(metric_kwargs, project):
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project.id,
+            key_id=None,
+            outcome=Outcome.ABUSE,
+            reason="killswitch",
+            timestamp=start_time,
+            category=DataCategory.MONITOR,
+        )
         return
 
     if check_ratelimit(metric_kwargs, project, monitor_slug, environment):
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project.id,
+            key_id=None,
+            outcome=Outcome.RATE_LIMITED,
+            reason="rate_limited",
+            timestamp=start_time,
+            category=DataCategory.MONITOR,
+        )
         return
 
     guid, use_latest_checkin = transform_checkin_uuid(
@@ -315,6 +332,15 @@ def _process_checkin(
     )
 
     if guid is None:
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project.id,
+            key_id=None,
+            outcome=Outcome.INVALID,
+            reason="invalid_guid",
+            timestamp=start_time,
+            category=DataCategory.MONITOR,
+        )
         return
 
     monitor_config = params.pop("monitor_config", None)
@@ -345,6 +371,15 @@ def _process_checkin(
             "monitors.consumer.checkin_validation_failed",
             extra={"guid": guid.hex, **params},
         )
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project.id,
+            key_id=None,
+            outcome=Outcome.INVALID,
+            reason="invalid_check_in",
+            timestamp=start_time,
+            category=DataCategory.MONITOR,
+        )
         return
 
     validated_params = validator.validated_data
@@ -367,6 +402,15 @@ def _process_checkin(
             "monitors.consumer.monitor_limit_exceeded",
             extra={"guid": guid.hex, "project": project.id, "slug": monitor_slug},
         )
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project.id,
+            key_id=None,
+            outcome=Outcome.INVALID,
+            reason="monitor_limit_exceeded",
+            timestamp=start_time,
+            category=DataCategory.MONITOR,
+        )
         return
 
     if not monitor:
@@ -378,6 +422,15 @@ def _process_checkin(
         logger.info(
             "monitors.consumer.monitor_validation_failed",
             extra={"guid": guid.hex, "project": project.id, **params},
+        )
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project.id,
+            key_id=None,
+            outcome=Outcome.INVALID,
+            reason="invalid_monitor",
+            timestamp=start_time,
+            category=DataCategory.MONITOR,
         )
         return
 
@@ -402,6 +455,15 @@ def _process_checkin(
                 "environment": environment,
             },
         )
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project.id,
+            key_id=None,
+            outcome=Outcome.INVALID,
+            reason="monitor_environment_limit_exceeded",
+            timestamp=start_time,
+            category=DataCategory.MONITOR,
+        )
         return
     except MonitorEnvironmentValidationFailed:
         metrics.incr(
@@ -417,6 +479,15 @@ def _process_checkin(
                 "slug": monitor_slug,
                 "environment": environment,
             },
+        )
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project.id,
+            key_id=None,
+            outcome=Outcome.INVALID,
+            reason="invalid_monitor_environment",
+            timestamp=start_time,
+            category=DataCategory.MONITOR,
         )
         return
 
@@ -465,6 +536,15 @@ def _process_checkin(
                                 "environment": monitor_environment.id,
                                 "payload_environment": check_in.monitor_environment_id,
                             },
+                        )
+                        track_outcome(
+                            org_id=project.organization_id,
+                            project_id=project.id,
+                            key_id=None,
+                            outcome=Outcome.INVALID,
+                            reason="monitor_environment_mismatch",
+                            timestamp=start_time,
+                            category=DataCategory.MONITOR,
                         )
                         return
 
@@ -537,6 +617,16 @@ def _process_checkin(
                     txn.set_tag("outcome", "create_new_checkin")
                     signal_first_checkin(project, monitor)
 
+            track_outcome(
+                org_id=project.organization_id,
+                project_id=project.id,
+                key_id=None,
+                outcome=Outcome.ACCEPTED,
+                reason=None,
+                timestamp=start_time,
+                category=DataCategory.MONITOR,
+            )
+
             # 04
             # Update monitor status
             if check_in.status == CheckInStatus.ERROR:
@@ -544,12 +634,20 @@ def _process_checkin(
             else:
                 mark_ok(check_in, ts=start_time)
 
+            # track how much time it took for the message to make it through
+            # relay into kafka. This should help us understand when missed
+            # check-ins may be slipping in, since we use the `item.ts` to click
+            # the clock forward, if that is delayed it's possible for the
+            # check-in to come in late
+            kafka_delay = item.ts - start_time.replace(tzinfo=None)
+            metrics.gauge("monitors.checkin.relay_kafka_delay", kafka_delay.total_seconds())
+
             # how long in wall-clock time did it take for us to process this
             # check-in. This records from when the message was first appended
             # into the Kafka topic until we just completed processing.
             #
             # XXX: We are ONLY recording this metric for completed check-ins.
-            delay = datetime.now() - message_ts
+            delay = datetime.now() - item.ts
             metrics.gauge("monitors.checkin.completion_time", delay.total_seconds())
 
             metrics.incr(
@@ -563,7 +661,7 @@ def _process_checkin(
             tags={**metric_kwargs, "status": "error"},
         )
         txn.set_tag("result", "error")
-        logger.exception("Failed to process check-in", exc_info=True)
+        logger.exception("Failed to process check-in")
 
 
 def _process_message(
@@ -574,7 +672,7 @@ def _process_message(
     try:
         try_monitor_tasks_trigger(ts, partition)
     except Exception:
-        logger.exception("Failed to trigger monitor tasks", exc_info=True)
+        logger.exception("Failed to trigger monitor tasks")
 
     # Nothing else to do with clock pulses
     if wrapper["message_type"] == "clock_pulse":
@@ -584,12 +682,13 @@ def _process_message(
         op="_process_message",
         name="monitors.monitor_consumer",
     ) as txn:
-        params: CheckinPayload = json.loads(wrapper["payload"])
-        start_time = to_datetime(float(wrapper["start_time"]))
-        project_id = int(wrapper["project_id"])
-        source_sdk = wrapper["sdk"]
-
-        _process_checkin(params, ts, start_time, project_id, source_sdk, txn)
+        item = CheckinItem(
+            ts=ts,
+            partition=partition,
+            message=wrapper,
+            payload=json.loads(wrapper["payload"]),
+        )
+        _process_checkin(item, txn)
 
 
 class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):

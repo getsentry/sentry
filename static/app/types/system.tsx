@@ -139,6 +139,10 @@ export interface Config {
   enableAnalytics: boolean;
   features: Set<string>;
   gravatarBaseUrl: string;
+  initialTrace: {
+    baggage: string;
+    sentry_trace: string;
+  };
   invitesEnabled: boolean;
   isAuthenticated: boolean;
 
@@ -166,6 +170,7 @@ export interface Config {
     dsn: string;
     release: string;
     tracePropagationTargets: string[];
+    environment?: string;
     profilesSampleRate?: number;
   };
   singleOrganization: boolean;

@@ -1,4 +1,4 @@
-import {IssueType, PlatformKey} from 'sentry/types';
+import type {IssueType, PlatformKey} from 'sentry/types';
 
 export type ResourceLink = {
   link: string;
@@ -15,10 +15,12 @@ export type IssueTypeConfig = {
    * Enable/disable actions for an issue type
    */
   actions: {
+    archiveUntilOccurrence: DisabledWithReasonConfig;
     delete: DisabledWithReasonConfig;
     deleteAndDiscard: DisabledWithReasonConfig;
     ignore: DisabledWithReasonConfig;
     merge: DisabledWithReasonConfig;
+    resolveInRelease: DisabledWithReasonConfig;
     share: DisabledWithReasonConfig;
   };
   /**

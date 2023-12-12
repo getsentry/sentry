@@ -133,6 +133,66 @@ def test_get_metric_extraction_config_single_alert(default_project):
 
 
 @django_db_all
+def test_get_metric_extraction_config_with_double_write_env_alert(
+    default_project, default_environment
+):
+    with Feature(ON_DEMAND_METRICS):
+        create_alert(
+            "count()",
+            "device.platform:android OR device.platform:ios",
+            default_project,
+            environment=default_environment,
+        )
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 2
+        # The new way parenthesizes correctly the environment expression, making the original expression resolve first
+        # and then AND with the injected environment.
+        assert config["metrics"][0] == {
+            "category": "transaction",
+            "condition": {
+                "inner": [
+                    {"name": "event.environment", "op": "eq", "value": "development"},
+                    {
+                        "inner": [
+                            {"name": "event.tags.device.platform", "op": "eq", "value": "android"},
+                            {"name": "event.tags.device.platform", "op": "eq", "value": "ios"},
+                        ],
+                        "op": "or",
+                    },
+                ],
+                "op": "and",
+            },
+            "field": None,
+            "mri": "c:transactions/on_demand@none",
+            "tags": [{"key": "query_hash", "value": ANY}],
+        }
+        # The old way of generating the config has no parentheses, thus if we have lower binding in the original
+        # expression, we will prioritize our filter.
+        assert config["metrics"][1] == {
+            "category": "transaction",
+            "condition": {
+                "inner": [
+                    {
+                        "inner": [
+                            {"name": "event.environment", "op": "eq", "value": "development"},
+                            {"name": "event.tags.device.platform", "op": "eq", "value": "android"},
+                        ],
+                        "op": "and",
+                    },
+                    {"name": "event.tags.device.platform", "op": "eq", "value": "ios"},
+                ],
+                "op": "or",
+            },
+            "field": None,
+            "mri": "c:transactions/on_demand@none",
+            "tags": [{"key": "query_hash", "value": ANY}],
+        }
+
+
+@django_db_all
 def test_get_metric_extraction_config_single_alert_with_mri(default_project):
     with Feature(ON_DEMAND_METRICS):
         create_alert(
@@ -756,12 +816,29 @@ def test_get_metric_extraction_config_with_high_cardinality(default_project):
             ["epm()"],
             f"transaction.duration:>={duration}",
             default_project,
-            columns=["user.id", "release"],
+            columns=["user.id", "release", "count()"],
         )
 
         config = get_metric_extraction_config(default_project)
 
         assert not config
+
+
+@django_db_all
+@override_options({"on_demand.max_widget_cardinality.count": 1})
+def test_get_metric_extraction_config_with_low_cardinality(default_project):
+    duration = 1000
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
+        create_widget(
+            ["epm()"],
+            f"transaction.duration:>={duration}",
+            default_project,
+            columns=["user.id", "release", "count()"],
+        )
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
 
 
 @django_db_all
@@ -854,32 +931,6 @@ def test_get_metric_extraction_config_with_transactions_dataset(default_project)
         assert config["metrics"][0] == {
             "category": "transaction",
             "condition": {"name": "event.duration", "op": "gte", "value": 10.0},
-            "field": None,
-            "mri": "c:transactions/on_demand@none",
-            "tags": [{"key": "query_hash", "value": ANY}],
-        }
-
-
-@django_db_all
-def test_get_metric_extraction_config_with_invalid_spec(default_project):
-    create_alert(
-        "count()",
-        "release.build:>231900000 transaction.duration:>=10",
-        default_project,
-        dataset=Dataset.PerformanceMetrics,
-    )
-    create_alert(
-        "count()", "transaction.duration:>=20", default_project, dataset=Dataset.PerformanceMetrics
-    )
-
-    with Feature({ON_DEMAND_METRICS: True}):
-        config = get_metric_extraction_config(default_project)
-
-        assert config
-        assert len(config["metrics"]) == 1
-        assert config["metrics"][0] == {
-            "category": "transaction",
-            "condition": {"name": "event.duration", "op": "gte", "value": 20.0},
             "field": None,
             "mri": "c:transactions/on_demand@none",
             "tags": [{"key": "query_hash", "value": ANY}],

@@ -34,18 +34,14 @@ from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.types import (
-    NOTIFICATION_SETTING_TYPES,
     ActionTargetType,
     FallthroughChoiceType,
     GroupSubscriptionReason,
     NotificationSettingEnum,
-    NotificationSettingOptionValues,
     NotificationSettingsOptionEnum,
-    NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
-from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
@@ -163,22 +159,15 @@ def get_participants_for_group(group: Group, user_id: int | None = None) -> Part
 
 def get_reason(
     user: Union[User, RpcActor],
-    value: NotificationSettingOptionValues | NotificationSettingsOptionEnum,
+    value: NotificationSettingsOptionEnum,
     user_ids: set[int],
 ) -> int | None:
     # Members who opt into all deploy emails.
-    if value in [NotificationSettingOptionValues.ALWAYS, NotificationSettingsOptionEnum.ALWAYS]:
+    if value == NotificationSettingsOptionEnum.ALWAYS:
         return GroupSubscriptionReason.deploy_setting
 
     # Members which have been seen in the commit log.
-    elif (
-        value
-        in [
-            NotificationSettingOptionValues.COMMITTED_ONLY,
-            NotificationSettingsOptionEnum.COMMITTED_ONLY,
-        ]
-        and user.id in user_ids
-    ):
+    elif value == NotificationSettingsOptionEnum.COMMITTED_ONLY and user.id in user_ids:
         return GroupSubscriptionReason.committed
     return None
 
@@ -268,7 +257,6 @@ def get_owner_reason(
     project: Project,
     target_type: ActionTargetType,
     event: Event | None = None,
-    notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
     fallthrough_choice: FallthroughChoiceType | None = None,
 ) -> str | None:
     """
@@ -280,7 +268,7 @@ def get_owner_reason(
         return None
 
     # Not an issue alert
-    if event is None or notification_type != NotificationSettingTypes.ISSUE_ALERTS:
+    if event is None:
         return None
 
     # Describe why an issue owner was notified
@@ -331,7 +319,7 @@ def determine_eligible_recipients(
     owners as determined by rules for this project and event.
     """
     if not (project and project.teams.exists()):
-        logger.debug(f"Tried to send notification to invalid project: {project}")
+        logger.debug("Tried to send notification to invalid project: %s", project)
 
     elif target_type == ActionTargetType.MEMBER:
         user = get_user_from_identifier(project, target_identifier)
@@ -394,7 +382,7 @@ def get_send_to(
     target_type: ActionTargetType,
     target_identifier: int | None = None,
     event: Event | None = None,
-    notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
+    notification_type_enum: NotificationSettingEnum = NotificationSettingEnum.ISSUE_ALERTS,
     fallthrough_choice: FallthroughChoiceType | None = None,
     rules: Iterable[Rule] | None = None,
     notification_uuid: str | None = None,
@@ -416,8 +404,13 @@ def get_send_to(
             recipients = filter(
                 lambda x: x.actor_type != ActorType.USER or x.id not in muted_user_ids, recipients
             )
-    return get_recipients_by_provider(
-        project, recipients, notification_type, target_type, target_identifier, notification_uuid
+    return _get_recipients_by_provider(
+        project,
+        recipients,
+        notification_type_enum,
+        target_type,
+        target_identifier,
+        notification_uuid,
     )
 
 
@@ -432,7 +425,7 @@ def get_fallthrough_recipients(
         return []
 
     if not fallthrough_choice:
-        logger.warning(f"Missing fallthrough type in project: {project}")
+        logger.warning("Missing fallthrough type in project: %s", project)
         return []
 
     if fallthrough_choice == FallthroughChoiceType.NO_ONE:
@@ -494,7 +487,7 @@ def get_team_from_identifier(project: Project, target_identifier: str | int | No
         return None
 
 
-def partition_recipients(
+def _partition_recipients(
     recipients: Iterable[RpcActor],
 ) -> Mapping[ActorType, set[RpcActor]]:
     mapping = defaultdict(set)
@@ -503,7 +496,7 @@ def partition_recipients(
     return mapping
 
 
-def get_users_from_team_fall_back(
+def _get_users_from_team_fall_back(
     teams: Iterable[RpcActor],
     recipients_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]],
 ) -> Iterable[RpcUser]:
@@ -514,11 +507,15 @@ def get_users_from_team_fall_back(
         for recipient in recipients:
             teams_to_fall_back.remove(recipient)
 
-    user_ids: set[int] = set()
-    for team in teams_to_fall_back:
-        # Fall back to notifying each subscribed user if there aren't team notification settings
-        members = organization_service.get_team_members(team_id=team.id)
-        user_ids |= {member.user_id for member in members if member.user_id is not None}
+    # Fall back to notifying each subscribed user if there aren't team notification settings
+    members = OrganizationMemberTeam.objects.filter(
+        team_id__in=[team.id for team in teams_to_fall_back]
+    ).select_related("organizationmember")
+    user_ids = {
+        member.organizationmember.user_id
+        for member in members
+        if member.organizationmember.user_id is not None
+    }
     return user_service.get_many(filter={"user_ids": list(user_ids)})
 
 
@@ -537,7 +534,7 @@ def combine_recipients_by_provider(
     return recipients_by_provider
 
 
-def get_notification_recipients_v2(
+def get_notification_recipients(
     recipients: Iterable[RpcActor],
     type: NotificationSettingEnum,
     organization_id: Optional[int] = None,
@@ -559,25 +556,42 @@ def get_notification_recipients_v2(
     return out
 
 
-def get_recipients_by_provider(
+# TODO(Steve): Remove once reference is gone from getsentry
+def get_notification_recipients_v2(
+    recipients: Iterable[RpcActor],
+    type: NotificationSettingEnum,
+    organization_id: Optional[int] = None,
+    project_ids: Optional[List[int]] = None,
+    actor_type: Optional[ActorType] = None,
+) -> Mapping[ExternalProviders, set[RpcActor]]:
+    return get_notification_recipients(
+        recipients=recipients,
+        type=type,
+        organization_id=organization_id,
+        project_ids=project_ids,
+        actor_type=actor_type,
+    )
+
+
+def _get_recipients_by_provider(
     project: Project,
     recipients: Iterable[RpcActor],
-    notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
+    notification_type_enum: NotificationSettingEnum = NotificationSettingEnum.ISSUE_ALERTS,
     target_type: ActionTargetType | None = None,
     target_identifier: int | None = None,
     notification_uuid: str | None = None,
 ) -> Mapping[ExternalProviders, set[RpcActor]]:
     """Get the lists of recipients that should receive an Issue Alert by ExternalProvider."""
-    recipients_by_type = partition_recipients(recipients)
+    recipients_by_type = _partition_recipients(recipients)
     teams = recipients_by_type[ActorType.TEAM]
     users = recipients_by_type[ActorType.USER]
 
     # First evaluate the teams.
-    setting_type = NotificationSettingEnum(NOTIFICATION_SETTING_TYPES[notification_type])
+    setting_type = notification_type_enum
     teams_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]] = {}
 
     # get by team
-    teams_by_provider = get_notification_recipients_v2(
+    teams_by_provider = get_notification_recipients(
         recipients=teams,
         type=setting_type,
         organization_id=project.organization_id,
@@ -593,12 +607,14 @@ def get_recipients_by_provider(
     }
 
     # If there are any teams that didn't get added, fall back and add all users.
-    users |= set(RpcActor.many_from_object(get_users_from_team_fall_back(teams, teams_by_provider)))
+    users |= set(
+        RpcActor.many_from_object(_get_users_from_team_fall_back(teams, teams_by_provider))
+    )
 
     # Repeat for users.
     users_by_provider: Mapping[ExternalProviders, Iterable[RpcActor]] = {}
     # convert from string to enum
-    users_by_provider = get_notification_recipients_v2(
+    users_by_provider = get_notification_recipients(
         recipients=users,
         type=setting_type,
         organization_id=project.organization_id,

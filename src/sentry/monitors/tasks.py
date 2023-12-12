@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import lru_cache
 from typing import Mapping
 
@@ -11,7 +11,6 @@ from arroyo import Partition, Topic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from confluent_kafka.admin import AdminClient, PartitionMetadata
 from django.conf import settings
-from django.utils import timezone
 
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.schedule import get_prev_schedule
@@ -168,7 +167,7 @@ def try_monitor_tasks_trigger(ts: datetime, partition: int):
     total_delay = datetime.now().timestamp() - slowest_part_ts
 
     # Keep tick datetime objects timezone aware
-    tick = timezone.utc.localize(datetime.fromtimestamp(slowest_part_ts))
+    tick = datetime.fromtimestamp(slowest_part_ts, tz=timezone.utc)
 
     logger.info("monitors.consumer.clock_tick", extra={"reference_datetime": str(tick)})
     metrics.gauge("monitors.task.clock_delay", total_delay, sample_rate=1.0)
@@ -192,7 +191,7 @@ def clock_pulse(current_datetime=None):
     topic that can drive all partition clocks, which dispatch monitor tasks.
     """
     if current_datetime is None:
-        current_datetime = timezone.now()
+        current_datetime = datetime.now(tz=timezone.utc)
 
     if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
         # Directly trigger try_monitor_tasks_trigger in dev
@@ -245,10 +244,13 @@ def check_missing(current_datetime: datetime):
         )
         .exclude(
             monitor__status__in=[
-                MonitorObjectStatus.DISABLED,
+                # TODO(epurkhiser): This will change to DISABLED when this
+                # moves back to regual ObjectStatus. This means we will create
+                # missed check-ins for muted monitors.
+                MonitorObjectStatus.MUTED,
                 MonitorObjectStatus.PENDING_DELETION,
                 MonitorObjectStatus.DELETION_IN_PROGRESS,
-            ]
+            ],
         )[:MONITOR_LIMIT]
     )
 

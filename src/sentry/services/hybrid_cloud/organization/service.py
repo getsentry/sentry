@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 import abc
 from abc import abstractmethod
-from typing import Any, Iterable, List, Mapping, Optional, Union
+from typing import Any, List, Mapping, Optional, Union
 
 from django.dispatch import Signal
 
@@ -30,7 +30,6 @@ from sentry.services.hybrid_cloud.region import (
     ByOrganizationSlug,
     ByRegionName,
     RequireSingleOrganization,
-    UnimplementedRegionResolution,
 )
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
 from sentry.services.hybrid_cloud.user.model import RpcUser
@@ -175,13 +174,13 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationSlug(), return_none_if_mapping_not_found=True)
-    @abstractmethod
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
         """
         If exists and matches the only_visible requirement, returns an organization's id by the slug.
         """
-        pass
+        return _organization_check_service.check_organization_by_slug(
+            slug=slug, only_visible=only_visible
+        )
 
     def get_organization_by_slug(
         self, *, slug: str, only_visible: bool, user_id: Optional[int] = None
@@ -267,11 +266,6 @@ class OrganizationService(RpcService):
         organization_id: int,
         new_team_slug: str,
     ) -> RpcTeam:
-        pass
-
-    @regional_rpc_method(resolve=UnimplementedRegionResolution("organization", "get_team_members"))
-    @abstractmethod
-    def get_team_members(self, *, team_id: int) -> Iterable[RpcOrganizationMember]:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationIdAttribute("organization_member"))
@@ -369,6 +363,27 @@ class OrganizationService(RpcService):
         pass
 
 
+class OrganizationCheckService(abc.ABC):
+    @abstractmethod
+    def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
+        """
+        If exists and matches the only_visible requirement, returns an organization's id by the slug.
+        """
+        pass
+
+
+def _control_check_organization() -> OrganizationCheckService:
+    from sentry.services.hybrid_cloud.organization.impl import ControlOrganizationCheckService
+
+    return ControlOrganizationCheckService()
+
+
+def _region_check_organization() -> OrganizationCheckService:
+    from sentry.services.hybrid_cloud.organization.impl import RegionOrganizationCheckService
+
+    return RegionOrganizationCheckService()
+
+
 class OrganizationSignalService(abc.ABC):
     @abc.abstractmethod
     def schedule_signal(
@@ -392,6 +407,15 @@ def _signal_from_on_commit() -> OrganizationSignalService:
     )
 
     return OnCommitBackedOrganizationSignalService()
+
+
+_organization_check_service: OrganizationCheckService = silo_mode_delegation(
+    {
+        SiloMode.REGION: _region_check_organization,
+        SiloMode.CONTROL: _control_check_organization,
+        SiloMode.MONOLITH: _region_check_organization,
+    }
+)
 
 
 _organization_signal_service: OrganizationSignalService = silo_mode_delegation(

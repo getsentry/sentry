@@ -9,6 +9,7 @@ In Sentry a user must achieve the following to be treated as a superuser:
   standard auth. This session has a shorter lifespan.
 """
 
+from __future__ import annotations
 
 import ipaddress
 import logging
@@ -21,6 +22,7 @@ from django.utils.crypto import constant_time_compare, get_random_string
 from rest_framework import serializers, status
 
 from sentry.api.exceptions import SentryAPIException
+from sentry.auth.elevated_mode import ElevatedMode
 from sentry.auth.system import is_system_auth
 from sentry.utils import json, metrics
 from sentry.utils.auth import has_completed_sso
@@ -92,9 +94,8 @@ class EmptySuperuserAccessForm(SentryAPIException):
     message = "The request contains an empty superuser access form data"
 
 
-class Superuser:
-    allowed_ips = [ipaddress.ip_network(str(v), strict=False) for v in ALLOWED_IPS]
-
+class Superuser(ElevatedMode):
+    allowed_ips = frozenset(ipaddress.ip_network(str(v), strict=False) for v in ALLOWED_IPS)
     org_id = ORG_ID
 
     def _check_expired_on_org_change(self):
@@ -111,6 +112,7 @@ class Superuser:
         return self._is_active
 
     def __init__(self, request, allowed_ips=UNSET, org_id=UNSET, current_datetime=None):
+        self.uid: str | None = None
         self.request = request
         if allowed_ips is not UNSET:
             self.allowed_ips = frozenset(
@@ -281,7 +283,8 @@ class Superuser:
             if not self.is_active:
                 if self._inactive_reason:
                     logger.warning(
-                        f"superuser.{self._inactive_reason}",
+                        "superuser.%s",
+                        self._inactive_reason,
                         extra={
                             "ip_address": request.META["REMOTE_ADDR"],
                             "user_id": request.user.id,
@@ -400,7 +403,7 @@ class Superuser:
             enable_and_log_superuser_access()
         except AttributeError:
             metrics.incr("superuser.failure", sample_rate=1.0, tags={"reason": "missing-user-info"})
-            logger.error("superuser.superuser_access.missing_user_info")
+            logger.exception("superuser.superuser_access.missing_user_info")
 
     def set_logged_out(self):
         """
@@ -413,7 +416,7 @@ class Superuser:
             extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
         )
 
-    def on_response(self, response, current_datetime=None):
+    def on_response(self, response):
         request = self.request
 
         # always re-bind the cookie to update the idle expiration window

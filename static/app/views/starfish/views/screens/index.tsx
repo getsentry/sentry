@@ -50,6 +50,7 @@ export enum YAxis {
 }
 
 export const TOP_SCREENS = 5;
+const MAX_CHART_RELEASE_CHARS = 12;
 
 export const YAXIS_COLUMNS: Readonly<Record<YAxis, string>> = {
   [YAxis.WARM_START]: 'avg(measurements.app_start_warm)',
@@ -269,6 +270,14 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
     });
   }
 
+  const truncatedPrimaryChart = formatVersionAndCenterTruncate(
+    primaryRelease ?? '',
+    MAX_CHART_RELEASE_CHARS
+  );
+  const truncatedSecondaryChart = formatVersionAndCenterTruncate(
+    secondaryRelease ?? '',
+    MAX_CHART_RELEASE_CHARS
+  );
   const derivedQuery = getTransactionSearchQuery(location, tableEventView.query);
 
   const tableSearchFilters = new MutableSearch(['transaction.op:ui.load']);
@@ -290,10 +299,8 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
                   subtitle: primaryRelease
                     ? t(
                         '%s v. %s',
-                        formatVersionAndCenterTruncate(primaryRelease, 12),
-                        secondaryRelease
-                          ? formatVersionAndCenterTruncate(secondaryRelease, 12)
-                          : ''
+                        truncatedPrimaryChart,
+                        secondaryRelease ? truncatedSecondaryChart : ''
                       )
                     : '',
                 },
@@ -324,10 +331,8 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
                     subtitle: primaryRelease
                       ? t(
                           '%s v. %s',
-                          formatVersionAndCenterTruncate(primaryRelease, 12),
-                          secondaryRelease
-                            ? formatVersionAndCenterTruncate(secondaryRelease, 12)
-                            : ''
+                          truncatedPrimaryChart,
+                          secondaryRelease ? truncatedSecondaryChart : ''
                         )
                       : '',
                   },
@@ -371,7 +376,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
   );
 }
 
-function getFreeTextFromQuery(query: string) {
+export function getFreeTextFromQuery(query: string) {
   const conditions = new MutableSearch(query);
   const transactionValues = conditions.getFilterValues('transaction');
   if (transactionValues.length) {

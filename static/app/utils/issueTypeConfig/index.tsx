@@ -1,7 +1,10 @@
 import {t} from 'sentry/locale';
 import {IssueCategory, IssueType} from 'sentry/types';
 import cronConfig from 'sentry/utils/issueTypeConfig/cronConfig';
-import errorConfig from 'sentry/utils/issueTypeConfig/errorConfig';
+import {
+  errorConfig,
+  getErrorHelpResource,
+} from 'sentry/utils/issueTypeConfig/errorConfig';
 import performanceConfig from 'sentry/utils/issueTypeConfig/performanceConfig';
 import {
   IssueCategoryConfigMapping,
@@ -13,16 +16,19 @@ type Config = Record<IssueCategory, IssueCategoryConfigMapping>;
 type IssueCategoryAndType = {
   issueCategory: IssueCategory;
   issueType?: IssueType;
+  title?: string;
 };
 
 type GetConfigForIssueTypeParams = {eventOccurrenceType: number} | IssueCategoryAndType;
 
 const BASE_CONFIG: IssueTypeConfig = {
   actions: {
+    archiveUntilOccurrence: {enabled: true},
     delete: {enabled: false},
     deleteAndDiscard: {enabled: false},
     merge: {enabled: false},
     ignore: {enabled: false},
+    resolveInRelease: {enabled: true},
     share: {enabled: false},
   },
   attachments: {enabled: false},
@@ -47,6 +53,19 @@ const issueTypeConfig: Config = {
   [IssueCategory.CRON]: cronConfig,
 };
 
+/**
+ * For some errors, we've written custom resources to help users understand
+ * errors that may otherwise be difficult to debug. For example, common framework
+ * errors that have no stack trace.
+ */
+export function shouldShowCustomErrorResourceConfig(
+  params: GetConfigForIssueTypeParams
+): boolean {
+  const isErrorIssue = 'issueType' in params && params.issueType === IssueType.ERROR;
+  const hasTitle = 'title' in params && !!params.title;
+  return isErrorIssue && hasTitle && !!getErrorHelpResource(params.title!);
+}
+
 const eventOccurrenceTypeToIssueCategory = (eventOccurrenceType: number) => {
   if (eventOccurrenceType >= 1000) {
     return IssueCategory.PERFORMANCE;
@@ -68,7 +87,7 @@ export const getIssueCategoryAndTypeFromOccurrenceType = (
  * configuration. If not found there, it takes from the base config.
  */
 export const getConfigForIssueType = (params: GetConfigForIssueTypeParams) => {
-  const {issueCategory, issueType} =
+  const {issueCategory, issueType, title} =
     'eventOccurrenceType' in params
       ? getIssueCategoryAndTypeFromOccurrenceType(params.eventOccurrenceType)
       : params;
@@ -81,10 +100,14 @@ export const getConfigForIssueType = (params: GetConfigForIssueTypeParams) => {
 
   const categoryConfig = categoryMap._categoryDefaults;
   const overrideConfig = issueType ? categoryMap[issueType] : {};
+  const errorResourceConfig = shouldShowCustomErrorResourceConfig(params)
+    ? getErrorHelpResource(title!)
+    : null;
 
   return {
     ...BASE_CONFIG,
     ...categoryConfig,
     ...overrideConfig,
+    ...errorResourceConfig,
   };
 };

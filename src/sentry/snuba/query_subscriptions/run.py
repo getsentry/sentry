@@ -1,7 +1,7 @@
 import logging
 from functools import partial
 from random import random
-from typing import Mapping
+from typing import Mapping, Optional
 
 import sentry_sdk
 from arroyo import Topic, configure_metrics
@@ -32,8 +32,8 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         max_batch_size: int,
         max_batch_time: int,
         num_processes: int,
-        input_block_size: int,
-        output_block_size: int,
+        input_block_size: Optional[int],
+        output_block_size: Optional[int],
         multi_proc: bool = True,
     ):
         self.topic = topic
@@ -114,8 +114,8 @@ def get_query_subscription_consumer(
     max_batch_size: int,
     max_batch_time: int,
     num_processes: int,
-    input_block_size: int,
-    output_block_size: int,
+    input_block_size: Optional[int],
+    output_block_size: Optional[int],
     multi_proc: bool = False,
 ) -> StreamProcessor[KafkaPayload]:
 

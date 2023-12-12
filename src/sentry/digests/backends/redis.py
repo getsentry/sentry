@@ -159,9 +159,10 @@ class RedisBackend(Backend):
                 for key, timestamp in self.__schedule_partition(host, deadline, timestamp):
                     yield ScheduleEntry(key.decode("utf-8"), float(timestamp))
             except Exception as error:
-                logger.error(
-                    f"Failed to perform scheduling for partition {host} due to error: {error}",
-                    exc_info=True,
+                logger.exception(
+                    "Failed to perform scheduling for partition %s due to error: %s",
+                    host,
+                    error,
                 )
 
     def __maintenance_partition(self, host: int, deadline: float, timestamp: float) -> Any:
@@ -179,9 +180,10 @@ class RedisBackend(Backend):
             try:
                 self.__maintenance_partition(host, deadline, timestamp)
             except Exception as error:
-                logger.error(
-                    f"Failed to perform maintenance on digest partition {host} due to error: {error}",
-                    exc_info=True,
+                logger.exception(
+                    "Failed to perform maintenance on digest partition %s due to error: %s",
+                    host,
+                    error,
                 )
 
     @contextmanager

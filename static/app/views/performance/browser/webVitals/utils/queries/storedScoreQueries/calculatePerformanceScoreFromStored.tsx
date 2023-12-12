@@ -10,10 +10,22 @@ export const calculatePerformanceScoreFromStoredTableDataRow = (
 };
 
 function getWebVitalScore(data: TableDataRow, webVital: WebVitals): number {
-  return data[`avg(measurements.score.${webVital})`] as number;
+  return data[`performance_score(measurements.score.${webVital})`] as number;
 }
-function getWebVitalScoreWeight(data: TableDataRow, webVital: WebVitals): number {
-  return data[`avg(measurements.score.weight.${webVital})`] as number;
+
+function getWebVitalWeight(data: TableDataRow, webVital: WebVitals): number {
+  const weight = data[`avg(measurements.score.weight.${webVital})`] as number;
+  if (weight > 1) {
+    throw new Error(`${webVital} weight should not exceed 1: ${weight}`);
+  }
+  if (weight < 0) {
+    throw new Error(`${webVital} weight should not be less than 0: ${weight}`);
+  }
+  return weight;
+}
+
+function getTotalScore(data: TableDataRow): number {
+  return data[`avg(measurements.score.total)`] as number;
 }
 
 export function getWebVitalScores(data?: TableDataRow): ProjectScore {
@@ -28,21 +40,17 @@ export function getWebVitalScores(data?: TableDataRow): ProjectScore {
     };
   }
   const scores = {
-    lcpScore: Math.round(
-      getWebVitalScore(data, 'lcp') * getWebVitalScoreWeight(data, 'lcp') * 100
-    ),
-    fcpScore: Math.round(
-      getWebVitalScore(data, 'fcp') * getWebVitalScoreWeight(data, 'fcp') * 100
-    ),
-    clsScore: Math.round(
-      getWebVitalScore(data, 'cls') * getWebVitalScoreWeight(data, 'cls') * 100
-    ),
-    ttfbScore: Math.round(
-      getWebVitalScore(data, 'ttfb') * getWebVitalScoreWeight(data, 'ttfb') * 100
-    ),
-    fidScore: Math.round(
-      getWebVitalScore(data, 'fid') * getWebVitalScoreWeight(data, 'fid') * 100
-    ),
+    lcpScore: Math.round(getWebVitalScore(data, 'lcp') * 100),
+    fcpScore: Math.round(getWebVitalScore(data, 'fcp') * 100),
+    clsScore: Math.round(getWebVitalScore(data, 'cls') * 100),
+    ttfbScore: Math.round(getWebVitalScore(data, 'ttfb') * 100),
+    fidScore: Math.round(getWebVitalScore(data, 'fid') * 100),
+    totalScore: Math.round(getTotalScore(data) * 100),
+    lcpWeight: Math.round(getWebVitalWeight(data, 'lcp') * 100),
+    fcpWeight: Math.round(getWebVitalWeight(data, 'fcp') * 100),
+    clsWeight: Math.round(getWebVitalWeight(data, 'cls') * 100),
+    ttfbWeight: Math.round(getWebVitalWeight(data, 'ttfb') * 100),
+    fidWeight: Math.round(getWebVitalWeight(data, 'fid') * 100),
   };
-  return {...scores, totalScore: Object.values(scores).reduce((a, b) => a + b, 0)};
+  return scores;
 }

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
 from unittest import mock
 
 from django.conf import settings
@@ -15,9 +14,7 @@ from sentry.api.base import Endpoint
 from sentry.middleware.customer_domain import CustomerDomainMiddleware
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.region import override_region_config
-from sentry.testutils.silo import no_silo_test
-from sentry.types.region import RegionCategory, clear_global_regions
+from sentry.testutils.silo import all_silo_test, create_test_regions, no_silo_test
 from sentry.web.frontend.auth_logout import AuthLogoutView
 
 
@@ -27,9 +24,8 @@ def _session(d: dict[str, str]) -> SessionBase:
     return ret
 
 
-@override_settings(
-    SENTRY_USE_CUSTOMER_DOMAINS=True,
-)
+@all_silo_test(regions=create_test_regions("us", "eu"))
+@override_settings(SENTRY_USE_CUSTOMER_DOMAINS=True)
 class CustomerDomainMiddlewareTest(TestCase):
     def test_sets_active_organization_if_exists(self):
         self.create_organization(name="test")
@@ -128,30 +124,14 @@ class CustomerDomainMiddlewareTest(TestCase):
         assert response == mock.sentinel.response
 
     def test_ignores_region_subdomains(self):
-        clear_global_regions()
-        region_configs: list[dict[str, Any]] = [
-            {
-                "name": "us",
-                "snowflake_id": 1,
-                "address": "http://us.testserver",
-                "category": RegionCategory.MULTI_TENANT.name,
-            },
-            {
-                "name": "eu",
-                "snowflake_id": 1,
-                "address": "http://eu.testserver",
-                "category": RegionCategory.MULTI_TENANT.name,
-            },
-        ]
-        with override_region_config(region_configs):
-            for region in region_configs:
-                request = RequestFactory().get("/")
-                request.subdomain = region["name"]
-                request.session = _session({"activeorg": "test"})
-                response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
+        for region_name in ("us", "eu"):
+            request = RequestFactory().get("/")
+            request.subdomain = region_name
+            request.session = _session({"activeorg": "test"})
+            response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
 
-                assert dict(request.session) == {"activeorg": "test"}
-                assert response == mock.sentinel.response
+            assert dict(request.session) == {"activeorg": "test"}
+            assert response == mock.sentinel.response
 
     def test_handles_redirects(self):
         self.create_organization(name="sentry")

@@ -15,7 +15,7 @@ from sentry.integrations.utils import AtlassianConnectValidationError
 from sentry.models.integrations.integration import Integration
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
-from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import APITestCase, TestCase
 
 TOKEN = "JWT anexampletoken"
@@ -219,7 +219,6 @@ class JiraWebhookBaseTest(TestCase):
     def test_atlassian_pen_testing_bot(
         self, mock_capture_exception: MagicMock, mock_logger: MagicMock
     ):
-
         mock_endpoint = MockErroringJiraEndpoint.as_view(error=MethodNotAllowed("GET"))
 
         request = self.make_request(method="GET")
@@ -350,4 +349,4 @@ class JiraWebhookBaseTest(TestCase):
 
             assert mock_super_handle_exception.call_args.args[1] == unknown_error
             assert str(unknown_error) == expected_error_message
-            assert mock_logger.exception.call_args.args[0] == "Unclear JIRA exception"
+            assert mock_logger.error.call_args.args[0] == "Unclear JIRA exception"

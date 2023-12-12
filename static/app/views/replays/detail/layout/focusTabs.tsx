@@ -32,14 +32,22 @@ function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
         <Tooltip
           isHoverable
           title={
-            <ExternalLink href="https://developer.mozilla.org/en-US/docs/Learn/Accessibility/What_is_accessibility">
+            <ExternalLink
+              href="https://developer.mozilla.org/en-US/docs/Learn/Accessibility/What_is_accessibility"
+              onClick={e => {
+                e.stopPropagation();
+              }}
+            >
               {t('What is accessibility?')}
             </ExternalLink>
           }
         >
           {t('Accessibility')}
         </Tooltip>
-        <FeatureBadge type="beta" />
+        <FeatureBadge
+          type="alpha"
+          title={t('This feature is available for early adopters and may change')}
+        />
       </Fragment>
     ) : null,
     [TabKey.MEMORY]: t('Memory'),

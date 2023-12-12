@@ -17,7 +17,7 @@ import useRouter from 'sentry/utils/useRouter';
 import {MiniAggregateWaterfall} from 'sentry/views/performance/browser/webVitals/components/miniAggregateWaterfall';
 import PerformanceScoreRingWithTooltips from 'sentry/views/performance/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
-import {useProjectWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useProjectWebVitalsValuesTimeseriesQuery';
+import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 
 const CHART_HEIGHTS = 100;
@@ -52,7 +52,7 @@ export function PageOverviewSidebar({
     utc,
   };
 
-  const {data, isLoading: isLoading} = useProjectWebVitalsValuesTimeseriesQuery({
+  const {data, isLoading: isLoading} = useProjectRawWebVitalsValuesTimeseriesQuery({
     transaction,
     datetime: doubledDatetime,
   });
@@ -138,7 +138,7 @@ export function PageOverviewSidebar({
             projectScore={projectScore}
             text={projectScore.totalScore}
             width={220}
-            height={160}
+            height={180}
             ringBackgroundColors={ringBackgroundColors}
             ringSegmentColors={ringSegmentColors}
           />
@@ -158,7 +158,7 @@ export function PageOverviewSidebar({
       <ChartValue>
         {currentCount ? formatAbbreviatedNumber(currentCount) : null}
       </ChartValue>
-      {initialCount && currentCount && countDiff && shouldDoublePeriod && (
+      {initialCount && currentCount && countDiff && shouldDoublePeriod ? (
         <ChartSubText color={diffToColor(countDiff)}>
           {getChartSubText(
             countDiff,
@@ -166,7 +166,7 @@ export function PageOverviewSidebar({
             formatAbbreviatedNumber(currentCount)
           )}
         </ChartSubText>
-      )}
+      ) : null}
       <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
         {zoomRenderProps => (
           <LineChart

@@ -5,25 +5,19 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {mapWebVitalToOrderBy} from 'sentry/views/performance/browser/webVitals/utils/mapWebVitalToOrderBy';
 import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
-import {
-  RowWithScore,
-  WebVitals,
-} from 'sentry/views/performance/browser/webVitals/utils/types';
+import {RowWithScore} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 
 type Props = {
   defaultSort?: Sort;
   enabled?: boolean;
   limit?: number;
-  orderBy?: WebVitals | null;
   sortName?: string;
   transaction?: string | null;
 };
 
 export const useTransactionRawWebVitalsQuery = ({
-  orderBy,
   limit,
   transaction,
   defaultSort,
@@ -51,7 +45,6 @@ export const useTransactionRawWebVitalsQuery = ({
       name: 'Web Vitals',
       query:
         'transaction.op:pageload' + (transaction ? ` transaction:"${transaction}"` : ''),
-      orderby: mapWebVitalToOrderBy(orderBy, 'p75') ?? '-count',
       version: 2,
       dataset: DiscoverDatasets.METRICS,
     },
@@ -66,7 +59,7 @@ export const useTransactionRawWebVitalsQuery = ({
     location,
     orgSlug: organization.slug,
     options: {
-      enabled: pageFilters.isReady && enabled,
+      enabled,
       refetchOnWindowFocus: false,
     },
     referrer: 'api.performance.browser.web-vitals.transactions',

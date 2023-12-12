@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from enum import Enum
+from typing import Any
 
 import requests
 from django.utils.translation import gettext_lazy as _
@@ -16,15 +17,18 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.discord.client import DiscordClient, DiscordNonProxyClient
-from sentry.integrations.discord.commands import DiscordCommandManager
+from sentry.models.integrations.integration import Integration
 from sentry.pipeline.views.base import PipelineView
-from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
 
 from .utils import logger
 
-DESCRIPTION = "Discord’s your place to collaborate, share, and just talk about your day – or commiserate about app errors. Connect Sentry to your Discord server and get [alerts](https://docs.sentry.io/product/alerts/alert-types/) in a channel of your choice or via direct message when sh%t hits the fan."
+DESCRIPTION = """Discord’s your place to collaborate, share, and just talk about your day – or
+commiserate about app errors. Connect Sentry to your Discord server and get
+[alerts](https://docs.sentry.io/product/alerts/alert-types/) in a channel of your choice or via
+direct message when sh%t hits the fan."""
 
 FEATURES = [
     FeatureDescription(
@@ -35,6 +39,24 @@ FEATURES = [
         "Configure rule based Discord notifications to automatically be posted into a specific channel.",
         IntegrationFeatures.ALERT_RULE,
     ),
+]
+
+COMMANDS: list[object] = [
+    {
+        "name": "link",
+        "description": "Link your Discord account to your Sentry account to perform actions on Sentry notifications.",
+        "type": 1,
+    },
+    {
+        "name": "unlink",
+        "description": "Unlink your Discord account from your Sentry account.",
+        "type": 1,
+    },
+    {
+        "name": "help",
+        "description": "View a list of Sentry bot commands and what they do.",
+        "type": 1,
+    },
 ]
 
 metadata = IntegrationMetadata(
@@ -142,7 +164,11 @@ class DiscordIntegrationProvider(IntegrationProvider):
 
     def build_integration(self, state: Mapping[str, object]) -> Mapping[str, object]:
         guild_id = str(state.get("guild_id"))
-        guild_name = self.client.get_guild_name(guild_id=guild_id)
+        try:
+            guild_name = self.client.get_guild_name(guild_id=guild_id)
+        except (ApiError, AttributeError):
+            guild_name = guild_id
+
         discord_user_id = self._get_discord_user_id(str(state.get("code")))
 
         return {
@@ -156,9 +182,40 @@ class DiscordIntegrationProvider(IntegrationProvider):
             },
         }
 
-    def setup(self) -> None:
-        if self._credentials_exist():
-            DiscordCommandManager().register_commands()
+    def _has_application_commands(self) -> bool:
+        try:
+            return self.client.has_application_commands()
+        except ApiError as e:
+            logger.error(
+                "discord.fail.setup.get_application_commands",
+                extra={
+                    "status": e.code,
+                    "error": str(e),
+                    "application_id": self.application_id,
+                },
+            )
+            raise ApiError(str(e))
+
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganizationSummary,
+        extra: Any | None = None,
+    ) -> None:
+        if self._credentials_exist() and not self._has_application_commands():
+            try:
+                for command in COMMANDS:
+                    self.client.set_application_command(command)
+            except ApiError as e:
+                logger.error(
+                    "discord.fail.setup.set_application_command",
+                    extra={
+                        "status": e.code,
+                        "error": str(e),
+                        "application_id": self.application_id,
+                    },
+                )
+                raise ApiError(str(e))
 
     def _get_discord_user_id(self, auth_code: str) -> str:
         """
@@ -210,7 +267,20 @@ class DiscordIntegrationProvider(IntegrationProvider):
         return f"https://discord.com/api/oauth2/authorize?client_id={self.application_id}&permissions={self.bot_permissions}&redirect_uri={self.setup_url}&response_type=code&scope={' '.join(self.oauth_scopes)}"
 
     def _credentials_exist(self) -> bool:
-        return all((self.application_id, self.public_key, self.bot_token, self.client_secret))
+        has_credentials = all(
+            (self.application_id, self.public_key, self.bot_token, self.client_secret)
+        )
+        if not has_credentials:
+            logger.error(
+                "discord.install.fail.credentials_exist",
+                extra={
+                    "application_id": self.application_id,
+                    "has_public_key": bool(self.public_key),
+                    "has_bot_token": bool(self.bot_token),
+                    "has_client_secret": bool(self.client_secret),
+                },
+            )
+        return has_credentials
 
 
 class DiscordInstallPipeline(PipelineView):

@@ -25,9 +25,10 @@ class PagerDutyProxyClient(IntegrationProxyClient):
         self,
         org_integration_id: int | None,
         integration_key: str,
+        keyid: str | None = None,
     ) -> None:
         self.integration_key = integration_key
-        super().__init__(org_integration_id=org_integration_id)
+        super().__init__(org_integration_id=org_integration_id, keyid=keyid)
 
     def request(self, method: str, *args: Any, **kwargs: Any) -> BaseApiResponseX:
         headers = kwargs.pop("headers", None)

@@ -16,18 +16,18 @@ type Props = {
   defaultSort?: Sort;
   enabled?: boolean;
   limit?: number;
-  orderBy?: WebVitals | null;
+  opportunityWebVital?: WebVitals | 'total';
   sortName?: string;
   transaction?: string | null;
 };
 
 export const useTransactionWebVitalsScoresQuery = ({
-  orderBy,
   limit,
   transaction,
   defaultSort,
   sortName = 'sort',
   enabled = true,
+  opportunityWebVital = 'total',
 }: Props) => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -44,22 +44,19 @@ export const useTransactionWebVitalsScoresQuery = ({
         'p75(measurements.cls)',
         'p75(measurements.ttfb)',
         'p75(measurements.fid)',
-        'avg(measurements.score.lcp)',
-        'avg(measurements.score.fcp)',
-        'avg(measurements.score.cls)',
-        'avg(measurements.score.fid)',
-        'avg(measurements.score.ttfb)',
-        'avg(measurements.score.weight.lcp)',
-        'avg(measurements.score.weight.fcp)',
-        'avg(measurements.score.weight.cls)',
-        'avg(measurements.score.weight.fid)',
-        'avg(measurements.score.weight.ttfb)',
+        'performance_score(measurements.score.lcp)',
+        'performance_score(measurements.score.fcp)',
+        'performance_score(measurements.score.cls)',
+        'performance_score(measurements.score.fid)',
+        'performance_score(measurements.score.ttfb)',
+        'avg(measurements.score.total)',
         'count()',
+        `opportunity_score(measurements.score.${opportunityWebVital})`,
       ],
       name: 'Web Vitals',
       query:
-        'transaction.op:pageload' + (transaction ? ` transaction:"${transaction}"` : ''),
-      orderby: orderBy ?? '-count',
+        'transaction.op:pageload avg(measurements.score.total):>=0' +
+        (transaction ? ` transaction:"${transaction}"` : ''),
       version: 2,
       dataset: DiscoverDatasets.METRICS,
     },
@@ -74,7 +71,7 @@ export const useTransactionWebVitalsScoresQuery = ({
     location,
     orgSlug: organization.slug,
     options: {
-      enabled: pageFilters.isReady && enabled,
+      enabled,
       refetchOnWindowFocus: false,
     },
     referrer: 'api.performance.browser.web-vitals.transactions-scores',
@@ -99,6 +96,9 @@ export const useTransactionWebVitalsScoresQuery = ({
             lcpScore: lcpScore ?? 0,
             ttfbScore: ttfbScore ?? 0,
             fidScore: fidScore ?? 0,
+            opportunity: row[
+              `opportunity_score(measurements.score.${opportunityWebVital})`
+            ] as number,
           };
         })
       : [];
