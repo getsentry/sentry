@@ -68,6 +68,7 @@ type CommonProps = {
   SplitDivider?: React.ComponentType<DividerProps>;
   onMouseDown?: (sizePct: `${number}%`) => void;
   onResize?: (newSize: number) => void;
+  sizeStorageKey?: string;
 };
 
 export type SplitPanelProps = CommonProps &
@@ -97,7 +98,13 @@ export type SplitPanelProps = CommonProps &
   );
 
 function SplitPanel(props: SplitPanelProps) {
-  const {availableSize, SplitDivider = BaseSplitDivider, onMouseDown, onResize} = props;
+  const {
+    availableSize,
+    SplitDivider = BaseSplitDivider,
+    onMouseDown,
+    onResize,
+    sizeStorageKey,
+  } = props;
   const isLeftRight = 'left' in props;
   const initialSize = isLeftRight ? props.left.default : props.top.default;
   const min = isLeftRight ? props.left.min : props.top.min;
@@ -114,6 +121,7 @@ function SplitPanel(props: SplitPanelProps) {
     initialSize,
     min,
     onResize: onResize ?? (() => {}),
+    sizeStorageKey,
   });
 
   const sizePct = `${

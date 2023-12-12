@@ -9,7 +9,9 @@ export function useMetricsCodeLocations(mri: string | undefined) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const {data, isLoading} = useApiQuery<{codeLocations: MetricMetaCodeLocation[]}>(
+  const {data, isLoading, isError, refetch} = useApiQuery<{
+    codeLocations: MetricMetaCodeLocation[];
+  }>(
     [
       `/organizations/${organization.slug}/ddm/meta/`,
       {
@@ -37,7 +39,7 @@ export function useMetricsCodeLocations(mri: string | undefined) {
   deduplicateCodeLocations(data);
   sortCodeLocations(data);
 
-  return {data, isLoading};
+  return {data, isLoading, isError, refetch};
 }
 
 const sortCodeLocations = (data: ApiResponse) => {
