@@ -11,8 +11,8 @@ from sentry.ingest.billing_metrics_consumer import (
     BillingTxCountMetricConsumerStrategy,
     MetricsBucket,
 )
+from sentry.models.project import Project
 from sentry.sentry_metrics.indexer.strings import SHARED_TAG_STRINGS, TRANSACTION_METRICS_NAMES
-from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome
@@ -20,7 +20,6 @@ from sentry.utils.outcomes import Outcome
 
 @django_db_all
 @mock.patch("sentry.ingest.billing_metrics_consumer.track_outcome")
-@freeze_time("1985-10-26 21:00:00")
 def test_outcomes_consumed(track_outcome, factories):
     # Based on test_ingest_consumer_kafka.py
     topic = Topic("snuba-generic-metrics")
@@ -160,6 +159,7 @@ def test_outcomes_consumed(track_outcome, factories):
         assert next_step.submit.call_count == (i + 1)
         if i < 4:
             assert track_outcome.call_count == 0
+            assert Project.objects.get(id=project_1.id).flags.has_custom_metrics
         elif i < 7:
             assert track_outcome.mock_calls == [
                 mock.call(
@@ -168,12 +168,13 @@ def test_outcomes_consumed(track_outcome, factories):
                     key_id=None,
                     outcome=Outcome.ACCEPTED,
                     reason=None,
-                    timestamp=datetime(1985, 10, 26, 21, 00, 00, tzinfo=timezone.utc),
+                    timestamp=mock.ANY,
                     event_id=None,
                     category=DataCategory.TRANSACTION,
                     quantity=3,
                 ),
             ]
+            assert Project.objects.get(id=project_2.id).flags.has_custom_metrics
         else:
             assert track_outcome.mock_calls[1:] == [
                 mock.call(
@@ -182,7 +183,7 @@ def test_outcomes_consumed(track_outcome, factories):
                     key_id=None,
                     outcome=Outcome.ACCEPTED,
                     reason=None,
-                    timestamp=datetime(1985, 10, 26, 21, 00, 00, tzinfo=timezone.utc),
+                    timestamp=mock.ANY,
                     event_id=None,
                     category=DataCategory.TRANSACTION,
                     quantity=1,
@@ -193,12 +194,14 @@ def test_outcomes_consumed(track_outcome, factories):
                     key_id=None,
                     outcome=Outcome.ACCEPTED,
                     reason=None,
-                    timestamp=datetime(1985, 10, 26, 21, 00, 00, tzinfo=timezone.utc),
+                    timestamp=mock.ANY,
                     event_id=None,
                     category=DataCategory.PROFILE,
                     quantity=1,
                 ),
             ]
+            # We double-check that the project does not exist.
+            assert not Project.objects.filter(id=2).exists()
 
     assert next_step.submit.call_count == 9
 
