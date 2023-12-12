@@ -35,8 +35,6 @@ export default function ReplayComparisonModal({
   const [leftBody, setLeftBody] = useState(null);
   const [rightBody, setRightBody] = useState(null);
 
-  console.log({leftBody, rightBody});
-
   return (
     <OrganizationContext.Provider value={organization}>
       <Header closeButton>
@@ -89,17 +87,13 @@ function ReplaySide({expectedTime, selector, onLoad}) {
       setTimeout(() => {
         const iframe = document.querySelector(selector) as HTMLIFrameElement;
         const body = iframe.contentWindow?.document.body;
-        onLoad(
-          beautify.html(body?.innerHTML, {
-            indent_size: 2,
-          })
-        );
-
-        console.log({
-          iframe,
-          body,
-          innerHtml: body?.innerHTML,
-        });
+        if (body) {
+          onLoad(
+            beautify.html(body.innerHTML, {
+              indent_size: 2,
+            })
+          );
+        }
       }, 0);
     }
   }, [currentTime, expectedTime, selector, onLoad]);
