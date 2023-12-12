@@ -5,14 +5,14 @@ from unittest import mock
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
+from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMetric
 
 from sentry.constants import DataCategory
-from sentry.ingest.billing_metrics_consumer import (
-    BillingTxCountMetricConsumerStrategy,
-    MetricsBucket,
-)
+from sentry.ingest.billing_metrics_consumer import BillingTxCountMetricConsumerStrategy
 from sentry.models.project import Project
+from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.indexer.strings import SHARED_TAG_STRINGS, TRANSACTION_METRICS_NAMES
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome
@@ -32,11 +32,28 @@ def test_outcomes_consumed(track_outcome, factories):
     project_1 = factories.create_project(organization=organization)
     project_2 = factories.create_project(organization=organization)
 
+    transaction_usage_mri = "c:transactions/usage@none"
+    transaction_usage_id = TRANSACTION_METRICS_NAMES["c:transactions/usage@none"]
+
+    transaction_duration_mri = "d:transactions/duration@millisecond"
+    transaction_duration_id = TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"]
+
+    counter_custom_metric_mri = "c:custom/user_click@none"
+    counter_custom_metric_id = indexer.record(
+        UseCaseID.CUSTOM, organization.id, counter_custom_metric_mri
+    )
+
+    distribution_custom_metric_mri = "d:custom/page_load@ms"
+    distribution_custom_metric_id = indexer.record(
+        UseCaseID.CUSTOM, organization.id, distribution_custom_metric_mri
+    )
+
     empty_tags: dict[str, str] = {}
     profile_tags: dict[str, str] = {str(SHARED_TAG_STRINGS["has_profile"]): "true"}
-    buckets: list[MetricsBucket] = [
+    generic_metrics: list[GenericMetric] = [
         {  # Counter metric with wrong ID will not generate an outcome
-            "metric_id": 123,
+            "mapping_meta": {"c": {str(counter_custom_metric_id): counter_custom_metric_mri}},
+            "metric_id": counter_custom_metric_id,
             "type": "c",
             "org_id": 1,
             "project_id": project_1.id,
@@ -45,7 +62,10 @@ def test_outcomes_consumed(track_outcome, factories):
             "tags": empty_tags,
         },
         {  # Distribution metric with wrong ID will not generate an outcome
-            "metric_id": 123,
+            "mapping_meta": {
+                "c": {str(distribution_custom_metric_id): distribution_custom_metric_mri}
+            },
+            "metric_id": distribution_custom_metric_id,
             "type": "d",
             "org_id": 1,
             "project_id": project_1.id,
@@ -56,7 +76,8 @@ def test_outcomes_consumed(track_outcome, factories):
         # Usage with `0.0` will not generate an outcome
         # NOTE: Should not be emitted by Relay anyway
         {
-            "metric_id": TRANSACTION_METRICS_NAMES["c:transactions/usage@none"],
+            "mapping_meta": {"c": {str(transaction_usage_id): transaction_usage_mri}},
+            "metric_id": transaction_usage_id,
             "type": "c",
             "org_id": 1,
             "project_id": project_1.id,
@@ -65,7 +86,8 @@ def test_outcomes_consumed(track_outcome, factories):
             "tags": empty_tags,
         },
         {
-            "metric_id": TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"],
+            "mapping_meta": {"c": {str(transaction_duration_id): transaction_duration_mri}},
+            "metric_id": transaction_duration_id,
             "type": "d",
             "org_id": 1,
             "project_id": project_1.id,
@@ -75,7 +97,8 @@ def test_outcomes_consumed(track_outcome, factories):
         },
         # Usage buckets with positive counter emit an outcome
         {
-            "metric_id": TRANSACTION_METRICS_NAMES["c:transactions/usage@none"],
+            "mapping_meta": {"c": {str(transaction_usage_id): transaction_usage_mri}},
+            "metric_id": transaction_usage_id,
             "type": "c",
             "org_id": 1,
             "project_id": project_2.id,
@@ -84,7 +107,8 @@ def test_outcomes_consumed(track_outcome, factories):
             "tags": empty_tags,
         },
         {
-            "metric_id": TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"],
+            "mapping_meta": {"c": {str(transaction_duration_id): transaction_duration_mri}},
+            "metric_id": transaction_duration_id,
             "type": "d",
             "org_id": 1,
             "project_id": project_2.id,
@@ -93,7 +117,10 @@ def test_outcomes_consumed(track_outcome, factories):
             "tags": empty_tags,
         },
         {  # Another bucket to introduce some noise
-            "metric_id": 123,
+            "mapping_meta": {
+                "c": {str(distribution_custom_metric_id): distribution_custom_metric_mri}
+            },
+            "metric_id": distribution_custom_metric_id,
             "type": "c",
             "org_id": 1,
             "project_id": project_2.id,
@@ -103,7 +130,8 @@ def test_outcomes_consumed(track_outcome, factories):
         },
         # Bucket with profiles
         {
-            "metric_id": TRANSACTION_METRICS_NAMES["c:transactions/usage@none"],
+            "mapping_meta": {"c": {str(transaction_usage_id): transaction_usage_mri}},
+            "metric_id": transaction_usage_id,
             "type": "c",
             "org_id": 1,
             "project_id": 2,
@@ -112,7 +140,8 @@ def test_outcomes_consumed(track_outcome, factories):
             "tags": profile_tags,
         },
         {
-            "metric_id": TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"],
+            "mapping_meta": {"c": {str(transaction_duration_id): transaction_duration_mri}},
+            "metric_id": transaction_duration_id,
             "type": "d",
             "org_id": 1,
             "project_id": 2,
@@ -130,10 +159,10 @@ def test_outcomes_consumed(track_outcome, factories):
 
     generate_kafka_message_counter = 0
 
-    def generate_kafka_message(bucket: MetricsBucket) -> Message[KafkaPayload]:
+    def generate_kafka_message(generic_metric: GenericMetric) -> Message[KafkaPayload]:
         nonlocal generate_kafka_message_counter
 
-        encoded = json.dumps(bucket).encode()
+        encoded = json.dumps(generic_metric).encode()
         payload = KafkaPayload(key=None, value=encoded, headers=[])
         message = Message(
             BrokerValue(
@@ -151,10 +180,10 @@ def test_outcomes_consumed(track_outcome, factories):
     strategy.poll()
     strategy.poll()
     assert track_outcome.call_count == 0
-    for i, bucket in enumerate(buckets):
+    for i, generic_metric in enumerate(generic_metrics):
         strategy.poll()
         assert next_step.submit.call_count == i
-        strategy.submit(generate_kafka_message(bucket))
+        strategy.submit(generate_kafka_message(generic_metric))
         # commit is called for every message, and later debounced by arroyo's policy
         assert next_step.submit.call_count == (i + 1)
         if i < 4:
@@ -174,7 +203,12 @@ def test_outcomes_consumed(track_outcome, factories):
                     quantity=3,
                 ),
             ]
-            assert Project.objects.get(id=project_2.id).flags.has_custom_metrics
+            # We have a custom metric in the 7th element, thus we expect that before that we have no flag set and after
+            # that yes.
+            if i == 6:
+                assert Project.objects.get(id=project_2.id).flags.has_custom_metrics
+            else:
+                assert not Project.objects.get(id=project_2.id).flags.has_custom_metrics
         else:
             assert track_outcome.mock_calls[1:] == [
                 mock.call(
