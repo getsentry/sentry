@@ -198,25 +198,23 @@ export function diffFlamegraphTreeRecursive(
 
         if (result === 0) {
           visit(beforeFrame.children[j], afterFrame.children[i]);
+          ++j;
           break;
         }
         if (result === -1) {
-          // removed frame
           removedFrames = removedFrames.concat(getTreeNodes(beforeFrame.children[j]));
           continue;
         }
         if (result === 1) {
-          // added frame
           newFrames = newFrames.concat(getTreeNodes(afterFrame.children[i]));
           break;
         }
       }
     }
 
-    if (beforeFrameChildrenLength > afterFrameChildrenLength) {
-      for (let i = afterFrameChildrenLength; i < beforeFrameChildrenLength; i++) {
-        removedFrames = removedFrames.concat(getTreeNodes(beforeFrame.children[i]));
-      }
+    while (j < beforeFrameChildrenLength) {
+      removedFrames = removedFrames.concat(getTreeNodes(beforeFrame.children[j]));
+      j++;
     }
   }
 
@@ -229,10 +227,10 @@ function getTreeNodes(frame: FlamegraphFrame): FlamegraphFrame[] {
   const stack: FlamegraphFrame[] = [frame];
 
   while (stack.length > 0) {
-    const node = stack.pop()!;
-    frames.push(node);
+    const f = stack.pop()!;
+    frames.push(f);
 
-    for (const child of node.children) {
+    for (const child of f.children) {
       stack.push(child);
     }
   }
