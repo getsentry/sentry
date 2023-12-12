@@ -169,7 +169,11 @@ def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
         first_feedback_received.send_robust(project=project, sender=Project)
 
     if (
-        source is FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        source
+        in [
+            FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
+            FeedbackCreationSource.NEW_FEEDBACK_DJANGO_ENDPOINT,
+        ]
         and not project.flags.has_new_feedbacks
     ):
         first_new_feedback_received.send_robust(project=project, sender=Project)
