@@ -640,7 +640,7 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean}>`
   background: ${p => p.theme.sidebarGradient};
   color: ${p => p.theme.sidebar.color};
   line-height: 1;
-  padding-bottom: 2px; /* Allows for 32px avatars  */
+  padding: 12px 0 2px; /* Allows for 32px avatars  */
   width: ${p => p.theme.sidebar[p.collapsed ? 'collapsedWidth' : 'expandedWidth']};
   position: fixed;
   top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
