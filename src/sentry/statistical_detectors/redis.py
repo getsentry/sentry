@@ -26,7 +26,16 @@ class RedisDetectorStore(DetectorStore):
     ):
         self.detector_type = detector_type
         self.ttl = ttl
-        self.client = self.get_redis_client() if client is None else client
+        self._client: RedisCluster | StrictRedis | None = None
+
+    @property
+    def client(
+        self,
+        client: RedisCluster | StrictRedis | None = None,
+    ):
+        if self._client is None:
+            self._client = self.get_redis_client() if client is None else client
+        return self._client
 
     def bulk_read_states(
         self, payloads: List[DetectorPayload]
