@@ -44,12 +44,14 @@ export function generateProfileDifferentialFlamegraphRouteWithQuery({
   projectSlug,
   query,
   fingerprint,
+  transaction,
   breakpoint,
 }: {
   breakpoint: number;
   fingerprint: number;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
+  transaction: string;
   query?: Location['query'];
 }): LocationDescriptor {
   const pathname = generateProfileDifferentialFlamegraphRoute({orgSlug, projectSlug});
@@ -57,6 +59,7 @@ export function generateProfileDifferentialFlamegraphRouteWithQuery({
     pathname,
     query: {
       ...query,
+      transaction,
       fingerprint,
       breakpoint,
     },

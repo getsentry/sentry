@@ -197,6 +197,7 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
             <RegressedFunctionRow key={i}>
               {hasDifferentialFlamegraphPageFeature ? (
                 <RegressedFunctionDifferentialFlamegraph
+                  transaction={props.transaction}
                   organization={organization}
                   project={project}
                   fn={fn}
@@ -251,6 +252,7 @@ interface RegressedFunctionDifferentialFlamegraphProps {
   fn: FunctionTrend;
   organization: Organization;
   project: Project | null;
+  transaction: string;
 }
 
 function RegressedFunctionDifferentialFlamegraph(
@@ -266,6 +268,7 @@ function RegressedFunctionDifferentialFlamegraph(
   const differentialFlamegraphLink = generateProfileDifferentialFlamegraphRouteWithQuery({
     orgSlug: props.organization.slug,
     projectSlug: props.project?.slug ?? '',
+    transaction: props.transaction,
     fingerprint: props.fn.fingerprint,
     breakpoint: props.fn.breakpoint,
     query: {
