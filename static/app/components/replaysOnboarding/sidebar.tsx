@@ -252,21 +252,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     );
   }
 
-  const migrated = [
-    'javascript',
-    'javascript-react',
-    'javascript-ember',
-    'javascript-sveltekit',
-    'javascript-svelte',
-    'javascript-astro',
-    'javascript-nextjs',
-    'javascript-remix',
-    'javascript-gatsby',
-    'javascript-angular',
-    'electron',
-  ];
   const newOnboarding = organization.features.includes('session-replay-new-zero-state');
-  const showNewOnboardingUI = newOnboarding && migrated.includes(currentPlatform.id);
 
   return (
     <Fragment>
@@ -276,7 +262,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           {platform: currentPlatform?.name || currentProject.slug}
         )}
       </IntroText>
-      {showNewOnboardingUI ? (
+      {newOnboarding ? (
         <SdkDocumentation
           platform={currentPlatform}
           organization={organization}
