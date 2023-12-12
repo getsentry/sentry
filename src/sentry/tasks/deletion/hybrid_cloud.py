@@ -99,6 +99,8 @@ def _chunk_watermark_batch(
     acks_late=True,
     silo_mode=SiloMode.CONTROL,
 )
+# TODO(rjo100): dual write check-ins for debugging
+@monitor(monitor_slug="schedule-hybrid-cloud-foreign-key-jobs-control-test")
 def schedule_hybrid_cloud_foreign_key_jobs_control():
     _schedule_hybrid_cloud_foreign_key(
         SiloMode.CONTROL, process_hybrid_cloud_foreign_key_cascade_batch_control
