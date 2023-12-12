@@ -7,8 +7,8 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.constants import MIGRATED_CONDITIONS, SENTRY_APP_ACTIONS, TICKET_ACTIONS
+from sentry.receivers.rules import has_high_priority_issue_alerts
 from sentry.rules import rules
-from sentry.rules.conditions.high_priority_issue import has_high_priority_issue_alerts
 
 
 @region_silo_endpoint
