@@ -159,7 +159,8 @@ class DiscordIntegrationProvider(IntegrationProvider):
         self.bot_token = options.get("discord.bot-token")
         self.client_secret = options.get("discord.client-secret")
         self.client = DiscordNonProxyClient()
-        self.setup_url = absolute_uri("extensions/discord/configure/")
+        self.setup_url = absolute_uri("extensions/discord/setup/")
+        self.configure_url = absolute_uri("extensions/discord/configure/")
         super().__init__()
 
     def get_pipeline_views(self) -> Sequence[PipelineView]:
@@ -233,7 +234,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
         integration.
 
         """
-        form_data = f"client_id={self.application_id}&client_secret={self.client_secret}&grant_type=authorization_code&code={auth_code}&redirect_uri={self.setup_url}"
+        form_data = f"client_id={self.application_id}&client_secret={self.client_secret}&grant_type=authorization_code&code={auth_code}&redirect_uri={self.setup_url if self.pipeline.organization.slug else self.configure_url}"
         headers = {
             "Content-Type": "application/x-www-form-urlencoded",
         }
@@ -271,7 +272,9 @@ class DiscordIntegrationProvider(IntegrationProvider):
             {
                 "client_id": self.application_id,
                 "permissions": self.bot_permissions,
-                "redirect_uri": absolute_uri("extensions/discord/configure/"),
+                "redirect_uri": self.setup_url
+                if self.pipeline.organization.slug
+                else self.configure_url,
                 "state": json.dumps({"orgSlug": self.pipeline.organization.slug}),
                 "scope": " ".join(self.oauth_scopes),
             }
@@ -306,4 +309,5 @@ class DiscordInstallPipeline(PipelineView):
 
         pipeline.bind_state("guild_id", request.GET["guild_id"])
         pipeline.bind_state("code", request.GET["code"])
+        pipeline.bind_state("state", request.GET["state"])
         return pipeline.next_step()
