@@ -23,6 +23,7 @@ import EventView, {
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {formatPercentage} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -183,9 +184,10 @@ export function ScreenLoadSpansTable({
 
       if (!isNaN(ttfd_contribution_rate) && ttfd_contribution_rate === 1) {
         const tooltipValue = tct(
-          'This span always ends before TTFD and may affect final display. [link: Learn more.]',
+          'This span always ends before TTFD and may affect final display. [link: Learn more.] (TTID contribution rate: [ttid_contribution_rate])',
           {
             link: <ExternalLink href="https://docs.sentry.io" />,
+            ttid_contribution_rate: formatPercentage(ttid_contribution_rate),
           }
         );
         return (
@@ -195,7 +197,18 @@ export function ScreenLoadSpansTable({
         );
       }
 
-      return <Container>{'--'}</Container>;
+      return (
+        <Tooltip
+          isHoverable
+          title={t(
+            '(TTID contribution rate: %s and TTFD contribution rate: %s)',
+            formatPercentage(ttid_contribution_rate),
+            formatPercentage(ttfd_contribution_rate)
+          )}
+        >
+          <Container>{'--'}</Container>
+        </Tooltip>
+      );
     }
 
     if (column.key === 'affects') {
@@ -218,9 +231,10 @@ export function ScreenLoadSpansTable({
       }
 
       const tooltipValue = tct(
-        'This span may not affect initial display. [link: Learn more.]',
+        'This span may not affect initial display. [link: Learn more.] (TTID contribution rate: [ttid_contribution_rate])',
         {
           link: <ExternalLink href="https://docs.sentry.io" />,
+          ttid_contribution_rate: formatPercentage(ttid_contribution_rate),
         }
       );
 
@@ -306,9 +320,10 @@ export function ScreenLoadSpansTable({
           String(SPAN_DESCRIPTION),
           `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
           `avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`,
-          'affects',
-          'count()',
-          'time_spent_percentage()',
+          ...(organization.features.includes('mobile-ttid-ttfd-contribution')
+            ? ['affects']
+            : []),
+          ...['count()', 'time_spent_percentage()'],
         ].map(col => {
           return {key: col, name: columnNameMap[col] ?? col, width: COL_WIDTH_UNDEFINED};
         })}
