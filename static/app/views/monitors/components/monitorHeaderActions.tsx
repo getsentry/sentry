@@ -11,7 +11,7 @@ import useApi from 'sentry/utils/useApi';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
-import {Monitor, MonitorObjectStatus} from '../types';
+import {Monitor} from '../types';
 
 type Props = {
   monitor: Monitor;
@@ -45,13 +45,7 @@ function MonitorHeaderActions({monitor, orgId, onUpdate}: Props) {
     onUpdate?.(resp);
   };
 
-  const toggleStatus = () =>
-    handleUpdate({
-      status:
-        monitor.status === MonitorObjectStatus.MUTED
-          ? MonitorObjectStatus.ACTIVE
-          : MonitorObjectStatus.MUTED,
-    });
+  const toggleStatus = () => handleUpdate({isMuted: !monitor.isMuted});
 
   return (
     <ButtonBar gap={1}>
@@ -67,15 +61,11 @@ function MonitorHeaderActions({monitor, orgId, onUpdate}: Props) {
       <Button
         size="sm"
         icon={
-          monitor.status !== MonitorObjectStatus.MUTED ? (
-            <IconUnsubscribed size="xs" />
-          ) : (
-            <IconSubscribed size="xs" />
-          )
+          monitor.isMuted ? <IconSubscribed size="xs" /> : <IconUnsubscribed size="xs" />
         }
         onClick={toggleStatus}
       >
-        {monitor.status !== MonitorObjectStatus.MUTED ? t('Mute') : t('Unmute')}
+        {monitor.isMuted ? t('Unmute') : t('Mute')}
       </Button>
       <Button
         priority="primary"
