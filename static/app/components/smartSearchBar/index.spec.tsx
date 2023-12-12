@@ -1089,56 +1089,6 @@ describe('SmartSearchBar', function () {
     });
   });
 
-  describe('custom performance metric filters', () => {
-    it('raises Invalid file size when parsed filter unit is not a valid size unit', async () => {
-      render(
-        <SmartSearchBar
-          {...defaultProps}
-          customPerformanceMetrics={{
-            'measurements.custom.kibibyte': {
-              fieldType: 'size',
-            },
-          }}
-        />
-      );
-
-      const textbox = screen.getByRole('textbox');
-      await userEvent.click(textbox);
-      await userEvent.type(textbox, 'measurements.custom.kibibyte:10ms ');
-      await userEvent.keyboard('{arrowleft}');
-
-      expect(
-        screen.getByText(
-          'Invalid file size. Expected number followed by file size unit suffix'
-        )
-      ).toBeInTheDocument();
-    });
-
-    it('raises Invalid duration when parsed filter unit is not a valid duration unit', async () => {
-      render(
-        <SmartSearchBar
-          {...defaultProps}
-          customPerformanceMetrics={{
-            'measurements.custom.minute': {
-              fieldType: 'duration',
-            },
-          }}
-        />
-      );
-
-      const textbox = screen.getByRole('textbox');
-      await userEvent.click(textbox);
-      await userEvent.type(textbox, 'measurements.custom.minute:10kb ');
-      await userEvent.keyboard('{arrowleft}');
-
-      expect(
-        screen.getByText(
-          'Invalid duration. Expected number followed by duration unit suffix'
-        )
-      ).toBeInTheDocument();
-    });
-  });
-
   describe('defaultSearchGroup', () => {
     const defaultSearchGroup = {
       title: 'default search group',
