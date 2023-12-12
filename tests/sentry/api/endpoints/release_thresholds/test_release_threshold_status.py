@@ -423,7 +423,10 @@ class ErrorCountThresholdCheckTest(TestCase):
             "value": 4,  # error counts _not_ be over threshold value
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
-        assert is_error_count_healthy(ethreshold=current_threshold_healthy, timeseries=timeseries)
+        is_healthy, metric_count = is_error_count_healthy(
+            ethreshold=current_threshold_healthy, timeseries=timeseries
+        )
+        assert is_healthy
 
         # threshold equal to count
         threshold_at_limit_healthy: EnrichedThreshold = {
@@ -442,7 +445,10 @@ class ErrorCountThresholdCheckTest(TestCase):
             "value": 1,  # error counts equal to threshold limit value
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
-        assert is_error_count_healthy(ethreshold=threshold_at_limit_healthy, timeseries=timeseries)
+        is_healthy, metric_count = is_error_count_healthy(
+            ethreshold=threshold_at_limit_healthy, timeseries=timeseries
+        )
+        assert is_healthy
 
         # past healthy threshold within series
         past_threshold_healthy: EnrichedThreshold = {
@@ -461,7 +467,10 @@ class ErrorCountThresholdCheckTest(TestCase):
             "value": 2,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
-        assert is_error_count_healthy(ethreshold=past_threshold_healthy, timeseries=timeseries)
+        is_healthy, metric_count = is_error_count_healthy(
+            ethreshold=past_threshold_healthy, timeseries=timeseries
+        )
+        assert is_healthy
 
         # threshold within series but trigger is under
         threshold_under_unhealthy: EnrichedThreshold = {
@@ -480,9 +489,10 @@ class ErrorCountThresholdCheckTest(TestCase):
             "value": 4,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
-        assert not is_error_count_healthy(
+        is_healthy, metric_count = is_error_count_healthy(
             ethreshold=threshold_under_unhealthy, timeseries=timeseries
         )
+        assert not is_healthy
 
         # threshold within series but end is in future
         threshold_unfinished: EnrichedThreshold = {
@@ -501,7 +511,10 @@ class ErrorCountThresholdCheckTest(TestCase):
             "value": 4,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
-        assert is_error_count_healthy(ethreshold=threshold_unfinished, timeseries=timeseries)
+        is_healthy, metric_count = is_error_count_healthy(
+            ethreshold=threshold_unfinished, timeseries=timeseries
+        )
+        assert is_healthy
 
     def test_multiple_releases_within_timeseries(self):
         now = datetime.utcnow()
@@ -581,7 +594,10 @@ class ErrorCountThresholdCheckTest(TestCase):
             "value": 4,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
-        assert is_error_count_healthy(ethreshold=threshold_healthy, timeseries=timeseries)
+        is_healthy, metric_count = is_error_count_healthy(
+            ethreshold=threshold_healthy, timeseries=timeseries
+        )
+        assert is_healthy
 
         # threshold within series but separate unhealthy release
         threshold_unhealthy: EnrichedThreshold = {
@@ -600,7 +616,10 @@ class ErrorCountThresholdCheckTest(TestCase):
             "value": 1,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
-        assert not is_error_count_healthy(ethreshold=threshold_unhealthy, timeseries=timeseries)
+        is_healthy, metric_count = is_error_count_healthy(
+            ethreshold=threshold_unhealthy, timeseries=timeseries
+        )
+        assert not is_healthy
 
     def test_multiple_projects_within_timeseries(self):
         now = datetime.utcnow()
@@ -681,7 +700,10 @@ class ErrorCountThresholdCheckTest(TestCase):
             "value": 4,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
-        assert is_error_count_healthy(ethreshold=threshold_healthy, timeseries=timeseries)
+        is_healthy, metric_count = is_error_count_healthy(
+            ethreshold=threshold_healthy, timeseries=timeseries
+        )
+        assert is_healthy
 
         # threshold within series but separate unhealthy project
         threshold_unhealthy: EnrichedThreshold = {
@@ -700,7 +722,10 @@ class ErrorCountThresholdCheckTest(TestCase):
             "value": 1,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
-        assert not is_error_count_healthy(ethreshold=threshold_unhealthy, timeseries=timeseries)
+        is_healthy, metric_count = is_error_count_healthy(
+            ethreshold=threshold_unhealthy, timeseries=timeseries
+        )
+        assert not is_healthy
 
     def test_multiple_environments_within_timeseries(self):
         now = datetime.utcnow()
@@ -780,7 +805,10 @@ class ErrorCountThresholdCheckTest(TestCase):
             "value": 2,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
-        assert is_error_count_healthy(ethreshold=threshold_healthy, timeseries=timeseries)
+        is_healthy, metric_count = is_error_count_healthy(
+            ethreshold=threshold_healthy, timeseries=timeseries
+        )
+        assert is_healthy
 
         # threshold within series but separate unhealthy environment
         threshold_unhealthy: EnrichedThreshold = {
@@ -799,7 +827,10 @@ class ErrorCountThresholdCheckTest(TestCase):
             "value": 1,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
-        assert not is_error_count_healthy(ethreshold=threshold_unhealthy, timeseries=timeseries)
+        is_healthy, metric_count = is_error_count_healthy(
+            ethreshold=threshold_unhealthy, timeseries=timeseries
+        )
+        assert not is_healthy
 
     def test_unordered_timeseries(self):
         """
@@ -859,7 +890,10 @@ class ErrorCountThresholdCheckTest(TestCase):
             "value": 4,  # error counts _not_ be over threshold value
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
-        assert is_error_count_healthy(ethreshold=current_threshold_healthy, timeseries=timeseries)
+        is_healthy, metric_count = is_error_count_healthy(
+            ethreshold=current_threshold_healthy, timeseries=timeseries
+        )
+        assert is_healthy
 
         # threshold equal to count
         threshold_at_limit_healthy: EnrichedThreshold = {
@@ -878,7 +912,10 @@ class ErrorCountThresholdCheckTest(TestCase):
             "value": 1,  # error counts equal to threshold limit value
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
-        assert is_error_count_healthy(ethreshold=threshold_at_limit_healthy, timeseries=timeseries)
+        is_healthy, metric_count = is_error_count_healthy(
+            ethreshold=threshold_at_limit_healthy, timeseries=timeseries
+        )
+        assert is_healthy
 
         # past healthy threshold within series
         past_threshold_healthy: EnrichedThreshold = {
@@ -897,7 +934,10 @@ class ErrorCountThresholdCheckTest(TestCase):
             "value": 2,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
-        assert is_error_count_healthy(ethreshold=past_threshold_healthy, timeseries=timeseries)
+        is_healthy, metric_count = is_error_count_healthy(
+            ethreshold=past_threshold_healthy, timeseries=timeseries
+        )
+        assert is_healthy
 
         # threshold within series but trigger is under
         threshold_under_unhealthy: EnrichedThreshold = {
@@ -916,9 +956,10 @@ class ErrorCountThresholdCheckTest(TestCase):
             "value": 4,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
-        assert not is_error_count_healthy(
+        is_healthy, metric_count = is_error_count_healthy(
             ethreshold=threshold_under_unhealthy, timeseries=timeseries
         )
+        assert not is_healthy
 
         # threshold within series but end is in future
         threshold_unfinished: EnrichedThreshold = {
@@ -937,4 +978,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "value": 4,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
         }
-        assert is_error_count_healthy(ethreshold=threshold_unfinished, timeseries=timeseries)
+        is_healthy, metric_count = is_error_count_healthy(
+            ethreshold=threshold_unfinished, timeseries=timeseries
+        )
+        assert is_healthy
