@@ -32,6 +32,7 @@ from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import ExternalProviderEnum
@@ -285,7 +286,6 @@ class SlackActionEndpoint(Endpoint):
         }
         use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
         # XXX(CEO): the second you make a selection (without hitting Submit) it sends a slightly different request
-        # and I don't need it to nor do I know how to stop it, it's making stuff harder in requests/action.py
         formatted_resolve_options = []
         for text, value in RESOLVE_OPTIONS.items():
             formatted_resolve_options.append(
@@ -611,10 +611,13 @@ class SlackActionEndpoint(Endpoint):
         )
         use_block_kit = False
         if len(org_integrations):
+            org_context = organization_service.get_organization_by_id(
+                id=org_integrations[0].organization_id
+            )
             use_block_kit = any(
                 [
                     True
-                    if features.has("organizations:slack-block-kit", oi.organization_id)
+                    if features.has("organizations:slack-block-kit", org_context.organization)
                     else False
                     for oi in org_integrations
                 ]

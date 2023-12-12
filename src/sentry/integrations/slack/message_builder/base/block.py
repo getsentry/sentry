@@ -29,7 +29,7 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         return block
 
     @staticmethod
-    def get_markdown_block(text: str, emoji: Optional[str]) -> SlackBlock:
+    def get_markdown_block(text: str, emoji: Optional[str] = None) -> SlackBlock:
         if emoji:
             text = f"{emoji} {text}"
         return {
