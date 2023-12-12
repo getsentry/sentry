@@ -1726,6 +1726,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-remove-metrics-compatibility-fallback": False,
     # Enable screens view powered by span metrics
     "organizations:performance-screens-view": False,
+    # Enable column that shows ttid ttfd contributing spans
+    "organizations:mobile-ttid-ttfd-contribution": False,
     # Enable slow DB performance issue type
     "organizations:performance-slow-db-issue": False,
     # Enable histogram view in span details
@@ -1843,6 +1845,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-sdk": False,
     # Enable core Session Replay SDK for recording onError events on sentry.io
     "organizations:session-replay-sdk-errors-only": False,
+    # Enable rendering of the `replay.hydrate-error` replay breadcrumb
+    "organizations:session-replay-show-hydration-errors": False,
     # Enable linking from 'new issue' slack notifs to the issue replay list
     "organizations:session-replay-slack-new-issue": False,
     # Enable the Replay Details > Performance tab
@@ -3524,10 +3528,6 @@ SOUTH_MIGRATION_CONVERSIONS = (
     ),
 )
 
-# Whether to use Django migrations to create the database, or just build it based off
-# of models, similar to how syncdb used to work. The former is more correct, the latter
-# is much faster.
-MIGRATIONS_TEST_MIGRATE = os.environ.get("MIGRATIONS_TEST_MIGRATE", "0") == "1"
 # Specifies the list of django apps to include in the lockfile. If Falsey then include
 # all apps with migrations
 MIGRATIONS_LOCKFILE_APP_WHITELIST = (

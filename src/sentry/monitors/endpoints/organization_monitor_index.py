@@ -130,7 +130,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
 
         queryset = queryset.annotate(
             environment_status_ordering=Case(
-                When(status=MonitorObjectStatus.MUTED, then=Value(len(DEFAULT_ORDERING))),
+                When(is_muted=True, then=Value(len(DEFAULT_ORDERING))),
                 default=Subquery(
                     monitor_environments_query.annotate(
                         status_ordering=MONITOR_ENVIRONMENT_ORDERING

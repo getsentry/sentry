@@ -16,11 +16,10 @@ import {
 } from 'sentry/utils/performance/contexts/pageError';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import ImageView from 'sentry/views/performance/browser/resources/imageView';
-import JSCSSView, {
+import ResourceView, {
   DEFAULT_RESOURCE_TYPES,
   FilterOptionsContainer,
-} from 'sentry/views/performance/browser/resources/jsCssView';
+} from 'sentry/views/performance/browser/resources/resourceView';
 import {
   BrowserStarfishFields,
   useResourceModuleFilters,
@@ -80,13 +79,7 @@ function ResourcesLandingPage() {
                 ]}
               />
             </FilterOptionsContainer>
-
-            {(!filters[SPAN_OP] ||
-              filters[SPAN_OP] === 'resource.script' ||
-              filters[SPAN_OP] === 'resource.css' ||
-              filters[SPAN_OP] === 'resource.font') && <JSCSSView />}
-
-            {filters[SPAN_OP] === 'resource.img' && <ImageView />}
+            <ResourceView />
           </Layout.Main>
         </Layout.Body>
       </PageErrorProvider>
