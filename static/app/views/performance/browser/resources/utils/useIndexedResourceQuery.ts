@@ -56,6 +56,9 @@ export const useIndexedResourcesQuery = ({
     location,
     orgSlug,
     referrer,
+    options: {
+      refetchOnWindowFocus: false,
+    },
   });
 
   const data =
