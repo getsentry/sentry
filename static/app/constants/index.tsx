@@ -314,7 +314,7 @@ export const DATA_CATEGORY_INFO = {
     apiName: 'monitorSeat',
     plural: 'monitorSeats',
     displayName: 'cron monitors',
-    titleName: t('Cron Monitors'),
+    titleName: t('Monitors'),
     uid: 13,
   },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
