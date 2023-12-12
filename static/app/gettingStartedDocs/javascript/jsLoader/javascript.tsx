@@ -43,6 +43,7 @@ const replayOnboardingJsLoaderJavascript: OnboardingConfig = {
           code: getReplayJsLoaderSdkSetupSnippet(),
         },
       ],
+      isOptional: true,
     },
   ],
   verify: () => [],
