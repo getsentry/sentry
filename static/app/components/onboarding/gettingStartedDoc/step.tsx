@@ -205,56 +205,8 @@ export function Step({
 }: StepProps) {
   const [showOptionalConfig, setShowOptionalConfig] = useState(false);
 
-  return isOptional ? (
-    <div>
-      <OptionalConfigWrapper>
-        <ToggleButton
-          priority="link"
-          borderless
-          size="zero"
-          icon={<IconChevron direction={showOptionalConfig ? 'down' : 'right'} />}
-          aria-label={t('Toggle optional configuration')}
-          onClick={() => setShowOptionalConfig(!showOptionalConfig)}
-        >
-          <h4 style={{marginBottom: 0}}>
-            {title ?? StepTitle[type]}
-            {t(' (Optional)')}
-          </h4>
-        </ToggleButton>
-      </OptionalConfigWrapper>
-      {showOptionalConfig ? (
-        <Fragment>
-          {description && <Description>{description}</Description>}
-          {!!configurations?.length && (
-            <Configurations>
-              {configurations.map((configuration, index) => {
-                if (configuration.configurations) {
-                  return (
-                    <Fragment key={index}>
-                      {getConfiguration(configuration)}
-                      {configuration.configurations.map(
-                        (nestedConfiguration, nestedConfigurationIndex) => (
-                          <Fragment key={nestedConfigurationIndex}>
-                            {getConfiguration(nestedConfiguration)}
-                          </Fragment>
-                        )
-                      )}
-                    </Fragment>
-                  );
-                }
-                return <Fragment key={index}>{getConfiguration(configuration)}</Fragment>;
-              })}
-            </Configurations>
-          )}
-          {additionalInfo && (
-            <GeneralAdditionalInfo>{additionalInfo}</GeneralAdditionalInfo>
-          )}
-        </Fragment>
-      ) : null}
-    </div>
-  ) : (
-    <div>
-      <h4>{title ?? StepTitle[type]}</h4>
+  const config = (
+    <Fragment>
       {description && <Description>{description}</Description>}
       {!!configurations?.length && (
         <Configurations>
@@ -278,6 +230,32 @@ export function Step({
         </Configurations>
       )}
       {additionalInfo && <GeneralAdditionalInfo>{additionalInfo}</GeneralAdditionalInfo>}
+    </Fragment>
+  );
+
+  return isOptional ? (
+    <div>
+      <OptionalConfigWrapper>
+        <ToggleButton
+          priority="link"
+          borderless
+          size="zero"
+          icon={<IconChevron direction={showOptionalConfig ? 'down' : 'right'} />}
+          aria-label={t('Toggle optional configuration')}
+          onClick={() => setShowOptionalConfig(!showOptionalConfig)}
+        >
+          <h4 style={{marginBottom: 0}}>
+            {title ?? StepTitle[type]}
+            {t(' (Optional)')}
+          </h4>
+        </ToggleButton>
+      </OptionalConfigWrapper>
+      {showOptionalConfig ? config : null}
+    </div>
+  ) : (
+    <div>
+      <h4>{title ?? StepTitle[type]}</h4>
+      {config}
     </div>
   );
 }
