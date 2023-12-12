@@ -79,10 +79,14 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
                 params,
                 span_group,
             )
-        elif "fingerprint" in request.query_params:
+        elif request.query_params.get("fingerprint"):
             function_fingerprint = int(request.query_params["fingerprint"])
             profile_ids = get_profiles_with_function(
-                organization.id, project_ids[0], function_fingerprint, params
+                organization.id,
+                project_ids[0],
+                function_fingerprint,
+                params,
+                request.GET.get("query", ""),
             )
         else:
             profile_ids = get_profile_ids(params, request.query_params.get("query", None))
