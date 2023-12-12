@@ -306,10 +306,10 @@ class Monitor(Model):
         most recent checkin time. This is determined by the user-configured
         margin.
         """
-        from sentry.monitors.utils import get_checkin_margin_timedelta
+        from sentry.monitors.utils import get_checkin_margin
 
         next_checkin = self.get_next_expected_checkin(last_checkin)
-        return next_checkin + get_checkin_margin_timedelta(self.config.get("checkin_margin"))
+        return next_checkin + get_checkin_margin(self.config.get("checkin_margin"))
 
     def update_config(self, config_payload, validated_config):
         monitor_config = self.config

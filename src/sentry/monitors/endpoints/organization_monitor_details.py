@@ -37,8 +37,8 @@ from sentry.monitors.models import (
 from sentry.monitors.serializers import MonitorSerializer
 from sentry.monitors.utils import (
     create_alert_rule,
-    get_checkin_margin_timedelta,
-    get_timeout_at_timedelta,
+    get_checkin_margin,
+    get_max_runtime,
     update_alert_rule,
 )
 from sentry.monitors.validators import MonitorValidator
@@ -143,17 +143,14 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
             checkin_margin = result["config"].get("checkin_margin")
             if checkin_margin != existing_margin:
                 MonitorEnvironment.objects.filter(monitor_id=monitor.id).update(
-                    next_checkin_latest=F("next_checkin")
-                    + get_checkin_margin_timedelta(checkin_margin)
+                    next_checkin_latest=F("next_checkin") + get_checkin_margin(checkin_margin)
                 )
 
             max_runtime = result["config"].get("max_runtime")
             if max_runtime != existing_max_runtime:
                 MonitorCheckIn.objects.filter(
                     monitor_id=monitor.id, status=CheckInStatus.IN_PROGRESS
-                ).update(
-                    timeout_at=TruncMinute(F("date_added")) + get_timeout_at_timedelta(max_runtime)
-                )
+                ).update(timeout_at=TruncMinute(F("date_added")) + get_max_runtime(max_runtime))
 
         if "project" in result and result["project"].id != monitor.project_id:
             raise ParameterValidationError("existing monitors may not be moved between projects")
