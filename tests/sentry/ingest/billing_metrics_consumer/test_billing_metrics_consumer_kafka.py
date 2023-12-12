@@ -20,9 +20,8 @@ from sentry.utils.outcomes import Outcome
 
 @django_db_all
 @mock.patch("sentry.ingest.billing_metrics_consumer.track_outcome")
-@mock.patch("sentry.ingest.billing_metrics_consumer.first_custom_metric_received")
 @freeze_time("1985-10-26 21:00:00")
-def test_outcomes_consumed(first_custom_metric_received, track_outcome, factories):
+def test_outcomes_consumed(track_outcome, factories):
     # Based on test_ingest_consumer_kafka.py
     topic = Topic("snuba-generic-metrics")
 
@@ -200,9 +199,6 @@ def test_outcomes_consumed(first_custom_metric_received, track_outcome, factorie
                     quantity=1,
                 ),
             ]
-
-        first_custom_metric_received.send_robust.assert_called_once()
-        first_custom_metric_received.send_robust.reset_mock()
 
     assert next_step.submit.call_count == 9
 
