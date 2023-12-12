@@ -14,14 +14,13 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType, RuleSource
 from sentry.models.user import User
+from sentry.monitors.constants import DEFAULT_CHECKIN_MARGIN, MAX_TIMEOUT, TIMEOUT
+from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn
 from sentry.signals import (
     cron_monitor_created,
     first_cron_checkin_received,
     first_cron_monitor_created,
 )
-
-from .constants import MAX_TIMEOUT, TIMEOUT
-from .models import CheckInStatus, Monitor, MonitorCheckIn
 
 
 def signal_first_checkin(project: Project, monitor: Monitor):
@@ -50,13 +49,22 @@ def signal_monitor_created(project: Project, user, from_upsert: bool):
     check_and_signal_first_monitor_created(project, user, from_upsert)
 
 
+def get_max_runtime(max_runtime: Optional[int]) -> timedelta:
+    """
+    Computes a timedelta given a max_runtime. Limits the returned timedelta
+    to MAX_TIMEOUT. If an empty max_runtime is provided the default TIMEOUT
+    will be used.
+    """
+    return timedelta(minutes=min((max_runtime or TIMEOUT), MAX_TIMEOUT))
+
+
 # Generates a timeout_at value for new check-ins
 def get_timeout_at(
     monitor_config: dict, status: CheckInStatus, date_added: Optional[datetime]
 ) -> Optional[datetime]:
     if status == CheckInStatus.IN_PROGRESS:
-        return date_added.replace(second=0, microsecond=0) + timedelta(
-            minutes=min(((monitor_config or {}).get("max_runtime") or TIMEOUT), MAX_TIMEOUT)
+        return date_added.replace(second=0, microsecond=0) + get_max_runtime(
+            (monitor_config or {}).get("max_runtime")
         )
 
     return None
@@ -76,6 +84,17 @@ def valid_duration(duration: Optional[int]) -> bool:
         return False
 
     return True
+
+
+def get_checkin_margin(checkin_margin: Optional[int]) -> timedelta:
+    """
+    Computes a timedelta given the checkin_margin (missed margin).
+    If an empty value is provided the DEFAULT_CHECKIN_MARGIN will be used.
+    """
+    # TODO(epurkhiser): We should probably just set this value as a
+    # `default` in the validator for the config instead of having the magic
+    # default number here
+    return timedelta(minutes=int(checkin_margin or DEFAULT_CHECKIN_MARGIN))
 
 
 def fetch_associated_groups(
