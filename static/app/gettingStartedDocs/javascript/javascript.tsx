@@ -8,6 +8,7 @@ import {
   getReplayConfigureDescription,
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import replayOnboardingJsLoaderJavascript from 'sentry/gettingStartedDocs/javascript/jsLoader/javascript';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -184,6 +185,7 @@ const replayOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   replayOnboardingNpm: replayOnboarding,
+  replayOnboardingJsLoader: replayOnboardingJsLoaderJavascript,
 };
 
 export default docs;
