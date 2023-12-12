@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from enum import Enum
 from typing import Any
+from urllib.parse import urlencode
 
 import requests
 from django.utils.translation import gettext_lazy as _
@@ -22,6 +23,7 @@ from sentry.pipeline.views.base import PipelineView
 from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
 from .utils import logger
@@ -265,7 +267,16 @@ class DiscordIntegrationProvider(IntegrationProvider):
         raise IntegrationError("Could not retrieve Discord user information.")
 
     def _get_bot_install_url(self):
-        return f"https://discord.com/api/oauth2/authorize?client_id={self.application_id}&permissions={self.bot_permissions}&redirect_uri={self.setup_url}&response_type=code&scope={' '.join(self.oauth_scopes)}"
+        state = urlencode(
+            {
+                "client_id": self.application_id,
+                "permissions": self.bot_permissions,
+                "redirect_uri": absolute_uri("extensions/discord/configure/"),
+                "state": json.dumps({"orgSlug": self.pipeline.organization.slug}),
+                "scope": " ".join(self.oauth_scopes),
+            }
+        )  # typing
+        return f"https://discord.com/api/oauth2/authorize?{state}&response_type=code"
 
     def _credentials_exist(self) -> bool:
         has_credentials = all(
