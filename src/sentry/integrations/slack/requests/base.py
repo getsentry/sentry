@@ -93,11 +93,10 @@ class SlackRequest:
         )
         if not context:
             return
-
-        self._integration = context["integration"]
-        self._provider = context["identity_provider"]
-        self._identity = context["identity"]
-        self._user = context["user"]
+        self._integration = context.integration
+        self._provider = context.identity_provider
+        self._identity = context.identity
+        self._user = context.user
 
     @property
     def integration(self) -> RpcIntegration:

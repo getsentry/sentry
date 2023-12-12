@@ -466,9 +466,9 @@ class DatabaseBackedIntegrationService(IntegrationService):
             else None
         )
         user = user_service.get_user(identity.user_id) if identity else None
-        return {
-            "integration": integration,
-            "identity_provider": identity_provider,
-            "identity": identity,
-            "user": user,
-        }
+        return RpcIntegrationIdentityContext(
+            integration=integration,
+            identity_provider=identity_provider,
+            identity=identity,
+            user=user,
+        )

@@ -6,8 +6,6 @@
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from typing_extensions import TypedDict
-
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import (
     IntegrationFeatures,
@@ -80,7 +78,7 @@ class RpcIntegrationExternalProject(RpcModel):
     unresolved_status: str
 
 
-class RpcIntegrationIdentityContext(TypedDict):
+class RpcIntegrationIdentityContext(RpcModel):
     integration: Optional[RpcIntegration]
     identity_provider: Optional[RpcIdentityProvider]
     identity: Optional[RpcIdentity]

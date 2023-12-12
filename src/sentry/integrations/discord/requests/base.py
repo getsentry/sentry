@@ -54,9 +54,9 @@ class DiscordRequest:
 
     def __init__(self, request: Request):
         self.request = request
-        self._integration: RpcIntegration | None = None
         self._body = self.request.body.decode("utf-8")
         self._data: Mapping[str, object] = json.loads(self._body)
+        self._integration: RpcIntegration | None = None
         self._identity: RpcIdentity | None = None
         self.user: RpcUser | None = None
 
@@ -103,7 +103,6 @@ class DiscordRequest:
             "discord_guild_id": self.guild_id,
             "discord_channel_id": self.channel_id,
         }
-
         if self.integration:
             data["integration_id"] = self.integration.id
         if self.user_id:
@@ -121,8 +120,23 @@ class DiscordRequest:
 
         return {k: v for k, v in data.items() if v}
 
+    def _get_context(self):
+        context = integration_service.get_integration_identity_context(
+            integration_provider="discord",
+            integration_external_id=self.guild_id,
+            identity_external_id=self.user_id,
+            identity_provider_external_id=self.guild_id,
+        )
+        if not context:
+            return
+        self._integration = context.integration
+        self._provider = context.identity_provider
+        self._identity = context.identity
+        self._user = context.user
+
     def validate(self) -> None:
         self._log_request()
+        self._get_context()
         self.authorize()
         self.validate_integration()
         self._validate_identity()
@@ -159,6 +173,8 @@ class DiscordRequest:
             self._info("discord.validate.identity.no.user")
 
     def get_identity_user(self) -> RpcUser | None:
+        if self._user:
+            return self._user
         identity = self.get_identity()
         if not identity:
             return None
@@ -186,12 +202,16 @@ class DiscordRequest:
         return self._identity
 
     def get_identity_str(self) -> str | None:
+        if self.user is None:
+            return None
+
         return self.user.email if self.user else None
 
     def validate_integration(self) -> None:
-        self._integration = integration_service.get_integration(
-            provider="discord", external_id=self.guild_id
-        )
+        if not self._integration:
+            self._integration = integration_service.get_integration(
+                provider="discord", external_id=self.guild_id
+            )
         self._info("discord.validate.integration")
 
     def has_identity(self) -> bool:
