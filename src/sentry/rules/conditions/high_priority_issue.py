@@ -5,12 +5,29 @@ from sentry import features
 from sentry.eventstore.models import GroupEvent
 from sentry.models.activity import Activity
 from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
 from sentry.types.activity import ActivityType
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
 
 HIGH_SEVERITY_THRESHOLD = 0.1
+
+
+PLATFORMS_WITH_NEW_DEFAULT = ["python", "javascript"]
+
+
+def has_high_priority_issue_alerts(project: Project) -> bool:
+    # High priority alerts are enabled if the project has the feature flag
+    # or for python/javascript projects in organization that have the feature flag
+    return features.has("projects:high-priority-alerts", project) or (
+        features.has("organizations:default-high-priority-alerts", project.organization)
+        and project.platform is not None
+        and any(
+            project.platform.startswith(base_platform)
+            for base_platform in PLATFORMS_WITH_NEW_DEFAULT
+        )
+    )
 
 
 class HighPriorityIssueCondition(EventCondition):
@@ -29,8 +46,7 @@ class HighPriorityIssueCondition(EventCondition):
         return severity >= HIGH_SEVERITY_THRESHOLD
 
     def passes(self, event: GroupEvent, state: EventState) -> bool:
-        has_issue_priority_alerts = features.has("projects:high-priority-alerts", self.project)
-        if not has_issue_priority_alerts:
+        if not has_high_priority_issue_alerts(self.project):
             return False
 
         is_high_severity = self.is_high_severity(state, event.group)

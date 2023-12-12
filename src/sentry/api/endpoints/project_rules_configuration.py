@@ -8,6 +8,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.constants import MIGRATED_CONDITIONS, SENTRY_APP_ACTIONS, TICKET_ACTIONS
 from sentry.rules import rules
+from sentry.rules.conditions.high_priority_issue import has_high_priority_issue_alerts
 
 
 @region_silo_endpoint
@@ -32,7 +33,6 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
             "organizations:integrations-ticket-rules", project.organization
         )
         has_issue_severity_alerts = features.has("projects:first-event-severity-alerting", project)
-        has_high_priority_issue_alert = features.has("projects:high-priority-alerts", project)
 
         # TODO: conditions need to be based on actions
         for rule_type, rule_cls in rules:
@@ -74,9 +74,9 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
 
             if rule_type.startswith("condition/"):
                 if (
-                    context["id"]
+                    not has_high_priority_issue_alerts(project=project)
+                    and context["id"]
                     == "sentry.rules.conditions.high_priority_issue.HighPriorityIssueCondition"
-                    and not has_high_priority_issue_alert
                 ):
                     continue
                 condition_list.append(context)
