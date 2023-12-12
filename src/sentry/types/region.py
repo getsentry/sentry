@@ -130,31 +130,41 @@ class RegionDirectory:
     RegionDirectory instances temporarily swapped into it.
     """
 
-    def __init__(self, regions: Iterable[Region], monolith_region_name: str | None = None) -> None:
-        if monolith_region_name is None:
-            monolith_region_name = settings.SENTRY_MONOLITH_REGION
-        elif not in_test_environment():
+    def __init__(
+        self,
+        regions: Iterable[Region],
+        testenv_monolith_region: Region | None = None,
+        testenv_local_region: Region | None = None,
+    ) -> None:
+        if (testenv_monolith_region or testenv_local_region) and not in_test_environment():
             raise Exception(
-                "Monolith region may be set only in the test environment; "
-                "otherwise it must come from the SENTRY_MONOLITH_REGION setting"
+                "Region pointers must be provided by Django settings except in a "
+                "test environment"
             )
 
         self.regions = frozenset(regions)
+        if testenv_monolith_region and not (testenv_monolith_region in regions):
+            raise ValueError("Monolith region not in region set")
+        if testenv_local_region and not (testenv_local_region in regions):
+            raise ValueError("Local region not in region set")
+
         if not self.regions:
             self.monolith_region = Region(
-                name=monolith_region_name,
+                name=settings.SENTRY_MONOLITH_REGION,
                 snowflake_id=0,
                 address=options.get("system.url-prefix"),
                 category=RegionCategory.MULTI_TENANT,
             )
             self.regions = frozenset({self.monolith_region})
+        elif testenv_monolith_region:
+            self.monolith_region = testenv_monolith_region
         else:
-            regions_with_monolith_name = [r for r in self.regions if r.name == monolith_region_name]
+            regions_with_monolith_name = [
+                r for r in self.regions if r.name == settings.SENTRY_MONOLITH_REGION
+            ]
             if not regions_with_monolith_name:
-                raise RegionConfigurationError(
-                    self._error_msg_for_region_setting(
-                        "SENTRY_MONOLITH_REGION", monolith_region_name
-                    )
+                raise self._error_for_region_setting(
+                    "SENTRY_MONOLITH_REGION", settings.SENTRY_MONOLITH_REGION
                 )
             (self.monolith_region,) = regions_with_monolith_name
 
@@ -162,19 +172,20 @@ class RegionDirectory:
 
         self.local_region: Region | None = None
         if SiloMode.get_current_mode() == SiloMode.REGION:
-            if not settings.SENTRY_REGION:
-                raise RegionConfigurationError(
-                    "SENTRY_REGION must be set when server is in REGION silo mode"
-                )
-            try:
-                self.local_region = self._by_name[settings.SENTRY_REGION]
-            except KeyError:
-                raise RegionConfigurationError(
-                    self._error_msg_for_region_setting("SENTRY_REGION", settings.SENTRY_REGION)
-                )
+            if testenv_local_region:
+                self.local_region = testenv_local_region
+            else:
+                if not settings.SENTRY_REGION:
+                    raise RegionConfigurationError(
+                        "SENTRY_REGION must be set when server is in REGION silo mode"
+                    )
+                try:
+                    self.local_region = self._by_name[settings.SENTRY_REGION]
+                except KeyError:
+                    raise self._error_for_region_setting("SENTRY_REGION", settings.SENTRY_REGION)
 
-    def _error_msg_for_region_setting(self, name: str, value: str) -> str:
-        return (
+    def _error_for_region_setting(self, name: str, value: str) -> RegionConfigurationError:
+        return RegionConfigurationError(
             f"The {name} setting (value={value!r}) must point to a region name "
             f"(region names = {[r.name for r in self.regions]!r})"
         )
@@ -196,7 +207,6 @@ class GlobalRegionDirectory:
 
     def __init__(self, directory: RegionDirectory) -> None:
         self._dir = directory
-        self._temporary_local_region: Region | None = None  # Used only in test env
 
     @property
     def regions(self) -> frozenset[Region]:
@@ -208,9 +218,6 @@ class GlobalRegionDirectory:
 
     @property
     def local_region(self) -> Region | None:
-        if self._temporary_local_region is not None:
-            self._allow_only_in_test_env()
-            return self._temporary_local_region
         return self._dir.local_region
 
     def get(self, region_name: str) -> Region | None:
@@ -224,7 +231,7 @@ class GlobalRegionDirectory:
             raise Exception("Swapping region values is allowed only in the test environment")
 
     @contextmanager
-    def swap_directory(self, directory: RegionDirectory) -> Generator[None, None, None]:
+    def swap_state(self, directory: RegionDirectory) -> Generator[None, None, None]:
         self._allow_only_in_test_env()
         old_dir = self._dir
         try:
@@ -232,22 +239,6 @@ class GlobalRegionDirectory:
             yield
         finally:
             self._dir = old_dir
-
-    @contextmanager
-    def swap_local_region(self, region: Region) -> Generator[None, None, None]:
-        self._allow_only_in_test_env()
-        if region not in self.regions:
-            raise Exception(
-                f"The swapped region {region.name} is not in this directory "
-                f"({[r.name for r in self.regions]})"
-            )
-
-        old_tmp_local_region = self._temporary_local_region
-        try:
-            self._temporary_local_region = region
-            yield
-        finally:
-            self._temporary_local_region = old_tmp_local_region
 
 
 def _parse_raw_config(region_config: Any) -> Iterable[Region]:

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import contextlib
 import io
 import os
 import random
@@ -18,7 +17,6 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.files.base import ContentFile
 from django.db import router, transaction
-from django.test.utils import override_settings
 from django.utils import timezone
 from django.utils.encoding import force_str
 from django.utils.text import slugify
@@ -117,6 +115,7 @@ from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.region import in_local_region
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
@@ -276,20 +275,14 @@ class Factories:
         if not name:
             name = petname.generate(2, " ", letters=10).title()
 
-        if region is None or SiloMode.get_current_mode() == SiloMode.MONOLITH:
-            region_name = get_local_region().name
-            org_creation_context = contextlib.nullcontext()
+        if region is None:
+            region_obj = get_local_region()
+        elif isinstance(region, Region):
+            region_obj = region
         else:
-            if isinstance(region, Region):
-                region_name = region.name
-            else:
-                region_obj = get_region_by_name(region)  # Verify it exists
-                region_name = region_obj.name
-            org_creation_context = override_settings(
-                SILO_MODE=SiloMode.REGION, SENTRY_REGION=region_name
-            )
+            region_obj = get_region_by_name(region)
 
-        with org_creation_context:
+        with in_local_region(region_obj):
             with outbox_context(flush=False):
                 org: Organization = Organization.objects.create(name=name, **kwargs)
 
@@ -297,7 +290,7 @@ class Factories:
                 # Organization mapping creation relies on having a matching org slug reservation
                 OrganizationSlugReservation(
                     organization_id=org.id,
-                    region_name=region_name,
+                    region_name=region_obj.name,
                     user_id=owner.id if owner else -1,
                     slug=org.slug,
                 ).save(unsafe_write=True)

@@ -40,7 +40,7 @@ from sentry.deletions.base import BaseDeletionTask
 from sentry.models.actor import Actor
 from sentry.silo import SiloMode, match_fence_query
 from sentry.testutils.region import override_regions
-from sentry.types.region import Region, RegionCategory, load_global_regions
+from sentry.types.region import Region, RegionCategory, RegionDirectory, load_global_regions
 from sentry.utils.snowflake import SnowflakeIdMixin
 
 TestMethod = Callable[..., None]
@@ -320,7 +320,12 @@ def assume_test_silo_mode(desired_silo: SiloMode, can_be_monolith: bool = True) 
     with override_settings(SILO_MODE=desired_silo):
         global_regions = load_global_regions()
         if desired_silo == SiloMode.REGION:
-            with global_regions.swap_local_region(global_regions.historic_monolith_region):
+            replacement = RegionDirectory(
+                regions=global_regions.regions,
+                testenv_monolith_region=global_regions.historic_monolith_region,
+                testenv_local_region=global_regions.historic_monolith_region,
+            )
+            with global_regions.swap_state(replacement):
                 yield
         else:
             yield

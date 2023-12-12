@@ -1,11 +1,14 @@
+from __future__ import annotations
+
 from contextlib import contextmanager
 from typing import Sequence
 
-from sentry.types import region
+from sentry.silo import SiloMode
+from sentry.types.region import Region, RegionDirectory, load_global_regions
 
 
 @contextmanager
-def override_regions(regions: Sequence[region.Region]):
+def override_regions(regions: Sequence[Region]):
     """Override the global set of existing regions.
 
     The overriding value takes the place of the `SENTRY_REGION_CONFIG` setting and
@@ -14,8 +17,35 @@ def override_regions(regions: Sequence[region.Region]):
     because the region mapping may already be cached.
     """
 
-    monolith_region = regions[0].name if regions else None
-    replacement = region.RegionDirectory(regions, monolith_region)
+    monolith_region = regions[0] if regions else None
+    replacement = RegionDirectory(regions, monolith_region)
 
-    with region.load_global_regions().swap_directory(replacement):
+    with load_global_regions().swap_state(replacement):
+        yield
+
+
+@contextmanager
+def in_local_region(region: Region):
+    """Override the local region of the simulated region silo.
+
+    The overriding value takes the place of the `SENTRY_REGION` setting and changes
+    the behavior of the module-level functions in `sentry.types.region`. This is
+    preferable to overriding the `SENTRY_REGION` setting value directly because the
+    region mapping may already be cached.
+
+    This method should be called only in the context of `@`region_silo_test` or
+    `assume_test_silo_mode(SiloMode.REGION)`.
+    """
+
+    if SiloMode.get_current_mode() != SiloMode.REGION:
+        raise Exception("Not in region silo mode")
+
+    global_regions = load_global_regions()
+    replacement = RegionDirectory(
+        regions=global_regions.regions,
+        testenv_monolith_region=global_regions.historic_monolith_region,
+        testenv_local_region=region,
+    )
+
+    with global_regions.swap_state(replacement):
         yield
