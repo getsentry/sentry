@@ -1,6 +1,10 @@
+from __future__ import annotations
+
 import socket
+from functools import partial
 from socket import error as SocketError
 from socket import timeout as SocketTimeout
+from typing import Callable, Optional
 
 from requests import Session as _Session
 from requests.adapters import DEFAULT_POOLBLOCK, HTTPAdapter
@@ -14,12 +18,20 @@ from urllib3.util.connection import _set_socket_options
 from sentry import VERSION as SENTRY_VERSION
 from sentry.net.socket import safe_create_connection
 
+IsIpAddressPermitted = Optional[Callable[[str], bool]]
+
 
 class SafeConnectionMixin:
     """
     HACK(mattrobenolt): Most of this is yanked out of core urllib3
     to override `_new_conn` with the ability to create our own socket.
     """
+
+    is_ipaddress_permitted: IsIpAddressPermitted = None
+
+    def __init__(self, *args, is_ipaddress_permitted: IsIpAddressPermitted = None, **kwargs):
+        self.is_ipaddress_permitted = is_ipaddress_permitted
+        super().__init__(*args, **kwargs)
 
     # urllib3.connection.HTTPConnection.host
     # These `host` properties need rebound otherwise `self._dns_host` doesn't
@@ -64,7 +76,12 @@ class SafeConnectionMixin:
 
         try:
             # Begin custom code.
-            conn = safe_create_connection((self._dns_host, self.port), self.timeout, **extra_kw)
+            conn = safe_create_connection(
+                (self._dns_host, self.port),
+                self.timeout,
+                is_ipaddress_permitted=self.is_ipaddress_permitted,
+                **extra_kw,
+            )
             # End custom code.
 
         except SocketTimeout:
@@ -87,11 +104,19 @@ class SafeHTTPSConnection(SafeConnectionMixin, HTTPSConnection):
     pass
 
 
-class SafeHTTPConnectionPool(HTTPConnectionPool):
+class InjectIPAddressMixin:
+    def __init__(self, *args, is_ipaddress_permitted: IsIpAddressPermitted = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.ConnectionCls = partial(
+            self.ConnectionCls, is_ipaddress_permitted=is_ipaddress_permitted
+        )
+
+
+class SafeHTTPConnectionPool(InjectIPAddressMixin, HTTPConnectionPool):
     ConnectionCls = SafeHTTPConnection
 
 
-class SafeHTTPSConnectionPool(HTTPSConnectionPool):
+class SafeHTTPSConnectionPool(InjectIPAddressMixin, HTTPSConnectionPool):
     ConnectionCls = SafeHTTPSConnection
 
 
@@ -102,11 +127,13 @@ class SafePoolManager(PoolManager):
     ConnectionPool classes to create.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, is_ipaddress_permitted: IsIpAddressPermitted = None, **kwargs):
         PoolManager.__init__(self, *args, **kwargs)
         self.pool_classes_by_scheme = {
-            "http": SafeHTTPConnectionPool,
-            "https": SafeHTTPSConnectionPool,
+            "http": partial(SafeHTTPConnectionPool, is_ipaddress_permitted=is_ipaddress_permitted),
+            "https": partial(
+                SafeHTTPSConnectionPool, is_ipaddress_permitted=is_ipaddress_permitted
+            ),
         }
 
 
@@ -115,6 +142,14 @@ class BlacklistAdapter(HTTPAdapter):
     We need a custom HTTPAdapter to initialize our custom SafePoolManager
     rather than the default PoolManager.
     """
+
+    is_ipaddress_permitted: IsIpAddressPermitted = None
+
+    def __init__(self, is_ipaddress_permitted: IsIpAddressPermitted = None) -> None:
+        # If is_ipaddress_permitted is defined, then we pass it as an additional parameter to freshly created
+        # `urllib3.connectionpool.ConnectionPool` instances managed by `SafePoolManager`.
+        self.is_ipaddress_permitted = is_ipaddress_permitted
+        super().__init__()
 
     def init_poolmanager(self, connections, maxsize, block=DEFAULT_POOLBLOCK, **pool_kwargs):
         self._pool_connections = connections
@@ -126,6 +161,7 @@ class BlacklistAdapter(HTTPAdapter):
             maxsize=maxsize,
             block=block,
             strict=True,
+            is_ipaddress_permitted=self.is_ipaddress_permitted,
             **pool_kwargs,
         )
         # End custom code.
@@ -160,10 +196,10 @@ class Session(_Session):
 
 
 class SafeSession(Session):
-    def __init__(self):
+    def __init__(self, is_ipaddress_permitted: IsIpAddressPermitted = None) -> None:
         Session.__init__(self)
         self.headers.update({"User-Agent": USER_AGENT})
-        adapter = BlacklistAdapter()
+        adapter = BlacklistAdapter(is_ipaddress_permitted=is_ipaddress_permitted)
         self.mount("https://", adapter)
         self.mount("http://", adapter)
 

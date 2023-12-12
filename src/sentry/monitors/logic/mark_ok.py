@@ -5,7 +5,6 @@ from sentry.monitors.models import (
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorIncident,
-    MonitorObjectStatus,
     MonitorStatus,
 )
 
@@ -22,10 +21,7 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
         "next_checkin_latest": next_checkin_latest,
     }
 
-    if (
-        monitor_env.monitor.status != MonitorObjectStatus.MUTED
-        and monitor_env.status != MonitorStatus.OK
-    ):
+    if not monitor_env.monitor.is_muted and monitor_env.status != MonitorStatus.OK:
         params["status"] = MonitorStatus.OK
         recovery_threshold = monitor_env.monitor.config.get("recovery_threshold")
 

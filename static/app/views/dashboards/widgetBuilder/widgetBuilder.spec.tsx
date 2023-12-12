@@ -1108,7 +1108,7 @@ describe('WidgetBuilder', function () {
         '/organizations/org-slug/events/',
         expect.objectContaining({
           query: expect.objectContaining({
-            query: ' release:abc@1.2.0 ',
+            query: ' release:"abc@1.2.0" ',
           }),
         })
       );

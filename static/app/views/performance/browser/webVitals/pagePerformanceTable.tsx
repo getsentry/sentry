@@ -25,7 +25,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
-import {USE_STORED_SCORES} from 'sentry/views/performance/browser/webVitals/settings';
 import {calculateOpportunity} from 'sentry/views/performance/browser/webVitals/utils/calculateOpportunity';
 import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
@@ -36,6 +35,7 @@ import {
   Row,
   SORTABLE_FIELDS,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 
 type RowWithScoreAndOpportunity = Row & {score: number; opportunity?: number};
@@ -45,11 +45,11 @@ type Column = GridColumnHeader<keyof RowWithScoreAndOpportunity>;
 const columnOrder: GridColumnOrder<keyof RowWithScoreAndOpportunity>[] = [
   {key: 'transaction', width: COL_WIDTH_UNDEFINED, name: 'Pages'},
   {key: 'count()', width: COL_WIDTH_UNDEFINED, name: 'Pageloads'},
-  {key: 'avg(measurements.lcp)', width: COL_WIDTH_UNDEFINED, name: 'LCP'},
-  {key: 'avg(measurements.fcp)', width: COL_WIDTH_UNDEFINED, name: 'FCP'},
-  {key: 'avg(measurements.fid)', width: COL_WIDTH_UNDEFINED, name: 'FID'},
-  {key: 'avg(measurements.cls)', width: COL_WIDTH_UNDEFINED, name: 'CLS'},
-  {key: 'avg(measurements.ttfb)', width: COL_WIDTH_UNDEFINED, name: 'TTFB'},
+  {key: 'p75(measurements.lcp)', width: COL_WIDTH_UNDEFINED, name: 'LCP'},
+  {key: 'p75(measurements.fcp)', width: COL_WIDTH_UNDEFINED, name: 'FCP'},
+  {key: 'p75(measurements.fid)', width: COL_WIDTH_UNDEFINED, name: 'FID'},
+  {key: 'p75(measurements.cls)', width: COL_WIDTH_UNDEFINED, name: 'CLS'},
+  {key: 'p75(measurements.ttfb)', width: COL_WIDTH_UNDEFINED, name: 'TTFB'},
   {key: 'score', width: COL_WIDTH_UNDEFINED, name: 'Score'},
   {key: 'opportunity', width: COL_WIDTH_UNDEFINED, name: 'Opportunity'},
 ];
@@ -60,6 +60,7 @@ export function PagePerformanceTable() {
   const organization = useOrganization();
   const location = useLocation();
   const {projects} = useProjects();
+  const shouldUseStoredScores = useStoredScoresSetting();
 
   const query = decodeScalar(location.query.query, '');
 
@@ -75,10 +76,10 @@ export function PagePerformanceTable() {
   const {data: projectScoresData, isLoading: isProjectScoresLoading} =
     useProjectWebVitalsScoresQuery({
       transaction: query,
-      enabled: USE_STORED_SCORES,
+      enabled: shouldUseStoredScores,
     });
 
-  const projectScore = USE_STORED_SCORES
+  const projectScore = shouldUseStoredScores
     ? calculatePerformanceScoreFromStoredTableDataRow(projectScoresData?.data?.[0])
     : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
 
@@ -89,18 +90,22 @@ export function PagePerformanceTable() {
   } = useTransactionWebVitalsQuery({limit: MAX_ROWS, transaction: query});
 
   const count = projectData?.data?.[0]?.['count()'] as number;
+  const scoreCount = projectScoresData?.data?.[0]?.[
+    'count_scores(measurements.score.total)'
+  ] as number;
 
   const tableData: RowWithScoreAndOpportunity[] = data.map(row => ({
     ...row,
-    opportunity:
-      count !== undefined
-        ? calculateOpportunity(
-            projectScore.totalScore ?? 0,
-            count,
-            row.score,
-            row['count()']
-          )
-        : undefined,
+    opportunity: shouldUseStoredScores
+      ? ((row.opportunity ?? 0) * 100) / scoreCount
+      : count !== undefined
+      ? calculateOpportunity(
+          projectScore.totalScore ?? 0,
+          count,
+          row.score,
+          row['count()']
+        )
+      : undefined,
   }));
   const getFormattedDuration = (value: number) => {
     return getDuration(value, value < 1 ? 0 : 2, true);
@@ -108,14 +113,20 @@ export function PagePerformanceTable() {
 
   function renderHeadCell(col: Column) {
     function generateSortLink() {
+      const key =
+        col.key === 'score'
+          ? 'avg(measurements.score.total)'
+          : col.key === 'opportunity'
+          ? 'opportunity_score(measurements.score.total)'
+          : col.key;
       let newSortDirection: Sort['kind'] = 'desc';
-      if (sort?.field === col.key) {
+      if (sort?.field === key) {
         if (sort.kind === 'desc') {
           newSortDirection = 'asc';
         }
       }
 
-      const newSort = `${newSortDirection === 'desc' ? '-' : ''}${col.key}`;
+      const newSort = `${newSortDirection === 'desc' ? '-' : ''}${key}`;
 
       return {
         ...location,
@@ -125,7 +136,7 @@ export function PagePerformanceTable() {
 
     const canSort = (SORTABLE_FIELDS as unknown as string[]).includes(col.key);
 
-    if (canSort) {
+    if (canSort && !['score', 'opportunity'].includes(col.key)) {
       return (
         <SortLink
           align="right"
@@ -138,44 +149,60 @@ export function PagePerformanceTable() {
     }
     if (col.key === 'score') {
       return (
-        <AlignCenter>
-          <StyledTooltip
-            isHoverable
-            title={
-              <span>
-                {t('The overall performance rating of this page.')}
-                <br />
-                <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#performance-score">
-                  {t('How is this calculated?')}
-                </ExternalLink>
-              </span>
-            }
-          >
-            <TooltipHeader>{t('Perf Score')}</TooltipHeader>
-          </StyledTooltip>
-        </AlignCenter>
+        <SortLink
+          title={
+            <AlignCenter>
+              <StyledTooltip
+                isHoverable
+                title={
+                  <span>
+                    {t('The overall performance rating of this page.')}
+                    <br />
+                    <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#performance-score">
+                      {t('How is this calculated?')}
+                    </ExternalLink>
+                  </span>
+                }
+              >
+                <TooltipHeader>{t('Perf Score')}</TooltipHeader>
+              </StyledTooltip>
+            </AlignCenter>
+          }
+          direction={sort?.field === col.key ? sort.kind : undefined}
+          canSort={canSort}
+          generateSortLink={generateSortLink}
+          align={undefined}
+        />
       );
     }
     if (col.key === 'opportunity') {
       return (
-        <AlignRight>
-          <StyledTooltip
-            isHoverable
-            title={
-              <span>
-                {t(
-                  "A number rating how impactful a performance improvement on this page would be to your application's overall Performance Score."
-                )}
-                <br />
-                <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#opportunity">
-                  {t('How is this calculated?')}
-                </ExternalLink>
-              </span>
-            }
-          >
-            <TooltipHeader>{col.name}</TooltipHeader>
-          </StyledTooltip>
-        </AlignRight>
+        <SortLink
+          align="right"
+          title={
+            <AlignRight>
+              <StyledTooltip
+                isHoverable
+                title={
+                  <span>
+                    {t(
+                      "A number rating how impactful a performance improvement on this page would be to your application's overall Performance Score."
+                    )}
+                    <br />
+                    <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#opportunity">
+                      {t('How is this calculated?')}
+                    </ExternalLink>
+                  </span>
+                }
+              >
+                <TooltipHeader>{col.name}</TooltipHeader>
+              </StyledTooltip>
+            </AlignRight>
+          }
+          direction={sort?.field === col.key ? sort.kind : undefined}
+          canSort={canSort}
+          generateSortLink={generateSortLink}
+        />
       );
     }
     return <span>{col.name}</span>;
@@ -228,15 +255,15 @@ export function PagePerformanceTable() {
     }
     if (
       [
-        'avg(measurements.fcp)',
-        'avg(measurements.lcp)',
-        'avg(measurements.ttfb)',
-        'avg(measurements.fid)',
+        'p75(measurements.fcp)',
+        'p75(measurements.lcp)',
+        'p75(measurements.ttfb)',
+        'p75(measurements.fid)',
       ].includes(key)
     ) {
       return <AlignRight>{getFormattedDuration((row[key] as number) / 1000)}</AlignRight>;
     }
-    if (key === 'avg(measurements.cls)') {
+    if (key === 'p75(measurements.cls)') {
       return <AlignRight>{Math.round((row[key] as number) * 100) / 100}</AlignRight>;
     }
     if (key === 'opportunity') {
@@ -271,7 +298,7 @@ export function PagePerformanceTable() {
         <StyledPagination
           pageLinks={pageLinks}
           disabled={
-            (USE_STORED_SCORES && isProjectScoresLoading) ||
+            (shouldUseStoredScores && isProjectScoresLoading) ||
             isProjectWebVitalsQueryLoading ||
             isTransactionWebVitalsQueryLoading
           }
@@ -302,7 +329,7 @@ export function PagePerformanceTable() {
       <GridContainer>
         <GridEditable
           isLoading={
-            (USE_STORED_SCORES && isProjectScoresLoading) ||
+            (shouldUseStoredScores && isProjectScoresLoading) ||
             isProjectWebVitalsQueryLoading ||
             isTransactionWebVitalsQueryLoading
           }
@@ -333,6 +360,8 @@ const AlignRight = styled('span')<{color?: string}>`
 `;
 
 const AlignCenter = styled('span')`
+  display: block;
+  margin: auto;
   text-align: center;
   width: 100%;
 `;

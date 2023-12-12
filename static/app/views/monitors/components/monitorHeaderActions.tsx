@@ -4,15 +4,14 @@ import {deleteMonitor, updateMonitor} from 'sentry/actionCreators/monitors';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {IconDelete, IconEdit, IconSubscribed, IconUnsubscribed} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import useApi from 'sentry/utils/useApi';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
-import {Monitor, MonitorStatus} from '../types';
-
-import CronsFeedbackButton from './cronsFeedbackButton';
+import {Monitor} from '../types';
 
 type Props = {
   monitor: Monitor;
@@ -46,17 +45,11 @@ function MonitorHeaderActions({monitor, orgId, onUpdate}: Props) {
     onUpdate?.(resp);
   };
 
-  const toggleStatus = () =>
-    handleUpdate({
-      status:
-        monitor.status === MonitorStatus.DISABLED
-          ? MonitorStatus.ACTIVE
-          : MonitorStatus.DISABLED,
-    });
+  const toggleStatus = () => handleUpdate({isMuted: !monitor.isMuted});
 
   return (
     <ButtonBar gap={1}>
-      <CronsFeedbackButton />
+      <FeedbackWidgetButton />
       <Confirm
         onConfirm={handleDelete}
         message={t('Are you sure you want to permanently delete this cron monitor?')}
@@ -68,15 +61,11 @@ function MonitorHeaderActions({monitor, orgId, onUpdate}: Props) {
       <Button
         size="sm"
         icon={
-          monitor.status !== 'disabled' ? (
-            <IconUnsubscribed size="xs" />
-          ) : (
-            <IconSubscribed size="xs" />
-          )
+          monitor.isMuted ? <IconSubscribed size="xs" /> : <IconUnsubscribed size="xs" />
         }
         onClick={toggleStatus}
       >
-        {monitor.status !== 'disabled' ? t('Mute') : t('Unmute')}
+        {monitor.isMuted ? t('Unmute') : t('Mute')}
       </Button>
       <Button
         priority="primary"

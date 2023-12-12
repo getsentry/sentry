@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
-import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
+import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import {GithubFeedbackButton} from 'sentry/components/githubFeedbackButton';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -23,6 +23,8 @@ import {MetricScratchpad} from 'sentry/views/ddm/scratchpad';
 import {ScratchpadSelector} from 'sentry/views/ddm/scratchpadSelector';
 import {TraceTable} from 'sentry/views/ddm/traceTable';
 import {TrayContent} from 'sentry/views/ddm/trayContent';
+
+const SIZE_LOCAL_STORAGE_KEY = 'ddm-split-size';
 
 function MainContent({showTraceTable}: {showTraceTable?: boolean}) {
   return (
@@ -49,7 +51,7 @@ function MainContent({showTraceTable}: {showTraceTable?: boolean}) {
         </Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>
-        <FeedbackWidget />
+        <FloatingFeedbackWidget />
         <Layout.Main fullWidth>
           <PaddedContainer>
             <PageFilterBar condensed>
@@ -95,6 +97,7 @@ export const DDMLayout = memo(() => {
         <SplitPanel
           availableSize={height}
           SplitDivider={SplitDivider}
+          sizeStorageKey={SIZE_LOCAL_STORAGE_KEY}
           top={{
             content: (
               <ScrollingPage>

@@ -117,8 +117,11 @@ function useWrappedDiscoverTimeseriesQuery<T>({
     ? defaultData
     : processDiscoverTimeseriesResult(result.data, eventView);
 
+  const pageLinks = result.response?.getResponseHeader('Link') ?? undefined;
+
   return {
     ...result,
+    pageLinks,
     data,
     meta: result.data?.meta,
   };

@@ -61,16 +61,6 @@ class RpcServiceSetupException(RpcException):
     """Indicates an error in declaring the properties of RPC services."""
 
 
-class RpcServiceUnimplementedException(RpcException):
-    """Indicates that an RPC service is not yet able to complete a remote call.
-
-    This is a temporary measure while the RPC services are being developed. It
-    signals that a remote call in a testing or development environment should fall
-    back to a monolithic implementation. When RPC services are production-ready,
-    these should become hard failures.
-    """
-
-
 class RpcMethodSignature(SerializableFunctionSignature):
     """Represent the contract for an RPC method.
 
@@ -102,7 +92,6 @@ class RpcMethodSignature(SerializableFunctionSignature):
                 "`local_mode = SiloMode.REGION`"
             )
         if is_region_service and region_resolution is None:
-            # Use UnimplementedRegionResolution as a placeholder if needed
             raise self._setup_exception("Needs @regional_rpc_method")
 
         return region_resolution
@@ -112,20 +101,13 @@ class RpcMethodSignature(SerializableFunctionSignature):
             raise self._setup_exception("Does not run on the region silo")
 
         try:
-            try:
-                region = self._region_resolution.resolve(arguments)
-                return _RegionResolutionResult(region)
-            except RegionMappingNotFound:
-                if getattr(self.base_function, _REGION_RESOLUTION_OPTIONAL_RETURN_ATTR, False):
-                    return _RegionResolutionResult(None, is_early_halt=True)
-                else:
-                    raise
-        except Exception as e:
-            raise RpcServiceUnimplementedException(
-                self.base_service_cls.__name__,
-                self.base_function.__name__,
-                "Error while resolving region",
-            ) from e
+            region = self._region_resolution.resolve(arguments)
+            return _RegionResolutionResult(region)
+        except RegionMappingNotFound:
+            if getattr(self.base_function, _REGION_RESOLUTION_OPTIONAL_RETURN_ATTR, False):
+                return _RegionResolutionResult(None, is_early_halt=True)
+            else:
+                raise
 
 
 @dataclass(frozen=True)
@@ -335,7 +317,7 @@ class RpcService(abc.ABC):
 
             def remote_method(service_obj: RpcService, **kwargs: Any) -> Any:
                 if signature is None:
-                    raise RpcServiceUnimplementedException(
+                    raise RpcServiceSetupException(
                         cls.key,
                         method_name,
                         f"Signature was not initialized for {cls.__name__}.{method_name}",

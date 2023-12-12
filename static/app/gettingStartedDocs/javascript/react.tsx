@@ -4,7 +4,11 @@ import {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {
+  getReplayConfigureDescription,
+  getUploadSourceMapsStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import replayOnboardingJsLoaderReact from 'sentry/gettingStartedDocs/javascript/jsLoader/react';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -54,36 +58,38 @@ const getVerifyReactSnippet = () => `
 return <button onClick={() => methodDoesNotExist()}>Break the world</button>;
         `;
 
+const getInstallConfig = () => [
+  {
+    language: 'bash',
+    code: [
+      {
+        label: 'npm',
+        value: 'npm',
+        language: 'bash',
+        code: 'npm install --save @sentry/react',
+      },
+      {
+        label: 'yarn',
+        value: 'yarn',
+        language: 'bash',
+        code: 'yarn add @sentry/react',
+      },
+    ],
+  },
+];
+
 const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      configurations: [
+      description: tct(
+        'Add the Sentry SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn]:',
         {
-          description: tct(
-            'Add the Sentry SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn]:',
-            {
-              codeYarn: <code />,
-              codeNpm: <code />,
-            }
-          ),
-          language: 'bash',
-          code: [
-            {
-              label: 'npm',
-              value: 'npm',
-              language: 'bash',
-              code: 'npm install --save @sentry/react',
-            },
-            {
-              label: 'yarn',
-              value: 'yarn',
-              language: 'bash',
-              code: 'yarn add @sentry/react',
-            },
-          ],
-        },
-      ],
+          codeYarn: <code />,
+          codeNpm: <code />,
+        }
+      ),
+      configurations: getInstallConfig(),
     },
   ],
   configure: (params: Params) => [
@@ -163,8 +169,49 @@ const onboarding: OnboardingConfig = {
   ],
 };
 
+const replayOnboarding: OnboardingConfig = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'Add the Sentry SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn]. You need a minimum version 7.27.0 of [code:@sentry/react] in order to use Session Replay. You do not need to install any additional packages.',
+        {
+          code: <code />,
+          codeYarn: <code />,
+          codeNpm: <code />,
+        }
+      ),
+      configurations: getInstallConfig(),
+    },
+  ],
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: getReplayConfigureDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/react/session-replay/',
+      }),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getSdkSetupSnippet({...params, isReplaySelected: true}),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  replayOnboardingNpm: replayOnboarding,
+  replayOnboardingJsLoader: replayOnboardingJsLoaderReact,
 };
 
 export default docs;

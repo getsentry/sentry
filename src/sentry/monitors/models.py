@@ -34,6 +34,7 @@ from sentry.grouping.utils import hash_from_values
 from sentry.locks import locks
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleSource
+from sentry.monitors.constants import MAX_SLUG_LENGTH
 from sentry.monitors.types import CrontabSchedule, IntervalSchedule
 from sentry.utils.retries import TimedRetryPolicy
 
@@ -60,8 +61,6 @@ MONITOR_CONFIG = {
     "additionalProperties": False,
 }
 
-MAX_SLUG_LENGTH = 50
-
 
 class MonitorLimitsExceeded(Exception):
     pass
@@ -77,26 +76,17 @@ class MonitorEnvironmentValidationFailed(Exception):
 
 class MonitorObjectStatus:
     ACTIVE = 0
-    DISABLED = 1
     MUTED = 1
     PENDING_DELETION = 2
     DELETION_IN_PROGRESS = 3
-
-    WAITING = 4
-    """
-    Active but does not have a seat assigned yet
-    """
 
     @classmethod
     def as_choices(cls) -> Sequence[Tuple[int, str]]:
         return (
             (cls.ACTIVE, "active"),
-            # TODO(epurkhiser): Remove once we're only using muted on the frontend
-            (cls.MUTED, "disabled"),
             (cls.MUTED, "muted"),
             (cls.PENDING_DELETION, "pending_deletion"),
             (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
-            (cls.WAITING, "waiting"),
         )
 
 
@@ -213,6 +203,16 @@ class Monitor(Model):
     organization_id = BoundedBigIntegerField(db_index=True)
     project_id = BoundedBigIntegerField(db_index=True)
 
+    # TODO(epurkhiser): Muted is moving to its own boolean column, this should
+    # become object status again
+    status = BoundedPositiveIntegerField(
+        default=MonitorObjectStatus.ACTIVE, choices=MonitorObjectStatus.as_choices()
+    )
+    """
+    Active status of the monitor. This is similar to most other ObjectStatus's
+    within the app. Used to mark monitors as disabled and pending deletions
+    """
+
     guid = UUIDField(unique=True, auto_add=True)
     """
     Globally unique identifier for the monitor. Mostly legacy, used in legacy
@@ -225,17 +225,15 @@ class Monitor(Model):
     check-in payloads. The slug can be changed.
     """
 
+    is_muted = models.BooleanField(default=False)
+    """
+    Monitor is operating normally but will not produce incidents or produce
+    occurances into the issues platform.
+    """
+
     name = models.CharField(max_length=128)
     """
     Human readible name of the monitor. Used for display purposes.
-    """
-
-    status = BoundedPositiveIntegerField(
-        default=MonitorObjectStatus.ACTIVE, choices=MonitorObjectStatus.as_choices()
-    )
-    """
-    Active status of the monitor. This is similar to most other ObjectStatus's
-    within the app. Used to mark monitors as disabled and pending deletions
     """
 
     type = BoundedPositiveIntegerField(

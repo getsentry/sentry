@@ -139,7 +139,7 @@ jobs:
 
       - name: run tests
         run: |
-          MIGRATIONS_TEST_MIGRATE=1 PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations" make test-python-ci
+          PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations --migrations" make test-python-ci
 
       # Upload coverage data even if running the tests step fails since
       # it reduces large coverage fluctuations
@@ -308,6 +308,7 @@ jobs:
           ! grep "'Settings' object has no attribute" .artifacts/mypy-all
           ! grep 'Cannot override class variable' .artifacts/mypy-all
           ! grep 'Exception type must be derived from BaseException' .artifacts/mypy-all
+          ! grep 'Incompatible return value type (got "HttpResponseBase"' .artifacts/mypy-all
           ! grep 'Incompatible types in "yield"' .artifacts/mypy-all
           ! grep 'does not explicitly export attribute' .artifacts/mypy-all
 

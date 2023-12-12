@@ -38,9 +38,13 @@ from sentry.api.endpoints.release_thresholds.release_threshold_index import (
 from sentry.api.endpoints.release_thresholds.release_threshold_status_index import (
     ReleaseThresholdStatusIndexEndpoint,
 )
+from sentry.api.endpoints.relocations.abort import RelocationAbortEndpoint
+from sentry.api.endpoints.relocations.cancel import RelocationCancelEndpoint
 from sentry.api.endpoints.relocations.details import RelocationDetailsEndpoint
 from sentry.api.endpoints.relocations.index import RelocationIndexEndpoint
+from sentry.api.endpoints.relocations.pause import RelocationPauseEndpoint
 from sentry.api.endpoints.relocations.public_key import RelocationPublicKeyEndpoint
+from sentry.api.endpoints.relocations.unpause import RelocationUnpauseEndpoint
 from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
@@ -464,7 +468,6 @@ from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
 from .endpoints.project_details import ProjectDetailsEndpoint
 from .endpoints.project_docs_platform import ProjectDocsPlatformEndpoint
-from .endpoints.project_dynamic_sampling import ProjectDynamicSamplingRateEndpoint
 from .endpoints.project_environment_details import ProjectEnvironmentDetailsEndpoint
 from .endpoints.project_environments import ProjectEnvironmentsEndpoint
 from .endpoints.project_event_details import EventJsonEndpoint, ProjectEventDetailsEndpoint
@@ -754,6 +757,26 @@ RELOCATION_URLS = [
         r"^(?P<relocation_uuid>[^\/]+)/$",
         RelocationDetailsEndpoint.as_view(),
         name="sentry-api-0-relocations-details",
+    ),
+    re_path(
+        r"^(?P<relocation_uuid>[^\/]+)/abort/$",
+        RelocationAbortEndpoint.as_view(),
+        name="sentry-api-0-relocations-abort",
+    ),
+    re_path(
+        r"^(?P<relocation_uuid>[^\/]+)/cancel/$",
+        RelocationCancelEndpoint.as_view(),
+        name="sentry-api-0-relocations-cancel",
+    ),
+    re_path(
+        r"^(?P<relocation_uuid>[^\/]+)/pause/$",
+        RelocationPauseEndpoint.as_view(),
+        name="sentry-api-0-relocations-pause",
+    ),
+    re_path(
+        r"^(?P<relocation_uuid>[^\/]+)/unpause/$",
+        RelocationUnpauseEndpoint.as_view(),
+        name="sentry-api-0-relocations-unpause",
     ),
 ]
 
@@ -2583,11 +2606,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/transactions/(?P<transaction_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
         ProjectProfilingTransactionIDProfileIDEndpoint.as_view(),
         name="sentry-api-0-project-profiling-transactions",
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/dynamic-sampling/rate/$",
-        ProjectDynamicSamplingRateEndpoint.as_view(),
-        name="sentry-api-0-project-dynamic-sampling-rate",
     ),
 ]
 
