@@ -1,5 +1,3 @@
-import uniq from 'lodash/uniq';
-
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import Panel from 'sentry/components/panels/panel';
@@ -36,9 +34,9 @@ type Props = {
 // 1. All frames have a native platform override in `frame.platform`, or
 // 2. The event platform is native
 function shouldRenderNativeContent({data, platform}: Pick<Props, 'data' | 'platform'>) {
-  const framePlatforms = uniq(data?.frames?.map(frame => frame.platform) ?? []);
+  const framePlatforms = new Set(data?.frames?.map(frame => frame.platform));
   const stackTracePlatform =
-    (framePlatforms.length === 1 ? framePlatforms[0] : null) ?? platform;
+    (framePlatforms.size === 1 ? [...framePlatforms][0] : null) ?? platform;
 
   return isNativePlatform(stackTracePlatform);
 }
