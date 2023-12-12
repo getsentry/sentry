@@ -262,6 +262,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     'javascript-nextjs',
     'javascript-remix',
     'javascript-gatsby',
+    'javascript-angular',
     'electron',
   ];
   const newOnboarding = organization.features.includes('session-replay-new-zero-state');
