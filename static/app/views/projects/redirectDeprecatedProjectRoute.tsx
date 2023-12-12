@@ -1,7 +1,6 @@
 import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import isString from 'lodash/isString';
 
 import {Client, ResponseMeta} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
@@ -81,7 +80,7 @@ class ProjectDetailsInner extends Component<DetailsProps, DetailsState> {
 
   hasProjectId() {
     const projectID = this.getProjectId();
-    return isString(projectID) && projectID.length > 0;
+    return typeof projectID === 'string' && projectID.length > 0;
   }
 
   getOrganizationId() {
