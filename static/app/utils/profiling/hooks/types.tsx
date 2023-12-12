@@ -30,6 +30,7 @@ export type FunctionTrend = {
   breakpoint: number;
   change: TrendType;
   'count()': number;
+  fingerprint: number;
   function: string;
   package: string;
   project: string;

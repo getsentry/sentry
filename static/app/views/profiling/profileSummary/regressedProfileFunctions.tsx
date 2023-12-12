@@ -12,12 +12,16 @@ import PerformanceDuration from 'sentry/components/performanceDuration';
 import {TextTruncateOverflow} from 'sentry/components/profiling/textTruncateOverflow';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatPercentage} from 'sentry/utils/formatters';
 import type {FunctionTrend, TrendType} from 'sentry/utils/profiling/hooks/types';
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
 import {useProfileFunctionTrends} from 'sentry/utils/profiling/hooks/useProfileFunctionTrends';
-import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {
+  generateProfileDifferentialFlamegraphRouteWithQuery,
+  generateProfileFlamechartRouteWithQuery,
+} from 'sentry/utils/profiling/routes';
 import {relativeChange} from 'sentry/utils/profiling/units/units';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -148,14 +152,11 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
 
   const trends = trendsQuery?.data ?? [];
 
-  const onRegressedFunctionClick = useCallback(() => {
-    trackAnalytics('profiling_views.go_to_flamegraph', {
-      organization,
-      source: `profiling_transaction.regressed_functions_table`,
-    });
-  }, [organization]);
-
   const onChangeTrendType = useCallback(v => setTrendType(v.value), []);
+
+  const hasDifferentialFlamegraphPageFeature = organization.features.includes(
+    'organizations:profiling-differential-flamegraph-page'
+  );
 
   return (
     <RegressedFunctionsContainer>
@@ -194,67 +195,21 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
           const {before, after} = findWorstProfileIDBeforeAndAfter(fn);
           return (
             <RegressedFunctionRow key={i}>
-              <RegressedFunctionMainRow>
-                <div>
-                  <Link
-                    onClick={onRegressedFunctionClick}
-                    to={generateProfileFlamechartRouteWithQuery({
-                      orgSlug: organization.slug,
-                      projectSlug: project?.slug ?? '',
-                      profileId: (fn['examples()']?.[0] as string) ?? '',
-                      query: {
-                        // specify the frame to focus, the flamegraph will switch
-                        // to the appropriate thread when these are specified
-                        frameName: fn.function as string,
-                        framePackage: fn.package as string,
-                      },
-                    })}
-                  >
-                    <TextTruncateOverflow>{fn.function}</TextTruncateOverflow>
-                  </Link>
-                </div>
-                <div>
-                  <Link
-                    onClick={onRegressedFunctionClick}
-                    to={generateProfileFlamechartRouteWithQuery({
-                      orgSlug: organization.slug,
-                      projectSlug: project?.slug ?? '',
-                      profileId: before,
-                      query: {
-                        // specify the frame to focus, the flamegraph will switch
-                        // to the appropriate thread when these are specified
-                        frameName: fn.function as string,
-                        framePackage: fn.package as string,
-                      },
-                    })}
-                  >
-                    <PerformanceDuration
-                      abbreviation
-                      nanoseconds={fn.aggregate_range_1 as number}
-                    />
-                  </Link>
-                  <ChangeArrow>{' \u2192 '}</ChangeArrow>
-                  <Link
-                    onClick={onRegressedFunctionClick}
-                    to={generateProfileFlamechartRouteWithQuery({
-                      orgSlug: organization.slug,
-                      projectSlug: project?.slug ?? '',
-                      profileId: after,
-                      query: {
-                        // specify the frame to focus, the flamegraph will switch
-                        // to the appropriate thread when these are specified
-                        frameName: fn.function as string,
-                        framePackage: fn.package as string,
-                      },
-                    })}
-                  >
-                    <PerformanceDuration
-                      abbreviation
-                      nanoseconds={fn.aggregate_range_2 as number}
-                    />
-                  </Link>
-                </div>
-              </RegressedFunctionMainRow>
+              {hasDifferentialFlamegraphPageFeature ? (
+                <RegressedFunctionDifferentialFlamegraph
+                  organization={organization}
+                  project={project}
+                  fn={fn}
+                />
+              ) : (
+                <RegressedFunctionBeforeAfterFlamechart
+                  organization={organization}
+                  project={project}
+                  before={before}
+                  after={after}
+                  fn={fn}
+                />
+              )}
               <RegressedFunctionMetricsRow>
                 <div>
                   <TextTruncateOverflow>{fn.package}</TextTruncateOverflow>
@@ -289,6 +244,142 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
         })
       )}
     </RegressedFunctionsContainer>
+  );
+}
+
+interface RegressedFunctionDifferentialFlamegraphProps {
+  fn: FunctionTrend;
+  organization: Organization;
+  project: Project | null;
+}
+
+function RegressedFunctionDifferentialFlamegraph(
+  props: RegressedFunctionDifferentialFlamegraphProps
+) {
+  const onRegressedFunctionClick = useCallback(() => {
+    trackAnalytics('profiling_views.go_to_differential_flamegraph', {
+      organization: props.organization,
+      source: `profiling_transaction.regressed_functions_table`,
+    });
+  }, [props.organization]);
+
+  const differentialFlamegraphLink = generateProfileDifferentialFlamegraphRouteWithQuery({
+    orgSlug: props.organization.slug,
+    projectSlug: props.project?.slug ?? '',
+    fingerprint: props.fn.fingerprint,
+    breakpoint: props.fn.breakpoint,
+    query: {
+      // specify the frame to focus, the flamegraph will switch
+      // to the appropriate thread when these are specified
+      frameName: props.fn.function as string,
+      framePackage: props.fn.package as string,
+    },
+  });
+
+  return (
+    <RegressedFunctionMainRow>
+      <div>
+        <Link onClick={onRegressedFunctionClick} to={differentialFlamegraphLink}>
+          <TextTruncateOverflow>{props.fn.function}</TextTruncateOverflow>
+        </Link>
+      </div>
+      <div>
+        <Link onClick={onRegressedFunctionClick} to={differentialFlamegraphLink}>
+          <PerformanceDuration
+            abbreviation
+            nanoseconds={props.fn.aggregate_range_1 as number}
+          />
+          <ChangeArrow>{' \u2192 '}</ChangeArrow>
+          <PerformanceDuration
+            abbreviation
+            nanoseconds={props.fn.aggregate_range_2 as number}
+          />
+        </Link>
+      </div>
+    </RegressedFunctionMainRow>
+  );
+}
+
+interface RegressedFunctionBeforeAfterProps {
+  after: string;
+  before: string;
+  fn: FunctionTrend;
+  organization: Organization;
+  project: Project | null;
+}
+
+function RegressedFunctionBeforeAfterFlamechart(
+  props: RegressedFunctionBeforeAfterProps
+) {
+  const onRegressedFunctionClick = useCallback(() => {
+    trackAnalytics('profiling_views.go_to_flamegraph', {
+      organization: props.organization,
+      source: `profiling_transaction.regressed_functions_table`,
+    });
+  }, [props.organization]);
+
+  return (
+    <RegressedFunctionMainRow>
+      <div>
+        <Link
+          onClick={onRegressedFunctionClick}
+          to={generateProfileFlamechartRouteWithQuery({
+            orgSlug: props.organization.slug,
+            projectSlug: props.project?.slug ?? '',
+            profileId: (props.fn['examples()']?.[0] as string) ?? '',
+            query: {
+              // specify the frame to focus, the flamegraph will switch
+              // to the appropriate thread when these are specified
+              frameName: props.fn.function as string,
+              framePackage: props.fn.package as string,
+            },
+          })}
+        >
+          <TextTruncateOverflow>{props.fn.function}</TextTruncateOverflow>
+        </Link>
+      </div>
+      <div>
+        <Link
+          onClick={onRegressedFunctionClick}
+          to={generateProfileFlamechartRouteWithQuery({
+            orgSlug: props.organization.slug,
+            projectSlug: props.project?.slug ?? '',
+            profileId: props.before,
+            query: {
+              // specify the frame to focus, the flamegraph will switch
+              // to the appropriate thread when these are specified
+              frameName: props.fn.function as string,
+              framePackage: props.fn.package as string,
+            },
+          })}
+        >
+          <PerformanceDuration
+            abbreviation
+            nanoseconds={props.fn.aggregate_range_1 as number}
+          />
+        </Link>
+        <ChangeArrow>{' \u2192 '}</ChangeArrow>
+        <Link
+          onClick={onRegressedFunctionClick}
+          to={generateProfileFlamechartRouteWithQuery({
+            orgSlug: props.organization.slug,
+            projectSlug: props.project?.slug ?? '',
+            profileId: props.after,
+            query: {
+              // specify the frame to focus, the flamegraph will switch
+              // to the appropriate thread when these are specified
+              frameName: props.fn.function as string,
+              framePackage: props.fn.package as string,
+            },
+          })}
+        >
+          <PerformanceDuration
+            abbreviation
+            nanoseconds={props.fn.aggregate_range_2 as number}
+          />
+        </Link>
+      </div>
+    </RegressedFunctionMainRow>
   );
 }
 

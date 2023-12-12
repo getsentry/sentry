@@ -29,6 +29,40 @@ export function generateProfileFlamechartRoute({
   return `/organizations/${orgSlug}/profiling/profile/${projectSlug}/${profileId}/flamegraph/`;
 }
 
+export function generateProfileDifferentialFlamegraphRoute({
+  orgSlug,
+  projectSlug,
+}: {
+  orgSlug: Organization['slug'];
+  projectSlug: Project['slug'];
+}): string {
+  return `/organizations/${orgSlug}/profiling/profile/${projectSlug}/differential-flamegraph/`;
+}
+
+export function generateProfileDifferentialFlamegraphRouteWithQuery({
+  orgSlug,
+  projectSlug,
+  query,
+  fingerprint,
+  breakpoint,
+}: {
+  breakpoint: number;
+  fingerprint: number;
+  orgSlug: Organization['slug'];
+  projectSlug: Project['slug'];
+  query?: Location['query'];
+}): LocationDescriptor {
+  const pathname = generateProfileDifferentialFlamegraphRoute({orgSlug, projectSlug});
+  return {
+    pathname,
+    query: {
+      ...query,
+      fingerprint,
+      breakpoint,
+    },
+  };
+}
+
 export function generateProfileDetailsRoute({
   orgSlug,
   projectSlug,
