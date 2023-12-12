@@ -494,6 +494,7 @@ if ENVIRONMENT == "development":
     ]
     CSP_CONNECT_SRC += [
         "ws://127.0.0.1:8000",
+        "http://localhost:8969/stream",
     ]
 
 # Before enforcing Content Security Policy, we recommend creating a separate
@@ -796,6 +797,7 @@ CELERY_IMPORTS = (
     "sentry.dynamic_sampling.tasks.collect_orgs",
     "sentry.tasks.statistical_detectors",
     "sentry.debug_files.tasks",
+    "sentry.tasks.on_demand_metrics",
 )
 
 default_exchange = Exchange("default", type="direct")
@@ -929,6 +931,7 @@ CELERY_QUEUES_REGION = [
     CELERY_ISSUE_STATES_QUEUE,
     Queue("nudge.invite_missing_org_members", routing_key="invite_missing_org_members"),
     Queue("auto_resolve_issues", routing_key="auto_resolve_issues"),
+    Queue("on_demand_metrics", routing_key="on_demand_metrics"),
 ]
 
 from celery.schedules import crontab
@@ -1201,6 +1204,10 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},
+    },
+    "on-demand-metrics-schedule-on-demand-check": {
+        "task": "sentry.tasks.on_demand_metrics.schedule_on_demand_check",
+        "schedule": crontab(minute="*/5"),
     },
 }
 
@@ -1526,8 +1533,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:escalating-metrics-backend": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
-    # Enable querying Snuba to get the EventUser
-    "organizations:eventuser-from-snuba": True,
     # Enable the frontend to request from region & control silo domains.
     "organizations:frontend-domainsplit": False,
     # Enable disabling gitlab integrations when broken is detected
@@ -1660,6 +1665,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:on-demand-metrics-prefill": False,
     # Display on demand metrics related UI elements
     "organizations:on-demand-metrics-ui": False,
+    # Query on demand metrics with the new environment logic
+    "organizations:on-demand-query-with-new-env-logic": False,
     # Enable the SDK selection feature in the onboarding
     "organizations:onboarding-sdk-selection": False,
     # Enable the setting of org roles for team
@@ -1719,6 +1726,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-remove-metrics-compatibility-fallback": False,
     # Enable screens view powered by span metrics
     "organizations:performance-screens-view": False,
+    # Enable column that shows ttid ttfd contributing spans
+    "organizations:mobile-ttid-ttfd-contribution": False,
     # Enable slow DB performance issue type
     "organizations:performance-slow-db-issue": False,
     # Enable histogram view in span details
@@ -1834,6 +1843,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-sdk": False,
     # Enable core Session Replay SDK for recording onError events on sentry.io
     "organizations:session-replay-sdk-errors-only": False,
+    # Enable rendering of the `replay.hydrate-error` replay breadcrumb
+    "organizations:session-replay-show-hydration-errors": False,
     # Enable linking from 'new issue' slack notifs to the issue replay list
     "organizations:session-replay-slack-new-issue": False,
     # Enable the Replay Details > Performance tab
@@ -2373,6 +2384,8 @@ SENTRY_SCOPES = {
     "org:admin",
     "org:integrations",
     "org:ci",
+    # "org:superuser",  Do not use for any type of superuser permission/access checks
+    # Assigned to active SU sessions in src/sentry/auth/access.py to enable UI elements
     "member:read",
     "member:write",
     "member:admin",
@@ -3513,10 +3526,6 @@ SOUTH_MIGRATION_CONVERSIONS = (
     ),
 )
 
-# Whether to use Django migrations to create the database, or just build it based off
-# of models, similar to how syncdb used to work. The former is more correct, the latter
-# is much faster.
-MIGRATIONS_TEST_MIGRATE = os.environ.get("MIGRATIONS_TEST_MIGRATE", "0") == "1"
 # Specifies the list of django apps to include in the lockfile. If Falsey then include
 # all apps with migrations
 MIGRATIONS_LOCKFILE_APP_WHITELIST = (
@@ -3994,17 +4003,23 @@ if SILO_DEVSERVER:
     ]
     SENTRY_MONOLITH_REGION = SENTRY_REGION_CONFIG[0]["name"]
 
-    # RPC authentication and address information
+    # Cross region RPC authentication
     RPC_SHARED_SECRET = [
         "a-long-value-that-is-shared-but-also-secret",
     ]
     RPC_TIMEOUT = 15.0
 
-    bind = str(os.environ.get("SENTRY_DEVSERVER_BIND")).split(":")
-    SENTRY_WEB_HOST = bind[0]
-    SENTRY_WEB_PORT = int(bind[1])
+    # Key for signing integration proxy requests.
+    SENTRY_SUBNET_SECRET = "secret-subnet-signature"
 
     control_port = os.environ.get("SENTRY_CONTROL_SILO_PORT", "8000")
     SENTRY_CONTROL_ADDRESS = f"http://127.0.0.1:{control_port}"
+
+    # Webserver config
+    bind_address = os.environ.get("SENTRY_DEVSERVER_BIND")
+    if bind_address:
+        bind = str(bind_address).split(":")
+        SENTRY_WEB_HOST = bind[0]
+        SENTRY_WEB_PORT = int(bind[1])
 
     CELERYBEAT_SCHEDULE_FILENAME = f"celerybeat-schedule-{SILO_MODE}"

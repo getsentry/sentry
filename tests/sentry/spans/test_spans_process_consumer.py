@@ -103,8 +103,26 @@ def test_v1_span():
                 "start_timestamp": 123.456,
                 "timestamp": 124.567,
                 "trace_id": "ff62a8b040f340bda5d830223def1d81",
+                "measurements": {
+                    "memory": {
+                        "value": 1000.0,
+                    },
+                },
+                "_metrics_summary": {
+                    "c:spans/somemetric@none": [
+                        {
+                            "min": 1.0,
+                            "max": 2.0,
+                            "sum": 3.0,
+                            "count": 1,
+                            "tags": {
+                                "environment": "test",
+                            },
+                        },
+                    ],
+                },
             },
-        }
+        },
     ).encode()
     value = BrokerValue(KafkaPayload(None, payload, []), None, 0, None)  # type: ignore
     processed = _process_message(Message(value))
@@ -134,4 +152,22 @@ def test_v1_span():
         "span_id": "bbbbbbbbbbbbbbbb",
         "start_timestamp_ms": 123456,
         "trace_id": "ff62a8b040f340bda5d830223def1d81",
+        "measurements": {
+            "memory": {
+                "value": 1000.0,
+            },
+        },
+        "_metrics_summary": {
+            "c:spans/somemetric@none": [
+                {
+                    "min": 1.0,
+                    "max": 2.0,
+                    "sum": 3.0,
+                    "count": 1,
+                    "tags": {
+                        "environment": "test",
+                    },
+                },
+            ],
+        },
     }

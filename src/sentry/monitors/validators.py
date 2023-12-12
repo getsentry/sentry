@@ -12,9 +12,8 @@ from sentry.api.fields.sentry_slug import SentrySlugField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.db.models import BoundedPositiveIntegerField
-from sentry.monitors.constants import MAX_THRESHOLD, MAX_TIMEOUT
+from sentry.monitors.constants import MAX_SLUG_LENGTH, MAX_THRESHOLD, MAX_TIMEOUT
 from sentry.monitors.models import (
-    MAX_SLUG_LENGTH,
     CheckInStatus,
     Monitor,
     MonitorObjectStatus,
@@ -27,8 +26,6 @@ MONITOR_TYPES = {"cron_job": MonitorType.CRON_JOB}
 MONITOR_STATUSES = {
     "active": MonitorObjectStatus.ACTIVE,
     "muted": MonitorObjectStatus.MUTED,
-    # TODO(epurkhiser): Remove once the frontend is only using "muted"
-    "disabled": MonitorObjectStatus.MUTED,
 }
 
 SCHEDULE_TYPES = {
@@ -251,6 +248,10 @@ class MonitorValidator(CamelSnakeSerializer):
         choices=list(zip(MONITOR_STATUSES.keys(), MONITOR_STATUSES.keys())),
         default="active",
         help_text="Status of the monitor. Muted monitors do not generate events or notifications.",
+    )
+    is_muted = serializers.BooleanField(
+        required=False,
+        help_text="Disable creation of monitor incidents",
     )
     type = serializers.ChoiceField(choices=list(zip(MONITOR_TYPES.keys(), MONITOR_TYPES.keys())))
     config = ConfigValidator()

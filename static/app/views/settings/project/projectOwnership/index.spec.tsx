@@ -1,5 +1,6 @@
 import {GitHubIntegrationConfig} from 'sentry-fixture/integrationListDirectory';
 import {Organization} from 'sentry-fixture/organization';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -90,7 +91,7 @@ describe('Project Ownership', () => {
           organization={org}
           project={project}
         />,
-        {context: TestStubs.routerContext([{organization: org}])}
+        {context: RouterContextFixture([{organization: org}])}
       );
 
       // Renders button
