@@ -170,9 +170,7 @@ from .endpoints.authenticator_index import AuthenticatorIndexEndpoint
 from .endpoints.avatar import (
     DocIntegrationAvatarEndpoint,
     OrganizationAvatarEndpoint,
-    ProjectAvatarEndpoint,
     SentryAppAvatarEndpoint,
-    TeamAvatarEndpoint,
     UserAvatarEndpoint,
 )
 from .endpoints.broadcast_details import BroadcastDetailsEndpoint
@@ -2052,11 +2050,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-combined-rules",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/avatar/$",
-        ProjectAvatarEndpoint.as_view(),
-        name="sentry-api-0-project-avatar",
-    ),
-    re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/create-sample/$",
         ProjectCreateSampleEndpoint.as_view(),
         name="sentry-api-0-project-create-sample",
@@ -2669,11 +2662,6 @@ TEAM_URLS = [
         r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/stats/$",
         TeamStatsEndpoint.as_view(),
         name="sentry-api-0-team-stats",
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/avatar/$",
-        TeamAvatarEndpoint.as_view(),
-        name="sentry-api-0-team-avatar",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/external-teams/$",
