@@ -1,3 +1,5 @@
+import beautify from 'js-beautify';
+
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   DocsParams,
@@ -18,7 +20,10 @@ const getInstallConfig = (params: Params) => [
       {
         description: t('Add this script tag to the top of the page:'),
         language: 'html',
-        code: `<script src="${params.cdn}" crossorigin="anonymous"></script>`,
+        code: beautify.html(
+          `<script src="${params.cdn}" crossorigin="anonymous"></script>`,
+          {indent_size: 2, wrap_attributes: 'force-expand-multiline'}
+        ),
       },
     ],
   },
