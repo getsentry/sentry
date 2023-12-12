@@ -1,12 +1,18 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {getInterval} from 'sentry/components/charts/utils';
-import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  GridColumnHeader,
+} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
-import {t} from 'sentry/locale';
+import {Tooltip} from 'sentry/components/tooltip';
+import {t, tct} from 'sentry/locale';
 import {NewQuery} from 'sentry/types';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView, {
@@ -17,14 +23,15 @@ import EventView, {
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {formatPercentage} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {TableColumn} from 'sentry/views/discover/table/types';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
+import {useTTFDConfigured} from 'sentry/views/starfish/queries/useHasTtfdConfigured';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
@@ -54,6 +61,9 @@ export function ScreenLoadSpansTable({
   const spanOp = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
   const truncatedPrimary = formatVersionAndCenterTruncate(primaryRelease ?? '', 15);
   const truncatedSecondary = formatVersionAndCenterTruncate(secondaryRelease ?? '', 15);
+  const {hasTTFD, isLoading: hasTTFDLoading} = useTTFDConfigured([
+    `transaction:"${transaction}"`,
+  ]);
 
   const searchQuery = new MutableSearch([
     'transaction.op:ui.load',
@@ -87,6 +97,8 @@ export function ScreenLoadSpansTable({
       SPAN_DESCRIPTION,
       `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
       `avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`,
+      'ttid_contribution_rate()',
+      'ttfd_contribution_rate()',
       'count()',
       'time_spent_percentage()',
       `sum(${SPAN_SELF_TIME})`,
@@ -107,12 +119,11 @@ export function ScreenLoadSpansTable({
     referrer: 'api.starfish.mobile-span-table',
   });
 
-  const eventViewColumns = eventView.getColumns();
-
   const columnNameMap = {
     [SPAN_OP]: t('Operation'),
     [SPAN_DESCRIPTION]: t('Span Description'),
     'count()': t('Total Count'),
+    affects: hasTTFD ? t('Affects') : t('Affects TTID'),
     'time_spent_percentage()': t('Total Time Spent'),
     [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t(
       'Duration (%s)',
@@ -149,6 +160,91 @@ export function ScreenLoadSpansTable({
       );
     }
 
+    if (column.key === 'affects' && hasTTFD) {
+      const ttid_contribution_rate = row['ttid_contribution_rate()']
+        ? parseFloat(row['ttid_contribution_rate()'])
+        : 0;
+      const ttfd_contribution_rate = row['ttfd_contribution_rate()']
+        ? parseFloat(row['ttfd_contribution_rate()'])
+        : 0;
+
+      if (!isNaN(ttid_contribution_rate) && ttid_contribution_rate === 1) {
+        const tooltipValue = tct(
+          'This span always ends before TTID and TTFD and may affect initial and final display. [link: Learn more.]',
+          {
+            link: <ExternalLink href="https://docs.sentry.io" />,
+          }
+        );
+        return (
+          <Tooltip isHoverable title={tooltipValue} showUnderline>
+            <Container>{t('TTID, TTFD')}</Container>
+          </Tooltip>
+        );
+      }
+
+      if (!isNaN(ttfd_contribution_rate) && ttfd_contribution_rate === 1) {
+        const tooltipValue = tct(
+          'This span always ends before TTFD and may affect final display. [link: Learn more.] (TTID contribution rate: [ttid_contribution_rate])',
+          {
+            link: <ExternalLink href="https://docs.sentry.io" />,
+            ttid_contribution_rate: formatPercentage(ttid_contribution_rate),
+          }
+        );
+        return (
+          <Tooltip isHoverable title={tooltipValue} showUnderline>
+            <Container>{t('TTFD')}</Container>
+          </Tooltip>
+        );
+      }
+
+      return (
+        <Tooltip
+          isHoverable
+          title={t(
+            '(TTID contribution rate: %s and TTFD contribution rate: %s)',
+            formatPercentage(ttid_contribution_rate),
+            formatPercentage(ttfd_contribution_rate)
+          )}
+        >
+          <Container>{'--'}</Container>
+        </Tooltip>
+      );
+    }
+
+    if (column.key === 'affects') {
+      const ttid_contribution_rate = row['ttid_contribution_rate()']
+        ? parseFloat(row['ttid_contribution_rate()'])
+        : 0;
+
+      if (!isNaN(ttid_contribution_rate) && ttid_contribution_rate === 1) {
+        const tooltipValue = tct(
+          'This span always ends before TTID and may affect initial display. [link: Learn more.]',
+          {
+            link: <ExternalLink href="https://docs.sentry.io" />,
+          }
+        );
+        return (
+          <Tooltip isHoverable title={tooltipValue} showUnderline>
+            <Container>{t('Yes')}</Container>
+          </Tooltip>
+        );
+      }
+
+      const tooltipValue = tct(
+        'This span may not affect initial display. [link: Learn more.] (TTID contribution rate: [ttid_contribution_rate])',
+        {
+          link: <ExternalLink href="https://docs.sentry.io" />,
+          ttid_contribution_rate: formatPercentage(ttid_contribution_rate),
+        }
+      );
+
+      return (
+        <Tooltip isHoverable title={tooltipValue} showUnderline>
+          <Container>{t('No')}</Container>
+        </Tooltip>
+      );
+    }
+
     const renderer = getFieldRenderer(column.key, data?.meta.fields, false);
     const rendered = renderer(row, {
       location,
@@ -163,7 +259,11 @@ export function ScreenLoadSpansTable({
     tableMeta?: MetaType
   ): React.ReactNode {
     const fieldType = tableMeta?.fields?.[column.key];
-    const alignment = fieldAlignment(column.key as string, fieldType);
+
+    let alignment = fieldAlignment(column.key as string, fieldType);
+    if (column.key === 'affects') {
+      alignment = 'right';
+    }
     const field = {
       field: column.key as string,
       width: column.width,
@@ -213,18 +313,20 @@ export function ScreenLoadSpansTable({
         secondaryRelease={secondaryRelease}
       />
       <GridEditable
-        isLoading={isLoading}
+        isLoading={isLoading || hasTTFDLoading}
         data={data?.data as TableDataRow[]}
-        columnOrder={eventViewColumns
-          .filter(
-            (col: TableColumn<React.ReactText>) =>
-              col.name !== PROJECT_ID &&
-              col.name !== SPAN_GROUP &&
-              col.name !== `sum(${SPAN_SELF_TIME})`
-          )
-          .map((col: TableColumn<React.ReactText>) => {
-            return {...col, name: columnNameMap[col.key]};
-          })}
+        columnOrder={[
+          String(SPAN_OP),
+          String(SPAN_DESCRIPTION),
+          `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
+          `avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`,
+          ...(organization.features.includes('mobile-ttid-ttfd-contribution')
+            ? ['affects']
+            : []),
+          ...['count()', 'time_spent_percentage()'],
+        ].map(col => {
+          return {key: col, name: columnNameMap[col] ?? col, width: COL_WIDTH_UNDEFINED};
+        })}
         columnSortBy={columnSortBy}
         location={location}
         grid={{
@@ -236,3 +338,8 @@ export function ScreenLoadSpansTable({
     </Fragment>
   );
 }
+
+const Container = styled('div')`
+  ${p => p.theme.overflowEllipsis};
+  text-align: right;
+`;

@@ -494,6 +494,7 @@ if ENVIRONMENT == "development":
     ]
     CSP_CONNECT_SRC += [
         "ws://127.0.0.1:8000",
+        "http://localhost:8969/stream",
     ]
 
 # Before enforcing Content Security Policy, we recommend creating a separate
@@ -1664,6 +1665,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:on-demand-metrics-prefill": False,
     # Display on demand metrics related UI elements
     "organizations:on-demand-metrics-ui": False,
+    # Query on demand metrics with the new environment logic
+    "organizations:on-demand-query-with-new-env-logic": False,
     # Enable the SDK selection feature in the onboarding
     "organizations:onboarding-sdk-selection": False,
     # Enable the setting of org roles for team
@@ -1723,6 +1726,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-remove-metrics-compatibility-fallback": False,
     # Enable screens view powered by span metrics
     "organizations:performance-screens-view": False,
+    # Enable column that shows ttid ttfd contributing spans
+    "organizations:mobile-ttid-ttfd-contribution": False,
     # Enable slow DB performance issue type
     "organizations:performance-slow-db-issue": False,
     # Enable histogram view in span details
@@ -1838,6 +1843,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-sdk": False,
     # Enable core Session Replay SDK for recording onError events on sentry.io
     "organizations:session-replay-sdk-errors-only": False,
+    # Enable rendering of the `replay.hydrate-error` replay breadcrumb
+    "organizations:session-replay-show-hydration-errors": False,
     # Enable linking from 'new issue' slack notifs to the issue replay list
     "organizations:session-replay-slack-new-issue": False,
     # Enable the Replay Details > Performance tab
@@ -1858,6 +1865,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:sourcemaps-bundle-flat-file-indexing": False,
     # Upload release bundles as artifact bundles.
     "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
+    # Updated spike protection heuristic
+    "organizations:spike-protection-decay-heuristic": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -2377,6 +2386,8 @@ SENTRY_SCOPES = {
     "org:admin",
     "org:integrations",
     "org:ci",
+    # "org:superuser",  Do not use for any type of superuser permission/access checks
+    # Assigned to active SU sessions in src/sentry/auth/access.py to enable UI elements
     "member:read",
     "member:write",
     "member:admin",
@@ -3517,10 +3528,6 @@ SOUTH_MIGRATION_CONVERSIONS = (
     ),
 )
 
-# Whether to use Django migrations to create the database, or just build it based off
-# of models, similar to how syncdb used to work. The former is more correct, the latter
-# is much faster.
-MIGRATIONS_TEST_MIGRATE = os.environ.get("MIGRATIONS_TEST_MIGRATE", "0") == "1"
 # Specifies the list of django apps to include in the lockfile. If Falsey then include
 # all apps with migrations
 MIGRATIONS_LOCKFILE_APP_WHITELIST = (

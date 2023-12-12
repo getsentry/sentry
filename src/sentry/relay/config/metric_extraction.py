@@ -144,7 +144,9 @@ def _get_alert_metric_specs(
                 tags={"prefilling": prefilling, "dataset": alert_snuba_query.dataset},
             )
 
-            if result := _convert_snuba_query_to_metric(project, alert_snuba_query, prefilling):
+            if result := _convert_snuba_query_to_metric(
+                project, alert_snuba_query, prefilling, use_updated_env_logic=True
+            ):
                 _log_on_demand_metric_spec(
                     project_id=project.id,
                     spec_for="alert",
@@ -159,6 +161,28 @@ def _get_alert_metric_specs(
                     tags={"prefilling": prefilling},
                 )
                 specs.append(result)
+
+            # In case the query has an environment, we want to extract with the old environment logic, since we found
+            # a bug in the old logic and this requires us to extract the same metric in parallel but with a different
+            # query hash.
+            if alert_snuba_query.environment_id is not None:
+                if result := _convert_snuba_query_to_metric(
+                    project, alert_snuba_query, prefilling, use_updated_env_logic=False
+                ):
+                    _log_on_demand_metric_spec(
+                        project_id=project.id,
+                        spec_for="alert",
+                        spec=result,
+                        id=alert.id,
+                        field=alert_snuba_query.aggregate,
+                        query=alert_snuba_query.query,
+                        prefilling=prefilling,
+                    )
+                    metrics.incr(
+                        "on_demand_metrics.on_demand_spec.for_alert",
+                        tags={"prefilling": prefilling},
+                    )
+                    specs.append(result)
 
     max_alert_specs = options.get("on_demand.max_alert_specs") or _MAX_ON_DEMAND_ALERTS
     if len(specs) > max_alert_specs:
@@ -232,7 +256,7 @@ def _merge_metric_specs(
 
 
 def _convert_snuba_query_to_metric(
-    project: Project, snuba_query: SnubaQuery, prefilling: bool
+    project: Project, snuba_query: SnubaQuery, prefilling: bool, use_updated_env_logic: bool
 ) -> Optional[HashedMetricSpec]:
     """
     If the passed snuba_query is a valid query for on-demand metric extraction,
@@ -246,6 +270,7 @@ def _convert_snuba_query_to_metric(
         snuba_query.query,
         environment,
         prefilling,
+        use_updated_env_logic=use_updated_env_logic,
     )
 
 
@@ -259,10 +284,6 @@ def convert_widget_query_to_metric(
     metrics_specs: List[HashedMetricSpec] = []
 
     if not widget_query.aggregates:
-        return metrics_specs
-
-    if check_cardinality and not _is_widget_query_low_cardinality(widget_query, project):
-        # High cardinality widgets don't have metrics specs created
         return metrics_specs
 
     for aggregate in widget_query.aggregates:
@@ -296,6 +317,14 @@ def convert_widget_query_to_metric(
                 tags={"prefilling": prefilling},
             )
             metrics_specs.append(result)
+
+    if (
+        metrics_specs
+        and check_cardinality
+        and not _is_widget_query_low_cardinality(widget_query, project)
+    ):
+        # High cardinality widgets don't have metrics specs created
+        return []
 
     return metrics_specs
 
@@ -430,6 +459,7 @@ def _convert_aggregate_and_query_to_metric(
     prefilling: bool,
     spec_type: MetricSpecType = MetricSpecType.SIMPLE_QUERY,
     groupbys: Optional[Sequence[str]] = None,
+    use_updated_env_logic: bool = False,
 ) -> Optional[HashedMetricSpec]:
     """
     Converts an aggregate and a query to a metric spec with its hash value.
@@ -447,6 +477,7 @@ def _convert_aggregate_and_query_to_metric(
             environment=environment,
             groupbys=groupbys,
             spec_type=spec_type,
+            use_updated_env_logic=use_updated_env_logic,
         )
 
         metric_spec = on_demand_spec.to_metric_spec(project)
