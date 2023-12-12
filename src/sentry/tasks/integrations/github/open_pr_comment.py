@@ -40,9 +40,6 @@ from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
 
-
-UNALLOWED_PROJECT_IDS = [2423079]
-
 OPEN_PR_METRICS_BASE = "github_open_pr_comment.{key}"
 
 # Caps the number of files that can be modified in a PR to leave a comment
@@ -202,7 +199,6 @@ def get_projects_and_filenames_from_source_file(
     code_mappings = (
         RepositoryProjectPathConfig.objects.filter(organization_id=org_id)
         .annotate(substring_match=StrIndex(Value(pr_filename), "source_root"))
-        .exclude(project_id__in=UNALLOWED_PROJECT_IDS)
         .filter(substring_match=1)
     )
 

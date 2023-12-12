@@ -9,7 +9,6 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import CommentType, PullRequest, PullRequestComment
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.integrations.github.open_pr_comment import (
-    UNALLOWED_PROJECT_IDS,
     format_issue_table,
     format_open_pr_comment,
     get_issue_table_contents,
@@ -237,15 +236,6 @@ class TestGetFilenames(GithubCommentTestCase):
                 stack_root=stack_root,
                 default_branch="master",
             )
-
-        project = self.create_project(organization=self.organization, id=UNALLOWED_PROJECT_IDS[0])
-        # matching code mapping from unallowed project
-        self.create_code_mapping(
-            project=project,
-            repo=self.gh_repo,
-            source_root="",
-            stack_root="./",
-        )
 
         # matching code mapping from a different org
         other_org_code_mapping = self.create_code_mapping(
