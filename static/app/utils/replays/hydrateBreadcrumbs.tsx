@@ -36,7 +36,7 @@ export default function hydrateBreadcrumbs(
         const time = new Date(frame.timestamp * 1000);
         invariant(isValidDate(time), 'breadcrumbFrame.timestamp is invalid');
 
-        if (frame.category === 'replay.hydrate') {
+        if (frame.category === 'replay.hydrate-error') {
           frame.data = {
             mutations: findCloseMutations(time, rrwebFrames),
           };

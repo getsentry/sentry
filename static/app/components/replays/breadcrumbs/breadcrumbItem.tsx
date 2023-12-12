@@ -12,6 +12,7 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import ReplayComparisonModal from 'sentry/components/replays/breadcrumbs/replayComparisonModal';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {Tooltip} from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
@@ -135,7 +136,7 @@ function BreadcrumbItem({
               );
             }}
           >
-            Show Side by side
+            {t('Show Side by side')}
           </Button>
         ) : null}
 

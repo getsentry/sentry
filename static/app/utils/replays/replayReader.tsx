@@ -295,7 +295,8 @@ export default class ReplayReader {
       ...this._sortedBreadcrumbFrames.filter(
         frame =>
           ['replay.init', 'replay.mutations'].includes(frame.category) ||
-          (this._options.showHydrationErrors && frame.category === 'replay.hydrate-error')
+          (this._options.showHydrationErrors &&
+            frame.category === 'replay.hydrate-error-error')
       ),
       ...this._errors,
     ].sort(sortFrames)

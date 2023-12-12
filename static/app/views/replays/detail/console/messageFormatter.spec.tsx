@@ -7,7 +7,7 @@ import {BreadcrumbLevelType} from 'sentry/types/breadcrumbs';
 import hydrateBreadcrumbs from 'sentry/utils/replays/hydrateBreadcrumbs';
 import MessageFormatter from 'sentry/views/replays/detail/console/messageFormatter';
 
-const mockRRWebFrames = []; // This is only needed for replay.hydrate breadcrumbs.
+const mockRRWebFrames = []; // This is only needed for replay.hydrate-error breadcrumbs.
 
 describe('MessageFormatter', () => {
   it('Should print console message with placeholders correctly', () => {
