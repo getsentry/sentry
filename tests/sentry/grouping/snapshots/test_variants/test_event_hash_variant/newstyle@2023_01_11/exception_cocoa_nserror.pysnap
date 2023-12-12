@@ -77,7 +77,7 @@ app:
           frame (non app frame)
             function*
               "__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2"
-          frame (non app frame)
+          frame (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
             function*
               "-[UIApplication sendAction:to:from:forEvent:]"
           frame*
@@ -150,10 +150,10 @@ system:
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "-[UIControl sendAction:to:forEvent:]"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
             function*
               "-[UIApplication sendAction:to:from:forEvent:]"
           frame*

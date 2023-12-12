@@ -1,10 +1,10 @@
 ---
-created: '2023-12-12T00:48:13.270368Z'
+created: '2023-12-12T13:41:03.703586Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: "9592be4d4010972d1fcf6b0907d82458"
+  hash: "49b5f57fb4d7f9f4656eec9cb8891ed8"
   component:
     app*
       threads*
@@ -66,7 +66,7 @@ app:
           frame (non app frame)
             function*
               "__NSBLOCKOPERATION_IS_CALLING_OUT_TO_A_BLOCK__"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
               "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
           frame*
@@ -132,7 +132,7 @@ default:
         "API v2 SDK Global Handler: Path root error: FoobarPathRootError[{\n    ErrorContent = \"invalid/..\";..."
 --------------------------------------------------------------------------
 system:
-  hash: "e83958592c40bfb6fe71d3470dfc8974"
+  hash: "edf11538dd666aa68ad12009f10c88d2"
   component:
     system*
       threads*
@@ -194,7 +194,7 @@ system:
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "__NSBLOCKOPERATION_IS_CALLING_OUT_TO_A_BLOCK__"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
               "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
           frame*
