@@ -7,9 +7,9 @@ from arroyo.processing.strategies import (
     CommitOffsets,
     ProcessingStrategy,
     ProcessingStrategyFactory,
-    RunTask,
 )
 from arroyo.types import Commit, Message, Partition
+from django.db.models import F
 from typing_extensions import NotRequired
 
 from sentry.constants import DataCategory
@@ -17,7 +17,6 @@ from sentry.models.project import Project
 from sentry.sentry_metrics.indexer.strings import SHARED_TAG_STRINGS, TRANSACTION_METRICS_NAMES
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import reverse_resolve_tag_value
-from sentry.signals import first_custom_metric_received
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome, track_outcome
 
@@ -40,27 +39,13 @@ class MetricsBucket(TypedDict):
     type: NotRequired[str]
 
 
-def flag_metric_received_for_project(message: Message[MetricsBucket]) -> Message[MetricsBucket]:
-    project_id = message.payload["project_id"]
-    try:
-        project = Project.objects.get_from_cache(id=project_id)
-        if not project.flags.has_custom_metrics:
-            first_custom_metric_received.send_robust(project=project, sender=Project)
-    except Project.DoesNotExist:
-        pass
-
-    return message
-
-
 class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def create_with_partitions(
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        # This task is used to track when a metric has been received for the first time for a project.
-        flag_metric = RunTask(flag_metric_received_for_project, CommitOffsets(commit))
-        return BillingTxCountMetricConsumerStrategy(flag_metric)
+        return BillingTxCountMetricConsumerStrategy(CommitOffsets(commit))
 
 
 class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
@@ -91,8 +76,11 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         assert not self.__closed
 
         payload = self._get_payload(message)
+
         self._produce_billing_outcomes(payload)
-        self.__next_step.submit(message.replace(payload))
+        self._flag_metric_received_for_project(payload)
+
+        self.__next_step.submit(message)
 
     def _get_payload(self, message: Message[KafkaPayload]) -> MetricsBucket:
         payload = json.loads(message.payload.value.decode("utf-8"), use_rapid_json=True)
@@ -157,6 +145,15 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             category=category,
             quantity=quantity,
         )
+
+    def _flag_metric_received_for_project(self, payload: MetricsBucket) -> None:
+        project_id = payload["project_id"]
+        try:
+            project = Project.objects.get_from_cache(id=project_id)
+            if not project.flags.has_custom_metrics:
+                project.update(flags=F("flags").bitor(Project.flags.has_custom_metrics))
+        except Project.DoesNotExist:
+            pass
 
     def join(self, timeout: Optional[float] = None) -> None:
         self.__next_step.join(timeout)

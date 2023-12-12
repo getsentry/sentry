@@ -4,14 +4,12 @@ from datetime import datetime, timezone
 from unittest import mock
 
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.processing.strategies import RunTask
 from arroyo.types import BrokerValue, Message, Partition, Topic
 
 from sentry.constants import DataCategory
 from sentry.ingest.billing_metrics_consumer import (
     BillingTxCountMetricConsumerStrategy,
     MetricsBucket,
-    flag_metric_received_for_project,
 )
 from sentry.sentry_metrics.indexer.strings import SHARED_TAG_STRINGS, TRANSACTION_METRICS_NAMES
 from sentry.testutils.helpers.datetime import freeze_time
@@ -129,7 +127,7 @@ def test_outcomes_consumed(first_custom_metric_received, track_outcome, factorie
     next_step = mock.MagicMock()
 
     strategy = BillingTxCountMetricConsumerStrategy(
-        next_step=RunTask(flag_metric_received_for_project, next_step),
+        next_step=next_step,
     )
 
     generate_kafka_message_counter = 0
