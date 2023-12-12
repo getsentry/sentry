@@ -205,7 +205,7 @@ class PagerDutyProxyApiClientTest(APITestCase):
             client = PagerDutyProxyApiTestClient(
                 org_integration_id=self.installation.org_integration.id,
                 integration_key=self.service["integration_key"],
-                keyid=self.service["id"],
+                keyid=str(self.service["id"]),
             )
             client.send_trigger(event)
 
@@ -220,7 +220,7 @@ class PagerDutyProxyApiClientTest(APITestCase):
             client = PagerDutyProxyApiTestClient(
                 org_integration_id=self.installation.org_integration.id,
                 integration_key=self.service["integration_key"],
-                keyid=self.service["id"],
+                keyid=str(self.service["id"]),
             )
             client.send_trigger(event)
 
@@ -235,7 +235,7 @@ class PagerDutyProxyApiClientTest(APITestCase):
             client = PagerDutyProxyApiTestClient(
                 org_integration_id=self.installation.org_integration.id,
                 integration_key=self.service["integration_key"],
-                keyid=self.service["id"],
+                keyid=str(self.service["id"]),
             )
             client.send_trigger(event)
 
