@@ -1,0 +1,23 @@
+---
+created: '2023-12-12T15:37:51.600669Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (logentry takes precedence)
+      threads (ignored because contains 20 threads)
+--------------------------------------------------------------------------
+default:
+  hash: "db363e30c27cb09f3e75276d7b53a6fc"
+  component:
+    default*
+      message*
+        "API v2 SDK Global Handler: Path root error: FoobarPathRootError[{\n    ErrorContent = \"invalid/..\";\n    RequestId = abcdefg;\n    StatusCode = 422;\n    StructuredPathRootError = \"<FudgeCOMMONPathRootError: 0x283b40280>\";\n    UserMessage = nil;\n}];"
+--------------------------------------------------------------------------
+system:
+  hash: null
+  component:
+    system (logentry takes precedence)
+      threads (ignored because contains 20 threads)

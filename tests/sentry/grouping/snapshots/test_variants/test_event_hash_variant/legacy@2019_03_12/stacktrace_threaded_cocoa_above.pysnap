@@ -1,0 +1,908 @@
+---
+created: '2023-12-12T15:37:48.818832Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "main"
+            function (function name is not used if module or filename are available)
+              "main"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s13FoobarBinary3unicornyyF"
+            function (function name is not used if module or filename are available)
+              "unicorn()"
+          frame (non app frame)
+            symbol (symbol is not used if module or filename are available)
+              "UIApplicationMain"
+            function (function name is not used if module or filename are available)
+              "UIApplicationMain"
+          frame (non app frame)
+            symbol (symbol is not used if module or filename are available)
+              "-[UIApplication _run]"
+            function (function name is not used if module or filename are available)
+              "-[UIApplication _run]"
+          frame (non app frame)
+            symbol (symbol is not used if module or filename are available)
+              "GSEventRunModal"
+            function (function name is not used if module or filename are available)
+              "GSEventRunModal"
+          frame (non app frame)
+            symbol (symbol is not used if module or filename are available)
+              "CFRunLoopRunSpecific"
+            function (function name is not used if module or filename are available)
+              "CFRunLoopRunSpecific"
+          frame (non app frame)
+            symbol (symbol is not used if module or filename are available)
+              "__CFRunLoopRun"
+            function (function name is not used if module or filename are available)
+              "__CFRunLoopRun"
+          frame (non app frame)
+            symbol (symbol is not used if module or filename are available)
+              "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__"
+            function (function name is not used if module or filename are available)
+              "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            symbol (symbol is not used if module or filename are available)
+              "_dispatch_main_queue_callback_4CF$VARIANT$armv81"
+            function (function name is not used if module or filename are available)
+              "_dispatch_main_queue_callback_4CF$VARIANT$armv81"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            symbol (symbol is not used if module or filename are available)
+              "_dispatch_main_queue_drain"
+            function (function name is not used if module or filename are available)
+              "_dispatch_main_queue_drain"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            symbol (symbol is not used if module or filename are available)
+              "_dispatch_client_callout"
+            function (function name is not used if module or filename are available)
+              "_dispatch_client_callout"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            symbol (symbol is not used if module or filename are available)
+              "_dispatch_call_block_and_release"
+            function (function name is not used if module or filename are available)
+              "_dispatch_call_block_and_release"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$sIeg_IeyB_TR"
+            function (function name is not used if module or filename are available)
+              "thunk for @escaping @callee_guaranteed () -> ()"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift13MainSchedulerC16scheduleInternal_6actionAA10Disposable_px_AaF_pxctlFyycfU_TA"
+            function (function name is not used if module or filename are available)
+              "partial apply for closure #1 () in MainScheduler.scheduleInternal<A>(_: A, action: (A))"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift15SubscribeOnSink33_B44C3DD7F62EF81799E6347E59A266A2LLC3runAA10Disposable_pyFAaF_pyt_tcfU_TA"
+            function (function name is not used if module or filename are available)
+              "partial apply for closure #1 (()) in SubscribeOnSink.run()"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift10ObservableCyxGAA0C4TypeA2aEP9subscribeyAA10Disposable_pqd__AA08ObserverD0Rd__7ElementQyd__AJRtzlFTW"
+            function (function name is not used if module or filename are available)
+              "protocol witness for ObservableType.subscribe<A>(A1) in conformance Observable<A>"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift8ProducerC9subscribeyAA10Disposable_pqd__7ElementQyd__RszAA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "Producer.subscribe<A>(A1)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift22CurrentThreadSchedulerC8schedule_6actionAA10Disposable_px_AaF_pxctlFyt_Tg5"
+            function (function name is not used if module or filename are available)
+              "specialized CurrentThreadScheduler.schedule<A>(_: A, action: (A))"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift8ProducerC9subscribeyAA10Disposable_pqd__7ElementQyd__RszAA12ObserverTypeRd__lFAaE_pyt_tcfU_TA"
+            function (function name is not used if module or filename are available)
+              "partial apply for closure #1 (()) in Producer.subscribe<A>(A1)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift2Do33_51F9E615740E91B2E920965FFBB1EED3LLC3run_6cancelAA10Disposable_p4sink_AaG_p12subscriptiontqd___AA10Cancelable_pt7ElementQyd__RszAA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "Do.run<A>(_: A1, cancel: Cancelable)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift8ProducerC9subscribeyAA10Disposable_pqd__7ElementQyd__RszAA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "Producer.subscribe<A>(A1)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift7FlatMap33_DDEA0423368B3B462AE46699A4D080E1LLC3run_6cancelAA10Disposable_p4sink_AaG_p12subscriptiontqd___AA10Cancelable_ptAA12ObserverTypeRd__7ElementQyd__ALRt_lF"
+            function (function name is not used if module or filename are available)
+              "FlatMap.run<A>(_: A1, cancel: Cancelable)"
+          frame (ignored due to recursion)
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift7FlatMap33_DDEA0423368B3B462AE46699A4D080E1LLC3run_6cancelAA10Disposable_p4sink_AaG_p12subscriptiontqd___AA10Cancelable_ptAA12ObserverTypeRd__7ElementQyd__ALRt_lFTm"
+            function (function name is not used if module or filename are available)
+              "FlatMap.run<A>(_: A1, cancel: Cancelable)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift9MergeSink33_DDEA0423368B3B462AE46699A4D080E1LLC3runyAA10Disposable_pAA10ObservableCyxGF"
+            function (function name is not used if module or filename are available)
+              "MergeSink.run(Observable<A>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift8ProducerC9subscribeyAA10Disposable_pqd__7ElementQyd__RszAA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "Producer.subscribe<A>(A1)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift17ConcatCompletable33_8B0AC4189DE8C01E10480F86AB129FE1LLC3run_6cancelAA10Disposable_p4sink_AaG_p12subscriptiontqd___AA10Cancelable_pt7ElementQyd__RszAA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "ConcatCompletable.run<A>(_: A1, cancel: Cancelable)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift8ProducerC9subscribeyAA10Disposable_pqd__7ElementQyd__RszAA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "Producer.subscribe<A>(A1)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift7FlatMap33_DDEA0423368B3B462AE46699A4D080E1LLC3run_6cancelAA10Disposable_p4sink_AaG_p12subscriptiontqd___AA10Cancelable_ptAA12ObserverTypeRd__7ElementQyd__ALRt_lF"
+            function (function name is not used if module or filename are available)
+              "FlatMap.run<A>(_: A1, cancel: Cancelable)"
+          frame (ignored due to recursion)
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift7FlatMap33_DDEA0423368B3B462AE46699A4D080E1LLC3run_6cancelAA10Disposable_p4sink_AaG_p12subscriptiontqd___AA10Cancelable_ptAA12ObserverTypeRd__7ElementQyd__ALRt_lFTm"
+            function (function name is not used if module or filename are available)
+              "FlatMap.run<A>(_: A1, cancel: Cancelable)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift9MergeSink33_DDEA0423368B3B462AE46699A4D080E1LLC3runyAA10Disposable_pAA10ObservableCyxGF"
+            function (function name is not used if module or filename are available)
+              "MergeSink.run(Observable<A>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift8ProducerC9subscribeyAA10Disposable_pqd__7ElementQyd__RszAA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "Producer.subscribe<A>(A1)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift8AsSingleC3run_6cancelAA10Disposable_p4sink_AaF_p12subscriptiontqd___AA10Cancelable_pt7ElementQyd__RszAA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "AsSingle.run<A>(_: A1, cancel: Cancelable)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift7AsMaybeC3run_6cancelAA10Disposable_p4sink_AaF_p12subscriptiontqd___AA10Cancelable_pt7ElementQyd__RszAA12ObserverTypeRd__lFTm"
+            function (function name is not used if module or filename are available)
+              "AsMaybe.run<A>(_: A1, cancel: Cancelable)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift8ProducerC9subscribeyAA10Disposable_pqd__7ElementQyd__RszAA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "Producer.subscribe<A>(A1)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift5Catch33_7E15DB08AB19A7B882D5C92A393C6F6DLLC3run_6cancelAA10Disposable_p4sink_AaG_p12subscriptiontqd___AA10Cancelable_pt7ElementQyd__RszAA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "Catch.run<A>(_: A1, cancel: Cancelable)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift8ProducerC9subscribeyAA10Disposable_pqd__7ElementQyd__RszAA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "Producer.subscribe<A>(A1)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift3Map33_5428EFA9A9B0C0340021B871D2E5AC01LLC3run_6cancelAA10Disposable_p4sink_AaG_p12subscriptiontqd___AA10Cancelable_pt7ElementQyd__Rs_AA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "Map.run<A>(_: A1, cancel: Cancelable)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift10CompactMap33_DC1810A76C85FEE1E9446EEE1AD6E3B2LLC3run_6cancelAA10Disposable_p4sink_AaG_p12subscriptiontqd___AA10Cancelable_pt7ElementQyd__Rs_AA12ObserverTypeRd__lFTm"
+            function (function name is not used if module or filename are available)
+              "CompactMap.run<A>(_: A1, cancel: Cancelable)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift8ProducerC9subscribeyAA10Disposable_pqd__7ElementQyd__RszAA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "Producer.subscribe<A>(A1)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift9TakeCount33_E3A91BB23FA62C45FF8D35F61C248DA3LLC3run_6cancelAA10Disposable_p4sink_AaG_p12subscriptiontqd___AA10Cancelable_pt7ElementQyd__RszAA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "TakeCount.run<A>(_: A1, cancel: Cancelable)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift9ElementAt33_64EA9A05E33B97DAC2537027B12EA83CLLC3run_6cancelAA10Disposable_p4sink_AaG_p12subscriptiontqd___AA10Cancelable_pt0C0Qyd__RszAA12ObserverTypeRd__lFTm"
+            function (function name is not used if module or filename are available)
+              "ElementAt.run<A>(_: A1, cancel: Cancelable)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift14PublishSubjectC9subscribeyAA10Disposable_pqd__7ElementQyd__RszAA12ObserverTypeRd__lFTm"
+            function (function name is not used if module or filename are available)
+              "PublishSubject.subscribe<A>(A1)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift15BehaviorSubjectC22synchronized_subscribeyAA10Disposable_pqd__7ElementQyd__RszAA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "BehaviorSubject.synchronized_subscribe<A>(A1)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift13TakeCountSink33_E3A91BB23FA62C45FF8D35F61C248DA3LLCyxGAA12ObserverTypeA2aFP2onyyAA5EventOy7ElementQzGFTW"
+            function (function name is not used if module or filename are available)
+              "protocol witness for ObserverType.on(Event<A.Element>) in conformance TakeCountSink<A>"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift13TakeCountSink33_E3A91BB23FA62C45FF8D35F61C248DA3LLC2onyyAA5EventOy7ElementQzGF"
+            function (function name is not used if module or filename are available)
+              "TakeCountSink.on(Event<A.Element>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift4SinkC9forwardOnyyAA5EventOy7ElementQzGF"
+            function (function name is not used if module or filename are available)
+              "Sink.forwardOn(Event<A.Element>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift7MapSink33_5428EFA9A9B0C0340021B871D2E5AC01LLCyxq_GAA12ObserverTypeA2aFP2onyyAA5EventOy7ElementQzGFTW"
+            function (function name is not used if module or filename are available)
+              "protocol witness for ObserverType.on(Event<A.Element>) in conformance MapSink<A, B>"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift7MapSink33_5428EFA9A9B0C0340021B871D2E5AC01LLC2onyyAA5EventOyxGF"
+            function (function name is not used if module or filename are available)
+              "MapSink.on(Event<A>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift4SinkC9forwardOnyyAA5EventOy7ElementQzGF"
+            function (function name is not used if module or filename are available)
+              "Sink.forwardOn(Event<A.Element>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift9CatchSink33_7E15DB08AB19A7B882D5C92A393C6F6DLLCyxGAA12ObserverTypeA2aFP2onyyAA5EventOy7ElementQzGFTW"
+            function (function name is not used if module or filename are available)
+              "protocol witness for ObserverType.on(Event<A.Element>) in conformance CatchSink<A>"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift9CatchSink33_7E15DB08AB19A7B882D5C92A393C6F6DLLC2onyyAA5EventOy7ElementQzGF"
+            function (function name is not used if module or filename are available)
+              "CatchSink.on(Event<A.Element>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift4SinkC9forwardOnyyAA5EventOy7ElementQzGF"
+            function (function name is not used if module or filename are available)
+              "Sink.forwardOn(Event<A.Element>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift12AsSingleSink33_335C1F141075C9CA60CC9F489378CFCCLLCyxGAA12ObserverTypeA2aFP2onyyAA5EventOy7ElementQzGFTW"
+            function (function name is not used if module or filename are available)
+              "protocol witness for ObserverType.on(Event<A.Element>) in conformance AsSingleSink<A>"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift12AsSingleSink33_335C1F141075C9CA60CC9F489378CFCCLLC2onyyAA5EventOy7ElementQzGF"
+            function (function name is not used if module or filename are available)
+              "AsSingleSink.on(Event<A.Element>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift4SinkC9forwardOnyyAA5EventOy7ElementQzGF"
+            function (function name is not used if module or filename are available)
+              "Sink.forwardOn(Event<A.Element>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift9MergeSink33_DDEA0423368B3B462AE46699A4D080E1LLCyxq_q0_GAA12ObserverTypeA2aFP2onyyAA5EventOy7ElementQzGFTW"
+            function (function name is not used if module or filename are available)
+              "protocol witness for ObserverType.on(Event<A.Element>) in conformance MergeSink<A, B, C>"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift9MergeSink33_DDEA0423368B3B462AE46699A4D080E1LLC2onyyAA5EventOyxGF"
+            function (function name is not used if module or filename are available)
+              "MergeSink.on(Event<A>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift9MergeSink33_DDEA0423368B3B462AE46699A4D080E1LLC14subscribeInneryyAA10ObservableCy7ElementQy_GF"
+            function (function name is not used if module or filename are available)
+              "MergeSink.subscribeInner(Observable<B.Element>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift8ProducerC9subscribeyAA10Disposable_pqd__7ElementQyd__RszAA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "Producer.subscribe<A>(A1)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift19AnonymousObservable33_95EBF5692819D58425EC2DD0512D115ALLC3run_6cancelAA10Disposable_p4sink_AaG_p12subscriptiontqd___AA10Cancelable_pt7ElementQyd__RszAA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "AnonymousObservable.run<A>(_: A1, cancel: Cancelable)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift21PrimitiveSequenceTypePAAs5NeverO7ElementRtzAA16CompletableTraitO0I0RtzrlE6create9subscribeAA0cD0VyAiEGAA10Disposable_pyAA0H5EventOcc_tFZAaQ_pAA11AnyObserverVyAEGcfU_TA"
+            function (function name is not used if module or filename are available)
+              "partial apply for closure #1 (AnyObserver<Never>) in static PrimitiveSequenceType<>.create(subscribe: ((CompletableEvent)))"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s27ios_dbapp_home_repositories24FileListDataProviderShimC7refresh7RxSwift17PrimitiveSequenceVyAE16CompletableTraitOs5NeverOGyFAlC_0a1_b1_c1_D10_interface04HomegH5StateOtcfU_AE10Disposable_pyAE0O5EventOccfU_TA"
+            function (function name is not used if module or filename are available)
+              "partial apply for closure #1 ((CompletableEvent)) in closure #1 (FileListDataProviderShim, HomeDataProviderState) in FileListDataProviderShim.refresh()"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s27ios_dbapp_home_repositories30SortedFileListDataProviderShimC15fetchAllEntries22allowLoadedStateUpdateySb_tF"
+            function (function name is not used if module or filename are available)
+              "SortedFileListDataProviderShim.fetchAllEntries(allowLoadedStateUpdate: Bool)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift12ObserverTypePAAE6onNextyy7ElementQzF"
+            function (function name is not used if module or filename are available)
+              "ObserverType.onNext(A.Element)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift15BehaviorSubjectCyxGAA12ObserverTypeA2aEP2onyyAA5EventOy7ElementQzGFTW"
+            function (function name is not used if module or filename are available)
+              "protocol witness for ObserverType.on(Event<A.Element>) in conformance BehaviorSubject<A>"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift14PublishSubjectC2onyyAA5EventOyxGFTm"
+            function (function name is not used if module or filename are available)
+              "PublishSubject.on(Event<A>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift5EventOyxGIegn_ADytIegnr_7ElementQyd__RszAA12ObserverTypeRd__r__lTRTA"
+            function (function name is not used if module or filename are available)
+              "partial apply for thunk for @escaping @callee_guaranteed (@in_guaranteed Event<A>) -> ()"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift16ReplayBufferBase33_33052C2CE59F358A8740AFDD4371DD39LLC22synchronized_subscribeyAA10Disposable_pqd__7ElementQyd__RszAA12ObserverTypeRd__lFyAA5EventOyxGcqd__cfu_yALcfu0_TATm"
+            function (function name is not used if module or filename are available)
+              "partial apply for implicit closure #2 (Event<A>) in implicit closure #1 (A1) in ReplayBufferBase.synchronized_subscribe<A>(A1)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift24DistinctUntilChangedSink33_E3F223CC021AC9AC449F07C289E543F8LLCyxq_GAA12ObserverTypeA2aFP2onyyAA5EventOy7ElementQzGFTW"
+            function (function name is not used if module or filename are available)
+              "protocol witness for ObserverType.on(Event<A.Element>) in conformance DistinctUntilChangedSink<A, B>"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift24DistinctUntilChangedSink33_E3F223CC021AC9AC449F07C289E543F8LLC2onyyAA5EventOy7ElementQzGF"
+            function (function name is not used if module or filename are available)
+              "DistinctUntilChangedSink.on(Event<A.Element>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift4SinkC9forwardOnyyAA5EventOy7ElementQzGF"
+            function (function name is not used if module or filename are available)
+              "Sink.forwardOn(Event<A.Element>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift15SubscribeOnSink33_B44C3DD7F62EF81799E6347E59A266A2LLCyxq_GAA12ObserverTypeA2aFP2onyyAA5EventOy7ElementQzGFTW"
+            function (function name is not used if module or filename are available)
+              "protocol witness for ObserverType.on(Event<A.Element>) in conformance SubscribeOnSink<A, B>"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift15SubscribeOnSink33_B44C3DD7F62EF81799E6347E59A266A2LLC2onyyAA5EventOy7ElementQzGF"
+            function (function name is not used if module or filename are available)
+              "SubscribeOnSink.on(Event<A.Element>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift4SinkC9forwardOnyyAA5EventOy7ElementQzGF"
+            function (function name is not used if module or filename are available)
+              "Sink.forwardOn(Event<A.Element>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift7MapSink33_5428EFA9A9B0C0340021B871D2E5AC01LLCyxq_GAA12ObserverTypeA2aFP2onyyAA5EventOy7ElementQzGFTW"
+            function (function name is not used if module or filename are available)
+              "protocol witness for ObserverType.on(Event<A.Element>) in conformance MapSink<A, B>"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift7MapSink33_5428EFA9A9B0C0340021B871D2E5AC01LLC2onyyAA5EventOyxGF"
+            function (function name is not used if module or filename are available)
+              "MapSink.on(Event<A>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift14ObservableTypeP27ios_dbapp_home_repositoriesSayAD13FileListEntryOG7ElementRtzrlE11asHomeItemsAA0C0CySay0e1_f1_G22_interactors_interface0N4ItemOGGvgApGcfU_"
+            function (function name is not used if module or filename are available)
+              "closure #1 ([FileListEntry]) in ObservableType<>.asHomeItems.getter"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$sSTsE10compactMapySayqd__Gqd__Sg7ElementQzKXEKlFSay27ios_dbapp_home_repositories13FileListEntryOG_0d1_e1_F22_interactors_interface8HomeItemOTg5033$s7RxSwift14ObservableTypeP27ios_e1_f1_g7SayAD13hij3OG7c10RtzrlE11asm26ItemsAA0C0CySay0e1_f1_G22_k13_inter..."
+            function (function name is not used if module or filename are available)
+              "specialized Sequence.compactMap<A>((A.Element))"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s27ios_dbapp_home_repositories13FileListEntryO10asHomeItem0a1_b1_C22_interactors_interface0iJ0OSgvg"
+            function (function name is not used if module or filename are available)
+              "FileListEntry.asHomeItem.getter"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$sSo11FudgeFileEntryP27ios_dbapp_home_repositoriesE10asHomeFile4with0c1_d1_E22_interactors_interface0hI5ModelVSgSo07FudgeFilesM7ContextCSg_tF"
+            function (function name is not used if module or filename are available)
+              "FudgeFileEntry.asHomeFile(with: FudgeFilesModelContext?)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "-[FudgeUserFileEntry metadataLoader]"
+            function (function name is not used if module or filename are available)
+              "-[FudgeUserFileEntry metadataLoader]"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "-[FudgeUserFileMetadataLoader initWithFilePath:withUserID:metadataManager:]"
+            function (function name is not used if module or filename are available)
+              "-[FudgeUserFileMetadataLoader initWithFilePath:withUserID:metadataManager:]"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "-[FudgeMetadataManagerV2 cachedNoContentsMetadataForPath:]"
+            function (function name is not used if module or filename are available)
+              "-[FudgeMetadataManagerV2 cachedNoContentsMetadataForPath:]"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "-[FudgeMetadataDatabase currentMetadataForPath:]"
+            function (function name is not used if module or filename are available)
+              "-[FudgeMetadataDatabase currentMetadataForPath:]"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "-[FudgeDatabaseQueryQueue waitAndRunSynchronousNonMutatingSingleQuery:]"
+            function (function name is not used if module or filename are available)
+              "-[FudgeDatabaseQueryQueue waitAndRunSynchronousNonMutatingSingleQuery:]"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            symbol (symbol is not used if module or filename are available)
+              "_dispatch_semaphore_wait_slow"
+            function (function name is not used if module or filename are available)
+              "_dispatch_semaphore_wait_slow"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            symbol (symbol is not used if module or filename are available)
+              "_dispatch_sema4_wait$VARIANT$armv81"
+            function (function name is not used if module or filename are available)
+              "_dispatch_sema4_wait$VARIANT$armv81"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            symbol (symbol is not used if module or filename are available)
+              "semaphore_wait_trap"
+            function (function name is not used if module or filename are available)
+              "semaphore_wait_trap"
+        type*
+          "App Hanging"
+        value*
+          "App hanging for at least 2000 ms."
+      threads (ignored because contains 24 threads)
+--------------------------------------------------------------------------
+system:
+  hash: "4f60c8b93920ca11fc65a0775b7f9900"
+  component:
+    system*
+      exception*
+        stacktrace
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "main"
+            function (function name is not used if module or filename are available)
+              "main"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s13FoobarBinary3unicornyyF"
+            function (function name is not used if module or filename are available)
+              "unicorn()"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "UIApplicationMain"
+            function (function name is not used if module or filename are available)
+              "UIApplicationMain"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "-[UIApplication _run]"
+            function (function name is not used if module or filename are available)
+              "-[UIApplication _run]"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "GSEventRunModal"
+            function (function name is not used if module or filename are available)
+              "GSEventRunModal"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "CFRunLoopRunSpecific"
+            function (function name is not used if module or filename are available)
+              "CFRunLoopRunSpecific"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "__CFRunLoopRun"
+            function (function name is not used if module or filename are available)
+              "__CFRunLoopRun"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__"
+            function (function name is not used if module or filename are available)
+              "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            symbol (symbol is not used if module or filename are available)
+              "_dispatch_main_queue_callback_4CF$VARIANT$armv81"
+            function (function name is not used if module or filename are available)
+              "_dispatch_main_queue_callback_4CF$VARIANT$armv81"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            symbol (symbol is not used if module or filename are available)
+              "_dispatch_main_queue_drain"
+            function (function name is not used if module or filename are available)
+              "_dispatch_main_queue_drain"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            symbol (symbol is not used if module or filename are available)
+              "_dispatch_client_callout"
+            function (function name is not used if module or filename are available)
+              "_dispatch_client_callout"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            symbol (symbol is not used if module or filename are available)
+              "_dispatch_call_block_and_release"
+            function (function name is not used if module or filename are available)
+              "_dispatch_call_block_and_release"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$sIeg_IeyB_TR"
+            function (function name is not used if module or filename are available)
+              "thunk for @escaping @callee_guaranteed () -> ()"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift13MainSchedulerC16scheduleInternal_6actionAA10Disposable_px_AaF_pxctlFyycfU_TA"
+            function (function name is not used if module or filename are available)
+              "partial apply for closure #1 () in MainScheduler.scheduleInternal<A>(_: A, action: (A))"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift15SubscribeOnSink33_B44C3DD7F62EF81799E6347E59A266A2LLC3runAA10Disposable_pyFAaF_pyt_tcfU_TA"
+            function (function name is not used if module or filename are available)
+              "partial apply for closure #1 (()) in SubscribeOnSink.run()"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift10ObservableCyxGAA0C4TypeA2aEP9subscribeyAA10Disposable_pqd__AA08ObserverD0Rd__7ElementQyd__AJRtzlFTW"
+            function (function name is not used if module or filename are available)
+              "protocol witness for ObservableType.subscribe<A>(A1) in conformance Observable<A>"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift8ProducerC9subscribeyAA10Disposable_pqd__7ElementQyd__RszAA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "Producer.subscribe<A>(A1)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift22CurrentThreadSchedulerC8schedule_6actionAA10Disposable_px_AaF_pxctlFyt_Tg5"
+            function (function name is not used if module or filename are available)
+              "specialized CurrentThreadScheduler.schedule<A>(_: A, action: (A))"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift8ProducerC9subscribeyAA10Disposable_pqd__7ElementQyd__RszAA12ObserverTypeRd__lFAaE_pyt_tcfU_TA"
+            function (function name is not used if module or filename are available)
+              "partial apply for closure #1 (()) in Producer.subscribe<A>(A1)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift2Do33_51F9E615740E91B2E920965FFBB1EED3LLC3run_6cancelAA10Disposable_p4sink_AaG_p12subscriptiontqd___AA10Cancelable_pt7ElementQyd__RszAA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "Do.run<A>(_: A1, cancel: Cancelable)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift8ProducerC9subscribeyAA10Disposable_pqd__7ElementQyd__RszAA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "Producer.subscribe<A>(A1)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift7FlatMap33_DDEA0423368B3B462AE46699A4D080E1LLC3run_6cancelAA10Disposable_p4sink_AaG_p12subscriptiontqd___AA10Cancelable_ptAA12ObserverTypeRd__7ElementQyd__ALRt_lF"
+            function (function name is not used if module or filename are available)
+              "FlatMap.run<A>(_: A1, cancel: Cancelable)"
+          frame (ignored due to recursion)
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift7FlatMap33_DDEA0423368B3B462AE46699A4D080E1LLC3run_6cancelAA10Disposable_p4sink_AaG_p12subscriptiontqd___AA10Cancelable_ptAA12ObserverTypeRd__7ElementQyd__ALRt_lFTm"
+            function (function name is not used if module or filename are available)
+              "FlatMap.run<A>(_: A1, cancel: Cancelable)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift9MergeSink33_DDEA0423368B3B462AE46699A4D080E1LLC3runyAA10Disposable_pAA10ObservableCyxGF"
+            function (function name is not used if module or filename are available)
+              "MergeSink.run(Observable<A>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift8ProducerC9subscribeyAA10Disposable_pqd__7ElementQyd__RszAA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "Producer.subscribe<A>(A1)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift17ConcatCompletable33_8B0AC4189DE8C01E10480F86AB129FE1LLC3run_6cancelAA10Disposable_p4sink_AaG_p12subscriptiontqd___AA10Cancelable_pt7ElementQyd__RszAA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "ConcatCompletable.run<A>(_: A1, cancel: Cancelable)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift8ProducerC9subscribeyAA10Disposable_pqd__7ElementQyd__RszAA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "Producer.subscribe<A>(A1)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift7FlatMap33_DDEA0423368B3B462AE46699A4D080E1LLC3run_6cancelAA10Disposable_p4sink_AaG_p12subscriptiontqd___AA10Cancelable_ptAA12ObserverTypeRd__7ElementQyd__ALRt_lF"
+            function (function name is not used if module or filename are available)
+              "FlatMap.run<A>(_: A1, cancel: Cancelable)"
+          frame (ignored due to recursion)
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift7FlatMap33_DDEA0423368B3B462AE46699A4D080E1LLC3run_6cancelAA10Disposable_p4sink_AaG_p12subscriptiontqd___AA10Cancelable_ptAA12ObserverTypeRd__7ElementQyd__ALRt_lFTm"
+            function (function name is not used if module or filename are available)
+              "FlatMap.run<A>(_: A1, cancel: Cancelable)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift9MergeSink33_DDEA0423368B3B462AE46699A4D080E1LLC3runyAA10Disposable_pAA10ObservableCyxGF"
+            function (function name is not used if module or filename are available)
+              "MergeSink.run(Observable<A>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift8ProducerC9subscribeyAA10Disposable_pqd__7ElementQyd__RszAA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "Producer.subscribe<A>(A1)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift8AsSingleC3run_6cancelAA10Disposable_p4sink_AaF_p12subscriptiontqd___AA10Cancelable_pt7ElementQyd__RszAA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "AsSingle.run<A>(_: A1, cancel: Cancelable)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift7AsMaybeC3run_6cancelAA10Disposable_p4sink_AaF_p12subscriptiontqd___AA10Cancelable_pt7ElementQyd__RszAA12ObserverTypeRd__lFTm"
+            function (function name is not used if module or filename are available)
+              "AsMaybe.run<A>(_: A1, cancel: Cancelable)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift8ProducerC9subscribeyAA10Disposable_pqd__7ElementQyd__RszAA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "Producer.subscribe<A>(A1)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift5Catch33_7E15DB08AB19A7B882D5C92A393C6F6DLLC3run_6cancelAA10Disposable_p4sink_AaG_p12subscriptiontqd___AA10Cancelable_pt7ElementQyd__RszAA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "Catch.run<A>(_: A1, cancel: Cancelable)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift8ProducerC9subscribeyAA10Disposable_pqd__7ElementQyd__RszAA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "Producer.subscribe<A>(A1)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift3Map33_5428EFA9A9B0C0340021B871D2E5AC01LLC3run_6cancelAA10Disposable_p4sink_AaG_p12subscriptiontqd___AA10Cancelable_pt7ElementQyd__Rs_AA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "Map.run<A>(_: A1, cancel: Cancelable)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift10CompactMap33_DC1810A76C85FEE1E9446EEE1AD6E3B2LLC3run_6cancelAA10Disposable_p4sink_AaG_p12subscriptiontqd___AA10Cancelable_pt7ElementQyd__Rs_AA12ObserverTypeRd__lFTm"
+            function (function name is not used if module or filename are available)
+              "CompactMap.run<A>(_: A1, cancel: Cancelable)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift8ProducerC9subscribeyAA10Disposable_pqd__7ElementQyd__RszAA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "Producer.subscribe<A>(A1)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift9TakeCount33_E3A91BB23FA62C45FF8D35F61C248DA3LLC3run_6cancelAA10Disposable_p4sink_AaG_p12subscriptiontqd___AA10Cancelable_pt7ElementQyd__RszAA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "TakeCount.run<A>(_: A1, cancel: Cancelable)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift9ElementAt33_64EA9A05E33B97DAC2537027B12EA83CLLC3run_6cancelAA10Disposable_p4sink_AaG_p12subscriptiontqd___AA10Cancelable_pt0C0Qyd__RszAA12ObserverTypeRd__lFTm"
+            function (function name is not used if module or filename are available)
+              "ElementAt.run<A>(_: A1, cancel: Cancelable)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift14PublishSubjectC9subscribeyAA10Disposable_pqd__7ElementQyd__RszAA12ObserverTypeRd__lFTm"
+            function (function name is not used if module or filename are available)
+              "PublishSubject.subscribe<A>(A1)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift15BehaviorSubjectC22synchronized_subscribeyAA10Disposable_pqd__7ElementQyd__RszAA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "BehaviorSubject.synchronized_subscribe<A>(A1)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift13TakeCountSink33_E3A91BB23FA62C45FF8D35F61C248DA3LLCyxGAA12ObserverTypeA2aFP2onyyAA5EventOy7ElementQzGFTW"
+            function (function name is not used if module or filename are available)
+              "protocol witness for ObserverType.on(Event<A.Element>) in conformance TakeCountSink<A>"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift13TakeCountSink33_E3A91BB23FA62C45FF8D35F61C248DA3LLC2onyyAA5EventOy7ElementQzGF"
+            function (function name is not used if module or filename are available)
+              "TakeCountSink.on(Event<A.Element>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift4SinkC9forwardOnyyAA5EventOy7ElementQzGF"
+            function (function name is not used if module or filename are available)
+              "Sink.forwardOn(Event<A.Element>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift7MapSink33_5428EFA9A9B0C0340021B871D2E5AC01LLCyxq_GAA12ObserverTypeA2aFP2onyyAA5EventOy7ElementQzGFTW"
+            function (function name is not used if module or filename are available)
+              "protocol witness for ObserverType.on(Event<A.Element>) in conformance MapSink<A, B>"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift7MapSink33_5428EFA9A9B0C0340021B871D2E5AC01LLC2onyyAA5EventOyxGF"
+            function (function name is not used if module or filename are available)
+              "MapSink.on(Event<A>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift4SinkC9forwardOnyyAA5EventOy7ElementQzGF"
+            function (function name is not used if module or filename are available)
+              "Sink.forwardOn(Event<A.Element>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift9CatchSink33_7E15DB08AB19A7B882D5C92A393C6F6DLLCyxGAA12ObserverTypeA2aFP2onyyAA5EventOy7ElementQzGFTW"
+            function (function name is not used if module or filename are available)
+              "protocol witness for ObserverType.on(Event<A.Element>) in conformance CatchSink<A>"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift9CatchSink33_7E15DB08AB19A7B882D5C92A393C6F6DLLC2onyyAA5EventOy7ElementQzGF"
+            function (function name is not used if module or filename are available)
+              "CatchSink.on(Event<A.Element>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift4SinkC9forwardOnyyAA5EventOy7ElementQzGF"
+            function (function name is not used if module or filename are available)
+              "Sink.forwardOn(Event<A.Element>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift12AsSingleSink33_335C1F141075C9CA60CC9F489378CFCCLLCyxGAA12ObserverTypeA2aFP2onyyAA5EventOy7ElementQzGFTW"
+            function (function name is not used if module or filename are available)
+              "protocol witness for ObserverType.on(Event<A.Element>) in conformance AsSingleSink<A>"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift12AsSingleSink33_335C1F141075C9CA60CC9F489378CFCCLLC2onyyAA5EventOy7ElementQzGF"
+            function (function name is not used if module or filename are available)
+              "AsSingleSink.on(Event<A.Element>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift4SinkC9forwardOnyyAA5EventOy7ElementQzGF"
+            function (function name is not used if module or filename are available)
+              "Sink.forwardOn(Event<A.Element>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift9MergeSink33_DDEA0423368B3B462AE46699A4D080E1LLCyxq_q0_GAA12ObserverTypeA2aFP2onyyAA5EventOy7ElementQzGFTW"
+            function (function name is not used if module or filename are available)
+              "protocol witness for ObserverType.on(Event<A.Element>) in conformance MergeSink<A, B, C>"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift9MergeSink33_DDEA0423368B3B462AE46699A4D080E1LLC2onyyAA5EventOyxGF"
+            function (function name is not used if module or filename are available)
+              "MergeSink.on(Event<A>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift9MergeSink33_DDEA0423368B3B462AE46699A4D080E1LLC14subscribeInneryyAA10ObservableCy7ElementQy_GF"
+            function (function name is not used if module or filename are available)
+              "MergeSink.subscribeInner(Observable<B.Element>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift8ProducerC9subscribeyAA10Disposable_pqd__7ElementQyd__RszAA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "Producer.subscribe<A>(A1)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift19AnonymousObservable33_95EBF5692819D58425EC2DD0512D115ALLC3run_6cancelAA10Disposable_p4sink_AaG_p12subscriptiontqd___AA10Cancelable_pt7ElementQyd__RszAA12ObserverTypeRd__lF"
+            function (function name is not used if module or filename are available)
+              "AnonymousObservable.run<A>(_: A1, cancel: Cancelable)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift21PrimitiveSequenceTypePAAs5NeverO7ElementRtzAA16CompletableTraitO0I0RtzrlE6create9subscribeAA0cD0VyAiEGAA10Disposable_pyAA0H5EventOcc_tFZAaQ_pAA11AnyObserverVyAEGcfU_TA"
+            function (function name is not used if module or filename are available)
+              "partial apply for closure #1 (AnyObserver<Never>) in static PrimitiveSequenceType<>.create(subscribe: ((CompletableEvent)))"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s27ios_dbapp_home_repositories24FileListDataProviderShimC7refresh7RxSwift17PrimitiveSequenceVyAE16CompletableTraitOs5NeverOGyFAlC_0a1_b1_c1_D10_interface04HomegH5StateOtcfU_AE10Disposable_pyAE0O5EventOccfU_TA"
+            function (function name is not used if module or filename are available)
+              "partial apply for closure #1 ((CompletableEvent)) in closure #1 (FileListDataProviderShim, HomeDataProviderState) in FileListDataProviderShim.refresh()"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s27ios_dbapp_home_repositories30SortedFileListDataProviderShimC15fetchAllEntries22allowLoadedStateUpdateySb_tF"
+            function (function name is not used if module or filename are available)
+              "SortedFileListDataProviderShim.fetchAllEntries(allowLoadedStateUpdate: Bool)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift12ObserverTypePAAE6onNextyy7ElementQzF"
+            function (function name is not used if module or filename are available)
+              "ObserverType.onNext(A.Element)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift15BehaviorSubjectCyxGAA12ObserverTypeA2aEP2onyyAA5EventOy7ElementQzGFTW"
+            function (function name is not used if module or filename are available)
+              "protocol witness for ObserverType.on(Event<A.Element>) in conformance BehaviorSubject<A>"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift14PublishSubjectC2onyyAA5EventOyxGFTm"
+            function (function name is not used if module or filename are available)
+              "PublishSubject.on(Event<A>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift5EventOyxGIegn_ADytIegnr_7ElementQyd__RszAA12ObserverTypeRd__r__lTRTA"
+            function (function name is not used if module or filename are available)
+              "partial apply for thunk for @escaping @callee_guaranteed (@in_guaranteed Event<A>) -> ()"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift16ReplayBufferBase33_33052C2CE59F358A8740AFDD4371DD39LLC22synchronized_subscribeyAA10Disposable_pqd__7ElementQyd__RszAA12ObserverTypeRd__lFyAA5EventOyxGcqd__cfu_yALcfu0_TATm"
+            function (function name is not used if module or filename are available)
+              "partial apply for implicit closure #2 (Event<A>) in implicit closure #1 (A1) in ReplayBufferBase.synchronized_subscribe<A>(A1)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift24DistinctUntilChangedSink33_E3F223CC021AC9AC449F07C289E543F8LLCyxq_GAA12ObserverTypeA2aFP2onyyAA5EventOy7ElementQzGFTW"
+            function (function name is not used if module or filename are available)
+              "protocol witness for ObserverType.on(Event<A.Element>) in conformance DistinctUntilChangedSink<A, B>"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift24DistinctUntilChangedSink33_E3F223CC021AC9AC449F07C289E543F8LLC2onyyAA5EventOy7ElementQzGF"
+            function (function name is not used if module or filename are available)
+              "DistinctUntilChangedSink.on(Event<A.Element>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift4SinkC9forwardOnyyAA5EventOy7ElementQzGF"
+            function (function name is not used if module or filename are available)
+              "Sink.forwardOn(Event<A.Element>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift15SubscribeOnSink33_B44C3DD7F62EF81799E6347E59A266A2LLCyxq_GAA12ObserverTypeA2aFP2onyyAA5EventOy7ElementQzGFTW"
+            function (function name is not used if module or filename are available)
+              "protocol witness for ObserverType.on(Event<A.Element>) in conformance SubscribeOnSink<A, B>"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift15SubscribeOnSink33_B44C3DD7F62EF81799E6347E59A266A2LLC2onyyAA5EventOy7ElementQzGF"
+            function (function name is not used if module or filename are available)
+              "SubscribeOnSink.on(Event<A.Element>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift4SinkC9forwardOnyyAA5EventOy7ElementQzGF"
+            function (function name is not used if module or filename are available)
+              "Sink.forwardOn(Event<A.Element>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift7MapSink33_5428EFA9A9B0C0340021B871D2E5AC01LLCyxq_GAA12ObserverTypeA2aFP2onyyAA5EventOy7ElementQzGFTW"
+            function (function name is not used if module or filename are available)
+              "protocol witness for ObserverType.on(Event<A.Element>) in conformance MapSink<A, B>"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift7MapSink33_5428EFA9A9B0C0340021B871D2E5AC01LLC2onyyAA5EventOyxGF"
+            function (function name is not used if module or filename are available)
+              "MapSink.on(Event<A>)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s7RxSwift14ObservableTypeP27ios_dbapp_home_repositoriesSayAD13FileListEntryOG7ElementRtzrlE11asHomeItemsAA0C0CySay0e1_f1_G22_interactors_interface0N4ItemOGGvgApGcfU_"
+            function (function name is not used if module or filename are available)
+              "closure #1 ([FileListEntry]) in ObservableType<>.asHomeItems.getter"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$sSTsE10compactMapySayqd__Gqd__Sg7ElementQzKXEKlFSay27ios_dbapp_home_repositories13FileListEntryOG_0d1_e1_F22_interactors_interface8HomeItemOTg5033$s7RxSwift14ObservableTypeP27ios_e1_f1_g7SayAD13hij3OG7c10RtzrlE11asm26ItemsAA0C0CySay0e1_f1_G22_k13_inter..."
+            function (function name is not used if module or filename are available)
+              "specialized Sequence.compactMap<A>((A.Element))"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$s27ios_dbapp_home_repositories13FileListEntryO10asHomeItem0a1_b1_C22_interactors_interface0iJ0OSgvg"
+            function (function name is not used if module or filename are available)
+              "FileListEntry.asHomeItem.getter"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "$sSo11FudgeFileEntryP27ios_dbapp_home_repositoriesE10asHomeFile4with0c1_d1_E22_interactors_interface0hI5ModelVSgSo07FudgeFilesM7ContextCSg_tF"
+            function (function name is not used if module or filename are available)
+              "FudgeFileEntry.asHomeFile(with: FudgeFilesModelContext?)"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "-[FudgeUserFileEntry metadataLoader]"
+            function (function name is not used if module or filename are available)
+              "-[FudgeUserFileEntry metadataLoader]"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "-[FudgeUserFileMetadataLoader initWithFilePath:withUserID:metadataManager:]"
+            function (function name is not used if module or filename are available)
+              "-[FudgeUserFileMetadataLoader initWithFilePath:withUserID:metadataManager:]"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "-[FudgeMetadataManagerV2 cachedNoContentsMetadataForPath:]"
+            function (function name is not used if module or filename are available)
+              "-[FudgeMetadataManagerV2 cachedNoContentsMetadataForPath:]"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "-[FudgeMetadataDatabase currentMetadataForPath:]"
+            function (function name is not used if module or filename are available)
+              "-[FudgeMetadataDatabase currentMetadataForPath:]"
+          frame
+            symbol (symbol is not used if module or filename are available)
+              "-[FudgeDatabaseQueryQueue waitAndRunSynchronousNonMutatingSingleQuery:]"
+            function (function name is not used if module or filename are available)
+              "-[FudgeDatabaseQueryQueue waitAndRunSynchronousNonMutatingSingleQuery:]"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            symbol (symbol is not used if module or filename are available)
+              "_dispatch_semaphore_wait_slow"
+            function (function name is not used if module or filename are available)
+              "_dispatch_semaphore_wait_slow"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            symbol (symbol is not used if module or filename are available)
+              "_dispatch_sema4_wait$VARIANT$armv81"
+            function (function name is not used if module or filename are available)
+              "_dispatch_sema4_wait$VARIANT$armv81"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            symbol (symbol is not used if module or filename are available)
+              "semaphore_wait_trap"
+            function (function name is not used if module or filename are available)
+              "semaphore_wait_trap"
+        type*
+          "App Hanging"
+        value*
+          "App hanging for at least 2000 ms."
+      threads (ignored because contains 24 threads)

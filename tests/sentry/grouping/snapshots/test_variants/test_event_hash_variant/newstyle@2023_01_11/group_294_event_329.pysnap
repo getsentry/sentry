@@ -1,5 +1,5 @@
 ---
-created: '2023-12-12T15:28:00.451600Z'
+created: '2023-12-12T00:50:04.939548Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -176,10 +176,10 @@ system:
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_dispatch_worker_thread2"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "_dispatch_root_queue_drain"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "_dispatch_client_callout"
           frame*

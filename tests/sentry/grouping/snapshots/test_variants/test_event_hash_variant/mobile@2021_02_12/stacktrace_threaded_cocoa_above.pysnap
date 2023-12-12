@@ -1,320 +1,175 @@
 ---
-created: '2023-12-12T00:48:13.121030Z'
+created: '2023-12-12T15:38:06.290630Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app:
-  hash: "27b89bf1859fc369c2a84d89fa5d1a4a"
+app-depth-1:
+  hash: "e5848d02a7c16722ce108f14227cee60"
+  tree_label: "-[FudgeDatabaseQueryQueue waitAndRunSynchronousNonMutatingSingleQuery:]"
   component:
-    app*
+    app-depth-1*
       exception*
         stacktrace*
-          frame*
-            function*
-              "main"
-          frame*
-            function*
-              "unicorn"
-          frame (non app frame)
-            function*
-              "UIApplicationMain"
-          frame (non app frame)
-            function*
-              "-[UIApplication _run]"
-          frame (non app frame)
-            function*
-              "GSEventRunModal"
-          frame (non app frame)
-            function*
-              "CFRunLoopRunSpecific"
-          frame (non app frame)
-            function*
-              "__CFRunLoopRun"
-          frame (non app frame)
-            function*
-              "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-            function*
-              "_dispatch_main_queue_callback_4CF$VARIANT$armv81"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-            function*
-              "_dispatch_main_queue_drain"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-            function*
-              "_dispatch_client_callout"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-            function*
-              "_dispatch_call_block_and_release"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "thunk for closure"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "MainScheduler.scheduleInternal<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "SubscribeOnSink.run"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "Observable<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "Producer.subscribe<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "CurrentThreadScheduler.schedule<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "Producer.subscribe<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "Do.run<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "Producer.subscribe<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "FlatMap.run<T>"
-          frame (ignored due to recursion)
-            function*
-              "FlatMap.run<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "MergeSink.run"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "Producer.subscribe<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "ConcatCompletable.run<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "Producer.subscribe<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "FlatMap.run<T>"
-          frame (ignored due to recursion)
-            function*
-              "FlatMap.run<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "MergeSink.run"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "Producer.subscribe<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "AsSingle.run<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "AsMaybe.run<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "Producer.subscribe<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "Catch.run<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "Producer.subscribe<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "Map.run<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "CompactMap.run<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "Producer.subscribe<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "TakeCount.run<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "ElementAt.run<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "PublishSubject.subscribe<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "BehaviorSubject.synchronized_subscribe<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "TakeCountSink<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "TakeCountSink.on"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "Sink.forwardOn"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "MapSink<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "MapSink.on"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "Sink.forwardOn"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "CatchSink<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "CatchSink.on"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "Sink.forwardOn"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "AsSingleSink<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "AsSingleSink.on"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "Sink.forwardOn"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "MergeSink<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "MergeSink.on"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "MergeSink.subscribeInner"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "Producer.subscribe<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "AnonymousObservable.run<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "PrimitiveSequenceType<T>.create"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "FileListDataProviderShim.refresh"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "SortedFileListDataProviderShim.fetchAllEntries"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "ObserverType.onNext"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "BehaviorSubject<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "PublishSubject.on"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "thunk for closure"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "ReplayBufferBase.synchronized_subscribe<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "DistinctUntilChangedSink<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "DistinctUntilChangedSink.on"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "Sink.forwardOn"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "SubscribeOnSink<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "SubscribeOnSink.on"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "Sink.forwardOn"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "MapSink<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "MapSink.on"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "ObservableType<T>.asHomeItems.getter"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "Sequence.compactMap<T>"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "FileListEntry.asHomeItem.getter"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "FudgeFileEntry.asHomeFile"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "-[FudgeUserFileEntry metadataLoader]"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "-[FudgeUserFileMetadataLoader initWithFilePath:withUserID:metadataManager:]"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "-[FudgeMetadataManagerV2 cachedNoContentsMetadataForPath:]"
-          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "-[FudgeMetadataDatabase currentMetadataForPath:]"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
               "-[FudgeDatabaseQueryQueue waitAndRunSynchronousNonMutatingSingleQuery:]"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-            function*
-              "_dispatch_semaphore_wait_slow"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-            function*
-              "_dispatch_sema4_wait$VARIANT$armv81"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-            function*
-              "semaphore_wait_trap"
         type*
           "App Hanging"
         value (ignored because stacktrace takes precedence)
           "App hanging for at least <int> ms."
-      threads (exception of app/system takes precedence)
+      threads (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
         stacktrace*
-          frame*
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
-              "main"
-          frame*
+              "-[FudgeDatabaseQueryQueue waitAndRunSynchronousNonMutatingSingleQuery:]"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "a31474a647cff0debb519d87b24a847e"
+  tree_label: "-[FudgeDatabaseQueryQueue waitAndRunSynchronousNonMutatingSingleQuery:] | -[FudgeMetadataDatabase currentMetadataForPath:]"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
-              "unicorn"
-          frame (non app frame)
+              "-[FudgeMetadataDatabase currentMetadataForPath:]"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
-              "UIApplicationMain"
-          frame (non app frame)
+              "-[FudgeDatabaseQueryQueue waitAndRunSynchronousNonMutatingSingleQuery:]"
+        type*
+          "App Hanging"
+        value (ignored because stacktrace takes precedence)
+          "App hanging for at least <int> ms."
+      threads (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
+        stacktrace*
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
-              "-[UIApplication _run]"
-          frame (non app frame)
+              "-[FudgeMetadataDatabase currentMetadataForPath:]"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
-              "GSEventRunModal"
-          frame (non app frame)
+              "-[FudgeDatabaseQueryQueue waitAndRunSynchronousNonMutatingSingleQuery:]"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "5a465a82053f85d898c94a9cc10a7f16"
+  tree_label: "-[FudgeDatabaseQueryQueue waitAndRunSynchronousNonMutatingSingleQuery:] | -[FudgeMetadataDatabase currentMetadataForPath:] | -[FudgeMetadataManagerV2 cachedNoContentsMetadataForPath:]"
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
-              "CFRunLoopRunSpecific"
-          frame (non app frame)
+              "-[FudgeMetadataManagerV2 cachedNoContentsMetadataForPath:]"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
-              "__CFRunLoopRun"
-          frame (non app frame)
+              "-[FudgeMetadataDatabase currentMetadataForPath:]"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
-              "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              "-[FudgeDatabaseQueryQueue waitAndRunSynchronousNonMutatingSingleQuery:]"
+        type*
+          "App Hanging"
+        value (ignored because stacktrace takes precedence)
+          "App hanging for at least <int> ms."
+      threads (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
+        stacktrace*
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
-              "_dispatch_main_queue_callback_4CF$VARIANT$armv81"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              "-[FudgeMetadataManagerV2 cachedNoContentsMetadataForPath:]"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
-              "_dispatch_main_queue_drain"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              "-[FudgeMetadataDatabase currentMetadataForPath:]"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
-              "_dispatch_client_callout"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              "-[FudgeDatabaseQueryQueue waitAndRunSynchronousNonMutatingSingleQuery:]"
+--------------------------------------------------------------------------
+app-depth-4:
+  hash: "ae452d99587c2927dee9c145b1982299"
+  tree_label: "-[FudgeDatabaseQueryQueue waitAndRunSynchronousNonMutatingSingleQuery:] | -[FudgeMetadataDatabase currentMetadataForPath:] | -[FudgeMetadataManagerV2 cachedNoContentsMetadataForPath:] | -[FudgeUserFileMetadataLoader initWithFilePath:withUserID:metadataManager:]"
+  component:
+    app-depth-4*
+      exception*
+        stacktrace*
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
-              "_dispatch_call_block_and_release"
+              "-[FudgeUserFileMetadataLoader initWithFilePath:withUserID:metadataManager:]"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "-[FudgeMetadataManagerV2 cachedNoContentsMetadataForPath:]"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "-[FudgeMetadataDatabase currentMetadataForPath:]"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "-[FudgeDatabaseQueryQueue waitAndRunSynchronousNonMutatingSingleQuery:]"
+        type*
+          "App Hanging"
+        value (ignored because stacktrace takes precedence)
+          "App hanging for at least <int> ms."
+      threads (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
+        stacktrace*
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "-[FudgeUserFileMetadataLoader initWithFilePath:withUserID:metadataManager:]"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "-[FudgeMetadataManagerV2 cachedNoContentsMetadataForPath:]"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "-[FudgeMetadataDatabase currentMetadataForPath:]"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "-[FudgeDatabaseQueryQueue waitAndRunSynchronousNonMutatingSingleQuery:]"
+--------------------------------------------------------------------------
+app-depth-5:
+  hash: "462911101109a94210710381b983e270"
+  tree_label: "-[FudgeDatabaseQueryQueue waitAndRunSynchronousNonMutatingSingleQuery:] | -[FudgeMetadataDatabase currentMetadataForPath:] | -[FudgeMetadataManagerV2 cachedNoContentsMetadataForPath:] | -[FudgeUserFileMetadataLoader initWithFilePath:withUserID:metadataManager:] | -[FudgeUserFileEntry metadataLoader]"
+  component:
+    app-depth-5*
+      exception*
+        stacktrace*
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "-[FudgeUserFileEntry metadataLoader]"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "-[FudgeUserFileMetadataLoader initWithFilePath:withUserID:metadataManager:]"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "-[FudgeMetadataManagerV2 cachedNoContentsMetadataForPath:]"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "-[FudgeMetadataDatabase currentMetadataForPath:]"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "-[FudgeDatabaseQueryQueue waitAndRunSynchronousNonMutatingSingleQuery:]"
+        type*
+          "App Hanging"
+        value (ignored because stacktrace takes precedence)
+          "App hanging for at least <int> ms."
+      threads (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
+        stacktrace*
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "-[FudgeUserFileEntry metadataLoader]"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "-[FudgeUserFileMetadataLoader initWithFilePath:withUserID:metadataManager:]"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "-[FudgeMetadataManagerV2 cachedNoContentsMetadataForPath:]"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "-[FudgeMetadataDatabase currentMetadataForPath:]"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "-[FudgeDatabaseQueryQueue waitAndRunSynchronousNonMutatingSingleQuery:]"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "231c695eef1511862198479c702c347e"
+  tree_label: "-[FudgeDatabaseQueryQueue waitAndRunSynchronousNonMutatingSingleQuery:] | -[FudgeMetadataDatabase currentMetadataForPath:] | -[FudgeMetadataManagerV2 cachedNoContentsMetadataForPath:] | -[FudgeUserFileMetadataLoader initWithFilePath:withUserID:metadataManager:] | -[FudgeUserFileEntry metadataLoader] | FudgeFileEntry.asHomeFile | FileListEntry.asHomeItem.getter | Sequence.compactMap<T> | ObservableType<T>.asHomeItems.getter | MapSink.on | MapSink<T> | Sink.forwardOn | SubscribeOnSink.on | SubscribeOnSink<T> | Sink.forwardOn | DistinctUntilChangedSink.on | DistinctUntilChangedSink<T> | ReplayBufferBase.synchronized_subscribe<T> | thunk for closure | PublishSubject.on | BehaviorSubject<T> | ObserverType.onNext | SortedFileListDataProviderShim.fetchAllEntries | FileListDataProviderShim.refresh | PrimitiveSequenceType<T>.create | AnonymousObservable.run<T> | Producer.subscribe<T> | MergeSink.subscribeInner | MergeSink.on | MergeSink<T> | Sink.forwardOn | AsSingleSink.on | AsSingleSink<T> | Sink.forwardOn | CatchSink.on | CatchSink<T> | Sink.forwardOn | MapSink.on | MapSink<T> | Sink.forwardOn | TakeCountSink.on | TakeCountSink<T> | BehaviorSubject.synchronized_subscribe<T> | PublishSubject.subscribe<T> | ElementAt.run<T> | TakeCount.run<T> | Producer.subscribe<T> | CompactMap.run<T> | Map.run<T> | Producer.subscribe<T> | Catch.run<T> | Producer.subscribe<T> | AsMaybe.run<T> | AsSingle.run<T> | Producer.subscribe<T> | MergeSink.run | FlatMap.run<T> | Producer.subscribe<T> | ConcatCompletable.run<T> | Producer.subscribe<T> | MergeSink.run | FlatMap.run<T> | Producer.subscribe<T> | Do.run<T> | Producer.subscribe<T> | CurrentThreadScheduler.schedule<T> | Producer.subscribe<T> | Observable<T> | SubscribeOnSink.run | MainScheduler.scheduleInternal<T> | thunk for closure"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
               "thunk for closure"
@@ -345,9 +200,6 @@ app:
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
               "FlatMap.run<T>"
-          frame (ignored due to recursion)
-            function*
-              "FlatMap.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
               "MergeSink.run"
@@ -361,9 +213,6 @@ app:
             function*
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
-              "FlatMap.run<T>"
-          frame (ignored due to recursion)
             function*
               "FlatMap.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
@@ -534,53 +383,264 @@ app:
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
               "-[FudgeDatabaseQueryQueue waitAndRunSynchronousNonMutatingSingleQuery:]"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+        type*
+          "App Hanging"
+        value (ignored because stacktrace takes precedence)
+          "App hanging for at least <int> ms."
+      threads (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
+        stacktrace*
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
-              "_dispatch_semaphore_wait_slow"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              "thunk for closure"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
-              "_dispatch_sema4_wait$VARIANT$armv81"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              "MainScheduler.scheduleInternal<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
-              "semaphore_wait_trap"
+              "SubscribeOnSink.run"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "Observable<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "Producer.subscribe<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "CurrentThreadScheduler.schedule<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "Producer.subscribe<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "Do.run<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "Producer.subscribe<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "FlatMap.run<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "MergeSink.run"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "Producer.subscribe<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "ConcatCompletable.run<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "Producer.subscribe<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "FlatMap.run<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "MergeSink.run"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "Producer.subscribe<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "AsSingle.run<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "AsMaybe.run<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "Producer.subscribe<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "Catch.run<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "Producer.subscribe<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "Map.run<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "CompactMap.run<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "Producer.subscribe<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "TakeCount.run<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "ElementAt.run<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "PublishSubject.subscribe<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "BehaviorSubject.synchronized_subscribe<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "TakeCountSink<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "TakeCountSink.on"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "Sink.forwardOn"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "MapSink<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "MapSink.on"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "Sink.forwardOn"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "CatchSink<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "CatchSink.on"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "Sink.forwardOn"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "AsSingleSink<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "AsSingleSink.on"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "Sink.forwardOn"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "MergeSink<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "MergeSink.on"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "MergeSink.subscribeInner"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "Producer.subscribe<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "AnonymousObservable.run<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "PrimitiveSequenceType<T>.create"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "FileListDataProviderShim.refresh"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "SortedFileListDataProviderShim.fetchAllEntries"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "ObserverType.onNext"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "BehaviorSubject<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "PublishSubject.on"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "thunk for closure"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "ReplayBufferBase.synchronized_subscribe<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "DistinctUntilChangedSink<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "DistinctUntilChangedSink.on"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "Sink.forwardOn"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "SubscribeOnSink<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "SubscribeOnSink.on"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "Sink.forwardOn"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "MapSink<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "MapSink.on"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "ObservableType<T>.asHomeItems.getter"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "Sequence.compactMap<T>"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "FileListEntry.asHomeItem.getter"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "FudgeFileEntry.asHomeFile"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "-[FudgeUserFileEntry metadataLoader]"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "-[FudgeUserFileMetadataLoader initWithFilePath:withUserID:metadataManager:]"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "-[FudgeMetadataManagerV2 cachedNoContentsMetadataForPath:]"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "-[FudgeMetadataDatabase currentMetadataForPath:]"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "-[FudgeDatabaseQueryQueue waitAndRunSynchronousNonMutatingSingleQuery:]"
 --------------------------------------------------------------------------
 system:
-  hash: "b0e780c99e772ecb413c13c2bbda5f44"
+  hash: "231c695eef1511862198479c702c347e"
+  tree_label: "-[FudgeDatabaseQueryQueue waitAndRunSynchronousNonMutatingSingleQuery:] | -[FudgeMetadataDatabase currentMetadataForPath:] | -[FudgeMetadataManagerV2 cachedNoContentsMetadataForPath:] | -[FudgeUserFileMetadataLoader initWithFilePath:withUserID:metadataManager:] | -[FudgeUserFileEntry metadataLoader] | FudgeFileEntry.asHomeFile | FileListEntry.asHomeItem.getter | Sequence.compactMap<T> | ObservableType<T>.asHomeItems.getter | MapSink.on | MapSink<T> | Sink.forwardOn | SubscribeOnSink.on | SubscribeOnSink<T> | Sink.forwardOn | DistinctUntilChangedSink.on | DistinctUntilChangedSink<T> | ReplayBufferBase.synchronized_subscribe<T> | thunk for closure | PublishSubject.on | BehaviorSubject<T> | ObserverType.onNext | SortedFileListDataProviderShim.fetchAllEntries | FileListDataProviderShim.refresh | PrimitiveSequenceType<T>.create | AnonymousObservable.run<T> | Producer.subscribe<T> | MergeSink.subscribeInner | MergeSink.on | MergeSink<T> | Sink.forwardOn | AsSingleSink.on | AsSingleSink<T> | Sink.forwardOn | CatchSink.on | CatchSink<T> | Sink.forwardOn | MapSink.on | MapSink<T> | Sink.forwardOn | TakeCountSink.on | TakeCountSink<T> | BehaviorSubject.synchronized_subscribe<T> | PublishSubject.subscribe<T> | ElementAt.run<T> | TakeCount.run<T> | Producer.subscribe<T> | CompactMap.run<T> | Map.run<T> | Producer.subscribe<T> | Catch.run<T> | Producer.subscribe<T> | AsMaybe.run<T> | AsSingle.run<T> | Producer.subscribe<T> | MergeSink.run | FlatMap.run<T> | Producer.subscribe<T> | ConcatCompletable.run<T> | Producer.subscribe<T> | MergeSink.run | FlatMap.run<T> | Producer.subscribe<T> | Do.run<T> | Producer.subscribe<T> | CurrentThreadScheduler.schedule<T> | Producer.subscribe<T> | Observable<T> | SubscribeOnSink.run | MainScheduler.scheduleInternal<T> | thunk for closure"
   component:
     system*
       exception*
         stacktrace*
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "main"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "unicorn"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "UIApplicationMain"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "-[UIApplication _run]"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "GSEventRunModal"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "CFRunLoopRunSpecific"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "__CFRunLoopRun"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_dispatch_main_queue_callback_4CF$VARIANT$armv81"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_dispatch_main_queue_drain"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_dispatch_client_callout"
           frame (ignored by stack trace rule (category:internals -group))
@@ -818,39 +878,39 @@ system:
           "App Hanging"
         value (ignored because stacktrace takes precedence)
           "App hanging for at least <int> ms."
-      threads (exception of app/system takes precedence)
+      threads (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-5/app-depth-max/system takes precedence)
         stacktrace*
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "main"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "unicorn"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "UIApplicationMain"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "-[UIApplication _run]"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "GSEventRunModal"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "CFRunLoopRunSpecific"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "__CFRunLoopRun"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_dispatch_main_queue_callback_4CF$VARIANT$armv81"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_dispatch_main_queue_drain"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_dispatch_client_callout"
           frame (ignored by stack trace rule (category:internals -group))

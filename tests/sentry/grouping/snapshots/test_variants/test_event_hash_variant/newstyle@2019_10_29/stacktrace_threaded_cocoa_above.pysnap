@@ -1,5 +1,5 @@
 ---
-created: '2023-12-12T00:48:13.121030Z'
+created: '2023-12-12T15:38:00.223558Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -545,7 +545,7 @@ app:
               "semaphore_wait_trap"
 --------------------------------------------------------------------------
 system:
-  hash: "b0e780c99e772ecb413c13c2bbda5f44"
+  hash: "6a86653d7445135a0f488edcd1e42701"
   component:
     system*
       exception*
@@ -559,31 +559,31 @@ system:
           frame*
             function*
               "UIApplicationMain"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "-[UIApplication _run]"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "GSEventRunModal"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "CFRunLoopRunSpecific"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "__CFRunLoopRun"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "_dispatch_main_queue_callback_4CF$VARIANT$armv81"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "_dispatch_main_queue_drain"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "_dispatch_client_callout"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "_dispatch_call_block_and_release"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
@@ -805,13 +805,13 @@ system:
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
               "-[FudgeDatabaseQueryQueue waitAndRunSynchronousNonMutatingSingleQuery:]"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "_dispatch_semaphore_wait_slow"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "_dispatch_sema4_wait$VARIANT$armv81"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "semaphore_wait_trap"
         type*
@@ -829,31 +829,31 @@ system:
           frame*
             function*
               "UIApplicationMain"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "-[UIApplication _run]"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "GSEventRunModal"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "CFRunLoopRunSpecific"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "__CFRunLoopRun"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "_dispatch_main_queue_callback_4CF$VARIANT$armv81"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "_dispatch_main_queue_drain"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "_dispatch_client_callout"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "_dispatch_call_block_and_release"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
@@ -1075,12 +1075,12 @@ system:
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
               "-[FudgeDatabaseQueryQueue waitAndRunSynchronousNonMutatingSingleQuery:]"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "_dispatch_semaphore_wait_slow"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "_dispatch_sema4_wait$VARIANT$armv81"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "semaphore_wait_trap"

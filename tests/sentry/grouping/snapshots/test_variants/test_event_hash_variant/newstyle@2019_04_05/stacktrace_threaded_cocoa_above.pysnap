@@ -1,5 +1,5 @@
 ---
-created: '2023-12-12T00:48:13.121030Z'
+created: '2023-12-12T15:38:22.210281Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -13,7 +13,7 @@ app:
             function*
               "main"
           frame*
-            function*
+            function* (isolated function)
               "unicorn"
           frame (non app frame)
             function*
@@ -46,208 +46,208 @@ app:
             function*
               "_dispatch_call_block_and_release"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "thunk for closure"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MainScheduler.scheduleInternal<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "SubscribeOnSink.run"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Observable<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "CurrentThreadScheduler.schedule<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Do.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "FlatMap.run<T>"
           frame (ignored due to recursion)
-            function*
+            function* (isolated function)
               "FlatMap.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MergeSink.run"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "ConcatCompletable.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "FlatMap.run<T>"
           frame (ignored due to recursion)
-            function*
+            function* (isolated function)
               "FlatMap.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MergeSink.run"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "AsSingle.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "AsMaybe.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Catch.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Map.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "CompactMap.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "TakeCount.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "ElementAt.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "PublishSubject.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "BehaviorSubject.synchronized_subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "TakeCountSink<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "TakeCountSink.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Sink.forwardOn"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MapSink<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MapSink.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Sink.forwardOn"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "CatchSink<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "CatchSink.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Sink.forwardOn"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "AsSingleSink<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "AsSingleSink.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Sink.forwardOn"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MergeSink<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MergeSink.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MergeSink.subscribeInner"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "AnonymousObservable.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "PrimitiveSequenceType<T>.create"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "FileListDataProviderShim.refresh"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "SortedFileListDataProviderShim.fetchAllEntries"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "ObserverType.onNext"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "BehaviorSubject<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "PublishSubject.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "thunk for closure"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "ReplayBufferBase.synchronized_subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "DistinctUntilChangedSink<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "DistinctUntilChangedSink.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Sink.forwardOn"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "SubscribeOnSink<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "SubscribeOnSink.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Sink.forwardOn"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MapSink<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MapSink.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "ObservableType<T>.asHomeItems.getter"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Sequence.compactMap<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
               "FileListEntry.asHomeItem.getter"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "FudgeFileEntry.asHomeFile"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
@@ -275,15 +275,13 @@ app:
               "semaphore_wait_trap"
         type*
           "App Hanging"
-        value (ignored because stacktrace takes precedence)
-          "App hanging for at least <int> ms."
       threads (exception of app/system takes precedence)
         stacktrace*
           frame*
             function*
               "main"
           frame*
-            function*
+            function* (isolated function)
               "unicorn"
           frame (non app frame)
             function*
@@ -316,208 +314,208 @@ app:
             function*
               "_dispatch_call_block_and_release"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "thunk for closure"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MainScheduler.scheduleInternal<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "SubscribeOnSink.run"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Observable<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "CurrentThreadScheduler.schedule<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Do.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "FlatMap.run<T>"
           frame (ignored due to recursion)
-            function*
+            function* (isolated function)
               "FlatMap.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MergeSink.run"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "ConcatCompletable.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "FlatMap.run<T>"
           frame (ignored due to recursion)
-            function*
+            function* (isolated function)
               "FlatMap.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MergeSink.run"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "AsSingle.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "AsMaybe.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Catch.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Map.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "CompactMap.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "TakeCount.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "ElementAt.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "PublishSubject.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "BehaviorSubject.synchronized_subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "TakeCountSink<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "TakeCountSink.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Sink.forwardOn"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MapSink<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MapSink.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Sink.forwardOn"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "CatchSink<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "CatchSink.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Sink.forwardOn"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "AsSingleSink<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "AsSingleSink.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Sink.forwardOn"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MergeSink<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MergeSink.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MergeSink.subscribeInner"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "AnonymousObservable.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "PrimitiveSequenceType<T>.create"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "FileListDataProviderShim.refresh"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "SortedFileListDataProviderShim.fetchAllEntries"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "ObserverType.onNext"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "BehaviorSubject<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "PublishSubject.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "thunk for closure"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "ReplayBufferBase.synchronized_subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "DistinctUntilChangedSink<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "DistinctUntilChangedSink.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Sink.forwardOn"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "SubscribeOnSink<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "SubscribeOnSink.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Sink.forwardOn"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MapSink<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MapSink.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "ObservableType<T>.asHomeItems.getter"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Sequence.compactMap<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
               "FileListEntry.asHomeItem.getter"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "FudgeFileEntry.asHomeFile"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
@@ -545,7 +543,7 @@ app:
               "semaphore_wait_trap"
 --------------------------------------------------------------------------
 system:
-  hash: "b0e780c99e772ecb413c13c2bbda5f44"
+  hash: "6a86653d7445135a0f488edcd1e42701"
   component:
     system*
       exception*
@@ -554,241 +552,241 @@ system:
             function*
               "main"
           frame*
-            function*
+            function* (isolated function)
               "unicorn"
           frame*
             function*
               "UIApplicationMain"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "-[UIApplication _run]"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "GSEventRunModal"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "CFRunLoopRunSpecific"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "__CFRunLoopRun"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "_dispatch_main_queue_callback_4CF$VARIANT$armv81"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "_dispatch_main_queue_drain"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "_dispatch_client_callout"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "_dispatch_call_block_and_release"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "thunk for closure"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MainScheduler.scheduleInternal<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "SubscribeOnSink.run"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Observable<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "CurrentThreadScheduler.schedule<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Do.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "FlatMap.run<T>"
           frame (ignored due to recursion)
-            function*
+            function* (isolated function)
               "FlatMap.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MergeSink.run"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "ConcatCompletable.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "FlatMap.run<T>"
           frame (ignored due to recursion)
-            function*
+            function* (isolated function)
               "FlatMap.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MergeSink.run"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "AsSingle.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "AsMaybe.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Catch.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Map.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "CompactMap.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "TakeCount.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "ElementAt.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "PublishSubject.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "BehaviorSubject.synchronized_subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "TakeCountSink<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "TakeCountSink.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Sink.forwardOn"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MapSink<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MapSink.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Sink.forwardOn"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "CatchSink<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "CatchSink.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Sink.forwardOn"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "AsSingleSink<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "AsSingleSink.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Sink.forwardOn"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MergeSink<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MergeSink.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MergeSink.subscribeInner"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "AnonymousObservable.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "PrimitiveSequenceType<T>.create"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "FileListDataProviderShim.refresh"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "SortedFileListDataProviderShim.fetchAllEntries"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "ObserverType.onNext"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "BehaviorSubject<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "PublishSubject.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "thunk for closure"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "ReplayBufferBase.synchronized_subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "DistinctUntilChangedSink<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "DistinctUntilChangedSink.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Sink.forwardOn"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "SubscribeOnSink<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "SubscribeOnSink.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Sink.forwardOn"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MapSink<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MapSink.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "ObservableType<T>.asHomeItems.getter"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Sequence.compactMap<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
               "FileListEntry.asHomeItem.getter"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "FudgeFileEntry.asHomeFile"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
@@ -805,260 +803,258 @@ system:
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
               "-[FudgeDatabaseQueryQueue waitAndRunSynchronousNonMutatingSingleQuery:]"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "_dispatch_semaphore_wait_slow"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "_dispatch_sema4_wait$VARIANT$armv81"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "semaphore_wait_trap"
         type*
           "App Hanging"
-        value (ignored because stacktrace takes precedence)
-          "App hanging for at least <int> ms."
       threads (exception of app/system takes precedence)
         stacktrace*
           frame*
             function*
               "main"
           frame*
-            function*
+            function* (isolated function)
               "unicorn"
           frame*
             function*
               "UIApplicationMain"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "-[UIApplication _run]"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "GSEventRunModal"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "CFRunLoopRunSpecific"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "__CFRunLoopRun"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "_dispatch_main_queue_callback_4CF$VARIANT$armv81"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "_dispatch_main_queue_drain"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "_dispatch_client_callout"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "_dispatch_call_block_and_release"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "thunk for closure"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MainScheduler.scheduleInternal<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "SubscribeOnSink.run"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Observable<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "CurrentThreadScheduler.schedule<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Do.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "FlatMap.run<T>"
           frame (ignored due to recursion)
-            function*
+            function* (isolated function)
               "FlatMap.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MergeSink.run"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "ConcatCompletable.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "FlatMap.run<T>"
           frame (ignored due to recursion)
-            function*
+            function* (isolated function)
               "FlatMap.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MergeSink.run"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "AsSingle.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "AsMaybe.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Catch.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Map.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "CompactMap.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "TakeCount.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "ElementAt.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "PublishSubject.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "BehaviorSubject.synchronized_subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "TakeCountSink<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "TakeCountSink.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Sink.forwardOn"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MapSink<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MapSink.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Sink.forwardOn"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "CatchSink<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "CatchSink.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Sink.forwardOn"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "AsSingleSink<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "AsSingleSink.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Sink.forwardOn"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MergeSink<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MergeSink.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MergeSink.subscribeInner"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Producer.subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "AnonymousObservable.run<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "PrimitiveSequenceType<T>.create"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "FileListDataProviderShim.refresh"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "SortedFileListDataProviderShim.fetchAllEntries"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "ObserverType.onNext"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "BehaviorSubject<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "PublishSubject.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "thunk for closure"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "ReplayBufferBase.synchronized_subscribe<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "DistinctUntilChangedSink<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "DistinctUntilChangedSink.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Sink.forwardOn"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "SubscribeOnSink<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "SubscribeOnSink.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Sink.forwardOn"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MapSink<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "MapSink.on"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "ObservableType<T>.asHomeItems.getter"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "Sequence.compactMap<T>"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
               "FileListEntry.asHomeItem.getter"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
-            function*
+            function* (isolated function)
               "FudgeFileEntry.asHomeFile"
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
@@ -1075,12 +1071,12 @@ system:
           frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
               "-[FudgeDatabaseQueryQueue waitAndRunSynchronousNonMutatingSingleQuery:]"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "_dispatch_semaphore_wait_slow"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "_dispatch_sema4_wait$VARIANT$armv81"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "semaphore_wait_trap"

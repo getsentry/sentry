@@ -165,7 +165,6 @@ family:native function:_pthread_start category=threadbase
 family:native function:__pthread_start category=threadbase
 family:native function:_pthread_body category=threadbase
 family:native function:_dispatch_worker_thread2 category=threadbase
-family:native function:_dispatch_client_callout category=threadbase
 family:native function:start_wqthread category=threadbase
 family:native function:_pthread_wqthread category=threadbase
 family:native function:boost::*::thread_proxy category=threadbase

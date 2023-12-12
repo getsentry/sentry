@@ -1,10 +1,10 @@
 ---
-created: '2023-12-12T00:48:13.270368Z'
+created: '2023-12-12T15:38:26.719910Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: "9592be4d4010972d1fcf6b0907d82458"
+  hash: "49b5f57fb4d7f9f4656eec9cb8891ed8"
   component:
     app*
       threads*
@@ -16,7 +16,7 @@ app:
             function*
               "main"
           frame*
-            function*
+            function* (isolated function)
               "unicorn"
           frame (non app frame)
             function*
@@ -66,7 +66,7 @@ app:
           frame (non app frame)
             function*
               "__NSBLOCKOPERATION_IS_CALLING_OUT_TO_A_BLOCK__"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
               "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
           frame*
@@ -76,10 +76,10 @@ app:
             function*
               "FudgeLogAtLevel"
           frame*
-            function*
+            function* (isolated function)
               "thunk for closure"
           frame*
-            function*
+            function* (isolated function)
               "SentrySetupInteractor.setupSentry"
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
@@ -88,19 +88,19 @@ app:
             function*
               "_dispatch_client_callout"
           frame*
-            function*
+            function* (isolated function)
               "thunk for closure"
           frame (ignored due to recursion)
-            function*
+            function* (isolated function)
               "thunk for closure"
           frame*
-            function*
+            function* (isolated function)
               "SentrySetupInteractor.setupSentry"
           frame*
-            function*
+            function* (isolated function)
               "SentryWrapperImpl"
           frame*
-            function*
+            function* (isolated function)
               "BugsnagWrapperImpl.start"
           frame (marked out of app by stack trace rule (family:native function:?[[]Sentry* -app -group))
             function*
@@ -129,10 +129,10 @@ default:
   component:
     default (threads of app/system take precedence)
       message (threads of app/system take precedence)
-        "API v2 SDK Global Handler: Path root error: FoobarPathRootError[{\n    ErrorContent = \"invalid/..\";..."
+        "API v2 SDK Global Handler: Path root error: FoobarPathRootError[{\n    ErrorContent = \"invalid/..\";\n    RequestId = abcdefg;\n    StatusCode = 422;\n    StructuredPathRootError = \"<FudgeCOMMONPathRootError: 0x283b40280>\";\n    UserMessage = nil;\n}];"
 --------------------------------------------------------------------------
 system:
-  hash: "e83958592c40bfb6fe71d3470dfc8974"
+  hash: "cef8e9945893355d37da66768621e7f4"
   component:
     system*
       threads*
@@ -144,57 +144,57 @@ system:
             function*
               "main"
           frame*
-            function*
+            function* (isolated function)
               "unicorn"
           frame*
             function*
               "UIApplicationMain"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "-[UIApplication _run]"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "GSEventRunModal"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "CFRunLoopRunSpecific"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "__CFRunLoopRun"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "_dispatch_main_queue_callback_4CF"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "_dispatch_main_queue_drain"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "_dispatch_client_callout"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "_dispatch_block_async_invoke2"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "__NSOQSchedule_f"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "__NSOPERATIONQUEUE_IS_STARTING_AN_OPERATION__"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame*
             function*
               "-[NSOperation start]"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "__NSOPERATION_IS_INVOKING_MAIN__"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame*
             function*
               "-[NSBlockOperation main]"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "__NSBLOCKOPERATION_IS_CALLING_OUT_TO_A_BLOCK__"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
             function*
               "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
           frame*
@@ -204,31 +204,31 @@ system:
             function*
               "FudgeLogAtLevel"
           frame*
-            function*
+            function* (isolated function)
               "thunk for closure"
           frame*
-            function*
+            function* (isolated function)
               "SentrySetupInteractor.setupSentry"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "_dispatch_lane_barrier_sync_invoke_and_complete"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame*
             function*
               "_dispatch_client_callout"
           frame*
-            function*
+            function* (isolated function)
               "thunk for closure"
           frame (ignored due to recursion)
-            function*
+            function* (isolated function)
               "thunk for closure"
           frame*
-            function*
+            function* (isolated function)
               "SentrySetupInteractor.setupSentry"
           frame*
-            function*
+            function* (isolated function)
               "SentryWrapperImpl"
           frame*
-            function*
+            function* (isolated function)
               "BugsnagWrapperImpl.start"
           frame (ignored by stack trace rule (family:native function:?[[]Sentry* -app -group))
             function*
