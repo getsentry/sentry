@@ -311,25 +311,31 @@ def update_alert_rule(
     if serializer.is_valid():
         data = serializer.validated_data
 
-        kwargs = {
-            "project": project,
-            "actions": data.get("actions", []),
-            "environment": data.get("environment", None),
-            "name": f"Monitor Alert: {monitor.name}"[:64],
-            "conditions": [
-                {
-                    "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-                },
-                {
-                    "id": "sentry.rules.conditions.regression_event.RegressionEventCondition",
-                },
+        # update only slug conditions
+        conditions = alert_rule.data.get("conditions", [])
+        updated = False
+        for condition in conditions:
+            if condition.get("key") == "monitor.slug":
+                condition["value"] = monitor.slug
+                updated = True
+
+        # slug condition not present, add slug to conditions
+        if not updated:
+            conditions = conditions.append[
                 {
                     "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
                     "key": "monitor.slug",
                     "match": "eq",
                     "value": monitor.slug,
-                },
-            ],
+                }
+            ]
+
+        kwargs = {
+            "project": project,
+            "actions": data.get("actions", []),
+            "environment": data.get("environment", None),
+            "name": f"Monitor Alert: {monitor.name}"[:64],
+            "conditions": conditions,
         }
 
         updated_rule = Updater.run(rule=alert_rule, request=request, **kwargs)
