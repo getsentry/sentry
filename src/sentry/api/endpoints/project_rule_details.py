@@ -140,7 +140,13 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 # Because all of the prepare_* functions currently operate on ORM
                 # records we need to convert our RpcSentryApp and dict data into detached
                 # ORM models and stitch together relations used in preparing UI components.
-                installation = SentryAppInstallation(**action.get("_sentry_app_installation", {}))
+                installation = SentryAppInstallation(
+                    **action.get("_sentry_app_installation", {}),
+                )
+                # The api_token_id field is nulled out to prevent relation traversal as these
+                # ORM objects are turn back into RPC objects.
+                installation.api_token_id = None
+
                 rpc_app = action.get("_sentry_app")
                 installation.sentry_app = SentryApp(
                     id=rpc_app.id,
