@@ -11,7 +11,6 @@ export type Row = {
 };
 
 export type TransactionSampleRow = {
-  browser: string;
   id: string;
   'measurements.cls': number | null;
   'measurements.fcp': number | null;
@@ -24,7 +23,6 @@ export type TransactionSampleRow = {
   timestamp: string;
   transaction: string;
   'transaction.duration': number | null;
-  'transaction.op': string;
   'user.display': string;
 };
 
@@ -35,6 +33,15 @@ export type Score = {
   lcpScore: number;
   score: number;
   ttfbScore: number;
+  opportunity?: number;
+} & Partial<Weight>;
+
+export type Weight = {
+  clsWeight: number;
+  fcpWeight: number;
+  fidWeight: number;
+  lcpWeight: number;
+  ttfbWeight: number;
 };
 
 export type RowWithScore = Row & Score;
@@ -43,6 +50,7 @@ export type TransactionSampleRowWithScore = TransactionSampleRow & Score;
 
 export type WebVitals = 'lcp' | 'fcp' | 'cls' | 'ttfb' | 'fid';
 
+// TODO: Refactor once stored scores are GA'd
 export const SORTABLE_FIELDS = [
   'count()',
   'p75(measurements.cls)',
@@ -50,7 +58,10 @@ export const SORTABLE_FIELDS = [
   'p75(measurements.fid)',
   'p75(measurements.lcp)',
   'p75(measurements.ttfb)',
+  'score',
+  'opportunity',
   'avg(measurements.score.total)',
+  'opportunity_score(measurements.score.total)',
 ] as const;
 
 export const SORTABLE_INDEXED_FIELDS = [
@@ -59,6 +70,8 @@ export const SORTABLE_INDEXED_FIELDS = [
   'measurements.cls',
   'measurements.ttfb',
   'measurements.fid',
+  'score',
+  'measurements.score.total',
 ] as const;
 
 export const DEFAULT_SORT: Sort = {
