@@ -279,38 +279,6 @@ module:java.lang.Runtime function:loadLibrary* category=load
 
 family:native function:pthread_mutex_lock category=lock
 
-# not interesting at all, if for some reason this gets picked as grouping
-# frame, add the next one too
-category:free +prefix
-category:malloc +prefix
-
-# lock: fails to get acquired/released
-category:lock +sentinel +prefix
-
-# load: dylib/module fails to get loaded
-category:load +sentinel +prefix
-
-# driver crash, similar reasoning as for GL
-category:driver +sentinel +prefix
-
-# UI: This is mostly interesting for ANR, where we need to pick interesting UI
-# frames to group by. Sometimes it can also happen that some UI framework
-# crashes without the (calling) app being at fault, that's where this also gets
-# useful.
-category:ui +sentinel +prefix
-
-# GL: We've observed that the same sequence of app
-# ("submit data buffer") frames triggers very different crashes in there.
-category:gl +sentinel
-
-# runtime: frames from a garbage collector, JIT or something else in the language
-# runtime. Only add frames to this category if you think their presence makes it
-# unlikely that app frames are relevant, e.g. because app frames can't call the
-# JIT/GC directly, or at least not this way and it's really the runtime being
-# buggy, not the app (or at least unlikely that it's the app code currently running).
-category:runtime +sentinel
-
-
 # Ignore driver frame if it is directly calling another driver frame. This
 # removes a lot of noise from the stack especially if most of the called frames
 # failed symbolication, stack scanning was done or to paper over differences in
@@ -327,7 +295,7 @@ category:driver | [ category:driver ] category=internals
 
 # abort() and exception raising is technically the culprit for crashes, but not
 # the thing we want to show.
-category:throw +prefix ^-group
+category:throw ^-group
 
 # On Windows, _purecall internally aborts when the function pointer is invalid.
 # We want to treat this the same as a segfault happening before calling
