@@ -25,7 +25,7 @@ function SampleImages({groupId}: Props) {
       const size = resource[HTTP_RESPONSE_CONTENT_LENGTH];
       const fileName = getFileNameFromDescription(resource[SPAN_DESCRIPTION]);
       const key = `${fileName}-${size}`;
-      if (uniqueResources.has(key) || !size) {
+      if (uniqueResources.has(key)) {
         return false;
       }
       uniqueResources.add(key);
@@ -71,7 +71,7 @@ function ImageContainer({
 
   return (
     <div style={{width: '100%', wordWrap: 'break-word'}}>
-      <img src={src} style={{width: imageWidth, height: '200px'}} />
+      <img src={src} style={{minWidth: imageWidth, height: '200px'}} />
       {fileName} ({fileSize})
     </div>
   );
