@@ -1,9 +1,5 @@
 ---
-<<<<<<< HEAD
-created: '2023-12-12T15:38:20.429440Z'
-=======
 created: '2023-12-12T13:53:16.104124Z'
->>>>>>> 25b61eecbaa (fix(grouping): Do not include sentinel and prefix frames in latest config (#61594))
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
