@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, ClassVar, Mapping
+from typing import TYPE_CHECKING, Any, ClassVar, Mapping
 
 from django.db import models
 from django.utils import timezone
@@ -16,6 +16,9 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.outboxes import ControlOutboxProducingManager, ReplicatedControlModel
 from sentry.models.outbox import OutboxCategory
+
+if TYPE_CHECKING:
+    from sentry.integrations.pagerduty.utils import PagerDutyServiceDict
 
 
 @control_silo_only_model
@@ -59,3 +62,18 @@ class OrganizationIntegration(ReplicatedControlModel):
         payload: Mapping[str, Any] | None,
     ) -> None:
         pass
+
+    def add_pagerduty_service(
+        self, integration_key: str, service_name: str
+    ) -> PagerDutyServiceDict:
+        # TODO(mark) remove this shim code once getsentry is updated.
+        from sentry.integrations.pagerduty.utils import add_service
+
+        return add_service(self, integration_key=integration_key, service_name=service_name)
+
+    @classmethod
+    def services_in(cls, config: dict[str, Any]) -> list[PagerDutyServiceDict]:
+        # TODO(mark) remove this shim code once getsentry is updated.
+        if not config:
+            return []
+        return config.get("pagerduty_services", [])
