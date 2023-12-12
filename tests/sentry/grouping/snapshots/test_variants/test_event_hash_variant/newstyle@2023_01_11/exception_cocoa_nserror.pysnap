@@ -1,5 +1,5 @@
 ---
-created: '2023-12-12T13:53:13.957393Z'
+created: '2023-12-12T16:59:45.039531Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -150,10 +150,10 @@ system:
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "-[UIControl sendAction:to:forEvent:]"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "-[UIApplication sendAction:to:from:forEvent:]"
           frame*
