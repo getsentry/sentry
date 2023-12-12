@@ -955,24 +955,21 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           dataset: 'metrics',
-          environment: ['prod'],
           field: [
-            'transaction',
-            'transaction.op',
-            'project.id',
             'p75(measurements.lcp)',
             'p75(measurements.fcp)',
             'p75(measurements.cls)',
             'p75(measurements.ttfb)',
             'p75(measurements.fid)',
+            'p75(transaction.duration)',
+            'count_web_vitals(measurements.lcp, any)',
+            'count_web_vitals(measurements.fcp, any)',
+            'count_web_vitals(measurements.cls, any)',
+            'count_web_vitals(measurements.fid, any)',
+            'count_web_vitals(measurements.ttfb, any)',
             'count()',
           ],
-          per_page: QUERY_LIMIT_PARAM,
-          project: ['-42'],
           query: 'transaction.op:pageload',
-          sort: '-count()',
-          statsPeriod: '7d',
-          referrer: 'api.performance.generic-widget-chart.highest-opportunity-pages',
         }),
       })
     );
@@ -981,7 +978,20 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          referrer: 'api.performance.browser.web-vitals.project',
+          dataset: 'metrics',
+          field: [
+            'transaction',
+            'transaction.op',
+            'p75(measurements.lcp)',
+            'p75(measurements.fcp)',
+            'p75(measurements.cls)',
+            'p75(measurements.ttfb)',
+            'p75(measurements.fid)',
+            'count()',
+          ],
+          per_page: 4,
+          query: 'transaction.op:pageload',
+          sort: '-count()',
         }),
       })
     );
