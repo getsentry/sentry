@@ -8,7 +8,7 @@ import responses
 from sentry.incidents.models import AlertRule, AlertRuleTriggerAction
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.models.rule import Rule
-from sentry.receivers.rules import DEFAULT_RULE_LABEL
+from sentry.receivers.rules import DEFAULT_RULE_LABEL, DEFAULT_RULE_LABEL_NEW
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.tasks.integrations.slack import (
     find_channel_id_for_alert_rule,
@@ -106,7 +106,9 @@ class SlackTasksTest(TestCase):
         with self.tasks():
             find_channel_id_for_rule(**data)
 
-        rule = Rule.objects.exclude(label=DEFAULT_RULE_LABEL).get(project_id=self.project.id)
+        rule = Rule.objects.exclude(label__in=[DEFAULT_RULE_LABEL, DEFAULT_RULE_LABEL_NEW]).get(
+            project_id=self.project.id
+        )
         mock_set_value.assert_called_with("success", rule.id)
         assert rule.label == "New Rule"
         # check that the channel_id got added
