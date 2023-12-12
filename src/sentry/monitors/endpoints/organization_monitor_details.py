@@ -154,13 +154,25 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
 
         if "project" in result and result["project"].id != monitor.project_id:
             raise ParameterValidationError("existing monitors may not be moved between projects")
+
+        if params:
+            monitor.update(**params)
+            self.create_audit_entry(
+                request=request,
+                organization=organization,
+                target_object=monitor.id,
+                event=audit_log.get_event_id("MONITOR_EDIT"),
+                data=monitor.get_audit_log_data(),
+            )
+
+        # Update alert rule after in case slug or name changed
         if "alert_rule" in result:
             # Check to see if rule exists
             alert_rule = monitor.get_alert_rule()
             # If rule exists, update as necessary
             if alert_rule:
                 alert_rule_id = update_alert_rule(
-                    request, project, alert_rule, result["alert_rule"]
+                    request, project, monitor, alert_rule, result["alert_rule"]
                 )
             # If rule does not exist, create
             else:
@@ -172,16 +184,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                     params["config"] = monitor.config
 
                 params["config"]["alert_rule_id"] = alert_rule_id
-
-        if params:
-            monitor.update(**params)
-            self.create_audit_entry(
-                request=request,
-                organization=organization,
-                target_object=monitor.id,
-                event=audit_log.get_event_id("MONITOR_EDIT"),
-                data=monitor.get_audit_log_data(),
-            )
+                monitor.update(**params)
 
         return self.respond(serialize(monitor, request.user))
 

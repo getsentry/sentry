@@ -280,7 +280,7 @@ def create_alert_rule_data(project: Project, user: User, monitor: Monitor, alert
                 "key": "monitor.slug",
                 "match": "eq",
                 "value": monitor.slug,
-            }
+            },
         ],
         "frequency": 1440,
         "name": f"Monitor Alert: {monitor.name}"[:64],
@@ -303,7 +303,9 @@ def create_alert_rule_data(project: Project, user: User, monitor: Monitor, alert
     return alert_rule_data
 
 
-def update_alert_rule(request: Request, project: Project, alert_rule: Rule, alert_rule_data: dict):
+def update_alert_rule(
+    request: Request, project: Project, monitor: Monitor, alert_rule: Rule, alert_rule_data: dict
+):
     actions = []
     for target in alert_rule_data.get("targets", []):
         target_identifier = target["target_identifier"]
@@ -328,12 +330,31 @@ def update_alert_rule(request: Request, project: Project, alert_rule: Rule, aler
     if serializer.is_valid():
         data = serializer.validated_data
 
+        # update only slug conditions
+        conditions = alert_rule.data.get("conditions", [])
+        updated = False
+        for condition in conditions:
+            if condition.get("key") == "monitor.slug":
+                condition["value"] = monitor.slug
+                updated = True
+
+        # slug condition not present, add slug to conditions
+        if not updated:
+            conditions = conditions.append[
+                {
+                    "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                    "key": "monitor.slug",
+                    "match": "eq",
+                    "value": monitor.slug,
+                }
+            ]
+
         kwargs = {
             "project": project,
             "actions": data.get("actions", []),
             "environment": data.get("environment", None),
-            # TODO(davidenwang): This is kind of a hack to get around updater removing conditions if not passed
-            "conditions": alert_rule.data.get("conditions", []),
+            "name": f"Monitor Alert: {monitor.name}"[:64],
+            "conditions": conditions,
         }
 
         updated_rule = Updater.run(rule=alert_rule, request=request, **kwargs)
