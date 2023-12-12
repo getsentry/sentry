@@ -33,7 +33,7 @@ import {
   PERFORMANCE_SCORE_P90S,
 } from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
-import {useProjectWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useProjectWebVitalsValuesTimeseriesQuery';
+import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
 import {useTransactionSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionSamplesWebVitalsQuery';
 import {
   TransactionSampleRowWithScore,
@@ -97,6 +97,8 @@ export function PageOverviewWebVitalsDetailPanel({
         : undefined,
       enabled: Boolean(webVital),
       withProfiles: true,
+      sortName: 'webVitalSort',
+      webVital: webVital ?? undefined,
     });
 
   const {data: mehData, isLoading: isMehTransactionWebVitalsQueryLoading} =
@@ -108,6 +110,8 @@ export function PageOverviewWebVitalsDetailPanel({
         : undefined,
       enabled: Boolean(webVital),
       withProfiles: true,
+      sortName: 'webVitalSort',
+      webVital: webVital ?? undefined,
     });
 
   const {data: poorData, isLoading: isPoorTransactionWebVitalsQueryLoading} =
@@ -119,6 +123,8 @@ export function PageOverviewWebVitalsDetailPanel({
         : undefined,
       enabled: Boolean(webVital),
       withProfiles: true,
+      sortName: 'webVitalSort',
+      webVital: webVital ?? undefined,
     });
 
   const data = [...goodData, ...mehData, ...poorData];
@@ -133,7 +139,7 @@ export function PageOverviewWebVitalsDetailPanel({
   );
 
   const {data: timeseriesData, isLoading: isTimeseriesLoading} =
-    useProjectWebVitalsValuesTimeseriesQuery({transaction});
+    useProjectRawWebVitalsValuesTimeseriesQuery({transaction});
 
   const webVitalData: LineChartSeries = {
     data:

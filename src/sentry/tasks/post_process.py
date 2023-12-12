@@ -721,7 +721,8 @@ def run_post_process_job(job: PostProcessJob):
                 },
             )
             logger.exception(
-                f"Failed to process pipeline step {pipeline_step.__name__}",
+                "Failed to process pipeline step %s",
+                pipeline_step.__name__,
                 extra={"event": group_event, "group": group_event.group},
             )
         else:
@@ -873,9 +874,16 @@ def process_snoozes(job: PostProcessJob) -> None:
     if not group.issue_type.should_detect_escalation(group.organization):
         return
 
+    # groups less than a day old should use the new -> escalating logic
+    group_age_hours = (timezone.now() - group.first_seen).total_seconds() / 3600
+    should_use_new_escalation_logic = (
+        group_age_hours < MAX_NEW_ESCALATION_AGE_HOURS
+        and features.has("projects:first-event-severity-new-escalation", group.project)
+    )
     # Check if group is escalating
     if (
-        features.has("organizations:escalating-issues", group.organization)
+        not should_use_new_escalation_logic
+        and features.has("organizations:escalating-issues", group.organization)
         and group.status == GroupStatus.IGNORED
         and group.substatus == GroupSubStatus.UNTIL_ESCALATING
     ):
@@ -1076,8 +1084,12 @@ def process_code_mappings(job: PostProcessJob) -> None:
 
             if features.has("organizations:derive-code-mappings", org):
                 logger.info(
-                    f"derive_code_mappings: Queuing code mapping derivation for {project.slug=} {group_id=}."
-                    + f" Future events in {org_slug=} will not have not have code mapping derivation until {next_time}"
+                    "derive_code_mappings: Queuing code mapping derivation for project.slug=%s group_id=%s."
+                    " Future events in org_slug=%s will not have not have code mapping derivation until %s",
+                    project.slug,
+                    group_id,
+                    org_slug,
+                    next_time,
                 )
                 derive_code_mappings.delay(project.id, event.data)
 
@@ -1339,11 +1351,6 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
     return False
 
 
-def get_project_counts(project: Project) -> int:
-    # Dummy function, we'll replace this in a later pr.
-    return 1000
-
-
 MAX_NEW_ESCALATION_AGE_HOURS = 24
 
 
@@ -1355,28 +1362,53 @@ def detect_new_escalation(job: PostProcessJob):
     If we detect that the group has escalated, set has_escalated to True in the
     job.
     """
+    from sentry.issues.issue_velocity import get_latest_threshold
+    from sentry.models.activity import Activity
+    from sentry.models.group import GroupStatus
+    from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
     from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
+    from sentry.types.activity import ActivityType
 
     group = job["event"].group
     if not group or not features.has(
         "projects:first-event-severity-new-escalation", job["event"].project
     ):
         return
-    group_age_hours = (datetime.now() - group.first_seen).total_seconds() / 3600
-    if group_age_hours >= MAX_NEW_ESCALATION_AGE_HOURS or group.substatus != GroupSubStatus.NEW:
+    group_age_hours = (timezone.now() - group.first_seen).total_seconds() / 3600
+    has_valid_status = group.substatus == GroupSubStatus.NEW or (
+        group.status == GroupStatus.IGNORED and group.substatus == GroupSubStatus.UNTIL_ESCALATING
+    )
+    if group_age_hours >= MAX_NEW_ESCALATION_AGE_HOURS or not has_valid_status:
         return
     # Get escalation lock for this group. If we're unable to acquire this lock, another process is handling
     # this group at the same time. In that case, just exit early, no need to retry.
     lock = locks.get(f"detect_escalation:{group.id}", duration=10, name="detect_escalation")
+    extra = {
+        "org_id": group.organization.id,
+        "project_Id": job["event"].project.id,
+        "group_id": group.id,
+    }
     try:
         with lock.acquire():
-            project_escalation_rate = get_project_counts(group.project)
+            project_escalation_rate = get_latest_threshold(job["event"].project)
             group_hourly_event_rate = group.times_seen_with_pending / group_age_hours
-            if group_hourly_event_rate > project_escalation_rate:
+            # a rate of 0 means there was no threshold that could be calculated
+            if project_escalation_rate > 0 and group_hourly_event_rate > project_escalation_rate:
                 job["has_escalated"] = True
-                group.update(substatus=GroupSubStatus.ESCALATING)
+                group.update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ESCALATING)
+                # TODO(snigdha): reuse manage_issue_states when we allow escalating from other statuses
                 add_group_to_inbox(group, GroupInboxReason.ESCALATING)
-    except UnableToAcquireLock:
+                record_group_history(group, GroupHistoryStatus.ESCALATING)
+                Activity.objects.create_group_activity(
+                    group=group,
+                    type=ActivityType.SET_ESCALATING,
+                    data={"event_id": job["event"].event_id},
+                )
+    except UnableToAcquireLock as error:
+        extra["error"] = error
+        logger.warning(
+            "tasks.post_process.detect_new_escalation.unable_to_acquire_lock", extra=extra
+        )
         return
 
 

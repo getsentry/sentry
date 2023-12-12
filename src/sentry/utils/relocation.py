@@ -315,12 +315,14 @@ class LoggingPrinter(Printer):
     ) -> None:
         if err:
             logger.error(
-                f"Import failed: {text}",
+                "Import failed: %s",
+                text,
                 extra={"uuid": self.uuid, "task": OrderedTask.IMPORTING.name},
             )
         else:
             logger.info(
-                f"Import info: {text}",
+                "Import info: %s",
+                text,
                 extra={"uuid": self.uuid, "task": OrderedTask.IMPORTING.name},
             )
 
@@ -365,17 +367,18 @@ def start_relocation_task(
 
     logger_data = {"uuid": uuid}
     try:
-        relocation = Relocation.objects.get(uuid=uuid)
-    except Relocation.DoesNotExist as exc:
-        logger.error(f"Could not locate Relocation model by UUID: {uuid}", exc_info=exc)
+        relocation: Relocation = Relocation.objects.get(uuid=uuid)
+    except Relocation.DoesNotExist:
+        logger.exception("Could not locate Relocation model by UUID: %s", uuid)
         return (None, 0)
 
     if relocation.status not in {
         Relocation.Status.IN_PROGRESS.value,
         Relocation.Status.PAUSE.value,
     }:
-        logger.error(
-            f"Relocation has already completed as `{Relocation.Status(relocation.status)}`",
+        logger.warning(
+            "Relocation has already completed as `%s`",
+            Relocation.Status(relocation.status),
             extra=logger_data,
         )
         return (None, 0)
@@ -383,7 +386,7 @@ def start_relocation_task(
     try:
         prev_task_name = "" if task.value == 1 else OrderedTask(task.value - 1).name
     except Exception:
-        logger.error("Attempted to execute unknown relocation task", extra=logger_data)
+        logger.exception("Attempted to execute unknown relocation task", extra=logger_data)
         fail_relocation(relocation, OrderedTask.NONE)
         return (None, 0)
 
@@ -392,7 +395,9 @@ def start_relocation_task(
         relocation.latest_task_attempts += 1
     elif relocation.latest_task not in {prev_task_name, task.name}:
         logger.error(
-            f"Task {task.name} tried to follow {relocation.latest_task} which is the wrong order",
+            "Task %s tried to follow %s which is the wrong order",
+            task.name,
+            relocation.latest_task,
             extra=logger_data,
         )
         fail_relocation(relocation, task)
@@ -401,14 +406,24 @@ def start_relocation_task(
         relocation.latest_task = task.name
         relocation.latest_task_attempts = 1
 
+    step = TASK_TO_STEP[task]
+    is_new_step = relocation.step + 1 == step.value
+    at_scheduled_cancel = is_new_step and relocation.scheduled_cancel_at_step == step.value
+    if at_scheduled_cancel:
+        logger.info("Task aborted due to relocation cancellation request", extra=logger_data)
+        relocation.step = step.value
+        relocation.status = Relocation.Status.FAILURE.value
+        relocation.scheduled_pause_at_step = None
+        relocation.scheduled_cancel_at_step = None
+        relocation.failure_reason = "This relocation was cancelled by an administrator."
+        relocation.save()
+        return (None, 0)
+
     # TODO(getsentry/team-ospo#216): Add an option like 'relocation:autopause-at-steps', which will
     # be an array of steps that we want relocations to automatically pause at. Will be useful once
     # we have self-serve relocations, and want a means by which to check their validity (bugfixes,
     # etc).
-    step = TASK_TO_STEP[task]
-    at_scheduled_pause = (
-        relocation.step + 1 == step.value and relocation.scheduled_pause_at_step == step.value
-    )
+    at_scheduled_pause = is_new_step and relocation.scheduled_pause_at_step == step.value
     if relocation.status == Relocation.Status.PAUSE.value or at_scheduled_pause:
         logger.info("Task aborted due to relocation pause", extra=logger_data)
 

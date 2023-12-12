@@ -18,7 +18,6 @@ from sentry.monitors.models import (
     Monitor,
     MonitorCheckIn,
     MonitorEnvironment,
-    MonitorObjectStatus,
     MonitorStatus,
     MonitorType,
     ScheduleType,
@@ -178,8 +177,8 @@ class MonitorConsumerTest(TestCase):
             checkin.date_added
         )
 
-    def test_disabled(self):
-        monitor = self._create_monitor(status=MonitorObjectStatus.DISABLED)
+    def test_muted(self):
+        monitor = self._create_monitor(is_muted=True)
         self.send_checkin(monitor.slug, status="error")
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)

@@ -22,7 +22,7 @@ from sentry.models.user import User
 from sentry.notifications.types import (
     ActionTargetType,
     FallthroughChoiceType,
-    NotificationSettingTypes,
+    NotificationSettingEnum,
 )
 from sentry.notifications.utils.participants import (
     FALLTHROUGH_NOTIFICATION_LIMIT,
@@ -230,7 +230,7 @@ class GetSendToTeamTest(_ParticipantsTest):
             project=self.project,
             target_type=ActionTargetType.TEAM,
             target_identifier=self.team.id,
-            notification_type=NotificationSettingTypes.WORKFLOW,
+            notification_type_enum=NotificationSettingEnum.WORKFLOW,
         ) == {
             ExternalProviders.SLACK: {RpcActor.from_orm_team(self.team)},
         }

@@ -38,7 +38,6 @@ from sentry.web.frontend.organization_avatar import OrganizationAvatarPhotoView
 from sentry.web.frontend.organization_integration_setup import OrganizationIntegrationSetupView
 from sentry.web.frontend.out import OutView
 from sentry.web.frontend.pipeline_advancer import PipelineAdvancerView
-from sentry.web.frontend.project_avatar import ProjectAvatarPhotoView
 from sentry.web.frontend.project_event import ProjectEventRedirect
 from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
 from sentry.web.frontend.reactivate_account import ReactivateAccountView
@@ -47,7 +46,6 @@ from sentry.web.frontend.sentryapp_avatar import SentryAppAvatarPhotoView
 from sentry.web.frontend.setup_wizard import SetupWizardView
 from sentry.web.frontend.shared_group_details import SharedGroupDetailsView
 from sentry.web.frontend.sudo import SudoView
-from sentry.web.frontend.team_avatar import TeamAvatarPhotoView
 from sentry.web.frontend.twofactor import TwoFactorAuthView, u2f_appid
 from sentry.web.frontend.user_avatar import UserAvatarPhotoView
 
@@ -392,6 +390,11 @@ urlpatterns += [
     # Onboarding
     re_path(
         r"^onboarding/",
+        generic_react_page_view,
+    ),
+    # Relocation
+    re_path(
+        r"^relocation/",
         generic_react_page_view,
     ),
     # Admin
@@ -1034,16 +1037,6 @@ urlpatterns += [
         r"^organization-avatar/(?P<avatar_id>[^\/]+)/$",
         OrganizationAvatarPhotoView.as_view(),
         name="sentry-organization-avatar-url",
-    ),
-    re_path(
-        r"^project-avatar/(?P<avatar_id>[^\/]+)/$",
-        ProjectAvatarPhotoView.as_view(),
-        name="sentry-project-avatar-url",
-    ),
-    re_path(
-        r"^team-avatar/(?P<avatar_id>[^\/]+)/$",
-        TeamAvatarPhotoView.as_view(),
-        name="sentry-team-avatar-url",
     ),
     re_path(
         r"^sentry-app-avatar/(?P<avatar_id>[^\/]+)/$",

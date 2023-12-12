@@ -361,7 +361,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         )
 
     def make_blame_request(self, file: SourceLineInfo) -> str:
-        return f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/{quote(file.path, safe='')}/blame?ref={file.ref}&range[start]={file.lineno}&range[end]={file.lineno}"
+        return f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/{quote(file.path.strip('/'), safe='')}/blame?ref={file.ref}&range[start]={file.lineno}&range[end]={file.lineno}"
 
     def make_blame_response(self, **kwargs) -> list[GitLabFileBlameResponseItem]:
         return [
@@ -446,19 +446,23 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         )
 
     @mock.patch(
-        "sentry.integrations.gitlab.blame.logger.exception",
+        "sentry.integrations.gitlab.blame.logger.warning",
     )
     @responses.activate
-    def test_failure_404(self, mock_logger_exception):
-        responses.add(responses.GET, self.make_blame_request(self.file_1), status=404)
+    def test_failure_404(self, mock_logger_warning):
+        responses.add(
+            responses.GET, self.make_blame_request(self.file_1), status=404, body="No file found"
+        )
         resp = self.gitlab_client.get_blame_for_files(files=[self.file_1], extra={})
 
         assert resp == []
-        mock_logger_exception.assert_called_with(
+        mock_logger_warning.assert_called_with(
             "get_blame_for_files.api_error",
             extra={
                 "provider": "gitlab",
                 "org_integration_id": self.gitlab_client.org_integration_id,
+                "code": 404,
+                "error_message": "No file found",
                 "repo_name": self.repo.name,
                 "file_path": self.file_1.path,
                 "branch_name": self.file_1.ref,
@@ -466,32 +470,18 @@ class GitLabBlameForFilesTest(GitLabClientTest):
             },
         )
 
-    @mock.patch(
-        "sentry.integrations.gitlab.blame.logger.exception",
-    )
     @responses.activate
-    def test_failure_response_type(self, mock_logger_exception):
+    def test_failure_response_type(self):
         responses.add(responses.GET, self.make_blame_request(self.file_1), json={}, status=200)
-        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1], extra={})
 
-        assert resp == []
-        mock_logger_exception.assert_called_with(
-            "get_blame_for_files.api_error",
-            extra={
-                "provider": "gitlab",
-                "org_integration_id": self.gitlab_client.org_integration_id,
-                "repo_name": self.repo.name,
-                "file_path": self.file_1.path,
-                "branch_name": self.file_1.ref,
-                "file_lineno": self.file_1.lineno,
-            },
-        )
+        with pytest.raises(ApiError):
+            self.gitlab_client.get_blame_for_files(files=[self.file_1], extra={})
 
     @mock.patch(
-        "sentry.integrations.gitlab.blame.logger.exception",
+        "sentry.integrations.gitlab.blame.logger.error",
     )
     @responses.activate
-    def test_failure_approaching_rate_limit(self, mock_logger_exception):
+    def test_failure_approaching_rate_limit(self, mock_logger_error):
         """
         If there aren't enough requests left to stay above the minimum request
         limit, should raise a ApiRateLimitedError.
@@ -513,7 +503,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
             self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2], extra={})
 
         assert excinfo.value.text == "Approaching GitLab API rate limit"
-        mock_logger_exception.assert_called_with(
+        mock_logger_error.assert_called_with(
             "get_blame_for_files.rate_limit_too_low",
             extra={
                 "provider": "gitlab",
@@ -526,10 +516,10 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         )
 
     @mock.patch(
-        "sentry.integrations.gitlab.blame.logger.exception",
+        "sentry.integrations.gitlab.blame.logger.warning",
     )
     @responses.activate
-    def test_failure_partial(self, mock_logger_exception):
+    def test_failure_partial_expected(self, mock_logger_warning):
         """
         Tests that blames are still returned when some succeed
         and others fail.
@@ -548,10 +538,12 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         assert resp == [self.blame_2]
 
         # Should log the unsuccessful one
-        mock_logger_exception.assert_called_once()
-        mock_logger_exception.assert_called_with(
+        mock_logger_warning.assert_called_once()
+        mock_logger_warning.assert_called_with(
             "get_blame_for_files.api_error",
             extra={
+                "code": 404,
+                "error_message": "",
                 "provider": "gitlab",
                 "org_integration_id": self.gitlab_client.org_integration_id,
                 "repo_name": self.repo.name,
@@ -560,6 +552,17 @@ class GitLabBlameForFilesTest(GitLabClientTest):
                 "file_lineno": self.file_1.lineno,
             },
         )
+
+    @responses.activate
+    def test_failure_partial_fatal(self):
+        """
+        Tests that the function is aborted when a fatal response is returned
+        """
+        # First file returns a 500
+        responses.add(responses.GET, self.make_blame_request(self.file_1), status=500)
+
+        with pytest.raises(ApiError):
+            self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2], extra={})
 
     @responses.activate
     def test_invalid_commits(self):
@@ -587,7 +590,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         responses.add(
             responses.GET,
             url=self.make_blame_request(self.file_4),
-            json={"lines": [], "commit": None},
+            json=[{"lines": [], "commit": None}],
             status=200,
         )
         resp = self.gitlab_client.get_blame_for_files(

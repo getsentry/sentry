@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 import math
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from django.conf import settings
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
@@ -24,13 +24,15 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry.models.project import Project
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.tasks.post_process import locks
 from sentry.utils import json
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.redis import redis_clusters
-from sentry.utils.snuba import raw_snql_query
+
+if TYPE_CHECKING:
+    from sentry.models.project import Project
+
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +53,8 @@ def calculate_threshold(project: Project) -> Optional[float]:
     """
     Calculates the velocity threshold based on event frequency in the project for the past week.
     """
+    from sentry.utils.snuba import raw_snql_query
+
     now = datetime.now()
     one_hour_ago = now - timedelta(hours=1)
     one_week_ago = now - timedelta(days=7)
@@ -135,10 +139,10 @@ def calculate_threshold(project: Project) -> Optional[float]:
 
     try:
         return result[0][THRESHOLD_QUANTILE["name"]]
-    except KeyError:
+    except Exception:
         logger.exception(
             "Unexpected shape for threshold query results",
-            extra={"project_id": project.id, "results_received": json.dumps(result)},
+            extra={"project_id": project.id, "result": json.dumps(result)},
         )
         return None
 
@@ -192,7 +196,11 @@ def get_latest_threshold(project: Project) -> float:
         try:
             with lock.acquire():
                 threshold = update_threshold(project, keys[0], keys[1])
-        except UnableToAcquireLock:  # another process is already updating
+        except UnableToAcquireLock as error:  # another process is already updating
+            logger.warning(
+                "issue_velocity.get_latest_threshold.unable_to_acquire_lock",
+                extra={"org_id": project.organization.id, "project_id": project.id, "error": error},
+            )
             threshold = float(threshold) if threshold else 0  # use stale value if possible
     else:
         # redis stores as strings, so convert back to a float if using the value from the cache

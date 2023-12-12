@@ -3,10 +3,10 @@ from __future__ import annotations
 import logging
 from typing import Optional, Sequence, Tuple
 
+import sentry_sdk
+
 from sentry.integrations.pagerduty.actions import PagerDutyNotifyServiceForm
-from sentry.integrations.pagerduty.client import PagerDutyProxyClient
 from sentry.rules.actions import IntegrationEventAction
-from sentry.shared_integrations.client.proxy import infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger("sentry.integrations.pagerduty")
@@ -42,28 +42,23 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
     def after(self, event, state, notification_uuid: Optional[str] = None):
         integration = self.get_integration()
         if not integration:
-            logger.exception("Integration removed, however, the rule still refers to it.")
             # integration removed but rule still exists
+            logger.error("Integration removed, however, the rule still refers to it.")
             return
 
         service = self._get_service()
         if not service:
-            logger.exception("The PagerDuty does not exist anymore while integration does.")
+            logger.error("The PagerDuty service does not exist anymore while integration does.")
             return
 
         def send_notification(event, futures):
-            org_integration = self.get_organization_integration()
-            org_integration_id = None
-            if org_integration:
-                org_integration_id = org_integration.id
-            else:
-                org_integration_id = infer_org_integration(
-                    integration_id=service["integration_id"], ctx_logger=logger
-                )
-            client = PagerDutyProxyClient(
-                org_integration_id=org_integration_id,
-                integration_key=service["integration_key"],
-            )
+            installation = integration.get_installation(self.project.organization_id)
+            try:
+                client = installation.get_keyring_client(self.get_option("service"))
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+                return
+
             try:
                 resp = client.send_trigger(event, notification_uuid=notification_uuid)
             except ApiError as e:

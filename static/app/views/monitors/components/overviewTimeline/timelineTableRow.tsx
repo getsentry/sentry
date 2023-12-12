@@ -53,8 +53,7 @@ export function TimelineTableRow({
       {!singleMonitorView && <MonitorDetails monitor={monitor} />}
       <MonitorEnvContainer>
         {environments.map(({name, status}) => {
-          const envStatus =
-            monitor.status === MonitorStatus.DISABLED ? MonitorStatus.DISABLED : status;
+          const envStatus = monitor.isMuted ? MonitorStatus.DISABLED : status;
           const {label, icon} = statusIconColorMap[envStatus];
           return (
             <EnvWithStatus key={name}>

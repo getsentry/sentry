@@ -73,6 +73,7 @@ type Props = {
   customColumns?: ('attachments' | 'minidump')[];
   excludedTags?: string[];
   isEventLoading?: boolean;
+  isRegressionIssue?: boolean;
   issueId?: string;
   projectSlug?: string;
   referrer?: string;
@@ -158,11 +159,11 @@ class EventsTable extends Component<Props, State> {
     }
 
     if (field === 'id' || field === 'trace') {
-      const {issueId} = this.props;
+      const {issueId, isRegressionIssue} = this.props;
       const isIssue: boolean = !!issueId;
       let target: LocationDescriptor = {};
       // TODO: set referrer properly
-      if (isIssue && field === 'id') {
+      if (isIssue && !isRegressionIssue && field === 'id') {
         target.pathname = `/organizations/${organization.slug}/issues/${issueId}/events/${dataRow.id}/`;
       } else {
         const generateLink = field === 'id' ? generateTransactionLink : generateTraceLink;

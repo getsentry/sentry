@@ -18,13 +18,13 @@ from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.utils import is_response_error, is_response_success
 from sentry.models.organization import Organization
+from sentry.net.http import SafeSession
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils import json, metrics
 from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.hashlib import md5_text
 
-from ..exceptions import ApiConnectionResetError, ApiHostError, ApiTimeoutError
-from ..exceptions.base import ApiError
+from ..exceptions import ApiConnectionResetError, ApiError, ApiHostError, ApiTimeoutError
 from ..response.base import BaseApiResponse
 from ..track_response import TrackResponseMixin
 
@@ -118,6 +118,12 @@ class BaseApiClient(TrackResponseMixin):
 
     def is_error_fatal(self, error: Exception) -> bool:
         return False
+
+    def build_session(self) -> SafeSession:
+        """
+        Generates a safe Requests session for the API client to use.
+        """
+        return build_session()
 
     @overload
     def _request(
@@ -250,7 +256,7 @@ class BaseApiClient(TrackResponseMixin):
                 extra[self.integration_type] = self.name
 
             try:
-                with build_session() as session:
+                with self.build_session() as session:
                     finalized_request = self.finalize_request(_prepared_request)
                     environment_settings = session.merge_environment_settings(
                         url=finalized_request.url,

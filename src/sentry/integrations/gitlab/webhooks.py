@@ -275,8 +275,8 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
         if integration is None:
             logger.info("gitlab.webhook.invalid-organization", extra=extra)
             extra["reason"] = "There is no integration that matches your organization."
-            logger.exception(extra["reason"])
-            return HttpResponse(status=400, reason=extra["reason"])
+            logger.error(extra["reason"])
+            return HttpResponse(status=409, reason=extra["reason"])
 
         extra = {
             **extra,
@@ -305,7 +305,7 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
                 "reason"
             ] = "Gitlab's webhook secret does not match. Refresh token (or re-install the integration) by following this https://docs.sentry.io/product/integrations/integration-platform/public-integration/#refreshing-tokens."
             logger.exception(extra["reason"])
-            return HttpResponse(status=400, reason=extra["reason"])
+            return HttpResponse(status=409, reason=extra["reason"])
 
         try:
             event = json.loads(request.body.decode("utf-8"))
@@ -320,7 +320,7 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
         except KeyError:
             logger.info("gitlab.webhook.wrong-event-type", extra=extra)
             supported_events = ", ".join(sorted(self._handlers.keys()))
-            logger.info(f"We only support these kinds of events: {supported_events}")
+            logger.info("We only support these kinds of events: %s", supported_events)
             extra[
                 "reason"
             ] = "The customer has edited the webhook in Gitlab to include other types of events."

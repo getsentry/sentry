@@ -1,41 +1,43 @@
 import {Sort} from 'sentry/utils/discover/fields';
-import {USE_STORED_SCORES} from 'sentry/views/performance/browser/webVitals/settings';
 import {useTransactionRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useTransactionRawWebVitalsQuery';
 import {useTransactionWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useTransactionWebVitalsScoresQuery';
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 
 type Props = {
   defaultSort?: Sort;
+  enabled?: boolean;
   limit?: number;
-  orderBy?: WebVitals | null;
+  opportunityWebVital?: WebVitals | 'total';
   sortName?: string;
   transaction?: string | null;
 };
 
 export const useTransactionWebVitalsQuery = ({
-  orderBy,
   limit,
   transaction,
   defaultSort,
   sortName = 'sort',
+  opportunityWebVital,
+  enabled,
 }: Props) => {
+  const shouldUseStoredScores = useStoredScoresSetting();
   const storedScoresResult = useTransactionWebVitalsScoresQuery({
-    orderBy,
     limit,
     transaction,
     defaultSort,
     sortName,
-    enabled: USE_STORED_SCORES,
+    enabled: shouldUseStoredScores && enabled,
+    opportunityWebVital,
   });
   const rawWebVitalsResult = useTransactionRawWebVitalsQuery({
-    orderBy,
     limit,
     transaction,
     defaultSort,
     sortName,
-    enabled: !USE_STORED_SCORES,
+    enabled: !shouldUseStoredScores && enabled,
   });
-  if (USE_STORED_SCORES) {
+  if (shouldUseStoredScores) {
     return storedScoresResult;
   }
   return rawWebVitalsResult;

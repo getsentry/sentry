@@ -11,6 +11,7 @@ import {
 interface DifferentialFlamegraphQueryParameters {
   breakpoint: number;
   environments: AggregateFlamegraphQueryParameters['environments'];
+  fingerprint: string | undefined;
   projectID: number | null;
   transaction: string;
 }
@@ -24,14 +25,17 @@ export function useDifferentialFlamegraphQuery(
   params: DifferentialFlamegraphQueryParameters
 ): DifferentialFlamegraphQueryResult {
   const sharedAggregateQueryParams: AggregateFlamegraphQueryParameters = useMemo(() => {
-    return {
+    const p: AggregateFlamegraphQueryParameters = {
       transaction: params.transaction,
       environments: params.environments,
+      fingerprint: params.fingerprint,
       projects:
         params.projectID === null || isNaN(params.projectID) ? [] : [params.projectID],
       datetime: {},
     };
-  }, [params.transaction, params.environments, params.projectID]);
+
+    return p;
+  }, [params.transaction, params.environments, params.projectID, params.fingerprint]);
 
   const regressionDateRange = useRelativeDateTime({
     anchor: params.breakpoint,

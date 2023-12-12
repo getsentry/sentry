@@ -559,6 +559,22 @@ class MetricsDatasetConfig(DatasetConfig):
                     default_result_type="integer",
                 ),
                 fields.MetricsFunction(
+                    "count_starts",
+                    required_args=[
+                        fields.MetricArg(
+                            "column",
+                            allowed_columns=[
+                                "measurements.app_start_warm",
+                                "measurements.app_start_cold",
+                            ],
+                            allow_custom_measurements=False,
+                        ),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=self._resolve_count_starts_function,
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
                     "count_web_vitals",
                     required_args=[
                         fields.MetricArg(
@@ -638,6 +654,26 @@ class MetricsDatasetConfig(DatasetConfig):
                     calculated_args=[resolve_metric_id],
                     snql_distribution=self._resolve_web_vital_opportunity_score_function,
                     default_result_type="number",
+                ),
+                fields.MetricsFunction(
+                    "count_scores",
+                    required_args=[
+                        fields.MetricArg(
+                            "column",
+                            allowed_columns=[
+                                "measurements.score.total",
+                                "measurements.score.fcp",
+                                "measurements.score.lcp",
+                                "measurements.score.fid",
+                                "measurements.score.cls",
+                                "measurements.score.ttfb",
+                            ],
+                            allow_custom_measurements=False,
+                        ),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=self._resolve_count_scores_function,
+                    default_result_type="integer",
                 ),
                 fields.MetricsFunction(
                     "epm",
@@ -1231,6 +1267,29 @@ class MetricsDatasetConfig(DatasetConfig):
     def _key_transaction_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         return filter_aliases.team_key_transaction_filter(self.builder, search_filter)
 
+    def _resolve_count_starts_function(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: str,
+    ) -> SelectType:
+        column = args["column"]
+        metric_id = args["metric_id"]
+
+        if column not in [
+            "measurements.app_start_cold",
+            "measurements.app_start_warm",
+        ]:
+            raise InvalidSearchQuery("count_starts only supports cold or app start measurements")
+
+        return Function(
+            "countIf",
+            [
+                Column("value"),
+                Function("equals", [Column("metric_id"), metric_id]),
+            ],
+            alias,
+        )
+
     def _resolve_web_vital_function(
         self,
         args: Mapping[str, Union[str, Column, SelectType, int, float]],
@@ -1484,6 +1543,33 @@ class MetricsDatasetConfig(DatasetConfig):
                         Function("equals", [Column("metric_id"), metric_id]),
                     ],
                 ),
+            ],
+            alias,
+        )
+
+    def _resolve_count_scores_function(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: str,
+    ) -> SelectType:
+        column = args["column"]
+        metric_id = args["metric_id"]
+
+        if column not in [
+            "measurements.score.total",
+            "measurements.score.lcp",
+            "measurements.score.fcp",
+            "measurements.score.fid",
+            "measurements.score.cls",
+            "measurements.score.ttfb",
+        ]:
+            raise InvalidSearchQuery("count_scores only supports performance score measurements")
+
+        return Function(
+            "countIf",
+            [
+                Column("value"),
+                Function("equals", [Column("metric_id"), metric_id]),
             ],
             alias,
         )

@@ -19,7 +19,7 @@ from sentry.models.project import Project
 from sentry.models.pullrequest import CommentType, PullRequest
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -282,7 +282,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     try:
         organization = Organization.objects.get_from_cache(id=org_id)
     except Organization.DoesNotExist:
-        logger.error("github.open_pr_comment.org_missing")
+        logger.exception("github.open_pr_comment.org_missing")
         metrics.incr(OPEN_PR_METRICS_BASE.format(key="error"), tags={"type": "missing_org"})
         return
 
