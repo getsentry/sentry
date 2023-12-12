@@ -23,6 +23,15 @@ from sentry.utils.outcomes import Outcome, track_outcome
 logger = logging.getLogger(__name__)
 
 
+class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
+    def create_with_partitions(
+        self,
+        commit: Commit,
+        partitions: Mapping[Partition, int],
+    ) -> ProcessingStrategy[KafkaPayload]:
+        return BillingTxCountMetricConsumerStrategy(CommitOffsets(commit))
+
+
 class MetricsBucket(TypedDict):
     """
     Metrics bucket as decoded from kafka.
@@ -37,15 +46,6 @@ class MetricsBucket(TypedDict):
     tags: Union[Mapping[str, str], Mapping[str, int]]
     # not used here but allows us to use the TypedDict for assignments
     type: NotRequired[str]
-
-
-class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    def create_with_partitions(
-        self,
-        commit: Commit,
-        partitions: Mapping[Partition, int],
-    ) -> ProcessingStrategy[KafkaPayload]:
-        return BillingTxCountMetricConsumerStrategy(CommitOffsets(commit))
 
 
 class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
