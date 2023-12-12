@@ -38,7 +38,6 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.models.actor import Actor
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.project import Project
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
@@ -1386,7 +1385,7 @@ def get_alert_rule_trigger_action_pagerduty_service(
     org_integration = integration_service.get_organization_integration(
         integration_id=integration_id, organization_id=organization.id
     )
-    service = get_service(target_value, org_integration)
+    service = get_service(org_integration, target_value)
     if not service:
         raise InvalidTriggerActionError("No PagerDuty service found.")
 
@@ -1477,12 +1476,12 @@ def get_available_action_integrations_for_org(organization) -> List[RpcIntegrati
 
 
 def get_pagerduty_services(organization_id, integration_id) -> List[Tuple[int, str]]:
+    from sentry.integrations.pagerduty.utils import get_services
+
     org_int = integration_service.get_organization_integration(
         organization_id=organization_id, integration_id=integration_id
     )
-    if org_int is None:
-        return []
-    services = OrganizationIntegration.services_in(org_int.config)
+    services = get_services(org_int)
     return [(s["id"], s["service_name"]) for s in services]
 
 

@@ -5,6 +5,7 @@ from typing import List
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationFeatures
+from sentry.integrations.pagerduty.utils import add_service
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration import (
@@ -261,11 +262,13 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
             org_integration = OrganizationIntegration.objects.get(
                 organization_id=self.organization.id, integration_id=integration.id
             )
-            pds = org_integration.add_pagerduty_service(
+            pds = add_service(
+                org_integration,
                 integration_key="key1",
                 service_name="service1",
             )
-            pds2 = org_integration.add_pagerduty_service(
+            pds2 = add_service(
+                org_integration,
                 integration_key="key2",
                 service_name="service1",
             )
