@@ -28,6 +28,7 @@ from sentry.signals import (
     first_event_received,
     first_event_with_minified_stack_trace_received,
     first_feedback_received,
+    first_new_feedback_received,
     first_profile_received,
     first_replay_received,
     first_transaction_received,
@@ -252,6 +253,19 @@ def record_first_feedback(project, **kwargs):
 
     analytics.record(
         "first_feedback.sent",
+        user_id=project.organization.default_owner_id,
+        organization_id=project.organization_id,
+        project_id=project.id,
+        platform=project.platform,
+    )
+
+
+@first_new_feedback_received.connect(weak=False)
+def record_first_new_feedback(project, **kwargs):
+    project.update(flags=F("flags").bitor(Project.flags.has_new_feedbacks))
+
+    analytics.record(
+        "first_new_feedback.sent",
         user_id=project.organization.default_owner_id,
         organization_id=project.organization_id,
         project_id=project.id,
