@@ -3,7 +3,7 @@ from typing import Any, List, Mapping, Union
 # TODO(mgaeta): Continue fleshing out these types.
 SlackAttachment = Mapping[str, Any]
 SlackBlock = Mapping[str, Any]
-SlackBody = Union[SlackAttachment, List[SlackAttachment]]
+SlackBody = Union[SlackAttachment, SlackBlock, List[SlackAttachment]]
 
 # Attachment colors used for issues with no actions take.
 LEVEL_TO_COLOR = {

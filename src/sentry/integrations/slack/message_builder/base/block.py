@@ -4,7 +4,7 @@ from abc import ABC
 from datetime import datetime
 from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence, Tuple, TypedDict
 
-from sentry.integrations.slack.message_builder import SlackBlock, SlackBody
+from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
 
 
@@ -114,7 +114,7 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         fallback_text: Optional[str] = None,
         color: Optional[str] = None,
         block_id: Optional[dict[str, int]] = None,
-    ) -> SlackBody:
+    ) -> SlackBlock:
         blocks: dict[str, Any] = {"blocks": list(args)}
 
         if fallback_text:

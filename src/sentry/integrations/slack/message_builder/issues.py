@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, Sequence, Union
 
 from sentry import features, tagstore
 from sentry.eventstore.models import GroupEvent
@@ -14,7 +14,7 @@ from sentry.integrations.message_builder import (
     get_timestamp,
     get_title_link,
 )
-from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT, SlackBody
+from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT, SlackAttachment, SlackBlock
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.issues.grouptype import GroupCategory
@@ -327,7 +327,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         """
         return True
 
-    def build(self, notification_uuid: str | None = None) -> SlackBody:
+    def build(self, notification_uuid: str | None = None) -> Union[SlackBlock, SlackAttachment]:
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
 
@@ -456,7 +456,7 @@ def build_group_attachment(
     issue_details: bool = False,
     is_unfurl: bool = False,
     notification_uuid: str | None = None,
-) -> SlackBody:
+) -> Union[SlackBlock, SlackAttachment]:
 
     return SlackIssuesMessageBuilder(
         group,

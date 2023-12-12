@@ -55,37 +55,44 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
         def send_notification(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             rules = [f.rule for f in futures]
-            attachments = [
-                build_group_attachment(
+            # TODO: handle additional_attachments for block kit
+            if features.has("organizations:slack-block-kit", event.group.project.organization):
+                blocks = build_group_attachment(
                     event.group,
                     event=event,
                     tags=tags,
                     rules=rules,
                     notification_uuid=notification_uuid,
                 )
-            ]
-            # getsentry might add a billing related attachment
-            additional_attachment = get_additional_attachment(
-                integration, self.project.organization
-            )
-            if additional_attachment:
-                attachments.append(additional_attachment)
 
-            payload = {
-                "channel": channel,
-                "link_names": 1,
-                "attachments": json.dumps(attachments),
-            }
-            # TODO: we don't need "attachments" as a list here, if we add on additional_attachment
-            # it just needs to be added to the blocks which is already a list
-            # TODO: handle additional_attachments for block kit
-            if features.has("organizations:slack-block-kit", event.group.project.organization):
-                if attachments[0].get("blocks"):
+                if blocks.get("blocks"):
                     payload = {
-                        "text": attachments[0].get("text"),
-                        "blocks": json.dumps(attachments[0].get("blocks")),
+                        "text": blocks.get("text"),
+                        "blocks": json.dumps(blocks.get("blocks")),
                         "channel": channel,
                     }
+            else:
+                attachments = [
+                    build_group_attachment(
+                        event.group,
+                        event=event,
+                        tags=tags,
+                        rules=rules,
+                        notification_uuid=notification_uuid,
+                    )
+                ]
+                # getsentry might add a billing related attachment
+                additional_attachment = get_additional_attachment(
+                    integration, self.project.organization
+                )
+                if additional_attachment:
+                    attachments.append(additional_attachment)
+
+                payload = {
+                    "channel": channel,
+                    "link_names": 1,
+                    "attachments": json.dumps(attachments),
+                }
 
             client = SlackClient(integration_id=integration.id)
             try:
