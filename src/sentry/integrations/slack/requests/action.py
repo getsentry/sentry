@@ -41,8 +41,8 @@ class SlackActionRequest(SlackRequest):
 
         # XXX(CEO): can't really feature flag this but the block kit data is very different
 
-        # modal dropdown seems to try to submit when an option is selected - we don't want that
-        # but just handling it so things don't blow up - can't figure out how to stop it
+        # slack sends us a response when a modal is opened and when an option is selected
+        # we don't do anything with it until the user hits "Submit" but we need to handle it anyway
         if self.data["type"] == "block_actions":
             if self.data.get("view"):
                 return json.loads(self.data["view"]["private_metadata"])
@@ -55,7 +55,8 @@ class SlackActionRequest(SlackRequest):
             if data["type"] == "section" and len(data["block_id"]) > 5:
                 return json.loads(data["block_id"])
                 # a bit hacky, you can only provide a block ID per block (not per entire message),
-                # and if not provided slack generates a 5 char long one
+                # and if not provided slack generates a 5 char long one. our provided block_id is at least '{issue: <issue_id>}'
+                # so we know it's longer than 5 chars
 
     def _validate_data(self) -> None:
         """

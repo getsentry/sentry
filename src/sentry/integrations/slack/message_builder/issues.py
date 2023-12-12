@@ -14,7 +14,7 @@ from sentry.integrations.message_builder import (
     get_timestamp,
     get_title_link,
 )
-from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT, SlackBody
+from sentry.integrations.slack.message_builder import LEVEL_TO_EMOJI, SLACK_URL_FORMAT, SlackBody
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.issues.grouptype import GroupCategory
@@ -403,9 +403,11 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             rule_id,
             notification_uuid=notification_uuid,
         )
+        level_emoji = LEVEL_TO_EMOJI.get(color)
         blocks = [
             self.get_markdown_block(
-                text=f"<{title_link}|*{escape_slack_text(build_attachment_title(obj))}*>  \n{text}"
+                text=f"<{title_link}|*{escape_slack_text(build_attachment_title(obj))}*>  \n{text}",
+                emoji=level_emoji,
             )
         ]
         # build tags block

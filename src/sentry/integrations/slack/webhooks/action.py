@@ -284,9 +284,7 @@ class SlackActionEndpoint(Endpoint):
             "trigger_id": slack_request.data["trigger_id"],
         }
         use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
-        # XXX(CEO): idk if this is the default behavior, but instead of there being placeholder text it's an input field
-        # that filters to options in the dropdown (if a match is found)
-        # also, the second you make a selection (without hitting Submit) it sends a slightly different request
+        # XXX(CEO): the second you make a selection (without hitting Submit) it sends a slightly different request
         # and I don't need it to nor do I know how to stop it, it's making stuff harder in requests/action.py
         formatted_resolve_options = []
         for text, value in RESOLVE_OPTIONS.items():
@@ -393,7 +391,6 @@ class SlackActionEndpoint(Endpoint):
 
             # Masquerade a status action
             selection = None
-            # TODO this is ridiculously nested, is there a better way?
             values = slack_request.data["view"]["state"]["values"]
             for value in values:
                 for val in values[value]:
