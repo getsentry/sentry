@@ -293,6 +293,10 @@ category:driver | [ category:driver ] category=internals
 # Only group by top-level malloc op, not any helper function it may have called.
 [ category:malloc ] | category:malloc category=internals
 
+# abort() and exception raising is technically the culprit for crashes, but not
+# the thing we want to show.
+category:throw ^-group
+
 # On Windows, _purecall internally aborts when the function pointer is invalid.
 # We want to treat this the same as a segfault happening before calling
 # _purecall.

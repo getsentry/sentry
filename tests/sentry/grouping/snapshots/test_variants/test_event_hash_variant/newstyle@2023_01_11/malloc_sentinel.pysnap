@@ -1,5 +1,5 @@
 ---
-created: '2023-12-12T14:07:31.390126Z'
+created: '2023-12-12T15:28:01.679476Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -182,10 +182,10 @@ system:
           frame*
             function*
               "abort"
-          frame (ignored by stack trace rule (category:indirection -group))
+          frame (ignored by stack trace rule (category:throw ^-group))
             function*
               "pthread_kill"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by stack trace rule (category:throw ^-group))
             function*
               "__pthread_kill"
         type*
