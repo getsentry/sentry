@@ -222,7 +222,7 @@ describe('VisualizationStep', function () {
       expect(eventsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({
-          query: expect.objectContaining({query: ' release:v1 '}),
+          query: expect.objectContaining({query: ' release:"v1" '}),
         })
       )
     );

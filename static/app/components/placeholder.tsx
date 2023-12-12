@@ -9,6 +9,7 @@ export interface PlaceholderProps {
   error?: React.ReactNode;
   height?: string;
   shape?: 'rect' | 'circle';
+  style?: React.CSSProperties;
   testId?: string;
   width?: string;
 }
@@ -21,13 +22,15 @@ const defaultProps = {
   testId: 'loading-placeholder',
 } satisfies Partial<PlaceholderProps>;
 
-const Placeholder = styled(({className, children, error, testId}: PlaceholderProps) => {
-  return (
-    <div data-test-id={testId} className={className}>
-      {error || children}
-    </div>
-  );
-})<PlaceholderProps>`
+const Placeholder = styled(
+  ({className, children, error, testId, style}: PlaceholderProps) => {
+    return (
+      <div data-test-id={testId} className={className} style={style}>
+        {error || children}
+      </div>
+    );
+  }
+)<PlaceholderProps>`
   display: flex;
   flex-direction: column;
   flex-shrink: 0;

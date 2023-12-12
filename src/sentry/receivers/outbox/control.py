@@ -19,6 +19,7 @@ from sentry.models.outbox import OutboxCategory, process_control_outbox
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.services.hybrid_cloud.issue import issue_service
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSignal, organization_service
+from sentry.shared_integrations.exceptions import ApiConflictError
 from sentry.silo.base import SiloMode
 
 logger = logging.getLogger(__name__)
@@ -68,22 +69,27 @@ def process_async_webhooks(payload: Mapping[str, Any], region_name: str, **kwds:
 
     if SiloMode.get_current_mode() == SiloMode.CONTROL:
         # By default, these clients will raise errors on non-20x response codes
-        response = RegionSiloClient(region=region).request(
-            method=webhook_payload.method,
-            path=webhook_payload.path,
-            headers=webhook_payload.headers,
-            # We need to send the body as raw bytes to avoid interfering with webhook signatures
-            data=webhook_payload.body,
-            json=False,
-        )
-        logger.info(
-            "webhook_proxy.complete",
-            extra={
-                "status": response.status_code,
-                "request_path": webhook_payload.path,
-                "request_method": webhook_payload.method,
-            },
-        )
+        try:
+            response = RegionSiloClient(region=region).request(
+                method=webhook_payload.method,
+                path=webhook_payload.path,
+                headers=webhook_payload.headers,
+                # We need to send the body as raw bytes to avoid interfering with webhook signatures
+                data=webhook_payload.body,
+                json=False,
+            )
+            logger.info(
+                "webhook_proxy.complete",
+                extra={
+                    "status": getattr(
+                        response, "status_code", 204
+                    ),  # Request returns empty dict instead of a response object when the code is a 204
+                    "request_path": webhook_payload.path,
+                    "request_method": webhook_payload.method,
+                },
+            )
+        except ApiConflictError as e:
+            logger.warning("webhook_proxy.conflict_occurred", extra={"conflict_text": e.text})
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.SEND_SIGNAL)

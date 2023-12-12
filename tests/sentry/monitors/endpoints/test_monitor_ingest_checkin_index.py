@@ -166,9 +166,9 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
                 == monitor.get_next_expected_checkin_latest(checkin.date_added)
             )
 
-    def test_disabled(self):
+    def test_muted(self):
         for path_func in self._get_path_functions():
-            monitor = self._create_monitor(status=MonitorObjectStatus.DISABLED)
+            monitor = self._create_monitor(is_muted=True)
             path = path_func(monitor.guid)
 
             resp = self.client.post(path, {"status": "error"}, **self.token_auth_headers)
@@ -180,7 +180,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
 
             # The created monitor environment is in line with the check-in, but the parent monitor
-            # is disabled
+            # is muted
             assert monitor_environment.status == MonitorStatus.ERROR
             assert monitor_environment.last_checkin == checkin.date_added
             assert monitor_environment.next_checkin == monitor.get_next_expected_checkin(

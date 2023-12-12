@@ -266,7 +266,9 @@ class GitHubIssueBasic(IssueBasicMixin):
             self.raise_error(e)
 
         def natural_sort_pair(pair: tuple[str, str]) -> str | int:
-            return [int(text) if text.isdigit() else text for text in re.split("([0-9]+)", pair[0])]
+            return [
+                int(text) if text.isdecimal() else text for text in re.split("([0-9]+)", pair[0])
+            ]
 
         # sort alphabetically
         labels = tuple(

@@ -1,34 +1,24 @@
-import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
-import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {PlatformOption} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {
+  Docs,
+  DocsParams,
+  OnboardingConfig,
+  PlatformOption,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
-import type {Organization, PlatformKey} from 'sentry/types';
 
 export enum AngularVersion {
   V10 = 'v10',
   V12 = 'v12',
 }
 
-type PlaformOptionKey = 'angularVersion';
+type PlaformOptionKey = 'siblingOption';
 
-type StepProps = {
-  angularVersion: AngularVersion;
-  errorHandlerProviders: string;
-  sentryInitContent: string;
-  newOrg?: boolean;
-  organization?: Organization;
-  platformKey?: PlatformKey;
-  projectId?: string;
-};
-
-// Configuration Start
 const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
-  angularVersion: {
-    label: t('Spring Boot Version'),
+  siblingOption: {
+    label: t('Angular Version'),
     items: [
       {
         label: t('Angular 12+'),
@@ -42,155 +32,168 @@ const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
   },
 };
 
-const replayIntegration = `
-new Sentry.Replay(),
-`;
+type PlatformOptions = typeof platformOptions;
+type Params = DocsParams<PlatformOptions>;
 
-const replayOtherConfig = `
-// Session Replay
-replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
-replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.
-`;
+const getSentryInitLayout = (params: Params): string => {
+  return `Sentry.init({
+    dsn: "${params.dsn}",
+    integrations: [${
+      params.isPerformanceSelected
+        ? `
+          new Sentry.BrowserTracing({
+            // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
+            tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],
+          }),`
+        : ''
+    }${
+      params.isReplaySelected
+        ? `
+          new Sentry.Replay(),`
+        : ''
+    }
+  ],${
+    params.isPerformanceSelected
+      ? `
+        // Performance Monitoring
+        tracesSampleRate: 1.0, //  Capture 100% of the transactions`
+      : ''
+  }${
+    params.isReplaySelected
+      ? `
+        // Session Replay
+        replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
+        replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
+      : ''
+  }
+  });`;
+};
 
-const performanceIntegration = `
-new Sentry.BrowserTracing({
-  // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-  tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],
-  routingInstrumentation: Sentry.routingInstrumentation,
-}),
-`;
+const getNextStep = (
+  params: Params
+): {
+  description: string;
+  id: string;
+  link: string;
+  name: string;
+}[] => {
+  let nextStepDocs = [...nextSteps];
 
-const performanceOtherConfig = `
-// Performance Monitoring
-tracesSampleRate: 1.0, // Capture 100% of the transactions`;
+  if (params.isPerformanceSelected) {
+    nextStepDocs = nextStepDocs.filter(
+      step => step.id !== ProductSolution.PERFORMANCE_MONITORING
+    );
+  }
 
-const performanceErrorHandler = `
-{
-  provide: Sentry.TraceService,
-  deps: [Router],
-},
-{
-  provide: APP_INITIALIZER,
-  useFactory: () => () => {},
-  deps: [Sentry.TraceService],
-  multi: true,
-},
-`;
+  if (params.isReplaySelected) {
+    nextStepDocs = nextStepDocs.filter(
+      step => step.id !== ProductSolution.SESSION_REPLAY
+    );
+  }
+  return nextStepDocs;
+};
 
-function getNpmPackage(angularVersion: AngularVersion) {
+function getNpmPackage(angularVersion) {
   return angularVersion === AngularVersion.V12
     ? '@sentry/angular-ivy'
     : '@sentry/angular';
 }
 
-export const steps = ({
-  sentryInitContent,
-  errorHandlerProviders,
-  angularVersion,
-  ...props
-}: StepProps): LayoutProps['steps'] => [
-  {
-    type: StepType.INSTALL,
-    description: (
-      <p>
-        {tct(
-          'Add the Sentry SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn]:',
-          {
-            codeYarn: <code />,
-            codeNpm: <code />,
-          }
-        )}
-      </p>
-    ),
-    configurations: [
-      {
-        language: 'bash',
-        code: [
-          {
-            label: 'npm',
-            value: 'npm',
-            language: 'bash',
-            code: `npm install --save ${getNpmPackage(angularVersion)}`,
-          },
-          {
-            label: 'yarn',
-            value: 'yarn',
-            language: 'bash',
-            code: `yarn add ${getNpmPackage(angularVersion)}`,
-          },
-        ],
-      },
-    ],
-  },
-  {
-    type: StepType.CONFIGURE,
-    description: t(
-      'You should init the Sentry browser SDK in your main.ts file as soon as possible during application load up, before initializing Angular:'
-    ),
-    configurations: [
-      {
-        language: 'javascript',
-        code: `
-import { enableProdMode } from "@angular/core";
-import { platformBrowserDynamic } from "@angular/platform-browser-dynamic";
-import * as Sentry from "${getNpmPackage(angularVersion)}";
-
-import { AppModule } from "./app/app.module";
-
-Sentry.init({
-  ${sentryInitContent}
-});
-
-enableProdMode();
-platformBrowserDynamic()
-  .bootstrapModule(AppModule)
-  .then((success) => console.log('Bootstrap success'))
-  .catch((err) => console.error(err));
-`,
-      },
-      {
-        description: t(
-          "The Sentry Angular SDK exports a function to instantiate ErrorHandler provider that will automatically send JavaScript errors captured by the Angular's error handler."
-        ),
-        language: 'javascript',
-        code: `
-import { APP_INITIALIZER, ErrorHandler, NgModule } from "@angular/core";
-import { Router } from "@angular/router";
-import * as Sentry from "${getNpmPackage(angularVersion)}";
-
-@NgModule({
-  // ...
-  providers: [
+const onboarding: OnboardingConfig<PlatformOptions> = {
+  install: (params: Params) => [
     {
-      provide: ErrorHandler,
-      useValue: Sentry.createErrorHandler({
-        showDialog: true,
-      }),
-    },${errorHandlerProviders}
+      type: StepType.INSTALL,
+      description: tct(
+        'Add the Sentry SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn]:',
+        {
+          codeYarn: <code />,
+          codeNpm: <code />,
+        }
+      ),
+      configurations: [
+        {
+          language: 'bash',
+          code: [
+            {
+              label: 'npm',
+              value: 'npm',
+              language: 'bash',
+              code: `npm install --save ${getNpmPackage(
+                params.platformOptions.siblingOption
+              )}`,
+            },
+            {
+              label: 'yarn',
+              value: 'yarn',
+              language: 'bash',
+              code: `yarn add ${getNpmPackage(params.platformOptions.siblingOption)}`,
+            },
+          ],
+        },
+      ],
+    },
   ],
-  // ...
-})
-export class AppModule {}`,
-      },
-    ],
-  },
-  getUploadSourceMapsStep({
-    guideLink: 'https://docs.sentry.io/platforms/javascript/guides/angular/sourcemaps/',
-    ...props,
-  }),
-  {
-    type: StepType.VERIFY,
-    description: t(
-      "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-    ),
-    configurations: [
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      configurations: [
+        getSetupConfiguration(params),
+        {
+          description: t(
+            "The Sentry Angular SDK exports a function to instantiate ErrorHandler provider that will automatically send JavaScript errors captured by the Angular's error handler."
+          ),
+          language: 'javascript',
+          code: `
+    import { APP_INITIALIZER, ErrorHandler, NgModule } from "@angular/core";
+    import { Router } from "@angular/router";
+    import * as Sentry from "${getNpmPackage(params.platformOptions.siblingOption)}";
+
+    @NgModule({
+    // ...
+    providers: [
       {
-        language: 'javascript',
-        code: `myUndefinedFunction();`,
+        provide: ErrorHandler,
+        useValue: Sentry.createErrorHandler({
+          showDialog: true,
+        }),
+      }, {
+        provide: Sentry.TraceService,
+        deps: [Router],
+      },
+      {
+        provide: APP_INITIALIZER,
+        useFactory: () => () => {},
+        deps: [Sentry.TraceService],
+        multi: true,
       },
     ],
-  },
-];
+    // ...
+    })
+    export class AppModule {}`,
+        },
+      ],
+    },
+    getUploadSourceMapsStep({
+      guideLink: 'https://docs.sentry.io/platforms/javascript/guides/angular/sourcemaps/',
+      ...params,
+    }),
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+      ),
+      configurations: [
+        {
+          language: 'javascript',
+          code: `myUndefinedFunction();`,
+        },
+      ],
+    },
+  ],
+  nextSteps: params => getNextStep(params),
+};
 
 export const nextSteps = [
   {
@@ -216,69 +219,39 @@ export const nextSteps = [
     link: 'https://docs.sentry.io/platforms/javascript/guides/angular/session-replay/',
   },
 ];
-// Configuration End
 
-export function GettingStartedWithAngular({
-  dsn,
-  activeProductSelection = [],
-  organization,
-  newOrg,
-  platformKey,
-  projectId,
-  ...props
-}: ModuleProps) {
-  const optionValues = useUrlPlatformOptions(platformOptions);
-  const integrations: string[] = [];
-  const otherConfigs: string[] = [];
+function getSetupConfiguration(params: Params) {
+  const siblingOption = params.platformOptions.siblingOption;
+  const sentryInitLayout = getSentryInitLayout(params);
+  const configuration = {
+    description: tct(
+      `You should init the Sentry browser SDK in your [code:main.ts] file as soon as possible during application load up, before initializing Angular:`,
+      {
+        code: <code />,
+      }
+    ),
+    language: 'javascript',
+    code: `
+      import { enableProdMode } from "@angular/core";
+      import { platformBrowserDynamic } from "@angular/platform-browser-dynamic";
+      import * as Sentry from "${getNpmPackage(siblingOption)}";
 
-  let nextStepDocs = [...nextSteps];
-  const errorHandlerProviders: string[] = [];
+      import { AppModule } from "./app/app.module";
 
-  if (activeProductSelection.includes(ProductSolution.PERFORMANCE_MONITORING)) {
-    integrations.push(performanceIntegration.trim());
-    otherConfigs.push(performanceOtherConfig.trim());
-    errorHandlerProviders.push(performanceErrorHandler.trim());
-    nextStepDocs = nextStepDocs.filter(
-      step => step.id !== ProductSolution.PERFORMANCE_MONITORING
-    );
-  }
+      ${sentryInitLayout}
 
-  if (activeProductSelection.includes(ProductSolution.SESSION_REPLAY)) {
-    integrations.push(replayIntegration.trim());
-    otherConfigs.push(replayOtherConfig.trim());
-    nextStepDocs = nextStepDocs.filter(
-      step => step.id !== ProductSolution.SESSION_REPLAY
-    );
-  }
-
-  let sentryInitContent: string[] = [`dsn: "${dsn}",`];
-
-  if (integrations.length > 0) {
-    sentryInitContent = sentryInitContent.concat('integrations: [', integrations, '],');
-  }
-
-  if (otherConfigs.length > 0) {
-    sentryInitContent = sentryInitContent.concat(otherConfigs);
-  }
-
-  return (
-    <Layout
-      steps={steps({
-        sentryInitContent: sentryInitContent.join('\n'),
-        errorHandlerProviders: errorHandlerProviders.join('\n'),
-        angularVersion: optionValues.angularVersion as AngularVersion,
-        organization,
-        newOrg,
-        platformKey,
-        projectId,
-      })}
-      nextSteps={nextStepDocs}
-      platformOptions={platformOptions}
-      newOrg={newOrg}
-      platformKey={platformKey}
-      {...props}
-    />
-  );
+      enableProdMode();
+      platformBrowserDynamic()
+      .bootstrapModule(AppModule)
+      .then((success) => console.log('Bootstrap success'))
+      .catch((err) => console.error(err));`,
+  };
+  return configuration;
 }
 
-export default GettingStartedWithAngular;
+const docs: Docs<PlatformOptions> = {
+  onboarding,
+  platformOptions,
+};
+
+export default docs;

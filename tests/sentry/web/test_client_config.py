@@ -23,17 +23,11 @@ from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.region import override_regions
-from sentry.types.region import Region, RegionCategory
+from sentry.testutils.silo import control_silo_test, create_test_regions
 from sentry.utils.auth import login
 from sentry.web.client_config import get_client_config
 
 RequestFactory = Callable[[], Optional[Tuple[HttpRequest, User]]]
-
-region_data = [
-    Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
-    Region("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT),
-    Region("acme", 3, "http://acme.testserver", RegionCategory.SINGLE_TENANT),
-]
 
 
 def request_factory(f):
@@ -186,8 +180,10 @@ def test_client_config_empty_region_data():
 
 
 @django_db_all
-@override_regions(regions=region_data)
-@override_settings(SILO_MODE=SiloMode.CONTROL)
+@control_silo_test(
+    regions=create_test_regions("us", "eu", "acme", single_tenants=["acme"]),
+    include_monolith_run=True,
+)
 def test_client_config_with_region_data():
     request, user = make_user_request_from_org()
     request.user = user
@@ -199,8 +195,10 @@ def test_client_config_with_region_data():
 
 
 @django_db_all
-@override_regions(regions=region_data)
-@override_settings(SILO_MODE=SiloMode.CONTROL)
+@control_silo_test(
+    regions=create_test_regions("us", "eu", "acme", single_tenants=["acme"]),
+    include_monolith_run=True,
+)
 def test_client_config_with_single_tenant_membership():
     request, user = make_user_request_from_org()
     request.user = user
@@ -217,8 +215,10 @@ def test_client_config_with_single_tenant_membership():
 
 
 @django_db_all
-@override_regions(regions=region_data)
-@override_settings(SILO_MODE=SiloMode.CONTROL)
+@control_silo_test(
+    regions=create_test_regions("us", "eu", "acme", single_tenants=["acme"]),
+    include_monolith_run=True,
+)
 def test_client_config_links_regionurl():
     request, user = make_user_request_from_org()
     request.user = user
@@ -235,8 +235,10 @@ def test_client_config_links_regionurl():
 
 
 @django_db_all
-@override_regions(regions=region_data)
-@override_settings(SILO_MODE=SiloMode.CONTROL)
+@control_silo_test(
+    regions=create_test_regions("us", "eu", "acme", single_tenants=["acme"]),
+    include_monolith_run=True,
+)
 def test_client_config_links_with_priority_org():
     # request, user = make_user_request_from_non_existant_org()
     request, user = make_user_request_from_org()

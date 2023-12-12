@@ -3,7 +3,7 @@ from __future__ import annotations
 import heapq
 import logging
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, DefaultDict, Dict, Generator, Iterable, List, Optional, Tuple
 
 from django.utils import timezone as django_timezone
@@ -30,8 +30,14 @@ from snuba_sdk import (
 from sentry import features, options, projectoptions
 from sentry.api.endpoints.project_performance_issue_settings import InternalProjectOptions
 from sentry.constants import ObjectStatus
+from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
+from sentry.models.statistical_detectors import (
+    RegressionGroup,
+    RegressionType,
+    get_regression_groups,
+)
 from sentry.profiles.utils import get_from_profiling_service
 from sentry.seer.utils import BreakpointData
 from sentry.sentry_metrics import indexer
@@ -165,6 +171,7 @@ def run_detection() -> None:
 class EndpointRegressionDetector(RegressionDetector):
     source = "transaction"
     kind = "endpoint"
+    regression_type = RegressionType.ENDPOINT
     config = MovingAverageRelativeChangeDetectorConfig(
         min_data_points=6,
         short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
@@ -175,6 +182,22 @@ class EndpointRegressionDetector(RegressionDetector):
     state_cls = MovingAverageDetectorState
     detector_cls = MovingAverageRelativeChangeDetector
     min_change = 200  # 200ms in ms
+    resolution_rel_threshold = 0.1
+
+    @classmethod
+    def make_status_change_message(
+        cls,
+        payload: DetectorPayload,
+        status: int,
+        substatus: Optional[int] = None,
+    ) -> StatusChangeMessage:
+        return StatusChangeMessage(
+            # To align with the issue, we need to use the full fingerprint here
+            fingerprint=[fingerprint_regression(payload.group, full=True)],
+            project_id=payload.project_id,
+            new_status=status,
+            new_substatus=substatus,
+        )
 
     @classmethod
     def query_payloads(
@@ -197,6 +220,7 @@ class EndpointRegressionDetector(RegressionDetector):
 class FunctionRegressionDetector(RegressionDetector):
     source = "profile"
     kind = "function"
+    regression_type = RegressionType.FUNCTION
     config = MovingAverageRelativeChangeDetectorConfig(
         min_data_points=6,
         short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
@@ -207,6 +231,24 @@ class FunctionRegressionDetector(RegressionDetector):
     state_cls = MovingAverageDetectorState
     detector_cls = MovingAverageRelativeChangeDetector
     min_change = 100_000_000  # 100ms in ns
+    resolution_rel_threshold = 0.1
+
+    @classmethod
+    def make_status_change_message(
+        cls,
+        payload: DetectorPayload,
+        status: int,
+        substatus: Optional[int] = None,
+    ) -> StatusChangeMessage:
+        return StatusChangeMessage(
+            # This needs to match the implementation in vroom where the issue
+            # fingerprint is generated.
+            # See https://github.com/getsentry/vroom/blob/711cb69765f8192a4bbc029a23801dd2bc4012a0/internal/occurrence/occurrence.go#L285
+            fingerprint=[f"{payload.group:x}"],
+            project_id=payload.project_id,
+            new_status=status,
+            new_substatus=substatus,
+        )
 
     @classmethod
     def query_payloads(
@@ -243,8 +285,10 @@ def detect_transaction_trends(
         project_option=InternalProjectOptions.TRANSACTION_DURATION_REGRESSION,
     )
 
-    ratelimit = options.get("statistical_detectors.ratelimit.ema")
     trends = EndpointRegressionDetector.detect_trends(projects, start)
+    trends = EndpointRegressionDetector.redirect_resolutions(trends, start)
+
+    ratelimit = options.get("statistical_detectors.ratelimit.ema")
     regressions = limit_regressions_by_project(trends, ratelimit)
 
     delay = 12  # hours
@@ -286,11 +330,15 @@ def detect_transaction_change_points(
         (projects_by_id[item[0]], item[1]) for item in transactions if item[0] in projects_by_id
     ]
 
-    breakpoint_count = 0
-
     regressions = EndpointRegressionDetector.detect_regressions(
         transaction_pairs, start, "p95(transaction.duration)", TIMESERIES_PER_BATCH
     )
+
+    versioned_regressions = redirect_escalations(regressions, RegressionType.ENDPOINT)
+
+    regressions = save_versioned_regressions(versioned_regressions, RegressionType.ENDPOINT)
+
+    breakpoint_count = 0
 
     for regression in regressions:
         breakpoint_count += 1
@@ -318,8 +366,10 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
         feature_name="organizations:profiling-statistical-detectors-ema",
     )
 
-    ratelimit = options.get("statistical_detectors.ratelimit.ema")
     trends = FunctionRegressionDetector.detect_trends(projects, start)
+    trends = FunctionRegressionDetector.redirect_resolutions(trends, start)
+
+    ratelimit = options.get("statistical_detectors.ratelimit.ema")
     regressions = limit_regressions_by_project(trends, ratelimit)
 
     delay = 12  # hours
@@ -361,12 +411,16 @@ def detect_function_change_points(
         (projects_by_id[item[0]], item[1]) for item in functions_list if item[0] in projects_by_id
     ]
 
-    breakpoint_count = 0
-    emitted_count = 0
-
     regressions = FunctionRegressionDetector.detect_regressions(
         function_pairs, start, "p95()", TIMESERIES_PER_BATCH
     )
+
+    versioned_regressions = redirect_escalations(regressions, RegressionType.FUNCTION)
+
+    regressions = save_versioned_regressions(versioned_regressions, RegressionType.FUNCTION)
+
+    breakpoint_count = 0
+    emitted_count = 0
 
     for regression_chunk in chunked(regressions, 100):
         breakpoint_count += len(regression_chunk)
@@ -389,13 +443,13 @@ def detect_function_change_points(
 
 def emit_function_regression_issue(
     projects_by_id: Dict[int, Project],
-    breakpoints: List[BreakpointData],
+    regressions: List[BreakpointData],
     start: datetime,
 ) -> int:
     start = start - timedelta(hours=1)
     start = start.replace(minute=0, second=0, microsecond=0)
 
-    project_ids = [int(entry["project"]) for entry in breakpoints]
+    project_ids = [int(regression["project"]) for regression in regressions]
     projects = [projects_by_id[project_id] for project_id in project_ids]
 
     params: Dict[str, Any] = {
@@ -408,11 +462,11 @@ def emit_function_regression_issue(
     conditions = [
         And(
             [
-                Condition(Column("project_id"), Op.EQ, int(entry["project"])),
-                Condition(Column("fingerprint"), Op.EQ, int(entry["transaction"])),
+                Condition(Column("project_id"), Op.EQ, int(regression["project"])),
+                Condition(Column("fingerprint"), Op.EQ, int(regression["transaction"])),
             ]
         )
-        for entry in breakpoints
+        for regression in regressions
     ]
 
     result = functions.query(
@@ -420,7 +474,7 @@ def emit_function_regression_issue(
         query="is_application:1",
         params=params,
         orderby=["project.id"],
-        limit=len(breakpoints),
+        limit=len(regressions),
         referrer=Referrer.API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_EXAMPLE.value,
         auto_aggregations=True,
         use_aggregate_conditions=True,
@@ -432,9 +486,9 @@ def emit_function_regression_issue(
 
     payloads = []
 
-    for entry in breakpoints:
-        project_id = int(entry["project"])
-        fingerprint = int(entry["transaction"])
+    for regression in regressions:
+        project_id = int(regression["project"])
+        fingerprint = int(regression["transaction"])
         example = examples.get((project_id, fingerprint))
         if example is None:
             continue
@@ -449,14 +503,14 @@ def emit_function_regression_issue(
                 "project_id": project_id,
                 "profile_id": example,
                 "fingerprint": fingerprint,
-                "absolute_percentage_change": entry["absolute_percentage_change"],
-                "aggregate_range_1": entry["aggregate_range_1"],
-                "aggregate_range_2": entry["aggregate_range_2"],
-                "breakpoint": int(entry["breakpoint"]),
-                "trend_difference": entry["trend_difference"],
-                "trend_percentage": entry["trend_percentage"],
-                "unweighted_p_value": entry["unweighted_p_value"],
-                "unweighted_t_value": entry["unweighted_t_value"],
+                "absolute_percentage_change": regression["absolute_percentage_change"],
+                "aggregate_range_1": regression["aggregate_range_1"],
+                "aggregate_range_2": regression["aggregate_range_2"],
+                "breakpoint": int(regression["breakpoint"]),
+                "trend_difference": regression["trend_difference"],
+                "trend_percentage": regression["trend_percentage"],
+                "unweighted_p_value": regression["unweighted_p_value"],
+                "unweighted_t_value": regression["unweighted_t_value"],
                 "released": True,
             }
         )
@@ -597,8 +651,7 @@ def query_transactions(
         DetectorPayload(
             project_id=row["project_id"],
             group=row["transaction_name"],
-            # take the first 16 chars of the fingerprint as that's sufficiently unique
-            fingerprint=fingerprint_regression(row["transaction_name"])[:16],
+            fingerprint=fingerprint_regression(row["transaction_name"]),
             count=row["count"],
             value=row["p95"],
             timestamp=start,
@@ -802,7 +855,7 @@ def query_functions(projects: List[Project], start: datetime) -> List[DetectorPa
         DetectorPayload(
             project_id=row["project.id"],
             group=row["fingerprint"],
-            fingerprint=row["fingerprint"],
+            fingerprint=f"{row['fingerprint']:x}",
             count=row["count()"],
             value=row["p95()"],
             timestamp=datetime.fromisoformat(row["timestamp"]),
@@ -906,4 +959,71 @@ def limit_regressions_by_project(
 
     for regressions in regressions_by_project.values():
         for _, regression in regressions:
+            yield regression
+
+
+def redirect_escalations(
+    regressions: Generator[BreakpointData, None, None],
+    regression_type: RegressionType,
+    batch_size=1_000,
+) -> Generator[Tuple[int, BreakpointData], None, None]:
+    for regression_chunk in chunked(regressions, batch_size):
+        existing_regression_groups = {
+            (group.project_id, group.fingerprint): group
+            for group in get_regression_groups(
+                regression_type,
+                [
+                    (
+                        int(regression["project"]),
+                        fingerprint_regression(regression["transaction"]),
+                    )
+                    for regression in regression_chunk
+                ],
+            )
+        }
+
+        for regression in regression_chunk:
+            project_id = int(regression["project"])
+            fingerprint = fingerprint_regression(regression["transaction"])
+            group = existing_regression_groups.get((project_id, fingerprint))
+
+            if group is None:
+                yield 1, regression
+            elif not group.active:
+                yield group.version + 1, regression
+            else:
+                # TODO:
+                # If there is an active regression group, we should check
+                # - if the issue group is still unresolved
+                # - if the issue escalted
+                # then emit an status change message if necessary.
+                pass
+
+
+def save_versioned_regressions(
+    versioned_regressions: Generator[Tuple[int, BreakpointData], None, None],
+    regression_type: RegressionType,
+    batch_size=100,
+) -> Generator[BreakpointData, None, None]:
+
+    for regression_chunk in chunked(versioned_regressions, batch_size):
+        RegressionGroup.objects.bulk_create(
+            [
+                RegressionGroup(
+                    type=regression_type.value,
+                    date_regressed=datetime.utcfromtimestamp(regression["breakpoint"]).replace(
+                        tzinfo=timezone.utc
+                    ),
+                    version=version,
+                    active=True,
+                    project_id=int(regression["project"]),
+                    fingerprint=fingerprint_regression(regression["transaction"]),
+                    baseline=regression["aggregate_range_1"],
+                    regressed=regression["aggregate_range_2"],
+                )
+                for version, regression in regression_chunk
+            ]
+        )
+
+        for _, regression in regression_chunk:
             yield regression

@@ -2407,7 +2407,7 @@ class TestMigrations(TransactionTestCase):
     """
     From https://www.caktusgroup.com/blog/2016/02/02/writing-unit-tests-django-migrations/
 
-    Note that when running these tests locally you will need to set the `MIGRATIONS_TEST_MIGRATE=1`
+    Note that when running these tests locally you will need to set the `--migrations`
     environmental variable for these to pass.
     """
 
@@ -2441,8 +2441,7 @@ class TestMigrations(TransactionTestCase):
         matching_migrations = [m for m in executor.loader.applied_migrations if m[0] == self.app]
         if not matching_migrations:
             raise AssertionError(
-                "no migrations detected!\n\n"
-                "try running this test with `MIGRATIONS_TEST_MIGRATE=1 pytest ...`"
+                "no migrations detected!\n\ntry running this test with `pytest --migrations ...`"
             )
         self.current_migration = [max(matching_migrations)]
         old_apps = executor.loader.project_state(migrate_from).apps
@@ -2852,7 +2851,7 @@ class MonitorIngestTestCase(MonitorTestCase):
         app = self.create_sentry_app_installation(
             slug=sentry_app.slug, organization=self.organization
         )
-        self.token = self.create_internal_integration_token(app, user=self.user)
+        self.token = self.create_internal_integration_token(install=app, user=self.user)
 
     def _get_path_functions(self):
         # Monitor paths are supported both with an org slug and without.  We test both as long as we support both.

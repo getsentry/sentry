@@ -9,13 +9,17 @@ import {space} from 'sentry/styles/space';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 
+import {DifferentialFlamegraphSettingsButton} from './differentialFlamegraphSettingsButton';
+
 const EMPTY_SPANS = [];
 
 interface DifferentialFlamegraphProps {
   canvasPoolManager: CanvasPoolManager;
   flamegraph: DifferentialFlamegraph;
-  onSourceChange: (source: 'before' | 'after') => void;
-  source: 'before' | 'after';
+  frameFilter: 'application' | 'system' | 'all';
+  negated: boolean;
+  onFrameFilterChange: (type: 'application' | 'system' | 'all') => void;
+  onNegatedChange: (source: boolean) => void;
 }
 export function DifferentialFlamegraphToolbar(props: DifferentialFlamegraphProps) {
   const onResetZoom = useCallback(() => {
@@ -25,8 +29,8 @@ export function DifferentialFlamegraphToolbar(props: DifferentialFlamegraphProps
   return (
     <DifferentialFlamegraphToolbarContainer>
       <DifferentialFlamegraphNegationSwitch
-        onSourceChange={props.onSourceChange}
-        source={props.source}
+        onNegatedChange={props.onNegatedChange}
+        negated={props.negated}
       />
       <FlamegraphSearch
         spans={EMPTY_SPANS}
@@ -36,6 +40,10 @@ export function DifferentialFlamegraphToolbar(props: DifferentialFlamegraphProps
       <Button size="xs" onClick={onResetZoom}>
         {t('Reset Zoom')}
       </Button>
+      <DifferentialFlamegraphSettingsButton
+        frameFilter={props.frameFilter}
+        onFrameFilterChange={props.onFrameFilterChange}
+      />
     </DifferentialFlamegraphToolbarContainer>
   );
 }

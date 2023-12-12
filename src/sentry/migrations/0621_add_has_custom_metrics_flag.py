@@ -20,7 +20,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0612_expand_relocation_model"),
+        ("sentry", "0620_add_has_new_feedbacks_flag"),
     ]
 
     operations = [
