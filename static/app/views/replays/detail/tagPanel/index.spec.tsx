@@ -6,20 +6,23 @@ import {Provider as ReplayContextProvider} from 'sentry/components/replays/repla
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import TagPanel from 'sentry/views/replays/detail/tagPanel';
 
-const mockReplay = ReplayReader.factory({
-  replayRecord: ReplayRecordFixture({
-    browser: {
-      name: 'Chrome',
-      version: '110.0.0',
-    },
-    tags: {
-      foo: ['bar', 'baz'],
-      'my custom tag': ['a wordy value'],
-    },
-  }),
-  errors: [],
-  attachments: [],
-});
+const mockReplay = ReplayReader.factory(
+  {
+    replayRecord: ReplayRecordFixture({
+      browser: {
+        name: 'Chrome',
+        version: '110.0.0',
+      },
+      tags: {
+        foo: ['bar', 'baz'],
+        'my custom tag': ['a wordy value'],
+      },
+    }),
+    errors: [],
+    attachments: [],
+  },
+  {}
+);
 
 const renderComponent = (replay: ReplayReader | null) => {
   return render(

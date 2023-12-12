@@ -36,18 +36,21 @@ jest.mock('screenfull', () => ({
 }));
 
 // Get replay data with the mocked replay reader params
-const mockReplay = ReplayReader.factory({
-  replayRecord: ReplayRecordFixture({
-    browser: {
-      name: 'Chrome',
-      version: '110.0.0',
-    },
-  }),
-  errors: [],
-  attachments: RRWebInitFrameEvents({
-    timestamp: new Date('Sep 22, 2022 4:58:39 PM UTC'),
-  }),
-});
+const mockReplay = ReplayReader.factory(
+  {
+    replayRecord: ReplayRecordFixture({
+      browser: {
+        name: 'Chrome',
+        version: '110.0.0',
+      },
+    }),
+    errors: [],
+    attachments: RRWebInitFrameEvents({
+      timestamp: new Date('Sep 22, 2022 4:58:39 PM UTC'),
+    }),
+  },
+  {}
+);
 
 mockUseReplayReader.mockImplementation(() => {
   return {
