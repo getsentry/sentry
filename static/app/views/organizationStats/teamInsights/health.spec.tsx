@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 import {Team} from 'sentry-fixture/team';
 import {TeamAlertsTriggered} from 'sentry-fixture/teamAlertsTriggered';
 import {TeamResolutionTime} from 'sentry-fixture/teamResolutionTime';
@@ -173,7 +174,7 @@ describe('TeamStatsHealth', () => {
       teams,
       projects,
     });
-    const context = TestStubs.routerContext([{organization}]);
+    const context = RouterContextFixture([{organization}]);
     TeamStore.loadInitialData(teams, false, null);
 
     MockApiClient.addMockResponse({

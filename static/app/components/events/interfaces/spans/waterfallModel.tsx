@@ -5,6 +5,7 @@ import {action, computed, makeObservable, observable} from 'mobx';
 import {Client} from 'sentry/api';
 import {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
 import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
+import {TraceInfo} from 'sentry/views/performance/traceDetails/types';
 
 import {ActiveOperationFilter, noFilter, toggleAllFilters, toggleFilter} from './filter';
 import SpanTreeModel from './spanTreeModel';
@@ -44,7 +45,6 @@ class WaterfallModel {
     hiddenSpanSubTrees?: Set<string>
   ) {
     this.event = event;
-
     this.parsedTrace = parseTrace(event);
     const rootSpan = generateRootSpan(this.parsedTrace);
     this.rootSpan = new SpanTreeModel(
@@ -286,13 +286,22 @@ class WaterfallModel {
   generateBounds = ({
     viewStart,
     viewEnd,
+    traceInfo,
   }: {
     // in [0, 1]
     viewEnd: number;
     viewStart: number; // in [0, 1]
+    traceInfo?: TraceInfo;
   }) => {
+    const bounds = traceInfo
+      ? {
+          traceEndTimestamp: traceInfo.endTimestamp,
+          traceStartTimestamp: traceInfo.startTimestamp,
+        }
+      : this.getTraceBounds();
+
     return boundsGenerator({
-      ...this.getTraceBounds(),
+      ...bounds,
       viewStart,
       viewEnd,
     });
@@ -301,14 +310,17 @@ class WaterfallModel {
   getWaterfall = ({
     viewStart,
     viewEnd,
+    traceInfo,
   }: {
     // in [0, 1]
     viewEnd: number;
     viewStart: number; // in [0, 1]
+    traceInfo?: TraceInfo;
   }) => {
     const generateBounds = this.generateBounds({
       viewStart,
       viewEnd,
+      traceInfo,
     });
 
     return this.rootSpan.getSpansList({

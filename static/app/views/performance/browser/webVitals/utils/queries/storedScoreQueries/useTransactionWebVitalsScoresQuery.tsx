@@ -6,13 +6,17 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
-import {RowWithScore} from 'sentry/views/performance/browser/webVitals/utils/types';
+import {
+  RowWithScore,
+  WebVitals,
+} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 
 type Props = {
   defaultSort?: Sort;
   enabled?: boolean;
   limit?: number;
+  opportunityWebVital?: WebVitals | 'total';
   sortName?: string;
   transaction?: string | null;
 };
@@ -23,6 +27,7 @@ export const useTransactionWebVitalsScoresQuery = ({
   defaultSort,
   sortName = 'sort',
   enabled = true,
+  opportunityWebVital = 'total',
 }: Props) => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -34,11 +39,11 @@ export const useTransactionWebVitalsScoresQuery = ({
     {
       fields: [
         'transaction',
-        'avg(measurements.lcp)',
-        'avg(measurements.fcp)',
-        'avg(measurements.cls)',
-        'avg(measurements.ttfb)',
-        'avg(measurements.fid)',
+        'p75(measurements.lcp)',
+        'p75(measurements.fcp)',
+        'p75(measurements.cls)',
+        'p75(measurements.ttfb)',
+        'p75(measurements.fid)',
         'performance_score(measurements.score.lcp)',
         'performance_score(measurements.score.fcp)',
         'performance_score(measurements.score.cls)',
@@ -46,6 +51,7 @@ export const useTransactionWebVitalsScoresQuery = ({
         'performance_score(measurements.score.ttfb)',
         'avg(measurements.score.total)',
         'count()',
+        `opportunity_score(measurements.score.${opportunityWebVital})`,
       ],
       name: 'Web Vitals',
       query:
@@ -78,11 +84,11 @@ export const useTransactionWebVitalsScoresQuery = ({
             calculatePerformanceScoreFromStoredTableDataRow(row);
           return {
             transaction: row.transaction?.toString(),
-            'avg(measurements.lcp)': row['avg(measurements.lcp)'] as number,
-            'avg(measurements.fcp)': row['avg(measurements.fcp)'] as number,
-            'avg(measurements.cls)': row['avg(measurements.cls)'] as number,
-            'avg(measurements.ttfb)': row['avg(measurements.ttfb)'] as number,
-            'avg(measurements.fid)': row['avg(measurements.fid)'] as number,
+            'p75(measurements.lcp)': row['p75(measurements.lcp)'] as number,
+            'p75(measurements.fcp)': row['p75(measurements.fcp)'] as number,
+            'p75(measurements.cls)': row['p75(measurements.cls)'] as number,
+            'p75(measurements.ttfb)': row['p75(measurements.ttfb)'] as number,
+            'p75(measurements.fid)': row['p75(measurements.fid)'] as number,
             'count()': row['count()'] as number,
             score: totalScore ?? 0,
             clsScore: clsScore ?? 0,
@@ -90,6 +96,9 @@ export const useTransactionWebVitalsScoresQuery = ({
             lcpScore: lcpScore ?? 0,
             ttfbScore: ttfbScore ?? 0,
             fidScore: fidScore ?? 0,
+            opportunity: row[
+              `opportunity_score(measurements.score.${opportunityWebVital})`
+            ] as number,
           };
         })
       : [];

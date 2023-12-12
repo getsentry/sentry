@@ -46,7 +46,7 @@ class IntegrationEndpointTest(TestCase):
 
             mock_capture_exception.assert_called_with(exc)
             mock_stderror_write.assert_called_with(
-                "sentry.shared_integrations.exceptions.base.ApiError: This is an error\n"
+                "sentry.shared_integrations.exceptions.ApiError: This is an error\n"
             )
 
             assert resp.status_code == 503

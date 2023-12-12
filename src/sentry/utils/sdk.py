@@ -458,6 +458,7 @@ def configure_sdk():
             ThreadingIntegration(propagate_hub=True),
             OpenAiIntegration(capture_prompts=True),
         ],
+        spotlight=settings.IS_DEV,
         **sdk_options,
     )
 
@@ -513,7 +514,7 @@ def check_tag_for_scope_bleed(
                 scope.set_tag("possible_mistag", True)
                 scope.set_tag(f"scope_bleed.{tag_key}", True)
                 merge_context_into_scope("scope_bleed", extra, scope)
-            logger.warning(f"Tag already set and different ({tag_key}).", extra=extra)
+            logger.warning("Tag already set and different (%s).", tag_key, extra=extra)
 
 
 def get_transaction_name_from_request(request: Request) -> str:

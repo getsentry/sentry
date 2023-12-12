@@ -3,114 +3,82 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import ContextLine from 'sentry/components/events/interfaces/frame/contextLine';
 import DefaultTitle from 'sentry/components/events/interfaces/frame/defaultTitle';
-import {IconChevron} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {IconChevron, IconSearch} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Frame} from 'sentry/types';
 import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
 import {useMetricsCodeLocations} from 'sentry/utils/metrics/useMetricsCodeLocations';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import Collapsible from '../../components/collapsible';
 import {MetricCodeLocationFrame, MetricMetaCodeLocation} from '../../utils/metrics/index';
 
 export function CodeLocations({mri}: {mri: string}) {
-  const {data} = useMetricsCodeLocations(mri);
-  // Keeps track of which code location has expanded source context
-  const [expandedCodeLocation, setExpandedCodeLocation] = useState(null);
-  // Keeps track of whether the code locations are collapsed or not
-  const [collapsed, setCollapsed] = useState(true);
+  const {data, isLoading, isError, refetch} = useMetricsCodeLocations(mri);
   const organization = useOrganization();
-
-  const toggleExpandedLocation = useCallback(
-    index => {
-      if (expandedCodeLocation === index) {
-        setExpandedCodeLocation(null);
-      } else {
-        setExpandedCodeLocation(index);
-      }
-    },
-    [expandedCodeLocation]
-  );
 
   if (!hasDDMExperimentalFeature(organization)) {
     return null;
   }
 
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
+  }
+
   if (!Array.isArray(data?.codeLocations) || data?.codeLocations.length === 0) {
-    return null;
+    return (
+      <CenterContent>
+        <EmptyMessage
+          style={{margin: 'auto'}}
+          icon={<IconSearch size="xxl" />}
+          title={t('Nothing to show!')}
+          description={t('No code locations found for this metric.')}
+        />
+      </CenterContent>
+    );
   }
 
   const codeLocations = data?.codeLocations ?? [];
 
   // We only want to show the first 5 code locations
   const reversedCodeLocations = codeLocations.slice(0, 5);
-
   return (
     <CodeLocationsWrapper>
-      <Collapsible
-        maxVisibleItems={1}
-        expandButton={({onExpand, numberOfHiddenItems}) => (
-          <CollapsibleButton
-            priority="link"
-            onClick={() => {
-              setCollapsed(false);
-              onExpand();
-            }}
-          >
-            {tn(
-              'Show %s more code location',
-              'Show %s more code locations',
-              numberOfHiddenItems
-            )}
-          </CollapsibleButton>
-        )}
-        collapseButton={({onCollapse}) => (
-          <CollapsibleButton
-            priority="link"
-            onClick={() => {
-              setCollapsed(true);
-              onCollapse();
-            }}
-          >
-            {t('Collapse')}
-          </CollapsibleButton>
-        )}
-      >
-        {reversedCodeLocations.map((location, index) => (
-          <CodeLocation
-            key={`location-${index}`}
-            codeLocation={location}
-            showContext={expandedCodeLocation === index}
-            handleShowContext={() => toggleExpandedLocation(index)}
-            isFirst={index === 0}
-            isLast={collapsed || index === reversedCodeLocations.length - 1}
-          />
-        ))}
-      </Collapsible>
+      {reversedCodeLocations.map((location, index) => (
+        <CodeLocation
+          key={`location-${index}`}
+          codeLocation={location}
+          isFirst={index === 0}
+          isLast={index === reversedCodeLocations.length - 1}
+        />
+      ))}
     </CodeLocationsWrapper>
   );
 }
 
 type CodeLocationProps = {
   codeLocation: MetricMetaCodeLocation;
-  handleShowContext: () => void;
-  showContext: boolean;
   isFirst?: boolean;
   isLast?: boolean;
 };
 
-function CodeLocation({
-  codeLocation,
-  showContext,
-  handleShowContext,
-  isFirst,
-  isLast,
-}: CodeLocationProps) {
-  const frameToShow = codeLocation.frames[0];
+function CodeLocation({codeLocation, isFirst, isLast}: CodeLocationProps) {
+  const [showContext, setShowContext] = useState(!!isFirst);
 
+  const toggleShowContext = useCallback(() => {
+    setShowContext(prevState => !prevState);
+  }, []);
+
+  const frameToShow = codeLocation.frames[0];
   if (!frameToShow) {
     return null;
   }
@@ -124,7 +92,7 @@ function CodeLocation({
           if (!hasContext) {
             return;
           }
-          handleShowContext();
+          toggleShowContext();
         }}
         isFirst={isFirst}
         isLast={isLast}
@@ -149,7 +117,7 @@ function CodeLocation({
               <ToggleCodeLocationContextButton
                 disabled={!hasContext}
                 isToggled={showContext}
-                handleToggle={handleShowContext}
+                handleToggle={toggleShowContext}
               />
             </DefaultLineActionButtons>
           </DefaultLineTitleWrapper>
@@ -177,7 +145,10 @@ function ToggleCodeLocationContextButton({
     <Button
       title={disabled ? t('No context available') : t('Toggle Context')}
       size="zero"
-      onClick={handleToggle}
+      onClick={event => {
+        event.stopPropagation();
+        handleToggle();
+      }}
       disabled={disabled}
     >
       {/* legacy size is deprecated but the icon is too big without it */}
@@ -227,8 +198,6 @@ const DefaultLineActionButtons = styled('div')`
 `;
 
 const CodeLocationsWrapper = styled('div')`
-  margin-top: ${space(1)};
-
   & code {
     font-family: inherit;
     font-size: inherit;
@@ -297,8 +266,9 @@ const LeftLineTitle = styled('div')`
   align-items: center;
 `;
 
-// done to align the collapsible button with the text in default line title
-const CollapsibleButton = styled(Button)`
-  margin-top: ${space(0.25)};
-  margin-left: ${space(2)};
+const CenterContent = styled('div')`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
 `;

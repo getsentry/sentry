@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import Color from 'color';
 
 import Alert from 'sentry/components/alert';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
@@ -11,7 +10,6 @@ import SearchBar from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {NewQuery} from 'sentry/types';
-import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
@@ -37,6 +35,7 @@ import {
 } from 'sentry/views/starfish/views/screens/screensTable';
 import {SETUP_CONTENT} from 'sentry/views/starfish/views/screens/setupContent';
 import {TabbedCodeSnippet} from 'sentry/views/starfish/views/screens/tabbedCodeSnippets';
+import {transformReleaseEvents} from 'sentry/views/starfish/views/screens/utils';
 
 export enum YAxis {
   WARM_START,
@@ -51,7 +50,6 @@ export enum YAxis {
 
 export const TOP_SCREENS = 5;
 const MAX_CHART_RELEASE_CHARS = 12;
-const MAX_TABLE_RELEASE_CHARS = 15;
 
 export const YAXIS_COLUMNS: Readonly<Record<YAxis, string>> = {
   [YAxis.WARM_START]: 'avg(measurements.app_start_warm)',
@@ -223,65 +221,18 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
     );
   }
 
-  const transformedReleaseEvents: {
-    [yAxisName: string]: {
-      [releaseVersion: string]: Series;
-    };
-  } = {};
-
-  yAxes.forEach(val => {
-    transformedReleaseEvents[YAXIS_COLUMNS[val]] = {};
-    if (primaryRelease) {
-      transformedReleaseEvents[YAXIS_COLUMNS[val]][primaryRelease] = {
-        seriesName: primaryRelease,
-        data: Array(topTransactions.length).fill(0),
-      };
-    }
-    if (secondaryRelease) {
-      transformedReleaseEvents[YAXIS_COLUMNS[val]][secondaryRelease] = {
-        seriesName: secondaryRelease,
-        data: Array(topTransactions.length).fill(0),
-      };
-    }
+  const transformedReleaseEvents = transformReleaseEvents({
+    yAxes,
+    primaryRelease,
+    secondaryRelease,
+    colorPalette: theme.charts.getColorPalette(TOP_SCREENS - 2),
+    releaseEvents,
+    topTransactions,
   });
 
-  const topTransactionsIndex = Object.fromEntries(topTransactions.map((e, i) => [e, i]));
-
-  if (defined(releaseEvents) && defined(primaryRelease)) {
-    releaseEvents.data?.forEach(row => {
-      const release = row.release;
-      const isPrimary = release === primaryRelease;
-      const transaction = row.transaction;
-      const index = topTransactionsIndex[transaction];
-      yAxes.forEach(val => {
-        if (transformedReleaseEvents[YAXIS_COLUMNS[val]][release]) {
-          transformedReleaseEvents[YAXIS_COLUMNS[val]][release].data[index] = {
-            name: row.transaction,
-            value: row[YAXIS_COLUMNS[val]],
-            itemStyle: {
-              color: isPrimary
-                ? theme.charts.getColorPalette(TOP_SCREENS - 2)[index]
-                : Color(theme.charts.getColorPalette(TOP_SCREENS - 2)[index])
-                    .lighten(0.3)
-                    .string(),
-            },
-          } as SeriesDataUnit;
-        }
-      });
-    });
-  }
-
-  const truncatedPrimary = formatVersionAndCenterTruncate(
-    primaryRelease ?? '',
-    MAX_TABLE_RELEASE_CHARS
-  );
   const truncatedPrimaryChart = formatVersionAndCenterTruncate(
     primaryRelease ?? '',
     MAX_CHART_RELEASE_CHARS
-  );
-  const truncatedSecondary = formatVersionAndCenterTruncate(
-    secondaryRelease ?? '',
-    MAX_TABLE_RELEASE_CHARS
   );
   const truncatedSecondaryChart = formatVersionAndCenterTruncate(
     secondaryRelease ?? '',
@@ -380,26 +331,6 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
         data={topTransactionsData}
         isLoading={topTransactionsLoading}
         pageLinks={pageLinks}
-        columnNameMap={{
-          transaction: t('Screen'),
-          [`avg_if(measurements.time_to_initial_display,release,${primaryRelease})`]: t(
-            'TTID (%s)',
-            truncatedPrimary
-          ),
-          [`avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`]: t(
-            'TTID (%s)',
-            truncatedSecondary
-          ),
-          [`avg_if(measurements.time_to_full_display,release,${primaryRelease})`]: t(
-            'TTFD (%s)',
-            truncatedPrimary
-          ),
-          [`avg_if(measurements.time_to_full_display,release,${secondaryRelease})`]: t(
-            'TTFD (%s)',
-            truncatedSecondary
-          ),
-          'count()': t('Total Count'),
-        }}
       />
     </div>
   );
