@@ -130,8 +130,8 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         # as `step_1` outputs an `| None`, but the `filter_step` does not mention that in its type,
         # as it is inferred from the `step_2` input type which does not mention `| None`.
         step_1 = maybe_multiprocess_step(
-            mp, decode_and_process_chunks, filter_step, self._pool
-        )  # type:ignore
+            mp, decode_and_process_chunks, filter_step, self._pool  # type:ignore
+        )
 
         return create_backpressure_step(health_checker=self.health_checker, next_step=step_1)
 
