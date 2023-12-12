@@ -135,7 +135,7 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
                 "monitor_environment_id",
                 "status",
             )
-            .order_by("monitor_id", "bucket")
+            .order_by("bucket")
             .annotate(count=Count("*"))
             .values_list(
                 "monitor_id",
