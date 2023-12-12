@@ -87,6 +87,9 @@ class IndexerBatch:
         self.__message_bytes: MutableMapping[UseCaseID, int] = defaultdict(int)
         self.__message_tags_len: MutableMapping[UseCaseID, int] = defaultdict(int)
         self.__message_value_len: MutableMapping[UseCaseID, int] = defaultdict(int)
+        self.__message_bytes_max: MutableMapping[UseCaseID, int] = defaultdict(int)
+        self.__message_tags_len_max: MutableMapping[UseCaseID, int] = defaultdict(int)
+        self.__message_value_len_max: MutableMapping[UseCaseID, int] = defaultdict(int)
 
         # Invalid messages and filtered messages are both skipped during processing
         # (reconstruct_messages), but we want to put the invalid messages into the
@@ -179,6 +182,16 @@ class IndexerBatch:
         self.__message_tags_len[use_case_id] += len(parsed_payload.get("tags", {}))
         self.__message_value_len[use_case_id] += (
             len(parsed_payload["value"]) if isinstance(parsed_payload["value"], Iterable) else 1
+        )
+        self.__message_bytes_max[use_case_id] = max(
+            len(msg.payload.value), self.__message_bytes_max[use_case_id]
+        )
+        self.__message_tags_len_max[use_case_id] = max(
+            len(parsed_payload.get("tags", {})), self.__message_tags_len_max[use_case_id]
+        )
+        self.__message_tags_len_max[use_case_id] = max(
+            len(parsed_payload["value"]) if isinstance(parsed_payload["value"], Iterable) else 1,
+            self.__message_tags_len_max[use_case_id],
         )
 
         return parsed_payload
@@ -517,6 +530,24 @@ class IndexerBatch:
             )
             metrics.distribution(
                 "metrics_consumer.process_message.message.value_len",
+                self.__message_value_len[use_case_id],
+                tags={"use_case_id": use_case_id.value},
+                unit="int",
+            )
+            metrics.gauge(
+                "metrics_consumer.process_message.message.max_size",
+                self.__message_bytes[use_case_id],
+                tags={"use_case_id": use_case_id.value},
+                unit="byte",
+            )
+            metrics.gauge(
+                "metrics_consumer.process_message.message.max_tags_len",
+                self.__message_tags_len[use_case_id],
+                tags={"use_case_id": use_case_id.value},
+                unit="int",
+            )
+            metrics.gauge(
+                "metrics_consumer.process_message.message.max_value_len",
                 self.__message_value_len[use_case_id],
                 tags={"use_case_id": use_case_id.value},
                 unit="int",
