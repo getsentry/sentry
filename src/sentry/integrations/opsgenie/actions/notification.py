@@ -3,12 +3,10 @@ from __future__ import annotations
 import logging
 from typing import Optional, cast
 
+import sentry_sdk
+
 from sentry.integrations.opsgenie.actions import OpsgenieNotifyTeamForm
-from sentry.integrations.opsgenie.client import (
-    OPSGENIE_DEFAULT_PRIORITY,
-    OpsgenieClient,
-    OpsgeniePriority,
-)
+from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY, OpsgeniePriority
 from sentry.integrations.opsgenie.utils import get_team
 from sentry.rules.actions import IntegrationEventAction
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -65,16 +63,12 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
             return
 
         def send_notification(event, futures):
-            org_integration = self.get_organization_integration()
-            if not org_integration:
-                logger.error("No associated org integration.")
+            installation = integration.get_installation(self.project.organization_id)
+            try:
+                client = installation.get_keyring_client(self.get_option("team"))
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
                 return
-            org_integration_id = org_integration.id
-            client = OpsgenieClient(
-                integration=integration,
-                org_integration_id=org_integration_id,
-                integration_key=team["integration_key"],
-            )
             try:
                 rules = [f.rule for f in futures]
                 resp = client.send_notification(

@@ -35,6 +35,7 @@ def log_error_if_queue_has_items(func):
     def inner(func):
         @wraps(func)
         def wrapped(*args, **kwargs):
+            assert backend is not None, "queues monitoring is not enabled"
             queue_size = backend.get_size(CELERY_ISSUE_STATES_QUEUE.name)
             if queue_size > 0:
                 logger.info(

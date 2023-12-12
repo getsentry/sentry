@@ -224,7 +224,8 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
       return DifferentialFlamegraphModel.Empty();
     }
 
-    return DifferentialFlamegraphModel.FromDiff(
+    const txn = Sentry.startTransaction({name: 'differential_flamegraph.import'});
+    const flamegraph = DifferentialFlamegraphModel.FromDiff(
       {
         before: beforeFlamegraph,
         after: afterFlamegraph,
@@ -232,6 +233,8 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
       {negated},
       theme
     );
+    txn.finish();
+    return flamegraph;
   }, [beforeFlamegraph, afterFlamegraph, theme, negated]);
 
   const makeFunctionFlamechartLink = useCallback(
@@ -271,33 +274,6 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
           flamegraph={differentialFlamegraph}
           canvasPoolManager={canvasPoolManager}
         />
-        <DifferentialFlamegraphContainer>
-          {props.after.isLoading || props.before.isLoading ? (
-            <LoadingIndicatorContainer>
-              <LoadingIndicator />
-            </LoadingIndicatorContainer>
-          ) : props.before.isError && props.after.isError ? (
-            <ErrorMessageContainer>
-              {t('Failed to load flamegraph for before and after regression time range.')}
-            </ErrorMessageContainer>
-          ) : props.before.isError ? (
-            <ErrorMessageContainer>
-              {t('Failed to load flamegraph for before regression time range.')}
-            </ErrorMessageContainer>
-          ) : props.after.isError ? (
-            <ErrorMessageContainer>
-              {t('Failed to load flamegraph for after regression time range.')}
-            </ErrorMessageContainer>
-          ) : null}
-          <DifferentialFlamegraph
-            profileGroup={afterProfileGroup ?? LOADING_PROFILE_GROUP}
-            differentialFlamegraph={differentialFlamegraph}
-            canvasPoolManager={canvasPoolManager}
-            scheduler={scheduler}
-          />
-        </DifferentialFlamegraphContainer>
-        <DifferentialFlamegraphExplanationBar negated={negated} />
-
         <DifferentialFlamegraphContainer>
           {props.after.isLoading || props.before.isLoading ? (
             <LoadingIndicatorContainer>
@@ -508,14 +484,6 @@ function DifferentialFlamegraphChangedFunctions(
     pageCount: 0,
   });
 
-  useEffect(() => {
-    dispatch({
-      list: props.functions,
-      pageSize: 5,
-      type: 'initialize',
-    });
-  }, [props.functions]);
-
   const onPreviousPaginationClick = useMemo(() => {
     if (state.page === 0) {
       return undefined;
@@ -529,6 +497,13 @@ function DifferentialFlamegraphChangedFunctions(
     }
     return () => dispatch({type: 'next'});
   }, [state.page, state.pageCount]);
+  useEffect(() => {
+    dispatch({
+      list: props.functions,
+      pageSize: 5,
+      type: 'initialize',
+    });
+  }, [props.functions]);
 
   return (
     <DifferentialFlamegraphFunctionsWrapper>
@@ -566,20 +541,14 @@ function DifferentialFlamegraphChangedFunctions(
               state.page * state.pageSize,
               state.page * state.pageSize + state.pageSize
             )
-            .map((func: [number, FlamegraphFrame] | FlamegraphFrame, idx) => {
-              const frame = Array.isArray(func) ? func[1] : func;
-              const changeValue = Array.isArray(func) ? func[0] : null;
-
-              const countAfter =
-                props.flamegraph.afterCounts.get(
-                  DifferentialFlamegraphModel.FrameKey(frame)
-                ) ?? 0;
-              const countBefore =
-                props.flamegraph.beforeCounts.get(
-                  DifferentialFlamegraphModel.FrameKey(frame)
-                ) ?? 0;
-
+            .map((f, idx) => {
+              const frame = f;
+              if (!frame) {
+                throw new Error('Frame is falsy, this should never happen');
+              }
+              const change = props.flamegraph.weights.get(frame.node);
               const linkToFlamechart = props.makeFunctionLink(frame);
+
               return (
                 <DifferentialFlamegraphChangedFunctionContainer key={idx}>
                   <div>
@@ -590,9 +559,8 @@ function DifferentialFlamegraphChangedFunctions(
                       <DifferentialFlamegraphFunctionColorIndicator
                         style={{
                           backgroundColor: colorComponentsToRGBA(
-                            props.flamegraph.colors.get(
-                              DifferentialFlamegraphModel.FrameKey(frame)
-                            ) ?? theme.COLORS.FRAME_FALLBACK_COLOR
+                            props.flamegraph.colors.get(frame.node) ??
+                              theme.COLORS.FRAME_FALLBACK_COLOR
                           ),
                         }}
                       />
@@ -603,16 +571,16 @@ function DifferentialFlamegraphChangedFunctions(
                     </DifferentialFlamegraphChangedFunctionModule>
                   </div>
 
-                  {typeof changeValue === 'number' ? (
+                  {change ? (
                     <DifferentialFlamegraphChangedFunctionStats>
                       <div>
-                        {countAfter > countBefore ? '+' : ''}
-                        {formatPercentage(relativeChange(countAfter, countBefore))}
+                        {change.after > change.before ? '+' : ''}
+                        {formatPercentage(relativeChange(change.after, change.before))}
                         {/* diff % */}
                         {/* n samples, x weight */}
                       </div>
                       <DifferentialFlamegraphFunctionSecondaryStats>
-                        {formatAbbreviatedNumber(frame.node.selfWeight)} {t('samples')}
+                        {formatAbbreviatedNumber(f.node.totalWeight)} {t('samples')}
                       </DifferentialFlamegraphFunctionSecondaryStats>
                     </DifferentialFlamegraphChangedFunctionStats>
                   ) : null}
@@ -877,5 +845,5 @@ const LoadingIndicatorContainer = styled('div')`
 const DifferentialFlamegraphContainer = styled('div')`
   position: relative;
   width: 100%;
-  height: 360px;
+  height: 420px;
 `;

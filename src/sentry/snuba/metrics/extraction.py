@@ -805,6 +805,17 @@ def _cleanup_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
     return ret_val
 
 
+def _remove_redundant_parentheses(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
+    """
+    Removes redundant parentheses in the form (((expr))) since they are not needed and might lead to parsing issues
+    down the line.
+    """
+    if len(tokens) == 1 and isinstance(tokens[0], ParenExpression):
+        return _remove_redundant_parentheses(tokens[0].children)
+
+    return tokens
+
+
 def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]]:
     if isinstance(value, dict):
         return {key: _deep_sorted(value) for key, value in sorted(value.items())}
@@ -999,10 +1010,12 @@ class OnDemandMetricSpec:
         environment: Optional[str] = None,
         groupbys: Optional[Sequence[str]] = None,
         spec_type: MetricSpecType = MetricSpecType.SIMPLE_QUERY,
+        use_updated_env_logic: bool = True,
     ):
         self.field = field
         self.query = query
         self.spec_type = spec_type
+        self.use_updated_env_logic = use_updated_env_logic
 
         # Removes field if passed in selected_columns
         self.groupbys = [groupby for groupby in groupbys or () if groupby != field]
@@ -1164,8 +1177,8 @@ class OnDemandMetricSpec:
     def _process_query(self) -> Optional[RuleCondition]:
         # First step is to parse the query string into our internal AST format.
         parsed_query = self._parse_query(self.query)
-        # We extend the parsed query with other conditions that we want to inject externally from the query.
-        # If it is a simple query, we encode the environment in the query hash, instead of emitting it as a tag of the metric.
+        # We extend the parsed query with other conditions that we want to inject externally from the query. If it is
+        # a simple query, we encode the environment in the query hash, instead of emitting it as a tag of the metric.
         if self.spec_type == MetricSpecType.SIMPLE_QUERY:
             parsed_query = self._extend_parsed_query(parsed_query)
 
@@ -1212,12 +1225,21 @@ class OnDemandMetricSpec:
                 )
             )
 
-        extended_conditions = new_conditions + conditions
-        return QueryParsingResult(
-            # This transformation is equivalent to the syntax "new_conditions AND conditions" where conditions can be
-            # in parentheses or not.
-            conditions=extended_conditions
-        )
+        extended_conditions = conditions
+        if new_conditions:
+            if self.use_updated_env_logic:
+                conditions = [ParenExpression(children=conditions)] if conditions else []
+                # This transformation is equivalent to (new_conditions) AND (conditions).
+                extended_conditions = [ParenExpression(children=new_conditions)] + conditions
+            else:
+                # This transformation is not behaving correctly since it can violate precedence rules. Since we use
+                # an AND condition for the environment, it will bind with higher priority than an OR specified in the
+                # user query, effectively resulting in the wrong condition (e.g., (X AND Y) OR Z != X AND (Y OR Z)).
+                #
+                # This transformation is equivalent to new_conditions and conditions.
+                extended_conditions = new_conditions + conditions
+
+        return QueryParsingResult(conditions=extended_conditions)
 
     @staticmethod
     def _aggregate_conditions(parsed_field) -> Optional[RuleCondition]:
@@ -1284,6 +1306,13 @@ class OnDemandMetricSpec:
         """Parse query string into our internal AST format."""
         try:
             conditions = _parse_search_query(query=value, removed_blacklisted=True)
+
+            # In order to avoid having issues with the parsing logic, we want to remove any unnecessary parentheses
+            # that are not needed, since if we had the parentheses this might lead to a different conditions tree, which
+            # in our case doesn't happen since SearchQueryConverter optimizes that case, but it can easily slip in other
+            # edge cases.
+            conditions = _remove_redundant_parentheses(conditions)
+
             return QueryParsingResult(conditions=conditions)
         except InvalidSearchQuery as e:
             raise Exception(f"Invalid search query '{value}' in on demand spec: {e}")
