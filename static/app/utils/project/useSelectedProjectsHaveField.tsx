@@ -21,18 +21,18 @@ function getSelectedProjectList(
   return selectedProjects.map(id => projectsByProjectId[id]).filter(Boolean);
 }
 
-export default function useHaveSelectedProjectsSetupFeedback() {
+export default function useSelectedProjectsHaveField(field: keyof Project) {
   const {projects, fetching} = useProjects();
   const {selection} = usePageFilters();
 
-  const orgSetupOneOrMoreFeedback = useMemo(() => {
+  const hasField = useMemo(() => {
     const selectedProjects = getSelectedProjectList(selection.projects, projects);
-    const hasSetupOneFeedback = selectedProjects.some(project => project.hasFeedbacks);
+    const hasSetupOneFeedback = selectedProjects.some(project => project[field]);
     return hasSetupOneFeedback;
-  }, [selection.projects, projects]);
+  }, [field, selection.projects, projects]);
 
   return {
-    hasSetupOneFeedback: orgSetupOneOrMoreFeedback,
+    hasField,
     fetching,
   };
 }

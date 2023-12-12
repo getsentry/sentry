@@ -11,8 +11,10 @@ import FeedbackWhatsNewBanner from 'sentry/components/feedback/feedbackWhatsNewB
 import FeedbackList from 'sentry/components/feedback/list/feedbackList';
 import OldFeedbackButton from 'sentry/components/feedback/oldFeedbackButton';
 import useCurrentFeedbackId from 'sentry/components/feedback/useCurrentFeedbackId';
+import useHaveSelectedProjectsSetupFeedback, {
+  useHaveSelectedProjectsSetupNewFeedback,
+} from 'sentry/components/feedback/useFeedbackOnboarding';
 import {FeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
-import useHaveSelectedProjectsSetupFeedback from 'sentry/components/feedback/useHaveSelectedProjectsSetupFeedback';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -29,11 +31,12 @@ interface Props extends RouteComponentProps<{}, {}, {}> {}
 export default function FeedbackListPage({}: Props) {
   const organization = useOrganization();
   const {hasSetupOneFeedback} = useHaveSelectedProjectsSetupFeedback();
+  const {hasSetupNewFeedback} = useHaveSelectedProjectsSetupNewFeedback();
+
+  const showWhatsNewBanner = hasSetupOneFeedback && !hasSetupNewFeedback;
 
   const feedbackSlug = useCurrentFeedbackId();
   const hasSlug = Boolean(feedbackSlug);
-
-  const showWhatsNewBanner = false;
 
   return (
     <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>

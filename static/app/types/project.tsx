@@ -30,6 +30,7 @@ export type Project = {
   hasAccess: boolean;
   hasFeedbacks: boolean;
   hasMinifiedStackTrace: boolean;
+  hasNewFeedbacks: boolean;
   hasProfiles: boolean;
   hasReplays: boolean;
   hasSessions: boolean;
