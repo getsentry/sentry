@@ -1,10 +1,10 @@
 import pytest
 
-from sentry.constants import DataCategory
+from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.projectkey import ProjectKey
 from sentry.monitors.constants import PermitCheckInStatus
-from sentry.monitors.models import Monitor, MonitorObjectStatus, MonitorType
+from sentry.monitors.models import Monitor, MonitorType
 from sentry.quotas.base import Quota, QuotaConfig, QuotaScope
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
@@ -100,7 +100,7 @@ class QuotaTest(TestCase):
             organization_id=self.organization.id,
             project_id=self.project.id,
             name="test monitor",
-            status=MonitorObjectStatus.ACTIVE,
+            status=ObjectStatus.ACTIVE,
             type=MonitorType.CRON_JOB,
         )
         assert self.backend.assign_monitor_seat(monitor) == Outcome.ACCEPTED
@@ -111,7 +111,7 @@ class QuotaTest(TestCase):
             organization_id=self.organization.id,
             project_id=self.project.id,
             name="test monitor",
-            status=MonitorObjectStatus.ACTIVE,
+            status=ObjectStatus.ACTIVE,
             type=MonitorType.CRON_JOB,
         )
         assert (
