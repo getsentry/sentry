@@ -17,6 +17,7 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
             kwargs.pop("primary_backend", None), kwargs.pop("primary_backend_args", {})
         )
         self._allow_list = set(kwargs.pop("allow_list", set()))
+        self._deny_prefixes = tuple(kwargs.pop("deny_prefixes", []))
 
     def _initialize_backends(
         self, primary_backend: Optional[str], primary_backend_args: Dict[str, Any]
@@ -32,6 +33,9 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
 
     def _is_allowed(self, key: str):
         return key in self._allow_list
+
+    def _is_denied(self, key: str) -> bool:
+        return key.startswith(self._deny_prefixes)
 
     @staticmethod
     def _minimetrics_sample_rate() -> float:
@@ -52,7 +56,9 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         stacklevel: int = 0,
     ) -> None:
         self._primary_backend.incr(key, instance, tags, amount, sample_rate, unit)
-        if self._is_allowed(key) or options.get("delightful_metrics.allow_all_incr"):
+        if (
+            options.get("delightful_metrics.allow_all_incr") or self._is_allowed(key)
+        ) and not self._is_denied(key):
             self._minimetrics.incr(
                 key,
                 instance,
@@ -73,7 +79,9 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         stacklevel: int = 0,
     ) -> None:
         self._primary_backend.timing(key, value, instance, tags, sample_rate)
-        if self._is_allowed(key) or options.get("delightful_metrics.allow_all_timing"):
+        if (
+            options.get("delightful_metrics.allow_all_timing") or self._is_allowed(key)
+        ) and not self._is_denied(key):
             self._minimetrics.timing(
                 key,
                 value,
@@ -94,7 +102,9 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         stacklevel: int = 0,
     ) -> None:
         self._primary_backend.gauge(key, value, instance, tags, sample_rate, unit)
-        if self._is_allowed(key) or options.get("delightful_metrics.allow_all_gauge"):
+        if (
+            options.get("delightful_metrics.allow_all_gauge") or self._is_allowed(key)
+        ) and not self._is_denied(key):
             self._minimetrics.gauge(
                 key,
                 value,
@@ -118,7 +128,9 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         self._primary_backend.distribution(key, value, instance, tags, sample_rate, unit)
         # We share the same option between timing and distribution, since they are both distribution
         # metrics.
-        if self._is_allowed(key) or options.get("delightful_metrics.allow_all_timing"):
+        if (
+            options.get("delightful_metrics.allow_all_timing") or self._is_allowed(key)
+        ) and not self._is_denied(key):
             self._minimetrics.distribution(
                 key,
                 value,
