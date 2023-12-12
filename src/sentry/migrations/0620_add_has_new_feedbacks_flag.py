@@ -44,6 +44,7 @@ class Migration(CheckedMigration):
                     "has_minified_stack_trace",
                     "has_cron_monitors",
                     "has_cron_checkins",
+                    "has_sourcemaps",
                 ],
                 default=10,
                 null=True,
