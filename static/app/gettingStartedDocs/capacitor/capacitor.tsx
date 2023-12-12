@@ -5,7 +5,10 @@ import type {
   OnboardingConfig,
   PlatformOption,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {
+  getReplayConfigureDescription,
+  getUploadSourceMapsStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
@@ -143,64 +146,66 @@ const performanceAngularErrorHandler = `,
   multi: true,
 },`;
 
+const getInstallStep = (params: Params) => [
+  {
+    type: StepType.INSTALL,
+    description: (
+      <p>
+        {tct(
+          `Install the Sentry Capacitor SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn], alongside the Sentry [siblingName:] SDK:`,
+          {
+            codeYarn: <code />,
+            codeNpm: <code />,
+            siblingName: getSiblingName(params.platformOptions.siblingOption),
+          }
+        )}
+      </p>
+    ),
+    configurations: [
+      {
+        language: 'bash',
+        code: [
+          {
+            label: 'npm',
+            value: 'npm',
+            language: 'bash',
+            code: `npm install --save @sentry/capacitor ${getNpmPackage(
+              params.platformOptions.siblingOption
+            )}`,
+          },
+          {
+            label: 'yarn',
+            value: 'yarn',
+            language: 'bash',
+            code: `yarn add @sentry/capacitor ${getNpmPackage(
+              params.platformOptions.siblingOption
+            )} --exact`,
+          },
+        ],
+      },
+      {
+        additionalInfo: (
+          <p>
+            {tct(
+              `The version of the Sentry [siblingName:] SDK must match with the version referred by Sentry Capacitor. To check which version of the Sentry [siblingName:] SDK is installed, use the following command: [code:npm info @sentry/capacitor peerDependencies]`,
+              {
+                code: <code />,
+                siblingName: getSiblingName(params.platformOptions.siblingOption),
+              }
+            )}
+          </p>
+        ),
+      },
+    ],
+  },
+];
+
 const onboarding: OnboardingConfig<PlatformOptions> = {
-  install: params => [
-    {
-      type: StepType.INSTALL,
-      description: (
-        <p>
-          {tct(
-            `Install the Sentry Capacitor SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn], alongside the Sentry [siblingName:] SDK:`,
-            {
-              codeYarn: <code />,
-              codeNpm: <code />,
-              siblingName: getSiblingName(params.platformOptions.siblingOption),
-            }
-          )}
-        </p>
-      ),
-      configurations: [
-        {
-          language: 'bash',
-          code: [
-            {
-              label: 'npm',
-              value: 'npm',
-              language: 'bash',
-              code: `npm install --save @sentry/capacitor ${getNpmPackage(
-                params.platformOptions.siblingOption
-              )}`,
-            },
-            {
-              label: 'yarn',
-              value: 'yarn',
-              language: 'bash',
-              code: `yarn add @sentry/capacitor ${getNpmPackage(
-                params.platformOptions.siblingOption
-              )} --exact`,
-            },
-          ],
-        },
-        {
-          additionalInfo: (
-            <p>
-              {tct(
-                `The version of the Sentry [siblingName:] SDK must match with the version referred by Sentry Capacitor. To check which version of the Sentry [siblingName:] SDK is installed, use the following command: [code:npm info @sentry/capacitor peerDependencies]`,
-                {
-                  code: <code />,
-                  siblingName: getSiblingName(params.platformOptions.siblingOption),
-                }
-              )}
-            </p>
-          ),
-        },
-      ],
-    },
-  ],
+  install: params => getInstallStep(params),
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      configurations: getSetupConfiguration(params),
+      configurations: getSetupConfiguration({params, showExtraStep: true}),
     },
     getUploadSourceMapsStep({
       guideLink:
@@ -289,16 +294,23 @@ function getVueConstSetup(siblingOption: string): string {
   }
 }
 
-function getSetupConfiguration(params: Params) {
+function getSetupConfiguration({
+  params,
+  showExtraStep,
+}: {
+  params: Params;
+  showExtraStep: boolean;
+}) {
   const siblingOption = params.platformOptions.siblingOption;
   const sentryInitLayout = getSentryInitLayout(params, siblingOption);
 
   const configuration = [
     {
       description: tct(
-        `You should init the Sentry capacitor SDK in your main.ts file as soon as possible during application load up, before initializing Sentry [siblingName:]:`,
+        `You should init the Sentry capacitor SDK in your [code:main.ts] file as soon as possible during application load up, before initializing Sentry [siblingName:]:`,
         {
           siblingName: getSiblingName(siblingOption),
+          code: <code />,
         }
       ),
       language: 'javascript',
@@ -316,7 +328,7 @@ ${getSiblingImportName(siblingOption)}.init
 );`,
     },
   ];
-  if (isAngular(siblingOption)) {
+  if (isAngular(siblingOption) && showExtraStep) {
     configuration.push({
       description: tct(
         "The Sentry Angular SDK exports a function to instantiate ErrorHandler provider that will automatically send JavaScript errors captured by the Angular's error handler.",
@@ -387,9 +399,32 @@ function getSiblingImportName(siblingOption: string): string {
   }
 }
 
+const replayOnboarding: OnboardingConfig<PlatformOptions> = {
+  install: params => getInstallStep(params),
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      configurations: [
+        {
+          description: getReplayConfigureDescription({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/session-replay/',
+          }),
+          configurations: getSetupConfiguration({
+            params: {...params, isReplaySelected: true},
+            showExtraStep: false,
+          }),
+        },
+      ],
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs<PlatformOptions> = {
   onboarding,
   platformOptions,
+  replayOnboardingNpm: replayOnboarding,
 };
 
 export default docs;
