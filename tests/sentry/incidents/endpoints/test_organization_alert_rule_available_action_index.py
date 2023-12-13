@@ -5,6 +5,7 @@ from sentry.incidents.endpoints.organization_alert_rule_available_action_index i
     build_action_response,
 )
 from sentry.incidents.models import AlertRuleTriggerAction
+from sentry.integrations.pagerduty.utils import add_service
 from sentry.models.integrations import SentryAppComponent, SentryAppInstallation
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
@@ -96,8 +97,9 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
                 external_id="example-pagerduty",
                 metadata={"services": SERVICES},
             )
-            integration.add_organization(self.organization, self.user)
-            service = integration.organizationintegration_set.first().add_pagerduty_service(
+            org_integration = integration.add_organization(self.organization, self.user)
+            service = add_service(
+                org_integration,
                 service_name=service_name,
                 integration_key=SERVICES[0]["integration_key"],
             )

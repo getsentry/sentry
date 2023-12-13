@@ -6,6 +6,7 @@ import responses
 from sentry.incidents.action_handlers import PagerDutyActionHandler
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus, IncidentStatusMethod
+from sentry.integrations.pagerduty.utils import add_service
 from sentry.models.integrations.integration import Integration
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils import json
@@ -31,9 +32,10 @@ class PagerDutyActionHandlerTest(FireTest):
             external_id="example-pagerduty",
             metadata={"service": service},
         )
-        self.integration.add_organization(self.organization, self.user)
+        org_integration = self.integration.add_organization(self.organization, self.user)
 
-        self.service = self.integration.organizationintegration_set.first().add_pagerduty_service(
+        self.service = add_service(
+            org_integration,
             service_name=service[0]["service_name"],
             integration_key=service[0]["integration_key"],
         )
@@ -117,7 +119,9 @@ class PagerDutyActionHandlerTest(FireTest):
                 "service_name": "meowmeowfuntime",
             },
         ]
-        self.integration.organizationintegration_set.first().add_pagerduty_service(
+        org_integration = self.integration.organizationintegration_set.first()
+        add_service(
+            org_integration,
             service_name=service[0]["service_name"],
             integration_key=service[0]["integration_key"],
         )
