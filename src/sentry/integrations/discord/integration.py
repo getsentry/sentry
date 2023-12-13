@@ -173,7 +173,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
         except (ApiError, AttributeError):
             guild_name = guild_id
 
-        url = self.setup_url if use_setup else self.configure_url
+        url = self.setup_url if use_setup == "1" else self.configure_url
         discord_user_id = self._get_discord_user_id(str(state.get("code")), url)
 
         return {
