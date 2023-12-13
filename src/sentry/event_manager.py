@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import abc
 import copy
 import hashlib
 import ipaddress
@@ -2765,51 +2766,54 @@ def save_generic_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Seque
 """
     # Custom hashing rules can be added here.
     # Each rule should be an instance of a class that inherits from CustomHasher.
-    # The class should implement the calculate_hash and should_check methods.
-    # The calculate_hash method should return a CalculatedHashes object or None.
-    # The should_check method should return a boolean indicating whether the rule should be applied.
+    # The class should implement the calculate_hash and is_event_match methods.
 
 """
 
 
 @dataclass(frozen=True)
-class CustomHasher:
+class CustomHasher(abc.ABC):
     feature_flag: str
     platforms: Optional[Sequence[str]] = None
     # TODO: add sdk option as well
 
+    @abc.abstractmethod
     def calculate_hash(self, event) -> Optional[CalculatedHashes]:
         raise NotImplementedError
 
-    def should_check(self, event) -> bool:
-        # TODO: add better caching for this
-        if self.feature_flag and not features.has(self.feature_flag, event.project.organization):
-            return False
+    @abc.abstractmethod
+    def is_event_match(self, event) -> bool:
+        raise NotImplementedError
 
+    def is_platform_supported(self, event) -> bool:
         if self.platforms is None:
             return True
 
         platform = event.platform
         return platform in self.platforms
 
+    def is_feature_flag_enabled(self, event) -> bool:
+        # TODO: add better caching for this
+        if self.feature_flag and not features.has(self.feature_flag, event.project.organization):
+            return False
+        return True
+
 
 class ChunkLoadHasher(CustomHasher):
-    def calculate_hash(self, event) -> Optional[CalculatedHashes]:
+    def is_event_match(self, event) -> bool:
         try:
             exception_value = event.data["exception"]["values"][0]["value"]
             exception_type = event.data["exception"]["values"][0]["type"]
         except KeyError:
-            return None
+            return False
+        return "ChunkLoadError" in exception_value or exception_type == "ChunkLoadError"
 
-        # Only check for the flag after it is established if it's a ChunkLoadError to avoid
-        # unnecessary querying
-        if "ChunkLoadError" in exception_value or exception_type == "ChunkLoadError":
-            return CalculatedHashes(
-                hashes=[hashlib.md5(b"chunkloaderror").hexdigest()],
-                hierarchical_hashes=[],
-                tree_labels=[],
-            )
-        return None
+    def calculate_hash(self, event) -> CalculatedHashes:
+        return CalculatedHashes(
+            hashes=[hashlib.md5(b"chunkloaderror").hexdigest()],
+            hierarchical_hashes=[],
+            tree_labels=[],
+        )
 
 
 rules: List[CustomHasher] = [
@@ -2823,10 +2827,14 @@ rules: List[CustomHasher] = [
 def get_custom_hashes(event):
     for rule in rules:
         try:
-            if rule.should_check(event):
-                hashes = rule.calculate_hash(event)
-                if hashes:
-                    return hashes
+            # checks are ordered from cheapest to most expensive
+            if (
+                rule.is_platform_supported(event)
+                and rule.is_event_match(event)
+                and rule.is_feature_flag_enabled(event)
+            ):
+                return rule.calculate_hash(event)
+
         except Exception:
             logger.exception(
                 "Error calculating custom hash",
