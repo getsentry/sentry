@@ -191,8 +191,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
       `/organizations/${props.organization.slug}/events/${transactionEvent?.project_slug}:${transactionEvent?.event_id}/`,
     ],
     {
-      staleTime: 0,
-      refetchOnWindowFocus: true,
+      staleTime: 2 * 60 * 1000,
       enabled: showEmbeddedChildren || isHighlighted,
     }
   );
