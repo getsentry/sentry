@@ -152,7 +152,6 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             resp = self.post_webhook_block_kit(
                 action_data=[status_action],
                 original_message=original_message,
-                block_id=json.dumps({"issue": event.group.id}),
             )
             self.group = Group.objects.get(id=event.group.id)
 
@@ -268,7 +267,6 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             resp = self.post_webhook_block_kit(
                 action_data=[status_action],
                 original_message=original_message,
-                block_id=json.dumps({"issue": event.group.id}),
             )
         self.group = Group.objects.get(id=event.group.id)
 
@@ -309,6 +307,67 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             assert self.group.get_status() == GroupStatus.IGNORED
             assert self.group.substatus == GroupSubStatus.FOREVER
             assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status)
+
+    def test_ignore_issue_with_additional_user_auth_block_kit(self):
+        """
+        Ensure that we can act as a user even when the organization has SSO enabled
+        """
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            auth_idp = AuthProvider.objects.create(
+                organization_id=self.organization.id, provider="dummy"
+            )
+            AuthIdentity.objects.create(auth_provider=auth_idp, user=self.user)
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "IntegrationError",
+                "fingerprint": ["group-1"],
+                "exception": {
+                    "values": [
+                        {
+                            "type": "IntegrationError",
+                            "value": "Identity not found.",
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        assert event.group is not None
+        status_action = {
+            "action_id": "status",
+            "block_id": "bXwil",
+            "text": {
+                "type": "plain_text",
+                "text": "Ignore",
+                "emoji": True,
+            },
+            "value": "ignored:forever",
+            "type": "button",
+            "action_ts": "1702424387.108033",
+        }
+        original_message = {
+            "blocks": [
+                {
+                    "type": "section",
+                    "block_id": json.dumps({"issue": event.group.id}),
+                    "text": {"type": "mrkdwn", "text": "boop", "verbatim": False},
+                },
+            ],
+        }
+        with self.feature("organizations:slack-block-kit"):
+            resp = self.post_webhook_block_kit(
+                action_data=[status_action],
+                original_message=original_message,
+            )
+        self.group = Group.objects.get(id=event.group.id)
+
+        assert resp.status_code == 200, resp.content
+        assert self.group.get_status() == GroupStatus.IGNORED
+        assert self.group.substatus == GroupSubStatus.FOREVER
+
+        expect_status = f"*Issue ignored by <@{self.external_id}>*"
+        assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status)
 
     def test_assign_issue(self):
         user2 = self.create_user(is_superuser=False)

@@ -74,7 +74,6 @@ class BaseEventTest(APITestCase):
         type="block_actions",
         data=None,
         team_id="TXXXXXXX1",
-        block_id=None,
         slack_user=None,
         original_message=None,
     ):
@@ -86,9 +85,6 @@ class BaseEventTest(APITestCase):
                 "username": "colleen",
                 "team_id": team_id,
             }
-
-        if block_id is None:
-            block_id = json.dumps({"issue": self.group.id})
 
         if original_message is None:
             original_message = {}
