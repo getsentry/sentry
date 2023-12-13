@@ -63,8 +63,9 @@ class RegressionGroup(Model):
 
     # The fingerprint sent to the issue platform which
     # accepts a list of strings. This corresponds to the
-    # first string which is a 8-16 char hex value.
-    fingerprint = models.CharField(max_length=32)
+    # first string which is a 8 char hex for functions
+    # and a 40 char hex for transactions
+    fingerprint = models.CharField(max_length=64)
 
     # The value measured from before the regression.
     baseline = models.FloatField()
