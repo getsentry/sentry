@@ -4,13 +4,16 @@ import pickle
 from functools import partial
 from typing import Any, Callable, Mapping, Optional, Union
 
-from arroyo.processing.strategies.run_task_with_multiprocessing import MultiprocessingPool
+from arroyo.processing.strategies.run_task_with_multiprocessing import (
+    MultiprocessingPool as ArroyoMultiprocessingPool,
+)
 from arroyo.processing.strategies.run_task_with_multiprocessing import (
     RunTaskWithMultiprocessing as ArroyoRunTaskWithMultiprocessing,
 )
 from arroyo.processing.strategies.run_task_with_multiprocessing import TResult
 from arroyo.types import TStrategyPayload
 from arroyo.utils.metrics import Metrics
+from django.conf import settings
 
 from sentry.metrics.base import MetricsBackend
 
@@ -127,6 +130,31 @@ def initialize_arroyo_main() -> None:
     configure_metrics(metrics_wrapper)
 
 
+class MultiprocessingPool:
+    def __init__(
+        self, num_processes: int, initializer: Optional[Callable[[], None]] = None
+    ) -> None:
+        self.__initializer = initializer
+        if settings.KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING:
+            self.__pool = None
+        else:
+            self.__pool = ArroyoMultiprocessingPool(
+                num_processes, _get_arroyo_subprocess_initializer(initializer)
+            )
+
+    @property
+    def initializer(self) -> Optional[Callable[[], None]]:
+        return self.__initializer
+
+    @property
+    def pool(self) -> Optional[ArroyoMultiprocessingPool]:
+        return self.__pool
+
+    def close(self) -> None:
+        if self.__pool is not None:
+            self.__pool.close()
+
+
 class RunTaskWithMultiprocessing(ArroyoRunTaskWithMultiprocessing[TStrategyPayload, TResult]):
     """
     A variant of arroyo's RunTaskWithMultiprocessing that can switch between
@@ -140,8 +168,6 @@ class RunTaskWithMultiprocessing(ArroyoRunTaskWithMultiprocessing[TStrategyPaylo
         pool: MultiprocessingPool,
         **kwargs: Any,
     ) -> RunTaskWithMultiprocessing:
-        from django.conf import settings
-
         if settings.KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING:
             from arroyo.processing.strategies.run_task import RunTask
 
@@ -164,6 +190,8 @@ class RunTaskWithMultiprocessing(ArroyoRunTaskWithMultiprocessing[TStrategyPaylo
                 RunTaskWithMultiprocessing as ArroyoRunTaskWithMultiprocessing,
             )
 
+            assert pool.pool is not None
+
             return ArroyoRunTaskWithMultiprocessing(  # type: ignore[return-value]
-                pool=pool, **kwargs
+                pool=pool.pool, **kwargs
             )

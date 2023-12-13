@@ -9,10 +9,9 @@ from arroyo.processing.strategies import (
     ProcessingStrategyFactory,
     RunTaskInThreads,
 )
-from arroyo.processing.strategies.run_task_with_multiprocessing import MultiprocessingPool
 from arroyo.types import Commit, Message, Partition
 
-from sentry.utils.arroyo import RunTaskWithMultiprocessing
+from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
 
 logger = logging.getLogger(__name__)
 
