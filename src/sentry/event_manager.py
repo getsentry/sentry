@@ -537,7 +537,7 @@ class EventManager:
 
         if _should_run_secondary_grouping(project):
             with metrics.timer("event_manager.secondary_grouping", tags=metric_tags):
-                secondary_hashes = calculate_secondary_hash_if_needed(project, job)
+                secondary_hashes = _calculate_secondary_hash(project, job)
 
         with metrics.timer("event_manager.load_grouping_config"):
             # At this point we want to normalize the in_app values in case the
@@ -745,7 +745,7 @@ def _should_run_secondary_grouping(project: Project) -> bool:
     return result
 
 
-def calculate_secondary_hash_if_needed(project: Project, job: Job) -> None | CalculatedHashes:
+def _calculate_secondary_hash(project: Project, job: Job) -> None | CalculatedHashes:
     """Calculate secondary hash for event using a fallback grouping config for a period of time.
     This happens when we upgrade all projects that have not opted-out to automatic upgrades plus
     when the customer changes the grouping config.
