@@ -33,12 +33,12 @@ class AbuseQuota:
     option: str
     # `compat_options` were previously present in getsentry
     # for errors and transactions. The first one is the org
-    # option for overriding the global option, the second one.
+    # option for overriding the second one (global option).
     # For now, these deprecated ones take precedence over the new
     # to preserve existing behavior.
-    compat_options: tuple[str, str] | None
+    compat_options: Optional[tuple[str, str]]
     categories: List[DataCategory]
-    scope: Literal[QuotaScope.ORGANIZATION] | Literal[QuotaScope.PROJECT]
+    scope: Literal[QuotaScope.ORGANIZATION, QuotaScope.PROJECT]
 
 
 class QuotaConfig:
@@ -405,24 +405,24 @@ class Quota(Service):
             QuotaScope.PROJECT: "project_abuse_limit",
         }
 
-        for aq in abuse_quotas:
+        for quota in abuse_quotas:
             limit: int | None = 0
             abuse_window = global_abuse_window
 
             # compat_options were previously present in getsentry
             # for errors and transactions. The first one is the org
-            # option for overriding the global option, the second one.
+            # option for overriding the second one (global option).
             # For now, these deprecated ones take precedence over the new
             # to preserve existing behavior.
-            if aq.compat_options is not None:
-                limit = org.get_option(aq.compat_options[0])
+            if quota.compat_options is not None:
+                limit = org.get_option(quota.compat_options[0])
                 if not limit:
-                    limit = options.get(aq.compat_options[1])
+                    limit = options.get(quota.compat_options[1])
 
             if not limit:
-                limit = org.get_option(aq.option)
+                limit = org.get_option(quota.option)
                 if not limit:
-                    limit = options.get(aq.option)
+                    limit = options.get(quota.option)
 
             limit = _limit_from_settings(limit)
             if limit is None:
@@ -432,20 +432,20 @@ class Quota(Service):
             # Negative limits in config mean a reject-all quota.
             if limit < 0:
                 yield QuotaConfig(
-                    scope=aq.scope,
-                    categories=aq.categories,
+                    scope=quota.scope,
+                    categories=quota.categories,
                     limit=0,
                     reason_code="disabled",
                 )
 
             else:
                 yield QuotaConfig(
-                    id=aq.id,
+                    id=quota.id,
                     limit=limit * abuse_window,
-                    scope=aq.scope,
-                    categories=aq.categories,
+                    scope=quota.scope,
+                    categories=quota.categories,
                     window=abuse_window,
-                    reason_code=reason_codes[aq.scope],
+                    reason_code=reason_codes[quota.scope],
                 )
 
     def get_project_quota(self, project):
