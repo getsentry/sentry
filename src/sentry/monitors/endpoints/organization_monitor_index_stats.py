@@ -65,9 +65,9 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
         # data. The slugs have to be fetched (even though we already have them in memory) so we
         # can maintain a correct mapping of id -> slug.
         monitor_map = dict(
-            Monitor.objects.filter(organization_id=organization.id, slug__in=monitor_slugs)
-            .values_list("id", "slug")
-            .all()
+            Monitor.objects.filter(
+                organization_id=organization.id, slug__in=monitor_slugs
+            ).values_list("id", "slug")
         )
 
         # We only care about the name but we don't want to join to get it. So we're maintaining
@@ -93,9 +93,7 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
             MonitorEnvironment.objects.filter(
                 monitor_id__in=monitor_map.keys(),
                 environment_id__in=environment_map.keys(),
-            )
-            .values_list("id", "environment_id")
-            .all()
+            ).values_list("id", "environment_id")
         )
 
         check_ins = MonitorCheckIn.objects.filter(
