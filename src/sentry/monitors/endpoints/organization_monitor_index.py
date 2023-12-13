@@ -3,7 +3,7 @@ from typing import List
 from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Subquery, Value, When
 from drf_spectacular.utils import extend_schema
 
-from sentry import audit_log
+from sentry import audit_log, quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -34,6 +34,7 @@ from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResp
 from sentry.monitors.utils import create_alert_rule, signal_monitor_created
 from sentry.monitors.validators import MonitorValidator
 from sentry.search.utils import tokenize_query
+from sentry.utils.outcomes import Outcome
 
 from .base import OrganizationMonitorPermission
 
@@ -226,6 +227,11 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             )
         except MonitorLimitsExceeded as e:
             return self.respond({type(e).__name__: str(e)}, status=403)
+
+        # Attempt to assign a seat for this monitor
+        seat_outcome = quotas.backend.assign_monitor_seat(monitor)
+        if seat_outcome != Outcome.ACCEPTED:
+            monitor.update(status=ObjectStatus.DISABLED)
 
         self.create_audit_entry(
             request=request,

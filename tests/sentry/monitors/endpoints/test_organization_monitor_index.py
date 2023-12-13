@@ -12,6 +12,7 @@ from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.models import Monitor, MonitorStatus, MonitorType, ScheduleType
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.outcomes import Outcome
 
 
 @region_silo_test
@@ -299,3 +300,38 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         }
         response = self.get_success_response(self.organization.slug, **data)
         assert Monitor.objects.get(slug=response.data["slug"]).config["checkin_margin"] == 1
+
+    @patch("sentry.quotas.backend.assign_monitor_seat")
+    def test_create_monitor_assigns_seat(self, assign_monitor_seat):
+        assign_monitor_seat.return_value = Outcome.ACCEPTED
+
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+        }
+        response = self.get_success_response(self.organization.slug, **data)
+
+        monitor = Monitor.objects.get(slug=response.data["slug"])
+
+        assign_monitor_seat.assert_called_with(monitor)
+        assert monitor.status == ObjectStatus.ACTIVE
+
+    @patch("sentry.quotas.backend.assign_monitor_seat")
+    def test_create_monitor_without_seat(self, assign_monitor_seat):
+        assign_monitor_seat.return_value = Outcome.RATE_LIMITED
+
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+        }
+        response = self.get_success_response(self.organization.slug, **data)
+
+        monitor = Monitor.objects.get(slug=response.data["slug"])
+
+        assert assign_monitor_seat.called
+        assert response.data["status"] == "disabled"
+        assert monitor.status == ObjectStatus.DISABLED
