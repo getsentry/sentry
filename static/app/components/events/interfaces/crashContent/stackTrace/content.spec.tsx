@@ -1,5 +1,6 @@
 import {Event as EventFixture} from 'sentry-fixture/event';
 import {EventEntryStacktrace} from 'sentry-fixture/eventEntryStacktrace';
+import {EventStacktraceFrame} from 'sentry-fixture/eventStacktraceFrame';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -415,6 +416,84 @@ describe('StackTrace', function () {
         'Occurred in non-app: raven/scripts/runner.py in main at line 112'
       );
       expect(frameTitles[1]).toHaveTextContent('raven/base.py in build_msg at line 303');
+    });
+  });
+
+  describe('platform icons', function () {
+    it('uses the top in-app frame file extension for mixed stack trace platforms', function () {
+      renderedComponent({
+        data: {
+          ...data,
+          frames: [
+            EventStacktraceFrame({
+              inApp: true,
+              filename: 'foo.cs',
+            }),
+            EventStacktraceFrame({
+              inApp: true,
+              filename: 'foo.py',
+            }),
+            EventStacktraceFrame({
+              inApp: true,
+              filename: 'foo',
+            }),
+            EventStacktraceFrame({
+              inApp: false,
+              filename: 'foo.rb',
+            }),
+          ],
+        },
+      });
+
+      // foo.py is the most recent in-app frame with a valid file extension
+      expect(screen.getByTestId('platform-icon-python')).toBeInTheDocument();
+    });
+
+    it('uses frame.platform if file extension does not work', function () {
+      renderedComponent({
+        data: {
+          ...data,
+          frames: [
+            EventStacktraceFrame({
+              inApp: true,
+              filename: 'foo.cs',
+            }),
+            EventStacktraceFrame({
+              inApp: true,
+              filename: 'foo',
+              platform: 'node',
+            }),
+            EventStacktraceFrame({
+              inApp: true,
+              filename: 'foo',
+            }),
+            EventStacktraceFrame({
+              inApp: false,
+              filename: 'foo.rb',
+            }),
+          ],
+        },
+      });
+
+      expect(screen.getByTestId('platform-icon-node')).toBeInTheDocument();
+    });
+
+    it('falls back to the event platform if there is no other information', function () {
+      renderedComponent({
+        data: {
+          ...data,
+          frames: [
+            EventStacktraceFrame({
+              inApp: true,
+              filename: 'foo',
+              platform: null,
+            }),
+          ],
+        },
+        platform: 'python',
+      });
+
+      expect(screen.getByTestId('platform-icon-python')).toBeInTheDocument();
     });
   });
 });
