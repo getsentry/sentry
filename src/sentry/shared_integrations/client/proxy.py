@@ -137,8 +137,12 @@ class IntegrationProxyClient(ApiClient):
         """
         Generates a safe Requests session for the API client to use.
         This injects a custom is_ipaddress_permitted function to allow only connections to the IP address of the Control Silo.
+        We only validate the IP address from within the Region Silo.
+        For all other silo modes, we use the default is_ipaddress_permitted function, which tests against SENTRY_DISALLOWED_IPS.
         """
-        return build_session(is_ipaddress_permitted=is_control_silo_ip_address)
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            return build_session(is_ipaddress_permitted=is_control_silo_ip_address)
+        return build_session()
 
     @staticmethod
     def determine_whether_should_proxy_to_control() -> bool:

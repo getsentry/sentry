@@ -134,6 +134,33 @@ class IntegrationProxyClientTest(TestCase):
             client.get(f"{self.base_url}/some/endpoint", params={"query": 1, "user": "me"})
         assert mock_is_control_silo_ip_address.call_count == 1
 
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @patch("sentry.shared_integrations.client.proxy.is_control_silo_ip_address")
+    @patch("sentry.shared_integrations.client.proxy.get_control_silo_ip_address")
+    @patch("socket.getaddrinfo")
+    def test_does_not_validate_control_silo_ip_address_in_control(
+        self, mock_getaddrinfo, mock_get_control_silo_ip_address, mock_is_control_silo_ip_address
+    ):
+        mock_get_control_silo_ip_address.return_value = ipaddress.ip_address("172.31.255.255")
+        mock_getaddrinfo.return_value = [(2, 1, 6, "", ("172.31.255.255", 0))]
+        client = self.client_cls(org_integration_id=self.oi_id)
+
+        class BailOut(Exception):
+            pass
+
+        def test_socket_connection(*args, **kwargs):
+            # We can't use responses library for this unit test as it hooks Session.send. So we assert that the
+            # socket connection is being opened.
+            raise BailOut()
+
+        with patch("socket.socket") as mock_socket, raises(BailOut):
+            mock_socket.side_effect = test_socket_connection
+            client.get(f"{self.base_url}/some/endpoint", params={"query": 1, "user": "me"})
+
+        # Assert control silo ip address was not validated
+        assert mock_get_control_silo_ip_address.call_count == 0
+        assert mock_is_control_silo_ip_address.call_count == 0
+
 
 def test_get_control_silo_ip_address():
     with override_settings(SENTRY_CONTROL_ADDRESS=None):
