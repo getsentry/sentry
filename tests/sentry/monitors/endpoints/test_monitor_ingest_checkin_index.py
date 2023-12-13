@@ -9,6 +9,7 @@ from django.test.utils import override_settings
 from django.urls import reverse
 
 from sentry.api.fields.sentry_slug import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.monitors.constants import TIMEOUT
 from sentry.monitors.models import (
@@ -16,7 +17,6 @@ from sentry.monitors.models import (
     Monitor,
     MonitorCheckIn,
     MonitorEnvironment,
-    MonitorObjectStatus,
     MonitorStatus,
     MonitorType,
     ScheduleType,
@@ -192,7 +192,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             )
 
     def test_pending_deletion(self):
-        monitor = self._create_monitor(status=MonitorObjectStatus.PENDING_DELETION)
+        monitor = self._create_monitor(status=ObjectStatus.PENDING_DELETION)
 
         for path_func in self._get_path_functions():
             path = path_func(monitor.guid)
@@ -236,7 +236,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
         )
 
     def test_deletion_in_progress(self):
-        monitor = self._create_monitor(status=MonitorObjectStatus.DELETION_IN_PROGRESS)
+        monitor = self._create_monitor(status=ObjectStatus.DELETION_IN_PROGRESS)
 
         for path_func in self._get_path_functions():
             path = path_func(monitor.guid)

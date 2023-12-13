@@ -116,7 +116,7 @@ function Sidebar({organization}: Props) {
 
   const collapsed = !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
-  const hasSuperuserSession = isActiveSuperuser(organization);
+  const hasSuperuserSession = isActiveSuperuser();
 
   useOpenOnboardingSidebar();
 
