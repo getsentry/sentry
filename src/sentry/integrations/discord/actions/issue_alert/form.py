@@ -50,7 +50,6 @@ class DiscordNotifyServiceForm(forms.Form):
                 validate_channel_id(
                     channel_id=channel,
                     guild_id=integration.external_id,
-                    integration_id=integration.id,
                     guild_name=integration.name,
                 )
                 cleaned_data["channel_id"] = channel

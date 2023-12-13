@@ -1339,7 +1339,6 @@ def get_alert_rule_trigger_action_discord_channel_id(
         validate_channel_id(
             channel_id=name,
             guild_id=integration.external_id,
-            integration_id=integration.id,
             guild_name=integration.name,
         )
     except ValidationError as e:
