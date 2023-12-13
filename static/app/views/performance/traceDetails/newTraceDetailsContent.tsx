@@ -1,6 +1,7 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 
 import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -28,6 +29,7 @@ import {
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import useRouter from 'sentry/utils/useRouter';
 import Tags from 'sentry/views/discover/tags';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import {MetaData} from 'sentry/views/performance/transactionDetails/styles';
@@ -36,7 +38,7 @@ import {BrowserDisplay} from '../transactionDetails/eventMetas';
 
 import NewTraceView from './newTraceDetailsTraceView';
 import TraceNotFound from './traceNotFound';
-import {TraceInfo} from './types';
+import TraceViewDetailPanel from './traceViewDetailPanel';
 import {getTraceInfo, hasTraceData, isRootTransaction} from './utils';
 
 type Props = Pick<RouteComponentProps<{traceSlug: string}, {}>, 'params' | 'location'> & {
@@ -61,15 +63,30 @@ export enum TraceType {
   EMPTY_TRACE = 'empty_trace',
 }
 
+export type EventDetail = {
+  event: EventTransaction | undefined;
+  traceFullDetailedEvent: TraceFullDetailed;
+};
+
 function NewTraceDetailsContent(props: Props) {
+  const router = useRouter();
+  const [detail, setDetail] = useState<EventDetail | undefined>(undefined);
+  const traceInfo = useMemo(
+    () => getTraceInfo(props.traces ?? [], props.orphanErrors),
+    [props.traces, props.orphanErrors]
+  );
   const root = props.traces && props.traces[0];
   const {data: rootEvent, isLoading: isRootEventLoading} = useApiQuery<EventTransaction>(
     [
       `/organizations/${props.organization.slug}/events/${root?.project_slug}:${root?.event_id}/`,
+      {
+        query: {
+          referrer: 'trace-details-summary',
+        },
+      },
     ],
     {
       staleTime: Infinity,
-      retry: true,
       enabled: !!(props.traces && props.traces.length > 0),
     }
   );
@@ -87,7 +104,7 @@ function NewTraceDetailsContent(props: Props) {
     return <LoadingError message={t('Trace view requires a date range selection.')} />;
   };
 
-  const renderTraceHeader = (traceInfo: TraceInfo) => {
+  const renderTraceHeader = () => {
     const {meta} = props;
     const errors = meta?.errors ?? traceInfo.errors.size;
     const performanceIssues =
@@ -239,8 +256,7 @@ function NewTraceDetailsContent(props: Props) {
   };
 
   const renderFooter = () => {
-    const {traceEventView, organization, location, meta, traces, orphanErrors} = props;
-    const traceInfo = traces ? getTraceInfo(traces, orphanErrors) : undefined;
+    const {traceEventView, organization, location, meta, orphanErrors} = props;
     const orphanErrorsCount = orphanErrors?.length ?? 0;
     const transactionsCount = meta?.transactions ?? traceInfo?.transactions.size ?? 0;
     const totalNumOfEvents = transactionsCount + orphanErrorsCount;
@@ -314,12 +330,10 @@ function NewTraceDetailsContent(props: Props) {
       );
     }
 
-    const traceInfo = traces ? getTraceInfo(traces, orphanErrors) : undefined;
-
     return (
       <Fragment>
         {renderTraceWarnings()}
-        {traceInfo && renderTraceHeader(traceInfo)}
+        {traceInfo && renderTraceHeader()}
         <Margin>
           <VisuallyCompleteWithData id="PerformanceDetails-TraceView" hasData={hasData}>
             <NewTraceView
@@ -330,6 +344,7 @@ function NewTraceDetailsContent(props: Props) {
               organization={organization}
               traceEventView={traceEventView}
               traceSlug={traceSlug}
+              onRowClick={setDetail}
               traces={traces || []}
               meta={meta}
               orphanErrors={orphanErrors || []}
@@ -337,12 +352,21 @@ function NewTraceDetailsContent(props: Props) {
           </VisuallyCompleteWithData>
         </Margin>
         {renderFooter()}
+        <TraceViewDetailPanel
+          detail={detail}
+          onClose={() => {
+            router.replace({
+              pathname: location.pathname,
+              query: omit(router.location.query, 'detail'),
+            });
+            setDetail(undefined);
+          }}
+        />
       </Fragment>
     );
   };
 
   const {organization, location, traceEventView, traceSlug} = props;
-
   return (
     <Fragment>
       <Layout.Header>

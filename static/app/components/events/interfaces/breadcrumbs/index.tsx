@@ -37,6 +37,7 @@ type Props = {
   };
   event: Event;
   organization: Organization;
+  hideTitle?: boolean;
 };
 
 enum BreadcrumbSort {
@@ -51,7 +52,7 @@ const sortOptions = [
   {label: t('Oldest'), value: BreadcrumbSort.OLDEST},
 ];
 
-function BreadcrumbsContainer({data, event, organization}: Props) {
+function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Props) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSelections, setFilterSelections] = useState<SelectOption<string>[]>([]);
   const [displayRelativeTime, setDisplayRelativeTime] = useState(false);
@@ -310,8 +311,9 @@ function BreadcrumbsContainer({data, event, organization}: Props) {
 
   return (
     <EventDataSection
+      showPermalink={!hideTitle}
       type={EntryType.BREADCRUMBS}
-      title={t('Breadcrumbs')}
+      title={hideTitle ? '' : t('Breadcrumbs')}
       actions={actions}
     >
       <ErrorBoundary>

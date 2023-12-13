@@ -13,6 +13,7 @@ import {
 import {Organization} from 'sentry/types';
 import {TraceError, TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 
+import {EventDetail} from './newTraceDetailsContent';
 import NewTraceDetailsTransactionBar from './newTraceDetailsTransactionBar';
 import TransactionBar from './transactionBar';
 import {TraceInfo, TraceRoot, TreeDepth} from './types';
@@ -26,6 +27,7 @@ type Props = ScrollbarManagerChildrenProps & {
   isOrphan: boolean;
   isVisible: boolean;
   location: Location;
+  onRowClick: (detailKey: EventDetail | undefined) => void;
   organization: Organization;
   renderedChildren: React.ReactNode[];
   traceInfo: TraceInfo;
@@ -80,6 +82,7 @@ class TransactionGroup extends Component<Props, State> {
       onlyOrphanErrors,
       isOrphanError,
       traceViewRef,
+      onRowClick,
     } = this.props;
     const {isExpanded} = this.state;
 
@@ -110,7 +113,11 @@ class TransactionGroup extends Component<Props, State> {
     return (
       <Fragment>
         {organization.features.includes('performance-trace-details') ? (
-          <NewTraceDetailsTransactionBar {...commonProps} traceViewRef={traceViewRef} />
+          <NewTraceDetailsTransactionBar
+            {...commonProps}
+            traceViewRef={traceViewRef}
+            onRowClick={onRowClick}
+          />
         ) : (
           <TransactionBar {...commonProps} />
         )}
