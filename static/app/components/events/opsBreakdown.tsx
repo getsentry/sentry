@@ -17,6 +17,7 @@ import {
   EntrySpans,
   EntryType,
   Event,
+  EventTransaction,
 } from 'sentry/types/event';
 
 type StartTimestamp = number;
@@ -52,6 +53,182 @@ type Props = {
   topN?: number;
 };
 
+export function generateStats(
+  transactionEvent: EventTransaction | AggregateEventTransaction,
+  operationNameFilters: ActiveOperationFilter,
+  topN?: number
+): OpBreakdownType {
+  if (!transactionEvent) {
+    return [];
+  }
+
+  const traceContext: TraceContextType | undefined = transactionEvent?.contexts?.trace;
+
+  if (!traceContext) {
+    return [];
+  }
+
+  const spanEntry = transactionEvent.entries.find(
+    (entry: EntrySpans | any): entry is EntrySpans => {
+      return entry.type === EntryType.SPANS;
+    }
+  );
+
+  let spans: RawSpanType[] = spanEntry?.data ?? [];
+
+  const rootSpan = {
+    op: traceContext.op,
+    timestamp: transactionEvent.endTimestamp,
+    start_timestamp: transactionEvent.startTimestamp,
+    trace_id: traceContext.trace_id || '',
+    span_id: traceContext.span_id || '',
+    data: {},
+  };
+
+  spans =
+    spans.length > 0
+      ? spans
+      : // if there are no descendent spans, then use the transaction root span
+        [rootSpan];
+
+  // Filter spans by operation name
+  if (operationNameFilters.type === 'active_filter') {
+    spans = [...spans, rootSpan];
+    spans = spans.filter(span => {
+      const operationName = getSpanOperation(span);
+
+      const shouldFilterOut =
+        typeof operationName === 'string' &&
+        !operationNameFilters.operationNames.has(operationName);
+
+      return !shouldFilterOut;
+    });
+  }
+
+  const operationNameIntervals = spans.reduce(
+    (intervals: Partial<OperationNameIntervals>, span: RawSpanType) => {
+      let startTimestamp = span.start_timestamp;
+      const endTimestamp = span.timestamp;
+
+      if (!span.exclusive_time) {
+        return intervals;
+      }
+
+      if (endTimestamp < startTimestamp) {
+        // reverse timestamps
+        startTimestamp = span.timestamp;
+      }
+
+      // invariant: startTimestamp <= endTimestamp
+
+      let operationName = span.op;
+
+      if (typeof operationName !== 'string') {
+        // a span with no operation name is considered an 'unknown' op
+        operationName = 'unknown';
+      }
+
+      const cover: TimeWindowSpan = [
+        startTimestamp,
+        startTimestamp + span.exclusive_time / 1000,
+      ];
+
+      const operationNameInterval = intervals[operationName];
+
+      if (!Array.isArray(operationNameInterval)) {
+        intervals[operationName] = [cover];
+
+        return intervals;
+      }
+
+      operationNameInterval.push(cover);
+
+      intervals[operationName] = mergeInterval(operationNameInterval);
+
+      return intervals;
+    },
+    {}
+  ) as OperationNameIntervals;
+
+  const operationNameCoverage = Object.entries(operationNameIntervals).reduce(
+    (
+      acc: Partial<OperationNameCoverage>,
+      [operationName, intervals]: [OperationName, TimeWindowSpan[]]
+    ) => {
+      const duration = intervals.reduce((sum: number, [start, end]) => {
+        return sum + Math.abs(end - start);
+      }, 0);
+
+      acc[operationName] = duration;
+
+      return acc;
+    },
+    {}
+  ) as OperationNameCoverage;
+
+  const sortedOpsBreakdown = Object.entries(operationNameCoverage).sort(
+    (first: [OperationName, Duration], second: [OperationName, Duration]) => {
+      const firstDuration = first[1];
+      const secondDuration = second[1];
+
+      if (firstDuration === secondDuration) {
+        return 0;
+      }
+
+      if (firstDuration < secondDuration) {
+        // sort second before first
+        return 1;
+      }
+
+      // otherwise, sort first before second
+      return -1;
+    }
+  );
+
+  const breakdown = sortedOpsBreakdown
+    .slice(0, topN)
+    .map(([operationName, duration]: [OperationName, Duration]): OpStats => {
+      return {
+        name: operationName,
+        // percentage to be recalculated after the ops breakdown group is decided
+        percentage: 0,
+        totalInterval: duration,
+      };
+    });
+
+  const other = sortedOpsBreakdown.slice(topN).reduce(
+    (accOther: OpStats, [_operationName, duration]: [OperationName, Duration]) => {
+      accOther.totalInterval += duration;
+
+      return accOther;
+    },
+    {
+      name: OtherOperation,
+      // percentage to be recalculated after the ops breakdown group is decided
+      percentage: 0,
+      totalInterval: 0,
+    }
+  );
+
+  if (other.totalInterval > 0) {
+    breakdown.push(other);
+  }
+
+  // calculate breakdown total duration
+
+  const total = breakdown.reduce((sum: number, operationNameGroup) => {
+    return sum + operationNameGroup.totalInterval;
+  }, 0);
+
+  // recalculate percentage values
+
+  breakdown.forEach(operationNameGroup => {
+    operationNameGroup.percentage = operationNameGroup.totalInterval / total;
+  });
+
+  return breakdown;
+}
+
 function OpsBreakdown({
   event,
   operationNameFilters,
@@ -63,183 +240,11 @@ function OpsBreakdown({
       ? event
       : undefined;
 
-  function generateStats(): OpBreakdownType {
-    if (!transactionEvent) {
-      return [];
-    }
-
-    const traceContext: TraceContextType | undefined = transactionEvent?.contexts?.trace;
-
-    if (!traceContext) {
-      return [];
-    }
-
-    const spanEntry = transactionEvent.entries.find(
-      (entry: EntrySpans | any): entry is EntrySpans => {
-        return entry.type === EntryType.SPANS;
-      }
-    );
-
-    let spans: RawSpanType[] = spanEntry?.data ?? [];
-
-    const rootSpan = {
-      op: traceContext.op,
-      timestamp: transactionEvent.endTimestamp,
-      start_timestamp: transactionEvent.startTimestamp,
-      trace_id: traceContext.trace_id || '',
-      span_id: traceContext.span_id || '',
-      data: {},
-    };
-
-    spans =
-      spans.length > 0
-        ? spans
-        : // if there are no descendent spans, then use the transaction root span
-          [rootSpan];
-
-    // Filter spans by operation name
-    if (operationNameFilters.type === 'active_filter') {
-      spans = [...spans, rootSpan];
-      spans = spans.filter(span => {
-        const operationName = getSpanOperation(span);
-
-        const shouldFilterOut =
-          typeof operationName === 'string' &&
-          !operationNameFilters.operationNames.has(operationName);
-
-        return !shouldFilterOut;
-      });
-    }
-
-    const operationNameIntervals = spans.reduce(
-      (intervals: Partial<OperationNameIntervals>, span: RawSpanType) => {
-        let startTimestamp = span.start_timestamp;
-        const endTimestamp = span.timestamp;
-
-        if (!span.exclusive_time) {
-          return intervals;
-        }
-
-        if (endTimestamp < startTimestamp) {
-          // reverse timestamps
-          startTimestamp = span.timestamp;
-        }
-
-        // invariant: startTimestamp <= endTimestamp
-
-        let operationName = span.op;
-
-        if (typeof operationName !== 'string') {
-          // a span with no operation name is considered an 'unknown' op
-          operationName = 'unknown';
-        }
-
-        const cover: TimeWindowSpan = [
-          startTimestamp,
-          startTimestamp + span.exclusive_time / 1000,
-        ];
-
-        const operationNameInterval = intervals[operationName];
-
-        if (!Array.isArray(operationNameInterval)) {
-          intervals[operationName] = [cover];
-
-          return intervals;
-        }
-
-        operationNameInterval.push(cover);
-
-        intervals[operationName] = mergeInterval(operationNameInterval);
-
-        return intervals;
-      },
-      {}
-    ) as OperationNameIntervals;
-
-    const operationNameCoverage = Object.entries(operationNameIntervals).reduce(
-      (
-        acc: Partial<OperationNameCoverage>,
-        [operationName, intervals]: [OperationName, TimeWindowSpan[]]
-      ) => {
-        const duration = intervals.reduce((sum: number, [start, end]) => {
-          return sum + Math.abs(end - start);
-        }, 0);
-
-        acc[operationName] = duration;
-
-        return acc;
-      },
-      {}
-    ) as OperationNameCoverage;
-
-    const sortedOpsBreakdown = Object.entries(operationNameCoverage).sort(
-      (first: [OperationName, Duration], second: [OperationName, Duration]) => {
-        const firstDuration = first[1];
-        const secondDuration = second[1];
-
-        if (firstDuration === secondDuration) {
-          return 0;
-        }
-
-        if (firstDuration < secondDuration) {
-          // sort second before first
-          return 1;
-        }
-
-        // otherwise, sort first before second
-        return -1;
-      }
-    );
-
-    const breakdown = sortedOpsBreakdown
-      .slice(0, topN)
-      .map(([operationName, duration]: [OperationName, Duration]): OpStats => {
-        return {
-          name: operationName,
-          // percentage to be recalculated after the ops breakdown group is decided
-          percentage: 0,
-          totalInterval: duration,
-        };
-      });
-
-    const other = sortedOpsBreakdown.slice(topN).reduce(
-      (accOther: OpStats, [_operationName, duration]: [OperationName, Duration]) => {
-        accOther.totalInterval += duration;
-
-        return accOther;
-      },
-      {
-        name: OtherOperation,
-        // percentage to be recalculated after the ops breakdown group is decided
-        percentage: 0,
-        totalInterval: 0,
-      }
-    );
-
-    if (other.totalInterval > 0) {
-      breakdown.push(other);
-    }
-
-    // calculate breakdown total duration
-
-    const total = breakdown.reduce((sum: number, operationNameGroup) => {
-      return sum + operationNameGroup.totalInterval;
-    }, 0);
-
-    // recalculate percentage values
-
-    breakdown.forEach(operationNameGroup => {
-      operationNameGroup.percentage = operationNameGroup.totalInterval / total;
-    });
-
-    return breakdown;
-  }
-
   if (!transactionEvent) {
     return null;
   }
 
-  const breakdown = generateStats();
+  const breakdown = generateStats(transactionEvent, operationNameFilters, topN);
 
   const contents = breakdown.map(currOp => {
     const {name, percentage, totalInterval} = currOp;

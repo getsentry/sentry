@@ -230,7 +230,13 @@ const IconContainer = styled('div')`
   margin-top: ${space(0.25)};
 `;
 
-function BrowserDisplay({event}: {event: Event}) {
+export function BrowserDisplay({
+  event,
+  showVersion = false,
+}: {
+  event: Event;
+  showVersion?: boolean;
+}) {
   const icon = generateIconName(
     event.contexts.browser?.name,
     event.contexts.browser?.version
@@ -240,7 +246,9 @@ function BrowserDisplay({event}: {event: Event}) {
       <IconContainer>
         <ContextIcon name={icon} />
       </IconContainer>
-      <span>{event.contexts.browser?.name}</span>
+      <span>
+        {event.contexts.browser?.name} {showVersion && event.contexts.browser?.version}
+      </span>
     </BrowserCenter>
   );
 }
