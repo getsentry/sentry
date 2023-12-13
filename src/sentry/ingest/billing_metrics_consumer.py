@@ -19,7 +19,7 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import reverse_resolve_tag_value
 from sentry.snuba.metrics import parse_mri
 from sentry.snuba.metrics.naming_layer.mri import is_custom_metric
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
@@ -135,23 +135,28 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         )
 
     def _flag_metric_received_for_project(self, generic_metric: GenericMetric) -> None:
-        project_id = generic_metric["project_id"]
-
-        # We try to extract the MRI from the metric_id since our goal is to check whether the MRI belongs to a metric
-        # in the `custom` namespace.
-        metric_mri = self._resolve(generic_metric["mapping_meta"], generic_metric["metric_id"])
-        parsed_mri = parse_mri(metric_mri)
-        if parsed_mri is None or not is_custom_metric(parsed_mri):
-            return
-
         try:
+            project_id = generic_metric["project_id"]
             project = Project.objects.get_from_cache(id=project_id)
+            metrics.incr("ddm.project_in_cache")
             if not project.flags.has_custom_metrics:
+                metrics.incr("ddm.project_in_cache.does_not_have_custom_metrics")
+                # We try to extract the MRI from the metric_id since our goal is to check whether the MRI belongs to
+                # a metric in the `custom` namespace.
+                metric_mri = self._resolve(
+                    generic_metric["mapping_meta"], generic_metric["metric_id"]
+                )
+                parsed_mri = parse_mri(metric_mri)
+                if parsed_mri is None or not is_custom_metric(parsed_mri):
+                    return None
+
                 # We assume that the flag update is reflected in the cache, so that upcoming calls will get the up-to-
                 # date project with the `has_custom_metrics` flag set to true.
                 project.update(flags=F("flags").bitor(Project.flags.has_custom_metrics))
         except Project.DoesNotExist:
-            return
+            pass
+
+        return None
 
     def _resolve(self, mapping_meta: Mapping[str, Any], indexed_value: int) -> Optional[str]:
         for _, inner_meta in mapping_meta.items():
