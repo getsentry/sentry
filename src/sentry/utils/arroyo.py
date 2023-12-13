@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 import pickle
 from functools import partial
 from typing import Any, Callable, Mapping, Optional, Union
@@ -16,8 +15,6 @@ from arroyo.utils.metrics import Metrics
 from sentry.metrics.base import MetricsBackend
 
 Tags = Mapping[str, str]
-
-logger = logging.getLogger(__name__)
 
 
 class MetricsWrapper(Metrics):
