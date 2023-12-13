@@ -263,6 +263,26 @@ class DiscordIntegrationTest(IntegrationTestCase):
         with pytest.raises(IntegrationError):
             provider._get_discord_user_id("auth_code", "1")
 
+    @responses.activate
+    @mock.patch("sentry.integrations.discord.client.DiscordNonProxyClient.set_application_command")
+    def test_post_install(self, mock_set_application_command):
+        provider = self.provider()
+
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}",
+            match=[header_matcher({"Authorization": f"Bot {self.bot_token}"})],
+            json=[],
+        )
+        responses.add(
+            responses.POST,
+            url=f"{DiscordClient.base_url}{APPLICATION_COMMANDS_URL.format(application_id=self.application_id)}",
+            status=200,
+        )
+
+        provider.post_install(integration=self.integration, organization=self.organization)
+        assert mock_set_application_command.call_count == 3  # one for each command
+
     @mock.patch("sentry.integrations.discord.client.DiscordNonProxyClient.set_application_command")
     def test_post_install_missing_credentials(self, mock_set_application_command):
         provider = self.provider()
