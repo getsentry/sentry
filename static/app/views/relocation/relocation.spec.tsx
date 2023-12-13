@@ -227,8 +227,8 @@ describe('Relocation', function () {
       });
       renderPage('get-started');
       ConfigStore.set('regions', [{name: 'USA', url: 'https://example.com'}]);
-      const orgSlugsInput = screen.getByLabelText('org-slugs');
-      const continueButton = screen.getByRole('button', {name: 'Continue'});
+      const orgSlugsInput = await screen.getByLabelText('org-slugs');
+      const continueButton = await screen.getByRole('button', {name: 'Continue'});
       await userEvent.type(orgSlugsInput, 'test-org');
       await userEvent.type(screen.getByLabelText('region'), 'U');
       await userEvent.click(screen.getByRole('menuitemradio'));
