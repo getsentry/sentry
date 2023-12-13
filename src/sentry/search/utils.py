@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from sentry.api.event_search import SearchFilter
 
 from sentry.models.environment import Environment
-from sentry.models.group import STATUS_QUERY_CHOICES
+from sentry.models.group import STATUS_QUERY_CHOICES, Group
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
@@ -466,6 +466,40 @@ def _run_latest_release_query(
         query_args.append(tuple(e.id for e in environments))
     cursor.execute(query, query_args)
     return [row[0] for row in cursor.fetchall()]
+
+
+def get_terminal_release_for_group(
+    group: Group,
+    query_type: LatestReleaseOrders,
+    latest: bool,
+) -> Sequence[str]:
+    direction = "DESC" if latest else "ASC"
+    extra_conditions = ""
+    if query_type == LatestReleaseOrders.SEMVER:
+        rank_order_by = f"major {direction}, minor {direction}, patch {direction}, revision {direction}, CASE WHEN (prerelease = '') THEN 1 ELSE 0 END {direction}, prerelease {direction}, sr.id {direction}"
+        extra_conditions += " AND sr.major IS NOT NULL"
+    else:
+        rank_order_by = f"COALESCE(date_released, date_added) {direction}"
+
+    query = f"""
+        SELECT sr.*
+        FROM sentry_release sr
+        INNER JOIN (
+            SELECT sgr.release_id
+            FROM sentry_grouprelease sgr
+            WHERE sgr.group_id = %s
+            ORDER BY sgr.release_id {direction}
+            -- We limit the number of groupreleases we check here to handle edge cases of groups with 100k+ releases
+            LIMIT 1000
+        ) sgr ON sr.id = sgr.release_id
+        {extra_conditions}
+        ORDER BY {rank_order_by}
+        LIMIT 1
+    """
+    result = list(Release.objects.raw(query, [group.id]))
+    if not result:
+        raise Release.DoesNotExist
+    return result[0]
 
 
 def parse_release(

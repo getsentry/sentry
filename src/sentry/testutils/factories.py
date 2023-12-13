@@ -61,6 +61,7 @@ from sentry.models.files.file import File
 from sentry.models.group import Group
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
+from sentry.models.grouprelease import GroupRelease
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.integrations.doc_integration import DocIntegration
 from sentry.models.integrations.external_actor import ExternalActor
@@ -580,6 +581,13 @@ class Factories:
             release.update(authors=[str(author.id)], commit_count=1, last_commit_id=commit.id)
 
         return release
+
+    def create_group_release(project: Project, group: Group, release: Release):
+        return GroupRelease.objects.create(
+            project_id=project.id,
+            group_id=group.id,
+            release_id=release.id,
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

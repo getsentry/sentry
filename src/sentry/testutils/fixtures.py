@@ -189,6 +189,11 @@ class Fixtures:
             project = self.project
         return Factories.create_release(project=project, user=user, *args, **kwargs)
 
+    def create_group_release(self, project=None, *args, **kwargs):
+        if project is None:
+            project = self.project
+        return Factories.create_group_release(project, *args, **kwargs)
+
     def create_release_file(self, release_id=None, file=None, name=None, dist_id=None):
         if release_id is None:
             release_id = self.release.id
