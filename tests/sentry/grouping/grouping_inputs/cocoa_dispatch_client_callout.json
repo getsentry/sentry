@@ -1,0 +1,1026 @@
+{
+  "platform": "cocoa",
+  "message": "API v2 SDK Global Handler: Path root error: FoobarPathRootError[{\n    ErrorContent = \"invalid/..\";\n    RequestId = abcdefg;\n    StatusCode = 422;\n    StructuredPathRootError = \"<FudgeCOMMONPathRootError: 0x283b40280>\";\n    UserMessage = nil;\n}];",
+  "culprit": "",
+  "environment": "release",
+  "errors": [],
+  "fingerprint": ["{{ default }}"],
+  "grouping_config": {
+    "enhancements": "eJybzDRxc15qeXFJZU6qlZGBkbGugaGuoeHsSRNXp_nkp6enFunl5KdPOcvCcJaZ4SwL41lmxkkTN6a5OAElQxKB8imuRUX5RWgK1kIUOJb4pJal5qBJLoNIooluAYo6FhenFpXgNnYnUI1zRmpyNiGFNxVwqvRNLS5OTE9F07Abm-0UK92S5paZk-qcmJyRijMsl6SlJFVMOcsKFmMFiQEAtd-T3A",
+    "id": "newstyle:2023-01-11"
+  },
+  "hashes": ["41f74a44e6a384bf72935137841b02e3"],
+  "metadata": {
+    "in_app_frame_mix": "mixed",
+    "title": "API v2 SDK Global Handler: Path root error: FoobarPathRootError[{"
+  },
+  "threads": {
+    "values": [
+      {
+        "id": 0,
+        "name": "",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "<redacted>",
+              "in_app": false,
+              "data": {
+                "symbolicator_status": "unknown_image"
+              },
+              "image_addr": "0x0",
+              "instruction_addr": "0x1d2d9edcc",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "main",
+              "symbol": "main",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": false,
+              "data": {
+                "orig_in_app": 1,
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x104ef962c",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "unicorn",
+              "raw_function": "unicorn()",
+              "symbol": "$s13FoobarBinary3unicornyyF",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": false,
+              "data": {
+                "orig_in_app": 1,
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x104ef9798",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "UIApplicationMain",
+              "symbol": "UIApplicationMain",
+              "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
+              "in_app": false,
+              "data": {
+                "category": "system",
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x1b253c000",
+              "instruction_addr": "0x1b27678ec",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "-[UIApplication _run]",
+              "symbol": "-[UIApplication _run]",
+              "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
+              "in_app": false,
+              "data": {
+                "category": "internals",
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x1b253c000",
+              "instruction_addr": "0x1b27682b0",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "GSEventRunModal",
+              "symbol": "GSEventRunModal",
+              "package": "/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices",
+              "in_app": false,
+              "data": {
+                "category": "internals",
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x1f3713000",
+              "instruction_addr": "0x1f37165e8",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "CFRunLoopRunSpecific",
+              "symbol": "CFRunLoopRunSpecific",
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+              "in_app": false,
+              "data": {
+                "category": "internals",
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x1b0318000",
+              "instruction_addr": "0x1b034b664",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "__CFRunLoopRun",
+              "symbol": "__CFRunLoopRun",
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+              "in_app": false,
+              "data": {
+                "category": "internals",
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x1b0318000",
+              "instruction_addr": "0x1b034bf14",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__",
+              "symbol": "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__",
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+              "in_app": false,
+              "data": {
+                "category": "internals",
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x1b0318000",
+              "instruction_addr": "0x1b034f208",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "_dispatch_main_queue_callback_4CF",
+              "symbol": "_dispatch_main_queue_callback_4CF",
+              "package": "/usr/lib/system/libdispatch.dylib",
+              "in_app": false,
+              "data": {
+                "category": "internals",
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x1b82d1000",
+              "instruction_addr": "0x1b82e35ac",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "_dispatch_main_queue_drain",
+              "symbol": "_dispatch_main_queue_drain",
+              "package": "/usr/lib/system/libdispatch.dylib",
+              "in_app": false,
+              "data": {
+                "category": "internals",
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x1b82d1000",
+              "instruction_addr": "0x1b82e3994",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "_dispatch_client_callout",
+              "symbol": "_dispatch_client_callout",
+              "package": "/usr/lib/system/libdispatch.dylib",
+              "in_app": false,
+              "data": {
+                "category": "threadbase",
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x1b82d1000",
+              "instruction_addr": "0x1b82d52fc",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "_dispatch_block_async_invoke2",
+              "symbol": "_dispatch_block_async_invoke2",
+              "package": "/usr/lib/system/libdispatch.dylib",
+              "in_app": false,
+              "data": {
+                "category": "internals",
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x1b82d1000",
+              "instruction_addr": "0x1b82e424c",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "__NSOQSchedule_f",
+              "symbol": "__NSOQSchedule_f",
+              "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
+              "in_app": false,
+              "data": {
+                "category": "internals",
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x1af2b8000",
+              "instruction_addr": "0x1af330334",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "__NSOPERATIONQUEUE_IS_STARTING_AN_OPERATION__",
+              "symbol": "__NSOPERATIONQUEUE_IS_STARTING_AN_OPERATION__",
+              "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
+              "in_app": false,
+              "data": {
+                "category": "internals",
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x1af2b8000",
+              "instruction_addr": "0x1af3305c8",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "-[NSOperation start]",
+              "symbol": "-[NSOperation start]",
+              "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
+              "in_app": false,
+              "data": {
+                "category": "indirection",
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x1af2b8000",
+              "instruction_addr": "0x1af32dab0",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "__NSOPERATION_IS_INVOKING_MAIN__",
+              "symbol": "__NSOPERATION_IS_INVOKING_MAIN__",
+              "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
+              "in_app": false,
+              "data": {
+                "category": "internals",
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x1af2b8000",
+              "instruction_addr": "0x1af32e9c0",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "-[NSBlockOperation main]",
+              "symbol": "-[NSBlockOperation main]",
+              "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
+              "in_app": false,
+              "data": {
+                "category": "indirection",
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x1af2b8000",
+              "instruction_addr": "0x1af331138",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "__NSBLOCKOPERATION_IS_CALLING_OUT_TO_A_BLOCK__",
+              "symbol": "__NSBLOCKOPERATION_IS_CALLING_OUT_TO_A_BLOCK__",
+              "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
+              "in_app": false,
+              "data": {
+                "category": "internals",
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x1af2b8000",
+              "instruction_addr": "0x1af2ffcb4",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2",
+              "symbol": "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": true,
+              "data": {
+                "category": "internals",
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x105b934ac",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "FudgeLogTaggedError",
+              "symbol": "FudgeLogTaggedError",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": false,
+              "data": {
+                "orig_in_app": 1,
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x106a422a0",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "FudgeLogAtLevel",
+              "symbol": "FudgeLogAtLevel",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": false,
+              "data": {
+                "orig_in_app": 1,
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x106a41f9c",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "thunk for closure",
+              "raw_function": "thunk for @escaping @callee_guaranteed (@unowned FudgeLogLevel, @guaranteed String?, @guaranteed String?, @guaranteed String?) -> ()",
+              "symbol": "$sSo10FudgeLogLevelVSSSgA2CIegyggg_ABSo8NSStringCSgA2FIeyByyyy_TR",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": false,
+              "data": {
+                "orig_in_app": 1,
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x105d6a25c",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "SentrySetupInteractor.setupSentry",
+              "raw_function": "partial apply for closure #3 (FudgeLogLevel, String?, String?, String?) in SentrySetupInteractor.setupSentry()",
+              "symbol": "$s18ios_common_crashes21SentrySetupInteractorC05setupD0yyFySo10FudgeLogLevelV_SSSgA2GtcfU1_TA",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": false,
+              "data": {
+                "orig_in_app": 1,
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x105d70d8c",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "_dispatch_lane_barrier_sync_invoke_and_complete",
+              "symbol": "_dispatch_lane_barrier_sync_invoke_and_complete",
+              "package": "/usr/lib/system/libdispatch.dylib",
+              "in_app": false,
+              "data": {
+                "category": "internals",
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x1b82d1000",
+              "instruction_addr": "0x1b82e46b0",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "_dispatch_client_callout",
+              "symbol": "_dispatch_client_callout",
+              "package": "/usr/lib/system/libdispatch.dylib",
+              "in_app": false,
+              "data": {
+                "category": "threadbase",
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x1b82d1000",
+              "instruction_addr": "0x1b82d52fc",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "thunk for closure",
+              "raw_function": "thunk for @escaping @callee_guaranteed () -> ()",
+              "symbol": "$sIeg_IyB_TR",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": false,
+              "data": {
+                "orig_in_app": 1,
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x104f24ac0",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "thunk for closure",
+              "raw_function": "partial apply for thunk for @callee_guaranteed () -> ()",
+              "symbol": "$sIg_Ieg_TRTA",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": false,
+              "data": {
+                "orig_in_app": 1,
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x105d6a428",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "SentrySetupInteractor.setupSentry",
+              "raw_function": "partial apply for closure #1 () in closure #3 (FudgeLogLevel, String?, String?, String?) in SentrySetupInteractor.setupSentry()",
+              "symbol": "$s18ios_common_crashes21SentrySetupInteractorC05setupD0yyFySo10FudgeLogLevelV_SSSgA2GtcfU1_yyXEfU_TA",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": false,
+              "data": {
+                "orig_in_app": 1,
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x105d71800",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "SentryWrapperImpl",
+              "raw_function": "protocol witness for SentryWrapper.capture(event: SentryEvent) in conformance SentryWrapperImpl",
+              "symbol": "$s18ios_common_crashes17SentryWrapperImplCAA0dE0A2aDP7capture5eventySo0D5EventC_tFTW",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": false,
+              "data": {
+                "orig_in_app": 1,
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x105d6e660",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "BugsnagWrapperImpl.start",
+              "raw_function": "BugsnagWrapperImpl.start(with: BugsnagConfiguration)",
+              "symbol": "$s18ios_common_crashes18BugsnagWrapperImplC5start4withySo0D13ConfigurationC_tFTm",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": false,
+              "data": {
+                "orig_in_app": 1,
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x105d6e354",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "+[SentrySDK captureEvent:]",
+              "symbol": "+[SentrySDK captureEvent:]",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": false,
+              "data": {
+                "orig_in_app": 1,
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x1068a0eb0",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "+[SentrySDK captureEvent:withScope:]",
+              "symbol": "+[SentrySDK captureEvent:withScope:]",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": false,
+              "data": {
+                "orig_in_app": 1,
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x1068a1024",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "-[SentryHub captureEvent:withScope:additionalEnvelopeItems:]",
+              "symbol": "-[SentryHub captureEvent:withScope:additionalEnvelopeItems:]",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": false,
+              "data": {
+                "orig_in_app": 1,
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x1068843c0",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "-[SentryClient sendEvent:withScope:alwaysAttachStacktrace:isCrashEvent:additionalEnvelopeItems:]",
+              "symbol": "-[SentryClient sendEvent:withScope:alwaysAttachStacktrace:isCrashEvent:additionalEnvelopeItems:]",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": false,
+              "data": {
+                "orig_in_app": 1,
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x10684f394",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "-[SentryClient prepareEvent:withScope:alwaysAttachStacktrace:isCrashEvent:]",
+              "symbol": "-[SentryClient prepareEvent:withScope:alwaysAttachStacktrace:isCrashEvent:]",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": false,
+              "data": {
+                "orig_in_app": 1,
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x1068502f8",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "-[SentryThreadInspector getCurrentThreads]",
+              "symbol": "-[SentryThreadInspector getCurrentThreads]",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": false,
+              "data": {
+                "orig_in_app": 1,
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x1068aea64",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "-[SentryStacktraceBuilder buildStacktraceForCurrentThread]",
+              "symbol": "-[SentryStacktraceBuilder buildStacktraceForCurrentThread]",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": false,
+              "data": {
+                "orig_in_app": 1,
+                "symbolicator_status": "symbolicated"
+              },
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x1068ac9f4",
+              "symbol_addr": "0x0"
+            }
+          ]
+        },
+        "raw_stacktrace": {
+          "frames": [
+            {
+              "function": "<redacted>",
+              "in_app": false,
+              "image_addr": "0x0",
+              "instruction_addr": "0x1d2d9edcc",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": true,
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x104ef9630",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": true,
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x104ef979c",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
+              "in_app": false,
+              "data": {
+                "category": "system"
+              },
+              "image_addr": "0x1b253c000",
+              "instruction_addr": "0x1b27678f0",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
+              "in_app": false,
+              "data": {
+                "category": "internals"
+              },
+              "image_addr": "0x1b253c000",
+              "instruction_addr": "0x1b27682b4",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices",
+              "in_app": false,
+              "data": {
+                "category": "internals"
+              },
+              "image_addr": "0x1f3713000",
+              "instruction_addr": "0x1f37165ec",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+              "in_app": false,
+              "data": {
+                "category": "internals"
+              },
+              "image_addr": "0x1b0318000",
+              "instruction_addr": "0x1b034b668",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+              "in_app": false,
+              "data": {
+                "category": "internals"
+              },
+              "image_addr": "0x1b0318000",
+              "instruction_addr": "0x1b034bf18",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+              "in_app": false,
+              "data": {
+                "category": "internals"
+              },
+              "image_addr": "0x1b0318000",
+              "instruction_addr": "0x1b034f20c",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/usr/lib/system/libdispatch.dylib",
+              "in_app": false,
+              "data": {
+                "category": "internals"
+              },
+              "image_addr": "0x1b82d1000",
+              "instruction_addr": "0x1b82e35b0",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/usr/lib/system/libdispatch.dylib",
+              "in_app": false,
+              "data": {
+                "category": "internals"
+              },
+              "image_addr": "0x1b82d1000",
+              "instruction_addr": "0x1b82e3998",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/usr/lib/system/libdispatch.dylib",
+              "in_app": false,
+              "data": {
+                "category": "internals"
+              },
+              "image_addr": "0x1b82d1000",
+              "instruction_addr": "0x1b82d5300",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/usr/lib/system/libdispatch.dylib",
+              "in_app": false,
+              "data": {
+                "category": "internals"
+              },
+              "image_addr": "0x1b82d1000",
+              "instruction_addr": "0x1b82e4250",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
+              "in_app": false,
+              "data": {
+                "category": "internals"
+              },
+              "image_addr": "0x1af2b8000",
+              "instruction_addr": "0x1af330338",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
+              "in_app": false,
+              "data": {
+                "category": "internals"
+              },
+              "image_addr": "0x1af2b8000",
+              "instruction_addr": "0x1af3305cc",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
+              "in_app": false,
+              "data": {
+                "category": "internals"
+              },
+              "image_addr": "0x1af2b8000",
+              "instruction_addr": "0x1af32dab4",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
+              "in_app": false,
+              "data": {
+                "category": "internals"
+              },
+              "image_addr": "0x1af2b8000",
+              "instruction_addr": "0x1af32e9c4",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
+              "in_app": false,
+              "data": {
+                "category": "internals"
+              },
+              "image_addr": "0x1af2b8000",
+              "instruction_addr": "0x1af33113c",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
+              "in_app": false,
+              "data": {
+                "category": "internals"
+              },
+              "image_addr": "0x1af2b8000",
+              "instruction_addr": "0x1af2ffcb8",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": true,
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x105b934b0",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": true,
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x106a422a4",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": true,
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x106a41fa0",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": true,
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x105d6a260",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": true,
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x105d70d90",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/usr/lib/system/libdispatch.dylib",
+              "in_app": false,
+              "data": {
+                "category": "system"
+              },
+              "image_addr": "0x1b82d1000",
+              "instruction_addr": "0x1b82e46b4",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/usr/lib/system/libdispatch.dylib",
+              "in_app": false,
+              "data": {
+                "category": "internals"
+              },
+              "image_addr": "0x1b82d1000",
+              "instruction_addr": "0x1b82d5300",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": true,
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x104f24ac4",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": true,
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x105d6a42c",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": true,
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x105d71804",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": true,
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x105d6e664",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": true,
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x105d6e358",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": true,
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x1068a0eb4",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": true,
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x1068a1028",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": true,
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x1068843c4",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": true,
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x10684f398",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": true,
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x1068502fc",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": true,
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x1068aea68",
+              "symbol_addr": "0x0"
+            },
+            {
+              "function": "<redacted>",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": true,
+              "image_addr": "0x104c10000",
+              "instruction_addr": "0x1068ac9f4",
+              "symbol_addr": "0x0"
+            }
+          ]
+        },
+        "crashed": false,
+        "current": true,
+        "main": true
+      },
+      {
+        "id": 1,
+        "name": "",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 2,
+        "name": "",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 3,
+        "name": "",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 4,
+        "name": "com.apple.uikit.eventfetch-thread",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 5,
+        "name": "",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 6,
+        "name": "",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 7,
+        "name": "",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 8,
+        "name": "",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 9,
+        "name": "",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 10,
+        "name": "SentryCrash Exception Handler (Secondary)",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 11,
+        "name": "SentryCrash Exception Handler (Primary)",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 12,
+        "name": "io.sentry.app-hang-tracker",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 13,
+        "name": "",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 14,
+        "name": "",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 15,
+        "name": "",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 16,
+        "name": "",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 17,
+        "name": "com.apple.NSURLConnectionLoader",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 18,
+        "name": "",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 19,
+        "name": "",
+        "crashed": false,
+        "current": false,
+        "main": false
+      }
+    ]
+  },
+  "timestamp": 1701896453.995161
+}
