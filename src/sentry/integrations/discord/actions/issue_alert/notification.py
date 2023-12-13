@@ -6,7 +6,7 @@ from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.message_builder.issues import DiscordIssuesMessageBuilder
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture, EventState
-from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.rules import RuleFuture
 from sentry.utils import metrics
 
@@ -45,7 +45,7 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
             rules = [f.rule for f in futures]
             message = DiscordIssuesMessageBuilder(event.group, event=event, tags=tags, rules=rules)
 
-            client = DiscordClient(integration_id=integration.id)
+            client = DiscordClient()
             try:
                 client.send_message(channel_id, message, notification_uuid=notification_uuid)
             except ApiError as e:

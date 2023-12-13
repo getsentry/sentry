@@ -30,9 +30,7 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 PREFILLED_SU_MODAL_KEY = "prefilled_su_modal"
 
-DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV = getattr(
-    settings, "DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV", False
-)
+DISABLE_SSO_CHECK_FOR_LOCAL_DEV = getattr(settings, "DISABLE_SSO_CHECK_FOR_LOCAL_DEV", False)
 
 DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = getattr(
     settings, "DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL", False
@@ -133,15 +131,14 @@ class AuthIndexEndpoint(Endpoint):
 
         authenticated = (
             self._verify_user_via_inputs(validator, request)
-            if (not DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV and verify_authenticator)
-            or is_self_hosted()
+            if (not DISABLE_SSO_CHECK_FOR_LOCAL_DEV and verify_authenticator) or is_self_hosted()
             else True
         )
 
         if Superuser.org_id:
             if (
                 not has_completed_sso(request, Superuser.org_id)
-                and not DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV
+                and not DISABLE_SSO_CHECK_FOR_LOCAL_DEV
             ):
                 request.session[PREFILLED_SU_MODAL_KEY] = request.data
                 self._reauthenticate_with_sso(request, Superuser.org_id)
@@ -224,7 +221,7 @@ class AuthIndexEndpoint(Endpoint):
         else:
             verify_authenticator = False
 
-            if not DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV and not is_self_hosted():
+            if not DISABLE_SSO_CHECK_FOR_LOCAL_DEV and not is_self_hosted():
                 if Superuser.org_id:
                     superuser_org = organization_service.get_organization_by_id(id=Superuser.org_id)
 

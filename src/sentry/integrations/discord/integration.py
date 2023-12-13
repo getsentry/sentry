@@ -16,12 +16,11 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.discord.client import DiscordClient, DiscordNonProxyClient
+from sentry.integrations.discord.client import DiscordClient
 from sentry.models.integrations.integration import Integration
 from sentry.pipeline.views.base import PipelineView
 from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
-from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
 
 from .utils import logger
@@ -73,12 +72,7 @@ metadata = IntegrationMetadata(
 
 class DiscordIntegration(IntegrationInstallation):
     def get_client(self) -> DiscordClient:
-        org_integration_id = self.org_integration.id if self.org_integration else None
-
-        return DiscordClient(
-            integration_id=self.model.id,
-            org_integration_id=org_integration_id,
-        )
+        return DiscordClient()
 
     def uninstall(self) -> None:
         # If this is the only org using this Discord server, we should remove
@@ -156,7 +150,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
         self.public_key = options.get("discord.public-key")
         self.bot_token = options.get("discord.bot-token")
         self.client_secret = options.get("discord.client-secret")
-        self.client = DiscordNonProxyClient()
+        self.client = DiscordClient()
         self.setup_url = absolute_uri("extensions/discord/setup/")
         super().__init__()
 
