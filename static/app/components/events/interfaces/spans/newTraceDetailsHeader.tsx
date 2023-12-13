@@ -9,13 +9,8 @@ import {space} from 'sentry/styles/space';
 import {EventTransaction, Organization} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import toPercent from 'sentry/utils/number/toPercent';
-import useProjects from 'sentry/utils/useProjects';
 import {TraceType} from 'sentry/views/performance/traceDetails/newTraceDetailsContent';
 import {TraceInfo} from 'sentry/views/performance/traceDetails/types';
-import {
-  platformToPerformanceType,
-  ProjectPerformanceType,
-} from 'sentry/views/performance/utils';
 
 import ReplayPreview from '../../eventReplay/replayPreview';
 
@@ -83,21 +78,14 @@ function ServiceBreakdown({
 }
 
 function TraceViewHeader(props: PropType) {
-  const {projects} = useProjects();
-
   const {event} = props;
   if (!event) {
     return null;
   }
 
-  const projectSlug = event.projectSlug;
-  const project = projects.find(proj => proj.slug === projectSlug);
-
-  const isFrontendRoot =
-    project &&
-    platformToPerformanceType(projects, [Number(project?.id)]) ===
-      ProjectPerformanceType.FRONTEND &&
-    props.traceType === TraceType.ONE_ROOT;
+  const opsBreakdown = generateStats(event, {type: 'no_filter'});
+  const httpOp = opsBreakdown.find(obj => obj.name === 'http.client');
+  const hasServiceBreakdown = httpOp && props.traceType === TraceType.ONE_ROOT;
 
   return (
     <HeaderContainer ref={props.traceViewHeaderRef} hasProfileMeasurementsChart={false}>
@@ -113,7 +101,7 @@ function TraceViewHeader(props: PropType) {
               >
                 {props.event && (
                   <ServiceBreakdown
-                    displayBreakdown={!!isFrontendRoot}
+                    displayBreakdown={!!hasServiceBreakdown}
                     rootEvent={props.event}
                   />
                 )}

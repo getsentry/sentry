@@ -58,6 +58,7 @@ export enum TraceType {
   MULTIPLE_ROOTS = 'multiple_roots',
   BROKEN_SUBTRACES = 'broken_subtraces',
   ONLY_ERRORS = 'only_errors',
+  EMPTY_TRACE = 'empty_trace',
 }
 
 function NewTraceDetailsContent(props: Props) {
@@ -170,7 +171,15 @@ function NewTraceDetailsContent(props: Props) {
       return TraceType.ONLY_ERRORS;
     }
 
-    return TraceType.ONE_ROOT;
+    if (roots === 1) {
+      return TraceType.ONE_ROOT;
+    }
+
+    if (roots === 0 && orphans === 0) {
+      return TraceType.EMPTY_TRACE;
+    }
+
+    throw new Error('Unknown trace type');
   };
 
   const renderTraceWarnings = () => {
