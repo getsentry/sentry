@@ -8,6 +8,7 @@ from django.urls import reverse
 
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.mixins.issues import MAX_CHAR, IssueBasicMixin
+from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.organization import Organization
@@ -26,6 +27,16 @@ class GitHubIssueBasic(IssueBasicMixin):
         repo, issue_id = key.split("#")
         return f"https://{domain_name}/{repo}/issues/{issue_id}"
 
+    def get_feedback_issue_body(self, event: GroupEvent) -> str:
+        body = "|  |  |\n"
+        body += "| ------------- | --------------- |\n"
+        for evidence in sorted(
+            event.occurrence.evidence_display, key=attrgetter("important"), reverse=True
+        ):
+            body += f"| **{evidence.name}** | {evidence.value} |\n"
+
+        return body[:-2]
+
     def get_generic_issue_body(self, event: GroupEvent) -> str:
         body = "|  |  |\n"
         body += "| ------------- | --------------- |\n"
@@ -40,7 +51,11 @@ class GitHubIssueBasic(IssueBasicMixin):
         output = self.get_group_link(group, **kwargs)
 
         if isinstance(event, GroupEvent) and event.occurrence is not None:
-            body = self.get_generic_issue_body(event)
+            body = ""
+            if group.issue_category == GroupCategory.FEEDBACK:
+                body = self.get_feedback_issue_body(event)
+            else:
+                body = self.get_generic_issue_body(event)
             output.extend([body])
         else:
             body = self.get_group_body(group, event)
