@@ -122,11 +122,8 @@ class RegionContextError(Exception):
 class RegionDirectory:
     """A set of regions in a Sentry environment.
 
-    In a production environment, there will be only one instance of this class,
-    held in a singleton GlobalRegionDirectory.
-
-    In a test environment, the singleton GlobalRegionDirectory may have
-    RegionDirectory instances temporarily swapped into it.
+    This is a singleton class. It is immutable in a production environment,
+    but affords overrides by the subclass TestEnvRegionDirectory.
     """
 
     def __init__(self, regions: Collection[Region], local_region: Region | None) -> None:
@@ -134,11 +131,11 @@ class RegionDirectory:
         self._local_region = local_region
         self._by_name = {r.name: r for r in regions}
 
-    @property
+    @property  # hook for override in test environment
     def regions(self) -> frozenset[Region]:
         return self._regions
 
-    @property
+    @property  # hook for override in test environment
     def local_region(self) -> Region | None:
         return self._local_region
 
@@ -180,7 +177,7 @@ def _determine_region_pointers(regions: Collection[Region]) -> tuple[Region, Reg
     silo_mode = SiloMode.get_current_mode()
     by_name = {r.name: r for r in regions}
 
-    def resolve(setting_name: str) -> RegionConfigurationError:
+    def resolve(setting_name: str) -> Region:
         setting_value = getattr(settings, setting_name)
         try:
             return by_name[setting_value]
@@ -188,7 +185,7 @@ def _determine_region_pointers(regions: Collection[Region]) -> tuple[Region, Reg
             region_names = ", ".join(map(repr, by_name.keys()))
             raise RegionConfigurationError(
                 f"The {setting_name} setting (value={setting_value!r}) must point to "
-                f"a region name. Region names: {region_names})"
+                f"a region name. Region names: {region_names}"
             ) from e
 
     if silo_mode == SiloMode.MONOLITH and not regions:

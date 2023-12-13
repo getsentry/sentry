@@ -61,6 +61,10 @@ def _configure_test_env_regions() -> None:
 
     settings.SENTRY_REGION = region_name
     settings.SENTRY_MONOLITH_REGION = region_name
+
+    # This not only populates the environment with the default region, but also
+    # ensures that a TestEnvRegionDirectory instance is injected into global state.
+    # See sentry.testutils.region.get_test_env_directory, which relies on it.
     region.set_global_directory(TestEnvRegionDirectory([default_region], default_region))
 
     settings.SENTRY_SUBNET_SECRET = "secret"

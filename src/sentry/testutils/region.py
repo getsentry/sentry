@@ -19,7 +19,9 @@ class TestEnvRegionDirectory(RegionDirectory):
         local_region: Region | None = None,
     ):
         new_regions = self.regions if regions is None else frozenset(regions)
-        new_local_region = local_region or (None if self.local_region is None else regions[0])
+        new_local_region = local_region or (
+            self.local_region if (self.local_region is None or not regions) else regions[0]
+        )
 
         old_regions = self._tmp_regions
         old_local_region = self._tmp_local_region
