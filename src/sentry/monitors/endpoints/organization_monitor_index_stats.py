@@ -74,13 +74,9 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
         # this map until the very end where we'll map from monitor_environment to environment to
         # name.
         #
-        # If no environments were found then every environment must be fetched. This could return
-        # a lot of rows. A better alternative would be to denormalize the environment name onto
-        # the check-in table.
+        # If no environments were provided we still need to fetch them but we'll do it later in
+        # the process when we know which environments need to be fetched.
         environments = get_environments(request, organization)
-        if not environments:
-            environments = Environment.objects.filter(organization_id=organization.id).all()
-
         environment_map = {env.id: env.name for env in environments}
 
         # Pre-fetch the monitor environments. This is an optimization to eliminate a join against
@@ -89,12 +85,24 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
         #
         # This could return a lot of rows. A better alternative would be to denormalize the
         # environment name onto the check-in table.
-        monitor_environment_map = dict(
-            MonitorEnvironment.objects.filter(
-                monitor_id__in=monitor_map.keys(),
-                environment_id__in=environment_map.keys(),
-            ).values_list("id", "environment_id")
+        monitor_environment_query = MonitorEnvironment.objects.filter(
+            monitor_id__in=monitor_map.keys()
         )
+        if environment_map:
+            monitor_environment_query = monitor_environment_query.filter(
+                environment_id__in=environment_map.keys()
+            )
+
+        monitor_environment_map = dict(
+            monitor_environment_query.values_list("id", "environment_id")
+        )
+
+        # If the monitor_environment_map was fetched without the help of the environments
+        # parameter, we need to populate the environment_map with all the environment_ids found
+        # in the set.
+        if not environment_map:
+            environments = Environment.objects.filter(id__in=monitor_environment_map.values())
+            environment_map = {env.id: env.name for env in environments}
 
         check_ins = MonitorCheckIn.objects.filter(
             monitor_id__in=monitor_map.keys(),
