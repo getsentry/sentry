@@ -64,7 +64,7 @@ describe('Relocation', function () {
       renderPage('encrypt-backup');
       expect(
         await screen.findByText(
-          'Create an encrypted backup of current self-hosted instance'
+          'Create an encrypted backup of your current self-hosted instance'
         )
       ).toBeInTheDocument();
     });

@@ -16,7 +16,7 @@ export function EncryptBackup(props: StepProps) {
   return (
     <Wrapper>
       <StepHeading step={3}>
-        {t('Create an encrypted backup of current self-hosted instance')}
+        {t('Create an encrypted backup of your current self-hosted instance')}
       </StepHeading>
       <motion.div
         transition={testableTransition()}
