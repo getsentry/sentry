@@ -259,7 +259,7 @@ def get_global_directory() -> RegionDirectory:
 def get_region_by_name(name: str) -> Region:
     """Look up a region by name."""
     global_regions = get_global_directory()
-    region = global_regions.get(name)
+    region = global_regions.get_by_name(name)
     if region is not None:
         return region
     else:
@@ -271,7 +271,7 @@ def get_region_by_name(name: str) -> Region:
 
 
 def is_region_name(name: str) -> bool:
-    return get_global_directory().get(name) is not None
+    return get_global_directory().get_by_name(name) is not None
 
 
 def subdomain_is_region(request: HttpRequest) -> bool:
