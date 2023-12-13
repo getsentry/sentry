@@ -308,17 +308,19 @@ class DiscordInstallPipeline(PipelineView):
 
         pipeline.bind_state("guild_id", request.GET["guild_id"])
         pipeline.bind_state("code", request.GET["code"])
-        try:
-            raw_state = json.loads(request.GET["state"])
-            pipeline.bind_state("use_setup", raw_state.get("useSetup"))
-        except Exception as error:
-            logger.info(
-                "identity.discord.request-token",
-                extra={
-                    "state": request.GET("state"),
-                    "guild_id": request.GET["guild_id"],
-                    "code": request.GET["code"],
-                },
-            )
-            return pipeline.error(error)
+        state = "state" in request.GET
+        if state:
+            try:
+                raw_state = json.loads(request.GET["state"])
+                pipeline.bind_state("use_setup", raw_state.get("useSetup"))
+            except Exception as error:
+                logger.info(
+                    "identity.discord.request-token",
+                    extra={
+                        "has_state": state,
+                        "guild_id": request.GET["guild_id"],
+                        "code": request.GET["code"],
+                    },
+                )
+                return pipeline.error(error)
         return pipeline.next_step()
