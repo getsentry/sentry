@@ -227,7 +227,11 @@ Required if **service_type** is `slack` or `opsgenie`.
         # If we've only received a channel name, ask slack for its id
         generic_error_message = f"Could not fetch channel id from Slack for '{channel_name}'. Try providing the channel id, or try again later."
         try:
-            _prefix, channel_id, timed_out, = get_channel_id(
+            (
+                _prefix,
+                channel_id,
+                timed_out,
+            ) = get_channel_id(
                 organization=self.context["organization"],
                 integration=self.integration,
                 channel_name=channel_name,
@@ -276,7 +280,6 @@ Required if **service_type** is `slack` or `opsgenie`.
             validate_channel_id(
                 channel_id=channel_id,
                 guild_id=self.integration.external_id,
-                integration_id=self.integration.id,
                 guild_name=self.integration.name,
             )
         except Exception as e:
