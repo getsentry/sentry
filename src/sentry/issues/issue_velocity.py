@@ -154,7 +154,8 @@ def update_threshold(
     """
     Runs the calculation for the threshold and saves it and the date it is last updated to Redis.
     If the threshold is NaN, we save it as 0 at the normal TTL. If the threshold is None (due to
-    Snuba errors), we save it as 0 with the fallback TTL.
+    Snuba errors), we save it as the stale threshold if we have one, otherwise 0, with the fallback
+    TTL.
     """
     threshold = calculate_threshold(project)
     ttl = DEFAULT_TTL

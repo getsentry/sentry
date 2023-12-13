@@ -252,7 +252,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
     def test_update_threshold_with_stale(self, mock_calculation):
         """
         Tests that we return the stale threshold and save it for a shorter amount of time than the
-        default if the calculation returned None and we had an existing threhsold.
+        default if the calculation returned None and we have an existing threhsold.
         """
         mock_calculation.return_value = None
         assert update_threshold(self.project, "threshold-key", "date-key", 0.5) == 0.5
