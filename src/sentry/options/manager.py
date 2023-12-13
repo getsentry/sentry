@@ -5,6 +5,7 @@ from typing import Optional, Sequence, Tuple
 
 from django.conf import settings
 
+from sentry.silo.base import SiloMode
 from sentry.utils.hashlib import md5_text
 from sentry.utils.types import Any, type_from_value
 
@@ -142,7 +143,10 @@ WRITE_REQUIRED_FLAGS = {
 
 
 def _make_cache_key(key):
-    return "o:%s" % md5_text(key).hexdigest()
+    hashed = md5_text(key).hexdigest()
+    if SiloMode.get_current_mode() == SiloMode.CONTROL:
+        return f"o:control:{hashed}"
+    return f"o:{hashed}"
 
 
 class OptionsManager:

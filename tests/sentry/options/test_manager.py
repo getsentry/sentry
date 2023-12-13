@@ -21,8 +21,9 @@ from sentry.options.manager import (
     UpdateChannel,
 )
 from sentry.options.store import OptionsStore
+from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import all_silo_test
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, region_silo_test
 from sentry.utils.types import Int, String
 
 
@@ -383,3 +384,26 @@ class OptionsManagerTest(TestCase):
         assert opt.has_any_flag({FLAG_NOSTORE})
         assert opt.has_any_flag({FLAG_NOSTORE, FLAG_REQUIRED})
         assert not opt.has_any_flag({FLAG_REQUIRED})
+
+
+@region_silo_test
+class ScopedOptionsTest(TestCase):
+    def test_register_key_scoping_by_silo(self):
+        def make_manager():
+            memstore = LocMemCache("test", {})
+            memstore.clear()
+            store = OptionsStore(cache=memstore)
+            return OptionsManager(store=store)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            manager = make_manager()
+            manager.register("scoped.key")
+            control_key = manager.lookup_key("scoped.key")
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            manager = make_manager()
+            manager.register("scoped.key")
+            region_key = manager.lookup_key("scoped.key")
+
+        assert region_key.cache_key != control_key.cache_key
+        assert "control" in control_key.cache_key
