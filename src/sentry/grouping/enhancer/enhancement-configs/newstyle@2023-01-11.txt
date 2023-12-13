@@ -151,7 +151,7 @@ family:native package:libAudioToolboxUtility.dylib category=av
 family:native function:std::_* category=internals
 family:native function:__swift_* category=internals
 family:native function:block_destroy_helper* category=internals
-family:native function:*_block_invoke* category=internals
+family:native function:*_block_invoke* app:no category=internals
 
 family:native package:/usr/lib/system/** function:start category=threadbase
 family:native package:libdyld.dylib function:start category=threadbase

@@ -185,7 +185,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
     );
   };
 
-  const issueTypeConfig = getConfigForIssueType(group);
+  const issueTypeConfig = getConfigForIssueType(group, project);
 
   return (
     <TransactionProfileIdProvider

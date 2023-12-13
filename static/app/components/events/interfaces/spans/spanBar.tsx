@@ -562,7 +562,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
             // TODO Abdullah Khan: A little bit hacky, but ensures that the toggled tree aligns
             // with the rest of the span tree, in the trace view.
             if (this.props.fromTraceView) {
-              this.props.updateHorizontalScrollState(1);
+              this.props.updateHorizontalScrollState(0.5);
             }
           }}
         >

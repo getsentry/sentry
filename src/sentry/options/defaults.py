@@ -700,6 +700,9 @@ register("store.use-relay-dsn-sample-rate", default=1, flags=FLAG_AUTOMATOR_MODI
 # A rate to apply to any events denoted as experimental to be sent to an experimental dsn.
 register("store.use-experimental-dsn-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# A rate that enables statsd item sending (DDM data) to s4s
+register("store.allow-s4s-ddm-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Mock out integrations and services for tests
 register("mocks.jira", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
