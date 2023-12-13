@@ -1,10 +1,10 @@
 ---
-created: '2023-12-13T15:22:23.538568Z'
+created: '2023-12-13T15:26:23.523214Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: "8b030fcc5f29467af28c851aed9a1d39"
+  hash: "7c8a196d16b94be382add324be2605ee"
   component:
     app*
       threads*
@@ -39,9 +39,9 @@ app:
           frame*
             function*
               "FudgeLogTaggedError"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
-              "thunk for closure"
+              "closure"
           frame*
             function*
               "SentrySetupInteractor.setupSentry"
@@ -51,19 +51,19 @@ app:
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "_dispatch_client_callout"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
-              "thunk for closure"
+              "closure"
 --------------------------------------------------------------------------
 default:
   hash: null
   component:
     default (threads of app/system take precedence)
       message (threads of app/system take precedence)
-        "API v2 SDK Global Handler: Path root error: FoobarPathRootError[{\n    ErrorContent = \"invalid/..\";..."
+        "Foo"
 --------------------------------------------------------------------------
 system:
-  hash: "1024de126aef5ae7d8ddf4899fafc06c"
+  hash: "cd7f51d716fd57adc1a5ce1c112e538f"
   component:
     system*
       threads*
@@ -98,9 +98,9 @@ system:
           frame*
             function*
               "FudgeLogTaggedError"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
-              "thunk for closure"
+              "closure"
           frame*
             function*
               "SentrySetupInteractor.setupSentry"
@@ -110,6 +110,6 @@ system:
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "_dispatch_client_callout"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
-              "thunk for closure"
+              "closure"

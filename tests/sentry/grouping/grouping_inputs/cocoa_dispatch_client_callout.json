@@ -1,6 +1,6 @@
 {
   "platform": "cocoa",
-  "message": "API v2 SDK Global Handler: Path root error: FoobarPathRootError[{\n    ErrorContent = \"invalid/..\";\n    RequestId = abcdefg;\n    StatusCode = 422;\n    StructuredPathRootError = \"<FudgeCOMMONPathRootError: 0x283b40280>\";\n    UserMessage = nil;\n}];",
+  "message": "Foo",
   "threads": {
     "values": [
       {
@@ -8,8 +8,6 @@
           "frames": [
             {
               "function": "unicorn",
-              "raw_function": "unicorn()",
-              "symbol": "$s13FoobarBinary3unicornyyF",
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
               "in_app": false,
               "data": {
@@ -18,79 +16,54 @@
             },
             {
               "function": "UIApplicationMain",
-              "symbol": "UIApplicationMain",
               "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
               "in_app": false,
-              "data": {
-                "category": "system"
-              }
+              "data": {}
             },
             {
               "function": "-[UIApplication _run]",
-              "symbol": "-[UIApplication _run]",
               "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
               "in_app": false,
-              "data": {
-                "category": "internals"
-              }
+              "data": {}
             },
             {
               "function": "_dispatch_main_queue_drain",
-              "symbol": "_dispatch_main_queue_drain",
               "package": "/usr/lib/system/libdispatch.dylib",
               "in_app": false,
-              "data": {
-                "category": "internals"
-              }
+              "data": {}
             },
             {
               "function": "_dispatch_client_callout",
-              "symbol": "_dispatch_client_callout",
               "package": "/usr/lib/system/libdispatch.dylib",
               "in_app": false,
-              "data": {
-                "category": "threadbase"
-              }
+              "data": {}
             },
             {
               "function": "_dispatch_block_async_invoke2",
-              "symbol": "_dispatch_block_async_invoke2",
               "package": "/usr/lib/system/libdispatch.dylib",
               "in_app": false,
-              "data": {
-                "category": "internals"
-              }
+              "data": {}
             },
             {
               "function": "-[NSBlockOperation main]",
-              "symbol": "-[NSBlockOperation main]",
               "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
               "in_app": false,
-              "data": {
-                "category": "indirection"
-              }
+              "data": {}
             },
             {
               "function": "__NSBLOCKOPERATION_IS_CALLING_OUT_TO_A_BLOCK__",
-              "symbol": "__NSBLOCKOPERATION_IS_CALLING_OUT_TO_A_BLOCK__",
               "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
               "in_app": false,
-              "data": {
-                "category": "internals"
-              }
+              "data": {}
             },
             {
               "function": "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2",
-              "symbol": "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2",
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
               "in_app": true,
-              "data": {
-                "category": "internals"
-              }
+              "data": {}
             },
             {
               "function": "FudgeLogTaggedError",
-              "symbol": "FudgeLogTaggedError",
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
               "in_app": false,
               "data": {
@@ -99,8 +72,6 @@
             },
             {
               "function": "thunk for closure",
-              "raw_function": "thunk for @escaping @callee_guaranteed (@unowned FudgeLogLevel, @guaranteed String?, @guaranteed String?, @guaranteed String?) -> ()",
-              "symbol": "$sSo10FudgeLogLevelVSSSgA2CIegyggg_ABSo8NSStringCSgA2FIeyByyyy_TR",
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
               "in_app": false,
               "data": {
@@ -109,8 +80,6 @@
             },
             {
               "function": "SentrySetupInteractor.setupSentry",
-              "raw_function": "partial apply for closure #3 (FudgeLogLevel, String?, String?, String?) in SentrySetupInteractor.setupSentry()",
-              "symbol": "$s18ios_common_crashes21SentrySetupInteractorC05setupD0yyFySo10FudgeLogLevelV_SSSgA2GtcfU1_TA",
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
               "in_app": false,
               "data": {
@@ -119,26 +88,18 @@
             },
             {
               "function": "_dispatch_lane_barrier_sync_invoke_and_complete",
-              "symbol": "_dispatch_lane_barrier_sync_invoke_and_complete",
               "package": "/usr/lib/system/libdispatch.dylib",
               "in_app": false,
-              "data": {
-                "category": "internals"
-              }
+              "data": {}
             },
             {
               "function": "_dispatch_client_callout",
-              "symbol": "_dispatch_client_callout",
               "package": "/usr/lib/system/libdispatch.dylib",
               "in_app": false,
-              "data": {
-                "category": "threadbase"
-              }
+              "data": {}
             },
             {
               "function": "thunk for closure",
-              "raw_function": "thunk for @escaping @callee_guaranteed () -> ()",
-              "symbol": "$sIeg_IyB_TR",
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
               "in_app": false,
               "data": {
@@ -146,10 +107,7 @@
               }
             }
           ]
-        },
-        "crashed": false,
-        "current": true,
-        "main": true
+        }
       }
     ]
   }
