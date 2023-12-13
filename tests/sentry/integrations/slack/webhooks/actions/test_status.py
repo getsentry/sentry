@@ -32,6 +32,85 @@ pytestmark = [requires_snuba]
 
 @region_silo_test
 class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
+    def setUp(self):
+        super().setUp()
+        self.event_data = {
+            "event_id": "a" * 32,
+            "message": "IntegrationError",
+            "fingerprint": ["group-1"],
+            "exception": {
+                "values": [
+                    {
+                        "type": "IntegrationError",
+                        "value": "Identity not found.",
+                    }
+                ]
+            },
+        }
+        self.original_message = {
+            "type": "message",
+            "attachments": [
+                {
+                    "id": 1,
+                    "ts": 1681409875,
+                    "color": "E03E2F",
+                    "fallback": "[node] IntegrationError: Identity not found.",
+                    "text": "Identity not found.",
+                    "title": "IntegrationError",
+                    "footer": "NODE-F via <http://localhost:8000/organizations/sentry/alerts/rules/node/3/details/|New Issue in #critical channel>",
+                    "mrkdwn_in": ["text"],
+                }
+            ],
+        }
+
+    def get_original_message_block_kit(self, group_id):
+        return {
+            "blocks": [
+                {
+                    "type": "section",
+                    "block_id": json.dumps({"issue": group_id}),
+                    "text": {"type": "mrkdwn", "text": "boop", "verbatim": False},
+                },
+            ],
+        }
+
+    def get_ignore_status_action(self, text, selection):
+        return {
+            "action_id": "status",
+            "block_id": "bXwil",
+            "text": {
+                "type": "plain_text",
+                "text": text,
+                "emoji": True,
+            },
+            "value": selection,
+            "type": "button",
+            "action_ts": "1702424387.108033",
+        }
+
+    def get_assign_status_action(self, type, text, id):
+        return {
+            "type": "static_select",
+            "action_id": "assign",
+            "block_id": "qBjgd",
+            "selected_option": {
+                "text": {"type": "plain_text", "text": text, "emoji": True},
+                "value": f"{type}:{id}",
+            },
+            "placeholder": {"type": "plain_text", "text": "Select Assignee...", "emoji": True},
+            "action_ts": "1702499909.524144",
+        }
+
+    def get_resolve_status_action(self):
+        return {
+            "action_id": "resolve_dialog",
+            "block_id": "AeGRw",
+            "text": {"type": "plain_text", "text": "Resolve", "emoji": True},
+            "value": "resolve_dialog",
+            "type": "button",
+            "action_ts": "1702502121.403007",
+        }
+
     @freeze_time("2021-01-14T12:27:28.303Z")
     def test_ask_linking(self):
         """Freezing time to prevent flakiness from timestamp mismatch."""
@@ -47,41 +126,14 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
 
     def test_ignore_issue(self):
         event = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "IntegrationError",
-                "fingerprint": ["group-1"],
-                "exception": {
-                    "values": [
-                        {
-                            "type": "IntegrationError",
-                            "value": "Identity not found.",
-                        }
-                    ]
-                },
-            },
+            data=self.event_data,
             project_id=self.project.id,
         )
         status_action = {"name": "status", "value": "ignored:forever", "type": "button"}
-        original_message = {
-            "type": "message",
-            "attachments": [
-                {
-                    "id": 1,
-                    "ts": 1681409875,
-                    "color": "E03E2F",
-                    "fallback": "[node] IntegrationError: Identity not found.",
-                    "text": "Identity not found.",
-                    "title": "IntegrationError",
-                    "footer": "NODE-F via <http://localhost:8000/organizations/sentry/alerts/rules/node/3/details/|New Issue in #critical channel>",
-                    "mrkdwn_in": ["text"],
-                }
-            ],
-        }
         assert event.group is not None
         resp = self.post_webhook(
             action_data=[status_action],
-            original_message=original_message,
+            original_message=self.original_message,
             type="interactive_message",
             callback_id=json.dumps({"issue": event.group.id}),
         )
@@ -97,7 +149,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook(
                 action_data=[status_action],
-                original_message=original_message,
+                original_message=self.original_message,
                 type="interactive_message",
                 callback_id=json.dumps({"issue": event.group.id}),
             )
@@ -110,42 +162,11 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
 
     def test_ignore_issue_block_kit(self):
         event = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "IntegrationError",
-                "fingerprint": ["group-1"],
-                "exception": {
-                    "values": [
-                        {
-                            "type": "IntegrationError",
-                            "value": "Identity not found.",
-                        }
-                    ]
-                },
-            },
+            data=self.event_data,
             project_id=self.project.id,
         )
-        status_action = {
-            "action_id": "status",
-            "block_id": "bXwil",
-            "text": {
-                "type": "plain_text",
-                "text": "Ignore",
-                "emoji": True,
-            },
-            "value": "ignored:forever",
-            "type": "button",
-            "action_ts": "1702424387.108033",
-        }
-        original_message = {
-            "blocks": [
-                {
-                    "type": "section",
-                    "block_id": json.dumps({"issue": event.group.id}),
-                    "text": {"type": "mrkdwn", "text": "boop", "verbatim": False},
-                },
-            ],
-        }
+        original_message = self.get_original_message_block_kit(event.group.id)
+        status_action = self.get_ignore_status_action("Ignore", "ignored:forever")
         assert event.group is not None
 
         with self.feature("organizations:slack-block-kit"):
@@ -163,41 +184,14 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
 
     def test_archive_issue(self):
         event = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "IntegrationError",
-                "fingerprint": ["group-1"],
-                "exception": {
-                    "values": [
-                        {
-                            "type": "IntegrationError",
-                            "value": "Identity not found.",
-                        }
-                    ]
-                },
-            },
+            data=self.event_data,
             project_id=self.project.id,
         )
         status_action = {"name": "status", "value": "ignored:until_escalating", "type": "button"}
-        original_message = {
-            "type": "message",
-            "attachments": [
-                {
-                    "id": 1,
-                    "ts": 1681409875,
-                    "color": "E03E2F",
-                    "fallback": "[node] IntegrationError: Identity not found.",
-                    "text": "Identity not found.",
-                    "title": "IntegrationError",
-                    "footer": "NODE-F via <http://localhost:8000/organizations/sentry/alerts/rules/node/3/details/|New Issue in #critical channel>",
-                    "mrkdwn_in": ["text"],
-                }
-            ],
-        }
         assert event.group is not None
         resp = self.post_webhook(
             action_data=[status_action],
-            original_message=original_message,
+            original_message=self.original_message,
             type="interactive_message",
             callback_id=json.dumps({"issue": event.group.id}),
         )
@@ -213,7 +207,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook(
                 action_data=[status_action],
-                original_message=original_message,
+                original_message=self.original_message,
                 type="interactive_message",
                 callback_id=json.dumps({"issue": event.group.id}),
             )
@@ -226,42 +220,11 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
 
     def test_archive_issue_block_kit(self):
         event = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "IntegrationError",
-                "fingerprint": ["group-1"],
-                "exception": {
-                    "values": [
-                        {
-                            "type": "IntegrationError",
-                            "value": "Identity not found.",
-                        }
-                    ]
-                },
-            },
+            data=self.event_data,
             project_id=self.project.id,
         )
-        status_action = {
-            "action_id": "status",
-            "block_id": "bXwil",
-            "text": {
-                "type": "plain_text",
-                "text": "Archive",
-                "emoji": True,
-            },
-            "value": "ignored:until_escalating",
-            "type": "button",
-            "action_ts": "1702424387.108033",
-        }
-        original_message = {
-            "blocks": [
-                {
-                    "type": "section",
-                    "block_id": json.dumps({"issue": event.group.id}),
-                    "text": {"type": "mrkdwn", "text": "boop", "verbatim": False},
-                },
-            ],
-        }
+        status_action = self.get_ignore_status_action("Archive", "ignored:until_escalating")
+        original_message = self.get_original_message_block_kit(event.group.id)
         assert event.group is not None
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook_block_kit(
@@ -318,43 +281,12 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             )
             AuthIdentity.objects.create(auth_provider=auth_idp, user=self.user)
         event = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "IntegrationError",
-                "fingerprint": ["group-1"],
-                "exception": {
-                    "values": [
-                        {
-                            "type": "IntegrationError",
-                            "value": "Identity not found.",
-                        }
-                    ]
-                },
-            },
+            data=self.event_data,
             project_id=self.project.id,
         )
         assert event.group is not None
-        status_action = {
-            "action_id": "status",
-            "block_id": "bXwil",
-            "text": {
-                "type": "plain_text",
-                "text": "Ignore",
-                "emoji": True,
-            },
-            "value": "ignored:forever",
-            "type": "button",
-            "action_ts": "1702424387.108033",
-        }
-        original_message = {
-            "blocks": [
-                {
-                    "type": "section",
-                    "block_id": json.dumps({"issue": event.group.id}),
-                    "text": {"type": "mrkdwn", "text": "boop", "verbatim": False},
-                },
-            ],
-        }
+        original_message = self.get_original_message_block_kit(event.group.id)
+        status_action = self.get_ignore_status_action("Ignore", "ignored:forever")
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook_block_kit(
                 action_data=[status_action],
@@ -423,6 +355,44 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
 
             assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status), resp.data["text"]
 
+    def test_assign_issue_block_kit(self):
+        user2 = self.create_user(is_superuser=False)
+        self.create_member(user=user2, organization=self.organization, teams=[self.team])
+        status_action = self.get_assign_status_action("user", user2.email, user2.id)
+        original_message = self.get_original_message_block_kit(self.group.id)
+        # Assign to user
+        with self.feature("organizations:slack-block-kit"):
+            resp = self.post_webhook_block_kit(
+                action_data=[status_action], original_message=original_message
+            )
+
+        assert resp.status_code == 200, resp.content
+        assert GroupAssignee.objects.filter(group=self.group, user_id=user2.id).exists()
+
+        expect_status = f"*Issue assigned to {user2.get_display_name()} by <@{self.external_id}>*"
+        assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status), resp.data["text"]
+
+        # Assign to team
+        status_action = self.get_assign_status_action("team", self.team.slug, self.team.id)
+        original_message = self.get_original_message_block_kit(self.group.id)
+        with self.feature("organizations:slack-block-kit"):
+            resp = self.post_webhook_block_kit(
+                action_data=[status_action], original_message=original_message
+            )
+
+        assert resp.status_code == 200, resp.content
+        assert GroupAssignee.objects.filter(group=self.group, team=self.team).exists()
+        activity = Activity.objects.filter(group=self.group).first()
+        assert activity.data == {
+            "assignee": str(user2.id),
+            "assigneeEmail": user2.email,
+            "assigneeType": "user",
+            "integration": ActivityIntegration.SLACK.value,
+        }
+
+        expect_status = f"*Issue assigned to #{self.team.slug} by <@{self.external_id}>*"
+        assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status), resp.data["text"]
+
     def test_assign_issue_where_team_not_in_project(self):
         user2 = self.create_user(is_superuser=False)
 
@@ -451,6 +421,23 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
                 "Cannot assign to a team without access to the project"
             )
             assert not GroupAssignee.objects.filter(group=self.group).exists()
+
+    def test_assign_issue_where_team_not_in_project_block_kit(self):
+        user2 = self.create_user(is_superuser=False)
+        team2 = self.create_team(
+            organization=self.organization, members=[self.user], name="Ecosystem"
+        )
+        self.create_member(user=user2, organization=self.organization, teams=[team2])
+        self.create_project(name="hellboy", organization=self.organization, teams=[team2])
+        # Assign to team
+        status_action = self.get_assign_status_action("yeam", team2.slug, team2.id)
+        original_message = self.get_original_message_block_kit(self.group.id)
+        with self.feature("organizations:slack-block-kit"):
+            resp = self.post_webhook(action_data=[status_action], original_message=original_message)
+
+        assert resp.status_code == 200, resp.content
+        assert resp.data["text"].endswith("Cannot assign to a team without access to the project")
+        assert not GroupAssignee.objects.filter(group=self.group).exists()
 
     def test_assign_issue_user_has_identity(self):
         user2 = self.create_user(is_superuser=False)
@@ -484,9 +471,32 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             assert GroupAssignee.objects.filter(group=self.group, user_id=user2.id).exists()
             assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status), resp.data["text"]
 
+    def test_assign_issue_user_has_identity_block_kit(self):
+        user2 = self.create_user(is_superuser=False)
+        self.create_member(user=user2, organization=self.organization, teams=[self.team])
+
+        user2_identity = self.create_identity(
+            external_id="slack_id2",
+            identity_provider=self.idp,
+            user=user2,
+        )
+        status_action = self.get_assign_status_action("user", user2.email, user2.id)
+        original_message = self.get_original_message_block_kit(self.group.id)
+        with self.feature("organizations:slack-block-kit"):
+            resp = self.post_webhook_block_kit(
+                action_data=[status_action], original_message=original_message
+            )
+
+        assert resp.status_code == 200, resp.content
+        assert GroupAssignee.objects.filter(group=self.group, user_id=user2.id).exists()
+
+        expect_status = (
+            f"*Issue assigned to <@{user2_identity.external_id}> by <@{self.external_id}>*"
+        )
+        assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status), resp.data["text"]
+
     def test_response_differs_on_bot_message(self):
         status_action = {"name": "status", "value": "ignored:forever", "type": "button"}
-
         original_message = {"type": "message"}
 
         resp = self.post_webhook(action_data=[status_action], original_message=original_message)
@@ -499,6 +509,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert resp.data["attachments"][0]["title"] == self.group.title
 
         with self.feature("organizations:slack-block-kit"):
+            # test backwards compatibility
             resp = self.post_webhook(action_data=[status_action], original_message=original_message)
             self.group = Group.objects.get(id=self.group.id)
             assert self.group.get_status() == GroupStatus.IGNORED
@@ -506,6 +517,20 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             assert resp.status_code == 200, resp.content
             assert "blocks" in resp.data
             assert self.group.title in resp.data["blocks"][0]["text"]["text"]
+
+    def test_response_differs_on_bot_message_block_kit(self):
+        status_action = self.get_ignore_status_action("Ignore", "ignored:forever")
+        original_message = self.get_original_message_block_kit(self.group.id)
+        with self.feature("organizations:slack-block-kit"):
+            resp = self.post_webhook_block_kit(
+                action_data=[status_action], original_message=original_message
+            )
+        self.group = Group.objects.get(id=self.group.id)
+        assert self.group.get_status() == GroupStatus.IGNORED
+        assert self.group.substatus == GroupSubStatus.FOREVER
+        assert resp.status_code == 200, resp.content
+        assert "blocks" in resp.data
+        assert self.group.title in resp.data["blocks"][0]["text"]["text"]
 
     def test_assign_user_with_multiple_identities(self):
         org2 = self.create_organization(owner=None)
@@ -539,11 +564,40 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert resp.data["text"].endswith(expect_status), resp.data["text"]
 
         with self.feature("organizations:slack-block-kit"):
+            # test backwards compatibility
             resp = self.post_webhook(action_data=[status_action])
-
             assert resp.status_code == 200, resp.content
             assert GroupAssignee.objects.filter(group=self.group, user_id=self.user.id).exists()
             assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status), resp.data["text"]
+
+    def test_assign_user_with_multiple_identities_block_kit(self):
+        org2 = self.create_organization(owner=None)
+
+        integration2 = self.create_integration(
+            organization=org2,
+            provider="slack",
+            external_id="TXXXXXXX2",
+        )
+        idp2 = self.create_identity_provider(integration=integration2)
+        self.create_identity(
+            external_id="slack_id2",
+            identity_provider=idp2,
+            user=self.user,
+        )
+        status_action = self.get_assign_status_action("user", self.user.email, self.user.id)
+        original_message = self.get_original_message_block_kit(self.group.id)
+        with self.feature("organizations:slack-block-kit"):
+            resp = self.post_webhook_block_kit(
+                action_data=[status_action], original_message=original_message
+            )
+
+        assert resp.status_code == 200, resp.content
+        assert GroupAssignee.objects.filter(group=self.group, user_id=self.user.id).exists()
+
+        expect_status = "*Issue assigned to <@{assignee}> by <@{assignee}>*".format(
+            assignee=self.external_id
+        )
+        assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status), resp.data["text"]
 
     @responses.activate
     def test_resolve_issue(self):
@@ -601,7 +655,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
     def test_resolve_issue_backwards_compat_block_kit(self):
         """Test backwards compatibility of resolving an issue from a legacy Slack notification
         with the block kit feature flag enabled"""
-        status_action = {"name": "resolve_dialog", "value": "resolve_dialog"}
+        status_action = {"name": "resolve_dialog", "value": "dialog"}
 
         # Expect request to open dialog on slack
         responses.add(
@@ -640,6 +694,61 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
                 type="dialog_submission",
                 callback_id=dialog["callback_id"],
                 data={"submission": {"resolve_type": "resolved"}},
+            )
+        self.group = Group.objects.get(id=self.group.id)
+
+        assert resp.status_code == 200, resp.content
+        assert self.group.get_status() == GroupStatus.RESOLVED
+
+        update_data = json.loads(responses.calls[1].request.body)
+
+        expect_status = f"*Issue resolved by <@{self.external_id}>*"
+        assert update_data["blocks"][0]["text"]["text"].endswith(expect_status)
+
+    @responses.activate
+    def test_resolve_issue_block_kit(self):
+        status_action = self.get_resolve_status_action()
+        # Expect request to open dialog on slack
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/views.open",
+            body='{"ok": True}',
+            status=200,
+            content_type="application/json",
+        )
+        original_message = self.get_original_message_block_kit(self.group.id)
+        with self.feature("organizations:slack-block-kit"):
+            resp = self.post_webhook_block_kit(
+                action_data=[status_action], original_message=original_message
+            )
+        assert resp.status_code == 200, resp.content
+
+        # Opening dialog should *not* cause the current message to be updated
+        assert resp.content == b""
+
+        data = parse_qs(responses.calls[0].request.body)
+        assert data["trigger_id"][0] == self.trigger_id
+        assert "dialog" in data
+
+        dialog = json.loads(data["dialog"][0])
+        callback_data = json.loads(dialog["callback_id"])
+        assert int(callback_data["issue"]) == self.group.id
+        assert callback_data["orig_response_url"] == self.response_url
+
+        # Completing the dialog will update the message
+        responses.add(
+            method=responses.POST,
+            url=self.response_url,
+            body='{"ok": True}',
+            status=200,
+            content_type="application/json",
+        )
+        with self.feature("organizations:slack-block-kit"):
+            resp = self.post_webhook_block_kit(
+                type="view_submission",
+                callback_id=dialog["callback_id"],
+                selected_option="resolved"
+                # data={"submission": {"resolve_type": "resolved"}},
             )
         self.group = Group.objects.get(id=self.group.id)
 
@@ -769,6 +878,10 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             expect_status = f"*Issue resolved by <@{self.external_id}>*"
             assert update_data["blocks"][0]["text"]["text"].endswith(expect_status)
 
+    @responses.activate
+    def test_resolve_issue_in_next_release_block_kit(self):
+        pass
+
     def test_permission_denied(self):
         user2 = self.create_user(is_superuser=False)
 
@@ -807,6 +920,9 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             assert resp.data["text"] == UNLINK_IDENTITY_MESSAGE.format(
                 associate_url=associate_url, user_email=user2.email, org_name=self.organization.name
             )
+
+    def test_permission_denied_block_kit(self):
+        pass
 
     @freeze_time("2021-01-14T12:27:28.303Z")
     @responses.activate
@@ -889,6 +1005,11 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
                 user_email=self.user.email,
                 org_name=self.organization.name,
             )
+
+    @freeze_time("2021-01-14T12:27:28.303Z")
+    @responses.activate
+    def test_handle_submission_fail_block_kit(self):
+        pass
 
     @patch(
         "sentry.integrations.slack.requests.SlackRequest._check_signing_secret", return_value=True

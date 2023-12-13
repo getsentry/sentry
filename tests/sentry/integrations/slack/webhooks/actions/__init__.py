@@ -76,6 +76,8 @@ class BaseEventTest(APITestCase):
         team_id="TXXXXXXX1",
         slack_user=None,
         original_message=None,
+        selected_option=None,
+        view=None,
     ):
 
         if slack_user is None:
@@ -91,40 +93,130 @@ class BaseEventTest(APITestCase):
 
         payload = {
             "type": type,
-            "user": slack_user,
-            "api_app_id": "A058NGW5NDP",
-            "token": "6IM9MzJR4Ees5x4jkW29iKbj",
-            "container": {
-                "type": "message",
-                "message_ts": "1702424381.221719",
-                "channel_id": "C065W1189",
-                "is_ephemeral": False,
-            },
-            "trigger_id": self.trigger_id,
             "team": {
                 "id": team_id,
                 "domain": "hb-meowcraft",
             },
+            "user": slack_user,
+            "api_app_id": "A058NGW5NDP",
+            "token": "6IM9MzJR4Ees5x4jkW29iKbj",
+            "trigger_id": self.trigger_id,
+            "view": view,
+            "response_urls": [],
             "enterprise": None,
             "is_enterprise_install": False,
-            "channel": {
+        }
+
+        if type == "view_submission":
+            view = {
+                "id": "V069MCJ1Y4X",
+                "team_id": "TA17GH2QL",
+                "type": "modal",
+                "blocks": [
+                    {
+                        "type": "section",
+                        "block_id": "a6HD+",
+                        "text": {"type": "mrkdwn", "text": "Resolve in", "verbatim": False},
+                        "accessory": {
+                            "type": "static_select",
+                            "action_id": "static_select-action",
+                            "initial_option": {
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "Immediately",
+                                    "emoji": True,
+                                },
+                                "value": "resolved",
+                            },
+                            "options": [
+                                {
+                                    "text": {
+                                        "type": "plain_text",
+                                        "text": "Immediately",
+                                        "emoji": True,
+                                    },
+                                    "value": "resolved",
+                                },
+                                {
+                                    "text": {
+                                        "type": "plain_text",
+                                        "text": "In the next release",
+                                        "emoji": True,
+                                    },
+                                    "value": "resolved:inNextRelease",
+                                },
+                                {
+                                    "text": {
+                                        "type": "plain_text",
+                                        "text": "In the current release",
+                                        "emoji": True,
+                                    },
+                                    "value": "resolved:inCurrentRelease",
+                                },
+                            ],
+                        },
+                    }
+                ],
+                "private_metadata": "{'issue':618,'orig_response_url':'https://hooks.slack.com/actions/TA17GH2QL/6354598702337/EpJhd0O8CQPTTlgkEpTeponR','is_message':False}",
+                "callback_id": "{'issue':618,'orig_response_url':'https://hooks.slack.com/actions/TA17GH2QL/6354598702337/EpJhd0O8CQPTTlgkEpTeponR','is_message':False}",
+                "state": {
+                    "values": {
+                        "a6HD+": {
+                            "static_select-action": {
+                                "type": "static_select",
+                                "selected_option": {
+                                    "text": {
+                                        "type": "plain_text",
+                                        "text": "Immediately",
+                                        "emoji": True,
+                                    },
+                                    "value": selected_option,
+                                },
+                            }
+                        }
+                    }
+                },
+                "hash": "1702502121.CZNlXHKw",
+                "title": {"type": "plain_text", "text": "Resolve Issue", "emoji": True},
+                "clear_on_close": False,
+                "notify_on_close": False,
+                "close": {"type": "plain_text", "text": "Cancel", "emoji": True},
+                "submit": {"type": "plain_text", "text": "Resolve", "emoji": True},
+                "previous_view_id": None,
+                "root_view_id": "V069MCJ1Y4X",
+                "app_id": "A058NGW5NDP",
+                "external_id": "",
+                "app_installed_team_id": "TA17GH2QL",
+                "bot_id": "B058CDV2LKW",
+            }
+            payload["response_urls"] = []
+            payload["view"] = view
+
+        elif type == "block_actions":
+            payload["container"] = {
+                "type": "message",
+                "message_ts": "1702424381.221719",
+                "channel_id": "C065W1189",
+                "is_ephemeral": False,
+            }
+            payload["channel"] = {
                 "id": "C065W1189",
                 "name": "general",
-            },
-            "message": original_message,
-            "state": {
+            }
+            payload["message"] = original_message
+            payload["state"] = {
                 "values": {
                     "bXwil": {
                         "assign": {
                             "type": "static_select",
-                            "selected_option": "None",
+                            "selected_option": selected_option,
                         }
                     }
                 }
-            },
-            "response_url": self.response_url,
-            "actions": action_data or [],
-        }
+            }
+            payload["response_url"] = self.response_url
+            payload["actions"] = action_data or []
+
         if data:
             payload.update(data)
 
