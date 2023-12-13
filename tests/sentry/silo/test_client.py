@@ -190,7 +190,6 @@ class SiloClientTest(TestCase):
                             cache_key, num_of_request_attempts, timeout=CACHE_TIMEOUT
                         ),
                     ]
-                    # breakpoint()
                     assert parent_mock.mock_calls == expected_calls
 
     @responses.activate
