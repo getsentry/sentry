@@ -16,16 +16,17 @@ import useOrganization from 'sentry/utils/useOrganization';
 type Props = {
   event: Event;
   group: Group;
-  projectSlug: Project['slug'];
+  project: Project;
 };
 
 // This section provides users with resources and maybe solutions on how to resolve an issue
-export function ResourcesAndMaybeSolutions({event, projectSlug, group}: Props) {
+export function ResourcesAndMaybeSolutions({event, project, group}: Props) {
   const organization = useOrganization();
-  const config = getConfigForIssueType(group);
+  const config = getConfigForIssueType(group, project);
   const displayAiSuggestedSolution =
     // Skip showing AI suggested solution if the issue has a custom resource
-    organization.aiSuggestedSolution && !shouldShowCustomErrorResourceConfig(group);
+    organization.aiSuggestedSolution &&
+    !shouldShowCustomErrorResourceConfig(group, project);
 
   if (!config.resources && !displayAiSuggestedSolution) {
     return null;
@@ -46,7 +47,7 @@ export function ResourcesAndMaybeSolutions({event, projectSlug, group}: Props) {
           />
         )}
         {displayAiSuggestedSolution && (
-          <AiSuggestedSolution event={event} projectSlug={projectSlug} />
+          <AiSuggestedSolution event={event} projectSlug={project.slug} />
         )}
       </Content>
     </Wrapper>

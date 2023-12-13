@@ -11,21 +11,20 @@ from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.fields.sentry_slug import SentrySlugField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
+from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.monitors.constants import MAX_SLUG_LENGTH, MAX_THRESHOLD, MAX_TIMEOUT
-from sentry.monitors.models import (
-    CheckInStatus,
-    Monitor,
-    MonitorObjectStatus,
-    MonitorType,
-    ScheduleType,
-)
+from sentry.monitors.models import CheckInStatus, Monitor, MonitorType, ScheduleType
 
 MONITOR_TYPES = {"cron_job": MonitorType.CRON_JOB}
 
 MONITOR_STATUSES = {
-    "active": MonitorObjectStatus.ACTIVE,
-    "muted": MonitorObjectStatus.MUTED,
+    "active": ObjectStatus.ACTIVE,
+    "disabled": ObjectStatus.DISABLED,
+    # TODO(epurkhiser): Remove once we no longer accept muted as a status. We
+    # use ACTIVE here since we do not want to actually change the status during
+    # muting. The validator will set is_muted to true when this status is set.
+    "muted": ObjectStatus.ACTIVE,
 }
 
 SCHEDULE_TYPES = {
@@ -247,7 +246,7 @@ class MonitorValidator(CamelSnakeSerializer):
     status = serializers.ChoiceField(
         choices=list(zip(MONITOR_STATUSES.keys(), MONITOR_STATUSES.keys())),
         default="active",
-        help_text="Status of the monitor. Muted monitors do not generate events or notifications.",
+        help_text="Status of the monitor. Disabled monitors will not accept events and will not count towards the monitor quota.\n\n`muted` is deprecated. Prefer the `is_muted` field.",
     )
     is_muted = serializers.BooleanField(
         required=False,
@@ -257,8 +256,25 @@ class MonitorValidator(CamelSnakeSerializer):
     config = ConfigValidator()
     alert_rule = MonitorAlertRuleValidator(required=False)
 
-    def validate_status(self, value):
-        return MONITOR_STATUSES.get(value, value)
+    def validate(self, attrs):
+        status = attrs.get("status")
+
+        # TODO(epurkhiser): This translation of muted / active status ->
+        # isMuted will be removed in the future.
+        #
+        # When the status is set to muted we will set is_muted true, the status
+        # will not change. When the status is set to 'active' we will set
+        # is_muted to false and the status will be set to active
+        if status == "active":
+            attrs["is_muted"] = False
+
+        if status == "muted":
+            del attrs["status"]
+            attrs["is_muted"] = True
+        elif status:
+            attrs["status"] = MONITOR_STATUSES.get(status)
+
+        return attrs
 
     def validate_type(self, value):
         return MONITOR_TYPES.get(value, value)

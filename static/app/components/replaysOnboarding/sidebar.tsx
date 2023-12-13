@@ -14,10 +14,15 @@ import {
   generateDocKeys,
   isPlatformSupported,
 } from 'sentry/components/replaysOnboarding/utils';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {DocumentationWrapper} from 'sentry/components/sidebar/onboardingStep';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import {CommonSidebarProps, SidebarPanelKey} from 'sentry/components/sidebar/types';
-import {replayPlatforms} from 'sentry/data/platformCategories';
+import {Tooltip} from 'sentry/components/tooltip';
+import {
+  replayJsLoaderInstructionsPlatformList,
+  replayPlatforms,
+} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
@@ -27,6 +32,7 @@ import EventWaiter from 'sentry/utils/eventWaiter';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
+import useUrlParams from 'sentry/utils/useUrlParams';
 
 function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
@@ -34,6 +40,8 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
 
   const isActive = currentPanel === SidebarPanelKey.REPLAYS_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
+
+  const newOnboarding = organization.features.includes('session-replay-new-zero-state');
 
   const {
     projects,
@@ -90,10 +98,20 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
     ];
   }, [supportedProjects, unsupportedProjects]);
 
+  const {getParamValue: setupMode, setParamValue: setSetupMode} = useUrlParams(
+    'mode',
+    'npm' // this default  needs to be changed later. for backend platforms, should default to jsLoader
+  );
+
   const selectedProject = currentProject ?? projects[0] ?? allProjects[0];
   if (!isActive || !hasProjectAccess || !selectedProject) {
     return null;
   }
+
+  const showLoaderInstructions =
+    currentProject &&
+    currentProject.platform &&
+    replayJsLoaderInstructionsPlatformList.includes(currentProject.platform);
 
   return (
     <TaskSidebarPanel
@@ -104,35 +122,59 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
       <TaskList>
         <Heading>{t('Getting Started with Session Replay')}</Heading>
-        <div
-          onClick={e => {
-            // we need to stop bubbling the CompactSelect click event
-            // failing to do so will cause the sidebar panel to close
-            // the event.target will be unmounted by the time the panel listener
-            // receives the event and assume the click was outside the panel
-            e.stopPropagation();
-          }}
-        >
-          <CompactSelect
-            triggerLabel={
-              currentProject ? (
-                <StyledIdBadge
-                  project={currentProject}
-                  avatarSize={16}
-                  hideOverflow
-                  disableLink
-                />
-              ) : (
-                t('Select a project')
-              )
-            }
-            value={currentProject?.id}
-            onChange={opt => setCurrentProject(allProjects.find(p => p.id === opt.value))}
-            triggerProps={{'aria-label': currentProject?.slug}}
-            options={projectSelectOptions}
-            position="bottom-end"
-          />
-        </div>
+        <HeaderActions>
+          <div
+            onClick={e => {
+              // we need to stop bubbling the CompactSelect click event
+              // failing to do so will cause the sidebar panel to close
+              // the event.target will be unmounted by the time the panel listener
+              // receives the event and assume the click was outside the panel
+              e.stopPropagation();
+            }}
+          >
+            <CompactSelect
+              triggerLabel={
+                currentProject ? (
+                  <StyledIdBadge
+                    project={currentProject}
+                    avatarSize={16}
+                    hideOverflow
+                    disableLink
+                  />
+                ) : (
+                  t('Select a project')
+                )
+              }
+              value={currentProject?.id}
+              onChange={opt =>
+                setCurrentProject(allProjects.find(p => p.id === opt.value))
+              }
+              triggerProps={{'aria-label': currentProject?.slug}}
+              options={projectSelectOptions}
+              position="bottom-end"
+            />
+          </div>
+          {newOnboarding && showLoaderInstructions && (
+            <SegmentedControl
+              size="md"
+              aria-label={t('Change setup method')}
+              value={setupMode()}
+              onChange={setSetupMode}
+            >
+              <SegmentedControl.Item key="npm">
+                <StyledTooltip title={t('I have a JS Framework')} showOnlyOnOverflow>
+                  {t('I have a JS Framework')}
+                </StyledTooltip>
+              </SegmentedControl.Item>
+
+              <SegmentedControl.Item key="jsLoader">
+                <StyledTooltip title={t('I have an HTML Template')} showOnlyOnOverflow>
+                  {t('I have an HTML Template')}
+                </StyledTooltip>
+              </SegmentedControl.Item>
+            </SegmentedControl>
+          )}
+        </HeaderActions>
         <OnboardingContent currentProject={selectedProject} />
       </TaskList>
     </TaskSidebarPanel>
@@ -144,6 +186,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   const organization = useOrganization();
   const previousProject = usePrevious(currentProject);
   const [received, setReceived] = useState<boolean>(false);
+  const {getParamValue: setupMode} = useUrlParams('mode');
 
   useEffect(() => {
     if (previousProject.id !== currentProject.id) {
@@ -164,8 +207,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     docKeys,
     isPlatformSupported: isPlatformSupported(currentPlatform),
   });
-
-  const newOnboarding = organization.features.includes('session-replay-new-zero-state');
 
   if (isLoading) {
     return <LoadingIndicator />;
@@ -219,7 +260,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     );
   }
 
-  const migrated = ['javascript-react'];
+  const newOnboarding = organization.features.includes('session-replay-new-zero-state');
 
   return (
     <Fragment>
@@ -229,14 +270,18 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           {platform: currentPlatform?.name || currentProject.slug}
         )}
       </IntroText>
-      {newOnboarding && migrated.includes(currentPlatform.id) ? (
+      {newOnboarding ? (
         <SdkDocumentation
           platform={currentPlatform}
           organization={organization}
           projectSlug={currentProject.slug}
           projectId={currentProject.id}
           activeProductSelection={[]}
-          configType="replayOnboarding"
+          configType={
+            setupMode() === 'jsLoader'
+              ? 'replayOnboardingJsLoader'
+              : 'replayOnboardingNpm'
+          }
         />
       ) : (
         docKeys.map((docKey, index) => {
@@ -379,6 +424,17 @@ const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) 
   flex-grow: 1;
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.successText};
+`;
+
+const HeaderActions = styled('div')`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: ${space(3)};
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  ${p => p.theme.overflowEllipsis};
 `;
 
 export default ReplaysOnboardingSidebar;
