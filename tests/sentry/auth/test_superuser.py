@@ -153,7 +153,11 @@ class SuperuserTestCase(TestCase):
 
     @freeze_time(BASETIME + EXPIRE_TIME)
     def test_expired(self):
-        request = self.build_request(expires=self.current_datetime)
+        # Set idle time to the current time so we fail on checking expire time
+        # and not idle time.
+        request = self.build_request(
+            idle_expires=BASETIME + EXPIRE_TIME, expires=self.current_datetime
+        )
         superuser = Superuser(request, allowed_ips=())
         assert superuser.is_active is False
 
