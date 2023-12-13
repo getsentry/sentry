@@ -60,6 +60,7 @@ from sentry.constants import (
 )
 from sentry.culprit import generate_culprit
 from sentry.dynamic_sampling import LatestReleaseBias, LatestReleaseParams
+from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
 from sentry.eventtypes import EventType
 from sentry.eventtypes.transaction import TransactionEvent
@@ -140,7 +141,7 @@ from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import BaseEvent, Event
+    from sentry.eventstore.models import BaseEvent
 
 logger = logging.getLogger("sentry.events")
 
@@ -2764,27 +2765,41 @@ def save_generic_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Seque
 
 
 """
-    # Custom hashing rules can be added here.
-    # Each rule should be an instance of a class that inherits from CustomHasher.
-    # The class should implement the calculate_hash and is_event_match methods.
+CustomHasher:
 
+This class is used to calculate a unique hash for each event and to determine if an event matches certain criteria.
+It uses a hashing strategy to calculate the hash and a matching strategy to determine if an event is a match.
+It also checks if the event's platform is supported and if a feature flag is enabled.
+
+Attributes:
+    hashing_strategy: The strategy used to calculate the hash.
+    matching_strategy: The strategy used to determine if an event is a match.
+    feature_flag: The feature flag to check if enabled.
+    platforms: The platforms that are supported.
+
+Methods:
+    calculate_hash: Calculates the hash of an event.
+    is_event_match: Determines if an event is a match.
+    is_platform_supported: Checks if the event's platform is supported.
+    is_feature_flag_enabled: Checks if a feature flag is enabled.
 """
 
 
 @dataclass(frozen=True)
-class CustomHasher(abc.ABC):
-    feature_flag: str
-    platforms: Optional[Sequence[str]] = None
+class CustomHasher:
+    hashing_strategy: HashingStrategy
+    matching_strategy: MatchingStrategy
+    feature_flag: Optional[str]
     # TODO: add sdk option as well
+    platforms: Optional[Sequence[str]] = None
 
-    @abc.abstractmethod
-    def calculate_hash(self, event) -> Optional[CalculatedHashes]:
-        raise NotImplementedError
+    def calculate_hash(self, event) -> CalculatedHashes:
+        return self.hashing_strategy.calculate_hash(event)
 
-    @abc.abstractmethod
     def is_event_match(self, event) -> bool:
-        raise NotImplementedError
+        return self.matching_strategy.is_event_match(event)
 
+    # can repeat logic for sdks
     def is_platform_supported(self, event) -> bool:
         if self.platforms is None:
             return True
@@ -2799,28 +2814,98 @@ class CustomHasher(abc.ABC):
         return True
 
 
-class ChunkLoadHasher(CustomHasher):
-    def is_event_match(self, event) -> bool:
-        try:
-            exception_value = event.data["exception"]["values"][0]["value"]
-            exception_type = event.data["exception"]["values"][0]["type"]
-        except KeyError:
-            return False
-        return "ChunkLoadError" in exception_value or exception_type == "ChunkLoadError"
+"""
+Hashing Strategies:
 
-    def calculate_hash(self, event) -> CalculatedHashes:
+The hashing strategies are used to calculate a unique hash for each event. This hash is used to group similar events together.
+
+There are two types of hashing strategies:
+
+1. TransactionHashingStrategy: This strategy calculates the hash based on the transaction data of the event. It uses the MD5 algorithm to generate the hash.
+
+2. StaticHashingStrategy: This strategy calculates the hash based on a static string. It also uses the MD5 algorithm to generate the hash.
+
+Each hashing strategy must implement the `calculate_hash` method which takes an event as input and returns the calculated hash.
+
+"""
+
+
+class HashingStrategy(abc.ABC):
+    @abc.abstractmethod
+    def calculate_hash(self, event: Event) -> Optional[CalculatedHashes]:
+        raise NotImplementedError
+
+
+@dataclass(frozen=True)
+class TransactionHashingStrategy(HashingStrategy):
+    hash_prefix: str
+
+    def calculate_hash(self, event: Event) -> CalculatedHashes:
         return CalculatedHashes(
-            hashes=[hashlib.md5(b"chunkloaderror").hexdigest()],
+            hashes=[
+                hashlib.md5(f"{self.hash_prefix}-{event.data.transaction.encode()}").hexdigest()
+            ],
             hierarchical_hashes=[],
             tree_labels=[],
         )
 
 
+@dataclass(frozen=True)
+class StaticHashingStrategy(HashingStrategy):
+    hash_string: str
+
+    def calculate_hash(self, event: Event) -> CalculatedHashes:
+        return CalculatedHashes(
+            hashes=[hashlib.md5(self.hash_string.hexdigest())],
+            hierarchical_hashes=[],
+            tree_labels=[],
+        )
+
+
+"""
+Matching Strategies:
+
+The matching strategies are used to determine if an event matches certain criteria. This is used to filter events.
+
+There is type of matching strategies so far:
+
+1. ContentMatchingStrategy: This strategy checks if a certain string is present in the event data. It returns true if the string is found.
+
+"""
+
+
+class MatchingStrategy(abc.ABC):
+    @abc.abstractmethod
+    def is_event_match(self, event: Event) -> bool:
+        raise NotImplementedError
+
+
+@dataclass(frozen=True)
+class ContentMatchingStragegy(MatchingStrategy):
+    matching_string: str
+
+    def is_event_match(self, event: Event) -> bool:
+        try:
+            exception_value = event.data["exception"]["values"][0]["value"]
+            exception_type = event.data["exception"]["values"][0]["type"]
+        except KeyError:
+            return False
+        return self.matching_string in exception_value or self.matching_string in exception_type
+
+
 rules: List[CustomHasher] = [
-    ChunkLoadHasher(
+    CustomHasher(
         feature_flag="organizations:group-chunk-load-errors",
         platforms=["javascript"],
-    )
+        hashing_strategy=StaticHashingStrategy(hash_string="chunk-load"),
+        matching_strategy=ContentMatchingStragegy(matching_string="ChunkLoadError"),
+    ),
+    CustomHasher(
+        feature_flag="organizations:group-hydration-errors",
+        platforms=["javascript"],
+        hashing_strategy=TransactionHashingStrategy(hash_prefix="hydration"),
+        matching_strategy=ContentMatchingStragegy(matching_string="hydration failed"),
+    ),
 ]
 
 
