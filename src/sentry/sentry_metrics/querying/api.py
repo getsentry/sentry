@@ -371,15 +371,45 @@ class QueryExecutor:
             tenant_ids={"referrer": self._referrer, "organization_id": self._organization.id},
         )
 
-    # groups are passed like [[(key_1, value_1), (key_2, value_2)]] and they are applied as (key_1 = value_1 AND key_2 = value_2) OR (key_3 = value_3).
+    def _build_query(
+        self,
+        original_query: MetricsQuery,
+        groups_filters: Optional[Sequence[Sequence[Tuple[str, str]]]],
+    ) -> MetricsQuery:
+        # TODO: this has to be properly implemented like environment injection when we will switch to formulas.
+        if groups_filters is None:
+            return original_query
+
+        # We perform a transformation in the form [((key_1 = value_1 AND key_2 = value_2) OR (key_3 = value_3)].
+        snuba_filters = []
+        for filters_block in groups_filters:
+            inner_snuba_filters = []
+            for filter_key, filter_value in filters_block:
+                inner_snuba_filters.append(Condition(Column(filter_key), Op.EQ, filter_value))
+
+            # In case we have more than one filter, we have to group them into an `AND`.
+            if len(inner_snuba_filters) > 1:
+                snuba_filters.append(BooleanCondition(BooleanOp.AND, inner_snuba_filters))
+            else:
+                snuba_filters.append(inner_snuba_filters[0])
+
+        # In case we have more than one filter, we have to group them into an `OR`.
+        if len(snuba_filters) > 1:
+            snuba_filters = [BooleanCondition(BooleanOp.OR, snuba_filters)]
+
+        original_filters = original_query.query.filters or []
+
+        return original_query.set_query(
+            original_query.query.set_filters(original_filters + snuba_filters)
+        )
+
     def _execute(
         self,
         executable_query: ExecutableQuery,
         groups_filters: Optional[Sequence[Sequence[Tuple[str, str]]]] = None,
     ) -> ExecutionResult:
         try:
-            # TODO: implement groups injection in the filters.
-            query = executable_query.query
+            query = self._build_query(executable_query.query, groups_filters)
 
             series_result = None
             if executable_query.with_series:
@@ -415,7 +445,6 @@ class QueryExecutor:
                     "modified_end": series_result["modified_end"],
                 }
             elif totals_result:
-                # TODO: check if for totals the modified time is returned.
                 result = {
                     "totals": totals_result,
                     "modified_start": totals_result["modified_start"],
@@ -621,7 +650,8 @@ def _translate_query_results(execution_results: List[ExecutionResult]) -> Mappin
             total = metric_values.total
 
             # We generate the full series by passing as default value the identity of the totals, which is the default
-            # value applied in the timeseries.
+            # value applied in the timeseries. This function already aligns the series by sorting it in ascending order
+            # so there is no need to have the series elements sorted beforehand.
             translated_serieses[metric_name] = _generate_full_series(
                 int(start.timestamp()), len(intervals), interval, series, _get_identity(total)
             )
