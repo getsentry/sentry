@@ -29,16 +29,20 @@ class QuotaScope(IntEnum):
 
 @dataclass
 class AbuseQuota:
+    # Quota Id.
     id: str
+    # Org an Sentry option name.
     option: str
-    # `compat_options` were previously present in getsentry
-    # for errors and transactions. The first one is the org
-    # option for overriding the second one (global option).
-    # For now, these deprecated ones take precedence over the new
-    # to preserve existing behavior.
-    compat_options: Optional[tuple[str, str]]
+    # Quota categories.
     categories: List[DataCategory]
+    # Quota Scope.
     scope: Literal[QuotaScope.ORGANIZATION, QuotaScope.PROJECT]
+    # Old org option name still used for compatibility reasons,
+    # takes precedence over `option` and `compat_option_sentry`.
+    compat_option_org: Optional[str] = None
+    # Old Sentry option name still used for compatibility reasons,
+    # takes precedence over `option`.
+    compat_option_sentry: Optional[str] = None
 
 
 class QuotaConfig:
@@ -357,41 +361,34 @@ class Quota(Service):
             AbuseQuota(
                 id="pae",
                 option="project-abuse-quota.error-limit",
-                compat_options=(
-                    "sentry:project-error-limit",
-                    "getsentry.rate-limit.project-errors",
-                ),
+                compat_option_org="sentry:project-error-limit",
+                compat_option_sentry="getsentry.rate-limit.project-errors",
                 categories=DataCategory.error_categories(),
                 scope=QuotaScope.PROJECT,
             ),
             AbuseQuota(
                 id="pati",
                 option="project-abuse-quota.transaction-limit",
-                compat_options=(
-                    "sentry:project-transaction-limit",
-                    "getsentry.rate-limit.project-transactions",
-                ),
+                compat_option_org="sentry:project-transaction-limit",
+                compat_option_sentry="getsentry.rate-limit.project-transactions",
                 categories=[index_data_category("transaction", org)],
                 scope=QuotaScope.PROJECT,
             ),
             AbuseQuota(
                 id="paa",
                 option="project-abuse-quota.attachment-limit",
-                compat_options=None,
                 categories=[DataCategory.ATTACHMENT],
                 scope=QuotaScope.PROJECT,
             ),
             AbuseQuota(
                 id="pas",
                 option="project-abuse-quota.session-limit",
-                compat_options=None,
                 categories=[DataCategory.SESSION],
                 scope=QuotaScope.PROJECT,
             ),
             AbuseQuota(
                 id="oam",
                 option="organization-abuse-quota.metric-bucket-limit",
-                compat_options=None,
                 categories=[DataCategory.METRIC_BUCKET],
                 scope=QuotaScope.ORGANIZATION,
             ),
@@ -409,20 +406,20 @@ class Quota(Service):
             limit: int | None = 0
             abuse_window = global_abuse_window
 
-            # compat_options were previously present in getsentry
+            # compat options were previously present in getsentry
             # for errors and transactions. The first one is the org
             # option for overriding the second one (global option).
             # For now, these deprecated ones take precedence over the new
             # to preserve existing behavior.
-            if quota.compat_options is not None:
-                limit = org.get_option(quota.compat_options[0])
-                if not limit:
-                    limit = options.get(quota.compat_options[1])
+            if quota.compat_option_org:
+                limit = org.get_option(quota.compat_option_org)
+            if not limit and quota.compat_option_sentry:
+                limit = options.get(quota.compat_option_sentry)
 
             if not limit:
                 limit = org.get_option(quota.option)
-                if not limit:
-                    limit = options.get(quota.option)
+            if not limit:
+                limit = options.get(quota.option)
 
             limit = _limit_from_settings(limit)
             if limit is None:
