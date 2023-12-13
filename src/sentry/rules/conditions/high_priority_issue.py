@@ -1,10 +1,10 @@
 from datetime import datetime
 from typing import Optional, Sequence
 
-from sentry import features
 from sentry.eventstore.models import GroupEvent
 from sentry.models.activity import Activity
 from sentry.models.group import Group
+from sentry.receivers.rules import has_high_priority_issue_alerts
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
 from sentry.types.activity import ActivityType
@@ -29,8 +29,7 @@ class HighPriorityIssueCondition(EventCondition):
         return severity >= HIGH_SEVERITY_THRESHOLD
 
     def passes(self, event: GroupEvent, state: EventState) -> bool:
-        has_issue_priority_alerts = features.has("projects:high-priority-alerts", self.project)
-        if not has_issue_priority_alerts:
+        if not has_high_priority_issue_alerts(self.project):
             return False
 
         is_high_severity = self.is_high_severity(state, event.group)

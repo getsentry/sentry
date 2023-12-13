@@ -10,7 +10,12 @@ from sentry.models.organization import Organization
 from sentry.plugins.bases.issue import IssueTrackingPlugin
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.plugins.bases.notify import NotificationPlugin
-from sentry.receivers.rules import DEFAULT_RULE_DATA, DEFAULT_RULE_LABEL
+from sentry.receivers.rules import (
+    DEFAULT_RULE_DATA,
+    DEFAULT_RULE_DATA_NEW,
+    DEFAULT_RULE_LABEL,
+    DEFAULT_RULE_LABEL_NEW,
+)
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.signals import (
     advanced_search,
@@ -306,7 +311,11 @@ def record_alert_rule_created(
     wizard_v3=None,
     **kwargs,
 ):
-    if rule_type == "issue" and rule.label == DEFAULT_RULE_LABEL and rule.data == DEFAULT_RULE_DATA:
+    if (
+        rule_type == "issue"
+        and rule.label in [DEFAULT_RULE_LABEL, DEFAULT_RULE_LABEL_NEW]
+        and rule.data in [DEFAULT_RULE_DATA, DEFAULT_RULE_DATA_NEW]
+    ):
         return
 
     FeatureAdoption.objects.record(
