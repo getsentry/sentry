@@ -126,20 +126,18 @@ class ProcessControlOutboxTest(TestCase):
             shard_identifier=outbox.shard_identifier,
             object_identifier=outbox.object_identifier,
         )
-        if SiloMode.get_current_mode() == SiloMode.CONTROL:
-            assert mock_response.call_count == 1
 
-            assert mock_cache.get.call_count == 0
-            assert mock_cache.set.call_count == 0
-            assert mock_cache.delete.call_count == 1
+        assert mock_response.call_count == 1
 
-            # Assert order of cache method calls
-            expected_calls = [
-                mock.call.cache_delete(cache_key),
-            ]
-            assert parent_mock.mock_calls == expected_calls
-        else:
-            assert mock_response.call_count == 0
+        assert mock_cache.get.call_count == 0
+        assert mock_cache.set.call_count == 0
+        assert mock_cache.delete.call_count == 1
+
+        # Assert order of cache method calls
+        expected_calls = [
+            mock.call.cache_delete(cache_key),
+        ]
+        assert parent_mock.mock_calls == expected_calls
 
     @responses.activate
     @mock.patch("sentry.silo.client.cache")
@@ -157,34 +155,26 @@ class ProcessControlOutboxTest(TestCase):
             f"{_TEST_REGION.address}{request.path}",
             status=status.HTTP_504_GATEWAY_TIMEOUT,
         )
-        if SiloMode.get_current_mode() == SiloMode.CONTROL:
-            with raises(ApiError):
-                process_async_webhooks(
-                    payload=outbox.payload,
-                    region_name=_TEST_REGION.name,
-                    shard_identifier=outbox.shard_identifier,
-                    object_identifier=outbox.object_identifier,
-                )
-            assert mock_response.call_count == 1
 
-            assert mock_cache.get.call_count == 1
-            assert mock_cache.set.call_count == 1
-            assert mock_cache.delete.call_count == 0
-
-            # Assert order of cache method calls
-            expected_calls = [
-                mock.call.cache_get(cache_key),
-                mock.call.cache_set(cache_key, 1, timeout=CACHE_TIMEOUT),
-            ]
-            assert parent_mock.mock_calls == expected_calls
-        else:
+        with raises(ApiError):
             process_async_webhooks(
                 payload=outbox.payload,
                 region_name=_TEST_REGION.name,
                 shard_identifier=outbox.shard_identifier,
                 object_identifier=outbox.object_identifier,
             )
-            assert mock_response.call_count == 0
+        assert mock_response.call_count == 1
+
+        assert mock_cache.get.call_count == 1
+        assert mock_cache.set.call_count == 1
+        assert mock_cache.delete.call_count == 0
+
+        # Assert order of cache method calls
+        expected_calls = [
+            mock.call.cache_get(cache_key),
+            mock.call.cache_set(cache_key, 1, timeout=CACHE_TIMEOUT),
+        ]
+        assert parent_mock.mock_calls == expected_calls
 
     @responses.activate
     @mock.patch("sentry.silo.client.cache")
@@ -506,10 +496,7 @@ class ProcessControlOutboxTest(TestCase):
             )
             assert len(responses.calls) == 1
             assert mock_response.call_count == 1
-
-            assert capture_exception.call_count == 1
-            exception = capture_exception.call_args.args[0]
-            assert isinstance(exception, ApiError)
+            assert capture_exception.call_count == 0
 
             assert mock_cache.get.call_count == 1
             assert mock_cache.set.call_count == 1
