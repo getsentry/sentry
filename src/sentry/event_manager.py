@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import ipaddress
 import logging
 import mimetypes
@@ -15,6 +16,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Dict,
+    List,
     Mapping,
     MutableMapping,
     Optional,
@@ -2550,8 +2552,12 @@ def _calculate_event_grouping(
             # Here we try to use the grouping config that was requested in the
             # event. If that config has since been deleted (because it was an
             # experimental grouping config) we fall back to the default.
+
             try:
-                hashes = event.get_hashes(grouping_config)
+                hashes = get_custom_hashes(event)
+
+                if not hashes:
+                    hashes = event.get_hashes(grouping_config)
             except GroupingConfigNotFound:
                 event.data["grouping_config"] = get_grouping_config_dict_for_project(project)
                 hashes = event.get_hashes()
@@ -2754,3 +2760,80 @@ def save_generic_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Seque
     _nodestore_save_many(jobs=jobs, app_feature="issue_platform")
 
     return jobs
+
+
+"""
+    # Custom hashing rules can be added here.
+    # Each rule should be an instance of a class that inherits from CustomHasher.
+    # The class should implement the calculate_hash and should_check methods.
+    # The calculate_hash method should return a CalculatedHashes object or None.
+    # The should_check method should return a boolean indicating whether the rule should be applied.
+
+"""
+
+
+@dataclass(frozen=True)
+class CustomHasher:
+    feature_flag: str
+    platforms: Optional[Sequence[str]] = None
+    # TODO: add sdk option as well
+
+    def calculate_hash(self, event) -> Optional[CalculatedHashes]:
+        raise NotImplementedError
+
+    def should_check(self, event) -> bool:
+        # TODO: add better caching for this
+        if self.feature_flag and not features.has(self.feature_flag, event.project.organization):
+            return False
+
+        if self.platforms is None:
+            return True
+
+        platform = event.platform
+        return platform in self.platforms
+
+
+class ChunkLoadHasher(CustomHasher):
+    def calculate_hash(self, event) -> Optional[CalculatedHashes]:
+        try:
+            exception_value = event.data["exception"]["values"][0]["value"]
+            exception_type = event.data["exception"]["values"][0]["type"]
+        except KeyError:
+            return None
+
+        # Only check for the flag after it is established if it's a ChunkLoadError to avoid
+        # unnecessary querying
+        if "ChunkLoadError" in exception_value or exception_type == "ChunkLoadError":
+            return CalculatedHashes(
+                hashes=[hashlib.md5(b"chunkloaderror").hexdigest()],
+                hierarchical_hashes=[],
+                tree_labels=[],
+            )
+        return None
+
+
+rules: List[CustomHasher] = [
+    ChunkLoadHasher(
+        feature_flag="organizations:group-chunk-load-errors",
+        platforms=["javascript"],
+    )
+]
+
+
+def get_custom_hashes(event):
+    for rule in rules:
+        try:
+            if rule.should_check(event):
+                hashes = rule.calculate_hash(event)
+                if hashes:
+                    return hashes
+        except Exception:
+            logger.exception(
+                "Error calculating custom hash",
+                extra={
+                    "event_id": event.event_id,
+                    "rule": rule.__class__.__name__,
+                },
+            )
+
+    return None
