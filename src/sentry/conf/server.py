@@ -678,7 +678,7 @@ RPC_TIMEOUT = 5.0
 
 # The protocol, host and port for control silo
 # Usecases include sending requests to the Integration Proxy Endpoint and RPC requests.
-SENTRY_CONTROL_ADDRESS = os.environ.get("SENTRY_CONTROL_ADDRESS", None)
+SENTRY_CONTROL_ADDRESS: str | None = os.environ.get("SENTRY_CONTROL_ADDRESS", None)
 
 # Fallback region name for monolith deployments
 # This region name is also used by the ApiGateway to proxy org-less region
@@ -1768,6 +1768,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:profiling-cpu-chart": False,
     # Enables differential flamegraph in profiling
     "organizations:profiling-differential-flamegraph": False,
+    # Enables separate differential flamegraph page
+    "organizations:profiling-differential-flamegraph-page": False,
     # Enable global suspect functions in profiling
     "organizations:profiling-global-suspect-functions": False,
     # Enable profiling Memory chart
@@ -1843,6 +1845,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-sdk": False,
     # Enable core Session Replay SDK for recording onError events on sentry.io
     "organizations:session-replay-sdk-errors-only": False,
+    # Enable rendering of the `replay.hydrate-error` replay breadcrumb
+    "organizations:session-replay-show-hydration-errors": False,
     # Enable linking from 'new issue' slack notifs to the issue replay list
     "organizations:session-replay-slack-new-issue": False,
     # Enable the Replay Details > Performance tab
@@ -1863,6 +1867,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:sourcemaps-bundle-flat-file-indexing": False,
     # Upload release bundles as artifact bundles.
     "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
+    # Updated spike protection heuristic
+    "organizations:spike-protection-decay-heuristic": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.

@@ -1,4 +1,6 @@
 import {useCallback} from 'react';
+import ReactLazyLoad from 'react-lazyload';
+import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventReplaySection} from 'sentry/components/events/eventReplay/eventReplaySection';
@@ -51,25 +53,27 @@ function EventReplayContent({
   const eventTimestampMs = timeOfEvent ? Math.floor(new Date(timeOfEvent).getTime()) : 0;
 
   return (
-    <EventReplaySection>
+    <ReplaySectionMinHeight>
       <ErrorBoundary mini>
-        <LazyLoad
-          component={replayPreview}
-          replaySlug={replayId}
-          orgSlug={organization.slug}
-          eventTimestampMs={eventTimestampMs}
-          buttonProps={{
-            analyticsEventKey: 'issue_details.open_replay_details_clicked',
-            analyticsEventName: 'Issue Details: Open Replay Details Clicked',
-            analyticsParams: {
-              ...getAnalyticsDataForEvent(event),
-              ...getAnalyticsDataForGroup(group),
-              organization,
-            },
-          }}
-        />
+        <ReactLazyLoad debounce={50} height={448} offset={0} once>
+          <LazyLoad
+            component={replayPreview}
+            replaySlug={replayId}
+            orgSlug={organization.slug}
+            eventTimestampMs={eventTimestampMs}
+            buttonProps={{
+              analyticsEventKey: 'issue_details.open_replay_details_clicked',
+              analyticsEventName: 'Issue Details: Open Replay Details Clicked',
+              analyticsParams: {
+                ...getAnalyticsDataForEvent(event),
+                ...getAnalyticsDataForGroup(group),
+                organization,
+              },
+            }}
+          />
+        </ReactLazyLoad>
       </ErrorBoundary>
-    </EventReplaySection>
+    </ReplaySectionMinHeight>
   );
 }
 
@@ -94,3 +98,8 @@ export default function EventReplay({event, group, projectSlug}: Props) {
 
   return null;
 }
+
+// The min-height here is due to max-height that is set in replayPreview.tsx
+const ReplaySectionMinHeight = styled(EventReplaySection)`
+  min-height: 508px;
+`;

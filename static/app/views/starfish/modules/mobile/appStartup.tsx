@@ -46,7 +46,7 @@ export default function InitializationModule() {
                     <ReleaseComparisonSelector />
                   </Container>
                   <ErrorBoundary mini>
-                    <AppStartup />
+                    <AppStartup chartHeight={240} />
                   </ErrorBoundary>
                 </PageFiltersContainer>
               </Layout.Main>

@@ -116,7 +116,7 @@ function Sidebar({organization}: Props) {
 
   const collapsed = !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
-  const hasSuperuserSession = isActiveSuperuser(organization);
+  const hasSuperuserSession = isActiveSuperuser();
 
   useOpenOnboardingSidebar();
 
@@ -499,13 +499,9 @@ function Sidebar({organization}: Props) {
   );
 
   return (
-    <SidebarWrapper
-      aria-label={t('Primary Navigation')}
-      collapsed={collapsed}
-      isSuperuser={hasSuperuserSession}
-    >
+    <SidebarWrapper aria-label={t('Primary Navigation')} collapsed={collapsed}>
       <SidebarSectionGroupPrimary>
-        <SidebarSection>
+        <DropdownSidebarSection isSuperuser={hasSuperuserSession}>
           <SidebarDropdown
             orientation={orientation}
             collapsed={collapsed}
@@ -513,7 +509,7 @@ function Sidebar({organization}: Props) {
             user={config.user}
             config={config}
           />
-        </SidebarSection>
+        </DropdownSidebarSection>
 
         <PrimaryItems>
           {hasOrganization && (
@@ -640,10 +636,9 @@ const responsiveFlex = css`
   }
 `;
 
-export const SidebarWrapper = styled('nav')<{collapsed: boolean; isSuperuser?: boolean}>`
-  background: ${p =>
-    p.isSuperuser ? p.theme.superuserSidebar : p.theme.sidebarGradient};
-  color: ${p => (p.isSuperuser ? 'white' : p.theme.sidebar.color)};
+export const SidebarWrapper = styled('nav')<{collapsed: boolean}>`
+  background: ${p => p.theme.sidebarGradient};
+  color: ${p => p.theme.sidebar.color};
   line-height: 1;
   padding: 12px 0 2px; /* Allows for 32px avatars  */
   width: ${p => p.theme.sidebar[p.collapsed ? 'collapsedWidth' : 'expandedWidth']};
@@ -743,6 +738,14 @@ const SidebarSection = styled(SidebarSectionGroup)<{
   &:empty {
     display: none;
   }
+`;
+
+const DropdownSidebarSection = styled(SidebarSection)<{
+  isSuperuser?: boolean;
+}>`
+  margin: 0;
+  padding: ${space(1)} ${space(2)};
+  background: ${p => (p.isSuperuser ? p.theme.superuserSidebar : 'none')};
 `;
 
 const SidebarCollapseItem = styled(SidebarItem)`
