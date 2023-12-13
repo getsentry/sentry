@@ -7,7 +7,7 @@ import {
 } from 'sentry/utils/replays/getReplayEvent';
 import hydrateBreadcrumbs from 'sentry/utils/replays/hydrateBreadcrumbs';
 
-const mockRRWebFrames = []; // This is only needed for replay.hydrate breadcrumbs.
+const mockRRWebFrames = []; // This is only needed for replay.hydrate-error breadcrumbs.
 
 const frames = hydrateBreadcrumbs(
   ReplayRecordFixture({
