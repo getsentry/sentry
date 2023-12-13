@@ -289,11 +289,12 @@ class Factories:
             with outbox_context(flush=False):
                 org: Organization = Organization.objects.create(name=name, **kwargs)
 
+            region_name = get_local_region().name
             with assume_test_silo_mode(SiloMode.CONTROL):
                 # Organization mapping creation relies on having a matching org slug reservation
                 OrganizationSlugReservation(
                     organization_id=org.id,
-                    region_name=get_local_region().name,
+                    region_name=region_name,
                     user_id=owner.id if owner else -1,
                     slug=org.slug,
                 ).save(unsafe_write=True)

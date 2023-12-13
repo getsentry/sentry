@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 from contextlib import contextmanager
 from typing import Collection, Sequence
 
@@ -32,6 +33,13 @@ class TestEnvRegionDirectory(RegionDirectory):
         finally:
             self._tmp_regions = old_regions
             self._tmp_local_region = old_local_region
+
+    @contextmanager
+    def swap_to_arbitrary_region(self):
+        # TODO: Something better than this
+        region = random.choice(tuple(self.regions))
+        with self.swap_state(local_region=region):
+            yield
 
     @property
     def regions(self) -> frozenset[Region]:

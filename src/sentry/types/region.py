@@ -171,51 +171,49 @@ def _parse_raw_config(region_config: Any) -> Iterable[Region]:
             yield Region(**config_value)
 
 
-def _determine_region_pointers(regions: Collection[Region]) -> tuple[Region, Region | None]:
-    """Determine the monolith and local region from config."""
+def _generate_default_monolith_region() -> Region:
+    if not settings.SENTRY_MONOLITH_REGION:
+        raise RegionConfigurationError(
+            "`SENTRY_MONOLITH_REGION` must provide a default region name"
+        )
+    return Region(
+        name=settings.SENTRY_MONOLITH_REGION,
+        snowflake_id=0,
+        address=options.get("system.url-prefix"),
+        category=RegionCategory.MULTI_TENANT,
+    )
 
-    silo_mode = SiloMode.get_current_mode()
-    by_name = {r.name: r for r in regions}
+
+def _find_local_region(regions: Collection[Region]) -> Region | None:
+    """Determine the monolith and local region from config."""
 
     def resolve(setting_name: str) -> Region:
         setting_value = getattr(settings, setting_name)
         try:
-            return by_name[setting_value]
-        except KeyError as e:
-            region_names = ", ".join(map(repr, by_name.keys()))
+            return next(r for r in regions if r.name == setting_value)
+        except StopIteration as e:
+            region_names = ", ".join(repr(r.name) for r in regions)
             raise RegionConfigurationError(
                 f"The {setting_name} setting (value={setting_value!r}) must point to "
                 f"a region name. Region names: {region_names}"
             ) from e
 
-    if silo_mode == SiloMode.MONOLITH and not regions:
-        if not settings.SENTRY_MONOLITH_REGION:
-            raise RegionConfigurationError("`SENTRY_MONOLITH_REGION` must be set")
-        monolith_region = Region(
-            name=settings.SENTRY_MONOLITH_REGION,
-            snowflake_id=0,
-            address=options.get("system.url-prefix"),
-            category=RegionCategory.MULTI_TENANT,
-        )
-    else:
-        monolith_region = resolve("SENTRY_MONOLITH_REGION")
-
+    silo_mode = SiloMode.get_current_mode()
     if silo_mode == SiloMode.MONOLITH:
-        local_region = monolith_region
-    elif silo_mode == SiloMode.CONTROL:
-        local_region = None
-    elif silo_mode == SiloMode.REGION:
-        local_region = resolve("SENTRY_REGION")
-    else:
-        raise Exception("Invalid silo mode")
-    return monolith_region, local_region
+        return resolve("SENTRY_MONOLITH_REGION")
+    if silo_mode == SiloMode.CONTROL:
+        return None
+    if silo_mode == SiloMode.REGION:
+        return resolve("SENTRY_REGION")
+    raise Exception("Invalid silo mode")
 
 
 def load_from_config(region_config: Any) -> RegionDirectory:
     try:
         regions = set(_parse_raw_config(region_config))
-        monolith_region, local_region = _determine_region_pointers(regions)
-        regions.add(monolith_region)  # in case a default was generated
+        if not regions:
+            regions.add(_generate_default_monolith_region())
+        local_region = _find_local_region(regions)
         return RegionDirectory(regions, local_region)
     except RegionConfigurationError as e:
         sentry_sdk.capture_exception(e)
