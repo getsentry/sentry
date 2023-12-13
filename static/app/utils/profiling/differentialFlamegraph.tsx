@@ -114,8 +114,11 @@ export class DifferentialFlamegraph extends Flamegraph {
       colorMap.set(
         frame.node,
         INCREASED_FRAME_COLOR.concat(
-          ((afterCount - beforeCount) / maxIncrease) *
-            DifferentialFlamegraph.ALPHA_SCALING
+          Math.max(
+            ((afterCount - beforeCount) / maxIncrease) *
+              DifferentialFlamegraph.ALPHA_SCALING,
+            0.1
+          )
         ) as ColorChannels
       );
     }
@@ -126,8 +129,11 @@ export class DifferentialFlamegraph extends Flamegraph {
       colorMap.set(
         frame.node,
         DECREASED_FRAME_COLOR.concat(
-          ((afterCount - beforeCount) / maxDecrease) *
-            DifferentialFlamegraph.ALPHA_SCALING
+          Math.max(
+            ((afterCount - beforeCount) / maxDecrease) *
+              DifferentialFlamegraph.ALPHA_SCALING,
+            0.1
+          )
         ) as ColorChannels
       );
     }
