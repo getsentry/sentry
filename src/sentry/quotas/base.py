@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from enum import IntEnum, unique
-from typing import TYPE_CHECKING, Any, Optional, Tuple
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
 from django.conf import settings
 from django.core.cache import cache
@@ -24,6 +25,19 @@ class QuotaScope(IntEnum):
 
     def api_name(self):
         return self.name.lower()
+
+
+@dataclass
+class AbuseQuota:
+    id: str
+    option: str
+    # `compat_options` were previously present in getsentry
+    # for errors and transactions. The first one is the org
+    # option for overriding the global option, the second one.
+    # For now, these deprecated ones take precedence over the new
+    # to preserve existing behavior.
+    compat_options: tuple[str, str] | None
+    categories: List[DataCategory]
 
 
 class QuotaConfig:
@@ -338,54 +352,57 @@ class Quota(Service):
         # Per-project abuse quotas for errors, transactions, attachments, sessions.
         global_abuse_window = options.get("project-abuse-quota.window")
 
-        for option, compat_options, id, categories in (
-            (
-                "project-abuse-quota.error-limit",
-                (
+        abuse_quotas = [
+            AbuseQuota(
+                id="pae",
+                option="project-abuse-quota.error-limit",
+                compat_options=(
                     "sentry:project-error-limit",
                     "getsentry.rate-limit.project-errors",
                 ),
-                "pae",
-                DataCategory.error_categories(),
+                categories=DataCategory.error_categories(),
             ),
-            (
-                "project-abuse-quota.transaction-limit",
-                (
+            AbuseQuota(
+                id="pati",
+                option="project-abuse-quota.transaction-limit",
+                compat_options=(
                     "sentry:project-transaction-limit",
                     "getsentry.rate-limit.project-transactions",
                 ),
-                "pati",  # project abuse transaction indexed limit
-                (index_data_category("transaction", org),),
+                categories=[index_data_category("transaction", org)],
             ),
-            (
-                "project-abuse-quota.attachment-limit",
-                (),
-                "paa",
-                (DataCategory.ATTACHMENT,),
+            AbuseQuota(
+                id="paa",
+                option="project-abuse-quota.attachment-limit",
+                compat_options=None,
+                categories=[DataCategory.ATTACHMENT],
             ),
-            (
-                "project-abuse-quota.session-limit",
-                (),
-                "pas",
-                (DataCategory.SESSION,),
+            AbuseQuota(
+                id="pas",
+                option="project-abuse-quota.session-limit",
+                compat_options=None,
+                categories=[DataCategory.SESSION],
             ),
-        ):
+        ]
+
+        for aq in abuse_quotas:
             limit: int | None = 0
             abuse_window = global_abuse_window
+
             # compat_options were previously present in getsentry
             # for errors and transactions. The first one is the org
             # option for overriding the global option, the second one.
             # For now, these deprecated ones take precedence over the new
             # to preserve existing behavior.
-            if compat_options:
-                limit = org.get_option(compat_options[0])
+            if aq.compat_options is not None:
+                limit = org.get_option(aq.compat_options[0])
                 if not limit:
-                    limit = options.get(compat_options[1])
+                    limit = options.get(aq.compat_options[1])
 
             if not limit:
-                limit = org.get_option(option)
+                limit = org.get_option(aq.option)
                 if not limit:
-                    limit = options.get(option)
+                    limit = options.get(aq.option)
 
             limit = _limit_from_settings(limit)
             if limit is None:
@@ -396,17 +413,17 @@ class Quota(Service):
             if limit < 0:
                 yield QuotaConfig(
                     scope=QuotaScope.PROJECT,
-                    categories=categories,
+                    categories=aq.categories,
                     limit=0,
                     reason_code="disabled",
                 )
 
             else:
                 yield QuotaConfig(
-                    id=id,
+                    id=aq.id,
                     limit=limit * abuse_window,
                     scope=QuotaScope.PROJECT,
-                    categories=categories,
+                    categories=aq.categories,
                     window=abuse_window,
                     # XXX: This reason code is hardcoded RateLimitReasonLabel.PROJECT_ABUSE_LIMIT
                     #      from getsentry. Don't change it here.
