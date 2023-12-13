@@ -20,7 +20,6 @@ export function CanvasReplayerPlugin(events: eventWithTime[]) {
   const canvasEventMap = new Map<eventWithTime | string, canvasMutationParam>();
 
   /**
-   *
    * Taken from rrweb: https://github.com/rrweb-io/rrweb/blob/8e318c44f26ac25c80d8bd0811f19f5e3fe9903b/packages/rrweb/src/replay/index.ts#L1039
    */
   async function deserializeAndPreloadCanvasEvents(
@@ -115,8 +114,8 @@ export function CanvasReplayerPlugin(events: eventWithTime[]) {
       _isSync: boolean,
       {replayer}: {replayer: Replayer}
     ) => {
-      if (e.type === 3) {
-        if (e.data.source === 9) {
+      if (e.type === EventType.IncrementalSnapshot &&
+        e.data.source === IncrementalSource.CanvasMutation) {
           const source = replayer.getMirror().getNode(e.data.id);
           const target =
             canvases.get(e.data.id) ||
