@@ -8,7 +8,6 @@ import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Checkbox from 'sentry/components/checkbox';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import IssueTrackingSignals from 'sentry/components/feedback/list/issueTrackingSignals';
-import useFeedbackHasReplayId from 'sentry/components/feedback/useFeedbackHasReplayId';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {Flex} from 'sentry/components/profiling/flex';
@@ -24,6 +23,7 @@ import {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useReplayCountForFeedbacks} from 'sentry/utils/replayCount/replayCountForFeedbacks';
 import {darkTheme, lightTheme} from 'sentry/utils/theme';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -50,7 +50,8 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
     const config = useLegacyStore(ConfigStore);
     const organization = useOrganization();
     const isOpen = useIsSelectedFeedback({feedbackItem});
-    const hasReplayId = useFeedbackHasReplayId({feedbackId: feedbackItem.id});
+    const {feedbackHasReplay} = useReplayCountForFeedbacks();
+    const hasReplayId = feedbackHasReplay(feedbackItem.id);
 
     const isCrashReport = feedbackItem.metadata.source === 'crash_report_embed_form';
     const theme = isOpen || config.theme === 'dark' ? darkTheme : lightTheme;

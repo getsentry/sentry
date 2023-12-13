@@ -75,13 +75,13 @@ class JiraInstalledTest(APITestCase):
         )
 
     def test_missing_token(self):
-        self.get_error_response(**self.body(), status_code=status.HTTP_400_BAD_REQUEST)
+        self.get_error_response(**self.body(), status_code=status.HTTP_409_CONFLICT)
 
     def test_invalid_token(self):
         self.get_error_response(
             **self.body(),
             extra_headers=dict(HTTP_AUTHORIZATION="invalid"),
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_409_CONFLICT,
         )
 
     @patch(
@@ -95,7 +95,7 @@ class JiraInstalledTest(APITestCase):
         self.get_error_response(
             **self.body(),
             extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()),
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_409_CONFLICT,
         )
 
     @patch("sentry_sdk.set_tag")

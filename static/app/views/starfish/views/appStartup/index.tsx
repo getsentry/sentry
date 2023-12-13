@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
@@ -11,7 +12,7 @@ import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {escapeFilterValue, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -20,17 +21,30 @@ import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {ScreensTable} from 'sentry/views/starfish/views/appStartup/screensTable';
-import {getFreeTextFromQuery} from 'sentry/views/starfish/views/screens';
+import {
+  getFreeTextFromQuery,
+  TOP_SCREENS,
+  YAxis,
+  YAXIS_COLUMNS,
+} from 'sentry/views/starfish/views/screens';
+import {ScreensBarChart} from 'sentry/views/starfish/views/screens/screenBarChart';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
+import {transformReleaseEvents} from 'sentry/views/starfish/views/screens/utils';
+
+const MAX_CHART_RELEASE_CHARS = 12;
+const Y_AXES = [YAxis.COLD_START, YAxis.WARM_START];
+const Y_AXIS_COLS = [YAXIS_COLUMNS[YAxis.COLD_START], YAXIS_COLUMNS[YAxis.WARM_START]];
 
 type Props = {
   additionalFilters?: string[];
   chartHeight?: number;
 };
 
-function AppStartup({additionalFilters}: Props) {
+function AppStartup({additionalFilters, chartHeight}: Props) {
+  const theme = useTheme();
   const pageFilter = usePageFilters();
   const {selection} = pageFilter;
   const location = useLocation();
@@ -56,7 +70,11 @@ function AppStartup({additionalFilters}: Props) {
     query.addStringFilter(prepareQueryForLandingPage(searchQuery, false));
   }
 
-  const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
+  const queryString = `${appendReleaseFilters(
+    query,
+    primaryRelease,
+    secondaryRelease
+  )} (count_starts(measurements.app_start_cold):>0 OR count_starts(measurements.app_start_warm):>0)`;
 
   const orderby = decodeScalar(locationQuery.sort, `-count`);
   const newQuery: NewQuery = {
@@ -90,6 +108,45 @@ function AppStartup({additionalFilters}: Props) {
     referrer: 'api.starfish.mobile-startup-screen-table',
   });
 
+  const topTransactions =
+    topTransactionsData?.data?.slice(0, 5).map(datum => datum.transaction as string) ??
+    [];
+
+  const topEventsQuery = new MutableSearch([
+    'event.type:transaction',
+    'transaction.op:ui.load',
+    ...(additionalFilters ?? []),
+  ]);
+
+  const topEventsQueryString = `${appendReleaseFilters(
+    topEventsQuery,
+    primaryRelease,
+    secondaryRelease
+  )} ${
+    topTransactions.length > 0
+      ? escapeFilterValue(
+          `transaction:[${topTransactions.map(name => `"${name}"`).join()}]`
+        )
+      : ''
+  }`.trim();
+
+  const {data: releaseEvents, isLoading: isReleaseEventsLoading} = useTableQuery({
+    eventView: EventView.fromNewQueryWithLocation(
+      {
+        name: '',
+        fields: ['transaction', 'release', ...Y_AXIS_COLS],
+        orderby: Y_AXIS_COLS[0],
+        yAxis: Y_AXIS_COLS,
+        query: topEventsQueryString,
+        dataset: DiscoverDatasets.METRICS,
+        version: 2,
+      },
+      location
+    ),
+    enabled: !topTransactionsLoading,
+    referrer: 'api.starfish.mobile-startup-bar-chart',
+  });
+
   if (isReleasesLoading) {
     return (
       <LoadingContainer>
@@ -115,8 +172,72 @@ function AppStartup({additionalFilters}: Props) {
     'transaction.op:ui.load',
   ]);
 
+  const transformedReleaseEvents = transformReleaseEvents({
+    yAxes: Y_AXES,
+    primaryRelease,
+    secondaryRelease,
+    colorPalette: theme.charts.getColorPalette(TOP_SCREENS - 2),
+    releaseEvents,
+    topTransactions,
+  });
+
+  const truncatedPrimaryChart = formatVersionAndCenterTruncate(
+    primaryRelease ?? '',
+    MAX_CHART_RELEASE_CHARS
+  );
+  const truncatedSecondaryChart = formatVersionAndCenterTruncate(
+    secondaryRelease ?? '',
+    MAX_CHART_RELEASE_CHARS
+  );
+
   return (
     <div data-test-id="starfish-mobile-app-startup-view">
+      <ChartContainer>
+        <ScreensBarChart
+          chartOptions={[
+            {
+              title: t('Cold Start by Top Screen'),
+              yAxis: YAXIS_COLUMNS[YAxis.COLD_START],
+              xAxisLabel: topTransactions,
+              series: Object.values(
+                transformedReleaseEvents[YAXIS_COLUMNS[YAxis.COLD_START]]
+              ),
+              subtitle: primaryRelease
+                ? t(
+                    '%s v. %s',
+                    truncatedPrimaryChart,
+                    secondaryRelease ? truncatedSecondaryChart : ''
+                  )
+                : '',
+            },
+          ]}
+          chartHeight={chartHeight ?? 180}
+          isLoading={isReleaseEventsLoading}
+          chartKey="coldStart"
+        />
+        <ScreensBarChart
+          chartOptions={[
+            {
+              title: t('Warm Start by Top Screen'),
+              yAxis: YAXIS_COLUMNS[YAxis.WARM_START],
+              xAxisLabel: topTransactions,
+              series: Object.values(
+                transformedReleaseEvents[YAXIS_COLUMNS[YAxis.WARM_START]]
+              ),
+              subtitle: primaryRelease
+                ? t(
+                    '%s v. %s',
+                    truncatedPrimaryChart,
+                    secondaryRelease ? truncatedSecondaryChart : ''
+                  )
+                : '',
+            },
+          ]}
+          chartHeight={chartHeight ?? 180}
+          isLoading={isReleaseEventsLoading}
+          chartKey="warmStart"
+        />
+      </ChartContainer>
       <StyledSearchBar
         eventView={tableEventView}
         onSearch={search => {
@@ -152,4 +273,10 @@ export default AppStartup;
 
 const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(1)};
+`;
+
+const ChartContainer = styled('div')`
+  display: grid;
+  grid-template-columns: 50% 50%;
+  gap: ${space(1)};
 `;

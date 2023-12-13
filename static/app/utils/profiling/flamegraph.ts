@@ -13,7 +13,7 @@ function sortByTotalWeight(a: CallTreeNode, b: CallTreeNode) {
 }
 
 export function sortFlamegraphAlphabetically(a: CallTreeNode, b: CallTreeNode) {
-  return a.frame.name.localeCompare(b.frame.name);
+  return (a.frame.name + a.frame.file).localeCompare(b.frame.name + b.frame.file);
 }
 
 function makeTreeSort(sortFn: (a: CallTreeNode, b: CallTreeNode) => number) {

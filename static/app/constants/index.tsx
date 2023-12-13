@@ -244,7 +244,7 @@ export const DEFAULT_RELATIVE_PERIODS_PAGE_FILTER = {
 };
 
 // https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
-export const DATA_CATEGORY_INFO: Record<DataCategoryExact, DataCategoryInfo> = {
+export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.ERROR]: {
     name: DataCategoryExact.ERROR,
     apiName: 'error',
@@ -301,7 +301,15 @@ export const DATA_CATEGORY_INFO: Record<DataCategoryExact, DataCategoryInfo> = {
     titleName: t('Indexed Transactions'),
     uid: 9,
   },
-};
+  [DataCategoryExact.MONITOR]: {
+    name: DataCategoryExact.MONITOR,
+    apiName: 'monitor',
+    plural: 'monitor check-ins',
+    displayName: 'monitor check-in',
+    titleName: t('Monitor Check-Ins'),
+    uid: 10,
+  },
+} as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 
 // Special Search characters
 export const NEGATION_OPERATOR = '!';

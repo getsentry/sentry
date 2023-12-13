@@ -16,7 +16,7 @@ from django.db import router, transaction
 from sentry_sdk.tracing import Span, Transaction
 
 from sentry import ratelimits
-from sentry.constants import DataCategory
+from sentry.constants import DataCategory, ObjectStatus
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
 from sentry.monitors.logic.mark_failed import mark_failed
@@ -29,7 +29,6 @@ from sentry.monitors.models import (
     MonitorEnvironmentLimitsExceeded,
     MonitorEnvironmentValidationFailed,
     MonitorLimitsExceeded,
-    MonitorObjectStatus,
     MonitorType,
 )
 from sentry.monitors.tasks import try_monitor_tasks_trigger
@@ -91,7 +90,7 @@ def _ensure_monitor_with_config(
             defaults={
                 "project_id": project.id,
                 "name": monitor_slug,
-                "status": MonitorObjectStatus.ACTIVE,
+                "status": ObjectStatus.ACTIVE,
                 "type": MonitorType.CRON_JOB,
                 "config": validated_config,
             },
