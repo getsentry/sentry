@@ -1,4 +1,4 @@
-import {useLayoutEffect, useMemo, useState} from 'react';
+import {useCallback, useLayoutEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {mat3, vec2} from 'gl-matrix';
@@ -6,6 +6,7 @@ import {mat3, vec2} from 'gl-matrix';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
 import {DifferentialFlamegraphLayout} from 'sentry/components/profiling/flamegraph/differentialFlamegraphLayout';
+import {DifferentialFlamegraphDrawer} from 'sentry/components/profiling/flamegraph/flamegraphDrawer/differentialFlamegraphDrawer';
 import {DifferentialFlamegraphToolbar} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/differentialFlamegraphToolbar';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
 import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/flamegraph/flamegraphZoomViewMinimap';
@@ -18,12 +19,14 @@ import {DifferentialFlamegraph as DifferentialFlamegraphModel} from 'sentry/util
 import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
+import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Frame} from 'sentry/utils/profiling/frame';
 import {
   computeConfigViewWithStrategy,
+  formatColorForFrame,
   initializeFlamegraphRenderer,
   useResizeCanvasObserver,
 } from 'sentry/utils/profiling/gl/utils';
@@ -36,6 +39,8 @@ import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {LOADING_PROFILE_GROUP} from 'sentry/views/profiling/profileGroupProvider';
+
+const noopFormatDuration = () => '';
 
 function applicationFrameOnly(frame: Frame): boolean {
   return frame.is_application;
@@ -50,6 +55,7 @@ function DifferentialFlamegraphView() {
   const selection = usePageFilters();
   const flamegraphTheme = useFlamegraphTheme();
   const {colorCoding} = useFlamegraphPreferences();
+  const {selectedRoot} = useFlamegraphProfiles();
 
   const [frameFilterSetting, setFrameFilterSetting] = useState<
     'application' | 'system' | 'all'
@@ -262,6 +268,28 @@ function DifferentialFlamegraphView() {
     return renderer;
   }, [colorCoding, differentialFlamegraph, flamegraphCanvasRef, flamegraphTheme]);
 
+  const getFrameColor = useCallback(
+    (frame: FlamegraphFrame) => {
+      if (!flamegraphRenderer) {
+        return '';
+      }
+      return formatColorForFrame(frame, flamegraphRenderer);
+    },
+    [flamegraphRenderer]
+  );
+
+  const rootNodes = useMemo(() => {
+    return selectedRoot
+      ? [selectedRoot]
+      : differentialFlamegraph.differentialFlamegraph.root.children;
+  }, [selectedRoot, differentialFlamegraph.differentialFlamegraph.root]);
+
+  const referenceNode = useMemo(
+    () =>
+      selectedRoot ? selectedRoot : differentialFlamegraph.differentialFlamegraph.root,
+    [selectedRoot, differentialFlamegraph.differentialFlamegraph.root]
+  );
+
   return (
     <Feature features={['organizations:profiling-differential-flamegraph-page']}>
       <DifferentialFlamegraphContainer>
@@ -306,15 +334,28 @@ function DifferentialFlamegraphView() {
               setFlamegraphOverlayCanvasRef={setFlamegraphOverlayCanvasRef}
             />
           }
-          flamegraphDrawer={<Placeholder />}
+          flamegraphDrawer={
+            <DifferentialFlamegraphDrawer
+              profileGroup={
+                differentialFlamegraph.afterProfileGroup ?? LOADING_PROFILE_GROUP
+              }
+              getFrameColor={getFrameColor}
+              referenceNode={referenceNode}
+              rootNodes={rootNodes}
+              flamegraph={differentialFlamegraph.differentialFlamegraph}
+              formatDuration={
+                differentialFlamegraph.differentialFlamegraph
+                  ? differentialFlamegraph.differentialFlamegraph.formatter
+                  : noopFormatDuration
+              }
+              canvasPoolManager={canvasPoolManager}
+              canvasScheduler={scheduler}
+            />
+          }
         />
       </DifferentialFlamegraphContainer>
     </Feature>
   );
-}
-
-function Placeholder() {
-  return <div />;
 }
 
 const DifferentialFlamegraphContainer = styled('div')`
