@@ -1,5 +1,5 @@
 ---
-created: '2023-12-13T13:52:49.375294Z'
+created: '2023-12-13T15:30:06.680639Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -7,17 +7,109 @@ app:
   hash: null
   component:
     app (logentry takes precedence)
-      threads (ignored because contains 20 threads)
+      threads
+        stacktrace
+          frame
+            function (function name is not used if module or filename are available)
+              "unicorn"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "UIApplicationMain"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "-[UIApplication _run]"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "_dispatch_main_queue_drain"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "_dispatch_client_callout"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "_dispatch_block_async_invoke2"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "-[NSBlockOperation main]"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "__NSBLOCKOPERATION_IS_CALLING_OUT_TO_A_BLOCK__"
+          frame
+            function (function name is not used if module or filename are available)
+              "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
+          frame
+            function (function name is not used if module or filename are available)
+              "FudgeLogTaggedError"
+          frame
+            function (function name is not used if module or filename are available)
+              "thunk for closure"
+          frame
+            function (function name is not used if module or filename are available)
+              "SentrySetupInteractor.setupSentry"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "_dispatch_lane_barrier_sync_invoke_and_complete"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "_dispatch_client_callout"
+          frame
+            function (function name is not used if module or filename are available)
+              "thunk for closure"
 --------------------------------------------------------------------------
 default:
-  hash: "db363e30c27cb09f3e75276d7b53a6fc"
+  hash: "1356c67d7ad1638d816bfb822dd2c25d"
   component:
     default*
       message*
-        "API v2 SDK Global Handler: Path root error: FoobarPathRootError[{\n    ErrorContent = \"invalid/..\";\n    RequestId = abcdefg;\n    StatusCode = 422;\n    StructuredPathRootError = \"<FudgeCOMMONPathRootError: 0x283b40280>\";\n    UserMessage = nil;\n}];"
+        "Foo"
 --------------------------------------------------------------------------
 system:
   hash: null
   component:
     system (logentry takes precedence)
-      threads (ignored because contains 20 threads)
+      threads
+        stacktrace
+          frame
+            function (function name is not used if module or filename are available)
+              "unicorn"
+          frame
+            function (function name is not used if module or filename are available)
+              "UIApplicationMain"
+          frame
+            function (function name is not used if module or filename are available)
+              "-[UIApplication _run]"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "_dispatch_main_queue_drain"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "_dispatch_client_callout"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "_dispatch_block_async_invoke2"
+          frame
+            function (function name is not used if module or filename are available)
+              "-[NSBlockOperation main]"
+          frame
+            function (function name is not used if module or filename are available)
+              "__NSBLOCKOPERATION_IS_CALLING_OUT_TO_A_BLOCK__"
+          frame
+            function (function name is not used if module or filename are available)
+              "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
+          frame
+            function (function name is not used if module or filename are available)
+              "FudgeLogTaggedError"
+          frame
+            function (function name is not used if module or filename are available)
+              "thunk for closure"
+          frame
+            function (function name is not used if module or filename are available)
+              "SentrySetupInteractor.setupSentry"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "_dispatch_lane_barrier_sync_invoke_and_complete"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "_dispatch_client_callout"
+          frame
+            function (function name is not used if module or filename are available)
+              "thunk for closure"
