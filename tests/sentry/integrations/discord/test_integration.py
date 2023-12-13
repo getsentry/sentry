@@ -30,7 +30,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
         options.set("discord.bot-token", self.bot_token)
         options.set("discord.client-secret", self.client_secret)
 
-    @mock.patch("sentry.integrations.discord.client.DiscordNonProxyClient.set_application_command")
+    @mock.patch("sentry.integrations.discord.client.DiscordClient.set_application_command")
     def assert_setup_flow(
         self,
         mock_set_application_command,
@@ -283,7 +283,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
         provider.post_install(integration=self.integration, organization=self.organization)
         assert mock_set_application_command.call_count == 3  # one for each command
 
-    @mock.patch("sentry.integrations.discord.client.DiscordNonProxyClient.set_application_command")
+    @mock.patch("sentry.integrations.discord.client.DiscordClient.set_application_command")
     def test_post_install_missing_credentials(self, mock_set_application_command):
         provider = self.provider()
         provider.application_id = None

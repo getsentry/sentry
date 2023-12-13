@@ -103,7 +103,7 @@ function EventEntries({
           isShare={isShare}
         />
       )}
-      <EventEvidence event={event} projectSlug={project.slug} />
+      <EventEvidence event={event} project={project} />
       <Entries
         definedEvent={event}
         projectSlug={projectSlug}
