@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from django.db import router, transaction
+from django.db.models import F
+from django.db.models.functions import TruncMinute
 from django.utils.crypto import get_random_string
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -23,12 +25,23 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.scheduledeletion import RegionScheduledDeletion
-from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorObjectStatus, MonitorStatus
+from sentry.monitors.endpoints.base import MonitorEndpoint
+from sentry.monitors.models import (
+    CheckInStatus,
+    Monitor,
+    MonitorCheckIn,
+    MonitorEnvironment,
+    MonitorObjectStatus,
+    MonitorStatus,
+)
 from sentry.monitors.serializers import MonitorSerializer
-from sentry.monitors.utils import create_alert_rule, update_alert_rule
+from sentry.monitors.utils import (
+    create_alert_rule,
+    get_checkin_margin,
+    get_max_runtime,
+    update_alert_rule,
+)
 from sentry.monitors.validators import MonitorValidator
-
-from .base import MonitorEndpoint
 
 
 @region_silo_endpoint
@@ -88,6 +101,11 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         """
         Update a monitor.
         """
+        # set existing values as validator will overwrite
+        existing_config = monitor.config
+        existing_margin = existing_config.get("checkin_margin")
+        existing_max_runtime = existing_config.get("max_runtime")
+
         validator = MonitorValidator(
             data=request.data,
             partial=True,
@@ -120,15 +138,41 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
             params["is_muted"] = result["is_muted"]
         if "config" in result:
             params["config"] = result["config"]
+
+            # update timeouts + expected next check-in, as appropriate
+            checkin_margin = result["config"].get("checkin_margin")
+            if checkin_margin != existing_margin:
+                MonitorEnvironment.objects.filter(monitor_id=monitor.id).update(
+                    next_checkin_latest=F("next_checkin") + get_checkin_margin(checkin_margin)
+                )
+
+            max_runtime = result["config"].get("max_runtime")
+            if max_runtime != existing_max_runtime:
+                MonitorCheckIn.objects.filter(
+                    monitor_id=monitor.id, status=CheckInStatus.IN_PROGRESS
+                ).update(timeout_at=TruncMinute(F("date_added")) + get_max_runtime(max_runtime))
+
         if "project" in result and result["project"].id != monitor.project_id:
             raise ParameterValidationError("existing monitors may not be moved between projects")
+
+        if params:
+            monitor.update(**params)
+            self.create_audit_entry(
+                request=request,
+                organization=organization,
+                target_object=monitor.id,
+                event=audit_log.get_event_id("MONITOR_EDIT"),
+                data=monitor.get_audit_log_data(),
+            )
+
+        # Update alert rule after in case slug or name changed
         if "alert_rule" in result:
             # Check to see if rule exists
             alert_rule = monitor.get_alert_rule()
             # If rule exists, update as necessary
             if alert_rule:
                 alert_rule_id = update_alert_rule(
-                    request, project, alert_rule, result["alert_rule"]
+                    request, project, monitor, alert_rule, result["alert_rule"]
                 )
             # If rule does not exist, create
             else:
@@ -140,16 +184,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                     params["config"] = monitor.config
 
                 params["config"]["alert_rule_id"] = alert_rule_id
-
-        if params:
-            monitor.update(**params)
-            self.create_audit_entry(
-                request=request,
-                organization=organization,
-                target_object=monitor.id,
-                event=audit_log.get_event_id("MONITOR_EDIT"),
-                data=monitor.get_audit_log_data(),
-            )
+                monitor.update(**params)
 
         return self.respond(serialize(monitor, request.user))
 

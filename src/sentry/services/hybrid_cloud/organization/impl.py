@@ -286,7 +286,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
     def update_flags(self, *, organization_id: int, flags: RpcOrganizationFlagsUpdate) -> None:
         updates: F | CombinedExpression = models.F("flags")
-        for (name, value) in flags.items():
+        for name, value in flags.items():
             if value is True:
                 updates = updates.bitor(getattr(Organization.flags, name))
             elif value is False:
@@ -306,6 +306,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             flags.member_limit__restricted,
             flags.idp__provisioned,
             flags.idp__role_restricted,
+            flags.partnership__restricted,
         )
 
     def add_organization_member(

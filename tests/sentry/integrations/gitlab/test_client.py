@@ -361,7 +361,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         )
 
     def make_blame_request(self, file: SourceLineInfo) -> str:
-        return f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/{quote(file.path, safe='')}/blame?ref={file.ref}&range[start]={file.lineno}&range[end]={file.lineno}"
+        return f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/{quote(file.path.strip('/'), safe='')}/blame?ref={file.ref}&range[start]={file.lineno}&range[end]={file.lineno}"
 
     def make_blame_response(self, **kwargs) -> list[GitLabFileBlameResponseItem]:
         return [

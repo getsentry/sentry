@@ -4,36 +4,43 @@ import ListItem from 'sentry/components/list/listItem';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   Docs,
+  DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getReplayConfigureDescription,
+  getReplaySDKSetupSnippet,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct} from 'sentry/locale';
+
+type Params = DocsParams;
+
+const getInstallConfig = () => [
+  {
+    type: StepType.INSTALL,
+    configurations: [
+      {
+        description: tct(
+          'Configure your app automatically with the [wizardLink:Sentry wizard].',
+          {
+            wizardLink: (
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/remix/#install" />
+            ),
+          }
+        ),
+        language: 'bash',
+        code: `npx @sentry/wizard@latest -i remix`,
+      },
+    ],
+  },
+];
 
 const onboarding: OnboardingConfig = {
   introduction: () =>
     tct("Sentry's integration with [remixLink:Remix] supports Remix 1.0.0 and above.", {
       remixLink: <ExternalLink href="https://remix.run/" />,
     }),
-  install: () => [
-    {
-      type: StepType.INSTALL,
-      configurations: [
-        {
-          description: t(
-            'Install and configure the Sentry Remix SDK automatically with our wizard:'
-          ),
-          language: 'bash',
-          code: [
-            {
-              label: 'bash',
-              value: 'bash',
-              language: 'bash',
-              code: `npx @sentry/wizard@latest -i remix`,
-            },
-          ],
-        },
-      ],
-    },
-  ],
+  install: () => getInstallConfig(),
   configure: () => [
     {
       type: StepType.CONFIGURE,
@@ -119,8 +126,42 @@ const onboarding: OnboardingConfig = {
   ],
 };
 
+const replayOnboarding: OnboardingConfig = {
+  install: () => getInstallConfig(),
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: getReplayConfigureDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/remix/session-replay/',
+      }),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getReplaySDKSetupSnippet({
+                importStatement: `import * as Sentry from "@sentry/remix";`,
+                dsn: params.dsn,
+              }),
+            },
+          ],
+        },
+      ],
+      additionalInfo: tct(
+        'Note: The Replay integration only needs to be added to your [entryClient:entry.client.tsx] file. It will not run if it is added into [sentryServer:sentry.server.config.js].',
+        {entryClient: <code />, sentryServer: <code />}
+      ),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  replayOnboardingNpm: replayOnboarding,
 };
 
 export default docs;

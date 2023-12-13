@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional, Sequence, Tuple, Union
 from uuid import uuid4
 
@@ -306,11 +306,10 @@ class Monitor(Model):
         most recent checkin time. This is determined by the user-configured
         margin.
         """
+        from sentry.monitors.utils import get_checkin_margin
+
         next_checkin = self.get_next_expected_checkin(last_checkin)
-        # TODO(epurkhiser): We should probably just set this value as a
-        # `default` in the validator for the config instead of having the magic
-        # default number here
-        return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 1))
+        return next_checkin + get_checkin_margin(self.config.get("checkin_margin"))
 
     def update_config(self, config_payload, validated_config):
         monitor_config = self.config

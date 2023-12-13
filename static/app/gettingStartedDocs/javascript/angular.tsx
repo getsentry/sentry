@@ -5,7 +5,10 @@ import type {
   OnboardingConfig,
   PlatformOption,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {
+  getReplayConfigureDescription,
+  getUploadSourceMapsStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
@@ -34,40 +37,6 @@ const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
 
 type PlatformOptions = typeof platformOptions;
 type Params = DocsParams<PlatformOptions>;
-
-const getSentryInitLayout = (params: Params): string => {
-  return `Sentry.init({
-    dsn: "${params.dsn}",
-    integrations: [${
-      params.isPerformanceSelected
-        ? `
-          new Sentry.BrowserTracing({
-            // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-            tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],
-          }),`
-        : ''
-    }${
-      params.isReplaySelected
-        ? `
-          new Sentry.Replay(),`
-        : ''
-    }
-  ],${
-    params.isPerformanceSelected
-      ? `
-        // Performance Monitoring
-        tracesSampleRate: 1.0, //  Capture 100% of the transactions`
-      : ''
-  }${
-    params.isReplaySelected
-      ? `
-        // Session Replay
-        replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
-        replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
-      : ''
-  }
-  });`;
-};
 
 const getNextStep = (
   params: Params
@@ -99,6 +68,26 @@ function getNpmPackage(angularVersion) {
     : '@sentry/angular';
 }
 
+const getInstallConfig = (params: Params) => [
+  {
+    language: 'bash',
+    code: [
+      {
+        label: 'npm',
+        value: 'npm',
+        language: 'bash',
+        code: `npm install --save ${getNpmPackage(params.platformOptions.siblingOption)}`,
+      },
+      {
+        label: 'yarn',
+        value: 'yarn',
+        language: 'bash',
+        code: `yarn add ${getNpmPackage(params.platformOptions.siblingOption)}`,
+      },
+    ],
+  },
+];
+
 const onboarding: OnboardingConfig<PlatformOptions> = {
   install: (params: Params) => [
     {
@@ -110,27 +99,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
           codeNpm: <code />,
         }
       ),
-      configurations: [
-        {
-          language: 'bash',
-          code: [
-            {
-              label: 'npm',
-              value: 'npm',
-              language: 'bash',
-              code: `npm install --save ${getNpmPackage(
-                params.platformOptions.siblingOption
-              )}`,
-            },
-            {
-              label: 'yarn',
-              value: 'yarn',
-              language: 'bash',
-              code: `yarn add ${getNpmPackage(params.platformOptions.siblingOption)}`,
-            },
-          ],
-        },
-      ],
+      configurations: getInstallConfig(params),
     },
   ],
   configure: params => [
@@ -220,9 +189,49 @@ export const nextSteps = [
   },
 ];
 
-function getSetupConfiguration(params: Params) {
+function getSdkSetupSnippet(params: Params) {
   const siblingOption = params.platformOptions.siblingOption;
-  const sentryInitLayout = getSentryInitLayout(params);
+  return `
+  import { enableProdMode } from "@angular/core";
+  import { platformBrowserDynamic } from "@angular/platform-browser-dynamic";
+  import * as Sentry from "${getNpmPackage(siblingOption)}";
+
+  import { AppModule } from "./app/app.module";
+
+  Sentry.init({
+    dsn: "${params.dsn}",
+    integrations: [${
+      params.isPerformanceSelected
+        ? `
+          new Sentry.BrowserTracing({
+            // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
+            tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],
+          }),`
+        : ''
+    }${
+      params.isReplaySelected
+        ? `
+          new Sentry.Replay(),`
+        : ''
+    }
+  ],${
+    params.isPerformanceSelected
+      ? `
+        // Performance Monitoring
+        tracesSampleRate: 1.0, //  Capture 100% of the transactions`
+      : ''
+  }${
+    params.isReplaySelected
+      ? `
+        // Session Replay
+        replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
+        replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
+      : ''
+  }
+  });`;
+}
+
+function getSetupConfiguration(params: Params) {
   const configuration = {
     description: tct(
       `You should init the Sentry browser SDK in your [code:main.ts] file as soon as possible during application load up, before initializing Angular:`,
@@ -232,13 +241,7 @@ function getSetupConfiguration(params: Params) {
     ),
     language: 'javascript',
     code: `
-      import { enableProdMode } from "@angular/core";
-      import { platformBrowserDynamic } from "@angular/platform-browser-dynamic";
-      import * as Sentry from "${getNpmPackage(siblingOption)}";
-
-      import { AppModule } from "./app/app.module";
-
-      ${sentryInitLayout}
+    ${getSdkSetupSnippet(params)}
 
       enableProdMode();
       platformBrowserDynamic()
@@ -249,9 +252,48 @@ function getSetupConfiguration(params: Params) {
   return configuration;
 }
 
+const replayOnboarding: OnboardingConfig<PlatformOptions> = {
+  install: (params: Params) => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'In order to use Session Replay, you will need version 7.27.0 of [codeAngular:@sentry/angular] or [codeIvy:@sentry/angular-ivy] at minimum. You do not need to install any additional packages.',
+        {
+          codeAngular: <code />,
+          codeIvy: <code />,
+        }
+      ),
+      configurations: getInstallConfig(params),
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      configurations: [
+        {
+          description: getReplayConfigureDescription({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/angular/session-replay/',
+          }),
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getSdkSetupSnippet({...params, isReplaySelected: true}),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs<PlatformOptions> = {
   onboarding,
   platformOptions,
+  replayOnboardingNpm: replayOnboarding,
 };
 
 export default docs;

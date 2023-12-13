@@ -4,8 +4,12 @@ import {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {t} from 'sentry/locale';
+import {
+  getReplayConfigureDescription,
+  getUploadSourceMapsStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import replayOnboardingJsLoaderJavascript from 'sentry/gettingStartedDocs/javascript/jsLoader/javascript';
+import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
@@ -48,32 +52,34 @@ Sentry.init({
 const getVerifyJSSnippet = () => `
 myUndefinedFunction();`;
 
+const getInstallConfig = () => [
+  {
+    language: 'bash',
+    code: [
+      {
+        label: 'npm',
+        value: 'npm',
+        language: 'bash',
+        code: 'npm install --save @sentry/browser',
+      },
+      {
+        label: 'yarn',
+        value: 'yarn',
+        language: 'bash',
+        code: 'yarn add @sentry/browser',
+      },
+    ],
+  },
+];
+
 const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      configurations: [
-        {
-          description: t(
-            'Sentry captures data by using an SDK within your application’s runtime.'
-          ),
-          language: 'bash',
-          code: [
-            {
-              label: 'npm',
-              value: 'npm',
-              language: 'bash',
-              code: 'npm install --save @sentry/browser',
-            },
-            {
-              label: 'yarn',
-              value: 'yarn',
-              language: 'bash',
-              code: 'yarn add @sentry/browser',
-            },
-          ],
-        },
-      ],
+      description: t(
+        'Sentry captures data by using an SDK within your application’s runtime.'
+      ),
+      configurations: getInstallConfig(),
     },
   ],
   configure: (params: Params) => [
@@ -139,8 +145,47 @@ const onboarding: OnboardingConfig = {
   ],
 };
 
+const replayOnboarding: OnboardingConfig = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'For the Session Replay to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/react]) installed, minimum version 7.27.0.',
+        {
+          code: <code />,
+        }
+      ),
+      configurations: getInstallConfig(),
+    },
+  ],
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: getReplayConfigureDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/session-replay/',
+      }),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getSdkSetupSnippet({...params, isReplaySelected: true}),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  replayOnboardingNpm: replayOnboarding,
+  replayOnboardingJsLoader: replayOnboardingJsLoaderJavascript,
 };
 
 export default docs;
