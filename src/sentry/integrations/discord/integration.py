@@ -308,8 +308,8 @@ class DiscordInstallPipeline(PipelineView):
 
         pipeline.bind_state("guild_id", request.GET["guild_id"])
         pipeline.bind_state("code", request.GET["code"])
-        state = "state" in request.GET
-        if state:
+        has_state = "state" in request.GET
+        if has_state:
             try:
                 raw_state = json.loads(request.GET["state"])
                 pipeline.bind_state("use_setup", raw_state.get("useSetup"))
@@ -317,7 +317,7 @@ class DiscordInstallPipeline(PipelineView):
                 logger.info(
                     "identity.discord.request-token",
                     extra={
-                        "has_state": state,
+                        "has_state": has_state,
                         "guild_id": request.GET["guild_id"],
                         "code": request.GET["code"],
                     },
