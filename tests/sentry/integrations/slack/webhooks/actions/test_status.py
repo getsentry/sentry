@@ -430,7 +430,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         self.create_member(user=user2, organization=self.organization, teams=[team2])
         self.create_project(name="hellboy", organization=self.organization, teams=[team2])
         # Assign to team
-        status_action = self.get_assign_status_action("yeam", team2.slug, team2.id)
+        status_action = self.get_assign_status_action("team", team2.slug, team2.id)
         original_message = self.get_original_message_block_kit(self.group.id)
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook(action_data=[status_action], original_message=original_message)
@@ -607,7 +607,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         responses.add(
             method=responses.POST,
             url="https://slack.com/api/dialog.open",
-            body='{"ok": True}',
+            body='{"ok": true}',
             status=200,
             content_type="application/json",
         )
@@ -631,7 +631,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         responses.add(
             method=responses.POST,
             url=self.response_url,
-            body='{"ok": True}',
+            body='{"ok": true}',
             status=200,
             content_type="application/json",
         )
@@ -661,7 +661,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         responses.add(
             method=responses.POST,
             url="https://slack.com/api/dialog.open",
-            body='{"ok": True}',
+            body='{"ok": true}',
             status=200,
             content_type="application/json",
         )
@@ -685,7 +685,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         responses.add(
             method=responses.POST,
             url=self.response_url,
-            body='{"ok": True}',
+            body='{"ok": true}',
             status=200,
             content_type="application/json",
         )
@@ -708,15 +708,15 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
     @responses.activate
     def test_resolve_issue_block_kit(self):
         status_action = self.get_resolve_status_action()
+        original_message = self.get_original_message_block_kit(self.group.id)
         # Expect request to open dialog on slack
         responses.add(
             method=responses.POST,
             url="https://slack.com/api/views.open",
-            body='{"ok": True}',
+            body='{"ok": true}',
             status=200,
             content_type="application/json",
         )
-        original_message = self.get_original_message_block_kit(self.group.id)
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook_block_kit(
                 action_data=[status_action], original_message=original_message
@@ -726,33 +726,32 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         # Opening dialog should *not* cause the current message to be updated
         assert resp.content == b""
 
-        data = parse_qs(responses.calls[0].request.body)
-        assert data["trigger_id"][0] == self.trigger_id
-        assert "dialog" in data
+        data = json.loads(responses.calls[0].request.body)
+        assert data["trigger_id"] == self.trigger_id
+        assert "view" in data
 
-        dialog = json.loads(data["dialog"][0])
-        callback_data = json.loads(dialog["callback_id"])
-        assert int(callback_data["issue"]) == self.group.id
-        assert callback_data["orig_response_url"] == self.response_url
+        view = json.loads(data["view"])
+        private_metadata = json.loads(view["private_metadata"])
+        assert int(private_metadata["issue"]) == self.group.id
+        assert private_metadata["orig_response_url"] == self.response_url
 
         # Completing the dialog will update the message
         responses.add(
             method=responses.POST,
             url=self.response_url,
-            body='{"ok": True}',
+            body='{"ok": true}',
             status=200,
             content_type="application/json",
         )
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook_block_kit(
                 type="view_submission",
-                callback_id=dialog["callback_id"],
-                selected_option="resolved"
-                # data={"submission": {"resolve_type": "resolved"}},
+                private_metadata=json.dumps(private_metadata),
+                selected_option="resolved",
             )
-        self.group = Group.objects.get(id=self.group.id)
 
         assert resp.status_code == 200, resp.content
+        self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.RESOLVED
 
         update_data = json.loads(responses.calls[1].request.body)
@@ -774,7 +773,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         responses.add(
             method=responses.POST,
             url="https://slack.com/api/dialog.open",
-            body='{"ok": True}',
+            body='{"ok": true}',
             status=200,
             content_type="application/json",
         )
@@ -834,7 +833,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         responses.add(
             method=responses.POST,
             url="https://slack.com/api/dialog.open",
-            body='{"ok": True}',
+            body='{"ok": true}',
             status=200,
             content_type="application/json",
         )
@@ -858,7 +857,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         responses.add(
             method=responses.POST,
             url=self.response_url,
-            body='{"ok": True}',
+            body='{"ok": true}',
             status=200,
             content_type="application/json",
         )
@@ -933,7 +932,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         responses.add(
             method=responses.POST,
             url="https://slack.com/api/dialog.open",
-            body='{"ok": True}',
+            body='{"ok": true}',
             status=200,
             content_type="application/json",
         )
@@ -957,7 +956,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         responses.add(
             method=responses.POST,
             url=self.response_url,
-            body='{"ok": True}',
+            body='{"ok": true}',
             status=200,
             content_type="application/json",
         )

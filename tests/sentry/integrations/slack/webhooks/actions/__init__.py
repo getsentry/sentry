@@ -78,6 +78,7 @@ class BaseEventTest(APITestCase):
         original_message=None,
         selected_option=None,
         view=None,
+        private_metadata=None,
     ):
 
         if slack_user is None:
@@ -157,8 +158,7 @@ class BaseEventTest(APITestCase):
                         },
                     }
                 ],
-                "private_metadata": "{'issue':618,'orig_response_url':'https://hooks.slack.com/actions/TA17GH2QL/6354598702337/EpJhd0O8CQPTTlgkEpTeponR','is_message':False}",
-                "callback_id": "{'issue':618,'orig_response_url':'https://hooks.slack.com/actions/TA17GH2QL/6354598702337/EpJhd0O8CQPTTlgkEpTeponR','is_message':False}",
+                "private_metadata": private_metadata,
                 "state": {
                     "values": {
                         "a6HD+": {

@@ -285,50 +285,50 @@ class SlackActionEndpoint(Endpoint):
             "trigger_id": slack_request.data["trigger_id"],
         }
         use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
-        # XXX(CEO): the second you make a selection (without hitting Submit) it sends a slightly different request
-        formatted_resolve_options = []
-        for text, value in RESOLVE_OPTIONS.items():
-            formatted_resolve_options.append(
-                {
-                    "text": {
-                        "type": "plain_text",
-                        "text": text,
-                        "emoji": True,
-                    },
-                    "value": value,
-                }
-            )
-
-        modal_payload = {
-            "type": "modal",
-            "title": {"type": "plain_text", "text": "Resolve Issue"},
-            "blocks": [
-                {
-                    "type": "section",
-                    "text": {"type": "mrkdwn", "text": "Resolve in"},
-                    "accessory": {
-                        "type": "static_select",
-                        "initial_option": {
-                            "text": {
-                                "type": "plain_text",
-                                "text": "Immediately",
-                                "emoji": True,
-                            },
-                            "value": "resolved",
-                        },
-                        "options": formatted_resolve_options,
-                        "action_id": "static_select-action",
-                    },
-                }
-            ],
-            "close": {"type": "plain_text", "text": "Cancel"},
-            "submit": {"type": "plain_text", "text": "Resolve"},
-            "private_metadata": callback_id,
-            "callback_id": callback_id,
-        }
 
         slack_client = SlackClient(integration_id=slack_request.integration.id)
         if use_block_kit:
+            # XXX(CEO): the second you make a selection (without hitting Submit) it sends a slightly different request
+            formatted_resolve_options = []
+            for text, value in RESOLVE_OPTIONS.items():
+                formatted_resolve_options.append(
+                    {
+                        "text": {
+                            "type": "plain_text",
+                            "text": text,
+                            "emoji": True,
+                        },
+                        "value": value,
+                    }
+                )
+
+            modal_payload = {
+                "type": "modal",
+                "title": {"type": "plain_text", "text": "Resolve Issue"},
+                "blocks": [
+                    {
+                        "type": "section",
+                        "text": {"type": "mrkdwn", "text": "Resolve in"},
+                        "accessory": {
+                            "type": "static_select",
+                            "initial_option": {
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "Immediately",
+                                    "emoji": True,
+                                },
+                                "value": "resolved",
+                            },
+                            "options": formatted_resolve_options,
+                            "action_id": "static_select-action",
+                        },
+                    }
+                ],
+                "close": {"type": "plain_text", "text": "Cancel"},
+                "submit": {"type": "plain_text", "text": "Resolve"},
+                "private_metadata": callback_id,
+                "callback_id": callback_id,
+            }
             try:
                 payload = {
                     "view": json.dumps(modal_payload),
@@ -481,7 +481,6 @@ class SlackActionEndpoint(Endpoint):
         # Reload group as it may have been mutated by the action
         group = Group.objects.get(id=group.id)
 
-        use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
         if use_block_kit:
             response = SlackIssuesMessageBuilder(
                 group, identity=identity, actions=action_list, tags=original_tags_from_request

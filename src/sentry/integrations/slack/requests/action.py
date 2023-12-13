@@ -49,7 +49,7 @@ class SlackActionRequest(SlackRequest):
             return json.loads(self.data["message"]["blocks"][0]["block_id"])
 
         if self.data["type"] == "view_submission":
-            return json.loads(self.data["view"]["callback_id"])
+            return json.loads(self.data["view"]["private_metadata"])
 
         for data in self.data["message"]["blocks"]:
             if data["type"] == "section" and len(data["block_id"]) > 5:
