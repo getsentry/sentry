@@ -169,29 +169,6 @@ class UpdateMonitorTest(MonitorTestCase):
         monitor = Monitor.objects.get(id=monitor.id)
         assert not monitor.is_muted
 
-    def test_deprecated_status_mute(self):
-        monitor = self._create_monitor()
-
-        # Mute via status
-        resp = self.get_success_response(
-            self.organization.slug, monitor.slug, method="PUT", **{"status": "muted"}
-        )
-        assert resp.data["slug"] == monitor.slug
-
-        monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.is_muted
-        assert monitor.status == ObjectStatus.ACTIVE
-
-        # Unmute via status
-        resp = self.get_success_response(
-            self.organization.slug, monitor.slug, method="PUT", **{"status": "active"}
-        )
-        assert resp.data["slug"] == monitor.slug
-
-        monitor = Monitor.objects.get(id=monitor.id)
-        assert not monitor.is_muted
-        assert monitor.status == ObjectStatus.ACTIVE
-
     def test_timezone(self):
         monitor = self._create_monitor()
 
