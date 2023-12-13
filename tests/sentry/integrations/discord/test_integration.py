@@ -37,9 +37,10 @@ class DiscordIntegrationTest(IntegrationTestCase):
         guild_id="1234567890",
         server_name="Cool server",
         auth_code="auth_code",
-        useSetup="1",
+        useSetup=None,
         command_response_empty=True,
     ):
+        state = json.dumps(useSetup if useSetup else {"useSetup": 1})
         responses.reset()
 
         resp = self.client.get(self.init_path)
@@ -95,8 +96,6 @@ class DiscordIntegrationTest(IntegrationTestCase):
             responses.GET, url=f"{DiscordClient.base_url}/users/@me", json={"id": "user_1234"}
         )
 
-        state = json.dumps({"useSetup": useSetup})
-
         resp = self.client.get(
             "{}?{}".format(
                 self.setup_path,
@@ -116,6 +115,13 @@ class DiscordIntegrationTest(IntegrationTestCase):
             assert mock_set_application_command.call_count == 3
         else:
             assert mock_set_application_command.call_count == 0
+
+    @responses.activate
+    def test_bot_flow_raises_error(self):
+        with self.tasks():
+            bad_state = "{"
+            with pytest.raises(TypeError):
+                self.assert_setup_flow(useSetup=bad_state)
 
     @responses.activate
     def test_bot_flow(self):
@@ -142,7 +148,6 @@ class DiscordIntegrationTest(IntegrationTestCase):
                 guild_id="0987654321",
                 server_name="Uncool server",
                 command_response_empty=False,
-                useSetup="0",
             )
 
         integrations = Integration.objects.filter(provider=self.provider.key).order_by(

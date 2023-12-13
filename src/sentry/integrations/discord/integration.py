@@ -316,7 +316,7 @@ class DiscordInstallPipeline(PipelineView):
         try:
             raw_state = json.loads(request.GET["state"])
             pipeline.bind_state("use_setup", raw_state.get("useSetup"))
-        except (json.JSONDecodeError, ValueError) as error:
+        except Exception as error:
             logger.info(
                 "identity.discord.request-token",
                 extra={
