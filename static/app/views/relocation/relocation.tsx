@@ -1,24 +1,27 @@
-import {useCallback, useEffect, useRef} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
 
 import {Button, ButtonProps} from 'sentry/components/button';
+import LoadingError from 'sentry/components/loadingError';
 import LogoSentry from 'sentry/components/logoSentry';
-import {RelocationOnboardingContextProvider} from 'sentry/components/onboarding/relocationOnboardingContext';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import Redirect from 'sentry/utils/redirect';
 import testableTransition from 'sentry/utils/testableTransition';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 import Stepper from 'sentry/views/onboarding/components/stepper';
+import {RelocationOnboardingContextProvider} from 'sentry/views/relocation/relocationOnboardingContext';
 
 import EncryptBackup from './encryptBackup';
 import GetStarted from './getStarted';
+import PublicKey from './publicKey';
 import {StepDescriptor} from './types';
 
 type RouteParams = {
@@ -36,6 +39,12 @@ function getOrganizationOnboardingSteps(): StepDescriptor[] {
       cornerVariant: 'top-left',
     },
     {
+      id: 'public-key',
+      title: t("Save Sentry's public key to your machine"),
+      Component: PublicKey,
+      cornerVariant: 'top-left',
+    },
+    {
       id: 'encrypt-backup',
       title: t('Encrypt backup'),
       Component: EncryptBackup,
@@ -46,6 +55,34 @@ function getOrganizationOnboardingSteps(): StepDescriptor[] {
 
 function RelocationOnboarding(props: Props) {
   const organization = useOrganization();
+  const [hasPublicKeyError, setHasError] = useState(false);
+
+  // TODO(getsentry/team-ospo#214): We should use sessionStorage to track this, since it should not
+  // change during a single run through this workflow.
+  const [publicKey, setPublicKey] = useState('');
+
+  const api = useApi();
+  const fetchData = useCallback(() => {
+    const endpoint = `/publickeys/relocations/`;
+    return api
+      .requestPromise(endpoint)
+      .then(response => {
+        setPublicKey(response.public_key);
+        setHasError(false);
+      })
+      .catch(_error => {
+        setPublicKey('');
+        setHasError(true);
+      });
+  }, [api]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const loadingError = (
+    <LoadingError message={t('Failed to load your public key.')} onRetry={fetchData} />
+  );
 
   const {
     params: {step: stepId},
@@ -65,7 +102,7 @@ function RelocationOnboarding(props: Props) {
 
   const cornerVariantControl = useAnimation();
   const updateCornerVariant = () => {
-    // TODO: find better way to delay the corner animation
+    // TODO(getsentry/team-ospo#214): Find a better way to delay the corner animation.
     window.clearTimeout(cornerVariantTimeoutRed.current);
 
     cornerVariantTimeoutRed.current = window.setTimeout(
@@ -151,6 +188,7 @@ function RelocationOnboarding(props: Props) {
                       goNextStep(stepObj);
                     }
                   }}
+                  publicKey={publicKey}
                   route={props.route}
                   router={props.router}
                   location={props.location}
@@ -159,6 +197,7 @@ function RelocationOnboarding(props: Props) {
             </OnboardingStep>
           </AnimatePresence>
           <AdaptivePageCorners animateVariant={cornerVariantControl} />
+          {stepObj.id === 'public-key' && hasPublicKeyError ? loadingError : null}
         </Container>
       </RelocationOnboardingContextProvider>
     </OnboardingWrapper>
