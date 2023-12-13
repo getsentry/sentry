@@ -172,7 +172,7 @@ def validate_region_ip_address(ip: str) -> bool:
 
 
 class RegionSiloClient(BaseSiloClient):
-    access_modes = [SiloMode.CONTROL]
+    access_modes = [SiloMode.CONTROL, SiloMode.MONOLITH]
 
     metrics_prefix = "silo_client.region"
     log_path = "sentry.silo.client.region"
