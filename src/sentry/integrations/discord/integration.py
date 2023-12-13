@@ -318,7 +318,6 @@ class DiscordInstallPipeline(PipelineView):
                     "identity.discord.request-token",
                     extra={
                         "guild_id": request.GET["guild_id"],
-                        "code": request.GET["code"],
                         "error": error,
                     },
                 )
