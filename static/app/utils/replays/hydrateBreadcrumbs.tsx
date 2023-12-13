@@ -1,5 +1,6 @@
 import invariant from 'invariant';
 
+import {t} from 'sentry/locale';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import isValidDate from 'sentry/utils/date/isValidDate';
 import type {
@@ -38,6 +39,7 @@ export default function hydrateBreadcrumbs(
 
         if (frame.category === 'replay.hydrate-error') {
           frame.data = {
+            description: t('Encountered an error while hydrating'),
             mutations: findCloseMutations(time, rrwebFrames),
           };
         }

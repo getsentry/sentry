@@ -151,9 +151,11 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     title: 'Replay',
     icon: <IconWarning size="xs" />,
   }),
-  'replay.hydrate-error': frame => ({
+  'replay.hydrate-error': () => ({
     color: 'red300',
-    description: frame.data.mutations,
+    description: t(
+      'There was a conflict between the server rendered html and the first client render.'
+    ),
     tabKey: TabKey.BREADCRUMBS,
     title: 'Hydration Error',
     icon: <IconFire size="xs" />,

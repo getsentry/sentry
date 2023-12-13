@@ -27,6 +27,8 @@ import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 type MouseCallback = (frame: ReplayFrame, e: React.MouseEvent<HTMLElement>) => void;
 
+const FRAMES_WITH_BUTTONS = ['replay.hydrate-error'];
+
 interface Props {
   extraction: Extraction | undefined;
   frame: ReplayFrame;
@@ -73,9 +75,11 @@ function BreadcrumbItem({
     getCrumbOrFrameData(frame);
   const {replay} = useReplayContext();
 
+  const forceSpan = 'category' in frame && FRAMES_WITH_BUTTONS.includes(frame.category);
+
   return (
     <CrumbItem
-      as={onClick ? 'button' : 'span'}
+      as={onClick && !forceSpan ? 'button' : 'span'}
       onClick={e => onClick?.(frame, e)}
       onMouseEnter={e => onMouseEnter(frame, e)}
       onMouseLeave={e => onMouseLeave(frame, e)}
@@ -115,29 +119,33 @@ function BreadcrumbItem({
         )}
 
         {'data' in frame && frame.data && 'mutations' in frame.data ? (
-          <Button
-            onClick={() => {
-              openModal(
-                deps => (
-                  <ReplayComparisonModal
-                    replay={replay}
-                    organization={organization}
-                    leftTimestamp={frame.offsetMs}
-                    rightTimestamp={
-                      // @ts-expect-error
-                      frame.data.mutations.next.timestamp -
-                      // @ts-expect-error
-                      (replay?.getReplay().started_at ?? 0)
-                    }
-                    {...deps}
-                  />
-                ),
-                {modalCss}
-              );
-            }}
-          >
-            {t('Show Side by side')}
-          </Button>
+          <div>
+            <Button
+              role="button"
+              size="xs"
+              onClick={() => {
+                openModal(
+                  deps => (
+                    <ReplayComparisonModal
+                      replay={replay}
+                      organization={organization}
+                      leftTimestamp={frame.offsetMs}
+                      rightTimestamp={
+                        // @ts-expect-error
+                        frame.data.mutations.next.timestamp -
+                        // @ts-expect-error
+                        (replay?.getReplay().started_at ?? 0)
+                      }
+                      {...deps}
+                    />
+                  ),
+                  {modalCss}
+                );
+              }}
+            >
+              {t('Open Hydration Diff')}
+            </Button>
+          </div>
         ) : null}
 
         {extraction?.html ? (
@@ -164,8 +172,7 @@ function BreadcrumbItem({
 
 export const modalCss = css`
   width: auto;
-  height: 100%;
-  max-width: 90vw;
+  max-width: 95vw;
 `;
 
 function CrumbProject({projectSlug}: {projectSlug: string}) {
