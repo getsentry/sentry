@@ -535,7 +535,7 @@ class EventManager:
         secondary_hashes = None
         migrate_off_hierarchical = False
 
-        if _check_to_run_secondary_grouping(project):
+        if _should_run_secondary_grouping(project):
             with metrics.timer("event_manager.secondary_grouping", tags=metric_tags):
                 secondary_hashes = calculate_secondary_hash_if_needed(project, job)
 
@@ -735,7 +735,7 @@ class EventManager:
         return job["event"]
 
 
-def _check_to_run_secondary_grouping(project: Project) -> bool:
+def _should_run_secondary_grouping(project: Project) -> bool:
     result = False
     # These two values are basically always set
     secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
