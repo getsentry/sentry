@@ -1,63 +1,51 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import dompurify from 'dompurify';
 
 import Panel from 'sentry/components/panels/panel';
 import {t, tct} from 'sentry/locale';
 import {isUrl} from 'sentry/utils';
+import {useLocation} from 'sentry/utils/useLocation';
 
 function ExternalRedirect() {
-  const [count, setCount] = useState<number>(5);
-  const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
-  const [isError, setIsError] = useState(false);
+  const location = useLocation();
+  const rawUrl = location.query?.url;
+  const url = Array.isArray(rawUrl) ? rawUrl[0] : rawUrl;
+  const [count, setCount] = useState(5);
+
+  const isValidUrl = url && isUrl(url);
 
   useEffect(() => {
-    const queryParams = new URLSearchParams(window.location.search);
-    const url = queryParams.get('url');
-
-    if (url && isUrl(url)) {
-      const sanitizedUrl = dompurify.sanitize(url);
-      setRedirectUrl(sanitizedUrl);
-    } else {
-      setIsError(true);
+    if (!isValidUrl) {
+      return;
     }
 
     const intervalId = setInterval(() => {
-      setCount(prevCount => prevCount - 1);
+      setCount(prevCount => {
+        if (prevCount <= 1) {
+          window.location.href = url;
+          clearInterval(intervalId);
+        }
+        return prevCount - 1;
+      });
     }, 1000);
 
     // eslint-disable-next-line consistent-return
     return () => clearInterval(intervalId);
-  }, []);
+  }, [isValidUrl, url]);
 
-  if (redirectUrl && count <= 0) {
-    window.location.href = redirectUrl;
-  } else if (count <= 0) {
-    window.close();
+  if (!isValidUrl) {
+    return <InvalidUrlCloseTab />;
   }
 
-  if (isError) {
-    return (
-      <div className="app">
-        <RedirectContainer>
-          <div className="pattern-bg" />
-          <AuthPanel>
-            <div>{t('Error: Invalid URL')}</div>
-            <div>{tct('In [count] seconds, this tab will close', {count})}</div>
-          </AuthPanel>
-        </RedirectContainer>
-      </div>
-    );
-  }
   return (
     <div className="app">
       <RedirectContainer>
         <div className="pattern-bg" />
         <AuthPanel>
           <div>
-            {tct('In [count] seconds you will be redirected to [redirectUrl].', {
+            {tct('In [count] seconds you will be redirected to [url].', {
               count,
-              redirectUrl: <strong>{redirectUrl}</strong>,
+              url: <strong>{url}</strong>,
             })}
           </div>
           <div>
@@ -69,6 +57,42 @@ function ExternalRedirect() {
               ),
             })}
           </div>
+        </AuthPanel>
+      </RedirectContainer>
+    </div>
+  );
+}
+
+function InvalidUrlCloseTab() {
+  const [count, setCount] = useState(5);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      window.close();
+    }, 5000);
+
+    const intervalId = setInterval(() => {
+      setCount(prevCount => {
+        if (prevCount <= 1) {
+          clearInterval(intervalId);
+        }
+        return prevCount - 1;
+      });
+    }, 1000);
+
+    return () => {
+      clearTimeout(timeoutId);
+      clearInterval(intervalId);
+    };
+  }, []);
+
+  return (
+    <div className="app">
+      <RedirectContainer>
+        <div className="pattern-bg" />
+        <AuthPanel>
+          <div>{t('Error: Invalid URL')}</div>
+          <div>{tct('In [count] seconds, this tab will close', {count})}</div>
         </AuthPanel>
       </RedirectContainer>
     </div>
