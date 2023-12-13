@@ -19,11 +19,11 @@ from sentry.types.region import (
     RegionResolutionError,
     find_all_multitenant_region_names,
     find_all_region_names,
+    get_global_directory,
     get_local_region,
     get_region_by_name,
     get_region_for_organization,
     load_from_config,
-    load_global_regions,
     subdomain_is_region,
 )
 from sentry.utils import json
@@ -33,7 +33,7 @@ from sentry.utils import json
 def _override_region_config(region_config: Any, monolith_region_name: str):
     with override_settings(SENTRY_MONOLITH_REGION=monolith_region_name):
         test_directory = load_from_config(json.dumps(region_config))
-        with load_global_regions().swap_state(test_directory):
+        with get_global_directory().swap_state(test_directory):
             yield
 
 
@@ -44,7 +44,7 @@ class RegionMappingTest(TestCase):
         # As part of testing GlobalRegionDirectory itself, we call override_regions
         # in some unusual contexts. Load from base settings first to ensure there's
         # an instance in a good state for override_regions to swap into.
-        load_global_regions()
+        get_global_directory()
 
     def test_region_mapping(self):
         regions = [
@@ -147,7 +147,7 @@ class RegionMappingTest(TestCase):
             region = get_region_by_name(monolith_region_name)
             assert region.name == monolith_region_name
             assert region.is_historic_monolith_region()
-            assert region == load_global_regions().historic_monolith_region
+            assert region == get_global_directory().historic_monolith_region
 
     def test_invalid_historic_region_setting(self):
         region_config = [

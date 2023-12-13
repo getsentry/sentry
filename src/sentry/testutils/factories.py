@@ -5,6 +5,7 @@ import os
 import random
 from base64 import b64encode
 from binascii import hexlify
+from contextlib import contextmanager
 from datetime import datetime
 from hashlib import sha1
 from importlib import import_module
@@ -275,14 +276,16 @@ class Factories:
         if not name:
             name = petname.generate(2, " ", letters=10).title()
 
-        if region is None:
-            region_obj = get_local_region()
-        elif isinstance(region, Region):
-            region_obj = region
-        else:
-            region_obj = get_region_by_name(region)
+        @contextmanager
+        def org_creation_context():
+            if region is None:
+                yield
+                return
+            region_obj = region if isinstance(region, Region) else get_region_by_name(region)
+            with in_local_region(region_obj):
+                yield
 
-        with in_local_region(region_obj):
+        with org_creation_context():
             with outbox_context(flush=False):
                 org: Organization = Organization.objects.create(name=name, **kwargs)
 
@@ -290,7 +293,7 @@ class Factories:
                 # Organization mapping creation relies on having a matching org slug reservation
                 OrganizationSlugReservation(
                     organization_id=org.id,
-                    region_name=region_obj.name,
+                    region_name=get_local_region().name,
                     user_id=owner.id if owner else -1,
                     slug=org.slug,
                 ).save(unsafe_write=True)

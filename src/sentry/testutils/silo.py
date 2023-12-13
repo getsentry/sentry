@@ -26,7 +26,6 @@ from unittest import TestCase
 
 import pytest
 from django.apps import apps
-from django.conf import settings
 from django.db.models import Model
 from django.db.models.fields.related import RelatedField
 from django.test import override_settings
@@ -39,8 +38,8 @@ from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionMo
 from sentry.deletions.base import BaseDeletionTask
 from sentry.models.actor import Actor
 from sentry.silo import SiloMode, match_fence_query
-from sentry.testutils.region import override_regions
-from sentry.types.region import Region, RegionCategory, RegionDirectory, load_global_regions
+from sentry.testutils.region import get_test_env_directory, override_regions
+from sentry.types.region import Region, RegionCategory
 from sentry.utils.snowflake import SnowflakeIdMixin
 
 TestMethod = Callable[..., None]
@@ -146,17 +145,12 @@ class _SiloModeTestModification:
 
     @contextmanager
     def test_config(self, silo_mode: SiloMode):
-        monolith_region = self.regions[0].name if self.regions else settings.SENTRY_MONOLITH_REGION
-        silo_settings = {
-            "SILO_MODE": silo_mode,
-            "SENTRY_SUBNET_SECRET": "secret",
-            "SENTRY_CONTROL_ADDRESS": "http://controlserver/",
-            "SENTRY_MONOLITH_REGION": monolith_region,
-        }
-        if silo_mode == SiloMode.REGION:
-            silo_settings["SENTRY_REGION"] = monolith_region
-        with override_settings(**silo_settings), override_regions(self.regions):
-            yield
+        with assume_test_silo_mode(silo_mode):
+            if self.regions:
+                with override_regions(self.regions):
+                    yield
+            else:
+                yield
 
     def _create_overriding_test_class(
         self, test_class: Type[TestCase], silo_mode: SiloMode, name_suffix: str = ""
@@ -318,14 +312,9 @@ def assume_test_silo_mode(desired_silo: SiloMode, can_be_monolith: bool = True) 
         return
 
     with override_settings(SILO_MODE=desired_silo):
-        global_regions = load_global_regions()
         if desired_silo == SiloMode.REGION:
-            replacement = RegionDirectory(
-                regions=global_regions.regions,
-                testenv_monolith_region=global_regions.historic_monolith_region,
-                testenv_local_region=global_regions.historic_monolith_region,
-            )
-            with global_regions.swap_state(replacement):
+            region_dir = get_test_env_directory()
+            with region_dir.swap_state(local_region=region_dir.historic_monolith_region):
                 yield
         else:
             yield

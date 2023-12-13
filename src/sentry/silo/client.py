@@ -23,8 +23,8 @@ from sentry.silo.util import (
 from sentry.types.region import (
     Region,
     RegionResolutionError,
+    find_all_region_addresses,
     get_region_by_name,
-    load_global_regions,
 )
 
 if TYPE_CHECKING:
@@ -125,12 +125,9 @@ def get_region_ip_addresses() -> FrozenSet[ipaddress.IPv4Address | ipaddress.IPv
     """
     Infers the Region Silo IP addresses from the SENTRY_REGION_CONFIG setting.
     """
-    global_regions = load_global_regions()
-
     region_ip_addresses: Set[ipaddress.IPv4Address | ipaddress.IPv6Address] = set()
 
-    for region in global_regions.regions:
-        address = region.address
+    for address in find_all_region_addresses():
         url = urllib3.util.parse_url(address)
         if url.host:
             # This is an IPv4 address.
