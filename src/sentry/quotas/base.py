@@ -527,6 +527,12 @@ class Quota(Service):
 
         return Outcome.ACCEPTED
 
+    def disable_monitor_seat(self, monitor: Monitor) -> None:
+        """
+        Removes a monitor from it's assigned seat.
+        """
+        pass
+
     def check_accept_monitor_checkin(self, project_id: int, monitor_slug: str):
         """
         Will return a `PermitCheckInStatus`.

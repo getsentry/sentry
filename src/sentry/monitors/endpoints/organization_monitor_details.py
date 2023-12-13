@@ -8,7 +8,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log
+from sentry import audit_log, quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -42,6 +42,7 @@ from sentry.monitors.utils import (
     update_alert_rule,
 )
 from sentry.monitors.validators import MonitorValidator
+from sentry.utils.outcomes import Outcome
 
 
 @region_silo_endpoint
@@ -155,6 +156,22 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
 
         if "project" in result and result["project"].id != monitor.project_id:
             raise ParameterValidationError("existing monitors may not be moved between projects")
+
+        # Update monitor slug
+        if "slug" in result:
+            quotas.backend.update_monitor_slug(monitor.slug, params["slug"], monitor.project_id)
+
+        # Attempt to assign a monitor seat
+        if params["status"] == ObjectStatus.ACTIVE:
+            outcome = quotas.backend.assign_monitor_seat(monitor)
+            # The MonitorValidator checks if a seat assignment is availble.
+            # This protects against a race condition
+            if outcome != Outcome.ACCEPTED:
+                raise ParameterValidationError("Failed to enable monitor, please try again")
+
+        # Attempt to unassign the monitor seat
+        if params["status"] == ObjectStatus.DISABLED:
+            quotas.backend.disable_monitor_seat(monitor)
 
         if params:
             monitor.update(**params)
