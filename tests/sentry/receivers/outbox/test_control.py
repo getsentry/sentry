@@ -13,7 +13,6 @@ from sentry.exceptions import RestrictedIPAddress
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.integrations.integration import Integration
 from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
-from sentry.net.http import Session
 from sentry.receivers.outbox.control import (
     process_api_application_updates,
     process_async_webhooks,
