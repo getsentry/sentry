@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import dompurify from 'dompurify';
 
 import Panel from 'sentry/components/panels/panel';
 import {t, tct} from 'sentry/locale';
@@ -15,7 +16,8 @@ function ExternalRedirect() {
     const url = queryParams.get('url');
 
     if (url && isUrl(url)) {
-      setRedirectUrl(url);
+      const sanitizedUrl = dompurify.sanitize(url);
+      setRedirectUrl(sanitizedUrl);
     } else {
       setIsError(true);
     }
