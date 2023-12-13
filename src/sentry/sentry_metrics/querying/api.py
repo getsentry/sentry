@@ -1,5 +1,6 @@
 import math
 import re
+from collections import OrderedDict
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, Generator, List, Mapping, Optional, Sequence, Tuple, Union
@@ -90,16 +91,28 @@ class QueryMeta:
 
 
 @dataclass(frozen=True)
+class ExecutableQuery:
+    query: MetricsQuery
+    # TODO: check if we really have to keep this.
+    group_bys: Optional[Sequence[str]]
+    order_by: Optional[str]
+    with_series: bool
+    with_totals: bool
+
+    def build_result(self, result: Mapping[str, Any]) -> "ExecutionResult":
+        return ExecutionResult(query=self, result=result)
+
+
+@dataclass(frozen=True)
 class ExecutionResult:
     # This is the timeseries query that is being passed to the metrics layer, thus it doesn't contain any
     # mutations that the layer might do.
-    query: MetricsQuery
+    query: "ExecutableQuery"
     result: Mapping[str, Any]
-    with_totals: bool
 
     @property
     def query_name(self) -> str:
-        timeseries = self.query.query
+        timeseries = self.query.query.query
 
         aggregate = timeseries.aggregate
         metric = timeseries.metric.mri or timeseries.metric.public_name
@@ -116,12 +129,13 @@ class ExecutionResult:
 
     @property
     def interval(self) -> int:
-        return self.query.rollup.interval
+        return self.query.query.rollup.interval
 
     @property
     def group_bys(self) -> Sequence[str]:
+        # TODO: we might need to rework this assuming we have formulas.
         group_bys = []
-        for group_by in self.query.query.groupby or ():
+        for group_by in self.query.query.query.groupby or ():
             if isinstance(group_by, Column):
                 group_bys.append(group_by.name)
             elif isinstance(group_by, AliasedExpression):
@@ -130,16 +144,87 @@ class ExecutionResult:
         return group_bys
 
     @property
-    def data(self) -> Mapping[str, Any]:
-        return self.result["data"]
+    def series(self) -> Sequence[Mapping[str, Any]]:
+        return self.result["series"]["data"]
 
     @property
-    def totals(self) -> Mapping[str, Any]:
-        return self.result["totals"]
+    def totals(self) -> Sequence[Mapping[str, Any]]:
+        return self.result["totals"]["data"]
 
     @property
     def meta(self) -> Sequence[Mapping[str, str]]:
-        return self.result["meta"]
+        # We assume that we always have totals.
+        return self.result["totals"]["meta"]
+
+    @property
+    def groups(self) -> Sequence[Sequence[Tuple[str, str]]]:
+        groups = []
+
+        for data in self.totals:
+            inner_group = []
+
+            for key, value in data.items():
+                if key != "aggregate_value":
+                    inner_group.append((key, value))
+
+            groups.append(inner_group)
+
+        return groups
+
+    @property
+    def alignment_keys(self) -> Optional[Sequence[str]]:
+        # TODO: the alignment value will be composed of all the group by values.
+        return self.query.group_bys
+
+    def align_with(self, reference_result: "ExecutionResult") -> "ExecutionResult":
+        alignment_keys = reference_result.alignment_keys
+
+        # TODO: deduplicate logic.
+        indexed_series = {}
+        for index, data in enumerate(self.series):
+            composite_key = []
+            # For timeseries, we want to align based on the time also, since group bys + time are the common values
+            # across separate queries.
+            for key in alignment_keys + ["time"]:
+                if (value := data.get(key)) is not None:
+                    composite_key.append((key, value))
+            indexed_series[tuple(composite_key)] = index
+
+        indexed_totals = {}
+        for index, data in enumerate(self.totals):
+            composite_key = []
+            for key in alignment_keys:
+                if (value := data.get(key)) is not None:
+                    composite_key.append((key, value))
+            indexed_totals[tuple(composite_key)] = index
+
+        ordered_series = []
+        for data in reference_result.series:
+            composite_key = []
+            for key in alignment_keys + ["time"]:
+                if (value := data.get(key)) is not None:
+                    composite_key.append((key, value))
+            index = indexed_series.get(tuple(composite_key))
+            if index is not None:
+                ordered_series.append(self.series[index])
+
+        ordered_totals = []
+        for data in reference_result.totals:
+            composite_key = []
+            for key in alignment_keys:
+                if (value := data.get(key)) is not None:
+                    composite_key.append((key, value))
+            index = indexed_totals.get(tuple(composite_key))
+            if index is not None:
+                ordered_totals.append(self.totals[index])
+
+        if ordered_series:
+            self.result["series"]["data"] = ordered_series
+
+        if ordered_totals:
+            self.result["series"]["data"] = ordered_series
+
+        return self
 
 
 class MutableTimeseries:
@@ -276,7 +361,7 @@ class QueryExecutor:
         self._organization = organization
         self._referrer = referrer
         # List of queries scheduled for execution.
-        self._scheduled_queries: List[Tuple[MetricsQuery, bool]] = []
+        self._scheduled_queries: List[ExecutableQuery] = []
 
     def _build_request(self, query: MetricsQuery) -> Request:
         return Request(
@@ -286,44 +371,103 @@ class QueryExecutor:
             tenant_ids={"referrer": self._referrer, "organization_id": self._organization.id},
         )
 
-    def _execute(self, query: MetricsQuery, with_totals: bool) -> Mapping[str, Any]:
+    # groups are passed like [[(key_1, value_1), (key_2, value_2)]] and they are applied as (key_1 = value_1 AND key_2 = value_2) OR (key_3 = value_3).
+    def _execute(
+        self,
+        executable_query: ExecutableQuery,
+        groups_filters: Optional[Sequence[Sequence[Tuple[str, str]]]] = None,
+    ) -> ExecutionResult:
         try:
-            series_result = run_query(request=self._build_request(query))
+            # TODO: implement groups injection in the filters.
+            query = executable_query.query
 
-            if with_totals:
-                # TODO(layer): maybe totals will have to be handled by the layer, so that the time intervals will be
-                #  inferred automatically, instead of doing the manual work here.
-                modified_start = series_result["modified_start"]
-                modified_end = series_result["modified_end"]
-                query = (
-                    query.set_start(modified_start)
-                    .set_end(modified_end)
-                    .set_rollup(Rollup(totals=True))
-                )
+            series_result = None
+            if executable_query.with_series:
+                series_result = run_query(request=self._build_request(query))
+
+            totals_result = None
+            if executable_query.with_totals:
+                # In case we have a series query, we want to align the query intervals so that the totals align. This
+                # is not needed when running a single totals query.
+                if series_result:
+                    modified_start = series_result["modified_start"]
+                    modified_end = series_result["modified_end"]
+                    query = (
+                        executable_query.query.set_start(modified_start)
+                        .set_end(modified_end)
+                        .set_rollup(Rollup(totals=True))
+                    )
+
                 totals_result = run_query(request=self._build_request(query))
 
-                return {**series_result, "totals": totals_result["data"]}
+            result = {}
+            if series_result and totals_result:
+                result = {
+                    "series": series_result,
+                    "totals": totals_result,
+                    "modified_start": series_result["modified_start"],
+                    "modified_end": series_result["modified_end"],
+                }
+            elif series_result:
+                result = {
+                    "series": series_result,
+                    "modified_start": series_result["modified_start"],
+                    "modified_end": series_result["modified_end"],
+                }
+            elif totals_result:
+                # TODO: check if for totals the modified time is returned.
+                result = {
+                    "totals": totals_result,
+                    "modified_start": totals_result["modified_start"],
+                    "modified_end": totals_result["modified_end"],
+                }
 
-            return series_result
+            return executable_query.build_result(result)
         except SnubaError as e:
             sentry_sdk.capture_exception(e)
             raise MetricsQueryExecutionError(
                 f"An error occurred while executing the query: {type(e).__name__}"
             )
 
-    def schedule(self, query: MetricsQuery, with_totals: bool = True):
-        # By default we want to execute totals.
-        self._scheduled_queries.append((query, with_totals))
+    def schedule(
+        self, query: MetricsQuery, group_bys: Optional[Sequence[str]], order_by: Optional[str]
+    ):
+        with_series = True
+        with_totals = True
+        # Order by supports only totals.
+        if order_by:
+            with_series = False
+
+        executable_query = ExecutableQuery(
+            query=query,
+            group_bys=group_bys,
+            order_by=order_by,
+            with_series=with_series,
+            with_totals=with_totals,
+        )
+        self._scheduled_queries.append(executable_query)
 
     def execute(self, batch: bool = False) -> Generator[ExecutionResult, None, None]:
+        if not self._scheduled_queries:
+            raise RuntimeError("No queries to execute")
+
         if batch:
-            # TODO: implement batching.
-            # Run batch query and flatten results.
-            pass
+            raise NotImplementedError
         else:
-            for query, with_totals in self._scheduled_queries:
-                result = self._execute(query, with_totals)
-                yield ExecutionResult(query=query, result=result, with_totals=with_totals)
+            # We want to execute a reference query, which will define the order of the follow-up queries.
+            reference_result = self._execute(self._scheduled_queries[0])
+
+            # We iterate over all the other queries, and we add additional filters for the group by values that we
+            # found in the reference query, if any.
+            groups = reference_result.groups
+            results = []
+            for executable_query in self._scheduled_queries[1:]:
+                result = self._execute(executable_query, groups)
+                results.append(result)
+
+            yield reference_result
+            for result in results:
+                yield result.align_with(reference_result)
 
 
 def _build_intervals(start: datetime, end: datetime, interval: int) -> Sequence[datetime]:
@@ -412,7 +556,7 @@ def _translate_query_results(execution_results: List[ExecutionResult]) -> Mappin
     interval: Optional[int] = None
 
     # For efficiency reasons, we translate the incoming data into our custom in-memory representations.
-    intermediate_groups: Dict[GroupKey, Dict[str, GroupValue]] = {}
+    intermediate_groups: OrderedDict[GroupKey, Dict[str, GroupValue]] = OrderedDict()
     intermediate_meta: List[QueryMeta] = []
     for execution_result in execution_results:
         # All queries must have the same timerange, so under this assumption we take the first occurrence of each.
@@ -430,27 +574,26 @@ def _translate_query_results(execution_results: List[ExecutionResult]) -> Mappin
                 for group_by in execution_result.group_bys or ():
                     grouped_values.append((group_by, value.get(group_by)))
 
-                # We order the group values in order to be consistent across executions.
-                group_key = tuple(sorted(grouped_values))
-                group_metrics = intermediate_groups.setdefault(group_key, {})
+                group_metrics = intermediate_groups.setdefault(tuple(grouped_values), {})
+
                 # The item at position 0 is the "series".
                 group_value = group_metrics.setdefault(
                     execution_result.query_name, GroupValue.empty()
                 )
                 block(value, group_value)
 
-        # We group the timeseries data.
-        _group(
-            execution_result.data,
-            lambda value, group: group.add_series_entry(
-                value.get("time"), value.get("aggregate_value")
-            ),
-        )
-
-        # We group the total data.
+        # We group the totals data first, since we want the order to be set by the totals.
         _group(
             execution_result.totals,
             lambda value, group: group.add_total(value.get("aggregate_value")),
+        )
+
+        # We group the series data second, which will use the already ordered dictionary entries added by the totals.
+        _group(
+            execution_result.series,
+            lambda value, group: group.add_series_entry(
+                value.get("time"), value.get("aggregate_value")
+            ),
         )
 
         meta = execution_result.meta
@@ -470,7 +613,7 @@ def _translate_query_results(execution_results: List[ExecutionResult]) -> Mappin
     intervals = _build_intervals(start, end, interval)
 
     translated_groups = []
-    for group_key, group_metrics in sorted(intermediate_groups.items(), key=lambda v: v[0]):
+    for group_key, group_metrics in intermediate_groups.items():
         translated_serieses: Dict[str, Sequence[ResultValue]] = {}
         translated_totals: Dict[str, ResultValue] = {}
         for metric_name, metric_values in sorted(group_metrics.items(), key=lambda v: v[0]):
@@ -533,7 +676,7 @@ def run_metrics_query(
     parser = QueryParser(fields=fields, query=query, group_bys=group_bys)
     for timeseries in parser.generate_queries(environments=environments):
         query = base_query.set_query(timeseries).set_rollup(Rollup(interval=interval))
-        executor.schedule(query)
+        executor.schedule(query, group_bys, None)
 
     # Iterating over each result.
     results = []
