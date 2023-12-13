@@ -41,14 +41,19 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
 
     def after(self, event, state, notification_uuid: Optional[str] = None):
         integration = self.get_integration()
+        log_context = {
+            "organization_id": self.project.organization_id,
+            "integration_id": self.get_option("account"),
+            "service": self.get_option("service"),
+        }
         if not integration:
             # integration removed but rule still exists
-            logger.error("Integration removed, however, the rule still refers to it.")
+            logger.info("pagerduty.org_integration_missing", extra=log_context)
             return
 
         service = self._get_service()
         if not service:
-            logger.error("The PagerDuty service does not exist anymore while integration does.")
+            logger.info("pagerduty.service_missing", extra=log_context)
             return
 
         def send_notification(event, futures):
