@@ -24,11 +24,10 @@ function SampleImages({groupId}: Props) {
   const filteredResources = imageResources.data
     .filter(resource => {
       const fileName = getFileNameFromDescription(resource[SPAN_DESCRIPTION]);
-      const key = `${fileName}`;
-      if (uniqueResources.has(key)) {
+      if (uniqueResources.has(fileName)) {
         return false;
       }
-      uniqueResources.add(key);
+      uniqueResources.add(fileName);
       return true;
     })
     .splice(0, 5);
@@ -80,7 +79,8 @@ const ImageWrapper = styled('div')`
 `;
 
 const getFileNameFromDescription = (description: string) => {
-  return description.split('/').pop()?.split(/[?#]/)[0] || '';
+  const url = new URL(description);
+  return url.pathname.split('/').pop();
 };
 
 export default SampleImages;
