@@ -23,7 +23,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useOverlay from 'sentry/utils/useOverlay';
 import useRouter from 'sentry/utils/useRouter';
 
-import {useCreateDashboard} from './contextMenu';
+import {useCreateDashboard} from './useCreateDashboard';
 
 type Scratchpad = {
   id: string;

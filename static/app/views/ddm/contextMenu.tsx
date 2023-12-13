@@ -1,11 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {
-  openAddToDashboardModal,
-  openCreateDashboardFromScratchpad,
-  openModal,
-} from 'sentry/actionCreators/modal';
+import {openAddToDashboardModal, openModal} from 'sentry/actionCreators/modal';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconDashboard, IconEllipsis, IconSiren} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -20,9 +16,7 @@ import {
 } from 'sentry/utils/metrics/dashboard';
 import {hasDDMFeature} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-import {useDDMContext} from 'sentry/views/ddm/context';
 import {CreateAlertModal} from 'sentry/views/ddm/createAlertModal';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -133,37 +127,4 @@ export function useCreateDashboardWidget(
         location: router.location,
       });
   }, [metricsQuery, datetime, displayType, environments, organization, projects, router]);
-}
-
-export function useCreateDashboard() {
-  const router = useRouter();
-  const organization = useOrganization();
-  const {widgets} = useDDMContext();
-  const {selection} = usePageFilters();
-
-  return useMemo(() => {
-    return function (scratchpad?: {name: string}) {
-      const newDashboard = {
-        title: scratchpad?.name || 'DDM Dashboard',
-        description: '',
-        widgets: widgets
-          .filter(widget => !!widget.mri)
-          .map(widget =>
-            // @ts-expect-error TODO(ogi): fix this
-            convertToDashboardWidget(widget, widget.displayType)
-          ),
-        projects: selection.projects,
-        environment: selection.environments,
-        start: selection.datetime.start as string,
-        end: selection.datetime.end as string,
-        period: selection.datetime.period as string,
-        filters: {},
-        utc: selection.datetime.utc ?? false,
-        id: 'ddm-scratchpad',
-        dateCreated: '',
-      };
-
-      openCreateDashboardFromScratchpad({newDashboard, router, organization});
-    };
-  }, [selection, widgets, organization, router]);
 }

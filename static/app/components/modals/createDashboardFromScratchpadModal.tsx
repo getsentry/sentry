@@ -4,20 +4,17 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {
-  createDashboard,
-  fetchDashboard,
-  fetchDashboards,
-  updateDashboard,
-} from 'sentry/actionCreators/dashboards';
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {createDashboard, updateDashboard} from 'sentry/actionCreators/dashboards';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
+import LoadingError from 'sentry/components/loadingError';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, SelectValue} from 'sentry/types';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
@@ -49,58 +46,46 @@ function CreateDashboardFromScratchpadModal({
   newDashboard,
 }: Props) {
   const api = useApi();
-  const [dashboards, setDashboards] = useState<DashboardListItem[] | null>(null);
-  const [selectedDashboard, setSelectedDashboard] = useState<DashboardDetails | null>(
-    null
+  const [selectedDashboardId, setSelectedDashboardId] =
+    useState<string>(NEW_DASHBOARD_ID);
+
+  const {data: dashboards, isError: isDashboardError} = useApiQuery<DashboardListItem[]>(
+    [
+      `/organizations/${organization.slug}/dashboards/`,
+      {
+        query: {sort: 'myDashboardsAndRecentlyViewed'},
+      },
+    ],
+    {staleTime: 0}
   );
-  const [selectedDashboardId, setSelectedDashboardId] = useState<string | null>('new');
 
-  useEffect(() => {
-    // Track mounted state so we dont call setState on unmounted components
-    let unmounted = false;
+  const shouldFetchSelectedDashboard = selectedDashboardId !== NEW_DASHBOARD_ID;
 
-    fetchDashboards(api, organization.slug).then(response => {
-      // If component has unmounted, dont set state
-      if (unmounted) {
-        return;
+  const {data: selectedDashboard, isError: isSelectedDashboardError} =
+    useApiQuery<DashboardDetails>(
+      [`/organizations/${organization.slug}/dashboards/${selectedDashboardId}/`],
+      {
+        staleTime: 0,
+        enabled: shouldFetchSelectedDashboard,
       }
-
-      setDashboards(response);
-    });
-
-    return () => {
-      unmounted = true;
-    };
-  }, [api, organization.slug]);
+    );
 
   useEffect(() => {
-    // Track mounted state so we dont call setState on unmounted components
-    let unmounted = false;
-
-    if (selectedDashboardId === NEW_DASHBOARD_ID || selectedDashboardId === null) {
-      setSelectedDashboard(null);
-    } else {
-      fetchDashboard(api, organization.slug, selectedDashboardId).then(response => {
-        // If component has unmounted, dont set state
-        if (unmounted) {
-          return;
-        }
-
-        setSelectedDashboard(response);
-      });
+    if (isSelectedDashboardError) {
+      addErrorMessage(t('Unable to load dashboard'));
     }
-
-    return () => {
-      unmounted = true;
-    };
-  }, [api, organization.slug, selectedDashboardId]);
+  }, [isSelectedDashboardError]);
 
   async function createOrUpdateDashboard() {
-    if (!selectedDashboard) {
+    if (selectedDashboardId === NEW_DASHBOARD_ID) {
       const dashboard = await createDashboard(api, organization.slug, newDashboard);
 
       addSuccessMessage(t('Successfully created dashboard'));
       return dashboard;
+    }
+
+    if (!selectedDashboard) {
+      return null;
     }
 
     const updatedDashboard = {
@@ -122,6 +107,10 @@ function CreateDashboardFromScratchpadModal({
   async function handleGoToDashboard() {
     const dashboard = await createOrUpdateDashboard();
 
+    if (!dashboard) {
+      return;
+    }
+
     router.push(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/dashboards/${dashboard.id}/`,
@@ -137,6 +126,7 @@ function CreateDashboardFromScratchpadModal({
         <h4>{t('Add to Dashboard')}</h4>
       </Header>
       <Body>
+        {isDashboardError && <LoadingError message={t('Unable to load dashboards')} />}
         <Wrapper>
           <SelectControl
             disabled={dashboards === null}
@@ -173,12 +163,14 @@ function CreateDashboardFromScratchpadModal({
       <Footer>
         <StyledButtonBar gap={1.5}>
           <Button
+            disabled={isSelectedDashboardError}
             onClick={handleAddAndStayOnCurrentPage}
             title={SELECT_DASHBOARD_MESSAGE}
           >
             {t('Add + Stay on this Page')}
           </Button>
           <Button
+            disabled={isSelectedDashboardError}
             priority="primary"
             onClick={handleGoToDashboard}
             title={SELECT_DASHBOARD_MESSAGE}
