@@ -117,7 +117,11 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                 "config": monitor.config,
                 "project": project,
             },
-            context={"organization": organization, "access": request.access},
+            context={
+                "organization": organization,
+                "access": request.access,
+                "monitor": monitor,
+            },
         )
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)

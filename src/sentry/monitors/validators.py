@@ -7,6 +7,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from rest_framework import serializers
 
+from sentry import quotas
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.fields.sentry_slug import SentrySlugField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
@@ -275,6 +276,23 @@ class MonitorValidator(CamelSnakeSerializer):
             attrs["status"] = MONITOR_STATUSES.get(status)
 
         return attrs
+
+    def validate_status(self, value):
+        status = MONITOR_STATUSES.get(value, value)
+        monitor = self.context.get("monitor")
+
+        # Activating a monitor may only be done if the monitor may be assigned
+        # a seat, otherwise fail with the reason it cannot.
+        #
+        # XXX: This check will ONLY be performed when a monitor
+        if status == ObjectStatus.ACTIVE and monitor:
+            result = quotas.backend.check_assign_monitor_seat(monitor)
+            if not result.assignable:
+                raise ValidationError(result.reason)
+
+        # TODO(epurkhiser): This will need to translate back to the
+        # ObjectStatus value once we remove the is_muted compatability code
+        return value
 
     def validate_type(self, value):
         return MONITOR_TYPES.get(value, value)
