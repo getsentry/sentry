@@ -41,7 +41,6 @@ class ProjectService(RpcService):
         *,
         region_name: str,
         organization_ids: List[int],
-        limit: int = 100,
     ) -> List[RpcProject]:
         pass
 
