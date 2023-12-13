@@ -108,6 +108,168 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             assert self.group.substatus == GroupSubStatus.FOREVER
             assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status)
 
+    def test_ignore_issue_block_kit(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "IntegrationError",
+                "fingerprint": ["group-1"],
+                "exception": {
+                    "values": [
+                        {
+                            "type": "IntegrationError",
+                            "value": "Identity not found.",
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        status_action = {
+            "type": "button",
+            "action_id": "ignored:forever",
+            "text": {"type": "plain_text", "text": "Ignore"},
+            "value": "ignored:forever",
+        }
+        original_message = {
+            "bot_id": "B058CDV2LKW",
+            "type": "message",
+            "text": "[internal] NameError: name 'chuchu' is not defined",
+            "user": "U058NJ6N2MP",
+            "ts": "1702424381.221719",
+            "app_id": "A058NGW5NDP",
+            "blocks": [
+                {
+                    "type": "section",
+                    "block_id": '{"issue":614}',
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "<http://dev.getsentry.net:8000/organizations/sentry/issues/614/?referrer=slack&amp;notification_uuid=de21e212-d96e-4ea0-b5e2-2d04821ab9a3&amp;environment=production&amp;alert_rule_id=218&amp;alert_type=issue|*NameError*>  nname 'chuchu' is not defined",
+                        "verbatim": False,
+                    },
+                },
+                {
+                    "type": "section",
+                    "block_id": "X+9VO",
+                    "fields": [
+                        {"type": "mrkdwn", "text": "*environment:*nproduction", "verbatim": False},
+                        {"type": "mrkdwn", "text": "*release:*nabcdefg", "verbatim": False},
+                    ],
+                },
+                {
+                    "type": "context",
+                    "block_id": "N7xyp",
+                    "elements": [
+                        {
+                            "type": "mrkdwn",
+                            "text": "INTERNAL-HN via <http://dev.getsentry.net:8000/organizations/sentry/alerts/rules/internal/218/details/|email my heart> | Dec 12",
+                            "verbatim": False,
+                        }
+                    ],
+                },
+                {
+                    "type": "actions",
+                    "block_id": "bXwil",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "action_id": "resolve_dialog",
+                            "text": {"type": "plain_text", "text": "Resolve", "emoji": True},
+                            "value": "resolve_dialog",
+                        },
+                        {
+                            "type": "button",
+                            "action_id": "ignored:forever",
+                            "text": {"type": "plain_text", "text": "Ignore", "emoji": True},
+                            "value": "ignored:forever",
+                        },
+                        {
+                            "type": "static_select",
+                            "action_id": "assign",
+                            "placeholder": {
+                                "type": "plain_text",
+                                "text": "Select Assignee...",
+                                "emoji": True,
+                            },
+                            "option_groups": [
+                                {
+                                    "label": {"type": "plain_text", "text": "Teams", "emoji": True},
+                                    "options": [
+                                        {
+                                            "text": {
+                                                "type": "plain_text",
+                                                "text": "#captain-planet",
+                                                "emoji": True,
+                                            },
+                                            "value": "team:3",
+                                        },
+                                        {
+                                            "text": {
+                                                "type": "plain_text",
+                                                "text": "#sentry",
+                                                "emoji": True,
+                                            },
+                                            "value": "team:1",
+                                        },
+                                    ],
+                                },
+                                {
+                                    "label": {
+                                        "type": "plain_text",
+                                        "text": "People",
+                                        "emoji": True,
+                                    },
+                                    "options": [
+                                        {
+                                            "text": {
+                                                "type": "plain_text",
+                                                "text": "colleen@sentry.io",
+                                                "emoji": True,
+                                            },
+                                            "value": "user:1",
+                                        },
+                                        {
+                                            "text": {
+                                                "type": "plain_text",
+                                                "text": "dummy@example.com",
+                                                "emoji": True,
+                                            },
+                                            "value": "user:2",
+                                        },
+                                        {
+                                            "text": {
+                                                "type": "plain_text",
+                                                "text": "me me",
+                                                "emoji": True,
+                                            },
+                                            "value": "user:8",
+                                        },
+                                    ],
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+            "team": "TA17GH2QL",
+        }
+        assert event.group is not None
+
+        with self.feature("organizations:slack-block-kit"):
+            # we're pretending to be slack here I think
+            resp = self.post_webhook_block_kit(
+                action_data=[status_action],
+                original_message=original_message,
+                block_id=json.dumps({"issue": event.group.id}),
+            )
+            self.group = Group.objects.get(id=event.group.id)
+
+            assert resp.status_code == 200, resp.content
+            assert self.group.get_status() == GroupStatus.IGNORED
+            assert self.group.substatus == GroupSubStatus.FOREVER
+            expect_status = f"Identity not found.\n*Issue ignored by <@{self.external_id}>*"
+            assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status)
+
     def test_archive_issue(self):
         event = self.store_event(
             data={
@@ -386,7 +548,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         responses.add(
             method=responses.POST,
             url="https://slack.com/api/dialog.open",
-            body='{"ok": true}',
+            body='{"ok": True}',
             status=200,
             content_type="application/json",
         )
@@ -410,7 +572,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         responses.add(
             method=responses.POST,
             url=self.response_url,
-            body='{"ok": true}',
+            body='{"ok": True}',
             status=200,
             content_type="application/json",
         )
@@ -440,7 +602,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         responses.add(
             method=responses.POST,
             url="https://slack.com/api/dialog.open",
-            body='{"ok": true}',
+            body='{"ok": True}',
             status=200,
             content_type="application/json",
         )
@@ -464,7 +626,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         responses.add(
             method=responses.POST,
             url=self.response_url,
-            body='{"ok": true}',
+            body='{"ok": True}',
             status=200,
             content_type="application/json",
         )
@@ -498,7 +660,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         responses.add(
             method=responses.POST,
             url="https://slack.com/api/dialog.open",
-            body='{"ok": true}',
+            body='{"ok": True}',
             status=200,
             content_type="application/json",
         )
@@ -522,7 +684,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         responses.add(
             method=responses.POST,
             url=self.response_url,
-            body='{"ok": true}',
+            body='{"ok": True}',
             status=200,
             content_type="application/json",
         )
@@ -558,7 +720,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         responses.add(
             method=responses.POST,
             url="https://slack.com/api/dialog.open",
-            body='{"ok": true}',
+            body='{"ok": True}',
             status=200,
             content_type="application/json",
         )
@@ -582,7 +744,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         responses.add(
             method=responses.POST,
             url=self.response_url,
-            body='{"ok": true}',
+            body='{"ok": True}',
             status=200,
             content_type="application/json",
         )
@@ -650,7 +812,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         responses.add(
             method=responses.POST,
             url="https://slack.com/api/dialog.open",
-            body='{"ok": true}',
+            body='{"ok": True}',
             status=200,
             content_type="application/json",
         )
@@ -674,7 +836,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         responses.add(
             method=responses.POST,
             url=self.response_url,
-            body='{"ok": true}',
+            body='{"ok": True}',
             status=200,
             content_type="application/json",
         )
