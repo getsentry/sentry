@@ -28,14 +28,24 @@ class GitHubIssueBasic(IssueBasicMixin):
         return f"https://{domain_name}/{repo}/issues/{issue_id}"
 
     def get_feedback_issue_body(self, event: GroupEvent) -> str:
-        body = "|  |  |\n"
+        messages = [
+            evidence for evidence in event.occurrence.evidence_display if evidence.name == "message"
+        ]
+        others = [
+            evidence for evidence in event.occurrence.evidence_display if evidence.name != "message"
+        ]
+
+        body = ""
+        for message in messages:
+            body += message.value
+            body += "\n\n"
+
+        body += "|  |  |\n"
         body += "| ------------- | --------------- |\n"
-        for evidence in sorted(
-            event.occurrence.evidence_display, key=attrgetter("important"), reverse=True
-        ):
+        for evidence in sorted(others, key=attrgetter("important"), reverse=True):
             body += f"| **{evidence.name}** | {evidence.value} |\n"
 
-        return body[:-2]
+        return body[:-1]  # remove the last new line
 
     def get_generic_issue_body(self, event: GroupEvent) -> str:
         body = "|  |  |\n"
