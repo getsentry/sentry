@@ -78,6 +78,7 @@ class SlackRequestParser(BaseRequestParser):
                     "slack.validation_error", extra={"path": self.request.path, "error": error}
                 )
                 return None
+            self.response_url = slack_request.response_url
             return Integration.objects.filter(id=slack_request.integration.id).first()
 
         elif self.view_class in self.django_views:
@@ -111,14 +112,26 @@ class SlackRequestParser(BaseRequestParser):
         if self.view_class == SlackActionEndpoint:
             drf_request: Request = SlackDMEndpoint().initialize_request(self.request)
             slack_request = self.view_class.slack_request_class(drf_request)
+            self.response_url = slack_request.response_url
             action_option = SlackActionEndpoint.get_action_option(slack_request=slack_request)
 
             # All actions other than those below are sent to every region
             if action_option not in ACTIONS_ENDPOINT_ALL_SILOS_ACTIONS:
-                return self.get_response_from_all_regions()
+                return (
+                    self.convert_region_response_to_outbound_request(
+                        response_method=self.get_response_from_all_regions,
+                        response_url=self.response_url,
+                    )
+                    if self.response_url
+                    else self.get_response_from_all_regions()
+                )
 
         # Slack webhooks can only receive one synchronous call/response, as there are many
         # places where we post to slack on their webhook request. This would cause multiple
         # calls back to slack for every region we forward to.
         # By convention, we use the first integration organization/region
-        return self.get_response_from_first_region()
+        if self.response_url:
+            return self.convert_region_response_to_outbound_request(
+                response_method=self.get_response_from_first_region,
+                response_url=self.response_url,
+            )
