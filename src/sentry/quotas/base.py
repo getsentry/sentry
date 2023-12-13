@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from enum import IntEnum, unique
 from typing import TYPE_CHECKING, Any, Optional, Tuple
 
@@ -177,6 +178,18 @@ def _limit_from_settings(x: Any) -> int | None:
     """
 
     return int(x or 0) or None
+
+
+@dataclass
+class SeatAssignmentResult:
+    assignable: bool
+    """
+    Can the seat assignment be made?
+    """
+    reason: Optional[str] = None
+    """
+    The human readable reason the assignment can be made or not.
+    """
 
 
 def index_data_category(event_type: Optional[str], organization) -> DataCategory:
@@ -497,12 +510,18 @@ class Quota(Service):
         :param volume: The volume of transaction of the given project.
         """
 
-    def assign_monitor_seat(
-        self,
-        monitor: Monitor,
-    ) -> int:
+    def check_assign_monitor_seat(self, monitor: Monitor) -> SeatAssignmentResult:
         """
-        Determines if a monitor seat assignment is accepted or rate limited.
+        Determines if a monitor can be assigned a seat. If it is not possible
+        to assign a monitor a seat, a reason will be included in the response
+        """
+        return SeatAssignmentResult(assignable=True)
+
+    def assign_monitor_seat(self, monitor: Monitor) -> int:
+        """
+        Assigns a monitor a seat if possible, resulting in a Outcome.ACCEPTED.
+        If the monitor cannot be assigned a seat it will be
+        Outcome.RATE_LIMITED.
         """
         from sentry.utils.outcomes import Outcome
 

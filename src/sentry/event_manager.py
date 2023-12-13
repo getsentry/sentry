@@ -532,6 +532,9 @@ class EventManager:
         _derive_plugin_tags_many(jobs, projects)
         _derive_interface_tags_many(jobs)
 
+        # Background grouping is a way for us to get performance metrics for a new
+        # config without having it actually affect on how events are grouped. It runs
+        # either before or after the main grouping logic, depending on the option value.
         do_background_grouping_before = options.get("store.background-grouping-before")
         if do_background_grouping_before:
             _run_background_grouping(project, job)
@@ -539,9 +542,9 @@ class EventManager:
         secondary_hashes = None
         migrate_off_hierarchical = False
 
-        if _check_to_run_secondary_grouping(project):
+        if _should_run_secondary_grouping(project):
             with metrics.timer("event_manager.secondary_grouping", tags=metric_tags):
-                secondary_hashes = calculate_secondary_hash_if_needed(project, job)
+                secondary_hashes = _calculate_secondary_hash(project, job)
 
         with metrics.timer("event_manager.load_grouping_config"):
             # At this point we want to normalize the in_app values in case the
@@ -739,7 +742,7 @@ class EventManager:
         return job["event"]
 
 
-def _check_to_run_secondary_grouping(project: Project) -> bool:
+def _should_run_secondary_grouping(project: Project) -> bool:
     result = False
     # These two values are basically always set
     secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
@@ -749,7 +752,7 @@ def _check_to_run_secondary_grouping(project: Project) -> bool:
     return result
 
 
-def calculate_secondary_hash_if_needed(project: Project, job: Job) -> None | CalculatedHashes:
+def _calculate_secondary_hash(project: Project, job: Job) -> None | CalculatedHashes:
     """Calculate secondary hash for event using a fallback grouping config for a period of time.
     This happens when we upgrade all projects that have not opted-out to automatic upgrades plus
     when the customer changes the grouping config.
@@ -823,7 +826,6 @@ def _auto_update_grouping(project: Project) -> None:
         )
 
 
-# TODO: this seems to be dead code, validate and remove
 def _calculate_background_grouping(
     project: Project, event: Event, config: GroupingConfig
 ) -> CalculatedHashes:
