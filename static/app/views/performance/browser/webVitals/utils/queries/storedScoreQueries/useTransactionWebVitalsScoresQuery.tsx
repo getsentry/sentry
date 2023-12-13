@@ -17,6 +17,7 @@ type Props = {
   enabled?: boolean;
   limit?: number;
   opportunityWebVital?: WebVitals | 'total';
+  query?: string;
   sortName?: string;
   transaction?: string | null;
 };
@@ -28,6 +29,7 @@ export const useTransactionWebVitalsScoresQuery = ({
   sortName = 'sort',
   enabled = true,
   opportunityWebVital = 'total',
+  query,
 }: Props) => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -52,11 +54,17 @@ export const useTransactionWebVitalsScoresQuery = ({
         'avg(measurements.score.total)',
         'count()',
         `opportunity_score(measurements.score.${opportunityWebVital})`,
+        'count_scores(measurements.score.lcp)',
+        'count_scores(measurements.score.fcp)',
+        'count_scores(measurements.score.cls)',
+        'count_scores(measurements.score.ttfb)',
+        'count_scores(measurements.score.fid)',
       ],
       name: 'Web Vitals',
       query:
         'transaction.op:pageload avg(measurements.score.total):>=0' +
-        (transaction ? ` transaction:"${transaction}"` : ''),
+        (transaction ? ` transaction:"${transaction}"` : '') +
+        (query ? ` ${query}` : ''),
       version: 2,
       dataset: DiscoverDatasets.METRICS,
     },
@@ -90,6 +98,21 @@ export const useTransactionWebVitalsScoresQuery = ({
             'p75(measurements.ttfb)': row['p75(measurements.ttfb)'] as number,
             'p75(measurements.fid)': row['p75(measurements.fid)'] as number,
             'count()': row['count()'] as number,
+            'count_scores(measurements.score.lcp)': row[
+              'count_scores(measurements.score.lcp)'
+            ] as number,
+            'count_scores(measurements.score.fcp)': row[
+              'count_scores(measurements.score.fcp)'
+            ] as number,
+            'count_scores(measurements.score.cls)': row[
+              'count_scores(measurements.score.cls)'
+            ] as number,
+            'count_scores(measurements.score.ttfb)': row[
+              'count_scores(measurements.score.ttfb)'
+            ] as number,
+            'count_scores(measurements.score.fid)': row[
+              'count_scores(measurements.score.fid)'
+            ] as number,
             score: totalScore ?? 0,
             clsScore: clsScore ?? 0,
             fcpScore: fcpScore ?? 0,

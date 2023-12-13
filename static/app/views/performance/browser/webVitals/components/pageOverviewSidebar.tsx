@@ -16,6 +16,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {MiniAggregateWaterfall} from 'sentry/views/performance/browser/webVitals/components/miniAggregateWaterfall';
 import PerformanceScoreRingWithTooltips from 'sentry/views/performance/browser/webVitals/components/performanceScoreRingWithTooltips';
+import {containsWeights} from 'sentry/views/performance/browser/webVitals/utils/containsWeights';
 import {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
@@ -114,6 +115,17 @@ export function PageOverviewSidebar({
   const ringSegmentColors = theme.charts.getColorPalette(3);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
+  const weights =
+    projectScore && containsWeights(projectScore)
+      ? {
+          cls: projectScore.clsWeight,
+          fcp: projectScore.fcpWeight,
+          fid: projectScore.fidWeight,
+          lcp: projectScore.lcpWeight,
+          ttfb: projectScore.ttfbWeight,
+        }
+      : undefined;
+
   return (
     <Fragment>
       <SectionHeading>
@@ -141,6 +153,7 @@ export function PageOverviewSidebar({
             height={180}
             ringBackgroundColors={ringBackgroundColors}
             ringSegmentColors={ringSegmentColors}
+            weights={weights}
           />
         )}
         {projectScoreIsLoading && <ProjectScoreEmptyLoadingElement />}

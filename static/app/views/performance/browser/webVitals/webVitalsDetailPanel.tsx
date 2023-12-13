@@ -76,13 +76,18 @@ export function WebVitalsDetailPanel({
   const {data, isLoading} = useTransactionWebVitalsQuery({
     limit: 100,
     opportunityWebVital: webVital ?? 'total',
-    ...(shouldUseStoredScores && webVital
-      ? {
-          defaultSort: {
-            field: `opportunity_score(measurements.score.${webVital})`,
-            kind: 'desc',
-          },
-        }
+    ...(webVital
+      ? shouldUseStoredScores
+        ? {
+            query: `count_scores(measurements.score.${webVital}):>0`,
+            defaultSort: {
+              field: `opportunity_score(measurements.score.${webVital})`,
+              kind: 'desc',
+            },
+          }
+        : {
+            query: `count_web_vitals(measurements.${webVital},any):>0`,
+          }
       : {}),
     enabled: webVital !== null,
   });

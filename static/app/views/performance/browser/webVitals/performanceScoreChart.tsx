@@ -9,6 +9,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {PerformanceScoreBreakdownChart} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
+import {containsWeights} from 'sentry/views/performance/browser/webVitals/utils/containsWeights';
 import {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 
@@ -19,9 +20,6 @@ type Props = {
   projectScore?: ProjectScore;
   transaction?: string;
   webVital?: WebVitals | null;
-  weights?: {
-    [key in WebVitals]: number;
-  };
 };
 
 export const ORDER = ['lcp', 'fcp', 'fid', 'cls', 'ttfb'];
@@ -56,24 +54,6 @@ export function PerformanceScoreChart({
 
   const period = pageFilters.selection.datetime.period;
   const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
-
-  const containsWeights = (
-    weights: ProjectScore
-  ): weights is ProjectScore & {
-    clsWeight: number;
-    fcpWeight: number;
-    fidWeight: number;
-    lcpWeight: number;
-    ttfbWeight: number;
-  } => {
-    return !!(
-      weights?.clsWeight &&
-      weights?.fcpWeight &&
-      weights?.fidWeight &&
-      weights?.lcpWeight &&
-      weights?.ttfbWeight
-    );
-  };
 
   const weights =
     projectScore && containsWeights(projectScore)

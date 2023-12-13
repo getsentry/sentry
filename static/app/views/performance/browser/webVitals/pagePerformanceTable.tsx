@@ -264,9 +264,31 @@ export function PagePerformanceTable() {
         'p75(measurements.fid)',
       ].includes(key)
     ) {
+      const countWebVitalKey = shouldUseStoredScores
+        ? key.replace('p75(measurements.', 'count_scores(measurements.score.')
+        : key.replace('p75(', 'count_web_vitals(').replace(')', ', any)');
+      const countWebVital = row[countWebVitalKey];
+      if (countWebVital === 0) {
+        return (
+          <AlignRight>
+            <NoValue>{' \u2014 '}</NoValue>
+          </AlignRight>
+        );
+      }
       return <AlignRight>{getFormattedDuration((row[key] as number) / 1000)}</AlignRight>;
     }
     if (key === 'p75(measurements.cls)') {
+      const countWebVitalKey = shouldUseStoredScores
+        ? 'count_scores(measurements.score.cls)'
+        : 'count_web_vitals(measurements.cls, any)';
+      const countWebVital = row[countWebVitalKey];
+      if (countWebVital === 0) {
+        return (
+          <AlignRight>
+            <NoValue>{' \u2014 '}</NoValue>
+          </AlignRight>
+        );
+      }
       return <AlignRight>{Math.round((row[key] as number) * 100) / 100}</AlignRight>;
     }
     if (key === 'opportunity') {
@@ -407,4 +429,8 @@ const Wrapper = styled('div')`
 const StyledTooltip = styled(Tooltip)`
   top: 1px;
   position: relative;
+`;
+
+const NoValue = styled('span')`
+  color: ${p => p.theme.gray300};
 `;

@@ -42,6 +42,11 @@ export const useProjectWebVitalsScoresQuery = ({
         'avg(measurements.score.weight.ttfb)',
         'count()',
         'count_scores(measurements.score.total)',
+        'count_scores(measurements.score.lcp)',
+        'count_scores(measurements.score.fcp)',
+        'count_scores(measurements.score.cls)',
+        'count_scores(measurements.score.ttfb)',
+        'count_scores(measurements.score.fid)',
         ...(weightWebVital !== 'total'
           ? [`sum(measurements.score.weight.${weightWebVital})`]
           : []),
