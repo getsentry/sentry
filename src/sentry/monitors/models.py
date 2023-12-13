@@ -74,22 +74,6 @@ class MonitorEnvironmentValidationFailed(Exception):
     pass
 
 
-class MonitorObjectStatus:
-    ACTIVE = 0
-    MUTED = 1
-    PENDING_DELETION = 2
-    DELETION_IN_PROGRESS = 3
-
-    @classmethod
-    def as_choices(cls) -> Sequence[Tuple[int, str]]:
-        return (
-            (cls.ACTIVE, "active"),
-            (cls.MUTED, "muted"),
-            (cls.PENDING_DELETION, "pending_deletion"),
-            (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
-        )
-
-
 class MonitorStatus:
     """
     The monitor status is an extension of the ObjectStatus constants. In this
@@ -97,7 +81,7 @@ class MonitorStatus:
     represented.
 
     [!!]: This is NOT used for the status of the Monitor model itself. That is
-          a MonitorObjectStatus.
+          a ObjectStatus.
     """
 
     ACTIVE = 0
@@ -206,7 +190,7 @@ class Monitor(Model):
     # TODO(epurkhiser): Muted is moving to its own boolean column, this should
     # become object status again
     status = BoundedPositiveIntegerField(
-        default=MonitorObjectStatus.ACTIVE, choices=MonitorObjectStatus.as_choices()
+        default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices()
     )
     """
     Active status of the monitor. This is similar to most other ObjectStatus's

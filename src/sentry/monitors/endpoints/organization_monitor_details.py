@@ -23,6 +23,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
+from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.monitors.endpoints.base import MonitorEndpoint
@@ -31,7 +32,6 @@ from sentry.monitors.models import (
     Monitor,
     MonitorCheckIn,
     MonitorEnvironment,
-    MonitorObjectStatus,
     MonitorStatus,
 )
 from sentry.monitors.serializers import MonitorSerializer
@@ -131,9 +131,6 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
             params["slug"] = result["slug"]
         if "status" in result:
             params["status"] = result["status"]
-
-            # TODO(epurkhiser): Remove dual-writing once status no longer tracks muted
-            params["is_muted"] = result["status"] == MonitorObjectStatus.MUTED
         if "is_muted" in result:
             params["is_muted"] = result["is_muted"]
         if "config" in result:
@@ -216,8 +213,8 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                     )
                     .exclude(
                         monitor__status__in=[
-                            MonitorObjectStatus.PENDING_DELETION,
-                            MonitorObjectStatus.DELETION_IN_PROGRESS,
+                            ObjectStatus.PENDING_DELETION,
+                            ObjectStatus.DELETION_IN_PROGRESS,
                         ]
                     )
                     .exclude(
@@ -231,8 +228,8 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
             else:
                 monitor_objects = Monitor.objects.filter(id=monitor.id).exclude(
                     status__in=[
-                        MonitorObjectStatus.PENDING_DELETION,
-                        MonitorObjectStatus.DELETION_IN_PROGRESS,
+                        ObjectStatus.PENDING_DELETION,
+                        ObjectStatus.DELETION_IN_PROGRESS,
                     ]
                 )
                 event = audit_log.get_event_id("MONITOR_REMOVE")
@@ -248,14 +245,14 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                         )
                         .exclude(
                             status__in=[
-                                MonitorObjectStatus.PENDING_DELETION,
-                                MonitorObjectStatus.DELETION_IN_PROGRESS,
+                                ObjectStatus.PENDING_DELETION,
+                                ObjectStatus.DELETION_IN_PROGRESS,
                             ]
                         )
                         .first()
                     )
                     if rule:
-                        rule.update(status=MonitorObjectStatus.PENDING_DELETION)
+                        rule.update(status=ObjectStatus.PENDING_DELETION)
                         RuleActivity.objects.create(
                             rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
                         )
@@ -274,7 +271,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
             # create copy of queryset as update will remove objects
             monitor_objects_list = list(monitor_objects)
             if not monitor_objects or not monitor_objects.update(
-                status=MonitorObjectStatus.PENDING_DELETION
+                status=ObjectStatus.PENDING_DELETION
             ):
                 return self.respond(status=404)
 

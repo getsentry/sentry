@@ -15,10 +15,11 @@ from sentry.api.base import Endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist
+from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
-from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorObjectStatus
+from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
 
@@ -71,7 +72,7 @@ class MonitorEndpoint(Endpoint):
             raise ResourceDoesNotExist
 
         project = Project.objects.get_from_cache(id=monitor.project_id)
-        if project.status != MonitorObjectStatus.ACTIVE:
+        if project.status != ObjectStatus.ACTIVE:
             raise ResourceDoesNotExist
 
         self.check_object_permissions(request, project)
@@ -200,7 +201,7 @@ class MonitorIngestEndpoint(Endpoint):
         else:
             project = Project.objects.get_from_cache(id=monitor.project_id)
 
-        if project.status != MonitorObjectStatus.ACTIVE:
+        if project.status != ObjectStatus.ACTIVE:
             raise ResourceDoesNotExist
 
         # Validate that the authenticated project matches the monitor. This is
