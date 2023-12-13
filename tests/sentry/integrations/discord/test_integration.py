@@ -13,6 +13,7 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.integrations.integration import Integration
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import IntegrationTestCase
+from sentry.utils import json
 
 
 class DiscordIntegrationTest(IntegrationTestCase):
@@ -36,6 +37,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
         guild_id="1234567890",
         server_name="Cool server",
         auth_code="auth_code",
+        useSetup="1",
         command_response_empty=True,
     ):
         responses.reset()
@@ -93,8 +95,13 @@ class DiscordIntegrationTest(IntegrationTestCase):
             responses.GET, url=f"{DiscordClient.base_url}/users/@me", json={"id": "user_1234"}
         )
 
+        state = json.dumps({"useSetup": useSetup})
+
         resp = self.client.get(
-            "{}?{}".format(self.setup_path, urlencode({"guild_id": guild_id, "code": auth_code}))
+            "{}?{}".format(
+                self.setup_path,
+                urlencode({"guild_id": guild_id, "code": auth_code, "state": state}),
+            )
         )
 
         call_list = responses.calls
@@ -135,6 +142,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
                 guild_id="0987654321",
                 server_name="Uncool server",
                 command_response_empty=False,
+                useSetup="0",
             )
 
         integrations = Integration.objects.filter(provider=self.provider.key).order_by(
@@ -210,7 +218,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
             responses.GET, url=f"{DiscordClient.base_url}/users/@me", json={"id": user_id}
         )
 
-        result = provider._get_discord_user_id("auth_code")
+        result = provider._get_discord_user_id("auth_code", "1")
 
         assert result == user_id
 
@@ -219,7 +227,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
         provider = self.provider()
         responses.add(responses.POST, url="https://discord.com/api/v10/oauth2/token", status=500)
         with pytest.raises(IntegrationError):
-            provider._get_discord_user_id("auth_code")
+            provider._get_discord_user_id("auth_code", "1")
 
     @responses.activate
     def test_get_discord_user_id_oauth_no_token(self):
@@ -230,7 +238,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
             json={},
         )
         with pytest.raises(IntegrationError):
-            provider._get_discord_user_id("auth_code")
+            provider._get_discord_user_id("auth_code", "1")
 
     @responses.activate
     def test_get_discord_user_id_request_fail(self):
@@ -248,7 +256,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
             status=401,
         )
         with pytest.raises(IntegrationError):
-            provider._get_discord_user_id("auth_code")
+            provider._get_discord_user_id("auth_code", "1")
 
     @mock.patch("sentry.integrations.discord.client.DiscordNonProxyClient.set_application_command")
     def test_post_install_missing_credentials(self, mock_set_application_command):
