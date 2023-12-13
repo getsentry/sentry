@@ -6,6 +6,8 @@ import {CodeSnippet} from 'sentry/components/codeSnippet';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
+import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import {Extraction} from 'sentry/utils/replays/extractDomNodes';
@@ -19,6 +21,8 @@ import {ReplayTraceRow} from 'sentry/views/replays/detail/perfTable/useReplayPer
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 type MouseCallback = (frame: ReplayFrame, e: React.MouseEvent<HTMLElement>) => void;
+
+const FRAMES_WITH_BUTTONS = ['replay.hydrate-error'];
 
 interface Props {
   extraction: Extraction | undefined;
@@ -63,10 +67,13 @@ function BreadcrumbItem({
 }: Props) {
   const {color, description, projectSlug, title, icon, timestampMs} =
     getCrumbOrFrameData(frame);
+  const {replay} = useReplayContext();
+
+  const forceSpan = 'category' in frame && FRAMES_WITH_BUTTONS.includes(frame.category);
 
   return (
     <CrumbItem
-      as={onClick ? 'button' : 'span'}
+      as={onClick && !forceSpan ? 'button' : 'span'}
       onClick={e => onClick?.(frame, e)}
       onMouseEnter={e => onMouseEnter(frame, e)}
       onMouseLeave={e => onMouseLeave(frame, e)}
@@ -104,6 +111,19 @@ function BreadcrumbItem({
             />
           </InspectorWrapper>
         )}
+
+        {'data' in frame && frame.data && 'mutations' in frame.data ? (
+          <div>
+            <OpenReplayComparisonButton
+              replay={replay}
+              leftTimestamp={frame.offsetMs}
+              rightTimestamp={
+                (frame.data.mutations.next.timestamp as number) -
+                (replay?.getReplay().started_at.getTime() ?? 0)
+              }
+            />
+          </div>
+        ) : null}
 
         {extraction?.html ? (
           <CodeContainer>

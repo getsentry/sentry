@@ -21,7 +21,7 @@ jest.mock('react-router');
 jest.mock('sentry/utils/useLocation');
 
 const mockUseLocation = jest.mocked(useLocation);
-const mockRRWebFrames = []; // This is only needed for replay.hydrate breadcrumbs.
+const mockRRWebFrames = []; // This is only needed for replay.hydrate-error breadcrumbs.
 
 const replayRecord = ReplayRecordFixture();
 
