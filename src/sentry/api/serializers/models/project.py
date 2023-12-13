@@ -120,27 +120,29 @@ def get_access_by_project(
         )
 
         team_scopes = set()
-        if has_access:
-            # Project can be the child of several Teams, and the User can join
-            # several Teams and receive roles at each of them,
-            for member in member_teams:
-                role_org = member.organizationmember.organization
-                if role_org.id not in has_team_roles_cache:
-                    has_team_roles_cache[role_org.id] = features.has(
-                        "organizations:team-roles", role_org
+        with sentry_sdk.start_span(op="project.check-team-access", description=project.id) as span:
+            span.set_tag("project.member_count", len(member_teams))
+            if has_access:
+                # Project can be the child of several Teams, and the User can join
+                # several Teams and receive roles at each of them,
+                for member in member_teams:
+                    role_org = member.organizationmember.organization
+                    if role_org.id not in has_team_roles_cache:
+                        has_team_roles_cache[role_org.id] = features.has(
+                            "organizations:team-roles", role_org
+                        )
+                    team_scopes = team_scopes.union(
+                        *[member.get_scopes(has_team_roles_cache[role_org.id])]
                     )
-                team_scopes = team_scopes.union(
-                    *[member.get_scopes(has_team_roles_cache[role_org.id])]
-                )
 
-            # User may have elevated team-roles from their org-role
-            top_org_role = org_roles[0] if org_roles else None
-            if is_superuser:
-                top_org_role = organization_roles.get_top_dog().id
+                # User may have elevated team-roles from their org-role
+                top_org_role = org_roles[0] if org_roles else None
+                if is_superuser:
+                    top_org_role = organization_roles.get_top_dog().id
 
-            if top_org_role:
-                minimum_team_role = roles.get_minimum_team_role(top_org_role)
-                team_scopes = team_scopes.union(minimum_team_role.scopes)
+                if top_org_role:
+                    minimum_team_role = roles.get_minimum_team_role(top_org_role)
+                    team_scopes = team_scopes.union(minimum_team_role.scopes)
 
         result[project] = {
             "is_member": is_member,
