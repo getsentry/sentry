@@ -11,7 +11,6 @@ from sentry import features, integrations
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.utils import json
 from sentry.web.frontend.base import BaseView
 
 logger = logging.getLogger(__name__)
@@ -38,7 +37,6 @@ class IntegrationExtensionConfigurationView(BaseView):
     auth_required = False
 
     def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
-        state = json.loads(request.GET["state"])
         if not request.user.is_authenticated:
             configure_uri = "/extensions/{}/configure/?{}".format(
                 self.provider,
@@ -60,11 +58,6 @@ class IntegrationExtensionConfigurationView(BaseView):
         elif "orgSlug" in request.GET:
             organization_context = organization_service.get_organization_by_slug(
                 slug=request.GET["orgSlug"], only_visible=False
-            )
-            organization = organization_context.organization if organization_context else None
-        elif "orgSlug" in state:
-            organization_context = organization_service.get_organization_by_slug(
-                slug=state["orgSlug"], only_visible=False
             )
             organization = organization_context.organization if organization_context else None
 

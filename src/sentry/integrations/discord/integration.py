@@ -167,16 +167,19 @@ class DiscordIntegrationProvider(IntegrationProvider):
 
     def build_integration(self, state: Mapping[str, object]) -> Mapping[str, object]:
         guild_id = str(state.get("guild_id"))
+        use_setup = state.get("use_setup")
         try:
             guild_name = self.client.get_guild_name(guild_id=guild_id)
         except (ApiError, AttributeError):
             guild_name = guild_id
 
-        discord_user_id = self._get_discord_user_id(str(state.get("code")))
+        url = self.setup_url if use_setup else self.configure_url
+        discord_user_id = self._get_discord_user_id(str(state.get("code")), url)
 
         return {
             "name": guild_name,
             "external_id": guild_id,
+            "use_setup": use_setup,
             "user_identity": {
                 "type": "discord",
                 "external_id": discord_user_id,
@@ -220,7 +223,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
                 )
                 raise ApiError(str(e))
 
-    def _get_discord_user_id(self, auth_code: str) -> str:
+    def _get_discord_user_id(self, auth_code: str, url: str) -> str:
         """
         Helper function for completing the oauth2 flow and grabbing the
         installing user's Discord user id so we can link their identities.
@@ -233,7 +236,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
         integration.
 
         """
-        form_data = f"client_id={self.application_id}&client_secret={self.client_secret}&grant_type=authorization_code&code={auth_code}&redirect_uri={self.setup_url if self.pipeline.organization.slug else self.configure_url}"
+        form_data = f"client_id={self.application_id}&client_secret={self.client_secret}&grant_type=authorization_code&code={auth_code}&redirect_uri={url}"
         headers = {
             "Content-Type": "application/x-www-form-urlencoded",
         }
@@ -266,19 +269,21 @@ class DiscordIntegrationProvider(IntegrationProvider):
         )
         raise IntegrationError("Could not retrieve Discord user information.")
 
-    def _get_bot_install_url(self):
-        state = urlencode(
+    def _get_bot_install_url(
+        self,
+    ):
+        state = json.dumps({"useSetup": 1})
+        params = urlencode(
             {
                 "client_id": self.application_id,
                 "permissions": self.bot_permissions,
-                "redirect_uri": self.setup_url
-                if self.pipeline.organization.slug
-                else self.configure_url,
-                "state": json.dumps({"orgSlug": self.pipeline.organization.slug}),
+                "redirect_uri": self.setup_url,
+                "state": state,
                 "scope": " ".join(self.oauth_scopes),
+                "response_type": "code",
             }
         )  # typing
-        return f"https://discord.com/api/oauth2/authorize?{state}&response_type=code"
+        return f"https://discord.com/api/oauth2/authorize?{params}"
 
     def _credentials_exist(self) -> bool:
         has_credentials = all(
@@ -308,5 +313,17 @@ class DiscordInstallPipeline(PipelineView):
 
         pipeline.bind_state("guild_id", request.GET["guild_id"])
         pipeline.bind_state("code", request.GET["code"])
-        pipeline.bind_state("state", request.GET["state"])
+        try:
+            raw_state = json.loads(request.GET["state"])
+            pipeline.bind_state("use_setup", raw_state.get("useSetup"))
+        except (json.JSONDecodeError, ValueError) as error:
+            logger.info(
+                "identity.discord.request-token",
+                extra={
+                    "state": request.GET("state"),
+                    "guild_id": request.GET["guild_id"],
+                    "code": request.GET["code"],
+                },
+            )
+            return pipeline.error(error)
         return pipeline.next_step()
