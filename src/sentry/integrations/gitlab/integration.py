@@ -170,7 +170,7 @@ class GitlabIntegration(
 
     def get_commit_context(
         self, repo: Repository, filepath: str, ref: str, event_frame: Mapping[str, Any]
-    ) -> Mapping[str, str] | None:
+    ) -> Mapping[str, Any] | None:
         """
         Returns the latest commit that altered the line from the event frame if it exists.
         """

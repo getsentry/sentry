@@ -111,6 +111,6 @@ class CommitContextMixin(GetClient):
 
     def get_commit_context(
         self, repo: Repository, filepath: str, branch: str, event_frame: Mapping[str, Any]
-    ) -> Mapping[str, str] | None:
+    ) -> Mapping[str, Any] | None:
         """Formats the source code url used for stack trace linking."""
         raise NotImplementedError
