@@ -12,10 +12,10 @@ from sentry.constants import ObjectStatus
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
-    PROXY_BASE_PATH,
     PROXY_BASE_URL_HEADER,
     PROXY_KEYID_HEADER,
     PROXY_OI_HEADER,
+    PROXY_PATH,
     PROXY_SIGNATURE_HEADER,
     clean_outbound_headers,
     trim_leading_slashes,
@@ -170,7 +170,8 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         """
         Catch-all workaround instead of explicitly setting handlers for each method (GET, POST, etc.)
         """
-        self.proxy_path = trim_leading_slashes(request.get_full_path()[len(PROXY_BASE_PATH) :])
+        # Removes leading slashes as it can result in incorrect urls being generated
+        self.proxy_path = trim_leading_slashes(request.headers.get(PROXY_PATH, ""))
         self.log_extra["method"] = request.method
         self.log_extra["path"] = self.proxy_path
         self.log_extra["host"] = request.headers.get("Host")
