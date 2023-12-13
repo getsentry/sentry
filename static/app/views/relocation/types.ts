@@ -6,6 +6,7 @@ export type StepProps = Pick<
 > & {
   active: boolean;
   onComplete: () => void;
+  publicKey: string;
   stepIndex: number;
 };
 

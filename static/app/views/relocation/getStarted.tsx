@@ -5,12 +5,12 @@ import {motion} from 'framer-motion';
 import {Button} from 'sentry/components/button';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
-import {RelocationOnboardingContext} from 'sentry/components/onboarding/relocationOnboardingContext';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
 import StepHeading from 'sentry/views/relocation/components/stepHeading';
+import {RelocationOnboardingContext} from 'sentry/views/relocation/relocationOnboardingContext';
 
 import {StepProps} from './types';
 
