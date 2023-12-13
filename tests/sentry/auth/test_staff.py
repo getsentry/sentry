@@ -5,6 +5,7 @@ from unittest.mock import patch
 import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
+from django.test import override_settings
 from django.utils import timezone
 
 from sentry.auth.staff import Staff
@@ -95,23 +96,27 @@ class SuperuserTestCase(TestCase):
         staff.set_logged_in(request.user)
         assert staff.is_active is True
 
-    # def test_sso(self):
-    #     user = User(is_superuser=True)
-    #     request = self.make_request(user=user)
+    def test_sso(self):
+        user = User(is_staff=True)
+        request = self.make_request(user=user)
 
-    #     # no ips = any host
-    #     superuser = Superuser(request, org_id=None)
-    #     superuser.set_logged_in(request.user)
-    #     assert superuser.is_active is True
+        with patch("sentry.auth.staff.has_completed_sso", return_value=True):
+            # no ips = any host
+            staff = Staff(request)
+            staff.set_logged_in(request.user)
+            assert staff.is_active is True
 
-    #     superuser = Superuser(request, org_id=1)
-    #     superuser.set_logged_in(request.user)
-    #     assert superuser.is_active is False
+        staff = Staff(request)
+        staff.set_logged_in(request.user)
+        assert staff.is_active is False
 
-    #     mark_sso_complete(request, 1)
-    #     superuser = Superuser(request, org_id=1)
-    #     superuser.set_logged_in(request.user)
-    #     assert superuser.is_active is True
+        with override_settings(
+            STAFF_ORG_ID=1,
+        ):
+            mark_sso_complete(request, 1)
+            staff = Staff(request)
+            staff.set_logged_in(request.user)
+            assert staff.is_active is True
 
     # def test_valid_data(self):
     #     request = self.build_request()

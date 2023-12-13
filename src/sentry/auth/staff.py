@@ -11,7 +11,6 @@ from django.utils.crypto import constant_time_compare, get_random_string
 from rest_framework.request import Request
 
 from sentry.auth.elevated_mode import ElevatedMode
-from sentry.auth.superuser import ORG_ID
 from sentry.auth.system import is_system_auth
 from sentry.utils.auth import has_completed_sso
 
@@ -38,6 +37,8 @@ IDLE_MAX_STAFF_SESSION_AGE = timedelta(minutes=15)
 
 ALLOWED_IPS = frozenset(getattr(settings, "STAFF_ALLOWED_IPS", settings.INTERNAL_IPS) or ())
 
+ORG_ID = getattr(settings, "STAFF_ORG_ID", None)
+
 DISABLE_SSO_CHECK_FOR_LOCAL_DEV = getattr(settings, "DISABLE_SSO_CHECK_FOR_LOCAL_DEV", False)
 
 UNSET = object()
@@ -56,6 +57,8 @@ class Staff(ElevatedMode):
     def __init__(self, request, allowed_ips=UNSET, current_datetime=None):
         self.uid: str | None = None
         self.request = request
+        print("setting org_id", ORG_ID)
+        self.org_id = getattr(settings, "STAFF_ORG_ID", None)
         if allowed_ips is not UNSET:
             self.allowed_ips = frozenset(
                 ipaddress.ip_network(str(v), strict=False) for v in allowed_ips or ()
@@ -85,6 +88,7 @@ class Staff(ElevatedMode):
         allowed_ips = self.allowed_ips
 
         # _admin should always have completed SSO to gain status
+        print(ORG_ID)
         if not has_completed_sso(self.request, ORG_ID):
             return False, "incomplete-sso"
 
