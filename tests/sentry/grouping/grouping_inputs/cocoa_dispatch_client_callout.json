@@ -11,12 +11,7 @@
             {
               "function": "<redacted>",
               "in_app": false,
-              "data": {
-                "symbolicator_status": "unknown_image"
-              },
-              "image_addr": "0x0",
-              "instruction_addr": "0x1d2d9edcc",
-              "symbol_addr": "0x0"
+              "data": {}
             },
             {
               "function": "main",
@@ -24,12 +19,8 @@
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
               "in_app": false,
               "data": {
-                "orig_in_app": 1,
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x104ef962c",
-              "symbol_addr": "0x0"
+                "orig_in_app": 1
+              }
             },
             {
               "function": "unicorn",
@@ -38,12 +29,8 @@
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
               "in_app": false,
               "data": {
-                "orig_in_app": 1,
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x104ef9798",
-              "symbol_addr": "0x0"
+                "orig_in_app": 1
+              }
             },
             {
               "function": "UIApplicationMain",
@@ -51,12 +38,8 @@
               "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
               "in_app": false,
               "data": {
-                "category": "system",
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1b253c000",
-              "instruction_addr": "0x1b27678ec",
-              "symbol_addr": "0x0"
+                "category": "system"
+              }
             },
             {
               "function": "-[UIApplication _run]",
@@ -64,12 +47,8 @@
               "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
               "in_app": false,
               "data": {
-                "category": "internals",
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1b253c000",
-              "instruction_addr": "0x1b27682b0",
-              "symbol_addr": "0x0"
+                "category": "internals"
+              }
             },
             {
               "function": "GSEventRunModal",
@@ -77,12 +56,8 @@
               "package": "/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices",
               "in_app": false,
               "data": {
-                "category": "internals",
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1f3713000",
-              "instruction_addr": "0x1f37165e8",
-              "symbol_addr": "0x0"
+                "category": "internals"
+              }
             },
             {
               "function": "CFRunLoopRunSpecific",
@@ -90,12 +65,8 @@
               "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
               "in_app": false,
               "data": {
-                "category": "internals",
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1b0318000",
-              "instruction_addr": "0x1b034b664",
-              "symbol_addr": "0x0"
+                "category": "internals"
+              }
             },
             {
               "function": "__CFRunLoopRun",
@@ -103,12 +74,8 @@
               "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
               "in_app": false,
               "data": {
-                "category": "internals",
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1b0318000",
-              "instruction_addr": "0x1b034bf14",
-              "symbol_addr": "0x0"
+                "category": "internals"
+              }
             },
             {
               "function": "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__",
@@ -116,12 +83,8 @@
               "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
               "in_app": false,
               "data": {
-                "category": "internals",
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1b0318000",
-              "instruction_addr": "0x1b034f208",
-              "symbol_addr": "0x0"
+                "category": "internals"
+              }
             },
             {
               "function": "_dispatch_main_queue_callback_4CF",
@@ -129,12 +92,8 @@
               "package": "/usr/lib/system/libdispatch.dylib",
               "in_app": false,
               "data": {
-                "category": "internals",
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1b82d1000",
-              "instruction_addr": "0x1b82e35ac",
-              "symbol_addr": "0x0"
+                "category": "internals"
+              }
             },
             {
               "function": "_dispatch_main_queue_drain",
@@ -142,12 +101,8 @@
               "package": "/usr/lib/system/libdispatch.dylib",
               "in_app": false,
               "data": {
-                "category": "internals",
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1b82d1000",
-              "instruction_addr": "0x1b82e3994",
-              "symbol_addr": "0x0"
+                "category": "internals"
+              }
             },
             {
               "function": "_dispatch_client_callout",
@@ -155,12 +110,8 @@
               "package": "/usr/lib/system/libdispatch.dylib",
               "in_app": false,
               "data": {
-                "category": "threadbase",
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1b82d1000",
-              "instruction_addr": "0x1b82d52fc",
-              "symbol_addr": "0x0"
+                "category": "threadbase"
+              }
             },
             {
               "function": "_dispatch_block_async_invoke2",
@@ -168,12 +119,8 @@
               "package": "/usr/lib/system/libdispatch.dylib",
               "in_app": false,
               "data": {
-                "category": "internals",
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1b82d1000",
-              "instruction_addr": "0x1b82e424c",
-              "symbol_addr": "0x0"
+                "category": "internals"
+              }
             },
             {
               "function": "__NSOQSchedule_f",
@@ -181,12 +128,8 @@
               "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
               "in_app": false,
               "data": {
-                "category": "internals",
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1af2b8000",
-              "instruction_addr": "0x1af330334",
-              "symbol_addr": "0x0"
+                "category": "internals"
+              }
             },
             {
               "function": "__NSOPERATIONQUEUE_IS_STARTING_AN_OPERATION__",
@@ -194,12 +137,8 @@
               "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
               "in_app": false,
               "data": {
-                "category": "internals",
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1af2b8000",
-              "instruction_addr": "0x1af3305c8",
-              "symbol_addr": "0x0"
+                "category": "internals"
+              }
             },
             {
               "function": "-[NSOperation start]",
@@ -207,12 +146,8 @@
               "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
               "in_app": false,
               "data": {
-                "category": "indirection",
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1af2b8000",
-              "instruction_addr": "0x1af32dab0",
-              "symbol_addr": "0x0"
+                "category": "indirection"
+              }
             },
             {
               "function": "__NSOPERATION_IS_INVOKING_MAIN__",
@@ -220,12 +155,8 @@
               "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
               "in_app": false,
               "data": {
-                "category": "internals",
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1af2b8000",
-              "instruction_addr": "0x1af32e9c0",
-              "symbol_addr": "0x0"
+                "category": "internals"
+              }
             },
             {
               "function": "-[NSBlockOperation main]",
@@ -233,12 +164,8 @@
               "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
               "in_app": false,
               "data": {
-                "category": "indirection",
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1af2b8000",
-              "instruction_addr": "0x1af331138",
-              "symbol_addr": "0x0"
+                "category": "indirection"
+              }
             },
             {
               "function": "__NSBLOCKOPERATION_IS_CALLING_OUT_TO_A_BLOCK__",
@@ -246,12 +173,8 @@
               "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
               "in_app": false,
               "data": {
-                "category": "internals",
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1af2b8000",
-              "instruction_addr": "0x1af2ffcb4",
-              "symbol_addr": "0x0"
+                "category": "internals"
+              }
             },
             {
               "function": "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2",
@@ -259,12 +182,8 @@
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
               "in_app": true,
               "data": {
-                "category": "internals",
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x105b934ac",
-              "symbol_addr": "0x0"
+                "category": "internals"
+              }
             },
             {
               "function": "FudgeLogTaggedError",
@@ -272,12 +191,8 @@
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
               "in_app": false,
               "data": {
-                "orig_in_app": 1,
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x106a422a0",
-              "symbol_addr": "0x0"
+                "orig_in_app": 1
+              }
             },
             {
               "function": "FudgeLogAtLevel",
@@ -285,12 +200,8 @@
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
               "in_app": false,
               "data": {
-                "orig_in_app": 1,
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x106a41f9c",
-              "symbol_addr": "0x0"
+                "orig_in_app": 1
+              }
             },
             {
               "function": "thunk for closure",
@@ -299,12 +210,8 @@
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
               "in_app": false,
               "data": {
-                "orig_in_app": 1,
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x105d6a25c",
-              "symbol_addr": "0x0"
+                "orig_in_app": 1
+              }
             },
             {
               "function": "SentrySetupInteractor.setupSentry",
@@ -313,12 +220,8 @@
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
               "in_app": false,
               "data": {
-                "orig_in_app": 1,
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x105d70d8c",
-              "symbol_addr": "0x0"
+                "orig_in_app": 1
+              }
             },
             {
               "function": "_dispatch_lane_barrier_sync_invoke_and_complete",
@@ -326,12 +229,8 @@
               "package": "/usr/lib/system/libdispatch.dylib",
               "in_app": false,
               "data": {
-                "category": "internals",
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1b82d1000",
-              "instruction_addr": "0x1b82e46b0",
-              "symbol_addr": "0x0"
+                "category": "internals"
+              }
             },
             {
               "function": "_dispatch_client_callout",
@@ -339,12 +238,8 @@
               "package": "/usr/lib/system/libdispatch.dylib",
               "in_app": false,
               "data": {
-                "category": "threadbase",
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x1b82d1000",
-              "instruction_addr": "0x1b82d52fc",
-              "symbol_addr": "0x0"
+                "category": "threadbase"
+              }
             },
             {
               "function": "thunk for closure",
@@ -353,12 +248,8 @@
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
               "in_app": false,
               "data": {
-                "orig_in_app": 1,
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x104f24ac0",
-              "symbol_addr": "0x0"
+                "orig_in_app": 1
+              }
             },
             {
               "function": "thunk for closure",
@@ -367,12 +258,8 @@
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
               "in_app": false,
               "data": {
-                "orig_in_app": 1,
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x105d6a428",
-              "symbol_addr": "0x0"
+                "orig_in_app": 1
+              }
             },
             {
               "function": "SentrySetupInteractor.setupSentry",
@@ -381,12 +268,8 @@
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
               "in_app": false,
               "data": {
-                "orig_in_app": 1,
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x105d71800",
-              "symbol_addr": "0x0"
+                "orig_in_app": 1
+              }
             },
             {
               "function": "SentryWrapperImpl",
@@ -395,12 +278,8 @@
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
               "in_app": false,
               "data": {
-                "orig_in_app": 1,
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x105d6e660",
-              "symbol_addr": "0x0"
+                "orig_in_app": 1
+              }
             },
             {
               "function": "BugsnagWrapperImpl.start",
@@ -409,12 +288,8 @@
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
               "in_app": false,
               "data": {
-                "orig_in_app": 1,
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x105d6e354",
-              "symbol_addr": "0x0"
+                "orig_in_app": 1
+              }
             },
             {
               "function": "+[SentrySDK captureEvent:]",
@@ -422,12 +297,8 @@
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
               "in_app": false,
               "data": {
-                "orig_in_app": 1,
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x1068a0eb0",
-              "symbol_addr": "0x0"
+                "orig_in_app": 1
+              }
             },
             {
               "function": "+[SentrySDK captureEvent:withScope:]",
@@ -435,12 +306,8 @@
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
               "in_app": false,
               "data": {
-                "orig_in_app": 1,
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x1068a1024",
-              "symbol_addr": "0x0"
+                "orig_in_app": 1
+              }
             },
             {
               "function": "-[SentryHub captureEvent:withScope:additionalEnvelopeItems:]",
@@ -448,12 +315,8 @@
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
               "in_app": false,
               "data": {
-                "orig_in_app": 1,
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x1068843c0",
-              "symbol_addr": "0x0"
+                "orig_in_app": 1
+              }
             },
             {
               "function": "-[SentryClient sendEvent:withScope:alwaysAttachStacktrace:isCrashEvent:additionalEnvelopeItems:]",
@@ -461,12 +324,8 @@
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
               "in_app": false,
               "data": {
-                "orig_in_app": 1,
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x10684f394",
-              "symbol_addr": "0x0"
+                "orig_in_app": 1
+              }
             },
             {
               "function": "-[SentryClient prepareEvent:withScope:alwaysAttachStacktrace:isCrashEvent:]",
@@ -474,12 +333,8 @@
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
               "in_app": false,
               "data": {
-                "orig_in_app": 1,
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x1068502f8",
-              "symbol_addr": "0x0"
+                "orig_in_app": 1
+              }
             },
             {
               "function": "-[SentryThreadInspector getCurrentThreads]",
@@ -487,12 +342,8 @@
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
               "in_app": false,
               "data": {
-                "orig_in_app": 1,
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x1068aea64",
-              "symbol_addr": "0x0"
+                "orig_in_app": 1
+              }
             },
             {
               "function": "-[SentryStacktraceBuilder buildStacktraceForCurrentThread]",
@@ -500,12 +351,8 @@
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
               "in_app": false,
               "data": {
-                "orig_in_app": 1,
-                "symbolicator_status": "symbolicated"
-              },
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x1068ac9f4",
-              "symbol_addr": "0x0"
+                "orig_in_app": 1
+              }
             }
           ]
         },
@@ -513,26 +360,17 @@
           "frames": [
             {
               "function": "<redacted>",
-              "in_app": false,
-              "image_addr": "0x0",
-              "instruction_addr": "0x1d2d9edcc",
-              "symbol_addr": "0x0"
+              "in_app": false
             },
             {
               "function": "<redacted>",
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
-              "in_app": true,
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x104ef9630",
-              "symbol_addr": "0x0"
+              "in_app": true
             },
             {
               "function": "<redacted>",
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
-              "in_app": true,
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x104ef979c",
-              "symbol_addr": "0x0"
+              "in_app": true
             },
             {
               "function": "<redacted>",
@@ -540,10 +378,7 @@
               "in_app": false,
               "data": {
                 "category": "system"
-              },
-              "image_addr": "0x1b253c000",
-              "instruction_addr": "0x1b27678f0",
-              "symbol_addr": "0x0"
+              }
             },
             {
               "function": "<redacted>",
@@ -551,10 +386,7 @@
               "in_app": false,
               "data": {
                 "category": "internals"
-              },
-              "image_addr": "0x1b253c000",
-              "instruction_addr": "0x1b27682b4",
-              "symbol_addr": "0x0"
+              }
             },
             {
               "function": "<redacted>",
@@ -562,10 +394,7 @@
               "in_app": false,
               "data": {
                 "category": "internals"
-              },
-              "image_addr": "0x1f3713000",
-              "instruction_addr": "0x1f37165ec",
-              "symbol_addr": "0x0"
+              }
             },
             {
               "function": "<redacted>",
@@ -573,10 +402,7 @@
               "in_app": false,
               "data": {
                 "category": "internals"
-              },
-              "image_addr": "0x1b0318000",
-              "instruction_addr": "0x1b034b668",
-              "symbol_addr": "0x0"
+              }
             },
             {
               "function": "<redacted>",
@@ -584,10 +410,7 @@
               "in_app": false,
               "data": {
                 "category": "internals"
-              },
-              "image_addr": "0x1b0318000",
-              "instruction_addr": "0x1b034bf18",
-              "symbol_addr": "0x0"
+              }
             },
             {
               "function": "<redacted>",
@@ -595,10 +418,7 @@
               "in_app": false,
               "data": {
                 "category": "internals"
-              },
-              "image_addr": "0x1b0318000",
-              "instruction_addr": "0x1b034f20c",
-              "symbol_addr": "0x0"
+              }
             },
             {
               "function": "<redacted>",
@@ -606,10 +426,7 @@
               "in_app": false,
               "data": {
                 "category": "internals"
-              },
-              "image_addr": "0x1b82d1000",
-              "instruction_addr": "0x1b82e35b0",
-              "symbol_addr": "0x0"
+              }
             },
             {
               "function": "<redacted>",
@@ -617,10 +434,7 @@
               "in_app": false,
               "data": {
                 "category": "internals"
-              },
-              "image_addr": "0x1b82d1000",
-              "instruction_addr": "0x1b82e3998",
-              "symbol_addr": "0x0"
+              }
             },
             {
               "function": "<redacted>",
@@ -628,10 +442,7 @@
               "in_app": false,
               "data": {
                 "category": "internals"
-              },
-              "image_addr": "0x1b82d1000",
-              "instruction_addr": "0x1b82d5300",
-              "symbol_addr": "0x0"
+              }
             },
             {
               "function": "<redacted>",
@@ -639,10 +450,7 @@
               "in_app": false,
               "data": {
                 "category": "internals"
-              },
-              "image_addr": "0x1b82d1000",
-              "instruction_addr": "0x1b82e4250",
-              "symbol_addr": "0x0"
+              }
             },
             {
               "function": "<redacted>",
@@ -650,10 +458,7 @@
               "in_app": false,
               "data": {
                 "category": "internals"
-              },
-              "image_addr": "0x1af2b8000",
-              "instruction_addr": "0x1af330338",
-              "symbol_addr": "0x0"
+              }
             },
             {
               "function": "<redacted>",
@@ -661,10 +466,7 @@
               "in_app": false,
               "data": {
                 "category": "internals"
-              },
-              "image_addr": "0x1af2b8000",
-              "instruction_addr": "0x1af3305cc",
-              "symbol_addr": "0x0"
+              }
             },
             {
               "function": "<redacted>",
@@ -672,10 +474,7 @@
               "in_app": false,
               "data": {
                 "category": "internals"
-              },
-              "image_addr": "0x1af2b8000",
-              "instruction_addr": "0x1af32dab4",
-              "symbol_addr": "0x0"
+              }
             },
             {
               "function": "<redacted>",
@@ -683,10 +482,7 @@
               "in_app": false,
               "data": {
                 "category": "internals"
-              },
-              "image_addr": "0x1af2b8000",
-              "instruction_addr": "0x1af32e9c4",
-              "symbol_addr": "0x0"
+              }
             },
             {
               "function": "<redacted>",
@@ -694,10 +490,7 @@
               "in_app": false,
               "data": {
                 "category": "internals"
-              },
-              "image_addr": "0x1af2b8000",
-              "instruction_addr": "0x1af33113c",
-              "symbol_addr": "0x0"
+              }
             },
             {
               "function": "<redacted>",
@@ -705,50 +498,32 @@
               "in_app": false,
               "data": {
                 "category": "internals"
-              },
-              "image_addr": "0x1af2b8000",
-              "instruction_addr": "0x1af2ffcb8",
-              "symbol_addr": "0x0"
+              }
             },
             {
               "function": "<redacted>",
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
-              "in_app": true,
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x105b934b0",
-              "symbol_addr": "0x0"
+              "in_app": true
             },
             {
               "function": "<redacted>",
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
-              "in_app": true,
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x106a422a4",
-              "symbol_addr": "0x0"
+              "in_app": true
             },
             {
               "function": "<redacted>",
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
-              "in_app": true,
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x106a41fa0",
-              "symbol_addr": "0x0"
+              "in_app": true
             },
             {
               "function": "<redacted>",
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
-              "in_app": true,
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x105d6a260",
-              "symbol_addr": "0x0"
+              "in_app": true
             },
             {
               "function": "<redacted>",
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
-              "in_app": true,
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x105d70d90",
-              "symbol_addr": "0x0"
+              "in_app": true
             },
             {
               "function": "<redacted>",
@@ -756,10 +531,7 @@
               "in_app": false,
               "data": {
                 "category": "system"
-              },
-              "image_addr": "0x1b82d1000",
-              "instruction_addr": "0x1b82e46b4",
-              "symbol_addr": "0x0"
+              }
             },
             {
               "function": "<redacted>",
@@ -767,106 +539,67 @@
               "in_app": false,
               "data": {
                 "category": "internals"
-              },
-              "image_addr": "0x1b82d1000",
-              "instruction_addr": "0x1b82d5300",
-              "symbol_addr": "0x0"
+              }
             },
             {
               "function": "<redacted>",
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
-              "in_app": true,
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x104f24ac4",
-              "symbol_addr": "0x0"
+              "in_app": true
             },
             {
               "function": "<redacted>",
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
-              "in_app": true,
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x105d6a42c",
-              "symbol_addr": "0x0"
+              "in_app": true
             },
             {
               "function": "<redacted>",
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
-              "in_app": true,
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x105d71804",
-              "symbol_addr": "0x0"
+              "in_app": true
             },
             {
               "function": "<redacted>",
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
-              "in_app": true,
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x105d6e664",
-              "symbol_addr": "0x0"
+              "in_app": true
             },
             {
               "function": "<redacted>",
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
-              "in_app": true,
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x105d6e358",
-              "symbol_addr": "0x0"
+              "in_app": true
             },
             {
               "function": "<redacted>",
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
-              "in_app": true,
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x1068a0eb4",
-              "symbol_addr": "0x0"
+              "in_app": true
             },
             {
               "function": "<redacted>",
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
-              "in_app": true,
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x1068a1028",
-              "symbol_addr": "0x0"
+              "in_app": true
             },
             {
               "function": "<redacted>",
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
-              "in_app": true,
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x1068843c4",
-              "symbol_addr": "0x0"
+              "in_app": true
             },
             {
               "function": "<redacted>",
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
-              "in_app": true,
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x10684f398",
-              "symbol_addr": "0x0"
+              "in_app": true
             },
             {
               "function": "<redacted>",
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
-              "in_app": true,
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x1068502fc",
-              "symbol_addr": "0x0"
+              "in_app": true
             },
             {
               "function": "<redacted>",
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
-              "in_app": true,
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x1068aea68",
-              "symbol_addr": "0x0"
+              "in_app": true
             },
             {
               "function": "<redacted>",
               "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
-              "in_app": true,
-              "image_addr": "0x104c10000",
-              "instruction_addr": "0x1068ac9f4",
-              "symbol_addr": "0x0"
+              "in_app": true
             }
           ]
         },
