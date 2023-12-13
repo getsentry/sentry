@@ -150,8 +150,8 @@ const DifferentialFlamegraphGrid = styled('div')<{
     layout === 'table bottom'
       ? 'auto 1fr auto'
       : layout === 'table right'
-      ? 'min-content min-content 1fr'
-      : 'min-content min-content 1fr'};
+      ? 'min-content 1fr'
+      : 'min-content 1fr'};
   grid-template-columns: ${({layout}) =>
     layout === 'table bottom'
       ? '100%'
