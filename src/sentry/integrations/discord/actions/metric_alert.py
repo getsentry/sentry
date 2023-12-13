@@ -49,7 +49,7 @@ def send_incident_alert_notification(
         chart_url=chart_url,
     )
 
-    client = DiscordClient(integration_id=incident.identifier)
+    client = DiscordClient()
     try:
         client.send_message(channel, message)
     except ApiError as error:
