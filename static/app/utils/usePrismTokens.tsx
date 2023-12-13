@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react';
 import Prism from 'prismjs';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {loadPrismLanguage, prismLanguageMap} from 'sentry/utils/prism';
+import {getPrismLanguage, loadPrismLanguage} from 'sentry/utils/prism';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type PrismHighlightParams = {
@@ -23,15 +23,18 @@ type IntermediateToken = {
   types: Set<string>;
 };
 
-const useLoadPrismLanguage = (language: string, {onLoad}: {onLoad: () => void}) => {
+const useLoadPrismLanguage = (
+  language: string,
+  {code, onLoad}: {code: string; onLoad: () => void}
+) => {
   const organization = useOrganization({allowNull: true});
 
   useEffect(() => {
-    if (!language) {
+    if (!language || !code) {
       return;
     }
 
-    if (!prismLanguageMap[language.toLowerCase()]) {
+    if (!getPrismLanguage(language)) {
       trackAnalytics('stack_trace.prism_missing_language', {
         organization,
         attempted_language: language.toLowerCase(),
@@ -40,12 +43,12 @@ const useLoadPrismLanguage = (language: string, {onLoad}: {onLoad: () => void}) 
     }
 
     loadPrismLanguage(language, {onLoad});
-  }, [language, onLoad, organization]);
+  }, [code, language, onLoad, organization]);
 };
 
 const getPrismGrammar = (language: string) => {
   try {
-    const fullLanguage = prismLanguageMap[language];
+    const fullLanguage = getPrismLanguage(language);
     return Prism.languages[fullLanguage] ?? null;
   } catch (e) {
     Sentry.captureException(e);
@@ -146,7 +149,7 @@ export const usePrismTokens = ({
   const onLoad = useCallback(() => {
     setGrammar(getPrismGrammar(language));
   }, [language]);
-  useLoadPrismLanguage(language, {onLoad});
+  useLoadPrismLanguage(language, {code, onLoad});
 
   const lines = useMemo(() => {
     try {
