@@ -33,16 +33,6 @@ def _get_project_flag_updated_cache_key(org_id: int, project_id: int) -> str:
     return f"has-custom-metrics-flag-updated:{org_id}:{project_id}"
 
 
-def _mark_flag_as_updated(org_id: int, project_id: int):
-    cache_key = _get_project_flag_updated_cache_key(org_id, project_id)
-    cache.set(cache_key, "1", CACHE_TTL_IN_SECONDS)
-
-
-def _was_flag_updated(org_id: int, project_id: int) -> bool:
-    cache_key = _get_project_flag_updated_cache_key(org_id, project_id)
-    return cache.get(cache_key) is not None
-
-
 class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def create_with_partitions(
         self,
@@ -156,32 +146,28 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         try:
             org_id = generic_metric["org_id"]
             project_id = generic_metric["project_id"]
-            if _was_flag_updated(org_id, project_id):
-                metrics.incr("ddm.consumer.project_loading.debounced")
+
+            cache_key = _get_project_flag_updated_cache_key(org_id, project_id)
+            if cache.get(cache_key) is None:
                 return None
 
             project = Project.objects.get_from_cache(id=project_id)
-            metrics.incr("ddm.consumer.project_loading.loaded_from_cache")
+
+            # We try to extract the MRI from the metric_id since our goal is to check whether the MRI belongs to
+            # a metric in the `custom` namespace.
+            metric_mri = self._resolve(
+                generic_metric["mapping_meta"], generic_metric["metric_id"]
+            )
+            parsed_mri = parse_mri(metric_mri)
+            if parsed_mri is None or not is_custom_metric(parsed_mri):
+                return None
 
             if not project.flags.has_custom_metrics:
-                metrics.incr("ddm.consumer.project_loading.flag_not_set")
-
-                # We try to extract the MRI from the metric_id since our goal is to check whether the MRI belongs to
-                # a metric in the `custom` namespace.
-                metric_mri = self._resolve(
-                    generic_metric["mapping_meta"], generic_metric["metric_id"]
-                )
-                parsed_mri = parse_mri(metric_mri)
-                if parsed_mri is None or not is_custom_metric(parsed_mri):
-                    return None
-
                 # We assume that the flag update is reflected in the cache, so that upcoming calls will get the up-to-
                 # date project with the `has_custom_metrics` flag set to true.
                 project.update(flags=F("flags").bitor(Project.flags.has_custom_metrics))
 
-                _mark_flag_as_updated(org_id, project_id)
-            else:
-                _mark_flag_as_updated(org_id, project_id)
+            cache.set(cache_key, "1", CACHE_TTL_IN_SECONDS)
         except Project.DoesNotExist:
             pass
 
