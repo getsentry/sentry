@@ -1,4 +1,4 @@
-import {Project} from 'sentry/types';
+import {ObjectStatus, Project} from 'sentry/types';
 
 export enum MonitorType {
   UNKNOWN = 'unknown',
@@ -16,10 +16,6 @@ type LegacyDefaultSchedule = undefined;
 export enum ScheduleType {
   CRONTAB = 'crontab',
   INTERVAL = 'interval',
-}
-
-export enum MonitorObjectStatus {
-  ACTIVE = 'active',
 }
 
 export enum MonitorStatus {
@@ -92,7 +88,7 @@ export interface Monitor {
   name: string;
   project: Project;
   slug: string;
-  status: MonitorObjectStatus;
+  status: ObjectStatus;
   type: MonitorType;
   alertRule?: {
     targets: Array<{
