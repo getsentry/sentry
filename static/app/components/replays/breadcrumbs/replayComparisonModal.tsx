@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {DiffEditor} from '@monaco-editor/react';
 import beautify from 'js-beautify';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -9,9 +10,10 @@ import {
   useReplayContext,
 } from 'sentry/components/replays/replayContext';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
-import SplitDiff from 'sentry/components/splitDiff';
 import {TabList} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import ReplayReader from 'sentry/utils/replays/replayReader';
@@ -34,6 +36,9 @@ export default function ReplayComparisonModal({
 }: Props) {
   const fetching = false;
 
+  const config = useLegacyStore(ConfigStore);
+  const isDark = config.theme === 'dark';
+
   const [activeTab, setActiveTab] = useState<'visual' | 'html'>('html');
 
   const [leftBody, setLeftBody] = useState(null);
@@ -42,7 +47,7 @@ export default function ReplayComparisonModal({
   return (
     <OrganizationContext.Provider value={organization}>
       <Header closeButton>
-        <h4>{t('Hydration Error Diff')}</h4>
+        <h4>{t('Hydration Error')}</h4>
       </Header>
       <Body>
         <Flex gap={space(2)} column>
@@ -58,6 +63,7 @@ export default function ReplayComparisonModal({
             gap={space(2)}
             style={{
               // Using css to hide since the splitdiff uses the html from the iframes
+              // TODO: This causes a bit of a flash when switching tabs
               display: activeTab === 'visual' ? undefined : 'none',
             }}
           >
@@ -88,11 +94,20 @@ export default function ReplayComparisonModal({
               </ComparisonSideWrapper>
             </ReplayContextProvider>
           </Flex>
-          {activeTab === 'html' ? (
+          {activeTab === 'html' && leftBody && rightBody ? (
             <div>
-              {leftBody && rightBody ? (
-                <SplitDiff base={leftBody} target={rightBody} type="words" />
-              ) : null}
+              <DiffEditor
+                height="60vh"
+                theme={isDark ? 'vs-dark' : 'light'}
+                language="html"
+                original={leftBody}
+                modified={rightBody}
+                options={{
+                  // Options - https://microsoft.github.io/monaco-editor/typedoc/interfaces/editor.IDiffEditorConstructionOptions.html
+                  scrollBeyondLastLine: false,
+                  readOnly: true,
+                }}
+              />
             </div>
           ) : null}
         </Flex>

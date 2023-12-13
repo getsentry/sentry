@@ -171,8 +171,9 @@ function BreadcrumbItem({
 }
 
 export const modalCss = css`
-  width: auto;
-  max-width: 95vw;
+  width: 95vw;
+  min-height: 80vh;
+  max-height: 95vh;
 `;
 
 function CrumbProject({projectSlug}: {projectSlug: string}) {
