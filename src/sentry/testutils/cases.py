@@ -2407,7 +2407,7 @@ class TestMigrations(TransactionTestCase):
     """
     From https://www.caktusgroup.com/blog/2016/02/02/writing-unit-tests-django-migrations/
 
-    Note that when running these tests locally you will need to set the `MIGRATIONS_TEST_MIGRATE=1`
+    Note that when running these tests locally you will need to set the `--migrations`
     environmental variable for these to pass.
     """
 
@@ -2441,8 +2441,7 @@ class TestMigrations(TransactionTestCase):
         matching_migrations = [m for m in executor.loader.applied_migrations if m[0] == self.app]
         if not matching_migrations:
             raise AssertionError(
-                "no migrations detected!\n\n"
-                "try running this test with `MIGRATIONS_TEST_MIGRATE=1 pytest ...`"
+                "no migrations detected!\n\ntry running this test with `pytest --migrations ...`"
             )
         self.current_migration = [max(matching_migrations)]
         old_apps = executor.loader.project_state(migrate_from).apps
@@ -2791,8 +2790,12 @@ class MonitorTestCase(APITestCase):
 
     def _create_alert_rule(self, monitor):
         conditions = [
-            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
-            {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"},
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+            },
+            {
+                "id": "sentry.rules.conditions.regression_event.RegressionEventCondition",
+            },
             {
                 "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
                 "key": "monitor.slug",
@@ -2800,14 +2803,21 @@ class MonitorTestCase(APITestCase):
                 "value": monitor.slug,
             },
         ]
+        actions = [
+            {
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": self.user.id,
+                "targetType": "Member",
+            },
+        ]
         rule = Creator(
             name="New Cool Rule",
             owner=None,
             project=self.project,
-            action_match="any",
-            filter_match="all",
             conditions=conditions,
-            actions=[],
+            filterMatch="all",
+            action_match="any",
+            actions=actions,
             frequency=5,
             environment=self.environment.id,
         ).call()

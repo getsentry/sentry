@@ -6,10 +6,10 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {USE_STORED_SCORES} from 'sentry/views/performance/browser/webVitals/settings';
 import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {WebVitalsScoreBreakdown} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsTimeseriesQuery';
 import {useProjectWebVitalsTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useProjectWebVitalsTimeseriesQuery';
+import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import Chart from 'sentry/views/starfish/components/chart';
 
 const {
@@ -86,6 +86,7 @@ export const formatTimeSeriesResultsToChartData = (
 };
 
 export function PerformanceScoreBreakdownChart({transaction}: Props) {
+  const shouldUseStoredScores = useStoredScoresSetting();
   const theme = useTheme();
   const segmentColors = theme.charts.getColorPalette(3);
 
@@ -103,7 +104,11 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
       <Chart
         stacked
         height={180}
-        data={formatTimeSeriesResultsToChartData(data, segmentColors, !USE_STORED_SCORES)}
+        data={formatTimeSeriesResultsToChartData(
+          data,
+          segmentColors,
+          !shouldUseStoredScores
+        )}
         disableXAxis
         loading={isLoading}
         utc={false}

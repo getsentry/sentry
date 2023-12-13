@@ -77,3 +77,36 @@ export const getReplayConfigureDescription = ({link}: {link: string}) =>
       link: <ExternalLink href={link} />,
     }
   );
+
+export const getReplayJsLoaderSdkSetupSnippet = () => `
+<script>
+  Sentry.onLoad(function() {
+    Sentry.init({
+      // Session Replay
+      replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
+      replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.
+    });
+  });
+</script>`;
+
+export const getReplaySDKSetupSnippet = ({
+  importStatement,
+  dsn,
+}: {
+  dsn: string;
+  importStatement: string;
+}) =>
+  `${importStatement}
+
+  Sentry.init({
+    dsn: "${dsn}",
+
+    // This sets the sample rate at 10%. You may want this to be 100% while
+    // in development, then sample at a lower rate in production.
+    replaysSessionSampleRate: 0.1,
+    // If the entire session is not sampled, use the below sample rate to sample
+    // sessions when an error occurs.
+    replaysOnErrorSampleRate: 1.0,
+
+    integrations: [new Sentry.Replay()],
+  });`;

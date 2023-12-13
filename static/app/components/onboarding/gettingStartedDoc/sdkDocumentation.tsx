@@ -29,7 +29,6 @@ export type ModuleProps = {
   dsn: string;
   projectSlug: Project['slug'];
   activeProductSelection?: ProductSolution[];
-  hideHeader?: boolean;
   newOrg?: boolean;
   organization?: Organization;
   platformKey?: PlatformKey;
@@ -141,6 +140,7 @@ export function SdkDocumentation({
     <OnboardingLayout
       docsConfig={docs}
       dsn={projectKeys[0].dsn.public}
+      cdn={projectKeys[0].dsn.cdn}
       activeProductSelection={activeProductSelection}
       newOrg={newOrg}
       platformKey={platform.id}

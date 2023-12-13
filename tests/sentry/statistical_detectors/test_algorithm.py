@@ -200,10 +200,10 @@ def test_moving_average_detector_state_should_auto_resolve(baseline, rel_thresho
     state = MovingAverageDetectorState(
         timestamp=datetime(2023, 8, 31, 11, 28, 52),
         count=10,
-        moving_avg_short=100,
-        moving_avg_long=100,
+        moving_avg_short=baseline,
+        moving_avg_long=baseline,
     )
-    assert state.should_auto_resolve(baseline, rel_threshold) == auto_resolve
+    assert state.should_auto_resolve(100, rel_threshold) == auto_resolve
 
 
 @pytest.mark.parametrize(

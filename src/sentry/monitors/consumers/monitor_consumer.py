@@ -16,6 +16,7 @@ from django.db import router, transaction
 from sentry_sdk.tracing import Span, Transaction
 
 from sentry import ratelimits
+from sentry.constants import DataCategory, ObjectStatus
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
 from sentry.monitors.logic.mark_failed import mark_failed
@@ -28,7 +29,6 @@ from sentry.monitors.models import (
     MonitorEnvironmentLimitsExceeded,
     MonitorEnvironmentValidationFailed,
     MonitorLimitsExceeded,
-    MonitorObjectStatus,
     MonitorType,
 )
 from sentry.monitors.tasks import try_monitor_tasks_trigger
@@ -43,6 +43,7 @@ from sentry.monitors.utils import (
 from sentry.monitors.validators import ConfigValidator, MonitorCheckInValidator
 from sentry.utils import json, metrics
 from sentry.utils.dates import to_datetime
+from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +90,7 @@ def _ensure_monitor_with_config(
             defaults={
                 "project_id": project.id,
                 "name": monitor_slug,
-                "status": MonitorObjectStatus.ACTIVE,
+                "status": ObjectStatus.ACTIVE,
                 "type": MonitorType.CRON_JOB,
                 "config": validated_config,
             },
@@ -299,9 +300,27 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
     }
 
     if check_killswitch(metric_kwargs, project):
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project.id,
+            key_id=None,
+            outcome=Outcome.ABUSE,
+            reason="killswitch",
+            timestamp=start_time,
+            category=DataCategory.MONITOR,
+        )
         return
 
     if check_ratelimit(metric_kwargs, project, monitor_slug, environment):
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project.id,
+            key_id=None,
+            outcome=Outcome.RATE_LIMITED,
+            reason="rate_limited",
+            timestamp=start_time,
+            category=DataCategory.MONITOR,
+        )
         return
 
     guid, use_latest_checkin = transform_checkin_uuid(
@@ -312,6 +331,15 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
     )
 
     if guid is None:
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project.id,
+            key_id=None,
+            outcome=Outcome.INVALID,
+            reason="invalid_guid",
+            timestamp=start_time,
+            category=DataCategory.MONITOR,
+        )
         return
 
     monitor_config = params.pop("monitor_config", None)
@@ -342,6 +370,15 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             "monitors.consumer.checkin_validation_failed",
             extra={"guid": guid.hex, **params},
         )
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project.id,
+            key_id=None,
+            outcome=Outcome.INVALID,
+            reason="invalid_check_in",
+            timestamp=start_time,
+            category=DataCategory.MONITOR,
+        )
         return
 
     validated_params = validator.validated_data
@@ -364,6 +401,15 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             "monitors.consumer.monitor_limit_exceeded",
             extra={"guid": guid.hex, "project": project.id, "slug": monitor_slug},
         )
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project.id,
+            key_id=None,
+            outcome=Outcome.INVALID,
+            reason="monitor_limit_exceeded",
+            timestamp=start_time,
+            category=DataCategory.MONITOR,
+        )
         return
 
     if not monitor:
@@ -375,6 +421,15 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
         logger.info(
             "monitors.consumer.monitor_validation_failed",
             extra={"guid": guid.hex, "project": project.id, **params},
+        )
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project.id,
+            key_id=None,
+            outcome=Outcome.INVALID,
+            reason="invalid_monitor",
+            timestamp=start_time,
+            category=DataCategory.MONITOR,
         )
         return
 
@@ -399,6 +454,15 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
                 "environment": environment,
             },
         )
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project.id,
+            key_id=None,
+            outcome=Outcome.INVALID,
+            reason="monitor_environment_limit_exceeded",
+            timestamp=start_time,
+            category=DataCategory.MONITOR,
+        )
         return
     except MonitorEnvironmentValidationFailed:
         metrics.incr(
@@ -414,6 +478,15 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
                 "slug": monitor_slug,
                 "environment": environment,
             },
+        )
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project.id,
+            key_id=None,
+            outcome=Outcome.INVALID,
+            reason="invalid_monitor_environment",
+            timestamp=start_time,
+            category=DataCategory.MONITOR,
         )
         return
 
@@ -462,6 +535,15 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
                                 "environment": monitor_environment.id,
                                 "payload_environment": check_in.monitor_environment_id,
                             },
+                        )
+                        track_outcome(
+                            org_id=project.organization_id,
+                            project_id=project.id,
+                            key_id=None,
+                            outcome=Outcome.INVALID,
+                            reason="monitor_environment_mismatch",
+                            timestamp=start_time,
+                            category=DataCategory.MONITOR,
                         )
                         return
 
@@ -533,6 +615,16 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
                 else:
                     txn.set_tag("outcome", "create_new_checkin")
                     signal_first_checkin(project, monitor)
+
+            track_outcome(
+                org_id=project.organization_id,
+                project_id=project.id,
+                key_id=None,
+                outcome=Outcome.ACCEPTED,
+                reason=None,
+                timestamp=start_time,
+                category=DataCategory.MONITOR,
+            )
 
             # 04
             # Update monitor status

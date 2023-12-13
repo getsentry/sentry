@@ -4,7 +4,10 @@ import {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {
+  getReplayConfigureDescription,
+  getUploadSourceMapsStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -58,36 +61,38 @@ const getVerifySvelteSnippet = () => `
 // SomeComponent.svelte
 <button type="button" on:click="{unknownFunction}">Break the world</button>`;
 
+const getInstallConfig = () => [
+  {
+    language: 'bash',
+    code: [
+      {
+        label: 'npm',
+        value: 'npm',
+        language: 'bash',
+        code: 'npm install --save @sentry/svelte',
+      },
+      {
+        label: 'yarn',
+        value: 'yarn',
+        language: 'bash',
+        code: 'yarn add @sentry/svelte',
+      },
+    ],
+  },
+];
+
 const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      configurations: [
+      description: tct(
+        'Add the Sentry SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn]:',
         {
-          description: tct(
-            'Add the Sentry SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn]:',
-            {
-              codeYarn: <code />,
-              codeNpm: <code />,
-            }
-          ),
-          language: 'bash',
-          code: [
-            {
-              label: 'npm',
-              value: 'npm',
-              language: 'bash',
-              code: 'npm install --save @sentry/svelte',
-            },
-            {
-              label: 'yarn',
-              value: 'yarn',
-              language: 'bash',
-              code: 'yarn add @sentry/svelte',
-            },
-          ],
-        },
-      ],
+          codeYarn: <code />,
+          codeNpm: <code />,
+        }
+      ),
+      configurations: getInstallConfig(),
     },
   ],
   configure: (params: Params) => [
@@ -162,8 +167,46 @@ const onboarding: OnboardingConfig = {
   ],
 };
 
+const replayOnboarding: OnboardingConfig = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'You need a minimum version 7.27.0 of [code:@sentry/svelte] in order to use Session Replay. You do not need to install any additional packages.',
+        {
+          code: <code />,
+        }
+      ),
+      configurations: getInstallConfig(),
+    },
+  ],
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: getReplayConfigureDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/svelte/session-replay/',
+      }),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getSdkSetupSnippet({...params, isReplaySelected: true}),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  replayOnboardingNpm: replayOnboarding,
 };
 
 export default docs;

@@ -138,7 +138,7 @@ export function PageOverviewSidebar({
             projectScore={projectScore}
             text={projectScore.totalScore}
             width={220}
-            height={160}
+            height={180}
             ringBackgroundColors={ringBackgroundColors}
             ringSegmentColors={ringSegmentColors}
           />

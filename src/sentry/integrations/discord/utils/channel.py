@@ -6,8 +6,7 @@ from django.core.exceptions import ValidationError
 from requests.exceptions import Timeout
 
 from sentry.integrations.discord.client import DiscordClient
-from sentry.shared_integrations.exceptions import ApiTimeoutError, IntegrationError
-from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.shared_integrations.exceptions import ApiError, ApiTimeoutError, IntegrationError
 
 from . import logger
 

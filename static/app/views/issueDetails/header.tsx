@@ -71,7 +71,7 @@ function GroupHeaderTabs({
   const hasReplaySupport =
     organizationFeatures.has('session-replay') && projectCanLinkToReplay(project);
 
-  const issueTypeConfig = getConfigForIssueType(group);
+  const issueTypeConfig = getConfigForIssueType(group, project);
 
   useRouteAnalyticsParams({
     group_has_replay: (replaysCount ?? 0) > 0,
@@ -235,7 +235,7 @@ function GroupHeader({
     <ShortIdBreadrcumb organization={organization} project={project} group={group} />
   );
 
-  const issueTypeConfig = getConfigForIssueType(group);
+  const issueTypeConfig = getConfigForIssueType(group, project);
 
   return (
     <Layout.Header>

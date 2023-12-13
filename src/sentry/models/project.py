@@ -260,6 +260,9 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         # This project has sent feedbacks
         has_feedbacks: bool
 
+        # This project has sent new feedbacks, from the user-initiated widget
+        has_new_feedbacks: bool
+
         # spike protection flags are DEPRECATED
         spike_protection_error_currently_active: bool
         spike_protection_transaction_currently_active: bool
