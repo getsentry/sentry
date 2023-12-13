@@ -27,7 +27,6 @@ type Props = ScrollbarManagerChildrenProps & {
   isOrphan: boolean;
   isVisible: boolean;
   location: Location;
-  onRowClick: (detailKey: EventDetail | undefined) => void;
   organization: Organization;
   renderedChildren: React.ReactNode[];
   traceInfo: TraceInfo;
@@ -37,6 +36,7 @@ type Props = ScrollbarManagerChildrenProps & {
   isOrphanError?: boolean;
   measurements?: Map<number, VerticalMark>;
   numOfOrphanErrors?: number;
+  onRowClick?: (detailKey: EventDetail | undefined) => void;
   onlyOrphanErrors?: boolean;
 };
 

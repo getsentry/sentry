@@ -94,7 +94,6 @@ type Props = {
   isOrphan: boolean;
   isVisible: boolean;
   location: Location;
-  onRowClick: (detailKey: EventDetail | undefined) => void;
   onWheel: (deltaX: number) => void;
   organization: Organization;
   removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
@@ -106,6 +105,7 @@ type Props = {
   isOrphanError?: boolean;
   measurements?: Map<number, VerticalMark>;
   numOfOrphanErrors?: number;
+  onRowClick?: (detailKey: EventDetail | undefined) => void;
   onlyOrphanErrors?: boolean;
 };
 
@@ -199,7 +199,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
 
   useEffect(() => {
     if (isTraceTransaction(props.transaction)) {
-      if (isHighlighted) {
+      if (isHighlighted && props.onRowClick) {
         props.onRowClick({
           traceFullDetailedEvent: props.transaction,
           event: embeddedChildren,
