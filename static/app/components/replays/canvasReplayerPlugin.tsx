@@ -114,33 +114,35 @@ export function CanvasReplayerPlugin(events: eventWithTime[]) {
       _isSync: boolean,
       {replayer}: {replayer: Replayer}
     ) => {
-      if (e.type === EventType.IncrementalSnapshot &&
-        e.data.source === IncrementalSource.CanvasMutation) {
-          const source = replayer.getMirror().getNode(e.data.id);
-          const target =
-            canvases.get(e.data.id) ||
-            (source && cloneCanvas(e.data.id, source as HTMLCanvasElement));
+      if (
+        e.type === EventType.IncrementalSnapshot &&
+        e.data.source === IncrementalSource.CanvasMutation
+      ) {
+        const source = replayer.getMirror().getNode(e.data.id);
+        const target =
+          canvases.get(e.data.id) ||
+          (source && cloneCanvas(e.data.id, source as HTMLCanvasElement));
 
-          if (!target) {
-            Sentry.captureException(new Error('No canvas found for id'));
-            return;
-          }
+        if (!target) {
+          Sentry.captureException(new Error('No canvas found for id'));
+          return;
+        }
 
-          await canvasMutation({
-            event: e,
-            mutation: e.data,
-            target: target as HTMLCanvasElement,
-            imageMap,
-            canvasEventMap,
-            errorHandler: () => {
-              Sentry.captureException(new Error('Error with canvasMutation'));
-            },
-          });
+        await canvasMutation({
+          event: e,
+          mutation: e.data,
+          target: target as HTMLCanvasElement,
+          imageMap,
+          canvasEventMap,
+          errorHandler: () => {
+            Sentry.captureException(new Error('Error with canvasMutation'));
+          },
+        });
 
-          const img = containers.get(e.data.id);
-          if (img) {
-            img.src = target.toDataURL();
-          }
+        const img = containers.get(e.data.id);
+        if (img) {
+          img.src = target.toDataURL();
+        }
       }
     },
   } as ReplayPlugin;
