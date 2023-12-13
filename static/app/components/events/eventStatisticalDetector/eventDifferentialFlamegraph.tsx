@@ -24,22 +24,21 @@ import {
 } from 'sentry/utils/profiling/canvasScheduler';
 import {colorComponentsToRGBA} from 'sentry/utils/profiling/colors/utils';
 import {DifferentialFlamegraph as DifferentialFlamegraphModel} from 'sentry/utils/profiling/differentialFlamegraph';
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
-import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Frame} from 'sentry/utils/profiling/frame';
 import {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
+import {useDifferentialFlamegraphModel} from 'sentry/utils/profiling/hooks/useDifferentialFlamegraphModel';
 import {
   DifferentialFlamegraphQueryResult,
   useDifferentialFlamegraphQuery,
 } from 'sentry/utils/profiling/hooks/useDifferentialFlamegraphQuery';
-import {importProfile} from 'sentry/utils/profiling/profile/importProfile';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {relativeChange} from 'sentry/utils/profiling/units/units';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {LOADING_PROFILE_GROUP} from 'sentry/views/profiling/profileGroupProvider';
 
 import {useTransactionsDelta} from './transactionsDeltaProvider';
@@ -49,6 +48,7 @@ interface EventDifferentialFlamegraphProps {
 }
 
 export function EventDifferentialFlamegraph(props: EventDifferentialFlamegraphProps) {
+  const selection = usePageFilters();
   const evidenceData = props.event.occurrence?.evidenceData;
   const fingerprint = evidenceData?.fingerprint;
   const breakpoint = evidenceData?.breakpoint;
@@ -90,7 +90,7 @@ export function EventDifferentialFlamegraph(props: EventDifferentialFlamegraphPr
   const {before, after} = useDifferentialFlamegraphQuery({
     projectID: parseInt(props.event.projectID, 10),
     breakpoint,
-    environments: [],
+    environments: selection.selection.environments,
     fingerprint: props.event.occurrence?.evidenceData?.fingerprint,
     transaction: (transaction?.transaction as string) ?? '',
   });
@@ -165,8 +165,6 @@ interface EventDifferentialFlamegraphViewProps {
 }
 function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewProps) {
   const organization = useOrganization();
-  const theme = useFlamegraphTheme();
-  const flamegraphPreferences = useFlamegraphPreferences();
 
   const [frameFilterSetting, setFrameFilterSetting] = useState<
     'application' | 'system' | 'all'
@@ -179,63 +177,16 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
       ? systemFrameOnly
       : undefined;
 
-  const beforeFlamegraph = useMemo(() => {
-    if (!props.before.data) {
-      return null;
-    }
-
-    const profile = importProfile(props.before.data, '', 'flamegraph', frameFilter);
-    return new Flamegraph(profile.profiles[0], {
-      sort: flamegraphPreferences.sorting,
-      inverted: flamegraphPreferences.view === 'bottom up',
-    });
-  }, [
-    props.before,
-    flamegraphPreferences.sorting,
-    flamegraphPreferences.view,
-    frameFilter,
-  ]);
-
-  const afterProfileGroup = useMemo(() => {
-    if (!props.after.data) {
-      return null;
-    }
-
-    return importProfile(props.after.data, '', 'flamegraph', frameFilter);
-  }, [props.after, frameFilter]);
-
-  const afterFlamegraph = useMemo(() => {
-    if (!afterProfileGroup) {
-      return null;
-    }
-
-    return new Flamegraph(afterProfileGroup.profiles[0], {
-      sort: flamegraphPreferences.sorting,
-      inverted: flamegraphPreferences.view === 'bottom up',
-    });
-  }, [afterProfileGroup, flamegraphPreferences.sorting, flamegraphPreferences.view]);
-
   const [negated, setNegated] = useState<boolean>(false);
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useCanvasScheduler(canvasPoolManager);
 
-  const differentialFlamegraph = useMemo(() => {
-    if (!beforeFlamegraph || !afterFlamegraph) {
-      return DifferentialFlamegraphModel.Empty();
-    }
-
-    const txn = Sentry.startTransaction({name: 'differential_flamegraph.import'});
-    const flamegraph = DifferentialFlamegraphModel.FromDiff(
-      {
-        before: beforeFlamegraph,
-        after: afterFlamegraph,
-      },
-      {negated},
-      theme
-    );
-    txn.finish();
-    return flamegraph;
-  }, [beforeFlamegraph, afterFlamegraph, theme, negated]);
+  const {differentialFlamegraph, afterProfileGroup} = useDifferentialFlamegraphModel({
+    before: props.before,
+    after: props.after,
+    negated,
+    frameFilter,
+  });
 
   const makeFunctionFlamechartLink = useCallback(
     (frame: FlamegraphFrame): LocationDescriptor => {
