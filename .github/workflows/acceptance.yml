@@ -65,7 +65,9 @@ jobs:
 
       - name: Step configurations
         id: config
-        run: echo "webpack-path=.webpack_cache" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "webpack-path=.webpack_cache" >> "$GITHUB_OUTPUT"
+          echo "WEBPACK_CACHE_PATH=.webpack_cache" >> "$GITHUB_ENV"
 
       - name: webpack cache
         uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
@@ -86,7 +88,6 @@ jobs:
 
       - name: webpack
         env:
-          WEBPACK_CACHE_PATH: ${{ steps.config.outputs.webpack-path }}
           SENTRY_INSTRUMENTATION: 1
           # this is fine to not have for forks, it shouldn't fail
           SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
