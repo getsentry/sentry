@@ -33,7 +33,7 @@ const IN_PROGRESS_RELOCATION_ERROR_MSG = t(
   'You already have an in-progress relocation job.'
 );
 const THROTTLED_RELOCATION_ERROR_MSG = t(
-  'We have reached the daily limit of relocations.'
+  'We have reached the daily limit of relocations - please try again tomorrow, or contact support.'
 );
 const SESSION_EXPIRED_ERROR_MSG = t('Your session has expired.');
 

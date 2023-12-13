@@ -194,7 +194,7 @@ describe('Relocation', function () {
       await userEvent.click(await screen.findByText('Start Relocation'));
       await waitFor(() => expect(mockapi).toHaveBeenCalled());
       expect(addErrorMessage).toHaveBeenCalledWith(
-        'We have reached the daily limit of relocations.'
+        'We have reached the daily limit of relocations - please try again tomorrow, or contact support.'
       );
     });
 
