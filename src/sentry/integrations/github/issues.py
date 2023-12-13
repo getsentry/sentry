@@ -45,7 +45,7 @@ class GitHubIssueBasic(IssueBasicMixin):
         for evidence in sorted(others, key=attrgetter("important"), reverse=True):
             body += f"| **{evidence.name}** | {evidence.value} |\n"
 
-        return body[:-1]  # remove the last new line
+        return body.rstrip("\n")  # remove the last new line
 
     def get_generic_issue_body(self, event: GroupEvent) -> str:
         body = "|  |  |\n"
