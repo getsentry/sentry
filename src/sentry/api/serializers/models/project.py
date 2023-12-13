@@ -105,6 +105,7 @@ def get_access_by_project(
     prefetch_related_objects(projects, "organization")
 
     result = {}
+    has_team_roles_cache = {}
     for project in projects:
         parent_teams = [t.id for t in project_team_map.get(project.id, [])]
         member_teams = [m for m in team_memberships if m.team_id in parent_teams]
@@ -122,7 +123,15 @@ def get_access_by_project(
         if has_access:
             # Project can be the child of several Teams, and the User can join
             # several Teams and receive roles at each of them,
-            team_scopes = team_scopes.union(*[m.get_scopes() for m in member_teams])
+            for member in member_teams:
+                role_org = member.organizationmember.organization
+                if role_org.id not in has_team_roles_cache:
+                    has_team_roles_cache[role_org.id] = features.has(
+                        "organizations:team-roles", role_org
+                    )
+                team_scopes = team_scopes.union(
+                    *[member.get_scopes(has_team_roles_cache[role_org.id])]
+                )
 
             # User may have elevated team-roles from their org-role
             top_org_role = org_roles[0] if org_roles else None
