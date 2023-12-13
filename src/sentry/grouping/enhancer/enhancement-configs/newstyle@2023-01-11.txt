@@ -156,6 +156,7 @@ family:native function:*_block_invoke* app:no category=internals
 family:native package:/usr/lib/system/** function:start category=threadbase
 family:native package:libdyld.dylib function:start category=threadbase
 family:native package:UIKitCore function:UIApplicationMain category=threadbase
+family:native package:UIKitCore function:"-[UIApplication _run]" category=internals
 family:native function:wWinMain category=threadbase
 family:native function:invoke_main category=threadbase
 family:native function:BaseThreadInitThunk category=threadbase

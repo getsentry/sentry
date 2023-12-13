@@ -1,5 +1,5 @@
 ---
-created: '2023-12-12T14:07:26.922870Z'
+created: '2023-12-13T18:31:35.431284Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -31,7 +31,7 @@ app:
           "EXC_BAD_ACCESS"
 --------------------------------------------------------------------------
 system:
-  hash: "87497299851e09febfecf4e84e0d45ba"
+  hash: "e95e8311b0e4a69e7102a5422d8731c0"
   component:
     system*
       exception*
@@ -45,7 +45,7 @@ system:
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "UIApplicationMain"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "-[UIApplication _run]"
           frame (ignored by stack trace rule (category:internals -group))

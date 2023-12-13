@@ -1,5 +1,5 @@
 ---
-created: '2023-12-12T13:53:15.232494Z'
+created: '2023-12-13T18:31:38.172207Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -149,7 +149,7 @@ app:
           "autoplayOption"
 --------------------------------------------------------------------------
 system:
-  hash: "1921b991270e24c19ea1ed6863892d71"
+  hash: "07c715bcd4b033fab0a57e2874903460"
   component:
     system*
       exception*
@@ -165,7 +165,7 @@ system:
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "UIApplicationMain"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "-[UIApplication _run]"
           frame (ignored by stack trace rule (category:internals -group))
