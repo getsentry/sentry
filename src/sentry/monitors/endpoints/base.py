@@ -66,13 +66,13 @@ class MonitorEndpoint(Endpoint):
         except Organization.DoesNotExist:
             raise ResourceDoesNotExist
 
+        project = request.auth.project
+        if project.status != ObjectStatus.ACTIVE:
+            raise ResourceDoesNotExist
+
         try:
             monitor = Monitor.objects.get(organization_id=organization.id, slug=monitor_slug)
         except Monitor.DoesNotExist:
-            raise ResourceDoesNotExist
-
-        project = Project.objects.get_from_cache(id=monitor.project_id)
-        if project.status != ObjectStatus.ACTIVE:
             raise ResourceDoesNotExist
 
         self.check_object_permissions(request, project)
