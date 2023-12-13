@@ -284,7 +284,9 @@ class MonitorValidator(CamelSnakeSerializer):
         # Activating a monitor may only be done if the monitor may be assigned
         # a seat, otherwise fail with the reason it cannot.
         #
-        # XXX: This check will ONLY be performed when a monitor
+        # XXX: This check will ONLY be performed when a monitor is provided via
+        #      context. It is the callers responsabiliy to ensure that a
+        #      monitor is provided in context for this to be validated.
         if status == ObjectStatus.ACTIVE and monitor:
             result = quotas.backend.check_assign_monitor_seat(monitor)
             if not result.assignable:
