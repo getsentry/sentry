@@ -309,7 +309,7 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Monitor Check-Ins'),
     uid: 10,
   },
-} satisfies Record<DataCategoryExact, DataCategoryInfo>;
+} as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 
 // Special Search characters
 export const NEGATION_OPERATOR = '!';
