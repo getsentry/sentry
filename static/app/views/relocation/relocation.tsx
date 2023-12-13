@@ -23,6 +23,7 @@ import EncryptBackup from './encryptBackup';
 import GetStarted from './getStarted';
 import PublicKey from './publicKey';
 import {StepDescriptor} from './types';
+import UploadBackup from './uploadBackup';
 
 type RouteParams = {
   step: string;
@@ -48,6 +49,12 @@ function getOrganizationOnboardingSteps(): StepDescriptor[] {
       id: 'encrypt-backup',
       title: t('Encrypt backup'),
       Component: EncryptBackup,
+      cornerVariant: 'top-left',
+    },
+    {
+      id: 'upload-backup',
+      title: t('Upload backup'),
+      Component: UploadBackup,
       cornerVariant: 'top-left',
     },
   ];
