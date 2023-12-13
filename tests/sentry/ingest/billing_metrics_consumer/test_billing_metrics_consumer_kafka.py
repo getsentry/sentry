@@ -8,7 +8,10 @@ from arroyo.types import BrokerValue, Message, Partition, Topic
 from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMetric
 
 from sentry.constants import DataCategory
-from sentry.ingest.billing_metrics_consumer import BillingTxCountMetricConsumerStrategy
+from sentry.ingest.billing_metrics_consumer import (
+    BillingTxCountMetricConsumerStrategy,
+    _was_flag_updated,
+)
 from sentry.models.project import Project
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.indexer.strings import SHARED_TAG_STRINGS, TRANSACTION_METRICS_NAMES
@@ -31,6 +34,7 @@ def test_outcomes_consumed(track_outcome, factories):
     organization = factories.create_organization()
     project_1 = factories.create_project(organization=organization)
     project_2 = factories.create_project(organization=organization)
+    missing_project_id = 2
 
     transaction_usage_mri = "c:transactions/usage@none"
     transaction_usage_id = TRANSACTION_METRICS_NAMES["c:transactions/usage@none"]
@@ -55,7 +59,7 @@ def test_outcomes_consumed(track_outcome, factories):
             "mapping_meta": {"c": {str(counter_custom_metric_id): counter_custom_metric_mri}},
             "metric_id": counter_custom_metric_id,
             "type": "c",
-            "org_id": 1,
+            "org_id": organization.id,
             "project_id": project_1.id,
             "timestamp": 123,
             "value": 123.4,
@@ -67,7 +71,7 @@ def test_outcomes_consumed(track_outcome, factories):
             },
             "metric_id": distribution_custom_metric_id,
             "type": "d",
-            "org_id": 1,
+            "org_id": organization.id,
             "project_id": project_1.id,
             "timestamp": 123456,
             "value": [1.0, 2.0],
@@ -79,7 +83,7 @@ def test_outcomes_consumed(track_outcome, factories):
             "mapping_meta": {"c": {str(transaction_usage_id): transaction_usage_mri}},
             "metric_id": transaction_usage_id,
             "type": "c",
-            "org_id": 1,
+            "org_id": organization.id,
             "project_id": project_1.id,
             "timestamp": 123456,
             "value": 0.0,
@@ -89,7 +93,7 @@ def test_outcomes_consumed(track_outcome, factories):
             "mapping_meta": {"c": {str(transaction_duration_id): transaction_duration_mri}},
             "metric_id": transaction_duration_id,
             "type": "d",
-            "org_id": 1,
+            "org_id": organization.id,
             "project_id": project_1.id,
             "timestamp": 123456,
             "value": [],
@@ -100,7 +104,7 @@ def test_outcomes_consumed(track_outcome, factories):
             "mapping_meta": {"c": {str(transaction_usage_id): transaction_usage_mri}},
             "metric_id": transaction_usage_id,
             "type": "c",
-            "org_id": 1,
+            "org_id": organization.id,
             "project_id": project_2.id,
             "timestamp": 123456,
             "value": 3.0,
@@ -110,7 +114,7 @@ def test_outcomes_consumed(track_outcome, factories):
             "mapping_meta": {"c": {str(transaction_duration_id): transaction_duration_mri}},
             "metric_id": transaction_duration_id,
             "type": "d",
-            "org_id": 1,
+            "org_id": organization.id,
             "project_id": project_2.id,
             "timestamp": 123456,
             "value": [1.0, 2.0, 3.0],
@@ -122,7 +126,7 @@ def test_outcomes_consumed(track_outcome, factories):
             },
             "metric_id": distribution_custom_metric_id,
             "type": "c",
-            "org_id": 1,
+            "org_id": organization.id,
             "project_id": project_2.id,
             "timestamp": 123456,
             "value": 123.4,
@@ -133,8 +137,8 @@ def test_outcomes_consumed(track_outcome, factories):
             "mapping_meta": {"c": {str(transaction_usage_id): transaction_usage_mri}},
             "metric_id": transaction_usage_id,
             "type": "c",
-            "org_id": 1,
-            "project_id": 2,
+            "org_id": organization.id,
+            "project_id": missing_project_id,
             "timestamp": 123456,
             "value": 1.0,
             "tags": profile_tags,
@@ -143,8 +147,8 @@ def test_outcomes_consumed(track_outcome, factories):
             "mapping_meta": {"c": {str(transaction_duration_id): transaction_duration_mri}},
             "metric_id": transaction_duration_id,
             "type": "d",
-            "org_id": 1,
-            "project_id": 2,
+            "org_id": organization.id,
+            "project_id": missing_project_id,
             "timestamp": 123456,
             "value": [4.0],
             "tags": profile_tags,
@@ -192,7 +196,7 @@ def test_outcomes_consumed(track_outcome, factories):
         elif i < 7:
             assert track_outcome.mock_calls == [
                 mock.call(
-                    org_id=1,
+                    org_id=organization.id,
                     project_id=project_2.id,
                     key_id=None,
                     outcome=Outcome.ACCEPTED,
@@ -212,8 +216,8 @@ def test_outcomes_consumed(track_outcome, factories):
         else:
             assert track_outcome.mock_calls[1:] == [
                 mock.call(
-                    org_id=1,
-                    project_id=2,
+                    org_id=organization.id,
+                    project_id=missing_project_id,
                     key_id=None,
                     outcome=Outcome.ACCEPTED,
                     reason=None,
@@ -223,8 +227,8 @@ def test_outcomes_consumed(track_outcome, factories):
                     quantity=1,
                 ),
                 mock.call(
-                    org_id=1,
-                    project_id=2,
+                    org_id=organization.id,
+                    project_id=missing_project_id,
                     key_id=None,
                     outcome=Outcome.ACCEPTED,
                     reason=None,
@@ -241,3 +245,7 @@ def test_outcomes_consumed(track_outcome, factories):
 
     strategy.join()
     assert next_step.join.call_count == 1
+
+    assert _was_flag_updated(organization.id, project_1.id)
+    assert _was_flag_updated(organization.id, project_2.id)
+    assert not _was_flag_updated(organization.id, missing_project_id)
