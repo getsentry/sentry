@@ -156,14 +156,15 @@ describe('Linkify()', function () {
     expect(container).toHaveTextContent(textWithHtml);
   });
 
-  it('does not apply links to text containing urls of mixed casing', function () {
-    const url = 'Http://ExAmPlE.com';
+  it('applies links to text containing urls of mixed casing', function () {
+    const url = 'https://ExAmPlE.com';
     const text = `Go to ${url}`;
     const {container} = render(renderLinksInText({exceptionText: text}));
 
-    const textElement = screen.getByText(url);
-    expect(textElement).toBeInTheDocument();
-    expect(textElement).not.toHaveAttribute(
+    const linkElement = screen.getByRole('link', {name: url});
+
+    expect(linkElement).toBeInTheDocument();
+    expect(linkElement).toHaveAttribute(
       'href',
       `${window.location.origin}/redirect?${urlEncode({url})}`
     );
