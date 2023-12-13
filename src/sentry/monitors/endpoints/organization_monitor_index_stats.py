@@ -101,8 +101,14 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
         # parameter, we need to populate the environment_map with all the environment_ids found
         # in the set.
         if not environment_map:
-            environments = Environment.objects.filter(id__in=monitor_environment_map.values())
-            environment_map = {env.id: env.name for env in environments}
+            # Since monitor-environments can have null environment-ids we need to verify that a
+            # valid environment-id exists in the set before querying.
+            #
+            # Otherwise we can skip this and default to the "production" environment label.
+            eids = list(filter(lambda eid: eid is not None, monitor_environment_map.values()))
+            if eids:
+                environments = Environment.objects.filter(id__in=eids)
+                environment_map = {env.id: env.name for env in environments}
 
         check_ins = MonitorCheckIn.objects.filter(
             monitor_id__in=monitor_map.keys(),
