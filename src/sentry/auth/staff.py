@@ -40,6 +40,8 @@ ALLOWED_IPS = frozenset(getattr(settings, "STAFF_ALLOWED_IPS", settings.INTERNAL
 
 DISABLE_SSO_CHECK_FOR_LOCAL_DEV = getattr(settings, "DISABLE_SSO_CHECK_FOR_LOCAL_DEV", False)
 
+UNSET = object()
+
 
 def is_active_staff(request: Request) -> bool:
     if is_system_auth(getattr(request, "auth", None)):
@@ -51,10 +53,13 @@ def is_active_staff(request: Request) -> bool:
 class Staff(ElevatedMode):
     allowed_ips = frozenset(ipaddress.ip_network(str(v), strict=False) for v in ALLOWED_IPS)
 
-    def __init__(self, request, current_datetime=None):
+    def __init__(self, request, allowed_ips=UNSET, current_datetime=None):
         self.uid: str | None = None
         self.request = request
-        self.status = self.request.user.is_staff
+        if allowed_ips is not UNSET:
+            self.allowed_ips = frozenset(
+                ipaddress.ip_network(str(v), strict=False) for v in allowed_ips or ()
+            )
         self._populate(current_datetime=current_datetime)
 
     @property
@@ -103,7 +108,7 @@ class Staff(ElevatedMode):
                 key=COOKIE_NAME,
                 default=None,
                 salt=COOKIE_SALT,
-                max_staff_session_age=MAX_STAFF_SESSION_AGE.total_seconds(),
+                max_age=MAX_STAFF_SESSION_AGE.total_seconds(),
             )
         except BadSignature:
             logger.exception(
