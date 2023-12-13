@@ -375,6 +375,7 @@ class ProcessControlOutboxTest(TestCase):
             responses.add(
                 request.method,
                 f"{_TEST_REGION.address}{request.path}",
+                body=api_host_error("oh no"),
                 status=status.HTTP_504_GATEWAY_TIMEOUT,
             )
 
@@ -384,9 +385,7 @@ class ProcessControlOutboxTest(TestCase):
             parent_mock.attach_mock(mock_cache.set, "cache_set")
             parent_mock.attach_mock(mock_cache.delete, "cache_delete")
 
-            with patch.object(Session, "send", side_effect=api_host_error("oh no")), mock.patch(
-                "sentry_sdk.capture_exception"
-            ) as capture_exception:
+            with mock.patch("sentry_sdk.capture_exception") as capture_exception:
                 # Does not raise on ApiHostError exceptions
                 process_async_webhooks(
                     payload=outbox.payload,
@@ -431,6 +430,7 @@ class ProcessControlOutboxTest(TestCase):
             responses.add(
                 request.method,
                 f"{_TEST_REGION.address}{request.path}",
+                body=api_host_error("oh no"),
                 status=status.HTTP_504_GATEWAY_TIMEOUT,
             )
 
@@ -444,9 +444,7 @@ class ProcessControlOutboxTest(TestCase):
             if api_host_error == ApiConnectionResetError:
                 expected_exception = ApiConnectionResetError
 
-            with patch.object(Session, "send", side_effect=api_host_error("oh no")), raises(
-                expected_exception
-            ) as exception_info:
+            with raises(expected_exception) as exception_info:
                 # Raises on timeout errors
                 process_async_webhooks(
                     payload=outbox.payload,
