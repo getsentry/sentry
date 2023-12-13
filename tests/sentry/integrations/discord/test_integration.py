@@ -264,7 +264,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
             provider._get_discord_user_id("auth_code", "1")
 
     @responses.activate
-    @mock.patch("sentry.integrations.discord.client.DiscordNonProxyClient.set_application_command")
+    @mock.patch("sentry.integrations.discord.client.DiscordClient.set_application_command")
     def test_post_install(self, mock_set_application_command):
         provider = self.provider()
 
