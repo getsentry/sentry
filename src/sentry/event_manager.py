@@ -528,6 +528,9 @@ class EventManager:
         _derive_plugin_tags_many(jobs, projects)
         _derive_interface_tags_many(jobs)
 
+        # Background grouping is a way for us to get performance metrics for a new
+        # config without having it actually affect on how events are grouped. It runs
+        # either before or after the main grouping logic, depending on the option value.
         do_background_grouping_before = options.get("store.background-grouping-before")
         if do_background_grouping_before:
             _run_background_grouping(project, job)
@@ -819,7 +822,6 @@ def _auto_update_grouping(project: Project) -> None:
         )
 
 
-# TODO: this seems to be dead code, validate and remove
 def _calculate_background_grouping(
     project: Project, event: Event, config: GroupingConfig
 ) -> CalculatedHashes:
