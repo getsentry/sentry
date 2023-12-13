@@ -76,19 +76,16 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.is_attachment_topic = consumer_type == ConsumerType.Attachments
 
         self.multi_process = None
-        self._pool = None
-        self._attachments_pool = None
+        self._pool = MultiprocessingPool(num_processes)
 
+        # XXX: Attachment topic has two multiprocessing strategies chained together so we use
+        # two pools.
+        if self.is_attachment_topic:
+            self._attachments_pool = MultiprocessingPool(num_processes)
         if num_processes > 1:
             self.multi_process = MultiProcessConfig(
                 num_processes, max_batch_size, max_batch_time, input_block_size, output_block_size
             )
-            self._pool = MultiprocessingPool(num_processes)
-
-            # XXX: Attachment topic has two multiprocessing strategies chained together so we use
-            # two pools.
-            if self.is_attachment_topic:
-                self._attachments_pool = MultiprocessingPool(num_processes)
 
         self.health_checker = HealthChecker("ingest")
 
@@ -135,11 +132,8 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         return create_backpressure_step(health_checker=self.health_checker, next_step=step_1)
 
     def shutdown(self) -> None:
-        if self._pool:
-            self._pool.close()
-
-        if self._attachments_pool:
-            self._attachments_pool.close()
+        self._pool.close()
+        self._attachments_pool.close()
 
 
 def get_ingest_consumer(
