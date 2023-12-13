@@ -117,11 +117,20 @@ class DiscordIntegrationTest(IntegrationTestCase):
             assert mock_set_application_command.call_count == 0
 
     @responses.activate
-    def test_bot_flow_raises_error(self):
+    def test_bot_flow_logs_error(self):
         with self.tasks():
-            bad_state = "{"
-            with pytest.raises(TypeError):
-                self.assert_setup_flow(useSetup=bad_state)
+            self.assert_setup_flow(useSetup="{")
+
+        integration = Integration.objects.get(provider=self.provider.key)
+        assert integration.external_id == "1234567890"
+        assert integration.name == "Cool server"
+
+        audit_entry = AuditLogEntry.objects.get(event=audit_log.get_event_id("INTEGRATION_ADD"))
+        audit_log_event = audit_log.get(audit_entry.event)
+        assert (
+            audit_log_event.render(audit_entry)
+            == "installed Cool server for the discord integration"
+        )
 
     @responses.activate
     def test_bot_flow(self):

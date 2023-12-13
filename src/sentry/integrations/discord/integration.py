@@ -317,10 +317,9 @@ class DiscordInstallPipeline(PipelineView):
                 logger.info(
                     "identity.discord.request-token",
                     extra={
-                        "has_state": has_state,
                         "guild_id": request.GET["guild_id"],
                         "code": request.GET["code"],
+                        "error": error,
                     },
                 )
-                return pipeline.error(error)
         return pipeline.next_step()
