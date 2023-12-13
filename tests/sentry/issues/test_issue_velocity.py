@@ -5,13 +5,13 @@ from unittest.mock import patch
 from django.utils import timezone
 
 from sentry.issues.issue_velocity import (
-    DATE_FORMAT,
     DEFAULT_TTL,
     FALLBACK_TTL,
     STALE_DATE_KEY,
+    STRING_TO_DATETIME,
     THRESHOLD_KEY,
+    TIME_TO_USE_EXISTING_THRESHOLD,
     calculate_threshold,
-    convert_date_to_int,
     get_latest_threshold,
     get_redis_client,
     update_threshold,
@@ -152,9 +152,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
         """
         redis_client = get_redis_client()
         redis_client.set(THRESHOLD_KEY.format(project_id=self.project.id), 0.1)
-        redis_client.set(
-            STALE_DATE_KEY.format(project_id=self.project.id), convert_date_to_int(self.utcnow)
-        )
+        redis_client.set(STALE_DATE_KEY.format(project_id=self.project.id), str(self.utcnow))
         threshold = get_latest_threshold(self.project)
         mock_update.assert_not_called()
         assert threshold == 0.1
@@ -168,7 +166,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
         redis_client.set(THRESHOLD_KEY.format(project_id=self.project.id), 1.2)
         redis_client.set(
             STALE_DATE_KEY.format(project_id=self.project.id),
-            convert_date_to_int(self.utcnow - timedelta(days=1)),
+            str(self.utcnow - timedelta(days=1)),
         )
         mock_update.return_value = 1.5
         assert get_latest_threshold(self.project) == 1.5
@@ -190,7 +188,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
         redis_client.set(THRESHOLD_KEY.format(project_id=self.project.id), 0.7)
         redis_client.set(
             STALE_DATE_KEY.format(project_id=self.project.id),
-            convert_date_to_int(self.utcnow - timedelta(days=1)),
+            str(self.utcnow - timedelta(days=1)),
         )
 
         lock = locks.get(
@@ -227,11 +225,17 @@ class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
         threshold = update_threshold(self.project.id, "threshold-key", "date-key")
         assert threshold == 5
         redis_client = get_redis_client()
-        assert redis_client.mget(["threshold-key", "date-key"]) == [
-            "5",
-            self.utcnow.strftime(DATE_FORMAT),
-        ]
+        assert redis_client.get("threshold-key") == "5"
+        # self.utcnow and the datetime.utcnow() used in the update method may vary in milliseconds so we can't do a direct comparison
+        assert (
+            0
+            <= (
+                datetime.strptime(redis_client.get("date-key"), STRING_TO_DATETIME) - self.utcnow
+            ).total_seconds()
+            < 1
+        )
         assert redis_client.ttl("threshold-key") == DEFAULT_TTL
+        assert redis_client.ttl("date-key") == DEFAULT_TTL
 
     @patch("sentry.issues.issue_velocity.calculate_threshold")
     def test_update_threshold_none(self, mock_calculation):
@@ -242,26 +246,51 @@ class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
         mock_calculation.return_value = None
         assert update_threshold(self.project, "threshold-key", "date-key") == 0
         redis_client = get_redis_client()
-        assert redis_client.mget(["threshold-key", "date-key"]) == [
-            "0",
-            self.utcnow.strftime(DATE_FORMAT),
-        ]
+        assert redis_client.get("threshold-key") == "0"
+        assert (
+            0
+            <= (
+                datetime.strptime(redis_client.get("date-key"), STRING_TO_DATETIME)
+                - (
+                    self.utcnow
+                    - timedelta(seconds=TIME_TO_USE_EXISTING_THRESHOLD)
+                    + timedelta(seconds=FALLBACK_TTL)
+                )
+            ).total_seconds()
+            < 1
+        )
         assert redis_client.ttl("threshold-key") == FALLBACK_TTL
+        assert redis_client.ttl("date-key") == FALLBACK_TTL
 
     @patch("sentry.issues.issue_velocity.calculate_threshold")
     def test_update_threshold_with_stale(self, mock_calculation):
         """
-        Tests that we return the stale threshold and save it for a shorter amount of time than the
-        default if the calculation returned None and we have an existing threhsold.
+        Tests that we return the stale threshold and maintain its TTL, and update the stale date to
+        make the threshold usable for the next ten minutes if the calculation returned None and we
+        have an existing threhsold.
         """
         mock_calculation.return_value = None
+        redis_client = get_redis_client()
+        redis_client.set("threshold-key", 0.5, ex=86400)
+
         assert update_threshold(self.project, "threshold-key", "date-key", 0.5) == 0.5
         redis_client = get_redis_client()
-        assert redis_client.mget(["threshold-key", "date-key"]) == [
-            "0.5",
-            self.utcnow.strftime(DATE_FORMAT),
-        ]
-        assert redis_client.ttl("threshold-key") == FALLBACK_TTL
+        assert redis_client.get("threshold-key") == "0.5"
+        assert (
+            0
+            <= (
+                datetime.strptime(redis_client.get("date-key"), STRING_TO_DATETIME)
+                - (
+                    self.utcnow
+                    - timedelta(seconds=TIME_TO_USE_EXISTING_THRESHOLD)
+                    + timedelta(seconds=FALLBACK_TTL)
+                )
+            ).total_seconds()
+            < 1
+        )
+
+        assert redis_client.ttl("threshold-key") == 86400
+        assert redis_client.ttl("date-key") == 86400
 
     @patch("sentry.issues.issue_velocity.calculate_threshold")
     def test_update_threshold_nan(self, mock_calculation):
@@ -271,8 +300,12 @@ class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
         mock_calculation.return_value = float("nan")
         assert update_threshold(self.project, "threshold-key", "date-key") == 0
         redis_client = get_redis_client()
-        assert redis_client.mget(["threshold-key", "date-key"]) == [
-            "0",
-            self.utcnow.strftime(DATE_FORMAT),
-        ]
+        assert redis_client.get("threshold-key") == "0"
+        assert (
+            0
+            <= (
+                datetime.strptime(redis_client.get("date-key"), STRING_TO_DATETIME) - self.utcnow
+            ).total_seconds()
+            < 1
+        )
         assert redis_client.ttl("threshold-key") == DEFAULT_TTL

@@ -46,7 +46,8 @@ DEFAULT_TTL = 48 * 60 * 60  # 2 days
 FALLBACK_TTL = 10 * 60  # 10 minutes; TTL for storing temporary values while we can't query Snuba
 THRESHOLD_KEY = "new-issue-escalation-threshold:{project_id}"
 STALE_DATE_KEY = "new-issue-escalation-threshold-stale-date:{project_id}"
-DATE_FORMAT = "%Y%m%d"
+STRING_TO_DATETIME = "%Y-%m-%d %H:%M:%S.%f"
+TIME_TO_USE_EXISTING_THRESHOLD = 24 * 60 * 60  # 1 day
 
 
 def calculate_threshold(project: Project) -> Optional[float]:
@@ -153,30 +154,40 @@ def update_threshold(
 ) -> float:
     """
     Runs the calculation for the threshold and saves it and the date it is last updated to Redis.
-    If the threshold is NaN, we save it as 0 at the normal TTL. If the threshold is None (due to
-    Snuba errors), we save it as the stale threshold if we have one, otherwise 0, with the fallback
-    TTL.
+    If the threshold is NaN, we save it as 0 at the normal TTL. If the threshold is `None` (due to
+    Snuba errors), we save it as the stale threshold if we have one with its existing TTL and
+    update its stale date to make it usable for a set period of time (`FALLBACK_TTL`).
+    Otherwise if we don't have a stale threshold, we save it as 0 with the fallback TTL.
     """
     threshold = calculate_threshold(project)
-    ttl = DEFAULT_TTL
-    if threshold is None:
-        logger.warning(
-            "sentry.issues.issue_velocity.update_threshold.fallback",
-            extra={"project_id": project.id, "fallback_value": stale_threshold},
-        )
-        threshold = stale_threshold if stale_threshold is not None else 0
-        ttl = FALLBACK_TTL
-    elif math.isnan(threshold):  # indicates there were no valid events to base the calculation
+    if threshold is not None and math.isnan(threshold):
         threshold = 0
 
+    ttl = DEFAULT_TTL
+    stale_date = datetime.utcnow()
     client = get_redis_client()
     with client.pipeline() as p:
-        p.set(threshold_key, threshold, ex=ttl)
-        p.set(stale_date_key, convert_date_to_int(datetime.utcnow()), ex=ttl),
+        if threshold is None:  # Snuba failmode
+            # current datetime - the amount of time a threshold is valid for + how much time to wait before trying to query Snuba for the threshold again
+            stale_date = (
+                stale_date
+                - timedelta(seconds=TIME_TO_USE_EXISTING_THRESHOLD)
+                + timedelta(seconds=FALLBACK_TTL)
+            )
+            if stale_threshold is None:
+                ttl = FALLBACK_TTL
+                threshold = 0
+                p.set(threshold_key, threshold, ex=ttl)
+            else:
+                # use the stale threshold and maintain its ttl so threshold and stale date expire in redis at the same time
+                threshold = stale_threshold
+                ttl = client.ttl(threshold_key)
+            metrics.incr("issues.update_new_escalation_threshold", tags={"useFallback": True})
+        else:
+            p.set(threshold_key, threshold, ex=ttl)
+            metrics.incr("issues.update_new_escalation_threshold", tags={"useFallback": False})
+        p.set(stale_date_key, str(stale_date), ex=ttl)
         p.execute()
-    metrics.incr(
-        "issues.update_new_escalation_threshold", tags={"useFallback": ttl == FALLBACK_TTL}
-    )
 
     return threshold
 
@@ -192,9 +203,18 @@ def get_latest_threshold(project: Project) -> float:
     ]
     client = get_redis_client()
     cache_results = client.mget(keys)  # returns None if key is nonexistent
-    threshold, stale_date = cache_results[0], cache_results[1]
-    now = convert_date_to_int(datetime.utcnow())
-    if (stale_date and int(stale_date) < now) or stale_date is None or threshold is None:
+    threshold = cache_results[0]
+    stale_date = (
+        datetime.strptime(cache_results[1], STRING_TO_DATETIME)
+        if cache_results[1] is not None
+        else None
+    )
+    now = datetime.utcnow()
+    if (
+        (stale_date and ((now - stale_date).total_seconds() > TIME_TO_USE_EXISTING_THRESHOLD))
+        or stale_date is None
+        or threshold is None
+    ):
         lock = locks.get(
             f"calculate_project_thresholds:{project.id}",
             duration=10,
@@ -203,10 +223,11 @@ def get_latest_threshold(project: Project) -> float:
         try:
             with lock.acquire():
                 threshold = update_threshold(project, keys[0], keys[1], threshold)
-        except UnableToAcquireLock as error:  # another process is already updating
+        except UnableToAcquireLock:  # another process is already updating
             logger.warning(
                 "issue_velocity.get_latest_threshold.unable_to_acquire_lock",
-                extra={"org_id": project.organization.id, "project_id": project.id, "error": error},
+                exc_info=True,
+                extra={"org_id": project.organization.id, "project_id": project.id},
             )
             threshold = float(threshold) if threshold else 0  # use stale value if possible
     else:
@@ -217,7 +238,3 @@ def get_latest_threshold(project: Project) -> float:
 
 def get_redis_client() -> RedisCluster | StrictRedis:
     return redis_clusters.get(settings.SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER)
-
-
-def convert_date_to_int(date: datetime) -> int:
-    return int(date.strftime(DATE_FORMAT))
