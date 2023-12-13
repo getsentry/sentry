@@ -7,6 +7,7 @@ from copy import deepcopy
 from typing import Any, ClassVar, Dict, List, Mapping, Sequence
 
 from sentry.integrations.utils import where_should_sync
+from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.integrations.external_issue import ExternalIssue
@@ -78,6 +79,14 @@ class IssueBasicMixin:
         params = {}
         if kwargs.get("link_referrer"):
             params["referrer"] = kwargs.get("link_referrer")
+
+        if group.issue_category == GroupCategory.FEEDBACK:
+            return [
+                "Sentry Feedback: [{}]({})".format(
+                    group.qualified_short_id, absolute_uri(group.get_absolute_url(params=params))
+                )
+            ]
+
         return [
             "Sentry Issue: [{}]({})".format(
                 group.qualified_short_id, absolute_uri(group.get_absolute_url(params=params))

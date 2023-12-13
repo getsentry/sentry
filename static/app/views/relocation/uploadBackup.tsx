@@ -5,7 +5,6 @@ import {motion} from 'framer-motion';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
-import {RelocationOnboardingContext} from 'sentry/components/onboarding/relocationOnboardingContext';
 import Well from 'sentry/components/well';
 import {IconFile, IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -14,6 +13,7 @@ import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import StepHeading from 'sentry/views/relocation/components/stepHeading';
+import {RelocationOnboardingContext} from 'sentry/views/relocation/relocationOnboardingContext';
 
 import {StepProps} from './types';
 

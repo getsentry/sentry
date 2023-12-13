@@ -34,6 +34,7 @@ import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/web
 import {
   Row,
   SORTABLE_FIELDS,
+  SORTABLE_SCORE_FIELDS,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
@@ -133,8 +134,10 @@ export function PagePerformanceTable() {
         query: {...location.query, sort: newSort},
       };
     }
-
-    const canSort = (SORTABLE_FIELDS as unknown as string[]).includes(col.key);
+    const sortableFields = shouldUseStoredScores
+      ? SORTABLE_FIELDS
+      : SORTABLE_FIELDS.filter(field => !SORTABLE_SCORE_FIELDS.includes(field));
+    const canSort = (sortableFields as unknown as string[]).includes(col.key);
 
     if (canSort && !['score', 'opportunity'].includes(col.key)) {
       return (

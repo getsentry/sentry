@@ -1005,6 +1005,13 @@ def save_versioned_regressions(
     regression_type: RegressionType,
     batch_size=100,
 ) -> Generator[BreakpointData, None, None]:
+    def generate_fingerprint(regression) -> str:
+        if regression_type == RegressionType.ENDPOINT:
+            return fingerprint_regression(regression["transaction"])
+        elif regression_type == RegressionType.FUNCTION:
+            return f"{int(regression['transaction']):x}"
+        else:
+            raise ValueError(f"Unsupported RegressionType: {regression_type}")
 
     for regression_chunk in chunked(versioned_regressions, batch_size):
         RegressionGroup.objects.bulk_create(
@@ -1017,7 +1024,7 @@ def save_versioned_regressions(
                     version=version,
                     active=True,
                     project_id=int(regression["project"]),
-                    fingerprint=fingerprint_regression(regression["transaction"]),
+                    fingerprint=generate_fingerprint(regression),
                     baseline=regression["aggregate_range_1"],
                     regressed=regression["aggregate_range_2"],
                 )

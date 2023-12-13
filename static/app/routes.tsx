@@ -2228,14 +2228,13 @@ function buildRoutes() {
         component={make(() => import('sentry/views/profiling/profileSummary'))}
       />
       <Route
+        path="profile/:projectId/differential-flamegraph/"
+        component={make(() => import('sentry/views/profiling/differentialFlamegraph'))}
+      />
+      <Route
         path="profile/:projectId/:eventId/"
         component={make(() => import('sentry/views/profiling/profilesProvider'))}
       >
-        {/* @TODO Remove flamechart route name */}
-        <Route
-          path="flamechart/"
-          component={make(() => import('sentry/views/profiling/profileFlamechart'))}
-        />
         <Route
           path="flamegraph/"
           component={make(() => import('sentry/views/profiling/profileFlamechart'))}
