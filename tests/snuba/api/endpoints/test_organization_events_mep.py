@@ -2856,6 +2856,35 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         )
         assert response.status_code == 400, response.content
 
+    def test_no_weighted_performance_score_column(self):
+        self.store_transaction_metric(
+            0.0,
+            metric="measurements.score.lcp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "weighted_performance_score(measurements.score.lcp)",
+                ],
+                "query": "event.type:transaction",
+                "dataset": "metrics",
+                "per_page": 50,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+        field_meta = meta["fields"]
+
+        assert data[0]["weighted_performance_score(measurements.score.lcp)"] == 0.0
+        assert meta["isMetricsData"]
+        assert field_meta["weighted_performance_score(measurements.score.lcp)"] == "number"
+
     def test_opportunity_score(self):
         self.store_transaction_metric(
             0.03,
@@ -3140,6 +3169,10 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
 
     @pytest.mark.xfail(reason="Not implemented")
     def test_invalid_weighted_performance_score_column(self):
+        super().test_invalid_weighted_performance_score_column()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_no_weighted_performance_score_column(self):
         super().test_invalid_weighted_performance_score_column()
 
     @pytest.mark.xfail(reason="Not implemented")
