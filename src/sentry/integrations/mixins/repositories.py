@@ -61,9 +61,9 @@ class RepositoryMixin:
             return None
         except ApiError as e:
             if e.code != 404:
+                sentry_sdk.capture_exception()
                 raise
 
-            sentry_sdk.capture_exception()
             return None
 
         return self.format_source_url(repo, filepath, branch)
