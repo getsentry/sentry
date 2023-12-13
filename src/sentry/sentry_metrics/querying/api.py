@@ -191,14 +191,10 @@ class MutableQuery:
             )
         elif isinstance(query, Timeseries):
             if (entry := DEFAULT_REGISTRY.get(query.aggregate)) is not None:
-                # TODO: infer entity from timeseries metric.
-                if entry.is_supported(EntityKey.GenericMetricsGauges):
-                    aliased_query = entry.get(query)
-                    # We recursively alias the aliased query, since it might contain other aliases. It's important
-                    # to note that if a recursive definition is defined, the system will go into an endless recursion.
-                    # It can be technically avoided by keeping track of which expressions we expanded already, to avoid
-                    # doing it again.
-                    return self._alias_ops(aliased_query)
+                # failure_rate(metric)
+                # Timeseries(failure_rate, [metric])
+                expr = entry.expression()
+                replace(expr, query.parameters)
 
         return query
 

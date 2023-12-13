@@ -10,15 +10,38 @@ class AvgGauge(RegistryEntry):
     def from_op(self) -> str:
         return "avg"
 
-    def supported_entities(self) -> Set[EntityKey]:
-        return {EntityKey.GenericMetricsGauges}
-
     def get(self, prev_timeseries: Timeseries) -> Union[Formula, Timeseries]:
         return Formula(
             operator=ArithmeticOperator.DIVIDE,
             parameters=[
                 prev_timeseries.set_aggregate("sum"),
                 prev_timeseries.set_aggregate("count"),
+            ],
+        )
+
+class Type(Enum):
+    STRING
+    NUMBER
+    METRIC
+
+
+class FailureRate(RegistryEntry):
+
+    def op() -> str:
+        return "failure_rate"
+
+    def expression(self) -> Union[Formula, Timeseries]:
+        return Formula(
+            operator=ArithmeticOperator.DIVIDE,
+            parameters=[
+                Timeseries(
+                    aggregate="count",
+                    params=[Placeholder(0, type=MRI)] + ["failure": "true"]
+                ),
+                Timeseries(
+                    aggregate="count",
+                    params=Placeholder(0, type=MRI)
+                ),
             ],
         )
 
