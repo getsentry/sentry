@@ -156,17 +156,18 @@ describe('Linkify()', function () {
     expect(container).toHaveTextContent(textWithHtml);
   });
 
-  it('applies links to text containing urls of mixed casing', function () {
+  it('does not apply links to text containing urls of mixed casing', function () {
     const url = 'Http://ExAmPlE.com';
-    const mixedCaseText = `check this link: ${url}`;
-    const {container} = render(renderLinksInText({exceptionText: mixedCaseText}));
-    const linkElement = screen.getByRole('link', {name: url});
-    expect(linkElement).toBeInTheDocument();
-    expect(linkElement).toHaveAttribute(
+    const text = `Go to ${url}`;
+    const {container} = render(renderLinksInText({exceptionText: text}));
+
+    const textElement = screen.getByText(url);
+    expect(textElement).toBeInTheDocument();
+    expect(textElement).not.toHaveAttribute(
       'href',
       `${window.location.origin}/redirect?${urlEncode({url})}`
     );
 
-    expect(container.firstChild).toHaveTextContent('check this link:');
+    expect(container.firstChild).toHaveTextContent('Go to');
   });
 });

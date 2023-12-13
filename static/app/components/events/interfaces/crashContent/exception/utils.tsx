@@ -1,7 +1,9 @@
 import {Fragment, ReactElement} from 'react';
 import {urlEncode} from '@sentry/utils';
 
+import ExternalLink from 'sentry/components/links/externalLink';
 import type {Frame} from 'sentry/types';
+import {isUrl} from 'sentry/utils';
 import {getFileExtension} from 'sentry/utils/fileExtension';
 
 const fileNameBlocklist = ['@webkit-masked-url'];
@@ -37,20 +39,21 @@ export const renderLinksInText = ({
   const urlRegex =
     /https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9]{1,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&\/=,\[\]]*)/gi;
   const parts = exceptionText.split(urlRegex);
-  const urls = exceptionText.match(urlRegex);
+  const urls = exceptionText.match(urlRegex) || [];
 
   const elements = parts.flatMap((part, index) => {
-    const link =
-      urls && urls[index] ? (
-        <a
-          key={`link-${index}`}
-          href={`${window.location.origin}/redirect?${urlEncode({url: urls[index]})}`}
-          target="_blank"
-          rel="noreferrer"
-        >
-          {urls[index]}
-        </a>
-      ) : null;
+    const isUrlValid = urls[index] && isUrl(urls[index]);
+    const link = isUrlValid ? (
+      <ExternalLink
+        key={`link-${index}`}
+        href={`${window.location.origin}/redirect?${urlEncode({url: urls[index]})}`}
+        openInNewTab
+      >
+        {urls[index]}
+      </ExternalLink>
+    ) : urls[index] ? (
+      <span key={`invalid-url-${index}`}>{urls[index]}</span>
+    ) : null;
 
     return [<Fragment key={`text-${index}`}>{part}</Fragment>, link];
   });
