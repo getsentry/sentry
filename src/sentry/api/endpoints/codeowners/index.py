@@ -3,7 +3,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -65,13 +65,9 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):
         expand = request.GET.getlist("expand", [])
         expand.append("errors")
 
-        has_targeting_context = features.has(
-            "organizations:streamline-targeting-context", project.organization
-        )
-
         codeowners = list(ProjectCodeOwners.objects.filter(project=project).order_by("-date_added"))
 
-        if has_targeting_context and codeowners:
+        if codeowners:
             for codeowner in codeowners:
                 self.add_owner_id_to_schema(codeowner, project)
             expand.append("renameIdentifier")
@@ -115,12 +111,7 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):
                 codeowners_id=project_codeowners.id,
             )
 
-            expand = ["ownershipSyntax", "errors"]
-            has_targeting_context = features.has(
-                "organizations:streamline-targeting-context", project.organization
-            )
-            if has_targeting_context:
-                expand.append("hasTargetingContext")
+            expand = ["ownershipSyntax", "errors", "hasTargetingContext"]
 
             return Response(
                 serialize(

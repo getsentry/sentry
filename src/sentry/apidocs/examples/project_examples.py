@@ -268,7 +268,6 @@ detailed_project = {
             "performance-metrics-backed-transaction-summary",
             "performance-db-main-thread-detector",
             "issue-platform",
-            "streamline-targeting-context",
             "performance-consecutive-db-issue",
             "performance-consecutive-http-post-process-group",
             "performance-n-plus-one-api-calls-detector",
