@@ -94,6 +94,7 @@ class SuperuserTestCase(TestCase):
         superuser = Superuser(request, allowed_ips=())
         superuser.set_logged_in(request.user)
         assert superuser.is_active is True
+        assert False
 
         superuser = Superuser(request, allowed_ips=("127.0.0.1",))
         superuser.set_logged_in(request.user)
