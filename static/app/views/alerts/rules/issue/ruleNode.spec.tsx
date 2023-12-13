@@ -254,7 +254,6 @@ describe('RuleNode', () => {
     const label = `Send a notification to {${fieldName}}`;
     const organizationWithFeat = {
       ...organization,
-      features: ['streamline-targeting-context'],
     };
     renderRuleNode(formNode(label), {targetType: 'IssueOwners'}, organizationWithFeat);
 

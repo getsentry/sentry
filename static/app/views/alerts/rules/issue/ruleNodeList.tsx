@@ -24,7 +24,7 @@ import {
 
 import {AlertRuleComparisonType} from '../metric/types';
 
-import RuleNode, {hasStreamlineTargeting} from './ruleNode';
+import RuleNode from './ruleNode';
 
 type Props = {
   disabled: boolean;
@@ -64,10 +64,7 @@ const createSelectOptions = (
 }> => {
   return actions.map(node => {
     if (node.id === IssueAlertActionType.NOTIFY_EMAIL) {
-      let label = t('Issue Owners, Team, or Member');
-      if (hasStreamlineTargeting(organization)) {
-        label = t('Suggested Assignees, Team, or Member');
-      }
+      const label = t('Suggested Assignees, Team, or Member');
       return {
         value: node,
         label,

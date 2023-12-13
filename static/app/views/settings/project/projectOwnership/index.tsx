@@ -20,9 +20,7 @@ import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 import AddCodeOwnerModal from 'sentry/views/settings/project/projectOwnership/addCodeOwnerModal';
 import {CodeOwnerErrors} from 'sentry/views/settings/project/projectOwnership/codeownerErrors';
 import {CodeOwnerFileTable} from 'sentry/views/settings/project/projectOwnership/codeOwnerFileTable';
-import CodeOwnersPanel from 'sentry/views/settings/project/projectOwnership/codeowners';
 import {OwnershipRulesTable} from 'sentry/views/settings/project/projectOwnership/ownershipRulesTable';
-import RulesPanel from 'sentry/views/settings/project/projectOwnership/rulesPanel';
 
 type Props = {
   organization: Organization;
@@ -35,17 +33,9 @@ type State = {
 } & DeprecatedAsyncView['state'];
 
 class ProjectOwnership extends DeprecatedAsyncView<Props, State> {
-  // TODO: Remove with `streamline-targeting-context`
-  getOwnershipTitle() {
-    const {organization} = this.props;
-    return organization.features?.includes('streamline-targeting-context')
-      ? t('Ownership Rules')
-      : t('Issue Owners');
-  }
-
   getTitle() {
     const {project} = this.props;
-    return routeTitleGen(this.getOwnershipTitle(), project.slug, false);
+    return routeTitleGen(t('Ownership Rules'), project.slug, false);
   }
 
   getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
@@ -126,15 +116,12 @@ tags.sku_class:enterprise #enterprise`;
       organization,
       project,
     });
-    const hasStreamlineTargetingContext = organization.features?.includes(
-      'streamline-targeting-context'
-    );
     const hasCodeowners = organization.features?.includes('integrations-codeowners');
 
     return (
       <Fragment>
         <SettingsPageHeader
-          title={this.getOwnershipTitle()}
+          title={t('Ownership Rules')}
           action={
             <ButtonBar gap={1}>
               {hasCodeowners && (
@@ -151,7 +138,7 @@ tags.sku_class:enterprise #enterprise`;
                   )}
                 </Access>
               )}
-              {hasStreamlineTargetingContext && (
+              {
                 <Button
                   type="button"
                   size="sm"
@@ -169,7 +156,7 @@ tags.sku_class:enterprise #enterprise`;
                 >
                   {t('Edit Rules')}
                 </Button>
-              )}
+              }
             </ButtonBar>
           }
         />
@@ -194,7 +181,7 @@ tags.sku_class:enterprise #enterprise`;
           projectSlug={project.slug}
           codeowners={codeowners ?? []}
         />
-        {hasStreamlineTargetingContext && ownership && (
+        {ownership && (
           <ErrorBoundary mini>
             <OwnershipRulesTable
               projectRules={ownership.schema?.rules ?? []}
@@ -202,51 +189,16 @@ tags.sku_class:enterprise #enterprise`;
             />
           </ErrorBoundary>
         )}
-        {!hasStreamlineTargetingContext && ownership && (
-          <RulesPanel
-            data-test-id="issueowners-panel"
-            type="issueowners"
-            raw={ownership.raw || ''}
-            dateUpdated={ownership.lastUpdated}
-            placeholder={this.getPlaceholder()}
-            controls={[
-              <Button
-                key="edit"
-                size="xs"
-                onClick={() =>
-                  openEditOwnershipRules({
-                    organization,
-                    project,
-                    ownership,
-                    onSave: this.handleOwnershipSave,
-                  })
-                }
-                disabled={editOwnershipRulesDisabled}
-              >
-                {t('Edit')}
-              </Button>,
-            ]}
+        <PermissionAlert project={project} />
+        {hasCodeowners && (
+          <CodeOwnerFileTable
+            project={project}
+            codeowners={codeowners ?? []}
+            onDelete={this.handleCodeOwnerDeleted}
+            onUpdate={this.handleCodeOwnerUpdated}
+            disabled={disabled}
           />
         )}
-        <PermissionAlert project={project} />
-        {hasCodeowners &&
-          (hasStreamlineTargetingContext ? (
-            <CodeOwnerFileTable
-              project={project}
-              codeowners={codeowners ?? []}
-              onDelete={this.handleCodeOwnerDeleted}
-              onUpdate={this.handleCodeOwnerUpdated}
-              disabled={disabled}
-            />
-          ) : (
-            <CodeOwnersPanel
-              codeowners={codeowners || []}
-              onDelete={this.handleCodeOwnerDeleted}
-              onUpdate={this.handleCodeOwnerUpdated}
-              disabled={disabled}
-              {...this.props}
-            />
-          ))}
         {ownership && (
           <Form
             apiEndpoint={`/projects/${organization.slug}/${project.slug}/ownership/`}

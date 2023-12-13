@@ -138,14 +138,11 @@ class ProjectOwnershipModal extends DeprecatedAsyncComponent<Props, State> {
           .slice(0, 5)
       : [];
 
-    const hasStreamlineTargetingFeature = organization.features.includes(
-      'streamline-targeting-context'
-    );
     const paths = getFrameSuggestions(eventData);
 
     return (
       <Fragment>
-        {hasStreamlineTargetingFeature ? (
+        {
           <Fragment>
             <Description>
               {tct(
@@ -159,9 +156,7 @@ class ProjectOwnershipModal extends DeprecatedAsyncComponent<Props, State> {
             </Description>
             <OwnershipSuggestions paths={paths} urls={urls} eventData={eventData} />
           </Fragment>
-        ) : (
-          <p>{t('Match against Issue Data: (globbing syntax *, ? supported)')}</p>
-        )}
+        }
         <OwnerInput
           organization={organization}
           project={project}

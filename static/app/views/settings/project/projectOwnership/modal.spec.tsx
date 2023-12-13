@@ -81,11 +81,11 @@ describe('Project Ownership', () => {
     expect(screen.getByText('https://example.com/path')).toBeInTheDocument();
   });
 
-  it('renders streamline-targeting-context suggestions', () => {
+  it('renders suggestions', () => {
     render(
       <ProjectOwnershipModal
         issueId={issueId}
-        organization={{...org, features: ['streamline-targeting-context']}}
+        organization={{...org}}
         project={project}
         eventData={event}
         onCancel={() => {}}
@@ -105,9 +105,6 @@ describe('Project Ownership', () => {
     expect(
       screen.getByText(`url:*/path ${user.email}`, {exact: false})
     ).toBeInTheDocument();
-
-    // Rule builder hidden TODO: remove when streamline-targeting-context is GA
-    expect(screen.queryByLabelText('Rule pattern')).not.toBeInTheDocument();
   });
 
   it('can cancel', async () => {

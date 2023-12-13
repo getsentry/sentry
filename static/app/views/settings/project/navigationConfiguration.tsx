@@ -48,9 +48,7 @@ export default function getConfiguration({
         },
         {
           path: `${pathPrefix}/ownership/`,
-          title: organization?.features?.includes('streamline-targeting-context')
-            ? t('Ownership Rules')
-            : t('Issue Owners'),
+          title: t('Ownership Rules'),
           description: t('Manage ownership rules for a project'),
         },
         {

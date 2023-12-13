@@ -28,10 +28,6 @@ import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleMod
 import TicketRuleModal from 'sentry/views/alerts/rules/issue/ticketRuleModal';
 import {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
-export function hasStreamlineTargeting(organization: Organization): boolean {
-  return organization.features.includes('streamline-targeting-context');
-}
-
 interface FieldProps {
   data: Props['data'];
   disabled: boolean;
@@ -116,10 +112,7 @@ function MailActionFields({
   onMemberTeamChange,
 }: FieldProps) {
   const isInitialized = data.targetType !== undefined && `${data.targetType}`.length > 0;
-  let issueOwnersLabel = t('Issue Owners');
-  if (hasStreamlineTargeting(organization)) {
-    issueOwnersLabel = t('Suggested Assignees');
-  }
+  const issueOwnersLabel = t('Suggested Assignees');
   return (
     <MemberTeamFields
       disabled={disabled}
