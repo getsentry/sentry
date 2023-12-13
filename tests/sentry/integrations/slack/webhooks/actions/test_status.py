@@ -225,6 +225,60 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             assert self.group.substatus == GroupSubStatus.UNTIL_ESCALATING
             assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status)
 
+    def test_archive_issue_block_kit(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "IntegrationError",
+                "fingerprint": ["group-1"],
+                "exception": {
+                    "values": [
+                        {
+                            "type": "IntegrationError",
+                            "value": "Identity not found.",
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        status_action = {
+            "action_id": "status",
+            "block_id": "bXwil",
+            "text": {
+                "type": "plain_text",
+                "text": "Archive",
+                "emoji": True,
+            },
+            "value": "ignored:until_escalating",
+            "type": "button",
+            "action_ts": "1702424387.108033",
+        }
+        original_message = {
+            "blocks": [
+                {
+                    "type": "section",
+                    "block_id": json.dumps({"issue": event.group.id}),
+                    "text": {"type": "mrkdwn", "text": "boop", "verbatim": False},
+                },
+            ],
+        }
+        assert event.group is not None
+        with self.feature("organizations:slack-block-kit"):
+            resp = self.post_webhook_block_kit(
+                action_data=[status_action],
+                original_message=original_message,
+                block_id=json.dumps({"issue": event.group.id}),
+            )
+        self.group = Group.objects.get(id=event.group.id)
+
+        assert resp.status_code == 200, resp.content
+        assert self.group.get_status() == GroupStatus.IGNORED
+        assert self.group.substatus == GroupSubStatus.UNTIL_ESCALATING
+
+        expect_status = f"Identity not found.\n*Issue ignored by <@{self.external_id}>*"
+        assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status)
+
     def test_ignore_issue_with_additional_user_auth(self):
         """
         Ensure that we can act as a user even when the organization has SSO enabled
@@ -485,7 +539,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert update_data["text"].endswith(expect_status)
 
     @responses.activate
-    def test_resolve_issue_block_kit(self):
+    def test_resolve_issue_backwards_compat_block_kit(self):
         """Test backwards compatibility of resolving an issue from a legacy Slack notification
         with the block kit feature flag enabled"""
         status_action = {"name": "resolve_dialog", "value": "resolve_dialog"}
@@ -597,7 +651,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert update_data["text"].endswith(expect_status)
 
     @responses.activate
-    def test_resolve_issue_in_next_release_block_kit(self):
+    def test_resolve_issue_in_next_release_backwards_compat_block_kit(self):
         """Test backwards compatibility of resolving a legacy formatted Slack notification
         with the block kit feature flag enabled"""
         status_action = {"name": "resolve_dialog", "value": "resolve_dialog"}
