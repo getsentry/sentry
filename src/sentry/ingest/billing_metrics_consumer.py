@@ -9,6 +9,7 @@ from arroyo.processing.strategies import (
     ProcessingStrategyFactory,
 )
 from arroyo.types import Commit, Message, Partition
+from django.core.cache import cache
 from django.db.models import F
 from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMetric
 
@@ -23,6 +24,23 @@ from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
+
+# 7 days of TTL.
+CACHE_TTL_IN_SECONDS = 60 * 60 * 24 * 7
+
+
+def _get_project_flag_updated_cache_key(org_id: int, project_id: int) -> str:
+    return f"has-custom-metrics-flag-updated:{org_id}:{project_id}"
+
+
+def _mark_flag_as_updated(org_id: int, project_id: int):
+    cache_key = _get_project_flag_updated_cache_key(org_id, project_id)
+    cache.set(cache_key, "1", CACHE_TTL_IN_SECONDS)
+
+
+def _was_flag_updated(org_id: int, project_id: int) -> bool:
+    cache_key = _get_project_flag_updated_cache_key(org_id, project_id)
+    return cache.get(cache_key) is not None
 
 
 class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
@@ -136,11 +154,18 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
     def _flag_metric_received_for_project(self, generic_metric: GenericMetric) -> None:
         try:
+            org_id = generic_metric["org_id"]
             project_id = generic_metric["project_id"]
+            if _was_flag_updated(org_id, project_id):
+                metrics.incr("ddm.consumer.project_loading.debounced")
+                return None
+
             project = Project.objects.get_from_cache(id=project_id)
-            metrics.incr("ddm.project_in_cache")
+            metrics.incr("ddm.consumer.project_loading.loaded_from_cache")
+
             if not project.flags.has_custom_metrics:
-                metrics.incr("ddm.project_in_cache.does_not_have_custom_metrics")
+                metrics.incr("ddm.consumer.project_loading.flag_not_set")
+
                 # We try to extract the MRI from the metric_id since our goal is to check whether the MRI belongs to
                 # a metric in the `custom` namespace.
                 metric_mri = self._resolve(
@@ -153,6 +178,10 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
                 # We assume that the flag update is reflected in the cache, so that upcoming calls will get the up-to-
                 # date project with the `has_custom_metrics` flag set to true.
                 project.update(flags=F("flags").bitor(Project.flags.has_custom_metrics))
+
+                _mark_flag_as_updated(org_id, project_id)
+            else:
+                _mark_flag_as_updated(org_id, project_id)
         except Project.DoesNotExist:
             pass
 
