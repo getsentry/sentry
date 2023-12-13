@@ -96,8 +96,8 @@ class BaseEventTest(APITestCase):
         payload = {
             "type": type,
             "user": slack_user,
-            # "api_app_id":"A058NGW5NDP",
-            # "token":"6IM9MzJR4Ees5x4jkW29iKbj",
+            "api_app_id": "A058NGW5NDP",
+            "token": "6IM9MzJR4Ees5x4jkW29iKbj",
             "container": {
                 "type": "message",
                 "message_ts": "1702424381.221719",
@@ -126,25 +126,11 @@ class BaseEventTest(APITestCase):
                     }
                 }
             },
-            "response_url": "https://hooks.slack.com/actions/TA17GH2QL/6358678090416/PgeMD97DohIqc1V2WCyhMAQx",
-            "actions": [
-                {
-                    "action_id": "ignored:forever",
-                    "block_id": "bXwil",
-                    "text": {
-                        "type": "plain_text",
-                        "text": "Ignore",
-                        "emoji": True,
-                    },
-                    "value": "ignored:forever",
-                    "type": "button",
-                    "action_ts": "1702424387.108033",
-                }
-            ],
+            "response_url": self.response_url,
+            "actions": action_data or [],
         }
         if data:
             payload.update(data)
 
         payload = {"payload": json.dumps(payload)}
-        with self.feature("organizations:slack-block-kit"):
-            return self.client.post("/extensions/slack/action/", data=payload)
+        return self.client.post("/extensions/slack/action/", data=payload)

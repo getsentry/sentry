@@ -126,137 +126,29 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             project_id=self.project.id,
         )
         status_action = {
-            "type": "button",
-            "action_id": "ignored:forever",
-            "text": {"type": "plain_text", "text": "Ignore"},
+            "action_id": "status",
+            "block_id": "bXwil",
+            "text": {
+                "type": "plain_text",
+                "text": "Ignore",
+                "emoji": True,
+            },
             "value": "ignored:forever",
+            "type": "button",
+            "action_ts": "1702424387.108033",
         }
         original_message = {
-            "bot_id": "B058CDV2LKW",
-            "type": "message",
-            "text": "[internal] NameError: name 'chuchu' is not defined",
-            "user": "U058NJ6N2MP",
-            "ts": "1702424381.221719",
-            "app_id": "A058NGW5NDP",
             "blocks": [
                 {
                     "type": "section",
-                    "block_id": '{"issue":614}',
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "<http://dev.getsentry.net:8000/organizations/sentry/issues/614/?referrer=slack&amp;notification_uuid=de21e212-d96e-4ea0-b5e2-2d04821ab9a3&amp;environment=production&amp;alert_rule_id=218&amp;alert_type=issue|*NameError*>  nname 'chuchu' is not defined",
-                        "verbatim": False,
-                    },
-                },
-                {
-                    "type": "section",
-                    "block_id": "X+9VO",
-                    "fields": [
-                        {"type": "mrkdwn", "text": "*environment:*nproduction", "verbatim": False},
-                        {"type": "mrkdwn", "text": "*release:*nabcdefg", "verbatim": False},
-                    ],
-                },
-                {
-                    "type": "context",
-                    "block_id": "N7xyp",
-                    "elements": [
-                        {
-                            "type": "mrkdwn",
-                            "text": "INTERNAL-HN via <http://dev.getsentry.net:8000/organizations/sentry/alerts/rules/internal/218/details/|email my heart> | Dec 12",
-                            "verbatim": False,
-                        }
-                    ],
-                },
-                {
-                    "type": "actions",
-                    "block_id": "bXwil",
-                    "elements": [
-                        {
-                            "type": "button",
-                            "action_id": "resolve_dialog",
-                            "text": {"type": "plain_text", "text": "Resolve", "emoji": True},
-                            "value": "resolve_dialog",
-                        },
-                        {
-                            "type": "button",
-                            "action_id": "ignored:forever",
-                            "text": {"type": "plain_text", "text": "Ignore", "emoji": True},
-                            "value": "ignored:forever",
-                        },
-                        {
-                            "type": "static_select",
-                            "action_id": "assign",
-                            "placeholder": {
-                                "type": "plain_text",
-                                "text": "Select Assignee...",
-                                "emoji": True,
-                            },
-                            "option_groups": [
-                                {
-                                    "label": {"type": "plain_text", "text": "Teams", "emoji": True},
-                                    "options": [
-                                        {
-                                            "text": {
-                                                "type": "plain_text",
-                                                "text": "#captain-planet",
-                                                "emoji": True,
-                                            },
-                                            "value": "team:3",
-                                        },
-                                        {
-                                            "text": {
-                                                "type": "plain_text",
-                                                "text": "#sentry",
-                                                "emoji": True,
-                                            },
-                                            "value": "team:1",
-                                        },
-                                    ],
-                                },
-                                {
-                                    "label": {
-                                        "type": "plain_text",
-                                        "text": "People",
-                                        "emoji": True,
-                                    },
-                                    "options": [
-                                        {
-                                            "text": {
-                                                "type": "plain_text",
-                                                "text": "colleen@sentry.io",
-                                                "emoji": True,
-                                            },
-                                            "value": "user:1",
-                                        },
-                                        {
-                                            "text": {
-                                                "type": "plain_text",
-                                                "text": "dummy@example.com",
-                                                "emoji": True,
-                                            },
-                                            "value": "user:2",
-                                        },
-                                        {
-                                            "text": {
-                                                "type": "plain_text",
-                                                "text": "me me",
-                                                "emoji": True,
-                                            },
-                                            "value": "user:8",
-                                        },
-                                    ],
-                                },
-                            ],
-                        },
-                    ],
+                    "block_id": json.dumps({"issue": event.group.id}),
+                    "text": {"type": "mrkdwn", "text": "boop", "verbatim": False},
                 },
             ],
-            "team": "TA17GH2QL",
         }
         assert event.group is not None
 
         with self.feature("organizations:slack-block-kit"):
-            # we're pretending to be slack here I think
             resp = self.post_webhook_block_kit(
                 action_data=[status_action],
                 original_message=original_message,
