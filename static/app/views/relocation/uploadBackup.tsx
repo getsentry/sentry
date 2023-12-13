@@ -26,6 +26,17 @@ type UploadWellProps = {
   onDrop: Function;
 };
 
+const DEFAULT_ERROR_MSG = t(
+  'An error has occurred while trying to start relocation job. Please contact support for further assistance.'
+);
+const IN_PROGRESS_RELOCATION_ERROR_MSG = t(
+  'You already have an in-progress relocation job.'
+);
+const THROTTLED_RELOCATION_ERROR_MSG = t(
+  'We have reached the daily limit of relocations.'
+);
+const SESSION_EXPIRED_ERROR_MSG = t('Your session has expired.');
+
 export function UploadBackup(__props: StepProps) {
   const api = useApi({
     api: new Client({headers: {Accept: 'application/json; charset=utf-8'}}),
@@ -70,11 +81,7 @@ export function UploadBackup(__props: StepProps) {
   const handleStartRelocation = async () => {
     const {orgSlugs, regionUrl} = relocationOnboardingContext.data;
     if (!orgSlugs || !regionUrl || !file) {
-      addErrorMessage(
-        t(
-          'An error has occured while trying to start relocation job. Please contact support for further assistance.'
-        )
-      );
+      addErrorMessage(DEFAULT_ERROR_MSG);
       return;
     }
     const formData = new FormData();
@@ -88,9 +95,21 @@ export function UploadBackup(__props: StepProps) {
         data: formData,
       });
 
-      addSuccessMessage('Triggered Relocation Job');
+      addSuccessMessage(
+        t(
+          "Your relocation has started - we'll email you with updates as soon as we have 'em!"
+        )
+      );
     } catch (error) {
-      addErrorMessage(error.responseJSON?.detail);
+      if (error.status === 409) {
+        addErrorMessage(IN_PROGRESS_RELOCATION_ERROR_MSG);
+      } else if (error.status === 429) {
+        addErrorMessage(THROTTLED_RELOCATION_ERROR_MSG);
+      } else if (error.status === 401) {
+        addErrorMessage(SESSION_EXPIRED_ERROR_MSG);
+      } else {
+        addErrorMessage(DEFAULT_ERROR_MSG);
+      }
     }
   };
 
