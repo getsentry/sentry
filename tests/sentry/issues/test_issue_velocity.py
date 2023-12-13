@@ -276,7 +276,6 @@ class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
         redis_client.set("threshold-key", 0.5, ex=86400)
 
         assert update_threshold(self.project, "threshold-key", "date-key", 0.5) == 0.5
-        redis_client = get_redis_client()
         assert redis_client.get("threshold-key") == "0.5"
         stored_date = redis_client.get("date-key")
         assert isinstance(stored_date, str)
