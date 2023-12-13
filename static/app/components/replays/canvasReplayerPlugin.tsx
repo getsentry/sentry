@@ -141,7 +141,6 @@ export function CanvasReplayerPlugin(events: eventWithTime[]) {
           if (img) {
             img.src = target.toDataURL();
           }
-        }
       }
     },
   } as ReplayPlugin;
