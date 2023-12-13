@@ -10,9 +10,11 @@ import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVit
 import {
   DEFAULT_INDEXED_SORT,
   SORTABLE_INDEXED_FIELDS,
+  SORTABLE_INDEXED_SCORE_FIELDS,
   TransactionSampleRowWithScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 
 type Props = {
@@ -37,11 +39,18 @@ export const useTransactionRawSamplesWebVitalsQuery = ({
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const location = useLocation();
+  const shouldUseStoredScores = useStoredScoresSetting();
+
+  const filteredSortableFields = shouldUseStoredScores
+    ? SORTABLE_INDEXED_FIELDS
+    : SORTABLE_INDEXED_FIELDS.filter(
+        field => !SORTABLE_INDEXED_SCORE_FIELDS.includes(field)
+      );
 
   const sort = useWebVitalsSort({
     sortName,
     defaultSort: DEFAULT_INDEXED_SORT,
-    sortableFields: SORTABLE_INDEXED_FIELDS as unknown as string[],
+    sortableFields: filteredSortableFields as unknown as string[],
   });
 
   const eventView = EventView.fromNewQueryWithPageFilters(

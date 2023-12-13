@@ -36,8 +36,10 @@ import {useTransactionSamplesWebVitalsQuery} from 'sentry/views/performance/brow
 import {
   DEFAULT_INDEXED_SORT,
   SORTABLE_INDEXED_FIELDS,
+  SORTABLE_INDEXED_SCORE_FIELDS,
   TransactionSampleRow,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -78,9 +80,17 @@ export function PageSamplePerformanceTable({
   const organization = useOrganization();
   const routes = useRoutes();
   const router = useRouter();
+  const shouldUseStoredScores = useStoredScoresSetting();
+
+  const sortableFields = shouldUseStoredScores
+    ? SORTABLE_INDEXED_FIELDS
+    : SORTABLE_INDEXED_FIELDS.filter(
+        field => !SORTABLE_INDEXED_SCORE_FIELDS.includes(field)
+      );
+
   const sort = useWebVitalsSort({
     defaultSort: DEFAULT_INDEXED_SORT,
-    sortableFields: SORTABLE_INDEXED_FIELDS as unknown as string[],
+    sortableFields: sortableFields as unknown as string[],
   });
   const replayLinkGenerator = generateReplayLink(routes);
 
@@ -126,7 +136,7 @@ export function PageSamplePerformanceTable({
       };
     }
 
-    const canSort = (SORTABLE_INDEXED_FIELDS as ReadonlyArray<string>).includes(col.key);
+    const canSort = (sortableFields as ReadonlyArray<string>).includes(col.key);
 
     if (
       [
