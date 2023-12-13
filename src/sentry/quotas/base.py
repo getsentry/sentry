@@ -388,6 +388,13 @@ class Quota(Service):
                 categories=[DataCategory.SESSION],
                 scope=QuotaScope.PROJECT,
             ),
+            AbuseQuota(
+                id="oam",
+                option="organization-abuse-quota.metric-bucket-limit",
+                compat_options=None,
+                categories=[DataCategory.METRIC_BUCKET],
+                scope=QuotaScope.ORGANIZATION,
+            ),
         ]
 
         # XXX: These reason codes are hardcoded in getsentry:
