@@ -2559,7 +2559,6 @@ def _calculate_event_grouping(
 
             try:
                 hashes = get_custom_hashes(event)
-
                 if not hashes:
                     hashes = event.get_hashes(grouping_config)
             except GroupingConfigNotFound:
@@ -2791,7 +2790,7 @@ Methods:
 class CustomHasher:
     hashing_strategy: HashingStrategy
     matching_strategy: MatchingStrategy
-    feature_flag: Optional[str]
+    feature_flag: Optional[str] = None
     # TODO: add sdk option as well
     platforms: Optional[Sequence[str]] = None
 
@@ -2843,10 +2842,9 @@ class TransactionHashingStrategy(HashingStrategy):
     hash_prefix: str
 
     def calculate_hash(self, event: Event) -> CalculatedHashes:
+        raw = f"{self.hash_prefix}-{event.data.transaction()}"
         return CalculatedHashes(
-            hashes=[
-                hashlib.md5(f"{self.hash_prefix}-{event.data.transaction.encode()}").hexdigest()
-            ],
+            hashes=[hashlib.md5(raw.encode("utf-8")).hexdigest()],
             hierarchical_hashes=[],
             tree_labels=[],
         )
@@ -2858,7 +2856,7 @@ class StaticHashingStrategy(HashingStrategy):
 
     def calculate_hash(self, event: Event) -> CalculatedHashes:
         return CalculatedHashes(
-            hashes=[hashlib.md5(self.hash_string.hexdigest())],
+            hashes=[hashlib.md5(self.hash_string.encode("utf-8")).hexdigest()],
             hierarchical_hashes=[],
             tree_labels=[],
         )
