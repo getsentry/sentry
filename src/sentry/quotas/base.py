@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import IntEnum, unique
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, List, Literal, Optional, Tuple
 
 from django.conf import settings
 from django.core.cache import cache
@@ -38,6 +38,7 @@ class AbuseQuota:
     # to preserve existing behavior.
     compat_options: tuple[str, str] | None
     categories: List[DataCategory]
+    scope: Literal[QuotaScope.ORGANIZATION] | Literal[QuotaScope.PROJECT]
 
 
 class QuotaConfig:
@@ -222,7 +223,7 @@ class Quota(Service):
 
     __all__ = (
         "get_maximum_quota",
-        "get_project_abuse_quotas",
+        "get_abuse_quotas",
         "get_project_quota",
         "get_organization_quota",
         "is_rate_limited",
@@ -348,7 +349,7 @@ class Quota(Service):
         limit, window = key.rate_limit
         return _limit_from_settings(limit), window
 
-    def get_project_abuse_quotas(self, org):
+    def get_abuse_quotas(self, org):
         # Per-project abuse quotas for errors, transactions, attachments, sessions.
         global_abuse_window = options.get("project-abuse-quota.window")
 
@@ -361,6 +362,7 @@ class Quota(Service):
                     "getsentry.rate-limit.project-errors",
                 ),
                 categories=DataCategory.error_categories(),
+                scope=QuotaScope.PROJECT,
             ),
             AbuseQuota(
                 id="pati",
@@ -370,20 +372,31 @@ class Quota(Service):
                     "getsentry.rate-limit.project-transactions",
                 ),
                 categories=[index_data_category("transaction", org)],
+                scope=QuotaScope.PROJECT,
             ),
             AbuseQuota(
                 id="paa",
                 option="project-abuse-quota.attachment-limit",
                 compat_options=None,
                 categories=[DataCategory.ATTACHMENT],
+                scope=QuotaScope.PROJECT,
             ),
             AbuseQuota(
                 id="pas",
                 option="project-abuse-quota.session-limit",
                 compat_options=None,
                 categories=[DataCategory.SESSION],
+                scope=QuotaScope.PROJECT,
             ),
         ]
+
+        # XXX: These reason codes are hardcoded in getsentry:
+        #      as `RateLimitReasonLabel.PROJECT_ABUSE_LIMIT` and `RateLimitReasonLabel.ORG_ABUSE_LIMIT`.
+        #      Don't change it here. If it's changed in getsentry, it needs to be synced here.
+        reason_codes = {
+            QuotaScope.ORGANIZATION: "org_abuse_limit",
+            QuotaScope.PROJECT: "project_abuse_limit",
+        }
 
         for aq in abuse_quotas:
             limit: int | None = 0
@@ -412,7 +425,7 @@ class Quota(Service):
             # Negative limits in config mean a reject-all quota.
             if limit < 0:
                 yield QuotaConfig(
-                    scope=QuotaScope.PROJECT,
+                    scope=aq.scope,
                     categories=aq.categories,
                     limit=0,
                     reason_code="disabled",
@@ -422,13 +435,10 @@ class Quota(Service):
                 yield QuotaConfig(
                     id=aq.id,
                     limit=limit * abuse_window,
-                    scope=QuotaScope.PROJECT,
+                    scope=aq.scope,
                     categories=aq.categories,
                     window=abuse_window,
-                    # XXX: This reason code is hardcoded RateLimitReasonLabel.PROJECT_ABUSE_LIMIT
-                    #      from getsentry. Don't change it here.
-                    #      If it's changed in getsentry, it needs to be synced here.
-                    reason_code="project_abuse_limit",
+                    reason_code=reason_codes[aq.scope],
                 )
 
     def get_project_quota(self, project):
