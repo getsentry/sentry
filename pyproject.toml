@@ -567,7 +567,6 @@ module = [
     "sentry.tasks.commit_context",
     "sentry.tasks.deliver_from_outbox",
     "sentry.tasks.digests",
-    "sentry.tasks.groupowner",
     "sentry.tasks.integrations",
     "sentry.tasks.integrations.github.pr_comment",
     "sentry.tasks.integrations.migrate_issues",
