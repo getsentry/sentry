@@ -37,7 +37,7 @@ class IntegrationControlMiddleware:
         """
         Determines whether this middleware will operate or just pass the request along.
         """
-        return SiloMode.get_current_mode() == SiloMode.CONTROL
+        return SiloMode.get_current_mode() in [SiloMode.CONTROL, SiloMode.MONOLITH]
 
     @classmethod
     def register_classifications(cls, classifications: List[Type[BaseClassification]]):
