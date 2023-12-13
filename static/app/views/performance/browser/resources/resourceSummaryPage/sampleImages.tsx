@@ -41,7 +41,7 @@ function SampleImages({groupId}: Props) {
               src={resource[SPAN_DESCRIPTION]}
               fileName={getFileNameFromDescription(resource[SPAN_DESCRIPTION])}
               size={resource[HTTP_RESPONSE_CONTENT_LENGTH]}
-              key={resource.id}
+              key={resource[SPAN_DESCRIPTION]}
             />
           );
         })}
@@ -80,7 +80,7 @@ const ImageWrapper = styled('div')`
 
 const getFileNameFromDescription = (description: string) => {
   const url = new URL(description);
-  return url.pathname.split('/').pop();
+  return url.pathname.split('/').pop() || '';
 };
 
 export default SampleImages;
