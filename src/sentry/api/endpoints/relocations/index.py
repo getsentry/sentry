@@ -65,7 +65,7 @@ def should_throttle_relocation(relocation_bucket_size) -> bool:
         0,
     )
     if num_recent_same_size_relocation_files < get(
-        f"relocation.daily-limit-{relocation_bucket_size}"
+        f"relocation.daily-limit.{relocation_bucket_size}"
     ):
         return False
     return True
