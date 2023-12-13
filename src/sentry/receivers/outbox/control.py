@@ -87,9 +87,6 @@ def process_async_webhooks(
         sentry_sdk.capture_exception(Exception("Called process_async_webhooks in REGION mode"))
         return
 
-    if SiloMode.get_current_mode() != SiloMode.CONTROL:
-        return
-
     region = get_region_by_name(name=region_name)
     webhook_payload = ControlOutbox.get_webhook_payload_from_outbox(payload=payload)
 
