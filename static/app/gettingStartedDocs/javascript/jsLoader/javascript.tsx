@@ -1,7 +1,7 @@
 import beautify from 'js-beautify';
 
 import Alert from 'sentry/components/alert';
-import Link from 'sentry/components/links/link';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   DocsParams,
@@ -12,6 +12,7 @@ import {
   getReplayJsLoaderSdkSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct} from 'sentry/locale';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 type Params = DocsParams;
 
@@ -32,7 +33,11 @@ const getInstallConfig = (params: Params) => [
               'Make sure that Session Replay is enabled in your [link:project settings].',
               {
                 link: (
-                  <Link to={`/settings/projects/${params.projectSlug}/loader-script/`} />
+                  <ExternalLink
+                    href={normalizeUrl(
+                      `/settings/projects/${params.projectSlug}/loader-script/`
+                    )}
+                  />
                 ),
               }
             )}
