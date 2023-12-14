@@ -31,6 +31,22 @@ const enum ErrorHelpType {
   HANDLE_HARD_NAVIGATE_ERROR = 'handle_hard_navigate_error',
 }
 
+const ConditionErrorInfoMap = {
+  'ChunkLoadError': {projectCheck: false, errorHelpType: ErrorHelpType.CHUNK_LOAD_ERROR},
+  'window is not defined': {
+    projectCheck: false,
+    errorHelpType: ErrorHelpType.DOCUMENT_OR_WINDOW_OBJECT_ERROR,
+  },
+  'document is not defined': {
+    projectCheck: false,
+    errorHelpType: ErrorHelpType.DOCUMENT_OR_WINDOW_OBJECT_ERROR,
+  },
+  'Invariant: attempted to hard navigate to the same URL': {
+    projectCheck: true,
+    errorHelpType: ErrorHelpType.HANDLE_HARD_NAVIGATE_ERROR,
+  },
+};
+
 const errorHelpTypeResourceMap: Record<
   ErrorHelpType,
   Pick<IssueTypeConfig, 'resources'>
@@ -88,21 +104,15 @@ export function getErrorHelpResource({
   project: Project;
   title: string;
 }): Pick<IssueTypeConfig, 'resources'> | null {
-  // TODO: more scaleable logic
-  if (title.includes('ChunkLoadError')) {
-    return errorHelpTypeResourceMap[ErrorHelpType.CHUNK_LOAD_ERROR];
-  }
-  if (
-    title.includes('window is not defined') ||
-    title.includes('document is not defined')
-  ) {
-    return errorHelpTypeResourceMap[ErrorHelpType.DOCUMENT_OR_WINDOW_OBJECT_ERROR];
-  }
-  if (
-    (project.platform || '').includes('nextjs') &&
-    title.includes('Invariant: attempted to hard navigate to the same URL')
-  ) {
-    return errorHelpTypeResourceMap[ErrorHelpType.HANDLE_HARD_NAVIGATE_ERROR];
+  for (const [condition, errorInfo] of Object.entries(ConditionErrorInfoMap)) {
+    const {errorHelpType, projectCheck} = errorInfo;
+    if (
+      title.includes(condition) &&
+      projectCheck &&
+      (project.platform || '').includes('nextjs')
+    ) {
+      return errorHelpTypeResourceMap[errorHelpType];
+    }
   }
 
   return null;
