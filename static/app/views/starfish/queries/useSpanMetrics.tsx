@@ -1,6 +1,7 @@
 import {Location} from 'history';
 
 import EventView from 'sentry/utils/discover/eventView';
+import {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -9,27 +10,35 @@ import {
   MetricsResponse,
   SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
-import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {EMPTY_OPTION_VALUE} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 
 export const useSpanMetrics = <T extends MetricsProperty[]>(
   filters: SpanMetricsQueryFilters,
   fields: T,
-  referrer: string = 'span-metrics'
+  sorts?: Sort[],
+  limit?: number,
+  cursor?: string,
+  referrer: string = 'api.starfish.use-span-metrics'
 ) => {
   const location = useLocation();
-  const eventView = getEventView(filters, fields, location);
+
+  const eventView = getEventView(filters, fields, sorts, location);
 
   const enabled = Object.values(filters).every(value => Boolean(value));
 
-  const result = useSpansQuery({
+  const result = useWrappedDiscoverQuery({
     eventView,
     initialData: [],
+    limit,
     enabled,
     referrer,
+    cursor,
   });
 
-  const data = (result?.data?.[0] ?? {}) as Pick<MetricsResponse, T[number]>;
+  const data = (result?.data ?? []) as Array<
+    Pick<MetricsResponse, T[number]> | undefined
+  >;
 
   return {
     ...result,
@@ -41,6 +50,7 @@ export const useSpanMetrics = <T extends MetricsProperty[]>(
 function getEventView(
   filters: SpanMetricsQueryFilters,
   fields: string[] = [],
+  sorts: Sort[] = [],
   location: Location
 ) {
   const query = new MutableSearch('');
@@ -60,7 +70,7 @@ function getEventView(
   // TODO: This condition should be enforced everywhere
   // query.addFilterValue('has', 'span.description');
 
-  return EventView.fromNewQueryWithLocation(
+  const eventView = EventView.fromNewQueryWithLocation(
     {
       name: '',
       query: query.formatString(),
@@ -70,6 +80,12 @@ function getEventView(
     },
     location
   );
+
+  if (sorts.length > 0) {
+    eventView.sorts = sorts;
+  }
+
+  return eventView;
 }
 
 const ALLOWED_WILDCARD_FIELDS = ['span.description'];
