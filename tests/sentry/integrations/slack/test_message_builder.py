@@ -295,8 +295,8 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
     )
     def test_build_group_attachment_prune_duplicate_assignees(self, mock_get_option_groups):
         user2 = self.create_user()
-        team2 = self.create_team(organization=self.organization, members=[self.user])
-        self.create_member(user=user2, organization=self.organization, teams=[team2])
+        self.create_member(user=user2, organization=self.organization)
+        team2 = self.create_team(organization=self.organization, members=[self.user, user2])
         project2 = self.create_project(organization=self.organization, teams=[self.team, team2])
         group = self.create_group(project=project2)
 
@@ -314,8 +314,8 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
     )
     def test_build_group_block_prune_duplicate_assignees(self, mock_get_option_groups_block_kit):
         user2 = self.create_user()
-        team2 = self.create_team(organization=self.organization, members=[self.user])
-        self.create_member(user=user2, organization=self.organization, teams=[team2])
+        self.create_member(user=user2, organization=self.organization)
+        team2 = self.create_team(organization=self.organization, members=[self.user, user2])
         project2 = self.create_project(organization=self.organization, teams=[self.team, team2])
         group = self.create_group(project=project2)
 
@@ -359,6 +359,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         for section in ret["blocks"]:
             if section["type"] == "actions":
                 has_actions = True
+                break
 
         assert has_actions
 
