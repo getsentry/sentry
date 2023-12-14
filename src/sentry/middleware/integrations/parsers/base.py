@@ -58,7 +58,11 @@ class BaseRequestParser(abc.ABC):
 
     # Common Helpers
 
-    def ensure_control_silo(self):
+    def check_silo_mode(self):
+        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+            # We allow the integration request parsers to run on the monolith silo so that we can ease the transition
+            # towards the US silo split.
+            return
         if SiloMode.get_current_mode() != SiloMode.CONTROL:
             logger.error(
                 "silo_error",
@@ -79,7 +83,7 @@ class BaseRequestParser(abc.ABC):
         """
         Used to handle the request directly on the control silo.
         """
-        self.ensure_control_silo()
+        self.check_silo_mode()
         return self.response_handler(self.request)
 
     def get_response_from_region_silo(self, region: Region) -> HttpResponseBase:
@@ -93,7 +97,7 @@ class BaseRequestParser(abc.ABC):
         Used to handle the requests on a given list of regions (synchronously).
         Returns a mapping of region name to response/exception.
         """
-        self.ensure_control_silo()
+        self.check_silo_mode()
 
         region_to_response_map = {}
 

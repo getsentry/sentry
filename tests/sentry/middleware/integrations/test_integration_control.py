@@ -60,7 +60,9 @@ class IntegrationControlMiddlewareTest(TestCase):
     def test_passthrough_on_monolith(self, mock_should_operate):
         # Virtual silo mode transition from Control silo to Region silo via proxy should bypass the
         # IntegrationControlMiddleware middleware.
-        request = self.factory.post("/extensions/slack/webhook/", **{PROXY_FROM_SILO: "REGION"})
+        request = self.factory.post(
+            "/extensions/slack/webhook/", **{"HTTP_X_SENTRY_FROM_SILO": "CONTROL"}
+        )
         assert mock_should_operate(request) is False
         self.validate_mock_ran_with_noop(request, mock_should_operate)
 
