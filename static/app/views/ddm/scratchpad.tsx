@@ -8,7 +8,6 @@ import {IconAdd} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MetricWidgetQueryParams} from 'sentry/utils/metrics';
-import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DDM_CHART_GROUP, MIN_WIDGET_WIDTH} from 'sentry/views/ddm/constants';
@@ -41,9 +40,7 @@ export function MetricScratchpad() {
           key={index}
           index={index}
           onSelect={setSelectedWidgetIndex}
-          isSelected={
-            hasDDMExperimentalFeature(organization) && selectedWidgetIndex === index
-          }
+          isSelected={selectedWidgetIndex === index}
           onChange={handleChange}
           widget={widget}
           datetime={selection.datetime}
