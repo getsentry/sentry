@@ -115,7 +115,7 @@ def schedule_on_demand_check() -> None:
 
     for (widget_query_id,) in RangeQuerySetWrapper(
         DashboardWidgetQuery.objects.filter(
-            widget__widget_type=DashboardWidgetTypes.DISCOVER, columns__len__gt=0
+            widget__widget_type=DashboardWidgetTypes.DISCOVER
         )
         .exclude(conditions__contains="event.type:error")
         .values_list("id"),
