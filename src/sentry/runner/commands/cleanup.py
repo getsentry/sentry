@@ -195,7 +195,6 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         BULK_QUERY_DELETES = [
             (models.UserReport, "date_added", None),
             (models.GroupEmailThread, "date", None),
-            (models.GroupRuleStatus, "date_added", None),
             (RuleFireHistory, "date_added", None),
         ] + additional_bulk_query_deletes
 
@@ -206,6 +205,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             (replay_models.ReplayRecordingSegment, "date_added", "date_added"),
             (models.ArtifactBundle, "date_added", "date_added"),
             (monitor_models.MonitorCheckIn, "date_added", "date_added"),
+            (models.GroupRuleStatus, "date_added"),
         ]
         # Deletions that we run per project. In some cases we can't use an index on just the date
         # column, so as an alternative we use `(project_id, <date_col>)` instead
