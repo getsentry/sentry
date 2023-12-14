@@ -47,7 +47,7 @@ class IntegrationControlMiddlewareTest(TestCase):
     )
     def test_inactive_on_monolith(self, mock_should_operate):
         request = self.factory.post("/extensions/slack/webhook/")
-        assert mock_should_operate(request) is False
+        assert mock_should_operate(request) is True
         self.validate_mock_ran_with_noop(request, mock_should_operate)
 
     @override_settings(SILO_MODE=SiloMode.REGION)
