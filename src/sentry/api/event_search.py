@@ -5,7 +5,9 @@ from collections import namedtuple
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from functools import reduce
-from typing import Any, List, Literal, Mapping, NamedTuple, Sequence, Set, Tuple, Union, cast
+from typing import Any, List, Literal, Mapping, NamedTuple
+from typing import Optional as PythonOptional
+from typing import Sequence, Set, Tuple, Union, cast
 
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
@@ -1172,7 +1174,9 @@ QueryToken = Union[SearchFilter, QueryOp, ParenExpression]
 
 def parse_search_query(
     query, config=None, params=None, builder=None, config_overrides=None
-) -> Sequence[QueryToken]:
+) -> list[
+    SearchFilter
+]:  # TODO: use the `Sequence[QueryToken]` type and update the code that fails type checking.
     if config is None:
         config = default_config
 
@@ -1228,7 +1232,7 @@ def cleanup_search_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
 
     # remove AND and OR operators that are next to each other
     ret_val = []
-    previous_token: Optional[QueryToken] = None
+    previous_token: PythonOptional[QueryToken] = None
 
     for token in removed_empty_parens:
         # this loop takes care of removing consecutive AND/OR operators (keeping only one of them)

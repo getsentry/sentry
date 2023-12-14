@@ -1,10 +1,15 @@
+import logging
 from typing import List, cast
+
+from sentry_relay.processing import validate_rule_condition
 
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.utils import Condition, PolymorphicRule
 from sentry.models.dynamicsampling import CUSTOM_RULE_DATE_FORMAT, CustomDynamicSamplingRule
 from sentry.models.project import Project
 from sentry.utils import json
+
+logger = logging.getLogger(__name__)
 
 
 class CustomRuleBias(Bias):
@@ -18,13 +23,23 @@ class CustomRuleBias(Bias):
         ret_val: List[PolymorphicRule] = []
 
         for rule in rules:
-            condition = json.loads(rule.condition)
+            try:
+                validate_rule_condition(rule.condition)
+            except ValueError:
+                logger.exception(
+                    "Custom rule with invalid condition found",
+                    extra={"rule_id": rule.rule_id, "condition": rule.condition},
+                )
+                # In case of an exception, we want to still try the other rules since we don't want to break all rules.
+                continue
+
+            condition = cast(Condition, json.loads(rule.condition))
             ret_val.append(
                 {
                     "samplingValue": {"type": "reservoir", "limit": rule.num_samples},
                     "type": "transaction",
                     "id": rule.external_rule_id,
-                    "condition": cast(Condition, condition),
+                    "condition": condition,
                     "timeRange": {
                         "start": rule.start_date.strftime(CUSTOM_RULE_DATE_FORMAT),
                         "end": rule.end_date.strftime(CUSTOM_RULE_DATE_FORMAT),

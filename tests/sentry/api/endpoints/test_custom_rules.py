@@ -427,7 +427,7 @@ class TestCustomRuleSerializerWithProjects(TestCase):
     [
         (
             "event.type:transaction",
-            {},
+            {"inner": [], "op": "and"},
         ),
         (
             "environment:prod event.type:transaction",
