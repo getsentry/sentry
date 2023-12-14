@@ -517,19 +517,19 @@ class IndexerBatch:
                 tags={"use_case_id": use_case_id.value},
             )
             metrics.distribution(
-                "metrics_consumer.process_message.message.avg_size_in_batch",
+                "metrics_consumer.process_message.message.avg_size_per_use_case",
                 self.__message_bytes[use_case_id] / self.__message_count[use_case_id],
                 tags={"use_case_id": use_case_id.value},
                 unit="byte",
             )
             metrics.distribution(
-                "metrics_consumer.process_message.message.avg_tags_len_in_batch",
+                "metrics_consumer.process_message.message.avg_tags_len_per_use_case",
                 self.__message_tags_len[use_case_id] / self.__message_count[use_case_id],
                 tags={"use_case_id": use_case_id.value},
                 unit="int",
             )
             metrics.distribution(
-                "metrics_consumer.process_message.message.avg_value_len_in_batch",
+                "metrics_consumer.process_message.message.avg_value_len_per_use_case",
                 self.__message_value_len[use_case_id] / self.__message_count[use_case_id],
                 tags={"use_case_id": use_case_id.value},
                 unit="int",
