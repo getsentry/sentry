@@ -293,7 +293,8 @@ export const releaseHealth: PlatformKey[] = [
   'native-qt',
 ];
 
-// note: not currently comprehensive. only included ones that are also in the 'backend' platforms listed above
+// These are the backend platforms that can set up replay -- e.g. they can be set up via a linked JS framework or via JS loader.
+// Note: not currently comprehensive -- only included ones that are also in the `backend` platforms listed above
 // TODO: add all the platforms
 const replayBackendPlatforms: readonly PlatformKey[] = [
   'bun',
@@ -321,11 +322,11 @@ const replayBackendPlatforms: readonly PlatformKey[] = [
   'ruby-rails',
 ];
 
-export const replayPlatforms: readonly PlatformKey[] = [
+// These are the frontend platforms that can set up replay.
+const replayFrontendPlatforms: readonly PlatformKey[] = [
   'capacitor',
   'electron',
   'javascript-angular',
-  // 'javascript-angularjs', // Unsupported, angularjs requires the v6.x core SDK
   'javascript-astro',
   'javascript-backbone',
   'javascript-capacitor',
@@ -339,6 +340,11 @@ export const replayPlatforms: readonly PlatformKey[] = [
   'javascript-sveltekit',
   'javascript-vue',
   'javascript',
+];
+
+// These are all the platforms that can set up replay.
+export const replayPlatforms: readonly PlatformKey[] = [
+  ...replayFrontendPlatforms,
   ...replayBackendPlatforms,
 ];
 
@@ -349,27 +355,13 @@ export const replayPlatforms: readonly PlatformKey[] = [
  * See: https://github.com/getsentry/sentry-docs/tree/master/src/wizard/javascript/replay-onboarding
  */
 export const replayOnboardingPlatforms: readonly PlatformKey[] = [
-  'capacitor',
-  'electron',
-  'javascript-angular',
-  'javascript-astro',
-  // 'javascript-angularjs', // Unsupported, angularjs requires the v6.x core SDK
-  // 'javascript-backbone', // No docs yet
-  'javascript-capacitor',
-  'javascript-electron',
-  'javascript-ember',
-  'javascript-gatsby',
-  'javascript-nextjs',
-  'javascript-react',
-  'javascript-remix',
-  'javascript-svelte',
-  'javascript-sveltekit',
-  'javascript-vue',
-  'javascript',
+  ...replayFrontendPlatforms.filter(
+    p => !['javascript-angularjs', 'javascript-backbone'].includes(p)
+  ),
   ...replayBackendPlatforms,
 ];
 
-// These are the supported platforms that can also be set up using the loader
+// These are the supported replay platforms that can also be set up using the JS loader.
 export const replayJsLoaderInstructionsPlatformList: readonly PlatformKey[] = [
   'javascript',
   ...replayBackendPlatforms,
