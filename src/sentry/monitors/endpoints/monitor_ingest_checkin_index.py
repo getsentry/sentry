@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import Throttled
@@ -154,9 +154,9 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                 if create_monitor:
                     monitor, created = Monitor.objects.update_or_create(
                         organization_id=project.organization_id,
+                        project_id=project.id,
                         slug=monitor_data["slug"],
                         defaults={
-                            "project_id": project.id,
                             "name": monitor_data["name"],
                             "status": monitor_data["status"],
                             "type": monitor_data["type"],
@@ -168,6 +168,14 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                         signal_monitor_created(project, request.user, True)
             except MonitorLimitsExceeded as e:
                 return self.respond({type(e).__name__: str(e)}, status=400)
+            except IntegrityError:
+                # raised when dsn for a different project with the same monitor slug is used
+                return self.respond(
+                    {
+                        "Invalid DSN": f"Monitor with slug {monitor_slug} belongs to a project other than the one in the provided DSN"
+                    },
+                    status=404,
+                )
 
             # Monitor does not exist and we have not created one
             if not monitor:

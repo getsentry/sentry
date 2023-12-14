@@ -48,6 +48,7 @@ class MonitorConsumerTest(TestCase):
     def send_checkin(
         self,
         monitor_slug: str,
+        project_id: Optional[int] = None,
         guid: Optional[str] = None,
         ts: Optional[datetime] = None,
         **overrides: Any,
@@ -71,7 +72,7 @@ class MonitorConsumerTest(TestCase):
         wrapper = {
             "message_type": "check_in",
             "start_time": ts.timestamp(),
-            "project_id": self.project.id,
+            "project_id": project_id or self.project.id,
             "payload": json.dumps(payload),
             "sdk": "test/1.0",
         }
@@ -331,6 +332,27 @@ class MonitorConsumerTest(TestCase):
             monitor_environment.next_checkin_latest
             == monitor_environment.monitor.get_next_expected_checkin_latest(checkin.date_added)
         )
+
+    def test_monitor_cross_project(self):
+        monitor = self._create_monitor(slug="my-monitor")
+        self.send_checkin(
+            "my-monitor",
+            monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
+        )
+
+        assert len(MonitorCheckIn.objects.filter(monitor=monitor)) == 1
+
+        project_2 = self.create_project(
+            name="foo", organization=self.organization, teams=[self.team]
+        )
+        self.send_checkin(
+            "my-monitor",
+            project_id=project_2.id,
+            monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
+        )
+
+        # Check to make sure that we don't create another check-in when sending a different check-in from a different project with the same monitor slug
+        assert len(MonitorCheckIn.objects.filter(monitor=monitor)) == 1
 
     def test_check_in_empty_id(self):
         monitor = self._create_monitor(slug="my-monitor")

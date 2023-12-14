@@ -12,7 +12,7 @@ from arroyo.processing.strategies.abstract import ProcessingStrategy, Processing
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Commit, Message, Partition
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from sentry_sdk.tracing import Span, Transaction
 
 from sentry import ratelimits
@@ -55,6 +55,7 @@ def _ensure_monitor_with_config(
     project: Project,
     monitor_slug: str,
     config: Optional[Dict],
+    timestamp: datetime,
 ):
     try:
         monitor = Monitor.objects.get(
@@ -84,19 +85,32 @@ def _ensure_monitor_with_config(
 
     # Create monitor
     if not monitor:
-        monitor, created = Monitor.objects.update_or_create(
-            organization_id=project.organization_id,
-            slug=monitor_slug,
-            defaults={
-                "project_id": project.id,
-                "name": monitor_slug,
-                "status": ObjectStatus.ACTIVE,
-                "type": MonitorType.CRON_JOB,
-                "config": validated_config,
-            },
-        )
-        if created:
-            signal_monitor_created(project, None, True)
+        try:
+            monitor, created = Monitor.objects.update_or_create(
+                organization_id=project.organization_id,
+                project_id=project.id,
+                slug=monitor_slug,
+                defaults={
+                    "name": monitor_slug,
+                    "status": ObjectStatus.ACTIVE,
+                    "type": MonitorType.CRON_JOB,
+                    "config": validated_config,
+                },
+            )
+            if created:
+                signal_monitor_created(project, None, True)
+        except IntegrityError:
+            # project in wrapper is different from the project for the monitor with the given slug
+            track_outcome(
+                org_id=project.organization_id,
+                project_id=project.id,
+                key_id=None,
+                outcome=Outcome.ABUSE,
+                reason="invalid_dsn_project",
+                timestamp=timestamp,
+                category=DataCategory.MONITOR,
+            )
+            pass
 
     # Update existing monitor
     if monitor and not created and monitor.config != validated_config:
@@ -390,6 +404,7 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             project,
             monitor_slug,
             monitor_config,
+            start_time,
         )
     except MonitorLimitsExceeded:
         metrics.incr(
