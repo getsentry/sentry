@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 
@@ -17,9 +18,11 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.monitors.utils import get_timeout_at
+from sentry.quotas.base import SeatAssignmentResult
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.outcomes import Outcome
 
 
 @region_silo_test
@@ -566,6 +569,56 @@ class UpdateMonitorTest(MonitorTestCase):
         assert (
             resp.data["detail"]["message"] == "existing monitors may not be moved between projects"
         ), resp.content
+
+    @patch("sentry.quotas.backend.check_assign_monitor_seat")
+    @patch("sentry.quotas.backend.assign_monitor_seat")
+    def test_activate_monitor_success(self, assign_monitor_seat, check_assign_monitor_seat):
+        check_assign_monitor_seat.return_value = SeatAssignmentResult(assignable=True)
+        assign_monitor_seat.return_value = Outcome.ACCEPTED
+
+        monitor = self._create_monitor()
+        monitor.update(status=ObjectStatus.DISABLED)
+
+        self.get_success_response(
+            self.organization.slug, monitor.slug, method="PUT", **{"status": "active"}
+        )
+
+        monitor = Monitor.objects.get(id=monitor.id)
+        assert monitor.status == ObjectStatus.ACTIVE
+        assert assign_monitor_seat.called
+
+    @patch("sentry.quotas.backend.check_assign_monitor_seat")
+    @patch("sentry.quotas.backend.assign_monitor_seat")
+    def test_activate_monitor_invalid(self, assign_monitor_seat, check_assign_monitor_seat):
+        result = SeatAssignmentResult(
+            assignable=False,
+            reason="Over quota",
+        )
+        check_assign_monitor_seat.return_value = result
+
+        monitor = self._create_monitor()
+        monitor.update(status=ObjectStatus.DISABLED)
+
+        resp = self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            status_code=400,
+            **{"status": "active"},
+        )
+
+        assert resp.data["status"][0] == result.reason
+        assert not assign_monitor_seat.called
+
+    @patch("sentry.quotas.backend.disable_monitor_seat")
+    def test_deactivate_monitor(self, disable_monitor_seat):
+        monitor = self._create_monitor()
+
+        self.get_success_response(
+            self.organization.slug, monitor.slug, method="PUT", **{"status": "disabled"}
+        )
+
+        assert disable_monitor_seat.called
 
 
 @region_silo_test()
