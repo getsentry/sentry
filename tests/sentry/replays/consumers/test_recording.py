@@ -42,6 +42,7 @@ def test_multiprocessing_strategy():
 
     # Clean up after ourselves by terminating the processing pool spawned by the above call.
     task.terminate()
+    factory.shutdown()
 
 
 class RecordingTestCaseMixin(TransactionTestCase):
