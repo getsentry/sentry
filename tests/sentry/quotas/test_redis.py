@@ -71,7 +71,7 @@ class RedisQuotaTest(TestCase):
     def quota(self):
         return RedisQuota()
 
-    def test_project_abuse_quotas(self):
+    def test_abuse_quotas(self):
         # These legacy options need to be set, otherwise we'll run into
         # AssertionError: reject-all quotas cannot be tracked
         self.get_project_quota.return_value = (100, 10)
@@ -111,6 +111,7 @@ class RedisQuotaTest(TestCase):
         self.organization.update_option("project-abuse-quota.transaction-limit", 600)
         self.organization.update_option("project-abuse-quota.attachment-limit", 601)
         self.organization.update_option("project-abuse-quota.session-limit", 602)
+        self.organization.update_option("organization-abuse-quota.metric-bucket-limit", 603)
         with self.feature("organizations:transaction-metrics-extraction"):
             quotas = self.quota.get_quotas(self.project)
 
@@ -137,6 +138,14 @@ class RedisQuotaTest(TestCase):
         assert quotas[3].limit == 6020
         assert quotas[3].window == 10
         assert quotas[3].reason_code == "project_abuse_limit"
+
+        assert quotas[4].id == "oam"
+        assert quotas[4].scope == QuotaScope.ORGANIZATION
+        assert quotas[4].scope_id is None
+        assert quotas[4].categories == {DataCategory.METRIC_BUCKET}
+        assert quotas[4].limit == 6030
+        assert quotas[4].window == 10
+        assert quotas[4].reason_code == "org_abuse_limit"
 
         # Let's set the global option for error limits.
         # Since we already have an org override for it, it shouldn't change anything.
