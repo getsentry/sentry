@@ -57,6 +57,7 @@ from sentry.statistical_detectors.detector import (
     DetectorState,
     RegressionDetector,
     TrendType,
+    generate_fingerprint,
 )
 from sentry.statistical_detectors.issue_platform_adapter import (
     fingerprint_regression,
@@ -962,15 +963,6 @@ def limit_regressions_by_project(
             yield regression
 
 
-def generate_fingerprint(regression_type: RegressionType, regression: BreakpointData) -> str:
-    if regression_type == RegressionType.ENDPOINT:
-        return fingerprint_regression(regression["transaction"])
-    elif regression_type == RegressionType.FUNCTION:
-        return f"{int(regression['transaction']):x}"
-    else:
-        raise ValueError(f"Unsupported RegressionType: {regression_type}")
-
-
 def redirect_escalations(
     regressions: Generator[BreakpointData, None, None],
     regression_type: RegressionType,
@@ -984,7 +976,7 @@ def redirect_escalations(
                 [
                     (
                         int(regression["project"]),
-                        generate_fingerprint(regression_type, regression),
+                        generate_fingerprint(regression_type, regression["transaction"]),
                     )
                     for regression in regression_chunk
                 ],
@@ -993,7 +985,7 @@ def redirect_escalations(
 
         for regression in regression_chunk:
             project_id = int(regression["project"])
-            fingerprint = generate_fingerprint(regression_type, regression)
+            fingerprint = generate_fingerprint(regression_type, regression["transaction"])
             group = existing_regression_groups.get((project_id, fingerprint))
 
             if group is None:
@@ -1025,7 +1017,7 @@ def save_versioned_regressions(
                     version=version,
                     active=True,
                     project_id=int(regression["project"]),
-                    fingerprint=generate_fingerprint(regression_type, regression),
+                    fingerprint=generate_fingerprint(regression_type, regression["transaction"]),
                     baseline=regression["aggregate_range_1"],
                     regressed=regression["aggregate_range_2"],
                 )
