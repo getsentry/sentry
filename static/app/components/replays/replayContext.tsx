@@ -365,7 +365,6 @@ export function Provider({
 
       // eslint-disable-next-line no-new
       const inst = new Replayer(events, {
-        // UNSAFE_replayCanvas: true,
         root,
         blockClass: 'sentry-block',
         mouseTail: {
