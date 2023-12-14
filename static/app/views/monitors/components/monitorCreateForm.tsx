@@ -359,10 +359,13 @@ const SchedulePanel = styled(Panel)<{highlighted: boolean}>`
   border-radius: 0 ${space(0.75)} ${space(0.75)} 0;
 
   ${p =>
-    p.highlighted &&
-    css`
-      border: 2px solid ${p.theme.purple300};
-    `};
+    p.highlighted
+      ? css`
+          border: 2px solid ${p.theme.purple300};
+        `
+      : css`
+          padding: 1px;
+        `};
 
   &:first-child {
     border-radius: ${space(0.75)} 0 0 ${space(0.75)};
