@@ -19,6 +19,7 @@ from sentry.shared_integrations.client.base import BaseApiClient, BaseApiRespons
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     PROXY_DIRECT_LOCATION_HEADER,
+    PROXY_FROM_SILO,
     clean_outbound_headers,
     clean_proxy_headers,
 )
@@ -238,6 +239,12 @@ class RegionSiloClient(BaseSiloClient):
         hash = None
         if prefix_hash is not None:
             hash = sha1(f"{prefix_hash}{self.region.name}{method}{path}".encode()).hexdigest()
+
+        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+            # We are proxying a request from the Control Silo to the Region Silo.
+            # We add a header to indicate the request is coming from the Control Silo.
+            headers = {k: v for k, v in headers.items()}
+            headers[PROXY_FROM_SILO] = SiloMode.CONTROL.name
 
         try:
             response = super().request(
