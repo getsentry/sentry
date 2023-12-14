@@ -60,8 +60,8 @@ const errorHelpTypeResourceMap: Record<
   [ErrorHelpType.DOCUMENT_OR_WINDOW_OBJECT_ERROR]: {
     resources: {
       description: tct(
-        '[errorType] occur when the global objects `window` or `document` are not defined. This typically happens in server-side rendering (SSR) or other non-browser environments. To learn more about how to fix these errors, check out these resources:',
-        {errorType: <b>Document/Window object errors</b>}
+        '[errorTypes] occur when the global objects `window` or `document` are not defined. This typically happens in server-side rendering (SSR) or other non-browser environments. To learn more about how to fix these errors, check out these resources:',
+        {errorTypes: <b>Document/Window object errors</b>}
       ),
       links: [
         {
@@ -75,8 +75,8 @@ const errorHelpTypeResourceMap: Record<
   [ErrorHelpType.HANDLE_HARD_NAVIGATE_ERROR]: {
     resources: {
       description: tct(
-        '[errorType] occur in Next.js applications when trying to redirect to the same page. To learn more about how to fix these errors, check out these resources:',
-        {errorType: <b>Handle hard navigation errors</b>}
+        '[errorTypes] occur in Next.js applications when trying to redirect to the same page. To learn more about how to fix these errors, check out these resources:',
+        {errorTypes: <b>Handle hard navigation errors</b>}
       ),
       links: [
         {
