@@ -693,6 +693,12 @@ export function resolveHostname(path: string, hostname?: string): string {
 
   hostname = hostname ?? '';
   if (!hostname && storeState.organization?.features.includes('frontend-domainsplit')) {
+    // /_admin/ is special: since it doesn't update OrganizationStore, it's
+    // commonly the case that requests will be made for data which does not
+    // exist in the same region as the one in configLinks.regionUrl. Because of
+    // this we want to explicitly default those requests to be proxied through
+    // the control silo which can handle region resolution in exchange for a
+    // bit of latency.
     const isAdmin = window.location.pathname.startsWith('/_admin/');
     const isControlSilo = detectControlSiloPath(path);
     if (!isAdmin && !isControlSilo && configLinks.regionUrl) {

@@ -91,7 +91,7 @@ describe('api', function () {
 });
 
 describe('resolveHostname', function () {
-  let devUi, orgstate, configstate;
+  let devUi, location, orgstate, configstate;
 
   const controlPath = '/api/0/broadcasts/';
   const regionPath = '/api/0/organizations/slug/issues/';
@@ -99,6 +99,7 @@ describe('resolveHostname', function () {
   beforeEach(function () {
     orgstate = OrganizationStore.get();
     configstate = ConfigStore.getState();
+    location = window.location;
     devUi = window.__SENTRY_DEV_UI;
 
     OrganizationStore.onUpdate(Organization({features: ['frontend-domainsplit']}));
@@ -113,6 +114,7 @@ describe('resolveHostname', function () {
   });
 
   afterEach(() => {
+    window.location = location;
     window.__SENTRY_DEV_UI = devUi;
     OrganizationStore.onUpdate(orgstate.organization);
     ConfigStore.loadInitialData(configstate);
@@ -124,6 +126,25 @@ describe('resolveHostname', function () {
 
     let result = resolveHostname(controlPath);
     expect(result).toBe(controlPath);
+
+    // Explicit domains still work.
+    result = resolveHostname(controlPath, 'https://sentry.io');
+    expect(result).toBe(`https://sentry.io${controlPath}`);
+
+    result = resolveHostname(regionPath, 'https://de.sentry.io');
+    expect(result).toBe(`https://de.sentry.io${regionPath}`);
+  });
+
+  it('does not override region in _admin', function () {
+    window.location = new URL('https://sentry.io/_admin/');
+
+    // Adds domain to control paths
+    let result = resolveHostname(controlPath);
+    expect(result).toBe('https://sentry.io/api/0/broadcasts/');
+
+    // Doesn't add domain to region paths
+    result = resolveHostname(regionPath);
+    expect(result).toBe(regionPath);
 
     // Explicit domains still work.
     result = resolveHostname(controlPath, 'https://sentry.io');
