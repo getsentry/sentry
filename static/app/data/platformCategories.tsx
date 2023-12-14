@@ -355,9 +355,7 @@ export const replayPlatforms: readonly PlatformKey[] = [
  * See: https://github.com/getsentry/sentry-docs/tree/master/src/wizard/javascript/replay-onboarding
  */
 export const replayOnboardingPlatforms: readonly PlatformKey[] = [
-  ...replayFrontendPlatforms.filter(
-    p => !['javascript-angularjs', 'javascript-backbone'].includes(p)
-  ),
+  ...replayFrontendPlatforms.filter(p => !['javascript-backbone'].includes(p)),
   ...replayBackendPlatforms,
 ];
 
