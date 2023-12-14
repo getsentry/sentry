@@ -17,8 +17,8 @@ class HighPriorityIssueCondition(EventCondition):
     id = "sentry.rules.conditions.high_priority_issue.HighPriorityIssueCondition"
     label = "Sentry marks an issue as high priority"
 
-    def is_high_severity(self, state: EventState, group: Optional[Group]) -> bool:
-        if not group:
+    def is_new_high_severity(self, state: EventState, group: Optional[Group]) -> bool:
+        if not group or not state.is_new:
             return False
 
         try:
@@ -32,10 +32,10 @@ class HighPriorityIssueCondition(EventCondition):
         if not has_high_priority_issue_alerts(self.project):
             return False
 
-        is_high_severity = self.is_high_severity(state, event.group)
+        is_new_high_severity = self.is_new_high_severity(state, event.group)
         is_escalating = state.has_reappeared or state.has_escalated
 
-        return is_high_severity or is_escalating
+        return is_new_high_severity or is_escalating
 
     def get_activity(
         self, start: datetime, end: datetime, limit: int

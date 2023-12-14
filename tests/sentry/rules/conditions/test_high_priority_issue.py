@@ -19,10 +19,13 @@ class HighPriorityIssueConditionTest(RuleTestCase):
         self.assertPasses(rule, event, has_reappeared=True, has_escalated=False)
         self.assertPasses(rule, event, has_reappeared=False, has_escalated=True)
         self.assertDoesNotPass(rule, event, has_reappeared=False, has_escalated=False)
+        self.assertDoesNotPass(rule, event, is_new=False, has_reappeared=False, has_escalated=False)
 
         event.group.data["metadata"] = {"severity": "0.7"}
-        self.assertPasses(rule, event, has_reappeared=False, has_escalated=False)
+        self.assertPasses(rule, event, is_new=True, has_reappeared=False, has_escalated=False)
+        self.assertDoesNotPass(rule, event, is_new=False, has_reappeared=False, has_escalated=False)
 
         event.group.data["metadata"] = {"severity": "0.0"}
-        self.assertPasses(rule, event, has_reappeared=False, has_escalated=True)
-        self.assertDoesNotPass(rule, event, has_reappeared=False, has_escalated=False)
+        self.assertPasses(rule, event, is_new=False, has_reappeared=False, has_escalated=True)
+        self.assertPasses(rule, event, is_new=False, has_reappeared=False, has_escalated=True)
+        self.assertDoesNotPass(rule, event, is_new=True, has_reappeared=False, has_escalated=False)
