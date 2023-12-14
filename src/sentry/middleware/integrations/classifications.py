@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING, List, Mapping, Type, cast
 from django.http import HttpRequest
 from django.http.response import HttpResponseBase
 
+from sentry import options
+from sentry.silo import SiloMode
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
@@ -102,7 +104,7 @@ class IntegrationClassification(BaseClassification):
         return result[1].replace("-", "_")
 
     def should_operate(self, request: HttpRequest) -> bool:
-        return (
+        result = (
             # Must start with the integration request prefix...
             request.path.startswith(self.integration_prefix)
             # Not have the suffix for PipelineAdvancerView (See urls.py)
@@ -111,6 +113,16 @@ class IntegrationClassification(BaseClassification):
             and not request.path.endswith("/link/")
             and not request.path.startswith("/extensions/external-install/")
         )
+        if not result:
+            return result
+
+        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+            # Only allow certain integrations to run in monolith silo mode
+            allowlist = options.get("hybrid_cloud.integrations.monolith.allow-list") or []
+            provider = self._identify_provider(request)
+            result = result and provider in allowlist
+
+        return result
 
     def get_response(self, request: HttpRequest) -> HttpResponseBase:
         provider = self._identify_provider(request)

@@ -59,7 +59,8 @@ class IntegrationControlMiddleware:
         if not self._should_operate(request):
             return self.get_response(request)
 
-        # Check request against each classification, if a match is found, return early
+        # Check request against each classification, if a match is found, then that classification will handle
+        # the request.
         for classification in self.classifications:
             _cls = classification(response_handler=self.get_response)
             if _cls.should_operate(request):

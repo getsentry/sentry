@@ -12,6 +12,7 @@ from sentry.middleware.integrations.parsers.plugin import PluginRequestParser
 from sentry.middleware.integrations.parsers.slack import SlackRequestParser
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import override_options
 
 
 class BaseClassificationTestCase(TestCase):
@@ -24,9 +25,11 @@ class BaseClassificationTestCase(TestCase):
     def validate_mock_ran_with_noop(self, request, mock):
         # Ensure mock runs when middleware is called
         mock.reset_mock()
+        self.get_response.reset_mock()
         response = IntegrationControlMiddleware(get_response=self.get_response)(request)
         assert mock.called
         # Ensure noop response
+        assert self.get_response.call_count == 1
         assert response == self.get_response()
 
 
@@ -122,3 +125,32 @@ class IntegrationClassificationTest(BaseClassificationTestCase):
             self.factory.post(f"{self.prefix}{SlackRequestParser.provider}/webhook/")
         )
         assert result == response
+
+    @override_settings(SILO_MODE=SiloMode.MONOLITH)
+    def test_passthrough_monolith_mode(self):
+        self.get_response.reset_mock()
+        expected_response = HttpResponse(status=204)
+        self.get_response.return_value = expected_response
+
+        with override_options({"hybrid_cloud.integrations.monolith.allow-list": ["discord"]}):
+            request = self.factory.post(f"{self.prefix}{SlackRequestParser.provider}/webhook/")
+
+        assert self.integration_cls.should_operate(request) is False
+        assert self.integration_cls.get_response(request) == expected_response
+        assert self.get_response.call_count == 1
+        assert self.get_response.called_with(request)
+
+    @override_settings(SILO_MODE=SiloMode.MONOLITH)
+    def test_enable_in_monolith_mode(self):
+        self.get_response.reset_mock()
+        expected_response = HttpResponse(status=204)
+        self.get_response.return_value = expected_response
+
+        with override_options({"hybrid_cloud.integrations.monolith.allow-list": ["slack"]}):
+            integration_cls = IntegrationClassification(response_handler=self.get_response)
+            request = self.factory.post(f"{self.prefix}{SlackRequestParser.provider}/webhook/")
+
+            assert integration_cls.should_operate(request) is True
+            # Response was routed to the control silo
+            assert integration_cls.get_response(request) == expected_response
+            assert self.get_response.call_count == 1
