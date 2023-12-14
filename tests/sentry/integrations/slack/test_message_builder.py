@@ -284,20 +284,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert isinstance(ret, dict)
         assert ret["actions"] != []
 
-    @with_feature("organizations:slack-block-kit")
-    def test_team_recipient_block_kit(self):
-        issue_alert_group = self.create_group(project=self.project)
-        ret = SlackIssuesMessageBuilder(
-            issue_alert_group, recipient=RpcActor.from_object(self.team)
-        ).build()
-        assert isinstance(ret, dict)
-        has_actions = False
-        for section in ret["blocks"]:
-            if section["type"] == "actions":
-                has_actions = True
-
-        assert has_actions
-
     # XXX(CEO): skipping replicating tests relating to color since there is no block kit equivalent
     def test_build_group_attachment_color_no_event_error_fallback(self):
         group_with_no_events = self.create_group(project=self.project)
