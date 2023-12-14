@@ -191,7 +191,8 @@ class IntegrationProxyClient(ApiClient):
         # E.g. client.get("/chat.postMessage") -> proxy_path = 'chat.postMessage'
         proxy_path = trim_leading_slashes(prepared_request.url[len(base_url) :])
         proxy_url = self.proxy_url.rstrip("/")
-        url = f"{proxy_url}/"
+
+        url = f"{proxy_url}/{proxy_path}"
 
         request_body = prepared_request.body
         if not isinstance(request_body, bytes):

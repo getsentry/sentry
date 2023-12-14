@@ -4,7 +4,7 @@ import logging
 from typing import Dict
 from urllib.parse import urljoin
 
-from django.http import Http404, HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
 from requests import Request, Response
 
 from sentry.api.base import Endpoint, control_silo_endpoint
@@ -177,7 +177,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         self.log_extra["host"] = request.headers.get("Host")
 
         if not self._should_operate(request):
-            raise Http404
+            return HttpResponseBadRequest()
 
         metrics.incr("hybrid_cloud.integration_proxy.initialize", sample_rate=1.0)
 
