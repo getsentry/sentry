@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import timedelta
 
 from django.db import router, transaction
@@ -38,6 +39,8 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 
 from .base import MonitorIngestEndpoint
+
+logger = logging.getLogger(__name__)
 
 CHECKIN_QUOTA_LIMIT = 5
 CHECKIN_QUOTA_WINDOW = 60
@@ -166,6 +169,9 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
 
                     if created:
                         signal_monitor_created(project, request.user, True)
+                    if monitor.project_id != project.id:
+                        logger.error("Monitor project + DSN project do not match")
+
             except MonitorLimitsExceeded as e:
                 return self.respond({type(e).__name__: str(e)}, status=400)
 

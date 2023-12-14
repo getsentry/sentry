@@ -97,6 +97,8 @@ def _ensure_monitor_with_config(
         )
         if created:
             signal_monitor_created(project, None, True)
+        if monitor.project_id != project.id:
+            logger.error("Monitor project + wrapper project do not match")
 
     # Update existing monitor
     if monitor and not created and monitor.config != validated_config:
