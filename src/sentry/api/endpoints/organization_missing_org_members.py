@@ -24,14 +24,15 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.integration import integration_service
 
-FILTERED_EMAIL_DOMAINS = {
-    "gmail.com",
-    "yahoo.com",
-    "icloud.com",
-    "hotmail.com",
-    "outlook.com",
-    "noreply.github.com",
-    "localhost",
+FILTERED_EMAILS = {
+    "%%@gmail.com",
+    "%%@yahoo.com",
+    "%%@icloud.com",
+    "%%@hotmail.com",
+    "%%@outlook.com",
+    "%%@noreply.github.com",
+    "%%@localhost",
+    "action@github.com",
 }
 
 FILTERED_CHARACTERS = {"+"}
@@ -72,9 +73,9 @@ def _get_missing_organization_members(
     if shared_domain:
         domain_query = f"AND sentry_commitauthor.email::text LIKE '%%{shared_domain}'"
     else:
-        for filtered_email_domain in FILTERED_EMAIL_DOMAINS:
+        for filtered_email_domain in FILTERED_EMAILS:
             domain_query += (
-                f"AND sentry_commitauthor.email::text NOT LIKE '%%{filtered_email_domain}' "
+                f"AND sentry_commitauthor.email::text NOT LIKE '{filtered_email_domain}' "
             )
 
     date_added = (timezone.now() - timedelta(days=30)).strftime("%Y-%m-%d, %H:%M:%S")
