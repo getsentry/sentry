@@ -1504,7 +1504,16 @@ register("hybrid_cloud.multi-region-selector", default=False, flags=FLAG_AUTOMAT
 register("hybrid_cloud.region-user-allow-list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 # List of integrations to be allowed to run in monolith silo mode
 register(
-    "hybrid_cloud.integrations.monolith.allow-list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
+    "hybrid_cloud.integrations.monolith.allow-list",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "hybrid_cloud.integrations.monolith.enable-plugins",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.

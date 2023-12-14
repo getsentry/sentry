@@ -44,6 +44,12 @@ class PluginClassification(BaseClassification):
         is_plugin = request.path.startswith(self.plugin_prefix)
         if not is_plugin:
             return False
+
+        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+            enable_plugins = bool(options.get("hybrid_cloud.integrations.monolith.enable-plugins"))
+            if not enable_plugins:
+                return False
+
         rp = PluginRequestParser(request=request, response_handler=self.response_handler)
         return rp.should_operate()
 
