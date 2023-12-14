@@ -14,6 +14,7 @@ from sentry.middleware.integrations.parsers.jira_server import JiraServerRequest
 from sentry.middleware.integrations.parsers.plugin import PluginRequestParser
 from sentry.middleware.integrations.parsers.slack import SlackRequestParser
 from sentry.silo import SiloMode
+from sentry.silo.util import PROXY_FROM_SILO
 from sentry.testutils.cases import TestCase
 
 
@@ -45,9 +46,22 @@ class IntegrationControlMiddlewareTest(TestCase):
         "_should_operate",
         wraps=middleware._should_operate,
     )
-    def test_inactive_on_monolith(self, mock_should_operate):
+    def test_active_on_monolith(self, mock_should_operate):
         request = self.factory.post("/extensions/slack/webhook/")
         assert mock_should_operate(request) is True
+        self.validate_mock_ran_with_noop(request, mock_should_operate)
+
+    @override_settings(SILO_MODE=SiloMode.MONOLITH)
+    @patch.object(
+        IntegrationControlMiddleware,
+        "_should_operate",
+        wraps=middleware._should_operate,
+    )
+    def test_passthrough_on_monolith(self, mock_should_operate):
+        # Virtual silo mode transition from Control silo to Region silo via proxy should bypass the
+        # IntegrationControlMiddleware middleware.
+        request = self.factory.post("/extensions/slack/webhook/", **{PROXY_FROM_SILO: "REGION"})
+        assert mock_should_operate(request) is False
         self.validate_mock_ran_with_noop(request, mock_should_operate)
 
     @override_settings(SILO_MODE=SiloMode.REGION)
