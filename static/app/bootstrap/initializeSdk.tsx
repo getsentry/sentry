@@ -169,12 +169,10 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     },
   });
 
-  if (process.env.NODE_ENV !== 'production') {
-    if (sentryConfig.environment === 'development') {
-      import('@spotlightjs/spotlight').then(Spotlight => {
-        /* #__PURE__ */ Spotlight.init();
-      });
-    }
+  if (process.env.NODE_ENV === 'development') {
+    import('@spotlightjs/spotlight').then(Spotlight => {
+      /* #__PURE__ */ Spotlight.init({injectImmediately: true});
+    });
   }
 
   // Event processor to fill the debug_meta field with debug IDs based on the
