@@ -19,8 +19,7 @@ export function getForceMetricsLayerQueryExtras(
   organization: Organization,
   alertDataset: Dataset
 ): {forceMetricsLayer: 'true'} | Record<string, never> {
-  return hasDDMExperimentalFeature(organization) &&
-    alertDataset === Dataset.GENERIC_METRICS
+  return hasDDMFeature(organization) && alertDataset === Dataset.GENERIC_METRICS
     ? {forceMetricsLayer: 'true'}
     : {};
 }
