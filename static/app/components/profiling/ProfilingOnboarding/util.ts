@@ -52,6 +52,8 @@ export const supportedPlatformExpectedDocKeys: Record<
   ],
   javascript: ['1-install', '2-configure-document-policy', '3-configure'],
   'javascript-react': ['1-install', '2-configure-document-policy', '3-configure'],
+  'javascript-angular': ['1-install', '2-configure-document-policy', '3-configure'],
+  'javascript-vue': ['1-install', '2-configure-document-policy', '3-configure'],
   'react-native': [
     '0-alert',
     '1-install',
