@@ -23,7 +23,7 @@ describe('convertToDashboardWidget', () => {
         MetricDisplayType.AREA
       )
     ).toEqual({
-      title: 'DDM Widget',
+      title: 'p95(login)',
       displayType: DisplayType.AREA,
       widgetType: 'custom-metrics',
       limit: 10,
@@ -60,7 +60,7 @@ describe('convertToDashboardWidget', () => {
         MetricDisplayType.BAR
       )
     ).toEqual({
-      title: 'DDM Widget',
+      title: 'p95(measurements.duration)',
       displayType: DisplayType.BAR,
       widgetType: 'discover',
       limit: 1,
