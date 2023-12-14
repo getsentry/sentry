@@ -299,13 +299,16 @@ export const releaseHealth: PlatformKey[] = [
 ];
 
 // These are the backend platforms that can set up replay -- e.g. they can be set up via a linked JS framework or via JS loader.
-// Note: not currently comprehensive -- only included ones that are also in the `backend` platforms listed above
-// TODO: add all the platforms
 const replayBackendPlatforms: readonly PlatformKey[] = [
   'bun',
   'dotnet-aspnetcore',
   'dotnet-aspnet',
   'elixir',
+  'go-echo',
+  'go-fasthttp',
+  'go-gin',
+  'go-iris',
+  'go-martini',
   'java-spring',
   'java-spring-boot',
   'node',
