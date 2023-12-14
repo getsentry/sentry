@@ -14,6 +14,9 @@ PROXY_SIGNATURE_HEADER = "X-Sentry-Subnet-Signature"
 PROXY_PATH = "X-Sentry-Subnet-Path"
 PROXY_KEYID_HEADER = "X-Sentry-Subnet-Keyid"
 PROXY_DIRECT_LOCATION_HEADER = "X-Sentry-Proxy-URL"
+# To indicate what the assumed silo mode that the request originated from.
+# This header is used in monolith silo mode to enable or disable specific region/control silo code.
+PROXY_FROM_SILO = "X-Sentry-From-Silo"
 
 INVALID_PROXY_HEADERS = {"Host", "X-Forwarded-Proto", "Content-Length", "Content-Encoding"}
 INVALID_OUTBOUND_HEADERS = INVALID_PROXY_HEADERS | {
