@@ -564,7 +564,6 @@ module = [
     "sentry.tasks.auth",
     "sentry.tasks.base",
     "sentry.tasks.codeowners.update_code_owners_schema",
-    "sentry.tasks.commit_context",
     "sentry.tasks.deliver_from_outbox",
     "sentry.tasks.digests",
     "sentry.tasks.groupowner",
