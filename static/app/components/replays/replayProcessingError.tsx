@@ -18,7 +18,9 @@ export default function ReplayProcessingError({className, processingErrors}: Pro
       scope.setLevel('warning');
       scope.setFingerprint(['replay-processing-error']);
       processingErrors.forEach(error => {
-        Sentry.captureException(error);
+        Sentry.metrics.increment(
+          `replay.processing-error.${error.toLowerCase().replaceAll(' ', '-')}`
+        );
       });
     });
   }, [processingErrors]);
