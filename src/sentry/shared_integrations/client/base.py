@@ -8,6 +8,7 @@ import sentry_sdk
 from django.core.cache import cache
 from requests import PreparedRequest, Request, Response
 from requests.exceptions import ConnectionError, HTTPError, Timeout
+from typing_extensions import Self
 
 from sentry import audit_log, features
 from sentry.constants import ObjectStatus
@@ -63,7 +64,7 @@ class BaseApiClient(TrackResponseMixin):
         self.logging_context = logging_context
         self.integration_id = integration_id
 
-    def __enter__(self) -> BaseApiClient:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, exc_type: Type[Exception], exc_value: Exception, traceback: Any) -> None:

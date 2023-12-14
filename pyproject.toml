@@ -674,7 +674,6 @@ module = [
     "sentry_plugins.github.client",
     "sentry_plugins.github.plugin",
     "sentry_plugins.github.webhooks.base",
-    "sentry_plugins.github.webhooks.events.push",
     "sentry_plugins.github.webhooks.integration",
     "sentry_plugins.heroku.plugin",
     "sentry_plugins.jira.client",
