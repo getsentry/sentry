@@ -63,7 +63,6 @@ function ReplayPlayPauseBar() {
       />
       {isFinished ? (
         <Button
-          size="md"
           title={t('Restart Replay')}
           icon={<IconPrevious size="md" />}
           onClick={restart}
@@ -72,7 +71,6 @@ function ReplayPlayPauseBar() {
         />
       ) : (
         <Button
-          size="md"
           title={isPlaying ? t('Pause') : t('Play')}
           icon={isPlaying ? <IconPause size="md" /> : <IconPlay size="md" />}
           onClick={() => togglePlayPause(!isPlaying)}
@@ -155,7 +153,7 @@ function TimelineSizeBar() {
       <Button
         size="xs"
         title={t('Zoom out')}
-        icon={<IconSubtract size="xs" />}
+        icon={<IconSubtract />}
         borderless
         onClick={() => setTimelineScale(Math.max(timelineScale - 1, 1))}
         aria-label={t('Zoom out')}
@@ -168,7 +166,7 @@ function TimelineSizeBar() {
       <Button
         size="xs"
         title={t('Zoom in')}
-        icon={<IconAdd size="xs" />}
+        icon={<IconAdd />}
         borderless
         onClick={() => setTimelineScale(Math.min(timelineScale + 1, maxScale))}
         aria-label={t('Zoom in')}

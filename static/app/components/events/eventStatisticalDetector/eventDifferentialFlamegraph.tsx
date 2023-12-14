@@ -359,14 +359,14 @@ function DifferentialFlamegraphTransactionToolbar(
       )}
       <ButtonBar merged>
         <DifferentialFlamegraphPaginationButton
-          icon={<IconChevron direction="left" size="xs" />}
+          icon={<IconChevron direction="left" />}
           aria-label={t('Previous Transaction')}
           size="xs"
           disabled={!props.onPreviousTransactionClick}
           onClick={props.onPreviousTransactionClick}
         />
         <DifferentialFlamegraphPaginationButton
-          icon={<IconChevron direction="right" size="xs" />}
+          icon={<IconChevron direction="right" />}
           aria-label={t('Next Transaction')}
           size="xs"
           disabled={!props.onNextTransactionClick}
@@ -708,14 +708,14 @@ function DifferentialFlamegraphChangedFunctionsTitle(props: {
           size="xs"
           disabled={!props.onPreviousPageClick}
           onClick={props.onPreviousPageClick}
-          icon={<IconChevron direction="left" size="xs" />}
+          icon={<IconChevron direction="left" />}
           aria-label={t('Previous page')}
         />
         <DifferentialFlamegraphPaginationButton
           size="xs"
           disabled={!props.onNextPageClick}
           onClick={props.onNextPageClick}
-          icon={<IconChevron direction="right" size="xs" />}
+          icon={<IconChevron direction="right" />}
           aria-label={t('Next page')}
         />
       </ButtonBar>

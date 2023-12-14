@@ -236,7 +236,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
             <Button
               priority="primary"
               size="sm"
-              icon={<IconAdd size="xs" isCircled />}
+              icon={<IconAdd isCircled />}
               onClick={() => onClick()}
             >
               {t('Add Services')}
@@ -292,7 +292,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
                 handleJiraMigration();
               }}
             >
-              <Button priority="primary" size="md" disabled={!hasAccess}>
+              <Button priority="primary" disabled={!hasAccess}>
                 {t('Migrate Plugin')}
               </Button>
             </Confirm>
@@ -335,7 +335,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
                 handleOpsgenieMigration();
               }}
             >
-              <Button priority="primary" size="md" disabled={!hasAccess}>
+              <Button priority="primary" disabled={!hasAccess}>
                 {t('Migrate Plugin')}
               </Button>
             </Confirm>

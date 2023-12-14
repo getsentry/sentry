@@ -66,7 +66,6 @@ function GetStarted(props: StepProps) {
           )}
           <ContinueButton
             disabled={!orgSlugs || !regionUrl}
-            size="md"
             priority="primary"
             type="submit"
           >

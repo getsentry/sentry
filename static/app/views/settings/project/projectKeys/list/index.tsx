@@ -187,7 +187,7 @@ class ProjectKeys extends DeprecatedAsyncView<Props, State> {
               onClick={this.handleCreateKey}
               size="sm"
               priority="primary"
-              icon={<IconAdd size="xs" isCircled />}
+              icon={<IconAdd isCircled />}
               disabled={!hasAccess}
             >
               {t('Generate New Key')}
