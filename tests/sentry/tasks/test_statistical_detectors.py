@@ -564,7 +564,21 @@ def test_redirect_escalations(
                 version=version,
                 active=active,
                 project_id=project.id,
-                fingerprint=generate_fingerprint(regression_type, {"transaction": transaction}),
+                fingerprint=generate_fingerprint(
+                    regression_type,
+                    {
+                        "absolute_percentage_change": 5.0,
+                        "aggregate_range_1": 100000000.0,
+                        "aggregate_range_2": 500000000.0,
+                        "breakpoint": 1687323600,
+                        "project": str(project.id),
+                        "transaction": transaction,
+                        "trend_difference": 400000000.0,
+                        "trend_percentage": 5.0,
+                        "unweighted_p_value": 0.0,
+                        "unweighted_t_value": -float("inf"),
+                    },
+                ),
                 baseline=100000000.0,
                 regressed=500000000.0,
             )
