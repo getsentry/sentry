@@ -29,7 +29,6 @@ type Props = {
    * Platform icon size in pixels
    */
   size?: number;
-  style?: React.CSSProperties;
 };
 
 type WrapperProps = Required<
@@ -44,7 +43,6 @@ function PlatformList({
   consistentWidth = false,
   showCounter = false,
   className,
-  style,
 }: Props) {
   const visiblePlatforms = platforms.slice(0, max);
   const numNotVisiblePlatforms = platforms.length - visiblePlatforms.length;
@@ -52,7 +50,7 @@ function PlatformList({
 
   function renderContent() {
     if (!platforms.length) {
-      return <StyledPlatformIcon size={size} platform="default" style={style} />;
+      return <StyledPlatformIcon size={size} platform="default" />;
     }
 
     const platformIcons = visiblePlatforms.slice().reverse();
@@ -67,11 +65,7 @@ function PlatformList({
                 title={getPlatformName(visiblePlatform)}
                 containerDisplayMode="inline-flex"
               >
-                <StyledPlatformIcon
-                  platform={visiblePlatform}
-                  size={size}
-                  style={style}
-                />
+                <StyledPlatformIcon platform={visiblePlatform} size={size} />
               </Tooltip>
             ))}
           </PlatformIcons>
@@ -96,7 +90,6 @@ function PlatformList({
             key={visiblePlatform + index}
             platform={visiblePlatform}
             size={size}
-            style={style}
           />
         ))}
       </PlatformIcons>

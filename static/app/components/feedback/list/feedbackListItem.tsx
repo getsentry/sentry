@@ -107,11 +107,10 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
 
             <BottomGrid style={{gridArea: 'bottom'}}>
               <Row justify="flex-start" gap={space(0.75)}>
-                <ProjectAvatar
+                <StyledProjectAvatar
                   project={feedbackItem.project}
                   size={12}
                   title={feedbackItem.project.slug}
-                  style={{boxShadow: 'none'}}
                 />
                 <TextOverflow>{feedbackItem.shortId}</TextOverflow>
               </Row>
@@ -188,6 +187,12 @@ const BottomGrid = styled('div')`
   gap: ${space(1)};
 
   overflow: hidden;
+`;
+
+const StyledProjectAvatar = styled(ProjectAvatar)`
+  && img {
+    box-shadow: none;
+  }
 `;
 
 export default FeedbackListItem;
