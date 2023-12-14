@@ -413,7 +413,7 @@ def _get_project_config(
                             "weight": 0.30,
                             "p10": 100.0,
                             "p50": 300.0,
-                            "optional": False,
+                            "optional": True,
                         },
                         {
                             "measurement": "cls",
@@ -458,7 +458,7 @@ def _get_project_config(
                             "weight": 0.30,
                             "p10": 100.0,
                             "p50": 300.0,
-                            "optional": False,
+                            "optional": True,
                         },
                         {
                             "measurement": "cls",
@@ -503,7 +503,7 @@ def _get_project_config(
                             "weight": 0.0,
                             "p10": 100.0,
                             "p50": 300.0,
-                            "optional": False,
+                            "optional": True,
                         },
                         {
                             "measurement": "cls",
@@ -548,7 +548,7 @@ def _get_project_config(
                             "weight": 0.30,
                             "p10": 100.0,
                             "p50": 300.0,
-                            "optional": False,
+                            "optional": True,
                         },
                         {
                             "measurement": "cls",
@@ -593,7 +593,7 @@ def _get_project_config(
                             "weight": 0.30,
                             "p10": 100.0,
                             "p50": 300.0,
-                            "optional": False,
+                            "optional": True,
                         },
                         {
                             "measurement": "cls",

@@ -759,7 +759,13 @@ def test_performance_calculate_score(default_project):
             "scoreComponents": [
                 {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": False},
                 {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": False},
-                {"measurement": "fid", "weight": 0.3, "p10": 100, "p50": 300, "optional": False},
+                {
+                    "measurement": "fid",
+                    "weight": 0.3,
+                    "p10": 100,
+                    "p50": 300,
+                    "optional": True,
+                },
                 {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": False},
                 {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": False},
             ],
@@ -791,7 +797,7 @@ def test_performance_calculate_score(default_project):
                     "weight": 0.3,
                     "p10": 100.0,
                     "p50": 300.0,
-                    "optional": False,
+                    "optional": True,
                 },
                 {"measurement": "cls", "weight": 0.0, "p10": 0.1, "p50": 0.25, "optional": False},
                 {
@@ -830,7 +836,7 @@ def test_performance_calculate_score(default_project):
                     "weight": 0.0,
                     "p10": 100.0,
                     "p50": 300.0,
-                    "optional": False,
+                    "optional": True,
                 },
                 {"measurement": "cls", "weight": 0.0, "p10": 0.1, "p50": 0.25, "optional": False},
                 {
@@ -852,7 +858,13 @@ def test_performance_calculate_score(default_project):
             "scoreComponents": [
                 {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": False},
                 {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": False},
-                {"measurement": "fid", "weight": 0.3, "p10": 100, "p50": 300, "optional": False},
+                {
+                    "measurement": "fid",
+                    "weight": 0.3,
+                    "p10": 100,
+                    "p50": 300,
+                    "optional": True,
+                },
                 {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": False},
                 {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": False},
             ],
@@ -867,7 +879,13 @@ def test_performance_calculate_score(default_project):
             "scoreComponents": [
                 {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": False},
                 {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": False},
-                {"measurement": "fid", "weight": 0.3, "p10": 100, "p50": 300, "optional": False},
+                {
+                    "measurement": "fid",
+                    "weight": 0.3,
+                    "p10": 100,
+                    "p50": 300,
+                    "optional": True,
+                },
                 {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": False},
                 {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": False},
             ],
