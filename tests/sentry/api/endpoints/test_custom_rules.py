@@ -469,6 +469,7 @@ def test_get_condition(query, condition):
         "event.type:error environment:production",
         "",
         "hello world",
+        "http.status_code:GET AND (transaction.duration:>10 AND event.type:error)",
     ],
 )
 def test_get_condition_not_supported(query):
