@@ -291,7 +291,7 @@ function DifferentialFlamegraphView() {
   );
 
   return (
-    <Feature features={['organizations:profiling-differential-flamegraph-page']}>
+    <Feature features={['profiling-differential-flamegraph-page']}>
       <DifferentialFlamegraphContainer>
         <DifferentialFlamegraphToolbar
           frameFilter={frameFilterSetting}
