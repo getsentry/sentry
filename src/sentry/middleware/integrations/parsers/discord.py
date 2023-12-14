@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import logging
+from typing import Callable
 
+import requests
 import sentry_sdk
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
+from django.http.response import HttpResponseBase
 from rest_framework import status
 from rest_framework.request import Request
 
@@ -15,6 +18,7 @@ from sentry.middleware.integrations.parsers.base import BaseRequestParser
 from sentry.models.integrations import Integration
 from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.utils import json
 from sentry.utils.signing import unsign
 
 logger = logging.getLogger(__name__)
@@ -32,6 +36,9 @@ class DiscordRequestParser(BaseRequestParser):
     # Dynamically set to avoid RawPostDataException from double reads
     _discord_request: DiscordRequest | None = None
 
+    # https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-interaction-callback-type
+    async_response_data = {"type": 5, "flags": 64}
+
     @property
     def discord_request(self) -> DiscordRequest | None:
         if self._discord_request is not None:
@@ -41,6 +48,33 @@ class DiscordRequestParser(BaseRequestParser):
         drf_request: Request = DiscordInteractionsEndpoint().initialize_request(self.request)
         self._discord_request: DiscordRequest = self.view_class.discord_request_class(drf_request)
         return self._discord_request
+
+    def get_async_region_response(
+        self,
+        response_method: Callable[[], HttpResponseBase | None],
+    ) -> JsonResponse:
+        if not self.discord_request.response_url:
+            return self.get_response_from_control_silo()
+
+        def convert_to_async_response():
+            region_response = response_method()
+            if not region_response:
+                return
+            try:
+                payload = json.loads(region_response.content.decode(encoding="utf-8")).get("data")
+                response = requests.post(self.discord_request.response_url, json=payload)
+                logger.info(
+                    "%s.async_response",
+                    self.provider,
+                    extra={"path": self.request.path, "status_code": response.status_code},
+                )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+
+        # convert_to_async_response()  -> wont work synchronously because discord needs the type:5 response first
+        # Thread(target=convert_to_async_response).start()
+
+        return JsonResponse(data=self.async_response_data, status=status.HTTP_202_ACCEPTED)
 
     def get_integration_from_request(self) -> Integration | None:
         if self.view_class in self.control_classes:
@@ -100,9 +134,13 @@ class DiscordRequestParser(BaseRequestParser):
 
         if is_discord_interactions_endpoint and self.discord_request:
             if self.discord_request.is_command():
-                return self.get_response_from_first_region()
+                return self.get_async_region_response(
+                    response_method=self.get_response_from_first_region
+                )
 
             if self.discord_request.is_message_component():
-                return self.get_response_from_all_regions()
+                return self.get_async_region_response(
+                    response_method=self.get_response_from_all_regions
+                )
 
         return self.get_response_from_control_silo()

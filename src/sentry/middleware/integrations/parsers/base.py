@@ -3,10 +3,8 @@ from __future__ import annotations
 import abc
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import TYPE_CHECKING, Callable, Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, Mapping, Optional, Sequence
 
-import requests
-import sentry_sdk
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from django.urls import ResolverMatch, resolve
@@ -20,7 +18,6 @@ from sentry.services.hybrid_cloud.organization_mapping import organization_mappi
 from sentry.silo import SiloLimit, SiloMode
 from sentry.silo.client import RegionSiloClient, SiloClientError
 from sentry.types.region import Region, get_region_for_organization
-from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
@@ -162,22 +159,6 @@ class BaseRequestParser(abc.ABC):
             error_map = {region: result.error for region, result in response_map.items()}
             raise SiloClientError("No successful region responses", error_map)
         return successful_responses[0].response
-
-    def convert_region_response_to_outbound_request(
-        self, response_method: Callable[[], HttpResponseBase | None], response_url: str
-    ):
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(response_method)
-            region_response = future.result()
-            if not region_response:
-                return
-            try:
-                payload = json.loads(region_response.content.decode(encoding="utf-8"))
-            except Exception as e:
-                sentry_sdk.capture_exception(e)
-            requests.post(response_url, json=payload)
-        # We may want to enrich this with a waiting message
-        return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
     # Required Overrides
 

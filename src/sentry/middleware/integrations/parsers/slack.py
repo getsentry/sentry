@@ -1,7 +1,13 @@
 from __future__ import annotations
 
 import logging
+from typing import Callable
 
+import requests
+import sentry_sdk
+from django.http import HttpResponse
+from django.http.response import HttpResponseBase
+from rest_framework import status
 from rest_framework.request import Request
 
 from sentry.integrations.slack.requests.base import SlackRequestError
@@ -64,6 +70,34 @@ class SlackRequestParser(BaseRequestParser):
     See: `src/sentry/integrations/slack/views`
     """
 
+    def get_async_region_response(
+        self,
+        response_method: Callable[[], HttpResponseBase | None],
+    ) -> HttpResponse:
+        if not self.response_url:
+            return self.get_response_from_control_silo()
+
+        def convert_to_async_response():
+            region_response = response_method()
+            if not region_response:
+                return
+            try:
+                payload = json.loads(region_response.content.decode(encoding="utf-8"))
+                response = requests.post(self.response_url, json=payload)
+                logger.info(
+                    "%s.async_response",
+                    self.provider,
+                    extra={"path": self.request.path, "status_code": response.status_code},
+                )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+
+        # Thread(target=convert_to_async_response).start()
+        # convert_to_async_response()
+
+        # We may want to enrich this with a waiting message
+        return HttpResponse(status=status.HTTP_202_ACCEPTED)
+
     def get_integration_from_request(self) -> Integration | None:
         if self.view_class in self.webhook_endpoints:
             # We need convert the raw Django request to a Django Rest Framework request
@@ -118,9 +152,8 @@ class SlackRequestParser(BaseRequestParser):
             # All actions other than those below are sent to every region
             if action_option not in ACTIONS_ENDPOINT_ALL_SILOS_ACTIONS:
                 return (
-                    self.convert_region_response_to_outbound_request(
-                        response_method=self.get_response_from_all_regions,
-                        response_url=self.response_url,
+                    self.get_async_region_response(
+                        response_method=self.get_response_from_all_regions
                     )
                     if self.response_url
                     else self.get_response_from_all_regions()
@@ -131,7 +164,6 @@ class SlackRequestParser(BaseRequestParser):
         # calls back to slack for every region we forward to.
         # By convention, we use the first integration organization/region
         if self.response_url:
-            return self.convert_region_response_to_outbound_request(
-                response_method=self.get_response_from_first_region,
-                response_url=self.response_url,
+            return self.get_async_region_response(
+                response_method=self.get_response_from_first_region
             )
