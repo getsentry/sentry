@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence,
 
 from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
+from sentry.utils.dates import to_timestamp
 
 
 class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
@@ -96,7 +97,9 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
     @staticmethod
     def get_context_block(text: str, timestamp: Optional[datetime] = None) -> SlackBlock:
         if timestamp:
-            time = timestamp.strftime("%b %d")
+            time = "<!date^{:.0f}^ {} at {} | Sentry Issue>".format(
+                to_timestamp(timestamp), "{date_pretty}", "{time}"
+            )
             text += f" | {time}"
         return {
             "type": "context",
