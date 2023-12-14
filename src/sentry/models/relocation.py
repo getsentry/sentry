@@ -186,12 +186,18 @@ class RelocationFile(DefaultFieldsModel):
         #
         # TODO(getsentry/team-ospo#216): Add a normalization step to the relocation flow
         NORMALIZED_USER_DATA = 2
-        # The global configuration we're going to validate against - pulled from the live Sentry
-        # instance, not supplied by the user.
+        # (Deprecated) The global configuration we're going to validate against - pulled from the
+        # live Sentry instance, not supplied by the user.
+        #
+        # TODO(getsentry/team-ospo#216): Deprecated, since we no longer store these in main bucket.
+        # Remove in the future.
         BASELINE_CONFIG_VALIDATION_DATA = 3
-        # The colliding users we're going to validate against - pulled from the live Sentry
-        # instance, not supplied by the user. However, to determine what is a "colliding user", we
-        # must inspect the user-provided data.
+        # (Deprecated) The colliding users we're going to validate against - pulled from the live
+        # Sentry instance, not supplied by the user. However, to determine what is a "colliding
+        # user", we must inspect the user-provided data.
+        #
+        # TODO(getsentry/team-ospo#216): Deprecated, since we no longer store these in main bucket.
+        # Remove in the future.
         COLLIDING_USERS_VALIDATION_DATA = 4
 
         # TODO(getsentry/team-ospo#190): Could we dedup this with a mixin in the future?
