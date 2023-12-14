@@ -246,7 +246,7 @@ class PostRelocationTest(APITestCase):
             with self.options(
                 {
                     "relocation.enabled": True,
-                    "relocation.daily-limit-small": 1,
+                    "relocation.daily-limit.small": 1,
                 }
             ), open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
@@ -292,7 +292,7 @@ class PostRelocationTest(APITestCase):
             with tempfile.TemporaryDirectory() as tmp_dir:
                 (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
                 with self.options(
-                    {"relocation.enabled": True, "relocation.daily-limit-small": 1}
+                    {"relocation.enabled": True, "relocation.daily-limit.small": 1}
                 ), open(FRESH_INSTALL_PATH) as f:
                     data = json.load(f)
                     with open(tmp_pub_key_path, "rb") as p:
@@ -336,7 +336,7 @@ class PostRelocationTest(APITestCase):
             with tempfile.TemporaryDirectory() as tmp_dir:
                 (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
                 with self.options(
-                    {"relocation.enabled": True, "relocation.daily-limit-small": 1}
+                    {"relocation.enabled": True, "relocation.daily-limit.small": 1}
                 ), open(FRESH_INSTALL_PATH) as f:
                     data = json.load(f)
                     with open(tmp_pub_key_path, "rb") as p:
@@ -388,7 +388,7 @@ class PostRelocationTest(APITestCase):
             with self.options(
                 {
                     "relocation.enabled": True,
-                    "relocation.daily-limit-small": 1,
+                    "relocation.daily-limit.small": 1,
                 }
             ), open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
@@ -447,7 +447,7 @@ class PostRelocationTest(APITestCase):
             with self.options(
                 {
                     "relocation.enabled": True,
-                    "relocation.daily-limit-small": 1,
+                    "relocation.daily-limit.small": 1,
                 }
             ):
                 response = self.client.post(
@@ -470,7 +470,7 @@ class PostRelocationTest(APITestCase):
             with self.options(
                 {
                     "relocation.enabled": True,
-                    "relocation.daily-limit-small": 1,
+                    "relocation.daily-limit.small": 1,
                 }
             ), open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
@@ -501,7 +501,7 @@ class PostRelocationTest(APITestCase):
             with self.options(
                 {
                     "relocation.enabled": True,
-                    "relocation.daily-limit-small": 1,
+                    "relocation.daily-limit.small": 1,
                 }
             ), open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
@@ -532,7 +532,7 @@ class PostRelocationTest(APITestCase):
             with self.options(
                 {
                     "relocation.enabled": True,
-                    "relocation.daily-limit-small": 1,
+                    "relocation.daily-limit.small": 1,
                 }
             ), open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
@@ -573,7 +573,7 @@ class PostRelocationTest(APITestCase):
             with self.options(
                 {
                     "relocation.enabled": True,
-                    "relocation.daily-limit-small": 1,
+                    "relocation.daily-limit.small": 1,
                 }
             ), open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
@@ -606,7 +606,7 @@ class PostRelocationTest(APITestCase):
             with self.options(
                 {
                     "relocation.enabled": True,
-                    "relocation.daily-limit-small": 1,
+                    "relocation.daily-limit.small": 1,
                 }
             ), open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
@@ -670,8 +670,8 @@ class PostRelocationTest(APITestCase):
             with self.options(
                 {
                     "relocation.enabled": True,
-                    "relocation.daily-limit-small": 1,
-                    "relocation.daily-limit-medium": 1,
+                    "relocation.daily-limit.small": 1,
+                    "relocation.daily-limit.medium": 1,
                 }
             ), open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
@@ -731,7 +731,7 @@ class PostRelocationTest(APITestCase):
             with self.options(
                 {
                     "relocation.enabled": True,
-                    "relocation.daily-limit-small": 1,
+                    "relocation.daily-limit.small": 1,
                 }
             ), open(FRESH_INSTALL_PATH) as f, freeze_time("2023-11-28 00:00:00") as frozen_time:
                 data = json.load(f)
@@ -792,7 +792,7 @@ class PostRelocationTest(APITestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
             with self.feature("relocation:enabled"), self.options(
-                {"relocation.daily-limit-small": 1}
+                {"relocation.daily-limit.small": 1}
             ), open(FRESH_INSTALL_PATH) as f:
                 data = json.load(f)
                 with open(tmp_pub_key_path, "rb") as p:

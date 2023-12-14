@@ -82,7 +82,7 @@ class IssueBasicMixin:
 
         if group.issue_category == GroupCategory.FEEDBACK:
             return [
-                "Sentry Feedback: [{}]({})".format(
+                "Sentry Feedback: [{}]({})\n".format(
                     group.qualified_short_id, absolute_uri(group.get_absolute_url(params=params))
                 )
             ]

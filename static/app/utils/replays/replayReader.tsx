@@ -59,6 +59,10 @@ interface ReplayReaderParams {
   replayRecord: ReplayRecord | undefined;
 }
 
+interface Options {
+  showHydrationErrors?: boolean;
+}
+
 type RequiredNotNull<T> = {
   [P in keyof T]: NonNullable<T[P]>;
 };
@@ -92,13 +96,16 @@ function removeDuplicateClicks(frames: BreadcrumbFrame[]) {
 }
 
 export default class ReplayReader {
-  static factory({attachments, errors, replayRecord}: ReplayReaderParams) {
+  static factory(
+    {attachments, errors, replayRecord}: ReplayReaderParams,
+    options: Options
+  ) {
     if (!attachments || !replayRecord || !errors) {
       return null;
     }
 
     try {
-      return new ReplayReader({attachments, errors, replayRecord});
+      return new ReplayReader({attachments, errors, replayRecord}, options);
     } catch (err) {
       Sentry.captureException(err);
 
@@ -106,19 +113,22 @@ export default class ReplayReader {
       // array or errors array to blame (it's probably attachments though).
       // Either way we can use the replayRecord to show some metadata, and then
       // put an error message below it.
-      return new ReplayReader({
-        attachments: [],
-        errors: [],
-        replayRecord,
-      });
+      return new ReplayReader(
+        {
+          attachments: [],
+          errors: [],
+          replayRecord,
+        },
+        options
+      );
     }
   }
 
-  private constructor({
-    attachments,
-    errors,
-    replayRecord,
-  }: RequiredNotNull<ReplayReaderParams>) {
+  private constructor(
+    {attachments, errors, replayRecord}: RequiredNotNull<ReplayReaderParams>,
+    options: Options
+  ) {
+    this._options = options;
     this._cacheKey = domId('replayReader-');
 
     if (replayRecord.is_archived) {
@@ -187,6 +197,7 @@ export default class ReplayReader {
 
   public timestampDeltas = {startedAtDelta: 0, finishedAtDelta: 0};
 
+  private _options: Options;
   private _cacheKey: string;
   private _errors: ErrorFrame[] = [];
   private _optionFrame: undefined | OptionFrame;
@@ -281,8 +292,10 @@ export default class ReplayReader {
   getChapterFrames = memoize(() =>
     [
       ...this.getPerfFrames(),
-      ...this._sortedBreadcrumbFrames.filter(frame =>
-        ['replay.init', 'replay.mutations', 'replay.hydrate'].includes(frame.category)
+      ...this._sortedBreadcrumbFrames.filter(
+        frame =>
+          ['replay.init', 'replay.mutations'].includes(frame.category) ||
+          (this._options.showHydrationErrors && frame.category === 'replay.hydrate-error')
       ),
       ...this._errors,
     ].sort(sortFrames)

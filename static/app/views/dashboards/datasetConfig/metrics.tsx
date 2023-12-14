@@ -136,6 +136,15 @@ function getFields(
     })
     .then(metaReponse => {
       const groupedByOp = groupByOp(metaReponse);
+      const typesByOp: Record<string, Set<string>> = Object.entries(groupedByOp).reduce(
+        (acc, [operation, fields]) => {
+          const types = new Set();
+          fields.forEach(field => types.add(field.type));
+          acc[operation] = types;
+          return acc;
+        },
+        {}
+      );
 
       const fieldOptions: Record<string, any> = {};
       Object.entries(groupedByOp).forEach(([operation, fields]) => {
@@ -148,7 +157,7 @@ function getFields(
               parameters: [
                 {
                   kind: 'column',
-                  columnTypes: [fields[0].type],
+                  columnTypes: [...typesByOp[operation]],
                   defaultValue: fields[0].mri,
                   required: true,
                 },

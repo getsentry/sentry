@@ -38,9 +38,7 @@ const errorHelpTypeResourceMap: Record<
   [ErrorHelpType.CHUNK_LOAD_ERROR]: {
     resources: {
       // Not attempting translation
-      description: `While we hoped to fill this page with tons of useful info...we'll cut to the chase and
-provide some high level context that's likely more helpful for this error type.
-ChunkLoadErrors occur when the JavaScript chunks (bundles) that an application is trying to
+      description: `ChunkLoadErrors occur when the JavaScript chunks (bundles) that an application is trying to
 load encounter issues during the loading process. Some common causes are dynamic imports,
 version mismatching, and code splitting issues. To learn more about how to fix ChunkLoadErrors,
 check out the following:`,
