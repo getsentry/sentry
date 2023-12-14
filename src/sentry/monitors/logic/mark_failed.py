@@ -37,7 +37,7 @@ def mark_failed(
 
     The provided `ts` is the reference time for when the next check-in time is
     calculated from. This typically would be the failed check-in's `date_added`
-    or completion time. Though for the missed and timedout tasks this may be
+    or completion time. Though for the missed and timeout tasks this may be
     computed based on the tasks reference time.
     """
     monitor_env = failed_checkin.monitor_environment

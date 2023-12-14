@@ -701,7 +701,8 @@ class MarkFailedTestCase(TestCase):
         assert occurrence["fingerprint"][0] == monitor_incident.grouphash
 
     # Test to make sure that timeout mark_failed (which occur in the past)
-    # correctly create issues once passing the failure_issue_threshold
+    # correctly create issues once passing the failure_issue_threshold.
+    # For this test the most recent check-in should create a new issue after being marked timeout.
     @patch("sentry.issues.producer.produce_occurrence_to_kafka")
     def test_mark_failed_issue_threshold_timeout(self, mock_produce_occurrence_to_kafka):
         failure_issue_threshold = 8
@@ -761,6 +762,85 @@ class MarkFailedTestCase(TestCase):
         checkin = checkins.pop(0)
         checkin.update(status=CheckInStatus.TIMEOUT)
         mark_failed(checkin, ts=checkin.date_added)
+
+        # failure has hit threshold, monitor should be in a failed state
+        monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
+        assert monitor_environment.status == MonitorStatus.ERROR
+        assert monitor_environment.last_state_change == monitor_environment.last_checkin
+
+        # check that an incident has been created correctly
+        monitor_incidents = MonitorIncident.objects.filter(monitor_environment=monitor_environment)
+        assert len(monitor_incidents) == 1
+        monitor_incident = monitor_incidents.first()
+        assert monitor_incident.starting_checkin == first_checkin
+        assert monitor_incident.starting_timestamp == first_checkin.date_added
+        assert monitor_incident.grouphash == monitor_environment.incident_grouphash
+
+        # assert correct number of occurrences was sent
+        assert len(mock_produce_occurrence_to_kafka.mock_calls) == failure_issue_threshold
+        # assert that the correct uuid fingerprint was sent
+        kwargs = mock_produce_occurrence_to_kafka.call_args.kwargs
+        occurrence = kwargs["occurrence"]
+        occurrence = occurrence.to_dict()
+        assert occurrence["fingerprint"][0] == monitor_incident.grouphash
+
+    # Test to make sure that timeout mark_failed (which occur in the past)
+    # correctly create issues once passing the failure_issue_threshold.
+    # For this test the first check-in should create a new issue after being marked timeout.
+    @patch("sentry.issues.producer.produce_occurrence_to_kafka")
+    def test_mark_failed_issue_threshold_timeout_future(self, mock_produce_occurrence_to_kafka):
+        failure_issue_threshold = 8
+        monitor = Monitor.objects.create(
+            name="test monitor",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            config={
+                "schedule": [1, "month"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "failure_issue_threshold": failure_issue_threshold,
+                "max_runtime": None,
+                "checkin_margin": None,
+            },
+        )
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment=self.environment,
+            status=MonitorStatus.OK,
+            last_state_change=None,
+        )
+
+        # create in-progress check-ins
+        first_checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.IN_PROGRESS,
+        )
+
+        checkins = []
+        for i in range(0, failure_issue_threshold - 1):
+            checkin = MonitorCheckIn.objects.create(
+                monitor=monitor,
+                monitor_environment=monitor_environment,
+                project_id=self.project.id,
+                status=CheckInStatus.IN_PROGRESS,
+            )
+            checkins.append(checkin)
+
+        # mark check-ins as failed
+        for checkin in checkins:
+            checkin.update(status=CheckInStatus.TIMEOUT)
+            mark_failed(checkin, ts=checkin.date_added)
+
+        # failure has not hit threshold, monitor should be in an OK status
+        monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
+        assert monitor_environment.status == MonitorStatus.OK
+        # check that timestamp has not updated
+        assert monitor_environment.last_state_change is None
+
+        first_checkin.update(status=CheckInStatus.TIMEOUT)
+        mark_failed(first_checkin, ts=first_checkin.date_added)
 
         # failure has hit threshold, monitor should be in a failed state
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
