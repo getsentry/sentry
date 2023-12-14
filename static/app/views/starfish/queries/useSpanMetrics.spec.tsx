@@ -1,4 +1,5 @@
 import {ReactNode} from 'react';
+import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
@@ -41,15 +42,11 @@ describe('useSpanMetrics', () => {
     },
   });
 
-  jest.mocked(useLocation).mockReturnValue({
-    pathname: '',
-    search: '',
-    query: {statsPeriod: '10d'},
-    hash: '',
-    state: undefined,
-    action: 'PUSH',
-    key: '',
-  });
+  jest.mocked(useLocation).mockReturnValue(
+    LocationFixture({
+      query: {statsPeriod: '10d'},
+    })
+  );
 
   jest.mocked(useOrganization).mockReturnValue(organization);
 
