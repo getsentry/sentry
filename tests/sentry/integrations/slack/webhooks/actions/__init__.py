@@ -111,7 +111,7 @@ class BaseEventTest(APITestCase):
         if type == "view_submission":
             view = {
                 "id": "V069MCJ1Y4X",
-                "team_id": "TA17GH2QL",
+                "team_id": team_id,
                 "type": "modal",
                 "blocks": [
                     {

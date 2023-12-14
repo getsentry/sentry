@@ -166,14 +166,26 @@ class SlackActionEndpoint(Endpoint):
                 "action_type": action_type,
             },
         )
+        channel_id = None
+        response_url = None
+        view = None
+        if features.has("organizations:slack-block-kit", group.project.organization):
+            # the channel ID and response URL are in a different place if it's coming from a modal
+            view = slack_request.data.get("view")
+            if view:
+                private_metadata = view.get("private_metadata")
+                if private_metadata:
+                    data = json.loads(private_metadata)
+                    channel_id = data.get("channel_id")
+                    response_url = data.get("orig_response_url")
 
         if error.status_code == 403:
             text = UNLINK_IDENTITY_MESSAGE.format(
                 associate_url=build_unlinking_url(
                     slack_request.integration.id,
                     slack_request.user_id,
-                    slack_request.channel_id,
-                    slack_request.response_url,
+                    channel_id or slack_request.channel_id,
+                    response_url or slack_request.response_url,
                 ),
                 user_email=user.email,
                 org_name=group.organization.name,
@@ -265,13 +277,16 @@ class SlackActionEndpoint(Endpoint):
         # but seems like there's no other solutions [1]:
         #
         # [1]: https://stackoverflow.com/questions/46629852/update-a-bot-message-after-responding-to-a-slack-dialog#comment80795670_46629852
-        callback_id = json.dumps(
-            {
-                "issue": group.id,
-                "orig_response_url": slack_request.data["response_url"],
-                "is_message": _is_message(slack_request.data),
-            }
-        )
+        use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
+        callback_id = {
+            "issue": group.id,
+            "orig_response_url": slack_request.data["response_url"],
+            "is_message": _is_message(slack_request.data),
+        }
+        if use_block_kit and slack_request.data.get("channel"):
+            callback_id["channel_id"] = slack_request.data["channel"]["id"]
+
+        callback_id = json.dumps(callback_id)
 
         dialog = {
             "callback_id": callback_id,
@@ -284,10 +299,10 @@ class SlackActionEndpoint(Endpoint):
             "dialog": json.dumps(dialog),
             "trigger_id": slack_request.data["trigger_id"],
         }
-        use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
 
         slack_client = SlackClient(integration_id=slack_request.integration.id)
         if use_block_kit:
+
             # XXX(CEO): the second you make a selection (without hitting Submit) it sends a slightly different request
             formatted_resolve_options = []
             for text, value in RESOLVE_OPTIONS.items():
@@ -382,7 +397,6 @@ class SlackActionEndpoint(Endpoint):
                 response_url=slack_request.response_url,
             )
             return self.respond_ephemeral(LINK_IDENTITY_MESSAGE.format(associate_url=associate_url))
-
         original_tags_from_request = slack_request.get_tags()
         # Handle status dialog submission
         use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
