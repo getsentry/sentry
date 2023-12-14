@@ -73,10 +73,8 @@ def _get_missing_organization_members(
     if shared_domain:
         domain_query = f"AND sentry_commitauthor.email::text LIKE '%%{shared_domain}'"
     else:
-        for filtered_email_domain in FILTERED_EMAILS:
-            domain_query += (
-                f"AND sentry_commitauthor.email::text NOT LIKE '{filtered_email_domain}' "
-            )
+        for filtered_email in FILTERED_EMAILS:
+            domain_query += f"AND sentry_commitauthor.email::text NOT LIKE '{filtered_email}' "
 
     date_added = (timezone.now() - timedelta(days=30)).strftime("%Y-%m-%d, %H:%M:%S")
 
