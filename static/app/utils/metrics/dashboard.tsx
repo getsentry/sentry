@@ -6,6 +6,7 @@ import {
   MetricDisplayType,
   MetricsQuery,
 } from 'sentry/utils/metrics';
+import {formatMRI} from 'sentry/utils/metrics/mri';
 import {DashboardWidgetSource, Widget, WidgetType} from 'sentry/views/dashboards/types';
 
 export function convertToDashboardWidget(
@@ -15,7 +16,7 @@ export function convertToDashboardWidget(
   const isCustomMetricQuery = isCustomMetric(metricsQuery);
 
   return {
-    title: 'DDM Widget',
+    title: `${metricsQuery.op}(${formatMRI(metricsQuery.mri)})`,
     // @ts-expect-error this is a valid widget type
     displayType,
     widgetType: isCustomMetricQuery ? WidgetType.METRICS : WidgetType.DISCOVER,
