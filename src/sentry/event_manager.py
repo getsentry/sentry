@@ -1867,10 +1867,11 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
 
     # get severity score for use in alerting
     if features.has("projects:first-event-severity-calculation", event.project):
-        severity = _get_severity_score(event)
-        if severity is not None:  # Severity can be 0
-            group_data.setdefault("metadata", {})
-            group_data["metadata"]["severity"] = severity
+        severity, reason = _get_severity_score(event)
+
+        group_data.setdefault("metadata", {})
+        group_data["metadata"]["severity"] = severity
+        group_data["metadata"]["severity.reason"] = reason
 
     return Group.objects.create(
         project=project,
@@ -2087,17 +2088,18 @@ severity_connection_pool = connection_from_url(
 )
 
 
-def _get_severity_score(event: Event) -> float | None:
+def _get_severity_score(event: Event) -> Tuple[float, str]:
     # Short circuit the severity value if we know the event is fatal or info/debug
     level = str(event.data.get("level", "error"))
     if LOG_LEVELS_MAP[level] == logging.FATAL:
-        return 1.0
+        return 1.0, "log_level_fatal"
     if LOG_LEVELS_MAP[level] <= logging.INFO:
-        return 0.0
+        return 0.0, "log_level_info"
 
     op = "event_manager._get_severity_score"
     logger_data = {"event_id": event.data["event_id"], "op": op}
-    severity = None
+    severity = 1.0
+    reason = None
 
     event_type = get_event_type(event.data)
     metadata = event_type.get_metadata(event.data)
@@ -2131,7 +2133,7 @@ def _get_severity_score(event: Event) -> float | None:
             title,
             extra=logger_data,
         )
-        return None
+        return 0.0, "bad_title"
 
     payload = {
         "message": title,
@@ -2156,6 +2158,7 @@ def _get_severity_score(event: Event) -> float | None:
                     headers={"content-type": "application/json;charset=utf-8"},
                 )
                 severity = json.loads(response.data).get("severity")
+                reason = "ml"
             except MaxRetryError as e:
                 logger.warning(
                     "Unable to get severity score from microservice after %s retr%s. Got MaxRetryError caused by: %s.",
@@ -2164,12 +2167,14 @@ def _get_severity_score(event: Event) -> float | None:
                     repr(e.reason),
                     extra=logger_data,
                 )
+                reason = "microservice_max_retry"
             except Exception as e:
                 logger.warning(
                     "Unable to get severity score from microservice. Got: %s.",
                     repr(e),
                     extra=logger_data,
                 )
+                reason = "microservice_error"
             else:
                 logger.info(
                     "Got severity score of %s for event %s",
@@ -2178,7 +2183,7 @@ def _get_severity_score(event: Event) -> float | None:
                     extra=logger_data,
                 )
 
-    return severity
+    return severity, reason
 
 
 Attachment = CachedAttachment
