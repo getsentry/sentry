@@ -28,9 +28,11 @@ from sentry.api import event_search
 from sentry.api.event_search import (
     AggregateFilter,
     ParenExpression,
+    QueryToken,
     SearchFilter,
     SearchKey,
     SearchValue,
+    cleanup_search_query,
 )
 from sentry.constants import APDEX_THRESHOLD_DEFAULT, DataCategory
 from sentry.discover.arithmetic import is_equation
@@ -249,9 +251,6 @@ _BLACKLISTED_METRIC_FIELDS = ["event.type", "project"]
 # Operators used in ``ComparingRuleCondition``.
 CompareOp = Literal["eq", "gt", "gte", "lt", "lte", "glob"]
 
-QueryOp = Literal["AND", "OR"]
-QueryToken = Union[SearchFilter, QueryOp, ParenExpression]
-
 Variables = Dict[str, Any]
 
 query_builder = UnresolvedQuery(
@@ -372,7 +371,7 @@ def _parse_search_query(
 
     # As second step, if enabled, we remove elements from the query which are blacklisted.
     if removed_blacklisted:
-        tokens = _cleanup_query(_remove_blacklisted_search_filters(tokens))
+        tokens = cleanup_search_query(_remove_blacklisted_search_filters(tokens))
 
     return tokens
 
@@ -694,7 +693,7 @@ def to_standard_metrics_tokens(tokens: Sequence[QueryToken]) -> Sequence[QueryTo
     that has all on-demand filters removed and can be run using only standard metrics.
     """
     remaining_tokens = _remove_on_demand_search_filters(tokens)
-    cleaned_query = _cleanup_query(remaining_tokens)
+    cleaned_query = cleanup_search_query(remaining_tokens)
     return cleaned_query
 
 
@@ -741,66 +740,6 @@ def _remove_blacklisted_search_filters(tokens: Sequence[QueryToken]) -> Sequence
             ret_val.append(ParenExpression(_remove_blacklisted_search_filters(token.children)))
         else:
             ret_val.append(token)
-
-    return ret_val
-
-
-def _cleanup_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
-    """
-    Recreates a valid query from an original query that has had on demand search filters removed.
-
-    When removing filters from a query it is possible to create invalid queries.
-    For example removing the on demand filters from "transaction.duration:>=1s OR browser.version:1 AND environment:dev"
-    would result in "OR AND environment:dev" which is not a valid query this should be cleaned to "environment:dev.
-
-    "release:internal and browser.version:1 or os.name:android" => "release:internal or and os.name:android" which
-    would be cleaned to "release:internal or os.name:android"
-    """
-    tokens = list(tokens)
-
-    # remove empty parens
-    removed_empty_parens: List[QueryToken] = []
-    for token in tokens:
-        if not isinstance(token, ParenExpression):
-            removed_empty_parens.append(token)
-        else:
-            children = _cleanup_query(token.children)
-            if len(children) > 0:
-                removed_empty_parens.append(ParenExpression(children))
-
-    # remove AND and OR operators at the start of the query
-    while len(removed_empty_parens) > 0 and isinstance(removed_empty_parens[0], str):
-        removed_empty_parens.pop(0)
-
-    # remove AND and OR operators at the end of the query
-    while len(removed_empty_parens) > 0 and isinstance(removed_empty_parens[-1], str):
-        removed_empty_parens.pop()
-
-    # remove AND and OR operators that are next to each other
-    ret_val = []
-    previous_token: Optional[QueryToken] = None
-
-    for token in removed_empty_parens:
-        # this loop takes care of removing consecutive AND/OR operators (keeping only one of them)
-        if isinstance(token, str) and isinstance(previous_token, str):
-            token = cast(QueryOp, token.upper())
-            # this handles two AND/OR operators next to each other, we must drop one of them
-            # if we have an AND do nothing (AND will be merged in the previous token see comment below)
-            # if we have an OR the resulting operator will be an OR
-            # AND OR => OR
-            # OR OR => OR
-            # OR AND => OR
-            # AND AND => AND
-            if token == "OR":
-                previous_token = "OR"
-            continue
-        elif previous_token is not None:
-            ret_val.append(previous_token)
-        previous_token = token
-
-    # take care of the last token (if any)
-    if previous_token is not None:
-        ret_val.append(previous_token)
 
     return ret_val
 

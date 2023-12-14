@@ -31,4 +31,5 @@ class CustomRuleBias(Bias):
                     },
                 }
             )
+
         return ret_val

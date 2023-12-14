@@ -187,7 +187,35 @@ class CustomRulesEndpoint(APITestCase):
         self.login_as(user=self.user)
         self.second_project = self.create_project(organization=self.organization)
 
-    def test_simple(self):
+    def test_create(self):
+        request_data = {
+            "query": "event.type:transaction http.method:POST",
+            "projects": [self.project.id],
+            "period": "1h",
+        }
+        with Feature({"organizations:investigation-bias": True}):
+            resp = self.get_response(self.organization.slug, raw_data=request_data)
+
+        assert resp.status_code == 200
+
+        data = resp.data
+
+        start_date = datetime.strptime(data["startDate"], CUSTOM_RULE_DATE_FORMAT)
+        end_date = datetime.strptime(data["endDate"], CUSTOM_RULE_DATE_FORMAT)
+        assert end_date - start_date == timedelta(days=2)
+        projects = data["projects"]
+        assert projects == [self.project.id]
+        org_id = data["orgId"]
+        assert org_id == self.organization.id
+
+        # check the database
+        rule_id = data["ruleId"]
+        rules = list(self.organization.customdynamicsamplingrule_set.all())
+        assert len(rules) == 1
+        rule = rules[0]
+        assert rule.external_rule_id == rule_id
+
+    def test_create_with_only_blacklisted_filters(self):
         request_data = {
             "query": "event.type:transaction",
             "projects": [self.project.id],
@@ -223,7 +251,7 @@ class CustomRulesEndpoint(APITestCase):
         The period should be updated
         """
         request_data = {
-            "query": "event.type:transaction",
+            "query": "event.type:transaction http.method:POST",
             "projects": [self.project.id],
             "period": "1h",
         }
@@ -269,7 +297,7 @@ class CustomRulesEndpoint(APITestCase):
         Checks request fails without the feature
         """
         request_data = {
-            "query": "event.type:transaction",
+            "query": "event.type:transaction http.method:POST",
             "projects": [self.project.id],
             "period": "1h",
         }
@@ -285,7 +313,7 @@ class CustomRulesEndpoint(APITestCase):
         passed projects
         """
         request_data = {
-            "query": "event.type:transaction",
+            "query": "event.type:transaction http.method:POST",
             "projects": [self.project.id, self.second_project.id],
             "period": "1h",
         }
@@ -309,7 +337,7 @@ class CustomRulesEndpoint(APITestCase):
         in the organisation
         """
         request_data = {
-            "query": "event.type:transaction",
+            "query": "event.type:transaction http.method:POST",
             "projects": [],
             "period": "1h",
         }
@@ -485,6 +513,7 @@ def test_get_condition(query, condition):
 def test_get_condition_not_supported(query):
     with pytest.raises(UnsupportedSearchQuery) as excinfo:
         get_condition(query)
+
     assert excinfo.value.error_code == UnsupportedSearchQueryReason.NOT_TRANSACTION_QUERY.value
 
 
@@ -498,4 +527,5 @@ def test_get_condition_non_transaction_rule(query):
     """
     with pytest.raises(UnsupportedSearchQuery) as excinfo:
         get_condition(query)
+
     assert excinfo.value.error_code == UnsupportedSearchQueryReason.NOT_TRANSACTION_QUERY.value

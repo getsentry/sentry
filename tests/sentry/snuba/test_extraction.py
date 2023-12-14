@@ -2,12 +2,11 @@ from unittest.mock import patch
 
 import pytest
 
-from sentry.api.event_search import ParenExpression, parse_search_query
+from sentry.api.event_search import parse_search_query
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     OnDemandMetricSpec,
     SearchQueryConverter,
-    _cleanup_query,
     apdex_tag_spec,
     failure_tag_spec,
     query_tokens_to_string,
@@ -733,49 +732,6 @@ def test_query_tokens_to_string(query):
 @pytest.mark.parametrize(
     "dirty, clean",
     [
-        ("release:initial OR os.name:android", "release:initial OR os.name:android"),
-        ("OR AND OR release:initial OR os.name:android", "release:initial OR os.name:android"),
-        ("release:initial OR os.name:android AND OR AND ", "release:initial OR os.name:android"),
-        (
-            "release:initial AND (AND OR) (OR )os.name:android ",
-            "release:initial AND os.name:android",
-        ),
-        (
-            " AND ((AND OR (OR ))) release:initial (((AND OR  (AND)))) AND os.name:android  (AND OR) ",
-            "release:initial AND os.name:android",
-        ),
-        (" (AND) And (And) Or release:initial or (and) or", "release:initial"),
-    ],
-)
-def test_cleanup_query(dirty, clean):
-    dirty_tokens = parse_search_query(dirty)
-    clean_tokens = parse_search_query(clean)
-    actual_clean = _cleanup_query(dirty_tokens)
-
-    assert actual_clean == clean_tokens
-
-
-def test_cleanup_query_with_empty_parens():
-    """
-    Separate test with empty parens because we can't parse a string with empty parens correctly
-    """
-
-    paren = ParenExpression
-    dirty_tokens = (
-        [paren([paren(["AND", "OR", paren([])])])]
-        + parse_search_query("release:initial AND (AND OR) (OR)")  # ((AND OR (OR ())))
-        + [paren([])]
-        + parse_search_query("os.name:android")  # ()
-        + [paren([paren([paren(["AND", "OR", paren([])])])])]  # ((()))
-    )
-    clean_tokens = parse_search_query("release:initial AND os.name:android")
-    actual_clean = _cleanup_query(dirty_tokens)
-    assert actual_clean == clean_tokens
-
-
-@pytest.mark.parametrize(
-    "dirty, clean",
-    [
         ("transaction.duration:>=1 ", ""),
         ("transaction.duration:>=1 and geo.city:Vienna ", ""),
         ("transaction.duration:>=1 and geo.city:Vienna or os.name:android", "os.name:android"),
@@ -814,4 +770,5 @@ def test_search_query_converter(query, expected):
     tokens = parse_search_query(query)
     converter = SearchQueryConverter(tokens)
     condition = converter.convert()
+
     assert expected == condition

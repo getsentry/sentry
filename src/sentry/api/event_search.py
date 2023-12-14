@@ -5,7 +5,7 @@ from collections import namedtuple
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from functools import reduce
-from typing import Any, List, Mapping, NamedTuple, Sequence, Set, Tuple, Union
+from typing import Any, List, Literal, Mapping, NamedTuple, Sequence, Set, Tuple, Union, cast
 
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
@@ -1166,10 +1166,13 @@ default_config = SearchConfig(
     },
 )
 
+QueryOp = Literal["AND", "OR"]
+QueryToken = Union[SearchFilter, QueryOp, ParenExpression]
+
 
 def parse_search_query(
     query, config=None, params=None, builder=None, config_overrides=None
-) -> list[SearchFilter]:
+) -> Sequence[QueryToken]:
     if config is None:
         config = default_config
 
@@ -1188,4 +1191,65 @@ def parse_search_query(
 
     if config_overrides:
         config = SearchConfig.create_from(config, **config_overrides)
+
     return SearchVisitor(config, params=params, builder=builder).visit(tree)
+
+
+def cleanup_search_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
+    """
+    Recreates a valid query from an original query that has had on demand search filters removed.
+
+    When removing filters from a query it is possible to create invalid queries.
+    For example removing the on demand filters from "transaction.duration:>=1s OR browser.version:1 AND environment:dev"
+    would result in "OR AND environment:dev" which is not a valid query this should be cleaned to "environment:dev.
+
+    "release:internal and browser.version:1 or os.name:android" => "release:internal or and os.name:android" which
+    would be cleaned to "release:internal or os.name:android"
+    """
+    tokens = list(tokens)
+
+    # remove empty parens
+    removed_empty_parens: List[QueryToken] = []
+    for token in tokens:
+        if not isinstance(token, ParenExpression):
+            removed_empty_parens.append(token)
+        else:
+            children = cleanup_search_query(token.children)
+            if len(children) > 0:
+                removed_empty_parens.append(ParenExpression(children))
+
+    # remove AND and OR operators at the start of the query
+    while len(removed_empty_parens) > 0 and isinstance(removed_empty_parens[0], str):
+        removed_empty_parens.pop(0)
+
+    # remove AND and OR operators at the end of the query
+    while len(removed_empty_parens) > 0 and isinstance(removed_empty_parens[-1], str):
+        removed_empty_parens.pop()
+
+    # remove AND and OR operators that are next to each other
+    ret_val = []
+    previous_token: Optional[QueryToken] = None
+
+    for token in removed_empty_parens:
+        # this loop takes care of removing consecutive AND/OR operators (keeping only one of them)
+        if isinstance(token, str) and isinstance(previous_token, str):
+            token = cast(QueryOp, token.upper())
+            # this handles two AND/OR operators next to each other, we must drop one of them
+            # if we have an AND do nothing (AND will be merged in the previous token see comment below)
+            # if we have an OR the resulting operator will be an OR
+            # AND OR => OR
+            # OR OR => OR
+            # OR AND => OR
+            # AND AND => AND
+            if token == "OR":
+                previous_token = "OR"
+            continue
+        elif previous_token is not None:
+            ret_val.append(previous_token)
+        previous_token = token
+
+    # take care of the last token (if any)
+    if previous_token is not None:
+        ret_val.append(previous_token)
+
+    return ret_val

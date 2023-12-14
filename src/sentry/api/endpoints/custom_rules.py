@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, Sequence
 
 import sentry_sdk
 from django.db import DatabaseError
@@ -14,7 +14,13 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
-from sentry.api.event_search import SearchFilter, SearchKey, parse_search_query
+from sentry.api.event_search import (
+    ParenExpression,
+    QueryToken,
+    SearchFilter,
+    SearchKey,
+    parse_search_query,
+)
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.dynamicsampling import (
     CUSTOM_RULE_DATE_FORMAT,
@@ -129,7 +135,6 @@ class CustomRulesEndpoint(OrganizationEndpoint):
     permission_classes = (CustomRulePermission,)
 
     def post(self, request: Request, organization: Organization) -> Response:
-
         if not features.has("organizations:investigation-bias", organization, actor=request.user):
             return Response(status=404)
 
@@ -264,38 +269,94 @@ def _rule_to_response(rule: CustomDynamicSamplingRule) -> Response:
     return Response(response_data, status=200)
 
 
-def _is_not_supported(searchFilters: List[SearchFilter]) -> Optional[UnsupportedSearchQueryReason]:
+def _is_not_supported(tokens: Sequence[QueryToken]) -> Optional[UnsupportedSearchQueryReason]:
     """
     Check if the search query is not supported by the custom rules
 
-    Curently we only support transaction queries
+    Currently, we only support transaction queries
     """
     transaction_filter = False
 
-    for searchFilter in searchFilters:
-        if searchFilter.key.name == "event.type" and searchFilter.value.value == "transaction":
+    for token in tokens:
+        if token.key.name == "event.type" and token.value.value == "transaction":
             transaction_filter = True
             break
+
     if not transaction_filter:
         return UnsupportedSearchQueryReason.NOT_TRANSACTION_QUERY
+
     return None
+
+
+def _message_to_transaction_condition(tokens: Sequence[QueryToken]) -> List[QueryToken]:
+    """
+    Transforms queries containing messages into proper transaction queries
+
+    eg: "foo environment:development" -> "transaction:foo environment:development"
+
+    a string "foo" is parsed into a SearchFilter(key=SearchKey(name="message"), operator="=", value="foo")
+    we need to transform it into a SearchFilter(key=SearchKey(name="transaction"), operator="=", value="foo")
+
+    """
+    new_tokens = []
+    for token in tokens:
+        if token.key.name == "message" and token.operator == "=":
+            # transform the token from message to transaction
+            new_tokens.append(
+                SearchFilter(
+                    key=SearchKey("transaction"), value=token.value, operator=token.operator
+                )
+            )
+        else:
+            # nothing to change append the token as is
+            new_tokens.append(token)
+
+    return new_tokens
+
+
+def _remove_unnecessary_search_filters(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
+    """
+    Removes tokens that contain `event.type:x` filters.
+    """
+    ret_val: List[QueryToken] = []
+
+    for token in tokens:
+        if isinstance(token, SearchFilter):
+            if token.key.name not in ["event.type"]:
+                ret_val.append(token)
+        elif isinstance(token, ParenExpression):
+            ret_val.append(ParenExpression(_remove_unnecessary_search_filters(token.children)))
+        else:
+            ret_val.append(token)
+
+    return ret_val
 
 
 def get_condition(query: Optional[str]) -> RuleCondition:
     try:
         if not query:
             raise UnsupportedSearchQuery(UnsupportedSearchQueryReason.NOT_TRANSACTION_QUERY)
-        else:
-            tokens = parse_search_query(query)
 
-            reason = _is_not_supported(tokens)
-            if reason is not None:
-                raise UnsupportedSearchQuery(reason)
-            # transform a simple message query into a transaction condition:
-            # "foo environment:development" -> "transaction:foo environment:development"
-            tokens = message_to_transaction_condition(tokens)
-            converter = SearchQueryConverter(tokens)
-            condition = converter.convert()
+        # First we parse the query.
+        tokens = parse_search_query(query)
+
+        # Second we check if it contains unsupported fields.
+        reason = _is_not_supported(tokens)
+        if reason is not None:
+            raise UnsupportedSearchQuery(reason)
+
+        # Third we perform transformations on the query tokens.
+        tokens = _message_to_transaction_condition(tokens)
+        tokens = _remove_unnecessary_search_filters(tokens)
+
+        # In case there are no tokens anymore, we will return an empty condition.
+        if not tokens:
+            return {}
+
+        # Fourth we convert it to the Relay's internal rules format.
+        converter = SearchQueryConverter(tokens)
+        condition = converter.convert()
+
         return condition
     except UnsupportedSearchQuery as unsupported_ex:
         # log unsupported queries with a different message so that
@@ -319,6 +380,7 @@ def _clean_project_list(project_ids: List[int]) -> List[int]:
     if len(project_ids) == 1 and project_ids[0] == -1:
         # special case for all projects convention ( sends a project id of -1)
         return []
+
     return project_ids
 
 
@@ -339,28 +401,3 @@ def _schedule_invalidate_project_configs(organization: Organization, project_ids
                 trigger="dynamic_sampling:custom_rule_upsert",
                 project_id=project_id,
             )
-
-
-def message_to_transaction_condition(tokens: List[SearchFilter]) -> List[SearchFilter]:
-    """
-    Transforms queries containing messages into proper transaction queries
-
-    eg: "foo environment:development" -> "transaction:foo environment:development"
-
-    a string "foo" is parsed into a SearchFilter(key=SearchKey(name="message"), operator="=", value="foo")
-    we need to transform it into a SearchFilter(key=SearchKey(name="transaction"), operator="=", value="foo")
-
-    """
-    new_tokens = []
-    for token in tokens:
-        if token.key.name == "message" and token.operator == "=":
-            # transform the token from message to transaction
-            new_tokens.append(
-                SearchFilter(
-                    key=SearchKey("transaction"), value=token.value, operator=token.operator
-                )
-            )
-        else:
-            # nothing to change append the token as is
-            new_tokens.append(token)
-    return new_tokens
