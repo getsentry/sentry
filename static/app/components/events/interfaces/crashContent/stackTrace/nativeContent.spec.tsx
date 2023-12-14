@@ -1,9 +1,12 @@
 import {Event as EventFixture} from 'sentry-fixture/event';
 import {EventEntryStacktrace} from 'sentry-fixture/eventEntryStacktrace';
+import {EventStacktraceFrame} from 'sentry-fixture/eventStacktraceFrame';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
+import {NativeContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/nativeContent';
+import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import {EventOrGroupType} from 'sentry/types';
 import {StacktraceType} from 'sentry/types/stacktrace';
 
@@ -114,5 +117,37 @@ describe('Native StackTrace', function () {
     });
 
     expect(screen.queryByText(/Show .* more frames*/)).not.toBeInTheDocument();
+  });
+
+  it('displays correct icons from frame symbolicatorStatus when image does not exist', function () {
+    const newData = {
+      ...data,
+      frames: [
+        EventStacktraceFrame({
+          symbolicatorStatus: SymbolicatorStatus.MISSING,
+          function: 'missing()',
+        }),
+        EventStacktraceFrame({
+          symbolicatorStatus: SymbolicatorStatus.UNKNOWN_IMAGE,
+          function: 'unknown_image()',
+        }),
+        EventStacktraceFrame({
+          symbolicatorStatus: SymbolicatorStatus.SYMBOLICATED,
+          function: 'symbolicated()',
+        }),
+      ],
+    };
+
+    render(
+      <NativeContent data={newData} platform="cocoa" event={event} includeSystemFrames />
+    );
+
+    const frames = screen.getAllByTestId('stack-trace-frame');
+
+    expect(within(frames[0]).getByTestId('symbolication-error-icon')).toBeInTheDocument();
+    expect(
+      within(frames[1]).getByTestId('symbolication-warning-icon')
+    ).toBeInTheDocument();
+    expect(within(frames[2]).queryByTestId(/symbolication/)).not.toBeInTheDocument();
   });
 });
