@@ -155,7 +155,7 @@ tags.sku_class:enterprise #enterprise`;
                 <Button
                   type="button"
                   size="sm"
-                  icon={<IconEdit size="xs" />}
+                  icon={<IconEdit />}
                   priority="primary"
                   onClick={() =>
                     openEditOwnershipRules({

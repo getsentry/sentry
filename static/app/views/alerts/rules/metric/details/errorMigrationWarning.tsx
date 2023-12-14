@@ -114,7 +114,7 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
               query: {migration: '1'},
             }}
             size="xs"
-            icon={<IconEdit size="xs" />}
+            icon={<IconEdit />}
           >
             {t('Exclude archived issues')}
           </LinkButton>

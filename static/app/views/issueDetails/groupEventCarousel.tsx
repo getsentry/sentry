@@ -278,7 +278,7 @@ export function GroupEventActions({event, group, projectSlug}: GroupEventActions
         position="bottom-end"
         triggerProps={{
           'aria-label': t('Event Actions Menu'),
-          icon: <IconEllipsis size="xs" />,
+          icon: <IconEllipsis />,
           showChevron: false,
           size: BUTTON_SIZE,
         }}
