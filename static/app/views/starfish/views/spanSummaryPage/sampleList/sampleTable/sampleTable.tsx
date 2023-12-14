@@ -62,11 +62,17 @@ function SampleTable({
     filters.release = release;
   }
 
-  const {data: spanMetrics, isFetching: isFetchingSpanMetrics} = useSpanMetrics(
+  const {data, isFetching: isFetchingSpanMetrics} = useSpanMetrics(
     filters,
     [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
+    undefined,
+    undefined,
+    undefined,
     'api.starfish.span-summary-panel-samples-table-avg'
   );
+
+  const spanMetrics = data[0] ?? {};
+
   const organization = useOrganization();
 
   const {setPageError} = usePageError();

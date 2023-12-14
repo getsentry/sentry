@@ -50,7 +50,7 @@ export function SpanSummaryView({groupId}: Props) {
     filters['transaction.method'] = endpointMethod;
   }
 
-  const {data: spanMetrics} = useSpanMetrics(
+  const {data} = useSpanMetrics(
     filters,
     [
       SpanMetricsField.SPAN_OP,
@@ -64,8 +64,13 @@ export function SpanSummaryView({groupId}: Props) {
       `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
       `${SpanFunction.HTTP_ERROR_COUNT}()`,
     ],
+    undefined,
+    undefined,
+    undefined,
     'api.starfish.span-summary-page-metrics'
   );
+
+  const spanMetrics = data[0] ?? {};
 
   const seriesQueryFilter: SpanMetricsQueryFilters = endpoint
     ? {

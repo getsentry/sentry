@@ -39,7 +39,7 @@ function ResourceSummary() {
   const {
     query: {transaction},
   } = useLocation();
-  const {data: spanMetrics} = useSpanMetrics(
+  const {data} = useSpanMetrics(
     {
       'span.group': groupId,
     },
@@ -54,6 +54,8 @@ function ResourceSummary() {
       'time_spent_percentage()',
     ]
   );
+
+  const spanMetrics = data[0] ?? {};
 
   return (
     <ModulePageProviders
