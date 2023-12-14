@@ -97,10 +97,11 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
     @staticmethod
     def get_context_block(text: str, timestamp: Optional[datetime] = None) -> SlackBlock:
         if timestamp:
-            time = "<!date^{:.0f}^ {} at {} | Sentry Issue>".format(
+            time = "<!date^{:.0f}^{} at {} | Sentry Issue>".format(
                 to_timestamp(timestamp), "{date_pretty}", "{time}"
             )
             text += f" | {time}"
+
         return {
             "type": "context",
             "elements": [

@@ -355,11 +355,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             blocks.append(self.get_tags_block(tags))
 
         # build footer block
-        footer = (
-            self.notification.build_notification_footer(self.recipient, ExternalProviders.SLACK)
-            if self.notification and self.recipient
-            else build_footer(self.group, project, self.rules, SLACK_URL_FORMAT)
-        )
         timestamp = None
         if not self.issue_details:
             ts = self.group.last_seen

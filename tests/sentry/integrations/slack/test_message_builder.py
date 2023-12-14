@@ -61,7 +61,9 @@ def build_test_message_blocks(
     title_link += "/?referrer=slack"
     ts = group.last_seen
     timestamp = max(ts, event.datetime) if event else ts
-    event_date = timestamp.strftime("%b %d")
+    event_date = "<!date^{:.0f}^{} at {} | Sentry Issue>".format(
+        to_timestamp(timestamp), "{date_pretty}", "{time}"
+    )
     return {
         "blocks": [
             {
