@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -6,6 +7,7 @@ import Alert from 'sentry/components/alert';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {CursorHandler} from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -28,6 +30,7 @@ import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
+import {MobileCursors} from 'sentry/views/starfish/views/screens/constants';
 import {ScreensBarChart} from 'sentry/views/starfish/views/screens/screenBarChart';
 import {
   ScreensTable,
@@ -109,6 +112,8 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
   const organization = useOrganization();
   const {query: locationQuery} = location;
 
+  const cursor = decodeScalar(location.query?.[MobileCursors.SCREENS_TABLE]);
+
   const yAxisCols = yAxes.map(val => YAXIS_COLUMNS[val]);
 
   const {
@@ -162,6 +167,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
     eventView: tableEventView,
     enabled: !isReleasesLoading,
     referrer: 'api.starfish.mobile-screen-table',
+    cursor,
   });
 
   const topTransactions =
@@ -241,6 +247,13 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
   const derivedQuery = getTransactionSearchQuery(location, tableEventView.query);
 
   const tableSearchFilters = new MutableSearch(['transaction.op:ui.load']);
+
+  const handleCursor: CursorHandler = (newCursor, pathname, query_) => {
+    browserHistory.push({
+      pathname,
+      query: {...query_, [MobileCursors.SCREENS_TABLE]: newCursor},
+    });
+  };
 
   return (
     <div data-test-id="starfish-mobile-view">
@@ -331,6 +344,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
         data={topTransactionsData}
         isLoading={topTransactionsLoading}
         pageLinks={pageLinks}
+        onCursor={handleCursor}
       />
     </div>
   );

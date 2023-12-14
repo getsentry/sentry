@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -10,7 +11,7 @@ import GridEditable, {
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import Pagination from 'sentry/components/pagination';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {NewQuery} from 'sentry/types';
@@ -37,6 +38,7 @@ import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/center
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+import {MobileCursors} from 'sentry/views/starfish/views/screens/constants';
 import {SpanOpSelector} from 'sentry/views/starfish/views/screens/screenLoadSpans/spanOpSelector';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 
@@ -57,6 +59,7 @@ export function ScreenLoadSpansTable({
   const location = useLocation();
   const {selection} = usePageFilters();
   const organization = useOrganization();
+  const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
 
   const spanOp = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
   const truncatedPrimary = formatVersionAndCenterTruncate(primaryRelease ?? '', 15);
@@ -117,6 +120,7 @@ export function ScreenLoadSpansTable({
     eventView,
     enabled: true,
     referrer: 'api.starfish.mobile-span-table',
+    cursor,
   });
 
   const columnNameMap = {
@@ -305,6 +309,13 @@ export function ScreenLoadSpansTable({
 
   const columnSortBy = eventView.getSorts();
 
+  const handleCursor: CursorHandler = (newCursor, pathname, query) => {
+    browserHistory.push({
+      pathname,
+      query: {...query, [MobileCursors.SPANS_TABLE]: newCursor},
+    });
+  };
+
   return (
     <Fragment>
       <SpanOpSelector
@@ -334,7 +345,7 @@ export function ScreenLoadSpansTable({
           renderBodyCell,
         }}
       />
-      <Pagination pageLinks={pageLinks} />
+      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
     </Fragment>
   );
 }
