@@ -322,7 +322,6 @@ const replayBackendPlatforms: readonly PlatformKey[] = [
 ];
 
 export const replayPlatforms: readonly PlatformKey[] = [
-  // Frontend
   'capacitor',
   'electron',
   'javascript-angular',
@@ -350,7 +349,6 @@ export const replayPlatforms: readonly PlatformKey[] = [
  * See: https://github.com/getsentry/sentry-docs/tree/master/src/wizard/javascript/replay-onboarding
  */
 export const replayOnboardingPlatforms: readonly PlatformKey[] = [
-  // Frontend
   'capacitor',
   'electron',
   'javascript-angular',

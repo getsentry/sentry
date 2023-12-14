@@ -192,7 +192,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   const organization = useOrganization();
   const previousProject = usePrevious(currentProject);
   const [received, setReceived] = useState<boolean>(false);
-
   const {getParamValue: setupMode} = useUrlParams('mode');
 
   useEffect(() => {
