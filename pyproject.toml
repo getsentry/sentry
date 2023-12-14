@@ -626,7 +626,6 @@ module = [
     "sentry.web.client_config",
     "sentry.web.forms.accounts",
     "sentry.web.frontend.account_identity",
-    "sentry.web.frontend.accounts",
     "sentry.web.frontend.auth_close",
     "sentry.web.frontend.auth_login",
     "sentry.web.frontend.auth_logout",
