@@ -52,12 +52,6 @@ export function MetricWidgetContextMenu({
         onAction: () => duplicateWidget(widgetIndex),
       },
       {
-        leadingItems: [<IconDelete key="icon" />],
-        key: 'delete',
-        label: t('Delete'),
-        onAction: () => removeWidget(widgetIndex),
-      },
-      {
         leadingItems: [<IconSiren key="icon" />],
         key: 'add-alert',
         label: t('Create Alert'),
@@ -70,6 +64,12 @@ export function MetricWidgetContextMenu({
         label: t('Add to Dashboard'),
         disabled: !createDashboardWidget,
         onAction: createDashboardWidget,
+      },
+      {
+        leadingItems: [<IconDelete key="icon" />],
+        key: 'delete',
+        label: t('Delete'),
+        onAction: () => removeWidget(widgetIndex),
       },
     ],
     [createAlert, createDashboardWidget, duplicateWidget, removeWidget, widgetIndex]
