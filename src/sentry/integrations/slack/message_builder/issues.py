@@ -366,20 +366,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             timestamp = max(ts, self.event.datetime) if self.event else ts
         blocks.append(self.get_context_block(text=footer, timestamp=timestamp))
 
-        # build actions
-        # actions = []
-        # for action in payload_actions:
-        #     if action.label in ("Archive", "Ignore", "Mark as Ongoing", "Stop Ignoring"):
-        #         actions.append(self.get_button_action(action))
-        #     elif action.label in ("Resolve", "Unresolve", "Resolve..."):
-        #         actions.append(self.get_button_action(action))
-        #     elif action.name == "assign":
-        #         actions.append(self.get_static_action(action))
-
-        # if actions:
-        #     action_block = {"type": "actions", "elements": [action for action in actions]}
-        #     blocks.append(action_block)
-
         return self._build_blocks(
             *blocks,
             fallback_text=self.build_fallback_text(obj, project.slug),
