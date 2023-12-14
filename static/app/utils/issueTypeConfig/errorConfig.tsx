@@ -1,9 +1,11 @@
 import {t} from 'sentry/locale';
 import {Project} from 'sentry/types';
 import type {
+  ErrorInfo,
   IssueCategoryConfigMapping,
   IssueTypeConfig,
 } from 'sentry/utils/issueTypeConfig/types';
+import {ErrorHelpType} from 'sentry/utils/issueTypeConfig/types';
 
 export const errorConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
@@ -25,30 +27,28 @@ export const errorConfig: IssueCategoryConfigMapping = {
   },
 };
 
-const enum ErrorHelpType {
-  CHUNK_LOAD_ERROR = 'chunk_load_error',
-  DOCUMENT_OR_WINDOW_OBJECT_ERROR = 'document_or_window_object_error',
-  HANDLE_HARD_NAVIGATE_ERROR = 'handle_hard_navigate_error',
-}
-
-const ConditionErrorInfoMap: Record<
-  string,
-  {errorHelpType: ErrorHelpType; projectCheck: boolean}
-> = {
-  ChunkLoadError: {projectCheck: false, errorHelpType: ErrorHelpType.CHUNK_LOAD_ERROR},
-  'window is not defined': {
+const ErrorInfoChecks: Array<ErrorInfo> = [
+  {
+    errorTitle: 'ChunkLoadError',
+    projectCheck: false,
+    errorHelpType: ErrorHelpType.CHUNK_LOAD_ERROR,
+  },
+  {
+    errorTitle: 'window is not defined',
     projectCheck: false,
     errorHelpType: ErrorHelpType.DOCUMENT_OR_WINDOW_OBJECT_ERROR,
   },
-  'document is not defined': {
+  {
+    errorTitle: 'document is not defined',
     projectCheck: false,
     errorHelpType: ErrorHelpType.DOCUMENT_OR_WINDOW_OBJECT_ERROR,
   },
-  'Invariant: attempted to hard navigate to the same URL': {
-    projectCheck: true,
+  {
+    errorTitle: 'Invariant: attempted to hard navigate to the same URL',
+    projectCheck: false,
     errorHelpType: ErrorHelpType.HANDLE_HARD_NAVIGATE_ERROR,
   },
-};
+];
 
 const errorHelpTypeResourceMap: Record<
   ErrorHelpType,
@@ -107,9 +107,9 @@ export function getErrorHelpResource({
   project: Project;
   title: string;
 }): Pick<IssueTypeConfig, 'resources'> | null {
-  for (const [condition, errorInfo] of Object.entries(ConditionErrorInfoMap)) {
-    const {errorHelpType, projectCheck} = errorInfo;
-    if (title.includes(condition)) {
+  for (const errorInfo of ErrorInfoChecks) {
+    const {errorTitle, errorHelpType, projectCheck} = errorInfo;
+    if (title.includes(errorTitle)) {
       if (projectCheck && !(project.platform || '').includes('nextjs')) {
         continue;
       }

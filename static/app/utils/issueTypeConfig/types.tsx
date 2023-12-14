@@ -99,3 +99,15 @@ export interface IssueCategoryConfigMapping
    */
   _categoryDefaults: Partial<IssueTypeConfig>;
 }
+
+export const enum ErrorHelpType {
+  CHUNK_LOAD_ERROR = 'chunk_load_error',
+  DOCUMENT_OR_WINDOW_OBJECT_ERROR = 'document_or_window_object_error',
+  HANDLE_HARD_NAVIGATE_ERROR = 'handle_hard_navigate_error',
+}
+
+export interface ErrorInfo {
+  errorHelpType: ErrorHelpType;
+  errorTitle: string;
+  projectCheck: boolean;
+}
