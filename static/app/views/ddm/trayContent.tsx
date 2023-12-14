@@ -9,7 +9,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {isCustomMetric} from 'sentry/utils/metrics';
+import {isCustomMetric, MetricWidgetQueryParams} from 'sentry/utils/metrics';
 import {formatMRI} from 'sentry/utils/metrics/mri';
 import {CodeLocations} from 'sentry/views/ddm/codeLocations';
 import {useDDMContext} from 'sentry/views/ddm/context';
@@ -26,9 +26,11 @@ export function TrayContent() {
   const {isMaximized, maximiseSize, resetSize} = useContext(SplitPanelContext);
   // the tray is minimized when the main content is maximized
   const trayIsMinimized = isMaximized;
-  const selectedWidget = widgets[selectedWidgetIndex];
+  const selectedWidget = widgets[selectedWidgetIndex] as
+    | MetricWidgetQueryParams
+    | undefined;
   const isCodeLocationsDisabled =
-    selectedWidget.mri && !isCustomMetric({mri: selectedWidget.mri});
+    selectedWidget?.mri && !isCustomMetric({mri: selectedWidget.mri});
 
   if (isCodeLocationsDisabled && selectedTab === Tab.CODE_LOCATIONS) {
     setSelectedTab(Tab.SAMPLES);
