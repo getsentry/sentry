@@ -20,15 +20,6 @@ import type {Member, Organization} from './organization';
 import type {Project} from './project';
 import type {User} from './user';
 
-// XXX(epurkhiser): A Note about `_`.
-//
-// We add the `_: any` type int our hooks list to stop
-// typescript from doing too much type tightening. We should absolutely revisit
-// this in the future because all callbacks _should_ be allowed to be
-// functions, but doing so causes some unexpected issues and makes typescript
-// not happy. We still get a huge advantage of typing just by having each hook
-// type here however.
-
 /**
  * The Hooks type mapping is the master interface for all external Hooks into
  * the sentry frontend application.
@@ -44,9 +35,7 @@ export interface Hooks
     SettingsHooks,
     FeatureSpecificHooks,
     ReactHooks,
-    CallbackHooks {
-  _: any;
-}
+    CallbackHooks {}
 
 export type HookName = keyof Hooks;
 
