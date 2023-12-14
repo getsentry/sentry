@@ -13,7 +13,6 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.integrations.integration import Integration
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import IntegrationTestCase
-from sentry.utils import json
 
 
 class DiscordIntegrationTest(IntegrationTestCase):
@@ -115,7 +114,6 @@ class DiscordIntegrationTest(IntegrationTestCase):
         else:
             assert mock_set_application_command.call_count == 0
 
-    @mock.patch("sentry.integrations.discord.client.DiscordClient.set_application_command")
     def assert_setup_flow_from_discord(
         self,
         guild_id="1234567890",
