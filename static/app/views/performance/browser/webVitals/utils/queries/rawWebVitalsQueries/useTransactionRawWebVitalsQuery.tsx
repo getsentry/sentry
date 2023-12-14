@@ -50,10 +50,11 @@ export const useTransactionRawWebVitalsQuery = ({
         'count()',
       ],
       name: 'Web Vitals',
-      query:
-        'transaction.op:pageload' +
-        (transaction ? ` transaction:"${transaction}"` : '') +
-        (query ? ` ${query}` : ''),
+      query: [
+        'transaction.op:pageload',
+        ...(transaction ? [`transaction:"${transaction}"`] : []),
+        ...(query ? [query] : []),
+      ].join(' '),
       version: 2,
       dataset: DiscoverDatasets.METRICS,
     },

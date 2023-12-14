@@ -71,7 +71,11 @@ export const useTransactionRawSamplesWebVitalsQuery = ({
         'project',
       ],
       name: 'Web Vitals',
-      query: `transaction.op:pageload transaction:"${transaction}" ${query ? query : ''}`,
+      query: [
+        'transaction.op:pageload',
+        `transaction:"${transaction}"`,
+        ...(query ? [query] : []),
+      ].join(' '),
       orderby: mapWebVitalToOrderBy(orderBy) ?? withProfiles ? '-profile.id' : undefined,
       version: 2,
     },

@@ -76,9 +76,12 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
           : []),
       ],
       name: 'Web Vitals',
-      query: `transaction.op:pageload transaction:"${transaction}" has:measurements.score.total ${
-        query ? query : ''
-      }`,
+      query: [
+        'transaction.op:pageload',
+        `transaction:"${transaction}"`,
+        'has:measurements.score.total',
+        ...(query ? [query] : []),
+      ].join(' '),
       orderby: mapWebVitalToOrderBy(orderBy) ?? withProfiles ? '-profile.id' : undefined,
       version: 2,
     },

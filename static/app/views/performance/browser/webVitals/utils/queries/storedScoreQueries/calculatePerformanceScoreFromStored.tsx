@@ -29,7 +29,7 @@ function getTotalScore(data: TableDataRow): number {
 }
 
 function hasWebVitalScore(data: TableDataRow, webVital: WebVitals): boolean {
-  if (Object.keys(data).includes(`count_scores(measurements.score.${webVital})`)) {
+  if (data.hasOwnProperty(`count_scores(measurements.score.${webVital})`)) {
     return (data[`count_scores(measurements.score.${webVital})`] as number) > 0;
   }
   return false;

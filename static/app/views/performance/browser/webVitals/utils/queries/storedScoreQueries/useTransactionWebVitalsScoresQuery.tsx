@@ -61,10 +61,12 @@ export const useTransactionWebVitalsScoresQuery = ({
         'count_scores(measurements.score.fid)',
       ],
       name: 'Web Vitals',
-      query:
-        'transaction.op:pageload avg(measurements.score.total):>=0' +
-        (transaction ? ` transaction:"${transaction}"` : '') +
-        (query ? ` ${query}` : ''),
+      query: [
+        'transaction.op:pageload',
+        'avg(measurements.score.total):>=0',
+        ...(transaction ? [`transaction:"${transaction}"`] : []),
+        ...(query ? [query] : []),
+      ].join(' '),
       version: 2,
       dataset: DiscoverDatasets.METRICS,
     },

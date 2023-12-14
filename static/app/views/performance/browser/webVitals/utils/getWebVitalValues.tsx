@@ -2,7 +2,7 @@ import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 
 function hasWebVital(data: TableDataRow, webVital: WebVitals): boolean {
-  if (Object.keys(data).includes(`count_web_vitals(measurements.${webVital}, any)`)) {
+  if (data.hasOwnProperty(`count_web_vitals(measurements.${webVital}, any)`)) {
     return (data[`count_web_vitals(measurements.${webVital}, any)`] as number) > 0;
   }
   return false;
