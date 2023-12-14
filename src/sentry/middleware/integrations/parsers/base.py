@@ -13,6 +13,7 @@ from rest_framework import status
 from sentry.models.integrations import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
+from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.silo import SiloLimit, SiloMode
@@ -180,7 +181,7 @@ class BaseRequestParser(abc.ABC):
     # Optional Overrides
 
     def get_organizations_from_integration(
-        self, integration: Optional[Integration] = None
+        self, integration: Optional[Integration | RpcIntegration] = None
     ) -> Sequence[RpcOrganizationSummary]:
         """
         Use the get_integration_from_request() method to identify organizations associated with
