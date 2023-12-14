@@ -16,16 +16,15 @@ import {StepProps} from './types';
 
 function GetStarted(props: StepProps) {
   const regions = ConfigStore.get('regions');
-  const [region, setRegion] = useState('');
+  const [regionUrl, setRegionUrl] = useState('');
   const [orgSlugs, setOrgSlugs] = useState('');
   const relocationOnboardingContext = useContext(RelocationOnboardingContext);
 
   const handleContinue = (event: any) => {
     event.preventDefault();
-    relocationOnboardingContext.setData({orgSlugs, region});
+    relocationOnboardingContext.setData({orgSlugs, regionUrl});
     props.onComplete();
   };
-  // TODO(getsentry/team-ospo#214): Make a popup to warn users about data region selection
   return (
     <Wrapper>
       <StepHeading step={1}>{t('Basic information needed to get started')}</StepHeading>
@@ -55,16 +54,18 @@ function GetStarted(props: StepProps) {
           />
           <Label>{t('Choose a datacenter region')}</Label>
           <RegionSelect
-            value={region}
+            value={regionUrl}
             name="region"
             aria-label="region"
             placeholder="Select Region"
             options={regions.map(r => ({label: r.name, value: r.name}))}
-            onChange={opt => setRegion(opt.value)}
+            onChange={opt => setRegionUrl(opt.value)}
           />
-          {region && <p>{t('This is an important decision and cannot be changed.')}</p>}
+          {regionUrl && (
+            <p>{t('This is an important decision and cannot be changed.')}</p>
+          )}
           <ContinueButton
-            disabled={!orgSlugs || !region}
+            disabled={!orgSlugs || !regionUrl}
             size="md"
             priority="primary"
             type="submit"
