@@ -32,34 +32,9 @@ describe('MockTimelineVisualizer', () => {
       body: data,
     });
 
-    const onError = jest.fn();
-    render(<MockTimelineVisualization schedule={schedule} onError={onError} />);
+    render(<MockTimelineVisualization schedule={schedule} />);
 
     expect(request).toHaveBeenCalled();
     expect(await screen.findByText('Nov 21, 2023')).toBeInTheDocument();
-    expect(onError).not.toHaveBeenCalled();
-  });
-
-  it('should show an error for invalid crontabs', async () => {
-    const schedule = {
-      cronSchedule: 'invalid schedule',
-      scheduleType: 'crontab',
-    };
-    const error = {
-      schedule: ['Schedule was not parseable'],
-    };
-
-    const request = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/monitors-schedule-data/`,
-      statusCode: 400,
-      body: error,
-    });
-
-    const onError = jest.fn();
-    render(<MockTimelineVisualization schedule={schedule} onError={onError} />);
-
-    expect(request).toHaveBeenCalled();
-    expect(await screen.findByTestId('error-placeholder')).toBeInTheDocument();
-    expect(onError).toHaveBeenCalledWith('Schedule was not parseable');
   });
 });
