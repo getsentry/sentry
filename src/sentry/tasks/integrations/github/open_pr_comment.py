@@ -47,8 +47,8 @@ OPEN_PR_MAX_FILES_CHANGED = 7
 # Caps the number of lines that can be modified in a PR to leave a comment
 OPEN_PR_MAX_LINES_CHANGED = 500
 
-COMMENT_BODY_TEMPLATE = """## 🚀 Sentry Issue Report
-You modified these files in this pull request and we noticed these issues associated with them.
+COMMENT_BODY_TEMPLATE = """## 🔍 Existing Sentry Issues - For Review
+Your pull request files have the following pre-existing issues:
 
 {issue_tables}
 ---
@@ -57,19 +57,19 @@ You modified these files in this pull request and we noticed these issues associ
 
 ISSUE_TABLE_TEMPLATE = """📄 **{filename}**
 
-| Issue  | Additional Info |
-| :--------- | :-------- |
+| Issue  |
+| :--------- |
 {issue_rows}"""
 
 ISSUE_TABLE_TOGGLE_TEMPLATE = """<details>
 <summary><b>📄 {filename} (Click to Expand)</b></summary>
 
-| Issue  | Additional Info |
-| :--------- | :-------- |
+| Issue  |
+| :--------- |
 {issue_rows}
 </details>"""
 
-ISSUE_ROW_TEMPLATE = "| ‼️ [**{title}**]({url}) {subtitle} | `Handled:` **{is_handled}** `Event Count:` **{event_count}** `Users:` **{affected_users}** |"
+ISSUE_ROW_TEMPLATE = "| [**{title}**]({url}) {subtitle} <br> `Handled:` **{is_handled}** `Event Count:` **{event_count}** `Users:` **{affected_users}** |"
 
 ISSUE_DESCRIPTION_LENGTH = 52
 
@@ -220,6 +220,7 @@ def get_top_5_issues_by_count_for_file(
     """Given a list of issue group ids, return a sublist of the top 5 ordered by event count"""
     group_ids = list(
         Group.objects.filter(
+            first_seen__gte=datetime.now() - timedelta(days=90),
             last_seen__gte=datetime.now() - timedelta(days=14),
             status=GroupStatus.UNRESOLVED,
             project__in=projects,
@@ -253,6 +254,7 @@ def get_top_5_issues_by_count_for_file(
                         Op.IN,
                         sentry_filenames,
                     ),
+                    Condition(Function("notHandled", []), Op.EQ, 1),
                 ]
             )
             .set_orderby([OrderBy(Column("event_count"), Direction.DESC)])

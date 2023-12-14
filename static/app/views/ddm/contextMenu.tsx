@@ -2,8 +2,8 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {openAddToDashboardModal, openModal} from 'sentry/actionCreators/modal';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {IconDashboard, IconEllipsis, IconSiren} from 'sentry/icons';
+import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import {IconCopy, IconDashboard, IconDelete, IconEllipsis, IconSiren} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -17,21 +17,60 @@ import {
 import {hasDDMFeature} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
+import {useDDMContext} from 'sentry/views/ddm/context';
 import {CreateAlertModal} from 'sentry/views/ddm/createAlertModal';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 type ContextMenuProps = {
   displayType: MetricDisplayType;
   metricsQuery: MetricsQuery;
+  widgetIndex: number;
 };
 
-export function MetricWidgetContextMenu({metricsQuery, displayType}: ContextMenuProps) {
+export function MetricWidgetContextMenu({
+  metricsQuery,
+  displayType,
+  widgetIndex,
+}: ContextMenuProps) {
   const organization = useOrganization();
+  const {removeWidget, duplicateWidget} = useDDMContext();
   const createAlert = useCreateAlert(organization, metricsQuery);
   const createDashboardWidget = useCreateDashboardWidget(
     organization,
     metricsQuery,
     displayType
+  );
+
+  const items = useMemo<MenuItemProps[]>(
+    () => [
+      {
+        leadingItems: [<IconCopy key="icon" />],
+        key: 'duplicate',
+        label: t('Duplicate'),
+        onAction: () => duplicateWidget(widgetIndex),
+      },
+      {
+        leadingItems: [<IconSiren key="icon" />],
+        key: 'add-alert',
+        label: t('Create Alert'),
+        disabled: !createAlert,
+        onAction: createAlert,
+      },
+      {
+        leadingItems: [<IconDashboard key="icon" />],
+        key: 'add-dashoard',
+        label: t('Add to Dashboard'),
+        disabled: !createDashboardWidget,
+        onAction: createDashboardWidget,
+      },
+      {
+        leadingItems: [<IconDelete key="icon" />],
+        key: 'delete',
+        label: t('Delete'),
+        onAction: () => removeWidget(widgetIndex),
+      },
+    ],
+    [createAlert, createDashboardWidget, duplicateWidget, removeWidget, widgetIndex]
   );
 
   if (!hasDDMFeature(organization)) {
@@ -40,22 +79,7 @@ export function MetricWidgetContextMenu({metricsQuery, displayType}: ContextMenu
 
   return (
     <StyledDropdownMenuControl
-      items={[
-        {
-          leadingItems: [<IconSiren key="icon" />],
-          key: 'add-alert',
-          label: t('Create Alert'),
-          disabled: !createAlert,
-          onAction: createAlert,
-        },
-        {
-          leadingItems: [<IconDashboard key="icon" />],
-          key: 'add-dashoard',
-          label: t('Add to Dashboard'),
-          disabled: !createDashboardWidget,
-          onAction: createDashboardWidget,
-        },
-      ]}
+      items={items}
       triggerProps={{
         'aria-label': t('Widget actions'),
         size: 'xs',

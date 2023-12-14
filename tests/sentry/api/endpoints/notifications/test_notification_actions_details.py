@@ -4,6 +4,7 @@ import responses
 from rest_framework import serializers, status
 
 from sentry.api.serializers.base import serialize
+from sentry.integrations.pagerduty.utils import add_service
 from sentry.models.notificationaction import (
     ActionRegistration,
     ActionService,
@@ -293,7 +294,9 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         )
         assert "Did not recieve PagerDuty service id" in str(response.data["targetIdentifier"])
         with assume_test_silo_mode(SiloMode.CONTROL):
-            service = second_integration.organizationintegration_set.first().add_pagerduty_service(
+            org_integration = second_integration.organizationintegration_set.first()
+            service = add_service(
+                org_integration,
                 service_name=service_name,
                 integration_key="abc",
             )
@@ -307,7 +310,9 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         )
         assert "ensure Sentry has access" in str(response.data["targetIdentifier"])
         with assume_test_silo_mode(SiloMode.CONTROL):
-            service = integration.organizationintegration_set.first().add_pagerduty_service(
+            org_integration = integration.organizationintegration_set.first()
+            service = add_service(
+                org_integration,
                 service_name=service_name,
                 integration_key="def",
             )
