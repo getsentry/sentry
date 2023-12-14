@@ -77,6 +77,7 @@ def handle_status_change(
     for oi in org_integrations:
         installation = integration.get_installation(oi.organization_id)
 
-        installation.sync_status_inbound(
-            issue_key, {"changelog": changelog, "issue": data["issue"]}
-        )
+        if hasattr(installation, "sync_status_inbound"):
+            installation.sync_status_inbound(
+                issue_key, {"changelog": changelog, "issue": data["issue"]}
+            )
