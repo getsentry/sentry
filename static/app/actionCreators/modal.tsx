@@ -275,6 +275,16 @@ export async function openImportDashboardFromFileModal(options) {
   });
 }
 
+export async function openCreateDashboardFromScratchpad(options) {
+  const mod = await import('sentry/components/modals/createDashboardFromScratchpadModal');
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {
+    closeEvents: 'escape-key',
+    modalCss,
+  });
+}
+
 export async function openReprocessEventModal({
   onClose,
   ...options
