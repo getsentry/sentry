@@ -19,7 +19,6 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {ReplayCountForFeedbacks} from 'sentry/utils/replayCount/replayCountForFeedbacks';
 import useOrganization from 'sentry/utils/useOrganization';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
@@ -36,46 +35,44 @@ export default function FeedbackListPage({}: Props) {
     <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>
       <FullViewport>
         <FeedbackQueryKeys organization={organization}>
-          <ReplayCountForFeedbacks>
-            <Layout.Header>
-              <Layout.HeaderContent>
-                <Layout.Title>
-                  {t('User Feedback')}
-                  <PageHeadingQuestionTooltip
-                    title={t(
-                      'The User Feedback Widget allows users to submit feedback quickly and easily any time they encounter something that isn’t working as expected.'
-                    )}
-                    docsUrl="https://docs.sentry.io/product/user-feedback/"
-                  />
-                </Layout.Title>
-              </Layout.HeaderContent>
-              <Layout.HeaderActions>
-                <OldFeedbackButton />
-              </Layout.HeaderActions>
-            </Layout.Header>
-            <PageFiltersContainer>
-              <ErrorBoundary>
-                <LayoutGrid>
-                  <FeedbackFilters style={{gridArea: 'filters'}} />
-                  {hasSetupOneFeedback || hasSlug ? (
-                    <Fragment>
-                      <Container style={{gridArea: 'list'}}>
-                        <FeedbackList />
-                      </Container>
-                      <FeedbackSearch style={{gridArea: 'search'}} />
-                      <Container style={{gridArea: 'details'}}>
-                        <FeedbackItemLoader />
-                      </Container>
-                    </Fragment>
-                  ) : (
-                    <SetupContainer>
-                      <FeedbackSetupPanel />
-                    </SetupContainer>
+          <Layout.Header>
+            <Layout.HeaderContent>
+              <Layout.Title>
+                {t('User Feedback')}
+                <PageHeadingQuestionTooltip
+                  title={t(
+                    'The User Feedback Widget allows users to submit feedback quickly and easily any time they encounter something that isn’t working as expected.'
                   )}
-                </LayoutGrid>
-              </ErrorBoundary>
-            </PageFiltersContainer>
-          </ReplayCountForFeedbacks>
+                  docsUrl="https://docs.sentry.io/product/user-feedback/"
+                />
+              </Layout.Title>
+            </Layout.HeaderContent>
+            <Layout.HeaderActions>
+              <OldFeedbackButton />
+            </Layout.HeaderActions>
+          </Layout.Header>
+          <PageFiltersContainer>
+            <ErrorBoundary>
+              <LayoutGrid>
+                <FeedbackFilters style={{gridArea: 'filters'}} />
+                {hasSetupOneFeedback || hasSlug ? (
+                  <Fragment>
+                    <Container style={{gridArea: 'list'}}>
+                      <FeedbackList />
+                    </Container>
+                    <FeedbackSearch style={{gridArea: 'search'}} />
+                    <Container style={{gridArea: 'details'}}>
+                      <FeedbackItemLoader />
+                    </Container>
+                  </Fragment>
+                ) : (
+                  <SetupContainer>
+                    <FeedbackSetupPanel />
+                  </SetupContainer>
+                )}
+              </LayoutGrid>
+            </ErrorBoundary>
+          </PageFiltersContainer>
         </FeedbackQueryKeys>
       </FullViewport>
     </SentryDocumentTitle>

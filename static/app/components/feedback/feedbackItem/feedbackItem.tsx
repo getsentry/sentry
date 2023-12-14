@@ -29,7 +29,7 @@ import {space} from 'sentry/styles/space';
 import type {Event, Group} from 'sentry/types';
 import {GroupStatus} from 'sentry/types';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
-import {useReplayCountForFeedbacks} from 'sentry/utils/replayCount/replayCountForFeedbacks';
+import useReplayCountForFeedbacks from 'sentry/utils/replayCount/useReplayCountForFeedbacks';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
