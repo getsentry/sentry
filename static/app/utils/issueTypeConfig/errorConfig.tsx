@@ -1,4 +1,4 @@
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {Project} from 'sentry/types';
 import type {
   IssueCategoryConfigMapping,
@@ -29,6 +29,7 @@ const enum ErrorHelpType {
   CHUNK_LOAD_ERROR = 'chunk_load_error',
   DOCUMENT_OR_WINDOW_OBJECT_ERROR = 'document_or_window_object_error',
   HANDLE_HARD_NAVIGATE_ERROR = 'handle_hard_navigate_error',
+  MODULE_NOT_FOUND = 'module_not_found',
 }
 
 const ConditionErrorInfoMap: Record<
@@ -47,6 +48,10 @@ const ConditionErrorInfoMap: Record<
   'Invariant: attempted to hard navigate to the same URL': {
     projectCheck: true,
     errorHelpType: ErrorHelpType.HANDLE_HARD_NAVIGATE_ERROR,
+  },
+  'module not found': {
+    projectCheck: true,
+    errorHelpType: ErrorHelpType.MODULE_NOT_FOUND,
   },
 };
 
@@ -93,6 +98,21 @@ check out the following:`,
         {
           text: t('Fixing handleHardNavigation errors in Next.js'),
           link: 'https://sentry.io/answers/handle-hard-navigation-errors-in-nextjs/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [ErrorHelpType.MODULE_NOT_FOUND]: {
+    resources: {
+      description: tct(
+        '[errorTypes] occur in Next.js applications when an imported module cannot be accessed. To learn more about how to fix these errors, check out these resources:',
+        {errorTypes: <b>Module not found errors</b>}
+      ),
+      links: [
+        {
+          text: t('Fixing "module not found" errors in Next.js'),
+          link: 'https://sentry.io/answers/module-not-found-nextjs/',
         },
       ],
       linksByPlatform: {},
