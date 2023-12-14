@@ -19,7 +19,7 @@ export default function DeleteActionButton(
   return (
     <Button
       size="sm"
-      icon={<IconDelete size="xs" />}
+      icon={<IconDelete />}
       aria-label={t('Remove action')}
       {...props}
       onClick={handleClick}

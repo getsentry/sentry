@@ -253,7 +253,6 @@ function NotificationSettingsByEntity({
           />
           <Button
             disabled={!selectedEntityId || !selectedValue}
-            size="md"
             priority="primary"
             onClick={handleAdd}
             icon={<IconAdd />}

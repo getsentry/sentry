@@ -97,7 +97,6 @@ function ImportDashboardFromFileModal({
         <Wrapper>
           <Button
             onClick={handleUploadClick}
-            size="md"
             disabled={!validated}
             priority="primary"
             icon={<IconUpload />}

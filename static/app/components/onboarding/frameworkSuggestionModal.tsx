@@ -284,11 +284,8 @@ export function FrameworkSuggestionModal({
       </Body>
       <Footer>
         <Actions>
-          <Button size="md" onClick={handleSkip}>
-            {t('Skip')}
-          </Button>
+          <Button onClick={handleSkip}>{t('Skip')}</Button>
           <Button
-            size="md"
             priority="primary"
             onClick={handleConfigure}
             disabled={!selectedFramework}

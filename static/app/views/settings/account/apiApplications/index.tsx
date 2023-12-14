@@ -66,7 +66,7 @@ class ApiApplications extends DeprecatedAsyncView<Props, State> {
               priority="primary"
               size="sm"
               onClick={this.handleCreateApplication}
-              icon={<IconAdd size="xs" isCircled />}
+              icon={<IconAdd isCircled />}
             >
               {t('Create New Application')}
             </Button>

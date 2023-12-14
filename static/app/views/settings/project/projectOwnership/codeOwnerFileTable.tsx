@@ -149,7 +149,7 @@ export function CodeOwnerFileTable({
               triggerProps={{
                 'aria-label': t('Actions'),
                 size: 'xs',
-                icon: <IconEllipsis size="xs" />,
+                icon: <IconEllipsis />,
                 showChevron: false,
                 disabled,
               }}

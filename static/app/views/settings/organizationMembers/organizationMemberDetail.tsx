@@ -336,7 +336,7 @@ class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
                     {canResend && (
                       <Button
                         data-test-id="resend-invite"
-                        icon={<IconRefresh size="sm" />}
+                        icon={<IconRefresh />}
                         title={t('Generate a new invite link and send a new email.')}
                         onClick={() => this.handleInvite(true)}
                       >

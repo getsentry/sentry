@@ -130,7 +130,7 @@ function WidgetCardContextMenu({
                   aria-label={t('Open Widget Viewer')}
                   borderless
                   size="xs"
-                  icon={<IconExpand size="xs" />}
+                  icon={<IconExpand />}
                   onClick={() => {
                     (seriesData || tableData) &&
                       setData({
@@ -272,7 +272,7 @@ function WidgetCardContextMenu({
                 aria-label={t('Open Widget Viewer')}
                 borderless
                 size="xs"
-                icon={<IconExpand size="xs" />}
+                icon={<IconExpand />}
                 onClick={() => {
                   setData({
                     seriesData,

@@ -236,7 +236,7 @@ const ClearButton = styled(Button)`
 `;
 
 ClearButton.defaultProps = {
-  icon: <IconClose isCircled size="xs" />,
+  icon: <IconClose isCircled />,
   borderless: true,
   size: 'xs',
 };

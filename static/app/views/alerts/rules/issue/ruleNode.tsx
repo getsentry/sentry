@@ -367,7 +367,7 @@ function RuleNode({
       return (
         <Button
           size="sm"
-          icon={<IconSettings size="xs" />}
+          icon={<IconSettings />}
           onClick={() =>
             openModal(deps => (
               <TicketRuleModal
@@ -392,7 +392,7 @@ function RuleNode({
       return (
         <Button
           size="sm"
-          icon={<IconSettings size="xs" />}
+          icon={<IconSettings />}
           disabled={Boolean(data.disabled) || disabled}
           onClick={() => {
             openModal(

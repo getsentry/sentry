@@ -184,7 +184,7 @@ export function SpanProfileDetails({
         <SpanDetailsItem>
           <ButtonBar merged>
             <Button
-              icon={<IconChevron direction="left" size="xs" />}
+              icon={<IconChevron direction="left" />}
               aria-label={t('Previous')}
               size="xs"
               disabled={!hasPrevious}
@@ -193,7 +193,7 @@ export function SpanProfileDetails({
               }}
             />
             <Button
-              icon={<IconChevron direction="right" size="xs" />}
+              icon={<IconChevron direction="right" />}
               aria-label={t('Next')}
               size="xs"
               disabled={!hasNext}

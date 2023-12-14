@@ -167,7 +167,7 @@ class RelayWrapper extends DeprecatedAsyncView<Props, State> {
               }
               priority="primary"
               size="sm"
-              icon={<IconAdd size="xs" isCircled />}
+              icon={<IconAdd isCircled />}
               onClick={this.handleOpenAddDialog}
               disabled={disabled}
             >

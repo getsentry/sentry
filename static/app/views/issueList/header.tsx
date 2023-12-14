@@ -126,7 +126,7 @@ function IssueListHeader({
             data-test-id="real-time"
             title={realtimeTitle}
             aria-label={realtimeTitle}
-            icon={realtimeActive ? <IconPause size="xs" /> : <IconPlay size="xs" />}
+            icon={realtimeActive ? <IconPause /> : <IconPlay />}
             onClick={() => onRealtimeChange(!realtimeActive)}
           />
         </ButtonBar>

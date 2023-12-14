@@ -52,7 +52,7 @@ export default function FeedbackListBulkSelection({
             position="bottom-end"
             triggerProps={{
               'aria-label': t('Read Menu'),
-              icon: <IconEllipsis size="xs" />,
+              icon: <IconEllipsis />,
               showChevron: false,
               size: 'xs',
             }}

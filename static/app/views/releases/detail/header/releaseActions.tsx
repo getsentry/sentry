@@ -207,7 +207,7 @@ function ReleaseActions({
         items={menuItems}
         triggerProps={{
           showChevron: false,
-          icon: <IconEllipsis size="xs" />,
+          icon: <IconEllipsis />,
           'aria-label': t('Actions'),
         }}
         position="bottom-end"

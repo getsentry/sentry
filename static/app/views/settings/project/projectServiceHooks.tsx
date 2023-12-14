@@ -160,7 +160,7 @@ class ProjectServiceHooks extends DeprecatedAsyncView<Props, State> {
                 to={`/settings/${organization.slug}/projects/${params.projectId}/hooks/new/`}
                 size="sm"
                 priority="primary"
-                icon={<IconAdd size="xs" isCircled />}
+                icon={<IconAdd isCircled />}
               >
                 {t('Create New Hook')}
               </Button>

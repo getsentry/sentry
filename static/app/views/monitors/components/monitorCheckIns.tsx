@@ -179,7 +179,7 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                   <div>
                     <Button
                       size="xs"
-                      icon={<IconDownload size="xs" />}
+                      icon={<IconDownload />}
                       href={generateDownloadUrl(checkIn)}
                     >
                       {t('Attachment')}

@@ -80,7 +80,7 @@ export function CronTimelineSection({event, organization}: Props) {
     <ButtonBar gap={1}>
       <LinkButton
         size="xs"
-        icon={<IconOpen size="xs" />}
+        icon={<IconOpen />}
         to={`/organizations/${organization.slug}/crons/${monitorSlug}`}
       >
         {t('View in Monitor Details')}

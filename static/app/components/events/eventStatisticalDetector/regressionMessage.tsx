@@ -111,11 +111,7 @@ function EventStatisticalDetectorRegressedPerformanceMessage({
               'The current date is over 14 days from the breakpoint. Open the Transaction Summary to see the most up to date transaction behaviour.'
             )}
           >
-            <LinkButton
-              to={transactionSummaryLink}
-              size="xs"
-              icon={<IconOpen size="xs" />}
-            >
+            <LinkButton to={transactionSummaryLink} size="xs" icon={<IconOpen />}>
               {t('Go to Summary')}
             </LinkButton>
           </Tooltip>

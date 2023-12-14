@@ -89,7 +89,7 @@ class DocIntegrationDetailedView extends AbstractIntegrationDetailedView<
           size="sm"
           priority="primary"
           style={{marginLeft: space(1)}}
-          icon={<StyledIconOpen size="xs" />}
+          icon={<StyledIconOpen />}
         >
           {t('Learn More')}
         </LearnMoreButton>

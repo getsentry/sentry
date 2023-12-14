@@ -182,7 +182,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
             <strong>{t('Was this helpful?')}</strong>
             <ButtonBar gap={1}>
               <Button
-                icon={<IconSad color="red300" size="xs" />}
+                icon={<IconSad color="red300" />}
                 size="xs"
                 onClick={() => {
                   trackAnalytics(
@@ -201,7 +201,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
                 {t('Nope')}
               </Button>
               <Button
-                icon={<IconMeh color="yellow300" size="xs" />}
+                icon={<IconMeh color="yellow300" />}
                 size="xs"
                 onClick={() => {
                   trackAnalytics(
@@ -220,7 +220,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
                 {t('Kinda')}
               </Button>
               <Button
-                icon={<IconHappy color="green300" size="xs" />}
+                icon={<IconHappy color="green300" />}
                 size="xs"
                 onClick={() => {
                   trackAnalytics(

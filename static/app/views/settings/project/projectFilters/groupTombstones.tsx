@@ -68,7 +68,7 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
                 : t('Undiscard')
             }
             size="xs"
-            icon={<IconDelete size="xs" />}
+            icon={<IconDelete />}
             disabled={disabled}
           />
         </Confirm>

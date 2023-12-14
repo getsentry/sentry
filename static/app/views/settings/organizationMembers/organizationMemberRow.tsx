@@ -183,7 +183,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
               >
                 <Button
                   data-test-id="remove"
-                  icon={<IconSubtract isCircled size="xs" />}
+                  icon={<IconSubtract isCircled />}
                   size="sm"
                   busy={this.state.busy}
                 >
@@ -205,7 +205,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                     ? t('You cannot make changes to this partner-provisioned user.')
                     : t('You do not have access to remove members')
                 }
-                icon={<IconSubtract isCircled size="xs" />}
+                icon={<IconSubtract isCircled />}
               >
                 {t('Remove')}
               </Button>
@@ -218,7 +218,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                 })}
                 onConfirm={this.handleLeave}
               >
-                <Button priority="danger" size="sm" icon={<IconClose size="xs" />}>
+                <Button priority="danger" size="sm" icon={<IconClose />}>
                   {t('Leave')}
                 </Button>
               </Confirm>
@@ -227,7 +227,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
             {showLeaveButton && !memberCanLeave && (
               <Button
                 size="sm"
-                icon={<IconClose size="xs" />}
+                icon={<IconClose />}
                 disabled
                 title={
                   isIdpProvisioned

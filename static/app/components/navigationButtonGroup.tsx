@@ -39,7 +39,7 @@ function NavigationButtonGroup({
         to={links[0]}
         disabled={!hasPrevious}
         aria-label={t('Oldest')}
-        icon={<IconPrevious size="xs" />}
+        icon={<IconPrevious />}
         onClick={onOldestClick}
       />
       <Button size={size} to={links[1]} disabled={!hasPrevious} onClick={onOlderClick}>
@@ -53,7 +53,7 @@ function NavigationButtonGroup({
         to={links[3]}
         disabled={!hasNext}
         aria-label={t('Newest')}
-        icon={<IconNext size="xs" />}
+        icon={<IconNext />}
         onClick={onNewestClick}
       />
     </ButtonBar>

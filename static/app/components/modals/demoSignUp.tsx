@@ -28,7 +28,7 @@ function DemoSignUpModal({closeModal}: Props) {
   return (
     <HighlightCornerContainer>
       <CloseButton
-        icon={<IconClose size="xs" />}
+        icon={<IconClose />}
         size="xs"
         aria-label={t('Close')}
         onClick={() => {

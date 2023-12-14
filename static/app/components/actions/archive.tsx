@@ -157,7 +157,7 @@ function ArchiveActions({
             {...triggerProps}
             aria-label={t('Archive options')}
             size={size}
-            icon={<IconChevron direction="down" size="xs" />}
+            icon={<IconChevron direction="down" />}
             disabled={disabled}
           />
         )}

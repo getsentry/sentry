@@ -185,7 +185,7 @@ function TeamRow({
       <div>
         <Button
           size="xs"
-          icon={<IconSubtract isCircled size="xs" />}
+          icon={<IconSubtract isCircled />}
           title={buttonHelpText}
           disabled={isRemoveDisabled}
           onClick={() => onRemoveTeam(team.slug)}

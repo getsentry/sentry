@@ -536,7 +536,7 @@ const Back = styled(({className, animate, ...props}: BackButtonProps) => (
       },
     }}
   >
-    <Button {...props} icon={<IconArrow direction="left" size="sm" />} priority="link">
+    <Button {...props} icon={<IconArrow direction="left" />} priority="link">
       {t('Back')}
     </Button>
   </motion.div>

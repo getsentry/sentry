@@ -242,7 +242,7 @@ class IntegrationCodeMappings extends DeprecatedAsyncComponent<Props, State> {
                   data-test-id="add-mapping-button"
                   onClick={() => this.openModal()}
                   size="xs"
-                  icon={<IconAdd size="xs" isCircled />}
+                  icon={<IconAdd isCircled />}
                 >
                   {t('Add Code Mapping')}
                 </Button>

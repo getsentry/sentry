@@ -107,11 +107,7 @@ class ApiApplicationsDetails extends DeprecatedAsyncView<Props, State> {
                   ) : (
                     <ClientSecret>
                       <HiddenSecret>{t('hidden')}</HiddenSecret>
-                      <Button
-                        size="md"
-                        onClick={this.rotateClientSecret}
-                        priority="danger"
-                      >
+                      <Button onClick={this.rotateClientSecret} priority="danger">
                         Rotate client secret
                       </Button>
                     </ClientSecret>

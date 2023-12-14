@@ -153,7 +153,7 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
           <ButtonBar gap={1}>
             <Button
               size="sm"
-              icon={<IconUser size="xs" />}
+              icon={<IconUser />}
               title={
                 canJoinTeam ? undefined : t('You do not have permission to join a team.')
               }
@@ -173,7 +173,7 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
                   : undefined
               }
               to={`/organizations/${organization.slug}/projects/new/`}
-              icon={<IconAdd size="xs" isCircled />}
+              icon={<IconAdd isCircled />}
               data-test-id="create-project"
             >
               {t('Create Project')}

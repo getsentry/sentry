@@ -42,7 +42,7 @@ export default class AdminEnvironment extends DeprecatedAsyncView<{}, State> {
               {version.upgradeAvailable && (
                 <Button
                   href="https://github.com/getsentry/sentry/releases"
-                  icon={<IconUpgrade size="xs" />}
+                  icon={<IconUpgrade />}
                   size="xs"
                   external
                 >

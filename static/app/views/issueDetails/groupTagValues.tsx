@@ -224,7 +224,7 @@ function GroupTagValues({baseUrl, project, group, environments}: Props) {
               triggerProps={{
                 size: 'xs',
                 showChevron: false,
-                icon: <IconEllipsis size="xs" />,
+                icon: <IconEllipsis />,
                 'aria-label': t('More'),
               }}
               items={[

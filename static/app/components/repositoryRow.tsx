@@ -83,7 +83,7 @@ function RepositoryRow({
       >
         <StyledButton
           size="xs"
-          icon={<IconDelete size="xs" />}
+          icon={<IconDelete />}
           aria-label={t('delete')}
           disabled={!hasAccess}
         />

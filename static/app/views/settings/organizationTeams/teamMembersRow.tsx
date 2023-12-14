@@ -77,7 +77,7 @@ function RemoveButton(props: {
       <Button
         size="xs"
         disabled
-        icon={<IconSubtract size="xs" isCircled />}
+        icon={<IconSubtract isCircled />}
         aria-label={t('Remove')}
         title={t('You do not have permission to remove a member from this team.')}
       >
@@ -94,7 +94,7 @@ function RemoveButton(props: {
       <Button
         size="xs"
         disabled
-        icon={<IconSubtract size="xs" isCircled />}
+        icon={<IconSubtract isCircled />}
         aria-label={t('Remove')}
         title={buttonHelpText}
       >
@@ -109,7 +109,7 @@ function RemoveButton(props: {
       data-test-id={`button-remove-${member.id}`}
       size="xs"
       disabled={!canRemoveMember}
-      icon={<IconSubtract size="xs" isCircled />}
+      icon={<IconSubtract isCircled />}
       onClick={onClick}
       aria-label={buttonRemoveText}
     >

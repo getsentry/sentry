@@ -65,7 +65,7 @@ function renderBrowserExportButton(canEdit: boolean, props: Props) {
       disabled={disabled}
       onClick={onClick}
       data-test-id="grid-download-csv"
-      icon={<IconDownload size="xs" />}
+      icon={<IconDownload />}
       title={t(
         "There aren't that many results, start your export and it'll download immediately."
       )}
@@ -85,7 +85,7 @@ function renderAsyncExportButton(canEdit: boolean, props: Props) {
         queryInfo: eventView.getEventsAPIPayload(location),
       }}
       disabled={disabled}
-      icon={<IconDownload size="xs" />}
+      icon={<IconDownload />}
     >
       {t('Export All')}
     </DataExport>
@@ -103,7 +103,7 @@ function renderEditButton(canEdit: boolean, props: Props) {
         disabled={!canEdit}
         onClick={onClick}
         data-test-id="grid-edit-enable"
-        icon={<IconSliders size="xs" />}
+        icon={<IconSliders />}
       >
         {t('Columns')}
       </Button>
@@ -115,7 +115,7 @@ function renderEditButton(canEdit: boolean, props: Props) {
 
 function renderSummaryButton({onChangeShowTags, showTags}: Props) {
   return (
-    <Button size="sm" onClick={onChangeShowTags} icon={<IconTag size="xs" />}>
+    <Button size="sm" onClick={onChangeShowTags} icon={<IconTag />}>
       {showTags ? t('Hide Tags') : t('Show Tags')}
     </Button>
   );

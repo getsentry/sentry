@@ -183,7 +183,7 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
       >
         {({isOpen}) => (
           <DropdownButton
-            icon={<IconAdd size="xs" isCircled />}
+            icon={<IconAdd isCircled />}
             isOpen={isOpen}
             size="xs"
             disabled={disabled}

@@ -401,7 +401,7 @@ export function TraceEventDataSection({
             )}
             <CompactSelect
               triggerProps={{
-                icon: <IconSort size="xs" />,
+                icon: <IconSort />,
                 size: 'xs',
                 title: sortByTooltip,
               }}
@@ -418,7 +418,7 @@ export function TraceEventDataSection({
             />
             <CompactSelect
               triggerProps={{
-                icon: <IconEllipsis size="xs" />,
+                icon: <IconEllipsis />,
                 size: 'xs',
                 showChevron: false,
                 'aria-label': t('Options'),

@@ -54,15 +54,13 @@ function MonitorHeaderActions({monitor, orgId, onUpdate}: Props) {
         onConfirm={handleDelete}
         message={t('Are you sure you want to permanently delete this cron monitor?')}
       >
-        <Button size="sm" icon={<IconDelete size="xs" />}>
+        <Button size="sm" icon={<IconDelete />}>
           {t('Delete')}
         </Button>
       </Confirm>
       <Button
         size="sm"
-        icon={
-          monitor.isMuted ? <IconSubscribed size="xs" /> : <IconUnsubscribed size="xs" />
-        }
+        icon={monitor.isMuted ? <IconSubscribed /> : <IconUnsubscribed />}
         onClick={toggleStatus}
       >
         {monitor.isMuted ? t('Unmute') : t('Mute')}
@@ -70,7 +68,7 @@ function MonitorHeaderActions({monitor, orgId, onUpdate}: Props) {
       <Button
         priority="primary"
         size="sm"
-        icon={<IconEdit size="xs" />}
+        icon={<IconEdit />}
         to={{
           pathname: `/organizations/${orgId}/crons/${monitor.slug}/edit/`,
           // TODO(davidenwang): Right now we have to pass the environment

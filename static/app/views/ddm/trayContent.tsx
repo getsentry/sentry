@@ -47,7 +47,7 @@ export function TrayContent() {
         <ToggleButton
           size="xs"
           isMinimized={trayIsMinimized}
-          icon={<IconChevron size="xs" />}
+          icon={<IconChevron />}
           onClick={trayIsMinimized ? resetSize : maximiseSize}
           aria-label={trayIsMinimized ? t('show') : t('hide')}
         />

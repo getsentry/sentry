@@ -64,7 +64,7 @@ function Actions({
                   <ActionButton
                     aria-label={t('Actions')}
                     disabled={deleted}
-                    icon={<IconEllipsis size="sm" />}
+                    icon={<IconEllipsis />}
                   />
                 }
                 anchorRight
@@ -99,7 +99,7 @@ function Actions({
                 <Tooltip disabled={hasRole} title={noPermissionToDownloadDebugFilesInfo}>
                   <Button
                     size="xs"
-                    icon={<IconDownload size="xs" />}
+                    icon={<IconDownload />}
                     href={downloadUrl}
                     disabled={!hasRole}
                   >
@@ -115,7 +115,7 @@ function Actions({
                   >
                     <Button
                       priority="danger"
-                      icon={<IconDelete size="xs" />}
+                      icon={<IconDelete />}
                       size="xs"
                       disabled={!hasAccess}
                       aria-label={t('Delete')}

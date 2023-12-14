@@ -447,7 +447,7 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
                 {t('Tokens')}
                 <Button
                   size="xs"
-                  icon={<IconAdd size="xs" isCircled />}
+                  icon={<IconAdd isCircled />}
                   onClick={evt => this.onAddToken(evt)}
                   data-test-id="token-add"
                 >

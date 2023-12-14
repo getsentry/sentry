@@ -136,7 +136,7 @@ function ProjectTags(props: Props) {
                                 : t('You do not have permission to remove tags.')
                             }
                             aria-label={t('Remove tag')}
-                            icon={<IconDelete size="xs" />}
+                            icon={<IconDelete />}
                             data-test-id="delete"
                           />
                         </Confirm>

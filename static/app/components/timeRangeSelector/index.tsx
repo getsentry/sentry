@@ -439,7 +439,7 @@ export function TimeRangeSelector({
                             <Button
                               size="xs"
                               borderless
-                              icon={<IconArrow size="xs" direction="left" />}
+                              icon={<IconArrow direction="left" />}
                               onClick={() => setShowAbsoluteSelector(false)}
                             >
                               {t('Back')}

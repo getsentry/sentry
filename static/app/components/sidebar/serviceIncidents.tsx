@@ -102,7 +102,7 @@ function ServiceIncidents({
             <SidebarPanelItem title={incident.name} key={incident.id}>
               <LinkButton
                 size="xs"
-                icon={<IconOpen size="xs" />}
+                icon={<IconOpen />}
                 priority="link"
                 href={incident.url}
                 external

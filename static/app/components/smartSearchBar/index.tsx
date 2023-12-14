@@ -2030,7 +2030,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
                   {...props}
                   size="sm"
                   aria-label={t('Show more')}
-                  icon={<VerticalEllipsisIcon size="xs" />}
+                  icon={<VerticalEllipsisIcon />}
                 />
               )}
               triggerLabel={t('Show more')}
