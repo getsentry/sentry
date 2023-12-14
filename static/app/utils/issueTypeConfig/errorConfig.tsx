@@ -31,8 +31,11 @@ const enum ErrorHelpType {
   HANDLE_HARD_NAVIGATE_ERROR = 'handle_hard_navigate_error',
 }
 
-const ConditionErrorInfoMap = {
-  'ChunkLoadError': {projectCheck: false, errorHelpType: ErrorHelpType.CHUNK_LOAD_ERROR},
+const ConditionErrorInfoMap: Record<
+  string,
+  {errorHelpType: ErrorHelpType; projectCheck: boolean}
+> = {
+  ChunkLoadError: {projectCheck: false, errorHelpType: ErrorHelpType.CHUNK_LOAD_ERROR},
   'window is not defined': {
     projectCheck: false,
     errorHelpType: ErrorHelpType.DOCUMENT_OR_WINDOW_OBJECT_ERROR,
@@ -106,11 +109,10 @@ export function getErrorHelpResource({
 }): Pick<IssueTypeConfig, 'resources'> | null {
   for (const [condition, errorInfo] of Object.entries(ConditionErrorInfoMap)) {
     const {errorHelpType, projectCheck} = errorInfo;
-    if (
-      title.includes(condition) &&
-      projectCheck &&
-      (project.platform || '').includes('nextjs')
-    ) {
+    if (title.includes(condition)) {
+      if (projectCheck && !(project.platform || '').includes('nextjs')) {
+        continue;
+      }
       return errorHelpTypeResourceMap[errorHelpType];
     }
   }
