@@ -28,11 +28,11 @@ from sentry.api import event_search
 from sentry.api.event_search import (
     AggregateFilter,
     ParenExpression,
+    QueryOp,
     QueryToken,
     SearchFilter,
     SearchKey,
     SearchValue,
-    cleanup_search_query,
 )
 from sentry.constants import APDEX_THRESHOLD_DEFAULT, DataCategory
 from sentry.discover.arithmetic import is_equation
@@ -319,6 +319,32 @@ class MetricSpec(TypedDict):
     tags: NotRequired[Sequence[TagSpec]]
 
 
+def _check_event_type_transaction(
+    query: Sequence[QueryToken], is_top_level_call: bool = True
+) -> bool:
+    transaction_filter = False
+
+    for token in query:
+        if isinstance(token, SearchFilter):
+            if token.key.name == "event.type" and token.value.value == "transaction":
+                transaction_filter = True
+                break
+        elif isinstance(token, ParenExpression):
+            contains_transaction = _check_event_type_transaction(
+                token.children, is_top_level_call=False
+            )
+            if contains_transaction:
+                transaction_filter = True
+                break
+
+    # Only if we are top level call, and we didn't find any transaction filter, we throw an exception, otherwise it
+    # means we are in a nested expression and not finding a transaction doesn't mean we never found it.
+    if is_top_level_call and not transaction_filter:
+        raise ValueError("event.type:transaction not found in the query")
+
+    return transaction_filter
+
+
 def _transform_search_filter(search_filter: SearchFilter) -> SearchFilter:
     # If we have `message:something` we convert it to `message:*something*` since we want to perform `contains` matching
     # exactly how discover does it.
@@ -358,14 +384,19 @@ def _transform_search_query(query: Sequence[QueryToken]) -> Sequence[QueryToken]
     return transformed_query
 
 
-def _parse_search_query(
-    query: Optional[str], removed_blacklisted: bool = False
+def parse_search_query(
+    query: Optional[str],
+    removed_blacklisted: bool = False,
+    force_transaction_event_type: bool = False,
 ) -> Sequence[QueryToken]:
     """
     Parses a search query with the discover grammar and performs some transformations on the AST in order to account for
     edge cases.
     """
     tokens = cast(Sequence[QueryToken], event_search.parse_search_query(query))
+    if force_transaction_event_type:
+        _check_event_type_transaction(tokens)
+
     # As first step, we transform the search query by applying basic transformations.
     tokens = _transform_search_query(tokens)
 
@@ -374,6 +405,66 @@ def _parse_search_query(
         tokens = cleanup_search_query(_remove_blacklisted_search_filters(tokens))
 
     return tokens
+
+
+def cleanup_search_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
+    """
+    Recreates a valid query from an original query that has had on demand search filters removed.
+
+    When removing filters from a query it is possible to create invalid queries.
+    For example removing the on demand filters from "transaction.duration:>=1s OR browser.version:1 AND environment:dev"
+    would result in "OR AND environment:dev" which is not a valid query this should be cleaned to "environment:dev.
+
+    "release:internal and browser.version:1 or os.name:android" => "release:internal or and os.name:android" which
+    would be cleaned to "release:internal or os.name:android"
+    """
+    tokens = list(tokens)
+
+    # remove empty parens
+    removed_empty_parens: List[QueryToken] = []
+    for token in tokens:
+        if not isinstance(token, ParenExpression):
+            removed_empty_parens.append(token)
+        else:
+            children = cleanup_search_query(token.children)
+            if len(children) > 0:
+                removed_empty_parens.append(ParenExpression(children))
+
+    # remove AND and OR operators at the start of the query
+    while len(removed_empty_parens) > 0 and isinstance(removed_empty_parens[0], str):
+        removed_empty_parens.pop(0)
+
+    # remove AND and OR operators at the end of the query
+    while len(removed_empty_parens) > 0 and isinstance(removed_empty_parens[-1], str):
+        removed_empty_parens.pop()
+
+    # remove AND and OR operators that are next to each other
+    ret_val = []
+    previous_token: Optional[QueryToken] = None
+
+    for token in removed_empty_parens:
+        # this loop takes care of removing consecutive AND/OR operators (keeping only one of them)
+        if isinstance(token, str) and isinstance(previous_token, str):
+            token = cast(QueryOp, token.upper())
+            # this handles two AND/OR operators next to each other, we must drop one of them
+            # if we have an AND do nothing (AND will be merged in the previous token see comment below)
+            # if we have an OR the resulting operator will be an OR
+            # AND OR => OR
+            # OR OR => OR
+            # OR AND => OR
+            # AND AND => AND
+            if token == "OR":
+                previous_token = "OR"
+            continue
+        elif previous_token is not None:
+            ret_val.append(previous_token)
+        previous_token = token
+
+    # take care of the last token (if any)
+    if previous_token is not None:
+        ret_val.append(previous_token)
+
+    return ret_val
 
 
 def _parse_function(aggregate: str) -> Tuple[str, List[str], str]:
@@ -558,7 +649,7 @@ def _get_groupbys_support(groupbys: Sequence[str]) -> SupportedBy:
 
 def _get_query_supported_by(query: Optional[str]) -> SupportedBy:
     try:
-        parsed_query = _parse_search_query(query=query, removed_blacklisted=False)
+        parsed_query = parse_search_query(query=query, removed_blacklisted=False)
 
         standard_metrics = _is_standard_metrics_query(parsed_query)
         on_demand_metrics = _is_on_demand_supported_query(parsed_query)
@@ -678,7 +769,7 @@ def to_standard_metrics_query(query: str) -> str:
         "transaction.duration:>=1s AND browser.version:1" -> ""
     """
     try:
-        tokens = _parse_search_query(query=query, removed_blacklisted=False)
+        tokens = parse_search_query(query=query, removed_blacklisted=False)
     except InvalidSearchQuery:
         logger.exception("Failed to parse search query: %s", query)
         raise
@@ -1244,7 +1335,7 @@ class OnDemandMetricSpec:
     def _parse_query(value: str) -> QueryParsingResult:
         """Parse query string into our internal AST format."""
         try:
-            conditions = _parse_search_query(query=value, removed_blacklisted=True)
+            conditions = parse_search_query(query=value, removed_blacklisted=True)
 
             # In order to avoid having issues with the parsing logic, we want to remove any unnecessary parentheses
             # that are not needed, since if we had the parentheses this might lead to a different conditions tree, which

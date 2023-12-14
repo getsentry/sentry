@@ -436,9 +436,9 @@ class TestCustomRuleSerializerWithProjects(TestCase):
         (
             "hello world event.type:transaction",
             {
-                "op": "eq",
+                "op": "glob",
                 "name": "event.transaction",
-                "value": "hello world",
+                "value": ["*hello world*"],
             },
         ),
         (
@@ -447,7 +447,7 @@ class TestCustomRuleSerializerWithProjects(TestCase):
                 "op": "and",
                 "inner": [
                     {"op": "eq", "name": "event.environment", "value": "prod"},
-                    {"op": "eq", "name": "event.transaction", "value": "hello world"},
+                    {"op": "glob", "name": "event.transaction", "value": ["*hello world*"]},
                 ],
             },
         ),
