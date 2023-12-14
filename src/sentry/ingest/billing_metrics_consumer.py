@@ -20,7 +20,7 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import reverse_resolve_tag_value
 from sentry.snuba.metrics import parse_mri
 from sentry.snuba.metrics.naming_layer.mri import is_custom_metric
-from sentry.utils import json, metrics
+from sentry.utils import json
 from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
@@ -83,9 +83,10 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
     def _count_processed_items(self, generic_metric: GenericMetric) -> Mapping[DataCategory, int]:
         if generic_metric["metric_id"] != self.metric_id:
             return {}
+
         value = generic_metric["value"]
         try:
-            quantity = max(int(value), 0)
+            quantity = max(int(value), 0)  # type:ignore
         except TypeError:
             # Unexpected value type for this metric ID, skip.
             return {}
@@ -146,32 +147,29 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         try:
             org_id = generic_metric["org_id"]
             project_id = generic_metric["project_id"]
+            metric_mri = self._resolve(generic_metric["mapping_meta"], generic_metric["metric_id"])
 
+            parsed_mri = parse_mri(metric_mri)
+            # If the metric is not custom, we don't want to perform any work.
+            if parsed_mri is None or not is_custom_metric(parsed_mri):
+                return
+
+            # If the cache key is there, we don't want to load the project at all.
             cache_key = _get_project_flag_updated_cache_key(org_id, project_id)
-            if cache.get(cache_key) is None:
-                return None
+            if cache.get(cache_key) is not None:
+                return
 
             project = Project.objects.get_from_cache(id=project_id)
-
-            # We try to extract the MRI from the metric_id since our goal is to check whether the MRI belongs to
-            # a metric in the `custom` namespace.
-            metric_mri = self._resolve(
-                generic_metric["mapping_meta"], generic_metric["metric_id"]
-            )
-            parsed_mri = parse_mri(metric_mri)
-            if parsed_mri is None or not is_custom_metric(parsed_mri):
-                return None
-
             if not project.flags.has_custom_metrics:
                 # We assume that the flag update is reflected in the cache, so that upcoming calls will get the up-to-
                 # date project with the `has_custom_metrics` flag set to true.
                 project.update(flags=F("flags").bitor(Project.flags.has_custom_metrics))
 
+            # If we are here, it means that we received a custom metric, and we didn't have it reflected in the cache,
+            # so we update the cache.
             cache.set(cache_key, "1", CACHE_TTL_IN_SECONDS)
         except Project.DoesNotExist:
             pass
-
-        return None
 
     def _resolve(self, mapping_meta: Mapping[str, Any], indexed_value: int) -> Optional[str]:
         for _, inner_meta in mapping_meta.items():

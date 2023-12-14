@@ -1,17 +1,19 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import cast
 from unittest import mock
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
+from django.core.cache import cache
 from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMetric
 
 from sentry.constants import DataCategory
 from sentry.ingest.billing_metrics_consumer import (
     BillingTxCountMetricConsumerStrategy,
+    _get_project_flag_updated_cache_key,
 )
-from django.core.cache import cache
 from sentry.models.project import Project
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.indexer.strings import SHARED_TAG_STRINGS, TRANSACTION_METRICS_NAMES
@@ -43,13 +45,13 @@ def test_outcomes_consumed(track_outcome, factories):
     transaction_duration_id = TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"]
 
     counter_custom_metric_mri = "c:custom/user_click@none"
-    counter_custom_metric_id = indexer.record(
-        UseCaseID.CUSTOM, organization.id, counter_custom_metric_mri
+    counter_custom_metric_id = cast(
+        int, indexer.record(UseCaseID.CUSTOM, organization.id, counter_custom_metric_mri)
     )
 
     distribution_custom_metric_mri = "d:custom/page_load@ms"
-    distribution_custom_metric_id = indexer.record(
-        UseCaseID.CUSTOM, organization.id, distribution_custom_metric_mri
+    distribution_custom_metric_id = cast(
+        int, indexer.record(UseCaseID.CUSTOM, organization.id, distribution_custom_metric_mri)
     )
 
     empty_tags: dict[str, str] = {}
@@ -64,6 +66,8 @@ def test_outcomes_consumed(track_outcome, factories):
             "timestamp": 123,
             "value": 123.4,
             "tags": empty_tags,
+            "use_case_id": "custom",
+            "retention_days": 90,
         },
         {  # Distribution metric with wrong ID will not generate an outcome
             "mapping_meta": {
@@ -76,6 +80,8 @@ def test_outcomes_consumed(track_outcome, factories):
             "timestamp": 123456,
             "value": [1.0, 2.0],
             "tags": empty_tags,
+            "use_case_id": "custom",
+            "retention_days": 90,
         },
         # Usage with `0.0` will not generate an outcome
         # NOTE: Should not be emitted by Relay anyway
@@ -88,6 +94,8 @@ def test_outcomes_consumed(track_outcome, factories):
             "timestamp": 123456,
             "value": 0.0,
             "tags": empty_tags,
+            "use_case_id": "transactions",
+            "retention_days": 90,
         },
         {
             "mapping_meta": {"c": {str(transaction_duration_id): transaction_duration_mri}},
@@ -98,6 +106,8 @@ def test_outcomes_consumed(track_outcome, factories):
             "timestamp": 123456,
             "value": [],
             "tags": empty_tags,
+            "use_case_id": "transactions",
+            "retention_days": 90,
         },
         # Usage buckets with positive counter emit an outcome
         {
@@ -109,6 +119,8 @@ def test_outcomes_consumed(track_outcome, factories):
             "timestamp": 123456,
             "value": 3.0,
             "tags": empty_tags,
+            "use_case_id": "transactions",
+            "retention_days": 90,
         },
         {
             "mapping_meta": {"c": {str(transaction_duration_id): transaction_duration_mri}},
@@ -119,6 +131,8 @@ def test_outcomes_consumed(track_outcome, factories):
             "timestamp": 123456,
             "value": [1.0, 2.0, 3.0],
             "tags": empty_tags,
+            "use_case_id": "transactions",
+            "retention_days": 90,
         },
         {  # Another bucket to introduce some noise
             "mapping_meta": {
@@ -131,6 +145,8 @@ def test_outcomes_consumed(track_outcome, factories):
             "timestamp": 123456,
             "value": 123.4,
             "tags": empty_tags,
+            "use_case_id": "custom",
+            "retention_days": 90,
         },
         # Bucket with profiles
         {
@@ -142,6 +158,8 @@ def test_outcomes_consumed(track_outcome, factories):
             "timestamp": 123456,
             "value": 1.0,
             "tags": profile_tags,
+            "use_case_id": "transactions",
+            "retention_days": 90,
         },
         {
             "mapping_meta": {"c": {str(transaction_duration_id): transaction_duration_mri}},
@@ -152,6 +170,8 @@ def test_outcomes_consumed(track_outcome, factories):
             "timestamp": 123456,
             "value": [4.0],
             "tags": profile_tags,
+            "use_case_id": "transactions",
+            "retention_days": 90,
         },
     ]
 
@@ -246,6 +266,8 @@ def test_outcomes_consumed(track_outcome, factories):
     strategy.join()
     assert next_step.join.call_count == 1
 
-    assert _was_flag_updated(organization.id, project_1.id)
-    assert _was_flag_updated(organization.id, project_2.id)
-    assert not _was_flag_updated(organization.id, missing_project_id)
+    assert cache.get(_get_project_flag_updated_cache_key(organization.id, project_1.id)) is not None
+    assert cache.get(_get_project_flag_updated_cache_key(organization.id, project_2.id)) is not None
+    assert (
+        cache.get(_get_project_flag_updated_cache_key(organization.id, missing_project_id)) is None
+    )
