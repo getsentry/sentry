@@ -91,5 +91,6 @@ def _get_task_kwargs_and_dispatch(message: Message[KafkaPayload]) -> None:
 
 
 class EventPostProcessForwarderStrategyFactory(PostProcessForwarderStrategyFactory):
-    def _dispatch_function(self, message: Message[KafkaPayload]) -> None:
+    @staticmethod
+    def _dispatch_function(message: Message[KafkaPayload]) -> None:
         return _get_task_kwargs_and_dispatch(message)
