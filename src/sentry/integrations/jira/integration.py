@@ -341,10 +341,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             body += message.value
             body += "\n\n"
 
-        body += "|  |  |\n"
-        body += "| ------------- | --------------- |\n"
         for evidence in sorted(others, key=attrgetter("important"), reverse=True):
-            body += f"| **{evidence.name}** | {evidence.value} |\n"
+            body += f"| *{evidence.name}* | {evidence.value} |\n"
 
         return body.rstrip("\n")  # remove the last new line
 
@@ -362,7 +360,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         output = []
         if group.issue_category == GroupCategory.FEEDBACK:
             output = [
-                "Sentry Feedback: [{}|{}]".format(
+                "Sentry Feedback: [{}|{}]\n".format(
                     group.qualified_short_id,
                     group.get_absolute_url(params={"referrer": "jira_integration"}),
                 )
