@@ -1452,28 +1452,80 @@ class MetricsDatasetConfig(DatasetConfig):
                     "least",
                     [
                         Function(
-                            "divide",
+                            "if",
                             [
                                 Function(
-                                    "sumIf",
+                                    "and",
                                     [
-                                        Column("value"),
-                                        Function("equals", [Column("metric_id"), metric_id]),
-                                    ],
-                                ),
-                                Function(
-                                    "countIf",
-                                    [
-                                        Column("value"),
                                         Function(
-                                            "equals",
+                                            "greater",
                                             [
-                                                Column("metric_id"),
-                                                self.resolve_metric("measurements.score.total"),
+                                                Function(
+                                                    "sumIf",
+                                                    [
+                                                        Column("value"),
+                                                        Function(
+                                                            "equals",
+                                                            [Column("metric_id"), metric_id],
+                                                        ),
+                                                    ],
+                                                ),
+                                                0,
+                                            ],
+                                        ),
+                                        Function(
+                                            "greater",
+                                            [
+                                                Function(
+                                                    "countIf",
+                                                    [
+                                                        Column("value"),
+                                                        Function(
+                                                            "equals",
+                                                            [
+                                                                Column("metric_id"),
+                                                                self.resolve_metric(
+                                                                    "measurements.score.total"
+                                                                ),
+                                                            ],
+                                                        ),
+                                                    ],
+                                                ),
+                                                0,
                                             ],
                                         ),
                                     ],
                                 ),
+                                Function(
+                                    "divide",
+                                    [
+                                        Function(
+                                            "sumIf",
+                                            [
+                                                Column("value"),
+                                                Function(
+                                                    "equals", [Column("metric_id"), metric_id]
+                                                ),
+                                            ],
+                                        ),
+                                        Function(
+                                            "countIf",
+                                            [
+                                                Column("value"),
+                                                Function(
+                                                    "equals",
+                                                    [
+                                                        Column("metric_id"),
+                                                        self.resolve_metric(
+                                                            "measurements.score.total"
+                                                        ),
+                                                    ],
+                                                ),
+                                            ],
+                                        ),
+                                    ],
+                                ),
+                                0.0,
                             ],
                         ),
                         1.0,
