@@ -82,6 +82,7 @@ export function decodeColumnOrder(fields: Readonly<Field[]>): TableColumn<string
     if (isEquation(f.field)) {
       column.key = f.field;
       column.name = getEquation(columnName);
+      column.type = 'number';
     } else {
       column.key = columnName;
       column.name = columnName;
