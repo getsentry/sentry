@@ -34,11 +34,21 @@ describe('projectSupportsReplay & projectCanLinkToReplay', () => {
   );
 
   it.each([
-    'dotnet' as PlatformKey,
-    'java' as PlatformKey,
     'node' as PlatformKey,
     'php' as PlatformKey,
+    'bun' as PlatformKey,
+    'elixir' as PlatformKey,
+  ])('should SUPPORT Backend framework %s', platform => {
+    const project = mockProject(platform);
+    expect(projectSupportsReplay(project)).toBeTruthy();
+    expect(projectCanLinkToReplay(project)).toBeTruthy();
+  });
+
+  it.each([
+    'java' as PlatformKey,
     'rust' as PlatformKey,
+    'python' as PlatformKey,
+    'go-http' as PlatformKey,
   ])('should NOT SUPPORT but CAN LINK for Backend framework %s', platform => {
     const project = mockProject(platform);
     expect(projectSupportsReplay(project)).toBeFalsy();
