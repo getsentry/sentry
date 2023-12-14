@@ -1,0 +1,115 @@
+---
+created: '2023-12-13T15:30:38.097957Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "7c8a196d16b94be382add324be2605ee"
+  component:
+    app*
+      threads*
+        stacktrace*
+          frame*
+            function*
+              "unicorn"
+          frame (non app frame)
+            function*
+              "UIApplicationMain"
+          frame (non app frame)
+            function*
+              "-[UIApplication _run]"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_dispatch_main_queue_drain"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_dispatch_client_callout"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_dispatch_block_async_invoke2"
+          frame (non app frame)
+            function*
+              "-[NSBlockOperation main]"
+          frame (non app frame)
+            function*
+              "__NSBLOCKOPERATION_IS_CALLING_OUT_TO_A_BLOCK__"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
+          frame*
+            function*
+              "FudgeLogTaggedError"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "closure"
+          frame*
+            function*
+              "SentrySetupInteractor.setupSentry"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_dispatch_lane_barrier_sync_invoke_and_complete"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_dispatch_client_callout"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "closure"
+--------------------------------------------------------------------------
+default:
+  hash: null
+  component:
+    default (threads of app/system take precedence)
+      message (threads of app/system take precedence)
+        "Foo"
+--------------------------------------------------------------------------
+system:
+  hash: "cd7f51d716fd57adc1a5ce1c112e538f"
+  component:
+    system*
+      threads*
+        stacktrace*
+          frame*
+            function*
+              "unicorn"
+          frame*
+            function*
+              "UIApplicationMain"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "-[UIApplication _run]"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "_dispatch_main_queue_drain"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "_dispatch_client_callout"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "_dispatch_block_async_invoke2"
+          frame (ignored by stack trace rule (category:indirection -group))
+            function*
+              "-[NSBlockOperation main]"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "__NSBLOCKOPERATION_IS_CALLING_OUT_TO_A_BLOCK__"
+          frame* (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function*
+              "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
+          frame*
+            function*
+              "FudgeLogTaggedError"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "closure"
+          frame*
+            function*
+              "SentrySetupInteractor.setupSentry"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "_dispatch_lane_barrier_sync_invoke_and_complete"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "_dispatch_client_callout"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "closure"
