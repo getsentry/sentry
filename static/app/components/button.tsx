@@ -7,6 +7,8 @@ import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {Tooltip, TooltipProps} from 'sentry/components/tooltip';
+import {SVGIconProps} from 'sentry/icons/svgIcon';
+import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
@@ -193,6 +195,17 @@ type LinkButtonProps =
   | HrefLinkButtonPropsWithChildren
   | HrefLinkButtonPropsWithAriaLabel;
 
+/**
+ * Default sizes to use for SVGIcon
+ */
+const ICON_SIZES: Partial<
+  Record<NonNullable<BaseButtonProps['size']>, SVGIconProps['size']>
+> = {
+  xs: 'xs',
+  sm: 'xs',
+  md: 'sm',
+};
+
 function BaseButton({
   size = 'md',
   to,
@@ -297,7 +310,7 @@ function BaseButton({
       <ButtonLabel size={size} borderless={borderless}>
         {icon && (
           <Icon size={size} hasChildren={hasChildren}>
-            {icon}
+            <IconDefaultsProvider size={ICON_SIZES[size]}>{icon}</IconDefaultsProvider>
           </Icon>
         )}
         {children}
