@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, ClassVar, FrozenSet, Mapping, Optional
+from typing import Any, ClassVar, FrozenSet, Mapping, MutableMapping, Optional
 
 from django.db import models
 
@@ -94,7 +94,9 @@ class OrganizationMemberTeam(ReplicatedRegionModel):
                 return team_role
         return minimum_role
 
-    def get_scopes(self, team_roles_cache: Optional[Mapping[int, bool]] = None) -> FrozenSet[str]:
+    def get_scopes(
+        self, team_roles_cache: Optional[MutableMapping[int, bool]] = None
+    ) -> FrozenSet[str]:
         """Get the scopes belonging to this member's team-level role."""
         if team_roles_cache is None:
             team_roles_cache = {}
