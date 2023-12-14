@@ -81,7 +81,9 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         # XXX: Attachment topic has two multiprocessing strategies chained together so we use
         # two pools.
         if self.is_attachment_topic:
-            self._attachments_pool = MultiprocessingPool(num_processes)
+            self._attachments_pool: Optional[MultiprocessingPool] = MultiprocessingPool(
+                num_processes
+            )
         else:
             self._attachments_pool = None
         if num_processes > 1:
