@@ -264,7 +264,7 @@ export function NativeContent({
   }
 
   return (
-    <Wrapper className={className}>
+    <Wrapper className={className} data-test-id="native-stack-trace-content">
       <Frames
         isHoverPreviewed={isHoverPreviewed}
         inlined={inlined}
