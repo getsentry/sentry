@@ -479,6 +479,13 @@ const StackTraceFrame = styled('li')`
       border-bottom: 1px solid ${p => p.theme.border};
     }
   }
+
+  &:last-child {
+    ${RowHeader} {
+      border-bottom-right-radius: 5px;
+      border-bottom-left-radius: 5px;
+    }
+  }
 `;
 
 const SymbolicatorIcon = styled('div')`
