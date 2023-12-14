@@ -1,5 +1,8 @@
+import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
+import Alert from 'sentry/components/alert';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   DocsParams,
@@ -9,7 +12,8 @@ import {
   getReplayConfigureDescription,
   getReplayJsLoaderSdkSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 type Params = DocsParams;
 
@@ -24,18 +28,34 @@ const getInstallConfig = (params: Params) => [
           `<script src="${params.cdn}" crossorigin="anonymous"></script>`,
           {indent_size: 2, wrap_attributes: 'force-expand-multiline'}
         ),
+        additionalInfo: (
+          <StyledAlert type="info" showIcon>
+            {tct(
+              'Make sure that Session Replay is enabled in your [link:project settings].',
+              {
+                link: (
+                  <ExternalLink
+                    href={normalizeUrl(
+                      `/settings/projects/${params.projectSlug}/loader-script/`
+                    )}
+                  />
+                ),
+              }
+            )}
+          </StyledAlert>
+        ),
       },
     ],
   },
 ];
 
-const replayOnboardingJsLoaderReact: OnboardingConfig = {
+const replayOnboardingJsLoaderJavascript: OnboardingConfig = {
   install: (params: Params) => getInstallConfig(params),
   configure: () => [
     {
       type: StepType.CONFIGURE,
       description: getReplayConfigureDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/react/session-replay/',
+        link: 'https://docs.sentry.io/platforms/javascript/session-replay/',
       }),
       configurations: [
         {
@@ -43,10 +63,15 @@ const replayOnboardingJsLoaderReact: OnboardingConfig = {
           code: getReplayJsLoaderSdkSetupSnippet(),
         },
       ],
+      isOptional: true,
     },
   ],
   verify: () => [],
   nextSteps: () => [],
 };
 
-export default replayOnboardingJsLoaderReact;
+const StyledAlert = styled(Alert)`
+  margin: 0;
+`;
+
+export default replayOnboardingJsLoaderJavascript;

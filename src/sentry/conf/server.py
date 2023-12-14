@@ -678,7 +678,7 @@ RPC_TIMEOUT = 5.0
 
 # The protocol, host and port for control silo
 # Usecases include sending requests to the Integration Proxy Endpoint and RPC requests.
-SENTRY_CONTROL_ADDRESS = os.environ.get("SENTRY_CONTROL_ADDRESS", None)
+SENTRY_CONTROL_ADDRESS: str | None = os.environ.get("SENTRY_CONTROL_ADDRESS", None)
 
 # Fallback region name for monolith deployments
 # This region name is also used by the ApiGateway to proxy org-less region
@@ -1768,6 +1768,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:profiling-cpu-chart": False,
     # Enables differential flamegraph in profiling
     "organizations:profiling-differential-flamegraph": False,
+    # Enables separate differential flamegraph page
+    "organizations:profiling-differential-flamegraph-page": False,
     # Enable global suspect functions in profiling
     "organizations:profiling-global-suspect-functions": False,
     # Enable profiling Memory chart

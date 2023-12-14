@@ -5,6 +5,7 @@ import responses
 
 from sentry import options
 from sentry.integrations.pagerduty.integration import PagerDutyIntegrationProvider
+from sentry.integrations.pagerduty.utils import get_services
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.shared_integrations.exceptions import IntegrationError
@@ -117,8 +118,8 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
         oi = OrganizationIntegration.objects.get(
             integration=integration, organization_id=self.organization.id
         )
-
-        assert oi.config["pagerduty_services"][0]["service_name"] == "Super Cool Service"
+        services = get_services(oi)
+        assert services[0]["service_name"] == "Super Cool Service"
 
     @responses.activate
     def test_add_services_flow(self):
@@ -129,7 +130,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
         oi = OrganizationIntegration.objects.get(
             integration_id=integration.id, organization_id=self.organization.id
         )
-        service = OrganizationIntegration.services_in(oi.config)[0]
+        service = get_services(oi)[0]
 
         url = "https://%s.pagerduty.com" % (integration.metadata["domain_name"])
         responses.add(
@@ -143,7 +144,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
             self.assert_add_service_flow(integration)
 
         oi.refresh_from_db()
-        services = OrganizationIntegration.services_in(oi.config)
+        services = get_services(oi)
         assert services[1]["id"]
         del services[1]["id"]  # type: ignore
         assert services == [
@@ -163,7 +164,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
         oi = OrganizationIntegration.objects.get(
             integration_id=integration.id, organization_id=self.organization.id
         )
-        service_id = OrganizationIntegration.services_in(oi.config)[0]["id"]
+        service_id = get_services(oi)[0]["id"]
         config_data = {
             "service_table": [
                 {"service": "Mleep", "integration_key": "xxxxxxxxxxxxxxxx", "id": service_id},
@@ -172,7 +173,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
         }
         integration.get_installation(self.organization.id).update_organization_config(config_data)
         oi.refresh_from_db()
-        services = OrganizationIntegration.services_in(oi.config)
+        services = get_services(oi)
 
         del services[1]["id"]  # type: ignore
 
@@ -198,7 +199,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
         oi = OrganizationIntegration.objects.get(
             integration_id=integration.id, organization_id=self.organization.id
         )
-        services = OrganizationIntegration.services_in(oi.config)
+        services = get_services(oi)
         assert len(services) == 1
         service_id = services[0]["id"]
         config_data = {
@@ -207,7 +208,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
         integration.get_installation(self.organization.id).update_organization_config(config_data)
 
         oi.refresh_from_db()
-        services = OrganizationIntegration.services_in(oi.config)
+        services = get_services(oi)
         assert len(services) == 1
         assert services[0]["id"] != service_id
 
@@ -219,7 +220,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
         oi = OrganizationIntegration.objects.get(
             integration=integration, organization_id=self.organization.id
         )
-        service = OrganizationIntegration.services_in(oi.config)[0]
+        service = get_services(oi)[0]
         service_id = service["id"]
         config_data = {
             "service_table": [{"service": "new_service", "integration_key": "", "id": service_id}]
@@ -239,7 +240,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
         oi = OrganizationIntegration.objects.get(
             integration=integration, organization_id=self.organization.id
         )
-        service = OrganizationIntegration.services_in(oi.config)[0]
+        service = get_services(oi)[0]
         config = integration.get_installation(self.organization.id).get_config_data()
         assert config == {
             "service_table": [

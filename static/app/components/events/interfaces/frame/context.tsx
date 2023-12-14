@@ -138,7 +138,9 @@ function Context({
   const lines = usePrismTokens({
     // Some events have context lines with newline characters at the end,
     // so we need to remove them to be consistent.
-    code: contextLines?.map(([, code]) => code.replaceAll(/\r?\n/g, '')).join('\n') ?? '',
+    code:
+      contextLines?.map(([, code]) => code?.replaceAll(/\r?\n/g, '') ?? '').join('\n') ??
+      '',
     language: fileExtension,
   });
 

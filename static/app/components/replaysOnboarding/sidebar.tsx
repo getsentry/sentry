@@ -19,7 +19,10 @@ import {DocumentationWrapper} from 'sentry/components/sidebar/onboardingStep';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import {CommonSidebarProps, SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {Tooltip} from 'sentry/components/tooltip';
-import {replayPlatforms} from 'sentry/data/platformCategories';
+import {
+  replayJsLoaderInstructionsPlatformList,
+  replayPlatforms,
+} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
@@ -105,6 +108,11 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
     return null;
   }
 
+  const showLoaderInstructions =
+    currentProject &&
+    currentProject.platform &&
+    replayJsLoaderInstructionsPlatformList.includes(currentProject.platform);
+
   return (
     <TaskSidebarPanel
       orientation={orientation}
@@ -146,7 +154,7 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
               position="bottom-end"
             />
           </div>
-          {newOnboarding && (
+          {newOnboarding && showLoaderInstructions && (
             <SegmentedControl
               size="md"
               aria-label={t('Change setup method')}
@@ -252,20 +260,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     );
   }
 
-  const migrated = [
-    'javascript',
-    'javascript-react',
-    'javascript-ember',
-    'javascript-sveltekit',
-    'javascript-svelte',
-    'javascript-astro',
-    'javascript-nextjs',
-    'javascript-remix',
-    'javascript-gatsby',
-    'electron',
-  ];
   const newOnboarding = organization.features.includes('session-replay-new-zero-state');
-  const showNewOnboardingUI = newOnboarding && migrated.includes(currentPlatform.id);
 
   return (
     <Fragment>
@@ -275,7 +270,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           {platform: currentPlatform?.name || currentProject.slug}
         )}
       </IntroText>
-      {showNewOnboardingUI ? (
+      {newOnboarding ? (
         <SdkDocumentation
           platform={currentPlatform}
           organization={organization}

@@ -45,7 +45,7 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
             rules = [f.rule for f in futures]
             message = DiscordIssuesMessageBuilder(event.group, event=event, tags=tags, rules=rules)
 
-            client = DiscordClient(integration_id=integration.id)
+            client = DiscordClient()
             try:
                 client.send_message(channel_id, message, notification_uuid=notification_uuid)
             except ApiError as e:

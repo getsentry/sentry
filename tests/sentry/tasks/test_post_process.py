@@ -1395,7 +1395,7 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         )
         self.cache_key = write_event_to_cache(self.created_event)
         self.repo = self.create_repo(
-            name="example", integration_id=self.integration.id, provider="github"
+            name="org/example", integration_id=self.integration.id, provider="integrations:github"
         )
         self.code_mapping = self.create_code_mapping(
             repo=self.repo, project=self.project, stack_root="sentry/", source_root="sentry/"
@@ -1458,6 +1458,7 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
                 Integration.objects.all().delete()
             integration = Integration.objects.create(provider="bitbucket")
             integration.add_organization(self.organization)
+
         with self.tasks():
             self.call_post_process_group(
                 is_new=True,
@@ -1466,6 +1467,42 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
                 event=self.created_event,
             )
         assert not cache.has_key(f"process-commit-context-{self.created_event.group_id}")
+
+    @with_feature("organizations:commit-context")
+    @patch(
+        "sentry.integrations.github_enterprise.GitHubEnterpriseIntegration.get_commit_context",
+        return_value=github_blame_return_value,
+    )
+    def test_github_enterprise(self, mock_get_commit_context):
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            with unguarded_write(using=router.db_for_write(Integration)):
+                Integration.objects.all().delete()
+            integration = Integration.objects.create(
+                external_id="35.232.149.196:12345",
+                provider="github_enterprise",
+                metadata={
+                    "domain_name": "35.232.149.196/baxterthehacker",
+                    "installation_id": "12345",
+                    "installation": {"id": "2", "private_key": "private_key", "verify_ssl": True},
+                },
+            )
+            organization_integration = integration.add_organization(self.organization)
+        self.repo.update(integration_id=integration.id, provider="integrations:github_enterprise")
+        self.code_mapping.update(organization_integration_id=organization_integration.id)
+
+        with self.tasks():
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=self.created_event,
+            )
+        assert GroupOwner.objects.get(
+            group=self.created_event.group,
+            project=self.created_event.project,
+            organization=self.created_event.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+        )
 
     @with_feature("organizations:commit-context")
     @with_feature("organizations:suspect-commits-all-frames")
