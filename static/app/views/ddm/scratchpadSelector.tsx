@@ -296,11 +296,9 @@ function SaveAsDropdown({
 
   return (
     <div>
-      <GuideAnchor target="create-scratchpad" position="bottom">
-        <Button icon={isFork ? null : <IconStar isSolid={isFork} />} {...triggerProps}>
-          {isFork ? `${t('Duplicate as')}\u2026` : `${t('Save as')}\u2026`}
-        </Button>
-      </GuideAnchor>
+      <Button icon={isFork ? null : <IconStar isSolid={isFork} />} {...triggerProps}>
+        {isFork ? `${t('Duplicate as')}\u2026` : `${t('Save as')}\u2026`}
+      </Button>
       <AnimatePresence>
         {isOpen && (
           <FocusScope contain restoreFocus autoFocus>
@@ -314,15 +312,17 @@ function SaveAsDropdown({
                   size="sm"
                   onChange={({target}) => setName(target.value)}
                 />
-                <SaveAsButton
-                  priority="primary"
-                  disabled={!name}
-                  onClick={() => {
-                    save();
-                  }}
-                >
-                  {mode === 'fork' ? t('Fork') : t('Save')}
-                </SaveAsButton>
+                <GuideAnchor target="create_scratchpad" position="bottom">
+                  <SaveAsButton
+                    priority="primary"
+                    disabled={!name}
+                    onClick={() => {
+                      save();
+                    }}
+                  >
+                    {mode === 'fork' ? t('Fork') : t('Save')}
+                  </SaveAsButton>
+                </GuideAnchor>
               </StyledOverlay>
             </PositionWrapper>
           </FocusScope>
