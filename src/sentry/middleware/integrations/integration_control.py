@@ -7,6 +7,7 @@ from django.http import HttpRequest
 from django.http.response import HttpResponseBase
 
 from sentry.silo import SiloMode
+from sentry.silo.util import PROXY_FROM_SILO
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,13 @@ class IntegrationControlMiddleware:
         """
         Determines whether this middleware will operate or just pass the request along.
         """
+        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+            origin_silo_mode = request.headers.get(PROXY_FROM_SILO)
+            if origin_silo_mode is not None and origin_silo_mode.upper() == "CONTROL":
+                # The request was proxied from the control silo and to the region silo.
+                # The IntegrationControlMiddleware should not operate in the region silo mode, so we passthrough
+                # the request to the next middleware.
+                return False
         return SiloMode.get_current_mode() in [SiloMode.CONTROL, SiloMode.MONOLITH]
 
     @classmethod
