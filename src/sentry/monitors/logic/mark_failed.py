@@ -118,13 +118,33 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
                 MonitorCheckIn.objects.filter(
                     monitor_environment=monitor_env, date_added__lte=failed_checkin.date_added
                 )
-                .exclude(status=CheckInStatus.IN_PROGRESS)
                 .order_by("-date_added")
                 .values("id", "date_added", "status")[:failure_issue_threshold]
             )
         )
-        # check for successive failed previous check-ins
-        if not all([checkin["status"] != CheckInStatus.OK for checkin in previous_checkins]):
+        future_checkins = list(
+            MonitorCheckIn.objects.filter(
+                monitor_environment=monitor_env, date_added__gt=failed_checkin.date_added
+            )
+            .order_by("date_added")
+            .values("id", "date_added", "status")[: failure_issue_threshold - 1]
+        )
+        evaluated_checkins = previous_checkins + future_checkins
+        # check for successive failed check-ins
+        consecutive_failed_checkins, failure_index = 0, 0
+        for index, checkin in enumerate(evaluated_checkins):
+            if checkin["status"] not in [CheckInStatus.OK, CheckInStatus.IN_PROGRESS]:
+                consecutive_failed_checkins += 1
+                # TODO(rjo100): this might ignore future failed check-ins
+                # only applicable for one-off timeouts
+                if consecutive_failed_checkins == failure_issue_threshold:
+                    failure_index = index
+                    break
+            else:
+                consecutive_failed_checkins = 0
+
+        # if threshold not met, ignore
+        if consecutive_failed_checkins < failure_issue_threshold:
             return False
 
         # change monitor status + update fingerprint timestamp
@@ -132,9 +152,12 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
         monitor_env.last_state_change = monitor_env.last_checkin
         monitor_env.save(update_fields=("status", "last_state_change"))
 
+        failure_index = failure_index - failure_issue_threshold + 1
+        num_occurrences = failure_issue_threshold
+
         # Do not create incident if monitor is muted
         if not monitor_muted:
-            starting_checkin = previous_checkins[0]
+            starting_checkin = evaluated_checkins[failure_index]
 
             # for new incidents, generate a new hash from a uuid to use
             fingerprint = hash_from_values([uuid.uuid4()])
@@ -151,13 +174,16 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
         MonitorStatus.MISSED_CHECKIN,
         MonitorStatus.TIMEOUT,
     ]:
-        # if monitor environment has a failed status, get the most recent
+        # if monitor environment has a failed status, use the failed
         # check-in and send occurrence
-        previous_checkins = [
-            MonitorCheckIn.objects.filter(monitor_environment=monitor_env)
-            .order_by("-date_added")
-            .values("id", "date_added", "status")
-            .first()
+        failure_index = 0
+        num_occurrences = 1
+        evaluated_checkins = [
+            {
+                "id": failed_checkin.id,
+                "date_added": failed_checkin.date_added,
+                "status": failed_checkin.status,
+            }
         ]
 
         # get the existing grouphash from the monitor environment
@@ -170,8 +196,9 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
     if monitor_muted:
         return True
 
-    for previous_checkin in previous_checkins:
-        checkin_from_db = MonitorCheckIn.objects.get(id=previous_checkin["id"])
+    # Create issue from failed check-ins
+    for checkin_index in range(failure_index, failure_index + num_occurrences):
+        checkin_from_db = MonitorCheckIn.objects.get(id=evaluated_checkins[checkin_index]["id"])
         create_issue_platform_occurrence(checkin_from_db, fingerprint)
 
     monitor_environment_failed.send(monitor_environment=monitor_env, sender=type(monitor_env))
