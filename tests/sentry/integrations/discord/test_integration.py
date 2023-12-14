@@ -40,7 +40,6 @@ class DiscordIntegrationTest(IntegrationTestCase):
         useSetup=None,
         command_response_empty=True,
     ):
-        state = json.dumps(useSetup if useSetup else {"useSetup": 1})
         responses.reset()
 
         resp = self.client.get(self.init_path)
@@ -99,7 +98,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
         resp = self.client.get(
             "{}?{}".format(
                 self.setup_path,
-                urlencode({"guild_id": guild_id, "code": auth_code, "state": state}),
+                urlencode({"guild_id": guild_id, "code": auth_code}),
             )
         )
 

@@ -22,7 +22,6 @@ from sentry.models.integrations.integration import Integration
 from sentry.pipeline.views.base import PipelineView
 from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
-from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
 from .utils import logger
@@ -158,23 +157,22 @@ class DiscordIntegrationProvider(IntegrationProvider):
         super().__init__()
 
     def get_pipeline_views(self) -> Sequence[PipelineView]:
-        return [DiscordInstallPipeline(self._get_bot_install_url())]
+        return [DiscordInstallPipeline(self.get_params_for_oauth())]
 
     def build_integration(self, state: Mapping[str, object]) -> Mapping[str, object]:
         guild_id = str(state.get("guild_id"))
-        use_setup = state.get("use_setup")
         try:
             guild_name = self.client.get_guild_name(guild_id=guild_id)
         except (ApiError, AttributeError):
             guild_name = guild_id
 
-        url = self.setup_url if use_setup == "1" else self.configure_url
+        use_configure = state.get("discord", {}).get("use_configure") == "1"
+        url = self.configure_url if use_configure else self.setup_url
         discord_user_id = self._get_discord_user_id(str(state.get("code")), url)
 
         return {
             "name": guild_name,
             "external_id": guild_id,
-            "use_setup": use_setup,
             "user_identity": {
                 "type": "discord",
                 "external_id": discord_user_id,
@@ -248,7 +246,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
         except ApiError as e:
             logger.error("discord.install.failed_to_complete_oauth2_flow", extra={"code": e.code})
             raise IntegrationError("Failed to complete Discord OAuth2 flow.")
-        except KeyError:
+        except KeyError as e:
             logger.error("discord.install.failed_to_extract_oauth2_access_token")
             raise IntegrationError("Failed to complete Discord OAuth2 flow.")
 
@@ -264,21 +262,15 @@ class DiscordIntegrationProvider(IntegrationProvider):
         )
         raise IntegrationError("Could not retrieve Discord user information.")
 
-    def _get_bot_install_url(
+    def get_params_for_oauth(
         self,
     ):
-        state = json.dumps({"useSetup": 1})
-        params = urlencode(
-            {
-                "client_id": self.application_id,
-                "permissions": self.bot_permissions,
-                "redirect_uri": self.setup_url,
-                "state": state,
-                "scope": " ".join(self.oauth_scopes),
-                "response_type": "code",
-            }
-        )  # typing
-        return f"https://discord.com/api/oauth2/authorize?{params}"
+        return {
+            "client_id": self.application_id,
+            "permissions": self.bot_permissions,
+            "scope": " ".join(self.oauth_scopes),
+            "response_type": "code",
+        }
 
     def _credentials_exist(self) -> bool:
         has_credentials = all(
@@ -298,27 +290,27 @@ class DiscordIntegrationProvider(IntegrationProvider):
 
 
 class DiscordInstallPipeline(PipelineView):
-    def __init__(self, install_url: str):
-        self.install_url = install_url
+    def __init__(self, params):
+        self.params = params
         super().__init__()
 
     def dispatch(self, request, pipeline):
         if "guild_id" not in request.GET or "code" not in request.GET:
-            return self.redirect(self.install_url)
+            state = pipeline.fetch_state(key="discord") or {}
+            redirect_uri = (
+                absolute_uri("extensions/discord/configure/")
+                if state.get("use_configure") == "1"
+                else absolute_uri("extensions/discord/setup/")
+            )
+            params = urlencode(
+                {
+                    "redirect_uri": redirect_uri,
+                    **self.params,
+                }
+            )
+            redirect_uri = f"https://discord.com/api/oauth2/authorize?{params}"
+            return self.redirect(redirect_uri)
 
         pipeline.bind_state("guild_id", request.GET["guild_id"])
         pipeline.bind_state("code", request.GET["code"])
-        has_state = "state" in request.GET
-        if has_state:
-            try:
-                raw_state = json.loads(request.GET["state"])
-                pipeline.bind_state("use_setup", raw_state.get("useSetup"))
-            except Exception as error:
-                logger.info(
-                    "identity.discord.request-token",
-                    extra={
-                        "guild_id": request.GET["guild_id"],
-                        "error": error,
-                    },
-                )
         return pipeline.next_step()
