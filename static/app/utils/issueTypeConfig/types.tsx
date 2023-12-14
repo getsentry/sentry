@@ -59,7 +59,7 @@ export type IssueTypeConfig = {
    * about the given issue type
    */
   resources: {
-    description: string;
+    description: string | JSX.Element;
     /**
      * Resources to be shown for all platforms
      */
