@@ -165,9 +165,10 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             data=self.event_data,
             project_id=self.project.id,
         )
-        original_message = self.get_original_message_block_kit(event.group.id)
-        status_action = self.get_ignore_status_action("Ignore", "ignored:forever")
         assert event.group is not None
+        group = event.group
+        original_message = self.get_original_message_block_kit(group.id)
+        status_action = self.get_ignore_status_action("Ignore", "ignored:forever")
 
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook_block_kit(
@@ -187,8 +188,8 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             data=self.event_data,
             project_id=self.project.id,
         )
-        status_action = {"name": "status", "value": "ignored:until_escalating", "type": "button"}
         assert event.group is not None
+        status_action = {"name": "status", "value": "ignored:until_escalating", "type": "button"}
         resp = self.post_webhook(
             action_data=[status_action],
             original_message=self.original_message,
@@ -223,9 +224,9 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             data=self.event_data,
             project_id=self.project.id,
         )
+        assert event.group is not None
         status_action = self.get_ignore_status_action("Archive", "ignored:until_escalating")
         original_message = self.get_original_message_block_kit(event.group.id)
-        assert event.group is not None
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook_block_kit(
                 action_data=[status_action],
