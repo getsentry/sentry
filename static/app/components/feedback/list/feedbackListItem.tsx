@@ -111,6 +111,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
                   project={feedbackItem.project}
                   size={12}
                   title={feedbackItem.project.slug}
+                  style={{boxShadow: 'none'}}
                 />
                 <TextOverflow>{feedbackItem.shortId}</TextOverflow>
               </Row>
