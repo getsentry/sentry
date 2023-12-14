@@ -80,7 +80,7 @@ class BaseEventTest(APITestCase):
         view=None,
         private_metadata=None,
     ):
-
+        """Respond as if we were Slack"""
         if slack_user is None:
             slack_user = {
                 "id": self.external_id,

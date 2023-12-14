@@ -147,6 +147,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert resp.data["attachments"][0]["text"] == expect_status
 
         with self.feature("organizations:slack-block-kit"):
+            # test backwards compatibility
             resp = self.post_webhook(
                 action_data=[status_action],
                 original_message=self.original_message,
@@ -206,6 +207,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert resp.data["attachments"][0]["text"] == expect_status
 
         with self.feature("organizations:slack-block-kit"):
+            # test backwards compatibility
             resp = self.post_webhook(
                 action_data=[status_action],
                 original_message=self.original_message,
@@ -264,6 +266,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert resp.data["text"].endswith(expect_status), resp.data["text"]
 
         with self.feature("organizations:slack-block-kit"):
+            # test backwards compatibility
             resp = self.post_webhook(action_data=[status_action])
             self.group = Group.objects.get(id=self.group.id)
 
@@ -342,6 +345,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert resp.data["text"].endswith(expect_status), resp.data["text"]
 
         with self.feature("organizations:slack-block-kit"):
+            # test backwards compatibility
             resp = self.post_webhook(action_data=[status_action])
 
             assert resp.status_code == 200, resp.content
@@ -415,6 +419,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert not GroupAssignee.objects.filter(group=self.group).exists()
 
         with self.feature("organizations:slack-block-kit"):
+            # test backwards compatibility
             resp = self.post_webhook(action_data=[status_action])
 
             assert resp.status_code == 200, resp.content
@@ -467,6 +472,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert resp.data["text"].endswith(expect_status), resp.data["text"]
 
         with self.feature("organizations:slack-block-kit"):
+            # test backwards compatibility
             resp = self.post_webhook(action_data=[status_action])
             assert resp.status_code == 200, resp.content
             assert GroupAssignee.objects.filter(group=self.group, user_id=user2.id).exists()
