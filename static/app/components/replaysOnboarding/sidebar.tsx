@@ -20,6 +20,7 @@ import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import {CommonSidebarProps, SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {Tooltip} from 'sentry/components/tooltip';
 import {
+  backend,
   replayJsLoaderInstructionsPlatformList,
   replayPlatforms,
 } from 'sentry/data/platformCategories';
@@ -98,20 +99,25 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
     ];
   }, [supportedProjects, unsupportedProjects]);
 
+  const showLoaderInstructions =
+    currentProject &&
+    currentProject.platform &&
+    replayJsLoaderInstructionsPlatformList.includes(currentProject.platform);
+
+  const defaultTab =
+    currentProject && currentProject.platform && backend.includes(currentProject.platform)
+      ? 'jsLoader'
+      : 'npm';
+
   const {getParamValue: setupMode, setParamValue: setSetupMode} = useUrlParams(
     'mode',
-    'npm' // this default  needs to be changed later. for backend platforms, should default to jsLoader
+    defaultTab
   );
 
   const selectedProject = currentProject ?? projects[0] ?? allProjects[0];
   if (!isActive || !hasProjectAccess || !selectedProject) {
     return null;
   }
-
-  const showLoaderInstructions =
-    currentProject &&
-    currentProject.platform &&
-    replayJsLoaderInstructionsPlatformList.includes(currentProject.platform);
 
   return (
     <TaskSidebarPanel
@@ -186,6 +192,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   const organization = useOrganization();
   const previousProject = usePrevious(currentProject);
   const [received, setReceived] = useState<boolean>(false);
+
   const {getParamValue: setupMode} = useUrlParams('mode');
 
   useEffect(() => {
@@ -238,7 +245,9 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     );
   }
 
-  if (!currentPlatform || !hasOnboardingContents) {
+  const newOnboarding = organization.features.includes('session-replay-new-zero-state');
+
+  if (!currentPlatform || (!hasOnboardingContents && !newOnboarding)) {
     return (
       <Fragment>
         <div>
@@ -259,8 +268,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       </Fragment>
     );
   }
-
-  const newOnboarding = organization.features.includes('session-replay-new-zero-state');
 
   return (
     <Fragment>

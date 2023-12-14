@@ -293,7 +293,36 @@ export const releaseHealth: PlatformKey[] = [
   'native-qt',
 ];
 
+// note: not currently comprehensive. only included ones that are also in the 'backend' platforms listed above
+// TODO: add all the platforms
+const replayBackendPlatforms: readonly PlatformKey[] = [
+  'bun',
+  'dotnet-aspnetcore',
+  'dotnet-aspnet',
+  'elixir',
+  'java-spring',
+  'java-spring-boot',
+  'node',
+  'node-express',
+  'php',
+  'php-laravel',
+  'php-symfony',
+  'python-aiohttp',
+  'python-bottle',
+  'python-django',
+  'python-falcon',
+  'python-fastapi',
+  'python-flask',
+  'python-pyramid',
+  'python-quart',
+  'python-sanic',
+  'python-starlette',
+  'python-tornado',
+  'ruby-rails',
+];
+
 export const replayPlatforms: readonly PlatformKey[] = [
+  // Frontend
   'capacitor',
   'electron',
   'javascript-angular',
@@ -311,6 +340,7 @@ export const replayPlatforms: readonly PlatformKey[] = [
   'javascript-sveltekit',
   'javascript-vue',
   'javascript',
+  ...replayBackendPlatforms,
 ];
 
 /**
@@ -320,6 +350,7 @@ export const replayPlatforms: readonly PlatformKey[] = [
  * See: https://github.com/getsentry/sentry-docs/tree/master/src/wizard/javascript/replay-onboarding
  */
 export const replayOnboardingPlatforms: readonly PlatformKey[] = [
+  // Frontend
   'capacitor',
   'electron',
   'javascript-angular',
@@ -337,9 +368,11 @@ export const replayOnboardingPlatforms: readonly PlatformKey[] = [
   'javascript-sveltekit',
   'javascript-vue',
   'javascript',
+  ...replayBackendPlatforms,
 ];
 
 // These are the supported platforms that can also be set up using the loader
 export const replayJsLoaderInstructionsPlatformList: readonly PlatformKey[] = [
   'javascript',
+  ...replayBackendPlatforms,
 ];
