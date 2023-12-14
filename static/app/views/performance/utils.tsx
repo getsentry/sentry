@@ -104,7 +104,7 @@ export enum ProjectPerformanceType {
 // backend, the default view should be "All Transactions".
 const FRONTEND_PLATFORMS: string[] = frontend.filter(
   platform =>
-    // Next, Remix and Sveltekit habe both, frontend and backend transactions.
+    // Next, Remix and Sveltekit have both, frontend and backend transactions.
     !['javascript-nextjs', 'javascript-remix', 'javascript-sveltekit'].includes(platform)
 );
 const BACKEND_PLATFORMS: string[] = backend.filter(platform => platform !== 'native');
