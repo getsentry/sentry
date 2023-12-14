@@ -10,7 +10,7 @@ from sentry.api.endpoints.custom_rules import (
     CustomRulesInputSerializer,
     UnsupportedSearchQuery,
     UnsupportedSearchQueryReason,
-    get_condition,
+    get_rule_condition,
 )
 from sentry.models.dynamicsampling import CUSTOM_RULE_DATE_FORMAT, CustomDynamicSamplingRule
 from sentry.testutils.cases import APITestCase, TestCase
@@ -457,7 +457,7 @@ def test_get_condition(query, condition):
     """
     Test that the get_condition function works as expected
     """
-    actual_condition = get_condition(query)
+    actual_condition = get_rule_condition(query)
     assert actual_condition == condition
 
 
@@ -473,7 +473,7 @@ def test_get_condition(query, condition):
 )
 def test_get_condition_not_supported(query):
     with pytest.raises(UnsupportedSearchQuery) as excinfo:
-        get_condition(query)
+        get_rule_condition(query)
 
     assert excinfo.value.error_code == UnsupportedSearchQueryReason.NOT_TRANSACTION_QUERY.value
 
@@ -487,6 +487,6 @@ def test_get_condition_non_transaction_rule(query):
     Test that the get_condition function raises UnsupportedSearchQuery when event.type is not transaction
     """
     with pytest.raises(UnsupportedSearchQuery) as excinfo:
-        get_condition(query)
+        get_rule_condition(query)
 
     assert excinfo.value.error_code == UnsupportedSearchQueryReason.NOT_TRANSACTION_QUERY.value

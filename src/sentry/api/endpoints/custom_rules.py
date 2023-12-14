@@ -101,6 +101,7 @@ class CustomRulesInputSerializer(serializers.Serializer):
             if period > MAX_RULE_PERIOD:
                 # limit the expiry period
                 data["period"] = MAX_RULE_PERIOD_STRING
+
         return data
 
 
@@ -146,7 +147,7 @@ class CustomRulesEndpoint(OrganizationEndpoint):
         projects = serializer.validated_data.get("projects")
 
         try:
-            condition = get_condition(query)
+            condition = get_rule_condition(query)
 
             # for now delta it is fixed at 2 days (maybe in the future will base it on the query period)
             delta = timedelta(days=2)
@@ -219,7 +220,7 @@ class CustomRulesEndpoint(OrganizationEndpoint):
             org_rule = True
 
         try:
-            condition = get_condition(query)
+            condition = get_rule_condition(query)
         except UnsupportedSearchQuery as e:
             return Response({"query": [e.error_code]}, status=400)
         except InvalidSearchQuery as e:
@@ -241,7 +242,7 @@ class CustomRulesEndpoint(OrganizationEndpoint):
             return _rule_to_response(rule)
 
         if not rule.is_org_level and org_rule:
-            # we need an org rule and we have a simple rule return not found
+            # we need an org rule, and we have a simple rule return not found
             return Response(status=204)
 
         # project rule request and project rule found # see if we have all projects
@@ -266,6 +267,7 @@ def _rule_to_response(rule: CustomDynamicSamplingRule) -> Response:
         "projects": [project.id for project in rule.projects.all()],
         "orgId": rule.organization.id,
     }
+
     return Response(response_data, status=200)
 
 
@@ -316,23 +318,27 @@ def _message_to_transaction_condition(tokens: Sequence[QueryToken]) -> List[Quer
 
 def _remove_unnecessary_search_filters(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
     """
-    Removes tokens that contain `event.type:x` filters.
+    Removes unnecessary tokens that contain `event.type:x` filters.
     """
-    ret_val: List[QueryToken] = []
-
+    new_tokens: List[QueryToken] = []
     for token in tokens:
         if isinstance(token, SearchFilter):
             if token.key.name not in ["event.type"]:
-                ret_val.append(token)
+                new_tokens.append(token)
         elif isinstance(token, ParenExpression):
-            ret_val.append(ParenExpression(_remove_unnecessary_search_filters(token.children)))
+            new_tokens.append(ParenExpression(_remove_unnecessary_search_filters(token.children)))
         else:
-            ret_val.append(token)
+            new_tokens.append(token)
 
-    return ret_val
+    return new_tokens
 
 
-def get_condition(query: Optional[str]) -> RuleCondition:
+def get_rule_condition(query: Optional[str]) -> RuleCondition:
+    """
+    Gets the rule condition given a query.
+
+    The rule returned, is in the format which is understood by Relay.
+    """
     try:
         if not query:
             raise UnsupportedSearchQuery(UnsupportedSearchQueryReason.NOT_TRANSACTION_QUERY)
