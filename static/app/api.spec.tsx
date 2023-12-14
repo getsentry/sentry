@@ -136,7 +136,11 @@ describe('resolveHostname', function () {
   });
 
   it('does not override region in _admin', function () {
-    window.location = new URL('https://sentry.io/_admin/');
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      enumerable: true,
+      value: new URL('https://sentry.io/_admin/'),
+    });
 
     // Adds domain to control paths
     let result = resolveHostname(controlPath);
