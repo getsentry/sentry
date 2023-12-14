@@ -13,7 +13,7 @@ from sentry.receivers.outbox.control import (
     process_async_webhooks,
     process_integration_updates,
 )
-from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test

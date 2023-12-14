@@ -30,6 +30,7 @@ from sentry.integrations.jira.actions.create_ticket import JiraCreateTicketActio
 from sentry.integrations.jira_server.actions.create_ticket import JiraServerCreateTicketAction
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators.project_rules.updater import Updater
+from sentry.models.apiapplication import ApiApplication
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_component import SentryAppComponent
 from sentry.models.integrations.sentry_app_installation import (
@@ -140,13 +141,23 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 # Because all of the prepare_* functions currently operate on ORM
                 # records we need to convert our RpcSentryApp and dict data into detached
                 # ORM models and stitch together relations used in preparing UI components.
-                installation = SentryAppInstallation(**action.get("_sentry_app_installation", {}))
+                installation = SentryAppInstallation(
+                    **action.get("_sentry_app_installation", {}),
+                )
+                # The api_token_id field is nulled out to prevent relation traversal as these
+                # ORM objects are turned back into RPC objects.
+                installation.api_token_id = None
+
                 rpc_app = action.get("_sentry_app")
                 installation.sentry_app = SentryApp(
                     id=rpc_app.id,
                     scope_list=rpc_app.scope_list,
                     application_id=rpc_app.application_id,
-                    application=None,
+                    application=ApiApplication(
+                        id=rpc_app.application.id,
+                        client_id=rpc_app.application.client_id,
+                        client_secret=rpc_app.application.client_secret,
+                    ),
                     proxy_user_id=rpc_app.proxy_user_id,
                     owner_id=rpc_app.owner_id,
                     name=rpc_app.name,

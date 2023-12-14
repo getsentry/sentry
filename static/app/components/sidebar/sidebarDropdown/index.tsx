@@ -256,6 +256,10 @@ const StyledAvatar = styled(Avatar)<{collapsed: boolean}>`
   margin-right: ${p => (p.collapsed ? '0' : space(1.5))};
   box-shadow: 0 2px 0 rgba(0, 0, 0, 0.08);
   border-radius: 6px; /* Fixes background bleeding on corners */
+
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    margin-right: 0;
+  }
 `;
 
 const OrgAndUserMenu = styled('div')`

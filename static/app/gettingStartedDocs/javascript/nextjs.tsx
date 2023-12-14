@@ -10,6 +10,10 @@ import {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getReplayConfigureDescription,
+  getReplaySDKSetupSnippet,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -17,24 +21,26 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 
 type Params = DocsParams;
 
+const getInstallConfig = () => [
+  {
+    description: tct(
+      'Configure your app automatically with the [wizardLink:Sentry wizard].',
+      {
+        wizardLink: (
+          <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/#install" />
+        ),
+      }
+    ),
+    language: 'bash',
+    code: `npx @sentry/wizard@latest -i nextjs`,
+  },
+];
+
 const onboarding: OnboardingConfig = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      configurations: [
-        {
-          description: tct(
-            'Configure your app automatically with the [wizardLink:Sentry wizard].',
-            {
-              wizardLink: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/#install" />
-              ),
-            }
-          ),
-          language: 'bash',
-          code: `npx @sentry/wizard@latest -i nextjs`,
-        },
-      ],
+      configurations: getInstallConfig(),
       additionalInfo: (
         <Fragment>
           {t(
@@ -116,8 +122,42 @@ const onboarding: OnboardingConfig = {
   verify: () => [],
 };
 
+const replayOnboarding: OnboardingConfig = {
+  install: () => [{type: StepType.INSTALL, configurations: getInstallConfig()}],
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: getReplayConfigureDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/session-replay/',
+      }),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getReplaySDKSetupSnippet({
+                importStatement: `import * as Sentry from "@sentry/nextjs";`,
+                dsn: params.dsn,
+              }),
+            },
+          ],
+        },
+      ],
+      additionalInfo: tct(
+        'Alert: The Replay integration must be added to your [sentryClient:sentry.client.config.js] file. Adding it into [sentryServer:sentry.server.config.js] or [sentryEdge:sentry.edge.config.js] may break your build.',
+        {sentryClient: <code />, sentryServer: <code />, sentryEdge: <code />}
+      ),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  replayOnboardingNpm: replayOnboarding,
 };
 
 export default docs;

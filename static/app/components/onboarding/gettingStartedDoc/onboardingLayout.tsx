@@ -38,6 +38,7 @@ export type OnboardingLayoutProps = {
   projectId: Project['id'];
   projectSlug: Project['slug'];
   activeProductSelection?: ProductSolution[];
+  cdn?: string;
   configType?: ConfigType;
   newOrg?: boolean;
 };
@@ -45,6 +46,7 @@ export type OnboardingLayoutProps = {
 const EMPTY_ARRAY: never[] = [];
 
 export function OnboardingLayout({
+  cdn,
   docsConfig,
   dsn,
   platformKey,
@@ -65,6 +67,7 @@ export function OnboardingLayout({
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
 
     const docParams: DocsParams<any> = {
+      cdn,
       dsn,
       organization,
       platformKey,
@@ -93,6 +96,7 @@ export function OnboardingLayout({
       nextSteps: doc.nextSteps?.(docParams) || [],
     };
   }, [
+    cdn,
     activeProductSelection,
     docsConfig,
     dsn,

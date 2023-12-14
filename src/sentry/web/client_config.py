@@ -172,6 +172,8 @@ class _ClientConfig:
             yield "organizations:create"
         if auth.has_user_registration():
             yield "auth:register"
+        if features.has("relocation:enabled", actor=self.user):
+            yield "relocation:enabled"
         if self.customer_domain or (
             self.last_org and features.has("organizations:customer-domains", self.last_org)
         ):

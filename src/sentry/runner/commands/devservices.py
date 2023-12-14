@@ -12,10 +12,18 @@ import time
 import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import TYPE_CHECKING, Any, Callable, Generator, Literal, NamedTuple, overload
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    ContextManager,
+    Generator,
+    Literal,
+    NamedTuple,
+    overload,
+)
 
 import click
-import requests
 
 if TYPE_CHECKING:
     import docker
@@ -41,10 +49,13 @@ else:
 def get_docker_client() -> Generator[docker.DockerClient, None, None]:
     import docker
 
-    with contextlib.closing(docker.DockerClient(base_url=f"unix://{RAW_SOCKET_PATH}")) as client:
+    def _client() -> ContextManager[docker.DockerClient]:
+        return contextlib.closing(docker.DockerClient(base_url=f"unix://{RAW_SOCKET_PATH}"))
+
+    with contextlib.ExitStack() as ctx:
         try:
-            client.ping()
-        except (requests.exceptions.ConnectionError, docker.errors.APIError):
+            client = ctx.enter_context(_client())
+        except docker.errors.DockerException:
             if DARWIN:
                 if USE_COLIMA:
                     click.echo("Attempting to start colima...")
@@ -63,15 +74,15 @@ def get_docker_client() -> Generator[docker.DockerClient, None, None]:
             else:
                 raise click.ClickException("Make sure docker is running.")
 
-            max_wait = 60
+            max_wait = 90
             timeout = time.monotonic() + max_wait
 
             click.echo(f"Waiting for docker to be ready.... (timeout in {max_wait}s)")
             while time.monotonic() < timeout:
                 time.sleep(1)
                 try:
-                    client.ping()
-                except (requests.exceptions.ConnectionError, docker.errors.APIError):
+                    client = ctx.enter_context(_client())
+                except docker.errors.DockerException:
                     continue
                 else:
                     break

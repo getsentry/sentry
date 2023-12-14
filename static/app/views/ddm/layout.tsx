@@ -24,6 +24,8 @@ import {ScratchpadSelector} from 'sentry/views/ddm/scratchpadSelector';
 import {TraceTable} from 'sentry/views/ddm/traceTable';
 import {TrayContent} from 'sentry/views/ddm/trayContent';
 
+const SIZE_LOCAL_STORAGE_KEY = 'ddm-split-size';
+
 function MainContent({showTraceTable}: {showTraceTable?: boolean}) {
   return (
     <Fragment>
@@ -95,6 +97,7 @@ export const DDMLayout = memo(() => {
         <SplitPanel
           availableSize={height}
           SplitDivider={SplitDivider}
+          sizeStorageKey={SIZE_LOCAL_STORAGE_KEY}
           top={{
             content: (
               <ScrollingPage>

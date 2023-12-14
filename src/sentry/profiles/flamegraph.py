@@ -5,6 +5,7 @@ from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Req
 
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import ParamsType
+from sentry.snuba import functions
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
@@ -128,31 +129,19 @@ def get_profiles_with_function(
     project_id: int,
     function_fingerprint: int,
     params: ParamsType,
+    query: str,
 ):
-    query = Query(
-        match=Entity(EntityKey.Functions.value),
-        select=[
-            Function("groupUniqArrayMerge(100)", [Column("examples")], "profile_ids"),
-        ],
-        where=[
-            Condition(Column("project_id"), Op.EQ, project_id),
-            Condition(Column("timestamp"), Op.GTE, params["start"]),
-            Condition(Column("timestamp"), Op.LT, params["end"]),
-            Condition(Column("fingerprint"), Op.EQ, function_fingerprint),
-        ],
+    conditions = [query, f"fingerprint:{function_fingerprint}"]
+
+    result = functions.query(
+        selected_columns=["unique_examples(100)"],
+        query=" ".join(cond for cond in conditions if cond),
+        params=params,
+        limit=1,
+        referrer=Referrer.API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH.value,
+        auto_aggregations=True,
+        use_aggregate_conditions=True,
+        transform_alias_to_input_format=True,
     )
 
-    request = Request(
-        dataset=Dataset.Functions.value,
-        app_id="default",
-        query=query,
-        tenant_ids={
-            "referrer": Referrer.API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH.value,
-            "organization_id": organization_id,
-        },
-    )
-    data = raw_snql_query(
-        request,
-        referrer=Referrer.API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH.value,
-    )["data"]
-    return {"profile_ids": list(map(lambda x: x.replace("-", ""), data[0]["profile_ids"]))}
+    return {"profile_ids": result["data"][0]["unique_examples(100)"]}

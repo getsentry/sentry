@@ -772,7 +772,9 @@ function NewTraceDetailsTransactionBar(props: Props) {
         </RowCell>
         <DividerContainer>
           {renderDivider(dividerHandlerChildrenProps)}
-          {!isTraceRoot(transaction) && renderEmbeddedTransactionsBadge()}
+          {!isTraceRoot(transaction) &&
+            !isTraceError(transaction) &&
+            renderEmbeddedTransactionsBadge()}
         </DividerContainer>
         <RowCell
           data-test-id="transaction-row-duration"

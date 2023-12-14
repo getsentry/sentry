@@ -87,7 +87,7 @@ function DefaultGroupEventDetailsContent({
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
   const hasAnrImprovementsFeature = organization.features.includes('anr-improvements');
-  const showMaybeSolutionsHigher = shouldShowCustomErrorResourceConfig(group);
+  const showMaybeSolutionsHigher = shouldShowCustomErrorResourceConfig(group, project);
 
   const eventEntryProps = {group, event, project};
 
@@ -127,13 +127,9 @@ function DefaultGroupEventDetailsContent({
         location={location}
       />
       {showMaybeSolutionsHigher && (
-        <ResourcesAndMaybeSolutions
-          event={event}
-          projectSlug={project.slug}
-          group={group}
-        />
+        <ResourcesAndMaybeSolutions event={event} project={project} group={group} />
       )}
-      <EventEvidence event={event} group={group} projectSlug={project.slug} />
+      <EventEvidence event={event} group={group} project={project} />
       <GroupEventEntry entryType={EntryType.MESSAGE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.EXCEPTION} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.STACKTRACE} {...eventEntryProps} />
@@ -156,11 +152,7 @@ function DefaultGroupEventDetailsContent({
       <GroupEventEntry entryType={EntryType.TEMPLATE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.BREADCRUMBS} {...eventEntryProps} />
       {!showMaybeSolutionsHigher && (
-        <ResourcesAndMaybeSolutions
-          event={event}
-          projectSlug={project.slug}
-          group={group}
-        />
+        <ResourcesAndMaybeSolutions event={event} project={project} group={group} />
       )}
       <GroupEventEntry entryType={EntryType.DEBUGMETA} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.REQUEST} {...eventEntryProps} />

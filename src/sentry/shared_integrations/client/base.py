@@ -24,8 +24,7 @@ from sentry.utils import json, metrics
 from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.hashlib import md5_text
 
-from ..exceptions import ApiConnectionResetError, ApiHostError, ApiTimeoutError
-from ..exceptions.base import ApiError
+from ..exceptions import ApiConnectionResetError, ApiError, ApiHostError, ApiTimeoutError
 from ..response.base import BaseApiResponse
 from ..track_response import TrackResponseMixin
 

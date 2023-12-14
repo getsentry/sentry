@@ -91,6 +91,53 @@ describe('differentialFlamegraph', () => {
     ]);
   });
 
+  it('increase: color encodes new frames red with multiple children', () => {
+    const before = makeFlamegraph({
+      shared: {
+        frames: [{name: 'function'}, {name: 'sibling1'}, {name: 'sibling2'}],
+      },
+      profiles: [
+        {
+          ...baseProfile,
+          samples: [
+            [0, 1],
+            [0, 2],
+          ],
+          weights: [1, 1],
+        },
+      ],
+    });
+    const after = makeFlamegraph({
+      shared: {
+        frames: [{name: 'function'}, {name: 'sibling1'}, {name: 'sibling2'}],
+      },
+      profiles: [
+        {
+          ...baseProfile,
+          samples: [
+            [0, 1],
+            [0, 2],
+          ],
+          weights: [5, 5],
+        },
+      ],
+    });
+
+    const flamegraph = DifferentialFlamegraph.FromDiff(
+      {before, after},
+      {negated: false},
+      THEME
+    );
+
+    expect(flamegraph.newFrames?.length).toBe(0);
+    expect(flamegraph.removedFrames?.length).toBe(0);
+
+    expect([...flamegraph.colors.values()][2]).toEqual([
+      ...THEME.COLORS.DIFFERENTIAL_INCREASE,
+      1 * DifferentialFlamegraph.ALPHA_SCALING,
+    ]);
+  });
+
   it('tracks removed frames when a section of the tree is removed', () => {
     const before = makeFlamegraph({
       shared: {
@@ -205,11 +252,11 @@ describe('differentialFlamegraph', () => {
 
     expect([...flamegraph.colors.values()][1]).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_INCREASE,
-      1 * DifferentialFlamegraph.ALPHA_SCALING, // (11 - 1) / 10
+      0.3 * DifferentialFlamegraph.ALPHA_SCALING, // (11 - 1) / 10
     ]);
-    expect([...flamegraph.colors.values()][2]).toEqual([
+    expect([...flamegraph.colors.values()][0]).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_INCREASE,
-      0.3 * DifferentialFlamegraph.ALPHA_SCALING, // (4 - 1) / 10
+      1 * DifferentialFlamegraph.ALPHA_SCALING, // (4 - 1) / 10
     ]);
   });
 
@@ -245,11 +292,11 @@ describe('differentialFlamegraph', () => {
       THEME
     );
 
-    expect([...flamegraph.colors.values()][1]).toEqual([
+    expect([...flamegraph.colors.values()][0]).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_DECREASE,
       1 * DifferentialFlamegraph.ALPHA_SCALING, // (11 - 1) / 10
     ]);
-    expect([...flamegraph.colors.values()][2]).toEqual([
+    expect([...flamegraph.colors.values()][1]).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_DECREASE,
       0.2 * DifferentialFlamegraph.ALPHA_SCALING, // (4 - 1) / 10
     ]);

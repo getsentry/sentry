@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {IssueCategory, IssueType} from 'sentry/types';
+import {IssueCategory, IssueType, Project} from 'sentry/types';
 import cronConfig from 'sentry/utils/issueTypeConfig/cronConfig';
 import {
   errorConfig,
@@ -59,11 +59,14 @@ const issueTypeConfig: Config = {
  * errors that have no stack trace.
  */
 export function shouldShowCustomErrorResourceConfig(
-  params: GetConfigForIssueTypeParams
+  params: GetConfigForIssueTypeParams,
+  project: Project
 ): boolean {
   const isErrorIssue = 'issueType' in params && params.issueType === IssueType.ERROR;
   const hasTitle = 'title' in params && !!params.title;
-  return isErrorIssue && hasTitle && !!getErrorHelpResource(params.title!);
+  return (
+    isErrorIssue && hasTitle && !!getErrorHelpResource({title: params.title!, project})
+  );
 }
 
 const eventOccurrenceTypeToIssueCategory = (eventOccurrenceType: number) => {
@@ -86,10 +89,13 @@ export const getIssueCategoryAndTypeFromOccurrenceType = (
  * If an entry is not found in the issue type config, it looks in the default category
  * configuration. If not found there, it takes from the base config.
  */
-export const getConfigForIssueType = (params: GetConfigForIssueTypeParams) => {
+export const getConfigForIssueType = (
+  params: GetConfigForIssueTypeParams,
+  project: Project
+) => {
   const {issueCategory, issueType, title} =
     'eventOccurrenceType' in params
-      ? getIssueCategoryAndTypeFromOccurrenceType(params.eventOccurrenceType)
+      ? getIssueCategoryAndTypeFromOccurrenceType(params.eventOccurrenceType as number)
       : params;
 
   const categoryMap = issueTypeConfig[issueCategory];
@@ -100,8 +106,8 @@ export const getConfigForIssueType = (params: GetConfigForIssueTypeParams) => {
 
   const categoryConfig = categoryMap._categoryDefaults;
   const overrideConfig = issueType ? categoryMap[issueType] : {};
-  const errorResourceConfig = shouldShowCustomErrorResourceConfig(params)
-    ? getErrorHelpResource(title!)
+  const errorResourceConfig = shouldShowCustomErrorResourceConfig(params, project)
+    ? getErrorHelpResource({title: title!, project})
     : null;
 
   return {
