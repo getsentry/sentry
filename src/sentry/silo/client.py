@@ -60,6 +60,9 @@ class BaseSiloClient(BaseApiClient):
                 f"Only available in: {access_mode_str}"
             )
 
+    def build_proxy_request_headers(self, incoming_request: HttpRequest) -> Mapping[str, str]:
+        return clean_proxy_headers(incoming_request.headers)
+
     def proxy_request(self, incoming_request: HttpRequest) -> HttpResponse:
         """
         Directly proxy the provided request to the appropriate silo with minimal header changes.
@@ -68,7 +71,7 @@ class BaseSiloClient(BaseApiClient):
         prepared_request = Request(
             method=incoming_request.method,
             url=full_url,
-            headers=clean_proxy_headers(incoming_request.headers),
+            headers=self.build_proxy_request_headers(incoming_request=incoming_request),
             data=incoming_request.body,
         ).prepare()
         assert incoming_request.method is not None
@@ -188,6 +191,19 @@ class RegionSiloClient(BaseSiloClient):
         self.region = get_region_by_name(region.name)
         self.base_url = self.region.address
 
+    def extra_headers(self) -> Mapping[str, str]:
+        headers = {}
+        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+            # We are proxying a request from the Control Silo to the Region Silo.
+            # We add a header to indicate the request is coming from the Control Silo.
+            headers[PROXY_FROM_SILO] = SiloMode.CONTROL.name
+        return headers
+
+    def build_proxy_request_headers(self, incoming_request: HttpRequest) -> Mapping[str, str]:
+        headers = super().build_proxy_request_headers(incoming_request=incoming_request)
+        headers.update(self.extra_headers())
+        return headers
+
     def build_session(self) -> SafeSession:
         """
         Generates a safe Requests session for the API client to use.
@@ -240,11 +256,10 @@ class RegionSiloClient(BaseSiloClient):
         if prefix_hash is not None:
             hash = sha1(f"{prefix_hash}{self.region.name}{method}{path}".encode()).hexdigest()
 
-        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-            # We are proxying a request from the Control Silo to the Region Silo.
-            # We add a header to indicate the request is coming from the Control Silo.
-            headers = {k: v for k, v in headers.items()}
-            headers[PROXY_FROM_SILO] = SiloMode.CONTROL.name
+        if headers is None:
+            headers = {}
+
+        headers.update(self.extra_headers())
 
         try:
             response = super().request(

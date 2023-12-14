@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 import responses
 from django.test import RequestFactory, override_settings
 from pytest import raises
+from responses import matchers
 
 from sentry.shared_integrations.exceptions import ApiError, ApiHostError
 from sentry.shared_integrations.response.base import BaseApiResponse
@@ -18,7 +19,7 @@ from sentry.silo.client import (
     get_region_ip_addresses,
     validate_region_ip_address,
 )
-from sentry.silo.util import PROXY_DIRECT_LOCATION_HEADER, PROXY_SIGNATURE_HEADER
+from sentry.silo.util import PROXY_DIRECT_LOCATION_HEADER, PROXY_FROM_SILO, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
 from sentry.testutils.hybrid_cloud import override_allowed_region_silo_ip_addresses
 from sentry.testutils.region import override_regions
@@ -71,7 +72,7 @@ class SiloClientTest(TestCase):
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @mock.patch("sentry.silo.client.cache")
-    def test_client_request_success(self, mock_cache):
+    def test_client_request_success_in_control(self, mock_cache):
         with override_regions(self.region_config):
             client = RegionSiloClient(self.region)
             path = "/api/0/imaginary-public-endpoint/"
@@ -88,6 +89,34 @@ class SiloClientTest(TestCase):
 
             assert response.status_code == 200
             assert response.body.get("ok")
+
+            assert mock_cache.get.call_count == 0
+            assert mock_cache.set.call_count == 0
+            assert mock_cache.delete.call_count == 0
+
+    @responses.activate
+    @override_settings(SILO_MODE=SiloMode.MONOLITH)
+    @mock.patch("sentry.silo.client.cache")
+    def test_client_request_success_in_monolith(self, mock_cache):
+        with override_regions(self.region_config):
+            client = RegionSiloClient(self.region)
+            path = "/api/0/imaginary-public-endpoint/"
+            responses.add(
+                responses.GET,
+                f"{self.dummy_address}{path}",
+                json={"ok": True},
+                headers={PROXY_FROM_SILO: "REGION"},
+                match=[matchers.header_matcher({PROXY_FROM_SILO: "CONTROL"})],
+            )
+
+            response = client.request("GET", path)
+
+            assert len(responses.calls) == 1
+            assert isinstance(response, BaseApiResponse)
+
+            assert response.status_code == 200
+            assert response.body.get("ok")
+            assert response.headers[PROXY_FROM_SILO] == "REGION"
 
             assert mock_cache.get.call_count == 0
             assert mock_cache.set.call_count == 0
@@ -330,28 +359,57 @@ class SiloClientTest(TestCase):
                 client.request("POST", path)
 
     @responses.activate
-    def test_client_proxy_request(self):
-        silo_modes = [SiloMode.CONTROL, SiloMode.MONOLITH]
-        for silo_mode in silo_modes:
-            with override_settings(SILO_MODE=silo_mode), override_regions(self.region_config):
-                client = RegionSiloClient(self.region)
-                path = f"{self.dummy_address}/api/0/imaginary-public-endpoint/"
-                responses.add(
-                    responses.GET,
-                    path,
-                    json={"ok": True},
-                    headers={"X-Some-Header": "Some-Value", PROXY_SIGNATURE_HEADER: "123"},
-                )
+    def test_client_proxy_request_control_silo(self):
+        path = f"{self.dummy_address}/api/0/imaginary-public-endpoint/"
+        responses.add(
+            responses.GET,
+            path,
+            json={"ok": True},
+            headers={"X-Some-Header": "Some-Value", PROXY_SIGNATURE_HEADER: "123"},
+        )
 
-                request = self.factory.get(path, HTTP_HOST="https://control.sentry.io")
-                response = client.proxy_request(request)
+        with override_settings(SILO_MODE=SiloMode.CONTROL), override_regions(self.region_config):
+            client = RegionSiloClient(self.region)
 
-                assert response.status_code == 200
-                assert json.loads(response.content).get("ok")
+            request = self.factory.get(path, HTTP_HOST="https://control.sentry.io")
+            response = client.proxy_request(request)
 
-                assert response["X-Some-Header"] == "Some-Value"
-                assert response.get(PROXY_SIGNATURE_HEADER) is None
-                assert response[PROXY_DIRECT_LOCATION_HEADER] == path
+            assert response.status_code == 200
+            assert json.loads(response.content).get("ok")
+
+            assert response["X-Some-Header"] == "Some-Value"
+            assert response.get(PROXY_SIGNATURE_HEADER) is None
+            assert response[PROXY_DIRECT_LOCATION_HEADER] == path
+            assert response.get(PROXY_FROM_SILO) is None
+
+    @responses.activate
+    def test_client_proxy_request_monolith_silo(self):
+        path = f"{self.dummy_address}/api/0/imaginary-public-endpoint/"
+        responses.add(
+            responses.GET,
+            path,
+            json={"ok": True},
+            headers={
+                "X-Some-Header": "Some-Value",
+                PROXY_SIGNATURE_HEADER: "123",
+                PROXY_FROM_SILO: "REGION",
+            },
+            match=[matchers.header_matcher({PROXY_FROM_SILO: "CONTROL"})],
+        )
+
+        with override_settings(SILO_MODE=SiloMode.MONOLITH), override_regions(self.region_config):
+            client = RegionSiloClient(self.region)
+
+            request = self.factory.get(path, HTTP_HOST="https://control.sentry.io")
+            response = client.proxy_request(request)
+
+            assert response.status_code == 200
+            assert json.loads(response.content).get("ok")
+
+            assert response["X-Some-Header"] == "Some-Value"
+            assert response.get(PROXY_SIGNATURE_HEADER) is None
+            assert response[PROXY_DIRECT_LOCATION_HEADER] == path
+            assert response.get(PROXY_FROM_SILO) is None
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_invalid_region_silo_ip_address(self):
