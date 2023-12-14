@@ -133,7 +133,8 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
     def shutdown(self) -> None:
         self._pool.close()
-        self._attachments_pool.close()
+        if self._attachments_pool:
+            self._attachments_pool.close()
 
 
 def get_ingest_consumer(
