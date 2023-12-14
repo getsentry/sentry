@@ -192,7 +192,14 @@ class IntegrationProxyClient(ApiClient):
         proxy_path = trim_leading_slashes(prepared_request.url[len(base_url) :])
         proxy_url = self.proxy_url.rstrip("/")
 
-        url = f"{proxy_url}/{proxy_path}"
+        url = f"{proxy_url}/"
+
+        if not self._should_proxy_to_control or (
+            in_test_environment() and not self._use_proxy_url_for_tests
+        ):
+            # When proxying to control is disabled, or in the default test environment
+            # This proxy acts as a passthrough, so we need to append the path directly
+            url = f"{url}{proxy_path}".rstrip("/")
 
         request_body = prepared_request.body
         if not isinstance(request_body, bytes):
