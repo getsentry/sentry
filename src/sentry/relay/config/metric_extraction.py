@@ -217,7 +217,7 @@ def _get_widget_metric_specs(
         "on_demand_metrics.widgets_to_process", amount=len(widget_queries), sample_rate=1.0
     )
 
-    specs = []
+    specs: List[HashedMetricSpec] = []
     with metrics.timer("on_demand_metrics.widget_spec_convert"):
         for widget in widget_queries:
             widget_specs = convert_widget_query_to_metric(project, widget, prefilling)
