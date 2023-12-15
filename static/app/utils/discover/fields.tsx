@@ -3,6 +3,7 @@ import isEqual from 'lodash/isEqual';
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
 import {MetricType, Organization, SelectValue} from 'sentry/types';
 import {assert} from 'sentry/types/utils';
+import {isMRIField} from 'sentry/utils/metrics/mri';
 import {
   SESSIONS_FIELDS,
   SESSIONS_OPERATIONS,
@@ -1213,6 +1214,9 @@ export function fieldAlignment(
   metadata?: Record<string, ColumnValueType>
 ): Alignments {
   let align: Alignments = 'left';
+  if (isMRIField(columnName)) {
+    return 'right';
+  }
   if (columnType) {
     align = alignedTypes.includes(columnType) ? 'right' : 'left';
   }

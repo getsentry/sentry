@@ -1,9 +1,13 @@
+import {Fragment} from 'react';
+
 import {t, tct} from 'sentry/locale';
 import {Project} from 'sentry/types';
 import type {
+  ErrorInfo,
   IssueCategoryConfigMapping,
   IssueTypeConfig,
 } from 'sentry/utils/issueTypeConfig/types';
+import {ErrorHelpType} from 'sentry/utils/issueTypeConfig/types';
 
 export const errorConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
@@ -25,35 +29,33 @@ export const errorConfig: IssueCategoryConfigMapping = {
   },
 };
 
-const enum ErrorHelpType {
-  CHUNK_LOAD_ERROR = 'chunk_load_error',
-  DOCUMENT_OR_WINDOW_OBJECT_ERROR = 'document_or_window_object_error',
-  HANDLE_HARD_NAVIGATE_ERROR = 'handle_hard_navigate_error',
-  MODULE_NOT_FOUND = 'module_not_found',
-}
-
-const ConditionErrorInfoMap: Record<
-  string,
-  {errorHelpType: ErrorHelpType; projectCheck: boolean}
-> = {
-  ChunkLoadError: {projectCheck: false, errorHelpType: ErrorHelpType.CHUNK_LOAD_ERROR},
-  'window is not defined': {
+const ErrorInfoChecks: Array<ErrorInfo> = [
+  {
+    errorTitle: 'ChunkLoadError',
+    projectCheck: false,
+    errorHelpType: ErrorHelpType.CHUNK_LOAD_ERROR,
+  },
+  {
+    errorTitle: 'window is not defined',
     projectCheck: false,
     errorHelpType: ErrorHelpType.DOCUMENT_OR_WINDOW_OBJECT_ERROR,
   },
-  'document is not defined': {
+  {
+    errorTitle: 'document is not defined',
     projectCheck: false,
     errorHelpType: ErrorHelpType.DOCUMENT_OR_WINDOW_OBJECT_ERROR,
   },
-  'Invariant: attempted to hard navigate to the same URL': {
+  {
+    errorTitle: 'Invariant: attempted to hard navigate to the same URL',
     projectCheck: true,
     errorHelpType: ErrorHelpType.HANDLE_HARD_NAVIGATE_ERROR,
   },
-  'module not found': {
+  {
+    errorTitle: "Module not found: Can't resolve",
     projectCheck: true,
     errorHelpType: ErrorHelpType.MODULE_NOT_FOUND,
   },
-};
+];
 
 const errorHelpTypeResourceMap: Record<
   ErrorHelpType,
@@ -62,10 +64,14 @@ const errorHelpTypeResourceMap: Record<
   [ErrorHelpType.CHUNK_LOAD_ERROR]: {
     resources: {
       // Not attempting translation
-      description: `ChunkLoadErrors occur when the JavaScript chunks (bundles) that an application is trying to
-load encounter issues during the loading process. Some common causes are dynamic imports,
-version mismatching, and code splitting issues. To learn more about how to fix ChunkLoadErrors,
-check out the following:`,
+      description: (
+        <Fragment>
+          <b>ChunkLoadErrors</b> occur when the JavaScript chunks (bundles) that an
+          application is trying to load encounter issues during the loading process. Some
+          common causes are dynamic imports, version mismatching, and code splitting
+          issues. To learn more about how to fix ChunkLoadErrors, check out the following:
+        </Fragment>
+      ),
       links: [
         {
           text: t('How to fix ChunkLoadErrors'),
@@ -77,8 +83,9 @@ check out the following:`,
   },
   [ErrorHelpType.DOCUMENT_OR_WINDOW_OBJECT_ERROR]: {
     resources: {
-      description: t(
-        'Document/Window object errors occur when the global objects `window` or `document` are not defined. This typically happens in server-side rendering (SSR) or other non-browser environments. To learn more about how to fix these errors, check out these resources:'
+      description: tct(
+        '[errorTypes] occur when the global objects `window` or `document` are not defined. This typically happens in server-side rendering (SSR) or other non-browser environments. To learn more about how to fix these errors, check out these resources:',
+        {errorTypes: <b>Document/Window object errors</b>}
       ),
       links: [
         {
@@ -91,8 +98,9 @@ check out the following:`,
   },
   [ErrorHelpType.HANDLE_HARD_NAVIGATE_ERROR]: {
     resources: {
-      description: t(
-        'Handle hard navigation errors occur in Next.js applications when trying to redirect to the same page. To learn more about how to fix these errors, check out these resources:'
+      description: tct(
+        '[errorTypes] occur in Next.js applications when trying to redirect to the same page. To learn more about how to fix these errors, check out these resources:',
+        {errorTypes: <b>Handle hard navigation errors</b>}
       ),
       links: [
         {
@@ -127,9 +135,9 @@ export function getErrorHelpResource({
   project: Project;
   title: string;
 }): Pick<IssueTypeConfig, 'resources'> | null {
-  for (const [condition, errorInfo] of Object.entries(ConditionErrorInfoMap)) {
-    const {errorHelpType, projectCheck} = errorInfo;
-    if (title.includes(condition)) {
+  for (const errorInfo of ErrorInfoChecks) {
+    const {errorTitle, errorHelpType, projectCheck} = errorInfo;
+    if (title.includes(errorTitle)) {
       if (projectCheck && !(project.platform || '').includes('nextjs')) {
         continue;
       }

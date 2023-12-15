@@ -371,7 +371,7 @@ export function Actions(props: Props) {
       <DropdownMenu
         triggerProps={{
           'aria-label': t('More Actions'),
-          icon: <IconEllipsis size="xs" />,
+          icon: <IconEllipsis />,
           showChevron: false,
           size: 'sm',
         }}
