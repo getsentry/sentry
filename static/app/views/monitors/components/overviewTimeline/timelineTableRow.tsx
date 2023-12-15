@@ -40,6 +40,8 @@ export function TimelineTableRow({
   onDeleteEnvironment,
   ...timelineProps
 }: Props) {
+  const organization = useOrganization();
+
   const [isExpanded, setExpanded] = useState(
     monitor.environments.length <= MAX_SHOWN_ENVIRONMENTS
   );
@@ -69,6 +71,11 @@ export function TimelineTableRow({
                     />
                   )}
                   items={[
+                    {
+                      label: t('View Environment'),
+                      key: 'view',
+                      to: `/organizations/${organization.slug}/crons/${monitor.slug}/?environment=${name}`,
+                    },
                     {
                       label: t('Delete Environment'),
                       key: 'delete',
