@@ -42,7 +42,6 @@ import {
   isEquation,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
-import {formatMRIField} from 'sentry/utils/metrics/mri';
 import {createOnDemandFilterWarning} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
@@ -101,6 +100,7 @@ import {
   renderDiscoverGridHeaderCell,
   renderGridBodyCell,
   renderIssueGridHeaderCell,
+  renderMetricGridHeaderCell,
   renderReleaseGridHeaderCell,
 } from './widgetViewerModal/widgetViewerTableCell';
 
@@ -715,7 +715,10 @@ function WidgetViewerModal(props: Props) {
           columnOrder={columnOrder}
           columnSortBy={columnSortBy}
           grid={{
-            renderHeadCell: column => formatMRIField(column.name),
+            renderHeadCell: renderMetricGridHeaderCell() as (
+              column: GridColumnOrder,
+              columnIndex: number
+            ) => React.ReactNode,
             renderBodyCell: renderGridBodyCell({
               ...props,
               location,
