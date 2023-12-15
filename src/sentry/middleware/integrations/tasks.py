@@ -47,7 +47,7 @@ def convert_to_async_slack_response(payload: Dict[str, Any], region_names: List[
 
 @instrumented_task(
     name="sentry.middleware.integrations.tasks.convert_to_async_discord_response",
-    queue="integrations",
+    queue="integrations.control",
     silo_mode=SiloMode.CONTROL,
 )
 def convert_to_async_discord_response(payload: Dict[str, Any], region_names: List[str]):
