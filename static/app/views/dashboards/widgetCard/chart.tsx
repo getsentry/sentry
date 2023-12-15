@@ -42,7 +42,10 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {formatMetricAxisValue} from 'sentry/views/dashboards/datasetConfig/metrics';
+import {
+  formatMetricAxisValue,
+  renderMetricField,
+} from 'sentry/views/dashboards/datasetConfig/metrics';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 
 import {getDatasetConfig} from '../datasetConfig/base';
@@ -218,10 +221,13 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       const fieldRenderer = getFieldFormatter(field, tableMeta, false);
 
       const unit = tableMeta.units?.[field];
-      const rendered = fieldRenderer(
-        shouldExpandInteger ? {[field]: dataRow[field].toLocaleString()} : dataRow,
-        {location, organization, unit}
-      );
+      const rendered =
+        widget.widgetType === WidgetType.METRICS
+          ? renderMetricField(field, dataRow[field])
+          : fieldRenderer(
+              shouldExpandInteger ? {[field]: dataRow[field].toLocaleString()} : dataRow,
+              {location, organization, unit}
+            );
 
       const isModalWidget = !(widget.id || widget.tempId);
       if (isModalWidget || isMobile) {
