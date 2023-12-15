@@ -70,6 +70,8 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                         "text": blocks.get("text"),
                         "blocks": json.dumps(blocks.get("blocks")),
                         "channel": channel,
+                        "unfurl_links": False,
+                        "unfurl_media": False,
                     }
             else:
                 attachments = [
