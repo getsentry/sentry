@@ -166,7 +166,11 @@ class DiscordIntegrationProvider(IntegrationProvider):
         except (ApiError, AttributeError):
             guild_name = guild_id
 
-        use_configure = state.get("discord", {}).get("use_configure") == "1"
+        discord_config = state.get("discord", {})
+        if isinstance(discord_config, dict):
+            use_configure = discord_config.get("use_configure") == "1"
+        else:
+            use_configure = False
         url = self.configure_url if use_configure else self.setup_url
         discord_user_id = self._get_discord_user_id(str(state.get("code")), url)
 
@@ -243,8 +247,11 @@ class DiscordIntegrationProvider(IntegrationProvider):
             )
             token = response["access_token"]  # type: ignore
 
-        except (ApiError, KeyError) as e:
+        except ApiError as e:
             logger.error("discord.install.failed_to_complete_oauth2_flow", extra={"code": e.code})
+            raise IntegrationError("Failed to complete Discord OAuth2 flow.")
+        except KeyError:
+            logger.error("discord.install.failed_to_extract_oauth2_access_token")
             raise IntegrationError("Failed to complete Discord OAuth2 flow.")
 
         headers = {"Authorization": f"Bearer {token}"}
