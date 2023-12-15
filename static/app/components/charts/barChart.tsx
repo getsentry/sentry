@@ -40,8 +40,5 @@ export function BarChart({series, stacked, xAxis, animation, ...props}: BarChart
     return option;
   }, [xAxis]);
 
-  console.log('transformed series', transformedSeries);
-  console.log('props', props);
-  console.log('axis', xAxisOptions);
   return <BaseChart {...props} xAxis={xAxisOptions} series={transformedSeries} />;
 }

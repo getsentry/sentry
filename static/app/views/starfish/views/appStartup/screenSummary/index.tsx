@@ -85,7 +85,9 @@ function ScreenSummary() {
                   <ReleaseComparisonSelector />
                 </Container>
                 <ErrorBoundary mini>
-                  <AppStartWidgets additionalFilters={[]} />
+                  <AppStartWidgets
+                    additionalFilters={[`transaction:${transactionName}`]}
+                  />
                 </ErrorBoundary>
               </PageFiltersContainer>
             </Layout.Main>

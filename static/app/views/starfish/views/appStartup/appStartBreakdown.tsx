@@ -11,8 +11,7 @@ export const COLD_START_COLOR = '#F58C46';
 export const WARM_START_COLOR = '#F2B712';
 
 interface Row {
-  'count_starts(measurements.app_start_cold)': number;
-  'count_starts(measurements.app_start_warm)': number;
+  [index: string]: number | undefined;
 }
 
 function TooltipContents({
@@ -33,14 +32,14 @@ function TooltipContents({
           <StartupDot style={{backgroundColor: COLD_START_COLOR}} />
           <StartupName>{t('Cold Start')}</StartupName>
         </StartupNameContainer>
-        {toRoundedPercent(row[coldStartKey] / total)}
+        {toRoundedPercent((row[coldStartKey] ?? 0) / total)}
       </StartupType>
       <StartupType>
         <StartupNameContainer>
           <StartupDot style={{backgroundColor: WARM_START_COLOR}} />
           <StartupName>{t('Warm Start')}</StartupName>
         </StartupNameContainer>
-        {toRoundedPercent(row[warmStartKey] / total)}
+        {toRoundedPercent((row[warmStartKey] ?? 0) / total)}
       </StartupType>
     </TooltipContentWrapper>
   );
@@ -55,7 +54,7 @@ function AppStartBreakdown({
   coldStartKey?: string;
   warmStartKey?: string;
 }) {
-  const total = row[coldStartKey] + row[warmStartKey];
+  const total = (row[coldStartKey] ?? 0) + (row[warmStartKey] ?? 0);
 
   if (total === 0) {
     return null;
@@ -75,7 +74,7 @@ function AppStartBreakdown({
         <div
           key="cold-start"
           style={{
-            width: toPercent(row[coldStartKey] / total),
+            width: toPercent((row[coldStartKey] ?? 0) / total),
           }}
         >
           <RectangleRelativeOpsBreakdown
@@ -87,7 +86,7 @@ function AppStartBreakdown({
         <div
           key="warm-start"
           style={{
-            width: toPercent(row[warmStartKey] / total),
+            width: toPercent((row[warmStartKey] ?? 0) / total),
           }}
         >
           <RectangleRelativeOpsBreakdown

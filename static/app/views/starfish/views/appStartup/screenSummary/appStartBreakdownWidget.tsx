@@ -1,11 +1,11 @@
-import omit from 'lodash/omit';
+import styled from '@emotion/styled';
 
-import {BarChart} from 'sentry/components/charts/barChart';
-import BaseChart from 'sentry/components/charts/baseChart';
 import {getInterval} from 'sentry/components/charts/utils';
+import {OpsDot} from 'sentry/components/events/opsBreakdown';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatVersion} from 'sentry/utils/formatters';
@@ -25,11 +25,8 @@ import AppStartBreakdown, {
 } from 'sentry/views/starfish/views/appStartup/appStartBreakdown';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 
-const BAR_WIDTH = '20px';
-
-function AppStartBreakdownWidget({height}) {
+function AppStartBreakdownWidget({additionalFilters}) {
   const pageFilter = usePageFilters();
-  const {selection} = pageFilter;
   const location = useLocation();
   const {query: locationQuery} = location;
 
@@ -40,9 +37,8 @@ function AppStartBreakdownWidget({height}) {
   } = useReleaseSelection();
 
   const query = new MutableSearch([
-    // 'event.type:transaction',
-    // 'transaction.op:ui.load',
-    // ...(additionalFilters ?? []),
+    'span.op:[app.start.warm,app.start.cold]',
+    ...(additionalFilters ?? []),
   ]);
 
   const searchQuery = decodeScalar(locationQuery.query, '');
@@ -52,13 +48,13 @@ function AppStartBreakdownWidget({height}) {
 
   const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
 
-  const {data, isLoading, isError} = useTableQuery({
+  const {data, isLoading} = useTableQuery({
     eventView: EventView.fromNewQueryWithPageFilters(
       {
         name: '',
         fields: ['release', 'span.op', 'count()'],
         topEvents: '2',
-        query: `${queryString} span.op:[app.start.warm,app.start.cold]`,
+        query: queryString,
         dataset: DiscoverDatasets.SPANS_METRICS,
         version: 2,
         interval: getInterval(
@@ -81,52 +77,17 @@ function AppStartBreakdownWidget({height}) {
     return null;
   }
 
-  console.log(data);
-  // const startsByReleaseSeries = data.data.reduce((acc, row) => {
-  //   if (!acc['span.op']) {
-  //     acc['span.op']
-  //   }
+  const startsByReleaseSeries = data.data.reduce((acc, row) => {
+    acc[row.release] = {...acc[row.release], [row['span.op']]: row['count()']};
 
-  //   return acc;
-  // }, {});
+    return acc;
+  }, {});
 
-  // const series = data.data.reduce((acc, row) => {
-  //   if (!acc[row['span.op']]) {
-  //     // set up the default bar series
-  //     acc[row['span.op']] = {
-  //       name: row['span.op'],
-  //       color: row['span.op'] === 'app.start.cold' ? COLD_START_COLOR : WARM_START_COLOR,
-  //       type: 'bar',
-  //       stack: 'stack',
-  //       barWidth: BAR_WIDTH,
-  //       emphasis: {
-  //         focus: 'series',
-  //       },
-  //       data: [],
-  //     };
-  //   }
-
-  //   acc[row['span.op']].data.push({name: row.release, value: row['count()']});
-
-  //   return acc;
-  // }, {});
-
-  // console.log(startsByRelease);
-
-  // const keys = {coldStartKey: 'app.start.cold', warmStartKey: 'app.start.warm'};
-
-  const yAxisLabels: string[] = [];
-  if (secondaryRelease) {
-    yAxisLabels.push(secondaryRelease);
-  }
-  if (primaryRelease) {
-    yAxisLabels.push(primaryRelease);
-  }
-
-  console.log(yAxisLabels);
+  const keys = {coldStartKey: 'app.start.cold', warmStartKey: 'app.start.warm'};
   return (
     <MiniChartPanel
       title={t('App Start')}
+      // button={<div style={{position: 'absolute'}}>potato</div>}
       subtitle={
         primaryRelease
           ? t(
@@ -137,58 +98,66 @@ function AppStartBreakdownWidget({height}) {
           : ''
       }
     >
-      <BaseChart
-        showTimeInTooltip={false}
-        yAxis={{
-          type: 'category',
-          data: yAxisLabels,
-          axisLabel: {
-            formatter: value => formatVersion(value),
-          },
-        }}
-        xAxis={{type: 'value'}}
-        legend={{show: true, right: 0}}
-        height={height}
-        grid={{
-          left: '20px',
-          right: '0',
-          top: '8px',
-          bottom: '0',
-          containLabel: true,
-        }}
-        series={[
-          {
-            name: 'app.start.cold',
-            color: COLD_START_COLOR,
-            type: 'bar',
-            stack: 'stack',
-            barWidth: BAR_WIDTH,
-            emphasis: {
-              focus: 'series',
-            },
-            data: [
-              {name: secondaryRelease ?? '', value: 0.7},
-              {name: primaryRelease ?? '', value: 0.3},
-            ],
-          },
-          {
-            name: 'app.start.warm',
-            color: WARM_START_COLOR,
-            type: 'bar',
-            stack: 'stack',
-            emphasis: {
-              focus: 'series',
-            },
-            barWidth: BAR_WIDTH,
-            data: [
-              {name: secondaryRelease ?? '', value: 0.3},
-              {name: primaryRelease ?? '', value: 0.7},
-            ],
-          },
-        ]}
-      />
+      <Legend>
+        <LegendEntry>
+          <StyledStartTypeDot style={{backgroundColor: COLD_START_COLOR}} />{' '}
+          {t('Cold Start')}
+        </LegendEntry>
+        <LegendEntry>
+          <StyledStartTypeDot style={{backgroundColor: WARM_START_COLOR}} />
+          {t('Warm Start')}
+        </LegendEntry>
+      </Legend>
+      <AppStartBreakdownContent>
+        {primaryRelease && (
+          <ReleaseAppStartBreakdown>
+            <TextOverflow>{formatVersion(primaryRelease)}</TextOverflow>
+            <AppStartBreakdown {...keys} row={startsByReleaseSeries[primaryRelease]} />
+          </ReleaseAppStartBreakdown>
+        )}
+        {secondaryRelease && (
+          <ReleaseAppStartBreakdown>
+            <TextOverflow>{formatVersion(secondaryRelease)}</TextOverflow>
+            <AppStartBreakdown {...keys} row={startsByReleaseSeries[secondaryRelease]} />
+          </ReleaseAppStartBreakdown>
+        )}
+      </AppStartBreakdownContent>
     </MiniChartPanel>
   );
 }
 
 export default AppStartBreakdownWidget;
+
+const ReleaseAppStartBreakdown = styled('div')`
+  display: grid;
+  grid-template-columns: 20% auto;
+  gap: ${space(1)};
+  color: ${p => p.theme.subText};
+`;
+
+const AppStartBreakdownContent = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+  margin-top: ${space(1)};
+`;
+
+const Legend = styled('div')`
+  display: flex;
+  gap: ${space(1.5)};
+  position: absolute;
+  top: ${space(1.5)};
+  right: ${space(2)};
+`;
+
+const LegendEntry = styled('div')`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const StyledStartTypeDot = styled(OpsDot)`
+  position: relative;
+  top: -1px;
+`;

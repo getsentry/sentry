@@ -1,23 +1,14 @@
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
 
 import AppStartBreakdownWidget from './appStartBreakdownWidget';
-
-const {TRANSACTION} = SpanMetricsField;
-
-const YAXIS_COLS = [
-  // 'count_start(measurements.app_start_cold)',
-  // 'count_start(measurements.app_start_warm)',
-  'count()',
-];
 
 function SummaryWidgets({additionalFilters}) {
   return (
     <WidgetLayout>
       <WidgetPosition style={{gridArea: '1 / 1 / 1 / 1'}}>
-        <AppStartBreakdownWidget height={140} />
+        <AppStartBreakdownWidget additionalFilters={additionalFilters} />
       </WidgetPosition>
 
       {/* TODO: these are the new widgets that will populate the grid */}
