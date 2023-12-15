@@ -165,8 +165,6 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
 
         # ========================================================================
         # Step 2: Fetch releases, prefetch projects & release_thresholds
-        # NOTE: we're only filtering on date ADDED
-        # This is not synonymous with a deploy... which may be what we actually want.
         # ========================================================================
         release_query = Q(organization=organization, date_added__gte=start, date_added__lte=end)
         if environments_list:
@@ -190,9 +188,9 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
             .order_by("-date")
             .distinct()
         )
-        queryset.prefetch_related(
-            "projects__release_thresholds"
-        )  # maybe prefetch "deploy_set" as well?
+        # prefetching the release_thresholds via the projects model
+        queryset.prefetch_related("projects__release_thresholds")
+        queryset.prefetch_related("deploy_set")
 
         logger.info(
             "Fetched releases",
@@ -213,6 +211,10 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
             # TODO:
             # We should update release model to preserve threshold states.
             # if release.failed_thresholds/passed_thresholds exists - then skip calculating and just return thresholds
+
+            if release.latest_deploy_id:
+                latest_deploy = release.deploy_set.get(id=release.last_deploy_id)
+
             if project_slug_list:
                 project_list = release.projects.filter(slug__in=project_slug_list)
             else:
@@ -240,12 +242,18 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                             "start": datetime.now(tz=timezone.utc),
                             "end": datetime.now(tz=timezone.utc),
                         }
+
                     # NOTE: query window starts at the earliest release up until the latest threshold window
+                    if release.latest_deploy_id:
+                        threshold_start = latest_deploy.date_finished
+                    else:
+                        threshold_start = release.date
+
                     query_windows_by_type[threshold.threshold_type]["start"] = min(
-                        release.date, query_windows_by_type[threshold.threshold_type]["start"]
+                        threshold_start, query_windows_by_type[threshold.threshold_type]["start"]
                     )
                     query_windows_by_type[threshold.threshold_type]["end"] = max(
-                        release.date + timedelta(seconds=threshold.window_in_seconds),
+                        threshold_start + timedelta(seconds=threshold.window_in_seconds),
                         query_windows_by_type[threshold.threshold_type]["end"],
                     )
                     # NOTE: enriched threshold is SERIALIZED
@@ -255,8 +263,8 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                     enriched_threshold.update(
                         {
                             "key": self.construct_threshold_key(release=release, project=project),
-                            "start": release.date,  # deploy.date_finished _would_ be more accurate, but is not keyed on project so cannot be used
-                            "end": release.date
+                            "start": threshold_start,
+                            "end": threshold_start
                             + timedelta(
                                 seconds=threshold.window_in_seconds
                             ),  # start + threshold.window
@@ -285,7 +293,9 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                 Iterate through timeseries given threshold window and determine health status
 
                 NOTE: Timeseries query start & end are determined by API param window (_not_ threshold window)
+                    derived from fetched releases (earliest start & latest end)
                     IF the param window doesn't cover the full threshold window, results will be inaccurate
+
                 TODO: If too many results, then throw an error and request user to narrow their search window
                 """
                 query_window = query_windows_by_type[threshold_type]
@@ -316,6 +326,9 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                     )  # so we can fill all thresholds under the same key
             elif threshold_type == ReleaseThresholdType.NEW_ISSUE_COUNT:
                 metrics.incr("release.threshold_health_status.check.new_issue_count")
+
+                # Get new issue counts by project and release
+
                 for ethreshold in category_thresholds:
                     release_threshold_health[ethreshold["key"]].append(
                         ethreshold
