@@ -9,10 +9,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-import {
-  PageErrorAlert,
-  PageErrorProvider,
-} from 'sentry/utils/performance/contexts/pageError';
+import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageError';
 import {STARFISH_TYPE_FOR_PROJECT} from 'sentry/views/starfish/allowedProjects';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
 import {ReleaseSelector} from 'sentry/views/starfish/components/releaseSelector';
@@ -86,7 +83,7 @@ export function StarfishLanding(props: Props) {
 
   return (
     <Layout.Page>
-      <PageErrorProvider>
+      <PageAlertProvider>
         <Layout.Header>
           <Layout.HeaderContent>
             <Layout.Title>{getStarfishPageTitle()}</Layout.Title>
@@ -95,7 +92,7 @@ export function StarfishLanding(props: Props) {
 
         <Layout.Body>
           <Layout.Main fullWidth>
-            <PageErrorAlert />
+            <PageAlert />
             <Fragment>
               <SearchContainerWithFilterAndMetrics>
                 {pageFilters}
@@ -105,7 +102,7 @@ export function StarfishLanding(props: Props) {
             </Fragment>
           </Layout.Main>
         </Layout.Body>
-      </PageErrorProvider>
+      </PageAlertProvider>
     </Layout.Page>
   );
 }

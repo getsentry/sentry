@@ -2,7 +2,7 @@ import {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
 import {RateUnits} from 'sentry/utils/discover/fields';
-import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {usePageAlert} from 'sentry/utils/performance/contexts/pageError';
 import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
@@ -29,7 +29,7 @@ type Props = {
 
 function SampleInfo(props: Props) {
   const {groupId, transactionName, transactionMethod} = props;
-  const {setPageError} = usePageError();
+  const {setPageAlert: setPageError} = usePageAlert();
 
   const displayedMetrics = props.displayedMetrics ?? DEFAULT_DISPLAYED_METRICS;
 
@@ -65,7 +65,7 @@ function SampleInfo(props: Props) {
   };
 
   if (error) {
-    setPageError(error.message);
+    setPageError({message: error.message, type: 'error'});
   }
 
   function getDisplayBlock(metric: string) {

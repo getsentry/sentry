@@ -6,7 +6,7 @@ import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {usePageAlert} from 'sentry/utils/performance/contexts/pageError';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -75,7 +75,7 @@ function SampleTable({
 
   const organization = useOrganization();
 
-  const {setPageError} = usePageError();
+  const {setPageAlert} = usePageAlert();
 
   const {
     data: spans,
@@ -137,7 +137,10 @@ function SampleTable({
     (!areNoSamples && isFetchingTransactions && !isTransactionsEnabled);
 
   if (sampleError || transactionError) {
-    setPageError(t('An error has occured while loading the samples table'));
+    setPageAlert({
+      message: t('An error has occured while loading the samples table'),
+      type: 'error',
+    });
   }
 
   return (

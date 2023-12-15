@@ -20,7 +20,7 @@ import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatVersion} from 'sentry/utils/formatters';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {usePageAlert} from 'sentry/utils/performance/contexts/pageError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -101,7 +101,7 @@ function SlowScreensByTTID(props: PerformanceWidgetProps) {
   const location = useLocation();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {organization, InteractiveTitle} = props;
-  const pageError = usePageError();
+  const pageError = usePageAlert();
 
   const field = props.fields[0];
 
@@ -231,7 +231,7 @@ function SlowScreensByTTID(props: PerformanceWidgetProps) {
               query={eventView.getQueryWithAdditionalConditions()}
               interval={interval}
               hideError
-              onError={pageError.setPageError}
+              onError={msg => pageError.setPageAlert({message: msg, type: 'error'})}
               queryExtras={extraQueryParams}
               topEvents={2}
               referrer="performance-line-chart-widget"

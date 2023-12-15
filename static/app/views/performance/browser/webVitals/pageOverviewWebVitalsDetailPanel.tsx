@@ -14,10 +14,7 @@ import {defined} from 'sentry/utils';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {getDuration} from 'sentry/utils/formatters';
-import {
-  PageErrorAlert,
-  PageErrorProvider,
-} from 'sentry/utils/performance/contexts/pageError';
+import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageError';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -269,7 +266,7 @@ export function PageOverviewWebVitalsDetailPanel({
   const webVitalScore = projectScore[`${webVital}Score`];
 
   return (
-    <PageErrorProvider>
+    <PageAlertProvider>
       <DetailPanel detailKey={webVital ?? undefined} onClose={onClose}>
         {webVital && projectData && webVitalScore !== undefined && (
           <WebVitalDetailHeader
@@ -305,9 +302,9 @@ export function PageOverviewWebVitalsDetailPanel({
             location={location}
           />
         </TableContainer>
-        <PageErrorAlert />
+        <PageAlert />
       </DetailPanel>
-    </PageErrorProvider>
+    </PageAlertProvider>
   );
 }
 

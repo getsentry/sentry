@@ -13,7 +13,7 @@ import {
   Transform,
 } from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {usePageAlert} from 'sentry/utils/performance/contexts/pageError';
 import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
 import DurationChart from 'sentry/views/performance/charts/chart';
@@ -33,7 +33,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
   const {ContainerActions, InteractiveTitle} = props;
   const globalSelection = props.eventView.getPageFilters();
-  const pageError = usePageError();
+  const pageError = usePageAlert();
   const mepSetting = useMEPSettingContext();
 
   if (props.fields.length !== 1) {
@@ -66,7 +66,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
                 'medium'
               )}
               hideError
-              onError={pageError.setPageError}
+              onError={msg => pageError.setPageAlert({message: msg, type: 'error'})}
               queryExtras={getMEPQueryParams(mepSetting)}
             />
           )}

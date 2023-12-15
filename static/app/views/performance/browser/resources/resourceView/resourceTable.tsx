@@ -12,7 +12,10 @@ import GridEditable, {
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {PageAlert, usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {
+  PageAlertOptions,
+  usePageAlert,
+} from 'sentry/utils/performance/contexts/pageError';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
@@ -42,11 +45,12 @@ const {TIME_SPENT_PERCENTAGE} = SpanFunction;
 
 const {SPM} = SpanFunction;
 
-const RESOURCE_SIZE_ALERT: PageAlert = {
+const RESOURCE_SIZE_ALERT: PageAlertOptions = {
   type: 'info',
   message: t(
     `If you're noticing unusually large resource sizes, try updating to SDK version 7.82.0 or higher.`
   ),
+  dismissible: true,
 };
 
 type Row = {
@@ -73,7 +77,7 @@ type Props = {
 function ResourceTable({sort, defaultResourceTypes}: Props) {
   const location = useLocation();
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
-  const {setPageError, pageError} = usePageError();
+  const {setPageAlert: setPageError, pageAlert: pageError} = usePageAlert();
 
   const {data, isLoading, pageLinks} = useResourcesQuery({
     sort,

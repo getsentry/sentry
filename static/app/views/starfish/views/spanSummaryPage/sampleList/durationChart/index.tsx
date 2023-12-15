@@ -2,7 +2,7 @@ import {Theme, useTheme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
 import {EChartClickHandler, EChartHighlightHandler, Series} from 'sentry/types/echarts';
-import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {usePageAlert} from 'sentry/utils/performance/contexts/pageError';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {AVG_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
@@ -70,7 +70,7 @@ function DurationChart({
   query,
 }: Props) {
   const theme = useTheme();
-  const {setPageError} = usePageError();
+  const {setPageAlert: setPageError} = usePageAlert();
   const pageFilter = usePageFilters();
 
   const filters: SpanMetricsQueryFilters = {
@@ -203,7 +203,10 @@ function DurationChart({
   };
 
   if (spanMetricsSeriesError || spanMetricsError) {
-    setPageError(t('An error has occured while loading chart data'));
+    setPageError({
+      message: t('An error has occurred while loading chart data'),
+      type: 'error',
+    });
   }
 
   const subtitle = pageFilter.selection.datetime.period

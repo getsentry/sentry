@@ -2,7 +2,7 @@ import {
   MetricsEnhancedSettingContext,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {usePageAlert} from 'sentry/utils/performance/contexts/pageError';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 
 import Table from '../../table';
@@ -31,6 +31,7 @@ function getAllowedChartsSmall(
 
 export function FrontendPageloadView(props: BasePerformanceViewProps) {
   const mepSetting = useMEPSettingContext();
+  const {setPageAlert} = usePageAlert();
 
   const doubleChartRowCharts = [
     PerformanceWidgetSetting.WORST_LCP_VITALS,
@@ -53,7 +54,7 @@ export function FrontendPageloadView(props: BasePerformanceViewProps) {
         <Table
           {...props}
           columnTitles={FRONTEND_PAGELOAD_COLUMN_TITLES}
-          setError={usePageError().setPageError}
+          setError={msg => setPageAlert({message: msg, type: 'error'})}
         />
       </div>
     </PerformanceDisplayProvider>

@@ -11,10 +11,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  PageErrorAlert,
-  PageErrorProvider,
-} from 'sentry/utils/performance/contexts/pageError';
+import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -84,7 +81,7 @@ function ScreenLoadSpans() {
   return (
     <SentryDocumentTitle title={transactionName} orgSlug={organization.slug}>
       <Layout.Page>
-        <PageErrorProvider>
+        <PageAlertProvider>
           <Layout.Header>
             <Layout.HeaderContent>
               <Breadcrumbs crumbs={crumbs} />
@@ -94,7 +91,7 @@ function ScreenLoadSpans() {
           <Layout.Body>
             <FloatingFeedbackWidget />
             <Layout.Main fullWidth>
-              <PageErrorAlert />
+              <PageAlert />
               <StarfishPageFiltersContainer>
                 <Container>
                   <FilterContainer>
@@ -158,7 +155,7 @@ function ScreenLoadSpans() {
               </ErrorBoundary>
             </Layout.Main>
           </Layout.Body>
-        </PageErrorProvider>
+        </PageAlertProvider>
       </Layout.Page>
     </SentryDocumentTitle>
   );

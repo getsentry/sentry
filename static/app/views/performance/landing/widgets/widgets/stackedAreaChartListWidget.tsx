@@ -20,7 +20,7 @@ import {
   canUseMetricsData,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {usePageAlert} from 'sentry/utils/performance/contexts/pageError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
@@ -56,7 +56,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
   const mepSetting = useMEPSettingContext();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {ContainerActions, organization, InteractiveTitle, fields} = props;
-  const pageError = usePageError();
+  const pageError = usePageAlert();
   const theme = useTheme();
 
   const colors = [...theme.charts.getColorPalette(5)].reverse();
@@ -161,7 +161,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
                 'low'
               )}
               hideError
-              onError={pageError.setPageError}
+              onError={msg => pageError.setPageAlert({message: msg, type: 'error'})}
               queryExtras={getMEPParamsIfApplicable(mepSetting, props.chartSetting)}
             />
           );

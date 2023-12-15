@@ -12,7 +12,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {RateUnits} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatRate} from 'sentry/utils/formatters';
-import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {usePageAlert} from 'sentry/utils/performance/contexts/pageError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
@@ -28,6 +28,7 @@ import EndpointList from './endpointList';
 
 export function StarfishView(props: BaseStarfishViewProps) {
   const pageFilter = usePageFilters();
+  const {setPageAlert} = usePageAlert();
   const {selection} = pageFilter;
   const [activeSpanGroup, setActiveSpanGroup] = useState<string | null>(null);
   const [transactionsList, setTransactionsList] = useState<string[]>([]);
@@ -222,7 +223,7 @@ export function StarfishView(props: BaseStarfishViewProps) {
         {...props}
         transactionsList={transactionsList}
         setTransactionsList={setTransactionsList}
-        setError={usePageError().setPageError}
+        setError={msg => setPageAlert({message: msg, type: 'error'})}
         inactiveTransactions={inactiveTransactions}
         setInactiveTransactions={setInactiveTransactions}
       />
