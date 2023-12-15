@@ -12,7 +12,7 @@ from sentry.models.relocation import Relocation
 
 @region_silo_endpoint
 class RelocationDetailsEndpoint(Endpoint):
-    owner = ApiOwner.RELOCATION
+    owner = ApiOwner.OPEN_SOURCE
     publish_status = {
         # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "GET": ApiPublishStatus.EXPERIMENTAL,
