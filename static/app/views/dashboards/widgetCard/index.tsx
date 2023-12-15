@@ -38,7 +38,13 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
-import {DashboardFilters, DisplayType, Widget, WidgetType} from '../types';
+import {
+  DashboardFilters,
+  DisplayType,
+  OnDemandExtractionState,
+  Widget,
+  WidgetType,
+} from '../types';
 import {getColoredWidgetIndicator, hasThresholdMaxValue} from '../utils';
 import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
 
@@ -291,6 +297,18 @@ class WidgetCard extends Component<Props, State> {
             )
         )
     );
+    const widgetContainsHighCardinality = widget.queries.some(
+      wq =>
+        wq.onDemand?.some(
+          d => d.extractionState === OnDemandExtractionState.DISABLED_HIGH_CARDINALITY
+        )
+    );
+    const widgetReachedSpecLimit = widget.queries.some(
+      wq =>
+        wq.onDemand?.some(
+          d => d.extractionState === OnDemandExtractionState.DISABLED_SPEC_LIMIT
+        )
+    );
 
     return (
       <ErrorBoundary
@@ -325,6 +343,26 @@ class WidgetCard extends Component<Props, State> {
                           this.state.tableData
                         )}
                       <ExtractedMetricsTag queryKey={widget} />
+                      {widgetContainsHighCardinality ? (
+                        <Tooltip
+                          containerDisplayMode="inline-flex"
+                          title={t(
+                            "This widget is using sampled data because one of it's columns has too many unique values."
+                          )}
+                        >
+                          <IconWarning color="warningText" />
+                        </Tooltip>
+                      ) : null}
+                      {widgetReachedSpecLimit ? (
+                        <Tooltip
+                          containerDisplayMode="inline-flex"
+                          title={t(
+                            "This widget is using sampled data because you've reached your organization limit for dynamically extracted metrics."
+                          )}
+                        >
+                          <IconWarning color="warningText" />
+                        </Tooltip>
+                      ) : null}
                     </WidgetTitleRow>
                     {widget.description && (
                       <Tooltip

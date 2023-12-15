@@ -28,6 +28,22 @@ export enum WidgetType {
   METRICS = 'custom-metrics',
 }
 
+export enum OnDemandExtractionState {
+  DISABLED_NOT_APPLICABLE = 'disabled:not-applicable',
+  DISABLED_PREROLLOUT = 'disabled:pre-rollout',
+  DISABLED_MANUAL = 'disabled:manual',
+  DISABLED_SPEC_LIMIT = 'disabled:spec-limit',
+  DISABLED_HIGH_CARDINALITY = 'disabled:high-cardinality',
+  ENABLED_ENROLLED = 'enabled:enrolled',
+  ENABLED_MANUAL = 'enabled:manual',
+  ENABLED_CREATION = 'enabled:creation',
+}
+
+interface WidgetQueryOnDemand {
+  enabled: boolean;
+  extractionState: OnDemandExtractionState;
+}
+
 export type WidgetQuery = {
   aggregates: string[];
   columns: string[];
@@ -41,6 +57,7 @@ export type WidgetQuery = {
   // is currently used to track column order on table
   // widgets.
   fields?: string[];
+  onDemand?: WidgetQueryOnDemand[];
 };
 
 export type Widget = {
