@@ -682,7 +682,9 @@ class OrganizationMemberListPostTest(OrganizationMemberListTestBase, HybridCloud
         token = self.create_internal_integration_token(
             user=self.user, org=self.organization, scopes=["member:write"]
         )
-        err_message = "Integration tokens are restricted to inviting new members to have the member role only."
+        err_message = (
+            "Integration tokens are restricted to inviting new members with the member role only."
+        )
 
         data = {"email": "jane@gmail.com", "role": "owner", "teams": [self.team.slug]}
         response = self.get_error_response(
