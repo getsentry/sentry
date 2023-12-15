@@ -1,4 +1,4 @@
-import ProjectsStore from 'sentry/stores/projectsStore';
+import useProjects from 'sentry/utils/useProjects';
 
 interface Options {
   enabled?: boolean;
@@ -14,16 +14,23 @@ interface Options {
  * @returns List of projects
  */
 export function useDenylistedProjects(options?: Options) {
-  const projects = (options?.projectId ?? [])
-    .map(projectId => {
-      return ProjectsStore.getById(projectId);
-    })
+  const {projects, fetching} = useProjects();
+
+  const shouldCheckAllProjects =
+    options?.projectId?.length === 0 || options?.projectId?.includes('-1');
+
+  const projectsToCheck = shouldCheckAllProjects
+    ? projects
+    : projects.filter(project => options?.projectId?.includes(project.id.toString()));
+
+  const denylistedProjects = projectsToCheck
     .filter(project => {
       return !project?.features.includes('span-metrics-extraction');
     })
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
 
   return {
-    projects,
+    projects: denylistedProjects,
+    isFetching: fetching,
   };
 }

@@ -100,39 +100,28 @@ describe('NoDataMessage', () => {
     );
   });
 
-  it('shows a list of denylisted projects if any are are set', async function () {
-    const sdkMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/sdk-updates/',
-      body: [],
-    });
-
+  it('shows a list of denylisted projects if any are are set even if data is available', async function () {
     ProjectsStore.loadInitialData([
-      Project({name: 'Terrible API', slug: 'terrible-api', features: []}),
-      Project({name: 'Awful API', slug: 'awful-api', features: []}),
+      Project({
+        name: 'Awful API',
+        slug: 'awful-api',
+        features: [],
+      }),
     ]);
 
-    render(<NoDataMessage isDataAvailable={false} />);
+    render(<NoDataMessage isDataAvailable />);
 
-    await waitFor(() => expect(sdkMock).toHaveBeenCalled());
     await tick(); // There is no visual indicator, this awaits the promise resolve
 
     expect(
-      screen.queryByText(textWithMarkupMatcher('No queries found.'))
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByText(
-        textWithMarkupMatcher('You may be missing data due to outdated SDKs')
-      )
-    ).not.toBeInTheDocument();
-    expect(
       screen.getByText(
         textWithMarkupMatcher(
-          'Some of your projects have been omitted from metrics extraction'
+          'Some of your projects have been omitted from database metrics extraction'
         )
       )
     ).toBeInTheDocument();
 
-    expect(screen.getAllByRole('link')[2]).toHaveAttribute(
+    expect(screen.getAllByRole('link')[1]).toHaveAttribute(
       'href',
       '/organizations/org-slug/projects/awful-api/'
     );

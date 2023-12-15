@@ -29,18 +29,21 @@ export function NoDataMessage({Wrapper = DivWrapper, isDataAvailable}: Props) {
       enabled: pageFilterIsReady && !isDataAvailable,
     });
 
-  const {projects: denylistedProjects} = useDenylistedProjects({
-    projectId: selectedProjectIds,
-  });
+  const {projects: denylistedProjects, isFetching: areDenylistProjectsFetching} =
+    useDenylistedProjects({
+      projectId: selectedProjectIds,
+    });
 
-  // Hide message while fetching outdated projects
-  if (areOutdatedProjectsFetching) {
+  // Hide message while fetching outdated projects or denylisted projects
+  if (areOutdatedProjectsFetching || areDenylistProjectsFetching) {
     return null;
   }
 
   // Hide message if all conditions are satisfied
   if (
     isDataAvailable &&
+    !areOutdatedProjectsFetching &&
+    !areDenylistProjectsFetching &&
     outdatedProjects.length === 0 &&
     denylistedProjects.length === 0
   ) {
@@ -59,14 +62,16 @@ export function NoDataMessage({Wrapper = DivWrapper, isDataAvailable}: Props) {
           }
         )}{' '}
       {outdatedProjects.length > 0 &&
-        tct('You may be missing data due to outdated SDKs: [projectList]', {
+        tct('You may be missing data due to outdated SDKs: [projectList].', {
           projectList: <ProjectList projects={outdatedProjects} />,
         })}{' '}
       {denylistedProjects.length > 0 &&
         tct(
-          'Some of your projects have been omitted from metrics extraction. Please contact [support]. Omitted projects: [projectList]',
+          'Some of your projects have been omitted from database metrics extraction. Please contact [support]. Omitted projects: [projectList].',
           {
-            support: <ExternalLink href="https://sentry.io/support/" />,
+            support: (
+              <ExternalLink href="https://sentry.io/support/">support</ExternalLink>
+            ),
             projectList: <ProjectList projects={denylistedProjects} />,
           }
         )}
