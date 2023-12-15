@@ -433,6 +433,24 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
         )
         return
 
+    # Discard check-ins if the monitor is disabled
+    if monitor.status == ObjectStatus.DISABLED:
+        metrics.incr(
+            "monitors.checkin.result",
+            tags={**metric_kwargs, "status": "monitor_disabled"},
+        )
+        txn.set_tag("result", "monitor_disabled")
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project.id,
+            key_id=None,
+            outcome=Outcome.FILTERED,
+            reason="monitor_disabled",
+            timestamp=start_time,
+            category=DataCategory.MONITOR,
+        )
+        return
+
     # 02
     # Retrieve or upsert monitor environment for this check-in
     try:
