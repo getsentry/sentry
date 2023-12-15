@@ -30,8 +30,8 @@ describe('UserBadge', function () {
 
   it('can coalesce using username', function () {
     const username = User({
-      name: null,
-      email: null,
+      name: undefined,
+      email: undefined,
       username: 'the-batman',
     });
     render(<UserBadge user={username} />);
@@ -41,10 +41,10 @@ describe('UserBadge', function () {
 
   it('can coalesce using ipaddress', function () {
     const ipUser = User({
-      name: null,
-      email: null,
-      username: null,
-      ip_address: null,
+      name: undefined,
+      email: undefined,
+      username: undefined,
+      ip_address: undefined,
       ipAddress: '127.0.0.1',
     });
     render(<UserBadge user={ipUser} />);
@@ -55,11 +55,11 @@ describe('UserBadge', function () {
   it('can coalesce using id', function () {
     const idUser = User({
       id: '99',
-      name: null,
-      email: null,
-      username: null,
-      ip_address: null,
-      ipAddress: null,
+      name: undefined,
+      email: undefined,
+      username: undefined,
+      ip_address: undefined,
+      ipAddress: undefined,
     });
     render(<UserBadge user={idUser} />);
 
@@ -73,9 +73,9 @@ describe('UserBadge', function () {
 
   it('can coalesce using ip', function () {
     const ipUser = User({
-      name: null,
-      email: null,
-      username: null,
+      name: undefined,
+      email: undefined,
+      username: undefined,
       ip: '127.0.0.1',
     });
     render(<UserBadge user={ipUser} />);

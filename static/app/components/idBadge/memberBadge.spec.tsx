@@ -50,8 +50,8 @@ describe('MemberBadge', function () {
 
   it('can coalesce using username', function () {
     member.user = User({
-      name: null,
-      email: null,
+      name: undefined,
+      email: undefined,
       username: 'the-batman',
     });
 
@@ -62,9 +62,9 @@ describe('MemberBadge', function () {
 
   it('can coalesce using ipaddress', function () {
     member.user = User({
-      name: null,
-      email: null,
-      username: null,
+      name: undefined,
+      email: undefined,
+      username: undefined,
       ipAddress: '127.0.0.1',
     });
     render(<MemberBadge member={member} />);
