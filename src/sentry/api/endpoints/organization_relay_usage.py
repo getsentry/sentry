@@ -14,7 +14,7 @@ from sentry.models.relay import RelayUsage
 class OrganizationRelayUsage(OrganizationEndpoint):
     owner = ApiOwner.OWNERS_INGEST
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationPermission,)
 
