@@ -1,3 +1,5 @@
+import uniqBy from 'lodash/uniqBy';
+
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useOrganizationSDKUpdates} from 'sentry/utils/useOrganizationSDKUpdates';
 import {semverCompare} from 'sentry/utils/versions';
@@ -41,7 +43,7 @@ export function useOutdatedSDKProjects(options?: Options) {
 
   return {
     ...response,
-    projects,
+    projects: uniqBy(projects, 'id'),
   };
 }
 
