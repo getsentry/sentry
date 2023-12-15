@@ -95,9 +95,11 @@ class IntegrationClassification(BaseClassification):
             e.g. `/extensions/slack/commands/` -> `slack`
         """
         integration_prefix_regex = re.escape(self.integration_prefix)
-        provider_regex = rf"^{integration_prefix_regex}(\w+)"
+        provider_regex = rf"^{integration_prefix_regex}([^/]+)"
         result = re.search(provider_regex, request.path)
-        return result[1] if result else None
+        if not result:
+            return None
+        return result[1].replace("-", "_")
 
     def should_operate(self, request: HttpRequest) -> bool:
         return (
