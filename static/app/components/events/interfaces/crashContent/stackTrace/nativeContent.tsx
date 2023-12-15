@@ -23,6 +23,7 @@ type Props = {
   data: StacktraceType;
   event: Event;
   platform: PlatformKey;
+  className?: string;
   expandFirstFrame?: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hiddenFrameCount?: number;
