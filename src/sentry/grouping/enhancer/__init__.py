@@ -112,7 +112,6 @@ class StacktraceState:
 
 
 class Enhancements:
-
     # NOTE: You must add a version to ``VERSIONS`` any time attributes are added
     # to this class, s.t. no enhancements lacking these attributes are loaded
     # from cache.
@@ -181,7 +180,6 @@ class Enhancements:
         stacktrace_state = StacktraceState()
         # Apply direct frame actions and update the stack state alongside
         for rule in self._updater_rules:
-
             for idx, action in rule.get_matching_frame_actions(
                 match_frames, platform, exception_data, in_memory_cache
             ):
@@ -354,7 +352,12 @@ class Rule:
     def as_dict(self):
         matchers = {}
         for matcher in self.matchers:
-            matchers[matcher.key] = matcher.pattern
+            if isinstance(matcher, CalleeMatch):
+                matchers["callee"] = f"{matcher.caller.description} {matcher.description}"
+            elif isinstance(matcher, CallerMatch):
+                matchers["caller"] = f"{matcher.description} {matcher.caller.description}"
+            else:
+                matchers[matcher.key] = matcher.pattern
         return {"match": matchers, "actions": [str(x) for x in self.actions]}
 
     def get_matching_frame_actions(
