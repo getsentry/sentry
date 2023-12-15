@@ -58,7 +58,7 @@ function GetStarted(props: StepProps) {
             name="region"
             aria-label="region"
             placeholder="Select Region"
-            options={regions.map(r => ({label: r.name, value: r.name}))}
+            options={regions.map(r => ({label: r.name, value: r.url}))}
             onChange={opt => setRegionUrl(opt.value)}
           />
           {regionUrl && (
@@ -66,7 +66,6 @@ function GetStarted(props: StepProps) {
           )}
           <ContinueButton
             disabled={!orgSlugs || !regionUrl}
-            size="md"
             priority="primary"
             type="submit"
           >

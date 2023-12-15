@@ -41,7 +41,7 @@ export function PublicKey({publicKey, onComplete}: StepProps) {
       >
         {publicKey}
       </RelocationCodeBlock>
-      <ContinueButton size="md" priority="primary" type="submit" onClick={handleContinue}>
+      <ContinueButton priority="primary" type="submit" onClick={handleContinue}>
         {t('Continue')}
       </ContinueButton>
     </motion.div>

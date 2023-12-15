@@ -139,7 +139,6 @@ export function UploadBackup(__props: StepProps) {
               <a onClick={() => setFile(undefined)}>{t('Remove file')}</a>
             </div>
             <StartRelocationButton
-              size="md"
               priority="primary"
               onClick={handleStartRelocation}
               icon={<IconUpload className="upload-icon" size="xs" />}
