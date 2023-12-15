@@ -240,20 +240,14 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                             "end": datetime.now(tz=timezone.utc),
                         }
 
-                    if release.latest_deploy_id:
-                        # If the release has an associated deploy
-                        if threshold.environment:
-                            queryset = release.deploy_set.filter(
-                                environment_id=threshold.environment.id
-                            )
-                            # If there isn't a deploy for that environment yet
-                            # Then we default to the release creation start
-                            if queryset.exists():
-                                latest_deploy = queryset.latest("date_finished")
-                        else:
-                            # Alternatively could use
-                            # latest_deploy = release.deploy_set.get(id=release.last_deploy_id)
-                            latest_deploy = release.deploy_set.latest("date_finished")
+                    if threshold.environment:
+                        # NOTE: if a threshold has no environment set, we monitor from start of the release creation
+                        # If a deploy does not exist for the thresholds environment, we monitor from start of release creation
+                        queryset = release.deploy_set.filter(
+                            environment_id=threshold.environment.id
+                        )
+                        if queryset.exists():
+                            latest_deploy = queryset.latest("date_finished")
 
                     # NOTE: query window starts at the earliest release up until the latest threshold window
                     if latest_deploy:
