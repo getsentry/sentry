@@ -194,8 +194,10 @@ class IntegrationProxyClient(ApiClient):
 
         url = f"{proxy_url}/"
 
-        if not self._should_proxy_to_control or (
-            in_test_environment() and not self._use_proxy_url_for_tests
+        if (
+            not self._should_proxy_to_control
+            or (in_test_environment() and not self._use_proxy_url_for_tests)
+            and proxy_path
         ):
             # When proxying to control is disabled, or in the default test environment
             # This proxy acts as a passthrough, so we need to append the path directly
