@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import Tag from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -137,14 +138,18 @@ export function TimelineTableRow({
 function MonitorDetails({monitor}: {monitor: Monitor}) {
   const organization = useOrganization();
   const schedule = scheduleAsText(monitor.config);
+  const isDisabled = monitor.status === 'disabled';
 
   const monitorDetailUrl = `/organizations/${organization.slug}/crons/${monitor.slug}/`;
 
   return (
-    <DetailsContainer to={monitorDetailUrl}>
-      <Name>{monitor.name}</Name>
+    <DetailsLink to={monitorDetailUrl}>
+      <DetailsHeadline>
+        <Name isDisabled={isDisabled}>{monitor.name}</Name>
+        {isDisabled && <Tag>{t('Disabled')}</Tag>}
+      </DetailsHeadline>
       <Schedule>{schedule}</Schedule>
-    </DetailsContainer>
+    </DetailsLink>
   );
 }
 
@@ -175,16 +180,23 @@ const TimelineRow = styled('div')<{singleMonitorView?: boolean}>`
   }
 `;
 
-const DetailsContainer = styled(Link)`
+const DetailsLink = styled(Link)`
   color: ${p => p.theme.textColor};
   padding: ${space(3)};
   border-right: 1px solid ${p => p.theme.border};
   border-radius: 0;
 `;
 
-const Name = styled('h3')`
+const DetailsHeadline = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  justify-content: space-between;
+`;
+
+const Name = styled('h3')<{isDisabled: boolean}>`
   font-size: ${p => p.theme.fontSizeLarge};
   margin-bottom: ${space(0.25)};
+  ${p => p.isDisabled && `color: ${p.theme.subText}`};
 `;
 
 const Schedule = styled('small')`
