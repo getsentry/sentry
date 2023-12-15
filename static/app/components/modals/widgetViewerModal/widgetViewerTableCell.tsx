@@ -26,13 +26,12 @@ import {
   isEquationAlias,
   Sort,
 } from 'sentry/utils/discover/fields';
-import {NumberContainer} from 'sentry/utils/discover/styles';
 import {
   eventDetailsRouteWithEventView,
   generateEventSlug,
 } from 'sentry/utils/discover/urls';
-import {formatMetricUsingUnit} from 'sentry/utils/metrics';
-import {formatMRIField, parseField, parseMRI} from 'sentry/utils/metrics/mri';
+import {formatMRIField, parseField} from 'sentry/utils/metrics/mri';
+import {renderMetricField} from 'sentry/views/dashboards/datasetConfig/metrics';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {ISSUE_FIELDS} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
@@ -199,17 +198,10 @@ export const renderGridBodyCell = ({
           getIssueFieldRenderer(columnKey) ?? getFieldRenderer(columnKey, ISSUE_FIELDS)
         )(dataRow, {organization, location});
         break;
+      case WidgetType.METRICS:
+        return renderMetricField(columnKey, dataRow[column.key]);
       case WidgetType.DISCOVER:
       default:
-        const parsedField = parseField(columnKey);
-        if (parsedField) {
-          const unit = parseMRI(parsedField.mri)?.unit ?? '';
-          return (
-            <NumberContainer>
-              {formatMetricUsingUnit(dataRow[column.key], unit)}
-            </NumberContainer>
-          );
-        }
         if (!tableData || !tableData.meta) {
           return dataRow[column.key];
         }
