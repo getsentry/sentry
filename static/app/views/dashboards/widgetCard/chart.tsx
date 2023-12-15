@@ -42,10 +42,14 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {
+  formatMetricAxisValue,
+  renderMetricField,
+} from 'sentry/views/dashboards/datasetConfig/metrics';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 
 import {getDatasetConfig} from '../datasetConfig/base';
-import {DisplayType, Widget} from '../types';
+import {DisplayType, Widget, WidgetType} from '../types';
 
 import {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
 
@@ -217,10 +221,13 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       const fieldRenderer = getFieldFormatter(field, tableMeta, false);
 
       const unit = tableMeta.units?.[field];
-      const rendered = fieldRenderer(
-        shouldExpandInteger ? {[field]: dataRow[field].toLocaleString()} : dataRow,
-        {location, organization, unit}
-      );
+      const rendered =
+        widget.widgetType === WidgetType.METRICS
+          ? renderMetricField(field, dataRow[field])
+          : fieldRenderer(
+              shouldExpandInteger ? {[field]: dataRow[field].toLocaleString()} : dataRow,
+              {location, organization, unit}
+            );
 
       const isModalWidget = !(widget.id || widget.tempId);
       if (isModalWidget || isMobile) {
@@ -374,6 +381,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       tooltip: {
         trigger: 'axis',
         valueFormatter: (value: number, seriesName: string) => {
+          if (widget.widgetType === WidgetType.METRICS) {
+            return formatMetricAxisValue(axisField, value);
+          }
           const aggregateName = seriesName?.split(':').pop()?.trim();
           if (aggregateName) {
             return timeseriesResultsTypes
@@ -387,6 +397,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
         axisLabel: {
           color: theme.chartLabel,
           formatter: (value: number) => {
+            if (widget.widgetType === WidgetType.METRICS) {
+              return formatMetricAxisValue(axisField, value);
+            }
             if (timeseriesResultsTypes) {
               return axisLabelFormatterUsingAggregateOutputType(
                 value,
