@@ -1798,7 +1798,7 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Relocation
+# Relocation: whether or not the self-serve API for the feature is enabled.
 register(
     "relocation.enabled",
     default=False,
@@ -1806,21 +1806,23 @@ register(
     # FLAG_AUTOMATOR_MODIFIABLE`, to enforce it only being toggled from code.
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "relocation.self-serve",
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
+
+# Relocation: globally limits the number of small (<=10MB) relocations allowed per silo per day.
 register(
     "relocation.daily-limit.small",
     default=0,
     flags=FLAG_ADMIN_MODIFIABLE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Relocation: globally limits the number of medium (>10MB && <=100MB) relocations allowed per silo
+# per day.
 register(
     "relocation.daily-limit.medium",
     default=0,
     flags=FLAG_ADMIN_MODIFIABLE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Relocation: globally limits the number of large (>100MB) relocations allowed per silo per day.
 register(
     "relocation.daily-limit.large",
     default=0,
