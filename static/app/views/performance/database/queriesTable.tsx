@@ -69,6 +69,10 @@ export type ValidSort = Sort & {
   field: 'spm()' | 'avg(span.self_time)' | 'time_spent_percentage()';
 };
 
+export function isAValidSort(sort: Sort): sort is ValidSort {
+  return (SORTABLE_FIELDS as unknown as string[]).includes(sort.field);
+}
+
 interface Props {
   response: {
     data: Row[];
