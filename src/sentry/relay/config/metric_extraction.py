@@ -298,6 +298,10 @@ def convert_widget_query_to_metric(
     if not widget_query.aggregates:
         return metrics_specs
 
+    if "event.type:error" in widget_query.conditions:
+        # Error widgets don't get on-demand extracted.
+        return []
+
     for aggregate in widget_query.aggregates:
         metrics.incr(
             "on_demand_metrics.before_widget_spec_generation",
@@ -352,9 +356,10 @@ def _can_widget_use_stateful_extraction(
 
     if set(spec_hashes) != set(on_demand_hashes):
         # Spec hashes should match. TODO:This can be removed after the existing cardinality check in this task is removed.
-        sentry_sdk.capture_message(
-            f"Hashes don't match ({spec_hashes}) ({on_demand_hashes}) for widget_query: {widget_query.id}"
-        )
+        with sentry_sdk.push_scope() as scope:
+            scope.set_extra("spec_hashes", spec_hashes)
+            scope.set_extra("on_demand_hashes", on_demand_hashes)
+            sentry_sdk.capture_message(f"Hashes don't match for widget_query: {widget_query.id}")
         metrics.incr("on_demand_metrics.on_demand_spec.failed_on_demand_hashes", sample_rate=1.0)
         return False
 
