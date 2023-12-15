@@ -1,13 +1,22 @@
-from abc import ABC, abstractmethod
-from typing import Generic, Optional, Sequence, TypeVar
+from abc import ABC
+from typing import Any, Generic, Optional, Sequence, TypeVar, Union
 
-from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Formula, Op, Timeseries
+from snuba_sdk import (
+    AliasedExpression,
+    BooleanCondition,
+    BooleanOp,
+    Column,
+    Condition,
+    Formula,
+    Op,
+    Timeseries,
+)
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.models.environment import Environment
 from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
 from sentry.sentry_metrics.querying.registry import ExpressionRegistry
-from sentry.sentry_metrics.querying.types import QueryExpression
+from sentry.sentry_metrics.querying.types import Argument, InheritFilters, QueryExpression
 
 TVisited = TypeVar("TVisited")
 
@@ -33,7 +42,6 @@ class QueryExpressionVisitor(ABC, Generic[TVisited]):
 
         return formula.set_parameters(parameters)
 
-    @abstractmethod
     def _visit_timeseries(self, timeseries: Timeseries) -> TVisited:
         raise NotImplementedError
 
@@ -47,17 +55,18 @@ class ExpansionVisitor(QueryExpressionVisitor[QueryExpression]):
         self._registry = registry
 
     def _visit_timeseries(self, timeseries: Timeseries) -> QueryExpression:
-        # In case we don't have an MRI set, we don't want to even try to resolve the
-        if not timeseries.metric.mri:
+        registry_entry = self._registry.try_resolve(timeseries.aggregate)
+        if registry_entry is None:
             return timeseries
 
-        expanded_expression = self._registry.try_resolve(timeseries.metric.mri)
-        if expanded_expression is None:
-            return timeseries
+        # We compute the first expression.
+        expression = registry_entry.expression()
+        # We run the replacement visitor to replace placeholders.
+        expression = ReplacementVisitor(timeseries.aggregate_params).visit(expression)
 
         # We recursively run substitutions in the newly created tree. We need to be careful about possible infinite
         # recursion.
-        return self.visit(expanded_expression)
+        return self.visit(expression)
 
 
 class EnvironmentsInjectionVisitor(QueryExpressionVisitor[QueryExpression]):
@@ -94,3 +103,41 @@ class ValidationVisitor(QueryExpressionVisitor[QueryExpression]):
                     raise InvalidMetricsQueryError("The OR operator is not supported")
 
                 self._validate_filters(f.conditions)
+
+
+class ReplacementVisitor(QueryExpressionVisitor[QueryExpression]):
+    def __init__(
+        self,
+        arguments: Sequence[Any],
+        filters: Optional[ConditionGroup],
+        groupby: Sequence[Union[Column, AliasedExpression]],
+    ):
+        self._arguments = arguments
+        self._filters = filters
+        self._groupby = groupby
+
+    def _visit_timeseries(self, timeseries: Timeseries) -> QueryExpression:
+        if isinstance(timeseries.metric, Argument):
+            timeseries.set_metric(self._visit_argument(timeseries.metric))
+
+        replaced_aggregate_params = []
+        for aggregate_param in timeseries.aggregate_params:
+            if isinstance(aggregate_param, Argument):
+                replaced_aggregate_params.append(self._visit_argument(aggregate_param))
+            else:
+                replaced_aggregate_params.append(aggregate_param)
+
+        replaced_filters = []
+        for filter in timeseries.filters:
+            if isinstance(filter, InheritFilters):
+                # TODO: merge filters.
+                pass
+
+        return timeseries.set_aggregate(timeseries.aggregate, replaced_aggregate_params)
+
+    def _visit_argument(self, argument: Argument) -> Any:
+        arg_value = self._arguments[argument.position]
+        if not argument.validate(arg_value):
+            raise InvalidMetricsQueryError(f"Argument at position {argument.position} not valid")
+
+        return arg_value
