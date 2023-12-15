@@ -139,10 +139,6 @@ class SlackEventEndpoint(SlackDMEndpoint):
             )
             organization = organization_context.organization if organization_context else None
 
-            if features.has("organizations:slack-block-kit", organization):
-                # print(link_type, args, item)
-                continue
-
             if (
                 organization
                 and link_type == LinkType.DISCOVER
@@ -188,8 +184,6 @@ class SlackEventEndpoint(SlackDMEndpoint):
             "ts": data["message_ts"],
             "unfurls": json.dumps(results),
         }
-
-        # print("unfurls", payload["unfurls"])
 
         client = SlackClient(integration_id=slack_request.integration.id)
         try:
