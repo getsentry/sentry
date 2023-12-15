@@ -211,7 +211,7 @@ def _get_widget_metric_specs(
     widget_queries = DashboardWidgetQuery.objects.filter(
         widget__dashboard__organization=project.organization,
         widget__widget_type=DashboardWidgetTypes.DISCOVER,
-    )
+    ).prefetch_related("dashboardwidgetqueryondemand_set")
 
     metrics.incr(
         "on_demand_metrics.widgets_to_process", amount=len(widget_queries), sample_rate=1.0
@@ -220,8 +220,20 @@ def _get_widget_metric_specs(
     specs = []
     with metrics.timer("on_demand_metrics.widget_spec_convert"):
         for widget in widget_queries:
-            for result in convert_widget_query_to_metric(project, widget, prefilling, True):
-                specs.append(result)
+            widget_specs = convert_widget_query_to_metric(project, widget, prefilling)
+            specs.extend(widget_specs)
+
+            can_widget_use_stateful_extraction = _can_widget_use_stateful_extraction(
+                widget, widget_specs
+            )
+            if options.get("on_demand_metrics.widgets.use_stateful_extraction"):
+                if not can_widget_use_stateful_extraction:
+                    return []
+
+            # TODO: Remove this cardinality check after above option is enabled permanently.
+            if widget_specs and not _is_widget_query_low_cardinality(widget, project):
+                # High cardinality widgets don't have metrics specs created
+                return []
 
     max_widget_specs = options.get("on_demand.max_widget_specs") or _MAX_ON_DEMAND_WIDGETS
     if len(specs) > max_widget_specs:
@@ -275,7 +287,7 @@ def _convert_snuba_query_to_metric(
 
 
 def convert_widget_query_to_metric(
-    project: Project, widget_query: DashboardWidgetQuery, prefilling: bool, check_cardinality: bool
+    project: Project, widget_query: DashboardWidgetQuery, prefilling: bool
 ) -> Sequence[HashedMetricSpec]:
     """
     Converts a passed metrics widget query to one or more MetricSpecs.
@@ -318,15 +330,35 @@ def convert_widget_query_to_metric(
             )
             metrics_specs.append(result)
 
-    if (
-        metrics_specs
-        and check_cardinality
-        and not _is_widget_query_low_cardinality(widget_query, project)
-    ):
-        # High cardinality widgets don't have metrics specs created
-        return []
-
     return metrics_specs
+
+
+def _can_widget_use_stateful_extraction(
+    widget_query: DashboardWidgetQuery, metrics_specs: Sequence[HashedMetricSpec]
+):
+    spec_hashes = [hashed_spec[0] for hashed_spec in metrics_specs]
+    on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.all()
+
+    if len(on_demand_entries) != 1:
+        # There should only be one on demand entry
+        sentry_sdk.capture_message(
+            f"Wrong number of relations ({len(on_demand_entries)}) for widget_query: {widget_query.id}"
+        )
+        metrics.incr("on_demand_metrics.on_demand_spec.failed_on_demand_relations", sample_rate=1.0)
+        return False
+
+    on_demand_entry = on_demand_entries[0]
+    on_demand_hashes = on_demand_entry.spec_hashes
+
+    if set(spec_hashes) != set(on_demand_hashes):
+        # Spec hashes should match. TODO:This can be removed after the existing cardinality check in this task is removed.
+        sentry_sdk.capture_message(
+            f"Hashes don't match ({spec_hashes}) ({on_demand_hashes}) for widget_query: {widget_query.id}"
+        )
+        metrics.incr("on_demand_metrics.on_demand_spec.failed_on_demand_hashes", sample_rate=1.0)
+        return False
+
+    return True
 
 
 def _get_widget_cardinality_query_ttl():
