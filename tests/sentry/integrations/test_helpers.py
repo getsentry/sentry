@@ -8,7 +8,7 @@ from sentry.silo.util import PROXY_PATH
 
 
 def add_control_silo_proxy_response(
-    method: responses.BaseResponse | None,
+    method: str | responses.BaseResponse | None,
     path: Optional[str],
     additional_matchers: Optional[List[Any]] = None,
     **additional_response_kwargs: Any,
