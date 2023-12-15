@@ -582,7 +582,9 @@ class ReleaseAnalyticsMixin:
 
 class EndpointSiloLimit(SiloLimit):
     def modify_endpoint_class(self, decorated_class: Type[Endpoint]) -> type:
-        dispatch_override = self.create_override(decorated_class.dispatch)
+        dispatch_override = self.create_override(
+            self.create_override_with_virtual_mode(decorated_class.dispatch)
+        )
         new_class = type(
             decorated_class.__name__,
             (decorated_class,),
@@ -595,7 +597,7 @@ class EndpointSiloLimit(SiloLimit):
         return new_class
 
     def modify_endpoint_method(self, decorated_method: Callable[..., Any]) -> Callable[..., Any]:
-        return self.create_override(decorated_method)
+        return self.create_override(self.create_override_with_virtual_mode(decorated_method))
 
     def handle_when_unavailable(
         self,
