@@ -59,13 +59,9 @@ const COLUMN_ORDER: Column[] = [
   },
 ];
 
-export const SORTABLE_FIELDS = [
-  'avg(span.self_time)',
-  'spm()',
-  'time_spent_percentage()',
-];
+const SORTABLE_FIELDS = ['avg(span.self_time)', 'spm()', 'time_spent_percentage()'];
 
-export type ValidSort = Sort & {
+type ValidSort = Sort & {
   field: 'spm()' | 'avg(span.self_time)' | 'time_spent_percentage()';
 };
 
