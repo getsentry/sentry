@@ -21,6 +21,7 @@ import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/perfo
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
+import {PerformanceScoreListWidget} from 'sentry/views/performance/landing/widgets/widgets/performanceScoreListWidget';
 import SlowScreens from 'sentry/views/performance/landing/widgets/widgets/slowScreens';
 
 import {GenericPerformanceWidgetDataType} from '../types';
@@ -201,6 +202,8 @@ function _WidgetContainer(props: Props) {
       );
     case GenericPerformanceWidgetDataType.STACKED_AREA:
       return <StackedAreaChartListWidget {...passedProps} {...widgetProps} />;
+    case GenericPerformanceWidgetDataType.PERFORMANCE_SCORE_LIST:
+      return <PerformanceScoreListWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.PERFORMANCE_SCORE:
       return <PerformanceScoreWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.SLOW_SCREENS_BY_TTID:
