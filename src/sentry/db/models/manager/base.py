@@ -83,14 +83,29 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
     def local_cache() -> Generator[None, None, None]:
         """Enables local caching for the entire process."""
         global _local_cache_enabled, _local_cache_generation
-        if _local_cache_enabled:
-            raise RuntimeError("nested use of process global local cache")
+        # We attempt to enable local thread caching for the context scope.
+        # For example: with BaseManager.local_cache() or @local_cache().
+        #
+        # We attempt to update the value of _local_cache_enabled to be True. Here are the cases:
+        # 1. If _local_cache_enabled is already True, then we maintain the local cache by letting local_cache() be a
+        #    no-op/passthrough function.
+        # 2. If _local_cache_enabled is False, then we enable the local cache.
+        prev_local_cache_enabled = _local_cache_enabled
         _local_cache_enabled = True
         try:
             yield
         finally:
-            _local_cache_enabled = False
-            _local_cache_generation += 1
+            _local_cache_enabled = prev_local_cache_enabled
+            # Note that _local_cache_enabled is always initialized to False.
+            #
+            # We restore the value of _local_cache_enabled to be the previous value before we yielded back control.
+            # Here are the cases:
+            # 1. If prev_local_cache_enabled was False, then the local cache is now disabled, and we increment the
+            #    _local_cache_generation to invalidate the local cache.
+            # 2. If prev_local_cache_enabled was True, then we let local_cache() be a passthrough function, and let the
+            #    _local_cache_generation remain unchanged.
+            if not prev_local_cache_enabled:
+                _local_cache_generation += 1
 
     def _get_local_cache(self) -> Optional[MutableMapping[str, M]]:
         if not _local_cache_enabled:

@@ -118,7 +118,7 @@ class RegisteredFeatureManager:
 
                 batch = FeatureCheckBatch(self, name, organization, remaining, actor)
                 handler_result = handler.has_for_batch(batch)
-                for (obj, flag) in handler_result.items():
+                for obj, flag in handler_result.items():
                     if flag is not None:
                         remaining.remove(obj)
                         result[obj] = flag
@@ -222,29 +222,34 @@ class FeatureManager(RegisteredFeatureManager):
         >>> FeatureManager.has('organizations:feature', organization, actor=request.user)
 
         """
-        try:
-            actor = kwargs.pop("actor", None)
-            feature = self.get(name, *args, **kwargs)
+        from sentry.db.models.manager.base import BaseManager
 
-            # Check registered feature handlers
-            rv = self._get_handler(feature, actor)
-            if rv is not None:
-                return rv
+        # Use thread local cache to store any cached models such as Subscriptions in addition to Django's cache.
+        # This helps shortcut around memcache's performance issues
+        with BaseManager.local_cache():
+            try:
+                actor = kwargs.pop("actor", None)
+                feature = self.get(name, *args, **kwargs)
 
-            if self._entity_handler and not skip_entity:
-                rv = self._entity_handler.has(feature, actor)
+                # Check registered feature handlers
+                rv = self._get_handler(feature, actor)
                 if rv is not None:
                     return rv
 
-            rv = settings.SENTRY_FEATURES.get(feature.name, False)
-            if rv is not None:
-                return rv
+                if self._entity_handler and not skip_entity:
+                    rv = self._entity_handler.has(feature, actor)
+                    if rv is not None:
+                        return rv
 
-            # Features are by default disabled if no plugin or default enables them
-            return False
-        except Exception:
-            logging.exception("Failed to run feature check")
-            return False
+                rv = settings.SENTRY_FEATURES.get(feature.name, False)
+                if rv is not None:
+                    return rv
+
+                # Features are by default disabled if no plugin or default enables them
+                return False
+            except Exception:
+                logging.exception("Failed to run feature check")
+                return False
 
     def batch_has(
         self,
