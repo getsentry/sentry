@@ -19,7 +19,7 @@ from sentry.utils.env import in_test_environment
 @all_silo_endpoint
 class RpcServiceEndpoint(Endpoint):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.HYBRID_CLOUD
     authentication_classes = (RpcSignatureAuthentication,)
