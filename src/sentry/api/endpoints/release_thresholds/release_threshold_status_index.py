@@ -240,6 +240,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                             "end": datetime.now(tz=timezone.utc),
                         }
 
+                    latest_deploy = None
                     if threshold.environment:
                         # NOTE: if a threshold has no environment set, we monitor from start of the release creation
                         # If a deploy does not exist for the thresholds environment, we monitor from start of release creation
