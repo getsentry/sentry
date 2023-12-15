@@ -85,7 +85,7 @@ function ScreenSummary() {
                   <ReleaseComparisonSelector />
                 </Container>
                 <ErrorBoundary mini>
-                  <AppStartWidgets />
+                  <AppStartWidgets additionalFilters={[]} />
                 </ErrorBoundary>
               </PageFiltersContainer>
             </Layout.Main>

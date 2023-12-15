@@ -7,15 +7,25 @@ import {space} from 'sentry/styles/space';
 import toPercent from 'sentry/utils/number/toPercent';
 import toRoundedPercent from 'sentry/utils/number/toRoundedPercent';
 
-const COLD_START_COLOR = '#F58C46';
-const WARM_START_COLOR = '#F2B712';
+export const COLD_START_COLOR = '#F58C46';
+export const WARM_START_COLOR = '#F2B712';
 
 interface Row {
   'count_starts(measurements.app_start_cold)': number;
   'count_starts(measurements.app_start_warm)': number;
 }
 
-function TooltipContents({row, total}: {row: Row; total: number}) {
+function TooltipContents({
+  row,
+  total,
+  coldStartKey,
+  warmStartKey,
+}: {
+  coldStartKey: string;
+  row: Row;
+  total: number;
+  warmStartKey: string;
+}) {
   return (
     <TooltipContentWrapper>
       <StartupType>
@@ -23,34 +33,49 @@ function TooltipContents({row, total}: {row: Row; total: number}) {
           <StartupDot style={{backgroundColor: COLD_START_COLOR}} />
           <StartupName>{t('Cold Start')}</StartupName>
         </StartupNameContainer>
-        {toRoundedPercent(row['count_starts(measurements.app_start_cold)'] / total)}
+        {toRoundedPercent(row[coldStartKey] / total)}
       </StartupType>
       <StartupType>
         <StartupNameContainer>
           <StartupDot style={{backgroundColor: WARM_START_COLOR}} />
           <StartupName>{t('Warm Start')}</StartupName>
         </StartupNameContainer>
-        {toRoundedPercent(row['count_starts(measurements.app_start_warm)'] / total)}
+        {toRoundedPercent(row[warmStartKey] / total)}
       </StartupType>
     </TooltipContentWrapper>
   );
 }
 
-function AppStartBreakdown({row}: {row: Row}) {
-  const total =
-    row['count_starts(measurements.app_start_cold)'] +
-    row['count_starts(measurements.app_start_warm)'];
+function AppStartBreakdown({
+  row,
+  coldStartKey = 'count_starts(measurements.app_start_cold)',
+  warmStartKey = 'count_starts(measurements.app_start_warm)',
+}: {
+  row: Row;
+  coldStartKey?: string;
+  warmStartKey?: string;
+}) {
+  const total = row[coldStartKey] + row[warmStartKey];
 
   if (total === 0) {
     return null;
   }
   return (
-    <Tooltip title={<TooltipContents row={row} total={total} />}>
+    <Tooltip
+      title={
+        <TooltipContents
+          row={row}
+          total={total}
+          coldStartKey={coldStartKey}
+          warmStartKey={warmStartKey}
+        />
+      }
+    >
       <RelativeOpsBreakdown>
         <div
           key="cold-start"
           style={{
-            width: toPercent(row['count_starts(measurements.app_start_cold)'] / total),
+            width: toPercent(row[coldStartKey] / total),
           }}
         >
           <RectangleRelativeOpsBreakdown
@@ -62,7 +87,7 @@ function AppStartBreakdown({row}: {row: Row}) {
         <div
           key="warm-start"
           style={{
-            width: toPercent(row['count_starts(measurements.app_start_warm)'] / total),
+            width: toPercent(row[warmStartKey] / total),
           }}
         >
           <RectangleRelativeOpsBreakdown
