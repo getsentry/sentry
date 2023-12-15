@@ -1,8 +1,8 @@
+import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import SentryAppComponentIcon from 'sentry/components/sentryAppComponentIcon';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {SentryAppComponent, SentryAppSchemaStacktraceLink} from 'sentry/types';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
@@ -29,7 +29,6 @@ function OpenInContextLine({lineNo, filename, components}: Props) {
 
   return (
     <OpenInContainer columnQuantity={components.length + 1}>
-      <div>{t('Open this line in')}</div>
       {components.map(component => {
         const url = getUrl(component.schema.url);
         const {slug} = component.sentryApp;
@@ -54,30 +53,35 @@ function OpenInContextLine({lineNo, filename, components}: Props) {
 
 export {OpenInContextLine};
 
+const fadeIn = keyframes`
+  from { opacity: 0; }
+  to { opacity: 1; }
+`;
+
 const OpenInContainer = styled('div')<{columnQuantity: number}>`
   display: flex;
   gap: ${space(1)};
   align-items: center;
   z-index: 1;
-  color: ${p => p.theme.subText};
-  background-color: ${p => p.theme.background};
+  color: ${p => p.theme.linkColor};
   font-family: ${p => p.theme.text.family};
-  border-bottom: 1px solid ${p => p.theme.border};
-  padding: ${space(0.25)} ${space(3)};
-  box-shadow: ${p => p.theme.dropShadowLight};
+  padding: ${space(0)} ${space(0)};
   text-indent: initial;
   overflow: auto;
   white-space: nowrap;
+  animation: ${fadeIn} 0.2s ease-in-out forwards;
 `;
 
 const OpenInLink = styled(ExternalLink)`
   display: flex;
   gap: ${space(0.75)};
   align-items: center;
-  color: ${p => p.theme.gray300};
 `;
 
-export const OpenInName = styled('strong')`
-  color: ${p => p.theme.subText};
-  font-weight: 700;
+export const OpenInName = styled('span')`
+  &:hover {
+    text-decoration: underline;
+    text-decoration-color: ${p => p.theme.linkUnderline};
+    text-underline-offset: ${space(0.5)};
+  }
 `;

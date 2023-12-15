@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {css} from '@emotion/react';
+import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -158,7 +158,8 @@ function CodecovLink({
     return null;
   }
 
-  const onOpenCodecovLink = () => {
+  const onOpenCodecovLink = e => {
+    e.stopPropagation();
     trackAnalytics('integrations.stacktrace_codecov_link_clicked', {
       view: 'stacktrace_issue_details',
       organization,
@@ -170,7 +171,7 @@ function CodecovLink({
   return (
     <OpenInLink href={coverageUrl} openInNewTab onClick={onOpenCodecovLink}>
       <StyledIconWrapper>{getIntegrationIcon('codecov', 'sm')}</StyledIconWrapper>
-      {t('Open in Codecov')}
+      {t('Codecov')}
     </OpenInLink>
   );
 }
@@ -235,7 +236,8 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
       : {}
   );
 
-  const onOpenLink = () => {
+  const onOpenLink = e => {
+    e.stopPropagation();
     const provider = match!.config?.provider;
     if (provider) {
       trackAnalytics(
@@ -259,7 +261,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   if (isLoading || !match) {
     return (
       <StacktraceLinkWrapper>
-        <Placeholder height="24px" width="120px" />
+        <Placeholder height="14px" width="171px" />
       </StacktraceLinkWrapper>
     );
   }
@@ -280,7 +282,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           <StyledIconWrapper>
             {getIntegrationIcon(match.config.provider.key, 'sm')}
           </StyledIconWrapper>
-          {t('Open this line in %s', match.config.provider.name)}
+          {match.config.provider.name}
         </OpenInLink>
         {shouldShowCodecovFeatures(organization, match) ? (
           <CodecovLink
@@ -307,7 +309,6 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     event.platform === 'csharp' &&
     frame.sourceLink?.startsWith('https://www.github.com/');
   const hideErrors = isMinifiedJsError || isUnsupportedPlatform;
-
   // for .NET projects, if there is no match found but there is a GitHub source link, use that
   if (
     frame.sourceLink &&
@@ -318,7 +319,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
       <StacktraceLinkWrapper>
         <OpenInLink onClick={onOpenLink} href={frame.sourceLink} openInNewTab>
           <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
-          {t('Open this line in GitHub')}
+          {t('GitHub')}
         </OpenInLink>
         {shouldShowCodecovFeatures(organization, match) ? (
           <CodecovLink
@@ -395,21 +396,29 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   );
 }
 
+const fadeIn = keyframes`
+  from { opacity: 0; }
+  to { opacity: 1; }
+`;
+
 const StacktraceLinkWrapper = styled('div')`
   display: flex;
   gap: ${space(2)};
   align-items: center;
   color: ${p => p.theme.subText};
-  background-color: ${p => p.theme.background};
   font-family: ${p => p.theme.text.family};
-  border-bottom: 1px solid ${p => p.theme.border};
-  padding: ${space(0.25)} ${space(3)};
-  box-shadow: ${p => p.theme.dropShadowLight};
-  min-height: 28px;
+  padding: ${space(0)} ${space(1)};
 `;
 
 const FixMappingButton = styled(Button)`
   color: ${p => p.theme.subText};
+
+  &:hover {
+    color: ${p => p.theme.subText};
+    text-decoration: underline;
+    text-decoration-color: ${p => p.theme.subText};
+    text-underline-offset: ${space(0.5)};
+  }
 `;
 
 const CloseButton = styled(Button)`
@@ -429,7 +438,14 @@ const LinkStyles = css`
 
 const OpenInLink = styled(ExternalLink)`
   ${LinkStyles}
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.linkColor};
+  animation: ${fadeIn} 0.2s ease-in-out forwards;
+
+  &:hover {
+    text-decoration: underline;
+    text-decoration-color: ${p => p.theme.linkUnderline};
+    text-underline-offset: ${space(0.5)};
+  }
 `;
 
 const StyledLink = styled(Link)`

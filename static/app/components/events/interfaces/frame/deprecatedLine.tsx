@@ -1,12 +1,15 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
+import debounce from 'lodash/debounce';
 import scrollToElement from 'scroll-to-element';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
 import LeadHint from 'sentry/components/events/interfaces/frame/line/leadHint';
+import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import {
   FrameSourceMapDebuggerData,
   SourceMapsDebuggerModal,
@@ -39,6 +42,7 @@ import DefaultTitle from './defaultTitle';
 import {PackageStatusIcon} from './packageStatus';
 import {FunctionNameToggleIcon} from './symbol';
 import {AddressToggleIcon} from './togglableAddress';
+import {OpenInContextLine} from './openInContextLine';
 import {
   getPlatform,
   hasAssembly,
@@ -101,6 +105,7 @@ interface Props extends DeprecatedLineProps {
 }
 
 type State = {
+  isHovering: boolean;
   isExpanded?: boolean;
 };
 
@@ -128,7 +133,16 @@ export class DeprecatedLine extends Component<Props, State> {
   // https://facebook.github.io/react/tips/props-in-getInitialState-as-anti-pattern.html
   state: State = {
     isExpanded: this.props.isExpanded,
+    isHovering: false,
   };
+
+  handleMouseEnter = debounce(() => {
+    this.setState({isHovering: true});
+  }, 100);
+
+  handleMouseLeave = debounce(() => {
+    this.setState({isHovering: false});
+  }, 100);
 
   toggleContext = evt => {
     evt && evt.preventDefault();
@@ -299,6 +313,7 @@ export class DeprecatedLine extends Component<Props, State> {
       isSubFrame,
       hiddenFrameCount,
     } = this.props;
+    const {isHovering, isExpanded} = this.state;
     const organization = this.props.organization;
     const anrCulprit =
       isANR &&
@@ -330,6 +345,13 @@ export class DeprecatedLine extends Component<Props, State> {
       sdk_version: this.props.event.sdk?.version,
     };
 
+    const activeLineNumber = data.lineNo;
+    const contextLine = data.context.find(l => l[0] === activeLineNumber);
+    const hasStacktraceLink = data.inApp && !!data.filename && (isHovering || isExpanded);
+    const showStacktraceLink = hasStacktraceLink && contextLine;
+    const hasSentryAppStacktraceLink =
+      hasStacktraceLink && contextLine && this.props.components.length > 0;
+
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
         <DefaultLine
@@ -337,6 +359,8 @@ export class DeprecatedLine extends Component<Props, State> {
           data-test-id="title"
           isSubFrame={!!isSubFrame}
           hasToggle={!!hiddenFrameCount}
+          onMouseEnter={() => this.handleMouseEnter()}
+          onMouseLeave={() => this.handleMouseLeave()}
         >
           <DefaultLineTitleWrapper isInAppFrame={data.inApp}>
             <LeftLineTitle>
@@ -403,6 +427,24 @@ export class DeprecatedLine extends Component<Props, State> {
                 </SourceMapDebuggerModalButton>
               </Fragment>
             ) : null}
+            {hasSentryAppStacktraceLink && (
+              <ErrorBoundary mini>
+                <OpenInContextLine
+                  lineNo={contextLine[0]}
+                  filename={data.filename || ''}
+                  components={this.props.components}
+                />
+              </ErrorBoundary>
+            )}
+            {showStacktraceLink && (
+              <ErrorBoundary>
+                <StacktraceLink
+                  frame={data}
+                  line={contextLine[1]}
+                  event={this.props.event}
+                />
+              </ErrorBoundary>
+            )}
             {data.inApp ? <Tag type="info">{t('In App')}</Tag> : null}
             {this.renderExpander()}
           </DefaultLineTagWrapper>
@@ -431,7 +473,6 @@ export class DeprecatedLine extends Component<Props, State> {
           frame={data}
           event={this.props.event}
           registers={this.props.registers}
-          components={this.props.components}
           hasContextSource={hasContextSource(data)}
           hasContextVars={hasContextVars(data)}
           hasContextRegisters={hasContextRegisters(this.props.registers)}

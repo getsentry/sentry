@@ -4,13 +4,8 @@ import classNames from 'classnames';
 
 import ListItem from 'sentry/components/list/listItem';
 import StrictClick from 'sentry/components/strictClick';
-import {
-  PlatformKey,
-  SentryAppComponent,
-  SentryAppSchemaStacktraceLink,
-} from 'sentry/types';
+import {PlatformKey} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
 import Context from '../context';
 import {PackageStatusIcon} from '../packageStatus';
@@ -36,7 +31,6 @@ type Props = Omit<
     React.ComponentProps<typeof Default>,
     'onToggleContext' | 'isExpandable' | 'leadsToApp' | 'hasGroupingBadge'
   > & {
-    components: SentryAppComponent<SentryAppSchemaStacktraceLink>[];
     event: Event;
     registers: Record<string, string>;
     emptySourceNotation?: boolean;
@@ -58,7 +52,6 @@ function Line({
   registers,
   isOnlyFrame,
   event,
-  components,
   frameMeta,
   registersMeta,
   emptySourceNotation = false,
@@ -155,7 +148,6 @@ function Line({
         frame={frame}
         event={event}
         registers={registers}
-        components={components}
         hasContextSource={hasContextSource(frame)}
         hasContextVars={hasContextVars(frame)}
         hasContextRegisters={hasContextRegisters(registers)}
@@ -169,7 +161,7 @@ function Line({
   );
 }
 
-export default withSentryAppComponents(Line, {componentType: 'stacktrace-link'});
+export default Line;
 
 const StyleListItem = styled(ListItem)`
   overflow: hidden;
