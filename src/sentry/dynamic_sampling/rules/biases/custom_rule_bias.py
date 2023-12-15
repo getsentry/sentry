@@ -8,6 +8,7 @@ from sentry.dynamic_sampling.rules.utils import Condition, PolymorphicRule
 from sentry.models.dynamicsampling import CUSTOM_RULE_DATE_FORMAT, CustomDynamicSamplingRule
 from sentry.models.project import Project
 from sentry.utils import json
+from sentry.utils.json import JSONDecodeError
 
 logger = logging.getLogger(__name__)
 
@@ -30,21 +31,27 @@ class CustomRuleBias(Bias):
                     "Custom rule with invalid condition found",
                     extra={"rule_id": rule.rule_id, "condition": rule.condition},
                 )
-                # In case of an exception, we want to still try the other rules since we don't want to break all rules.
                 continue
 
-            condition = cast(Condition, json.loads(rule.condition))
-            ret_val.append(
-                {
-                    "samplingValue": {"type": "reservoir", "limit": rule.num_samples},
-                    "type": "transaction",
-                    "id": rule.external_rule_id,
-                    "condition": condition,
-                    "timeRange": {
-                        "start": rule.start_date.strftime(CUSTOM_RULE_DATE_FORMAT),
-                        "end": rule.end_date.strftime(CUSTOM_RULE_DATE_FORMAT),
-                    },
-                }
-            )
+            try:
+                condition = cast(Condition, json.loads(rule.condition))
+                ret_val.append(
+                    {
+                        "samplingValue": {"type": "reservoir", "limit": rule.num_samples},
+                        "type": "transaction",
+                        "id": rule.external_rule_id,
+                        "condition": condition,
+                        "timeRange": {
+                            "start": rule.start_date.strftime(CUSTOM_RULE_DATE_FORMAT),
+                            "end": rule.end_date.strftime(CUSTOM_RULE_DATE_FORMAT),
+                        },
+                    }
+                )
+            except JSONDecodeError:
+                logger.exception(
+                    "Custom rule with invalid json found",
+                    extra={"rule_id": rule.rule_id, "condition": rule.condition},
+                )
+                continue
 
         return ret_val

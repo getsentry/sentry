@@ -394,6 +394,8 @@ def parse_search_query(
     edge cases.
     """
     tokens = cast(Sequence[QueryToken], event_search.parse_search_query(query))
+
+    # We might want to force the `event.type:transaction` to be in the query, as a validation step.
     if force_transaction_event_type:
         _check_event_type_transaction(tokens)
 
