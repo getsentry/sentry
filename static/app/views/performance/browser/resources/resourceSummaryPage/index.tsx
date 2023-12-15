@@ -56,11 +56,11 @@ function ResourceSummary() {
       'time_spent_percentage()',
     ]
   );
+  const spanMetrics = data[0] ?? {};
+
   const isImage = IMAGE_FILE_EXTENSIONS.includes(
     spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]?.split('.').pop() || ''
   );
-
-  const spanMetrics = data[0] ?? {};
 
   return (
     <ModulePageProviders
