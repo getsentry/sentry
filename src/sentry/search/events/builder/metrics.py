@@ -323,7 +323,13 @@ class MetricsQueryBuilder(QueryBuilder):
         groupby_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
+        limit: Optional[int] = 50,
+        limitby: Optional[Tuple[str, int]] = None,
+        array_join: Optional[str] = None,
     ) -> None:
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_limits"):
+            self.limit = self.resolve_limit(limit)
+            self.limitby = self.resolve_limitby(limitby)
         # Resolutions that we always must perform, irrespectively of on demand.
         with sentry_sdk.start_span(op="QueryBuilder", description="resolve_time_conditions"):
             # Has to be done early, since other conditions depend on start and end
@@ -340,6 +346,8 @@ class MetricsQueryBuilder(QueryBuilder):
         # for building an on demand query we only require a time interval and granularity. All the other fields are
         # automatically computed given the OnDemandMetricSpec.
         if not self.use_on_demand:
+            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_array_join"):
+                self.array_join = None if array_join is None else [self.resolve_column(array_join)]
             with sentry_sdk.start_span(op="QueryBuilder", description="resolve_conditions"):
                 self.where, self.having = self.resolve_conditions(query)
             with sentry_sdk.start_span(op="QueryBuilder", description="resolve_params"):
