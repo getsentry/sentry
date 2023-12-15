@@ -61,11 +61,12 @@ class SiloCacheBackedCallable(Generic[_R]):
 
     def __call__(self, args: int) -> _R:
         if (
-            SiloMode.get_current_mode() != self.silo_mode
-            and SiloMode.get_current_mode() != SiloMode.MONOLITH
+            SiloMode.get_current_mode() == self.silo_mode
+            or SiloMode.get_current_mode() == SiloMode.MONOLITH
         ):
-            return self.cb(args)
-        return self.get_many([args])[0]
+            with SiloMode.enter_virtual_single_process_silo_context(self.silo_mode):
+                return self.get_many([args])[0]
+        return self.cb(args)
 
     def key_from(self, args: int) -> str:
         return f"{self.base_key}:{args}"
