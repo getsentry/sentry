@@ -309,6 +309,14 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Monitor Check-Ins'),
     uid: 10,
   },
+  [DataCategoryExact.MONITOR_SEAT]: {
+    name: DataCategoryExact.MONITOR_SEAT,
+    apiName: 'monitorSeat',
+    plural: 'monitorSeats',
+    displayName: 'cron monitors',
+    titleName: t('Cron Monitors'),
+    uid: 13,
+  },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 
 // Special Search characters
