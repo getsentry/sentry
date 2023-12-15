@@ -7,7 +7,8 @@ from string import Template
 from django.db import router
 from django.db.models import Q
 from django.utils import timezone
-from rest_framework import serializers
+from rest_framework import serializers, status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -32,11 +33,14 @@ from sentry.utils.db import atomic_transaction
 from sentry.utils.relocation import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE
 
 ERR_DUPLICATE_RELOCATION = "An in-progress relocation already exists for this owner."
+ERR_INVALID_ORG_SLUG = Template("Org slug is invalid: `$org_slug`.")
+ERR_INVALID_OWNER = Template(
+    "Only your own username (`$creator_username`) can be set as the owner."
+)
+ERR_OWNER_NOT_FOUND = Template("Could not find user `$owner_username`.")
 ERR_THROTTLED_RELOCATION = (
     "We've reached our daily limit of relocations - please try again tomorrow or contact support."
 )
-ERR_OWNER_NOT_FOUND = Template("Could not find user `$owner_username`.")
-ERR_INVALID_ORG_SLUG = Template("Org slug is invalid: `$org_slug`.")
 ERR_UNKNOWN_RELOCATION_STATUS = Template("`$status` is not a valid relocation status.")
 
 logger = logging.getLogger(__name__)
@@ -53,7 +57,7 @@ def get_relocation_size_category(size) -> str:
     return "large"
 
 
-def should_throttle_relocation(relocation_bucket_size) -> bool:
+def should_throttle_relocation(relocation_bucket_size: str) -> bool:
     recent_relocation_files = RelocationFile.objects.filter(
         date_added__gte=(timezone.now() - timedelta(days=1))
     )
@@ -87,8 +91,7 @@ class RelocationIndexEndpoint(Endpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
-    # TODO(getsentry/team-ospo#214): Open up permissions before GA.
-    permission_classes = (SuperuserPermission,)
+    permission_classes = (IsAuthenticated,)
 
     def get(self, request: Request) -> Response:
         """
@@ -100,6 +103,9 @@ class RelocationIndexEndpoint(Endpoint):
 
         :auth: required
         """
+
+        if not SuperuserPermission().has_permission(request, None):
+            return Response(status=status.HTTP_403_FORBIDDEN)
 
         queryset = Relocation.objects.all()
         query = request.GET.get("query")
@@ -119,14 +125,14 @@ class RelocationIndexEndpoint(Endpoint):
         status_str = request.GET.get("status")
         if status_str:
             try:
-                status = Relocation.Status[status_str.upper()]
+                stat = Relocation.Status[status_str.upper()]
             except KeyError:
                 return Response(
                     {"detail": ERR_UNKNOWN_RELOCATION_STATUS.substitute(status=status_str)},
-                    status=400,
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            queryset = queryset.filter(status=status.value)
+            queryset = queryset.filter(status=stat.value)
 
         return self.paginate(
             request=request,
@@ -155,12 +161,14 @@ class RelocationIndexEndpoint(Endpoint):
         """
 
         logger.info("post.start", extra={"caller": request.user.id})
-        if not options.get("relocation.enabled"):
-            return Response({"detail": ERR_FEATURE_DISABLED}, status=400)
+
+        is_superuser = SuperuserPermission().has_permission(request, None)
+        if not options.get("relocation.enabled") and not is_superuser:
+            return Response({"detail": ERR_FEATURE_DISABLED}, status=status.HTTP_403_FORBIDDEN)
 
         serializer = RelocationsPostSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         validated = serializer.validated_data
         fileobj = validated.get("file")
@@ -169,27 +177,40 @@ class RelocationIndexEndpoint(Endpoint):
         for org_slug in org_slugs:
             if not re.match(ORG_SLUG_PATTERN, org_slug):
                 return Response(
-                    {"detail": ERR_INVALID_ORG_SLUG.substitute(org_slug=org_slug)}, status=400
+                    {"detail": ERR_INVALID_ORG_SLUG.substitute(org_slug=org_slug)},
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
+
+        # Only superusers can start relocations for other users.
+        creator = user_service.get_user(user_id=request.user.id)
+        if creator is None:
+            raise RuntimeError("Could not ascertain request user's username")
+        if not is_superuser and creator.username != owner_username:
+            return Response(
+                {"detail": ERR_INVALID_OWNER.substitute(creator_username=creator.username)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         try:
             owner = user_service.get_by_username(username=owner_username)[0]
         except IndexError:
             return Response(
                 {"detail": ERR_OWNER_NOT_FOUND.substitute(owner_username=owner_username)},
-                status=400,
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         # Quickly check that this `owner` does not have more than one active `Relocation` in flight.
         if Relocation.objects.filter(
             owner_id=owner.id, status=Relocation.Status.IN_PROGRESS.value
         ).exists():
-            return Response({"detail": ERR_DUPLICATE_RELOCATION}, status=409)
+            return Response({"detail": ERR_DUPLICATE_RELOCATION}, status=status.HTTP_409_CONFLICT)
 
+        # Regular users may be throttled, but superusers never are.
         relocation_size_category = get_relocation_size_category(fileobj.size)
-        if should_throttle_relocation(relocation_size_category):
+        if not is_superuser and should_throttle_relocation(relocation_size_category):
             return Response(
                 {"detail": ERR_THROTTLED_RELOCATION},
-                status=429,
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
             )
 
         file = File.objects.create(name="raw-relocation-data.tar", type=RELOCATION_FILE_TYPE)
@@ -211,4 +232,4 @@ class RelocationIndexEndpoint(Endpoint):
             )
 
         uploading_complete.delay(relocation.uuid)
-        return Response(status=201)
+        return Response(status=status.HTTP_201_CREATED)
