@@ -5,7 +5,7 @@ import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {useIneligibleProjects} from 'sentry/views/performance/database/useIneligibleProjects';
+import {useOutdatedSDKProjects} from 'sentry/views/performance/database/useOutdatedSDKProjects';
 
 interface Props {
   Wrapper?: React.ComponentType;
@@ -21,18 +21,18 @@ export function NoDataMessage({Wrapper = DivWrapper, isDataAvailable}: Props) {
 
   const selectedProjectIds = selection.projects.map(projectId => projectId.toString());
 
-  const {ineligibleProjects, isFetching: areIneligibleProjectsFetching} =
-    useIneligibleProjects({
+  const {projects: outdatedProjects, isFetching: areOutdatedProjectsFetching} =
+    useOutdatedSDKProjects({
       projectId: selectedProjectIds,
       enabled: pageFilterIsReady && !isDataAvailable,
     });
 
   const organization = useOrganization();
 
-  const hasMoreIneligibleProjectsThanVisible =
-    ineligibleProjects.length > MAX_LISTED_PROJECTS;
+  const hasMoreOutdatedProjectsThanVisible =
+    outdatedProjects.length > MAX_LISTED_PROJECTS;
 
-  if (areIneligibleProjectsFetching) {
+  if (areOutdatedProjectsFetching) {
     return null;
   }
 
@@ -40,7 +40,7 @@ export function NoDataMessage({Wrapper = DivWrapper, isDataAvailable}: Props) {
     return null;
   }
 
-  const firstIneligibleProjects = ineligibleProjects.slice(0, MAX_LISTED_PROJECTS + 1);
+  const firstOutdatedProjects = outdatedProjects.slice(0, MAX_LISTED_PROJECTS + 1);
 
   return (
     <Wrapper>
@@ -53,14 +53,14 @@ export function NoDataMessage({Wrapper = DivWrapper, isDataAvailable}: Props) {
           ),
         }
       )}{' '}
-      {ineligibleProjects.length > 0 &&
+      {outdatedProjects.length > 0 &&
         tct('You may also be missing data due to outdated SDKs: [projectList]', {
           documentation: (
             <ExternalLink href="https://docs.sentry.io/product/performance/query-insights/" />
           ),
           projectList: (
             <Fragment>
-              {firstIneligibleProjects.map((project, projectIndex) => {
+              {firstOutdatedProjects.map((project, projectIndex) => {
                 return (
                   <span key={project.id}>
                     <a
@@ -70,16 +70,16 @@ export function NoDataMessage({Wrapper = DivWrapper, isDataAvailable}: Props) {
                     >
                       {project.name}
                     </a>
-                    {projectIndex < firstIneligibleProjects.length - 1 && ', '}
+                    {projectIndex < firstOutdatedProjects.length - 1 && ', '}
                   </span>
                 );
               })}
             </Fragment>
           ),
         })}
-      {hasMoreIneligibleProjectsThanVisible &&
+      {hasMoreOutdatedProjectsThanVisible &&
         tct(' and [count] more.', {
-          count: ineligibleProjects.length - MAX_LISTED_PROJECTS,
+          count: outdatedProjects.length - MAX_LISTED_PROJECTS,
         })}{' '}
     </Wrapper>
   );

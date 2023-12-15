@@ -16,11 +16,11 @@ interface Options {
  * @param options.projectId List of project IDs to check against. If omitted, checks all organization projects
  * @returns List of projects
  */
-export function useIneligibleProjects(options?: Options) {
+export function useOutdatedSDKProjects(options?: Options) {
   const response = useOrganizationSDKUpdates(options ?? {});
   const {data: availableUpdates} = response;
 
-  const ineligibleProjects = (availableUpdates ?? [])
+  const projects = (availableUpdates ?? [])
     .filter(update => {
       const platform = removeFlavorFromSDKName(update.sdkName);
       const minimumRequiredVersion = MIN_SDK_VERSION_BY_PLATFORM[platform];
@@ -41,7 +41,7 @@ export function useIneligibleProjects(options?: Options) {
 
   return {
     ...response,
-    ineligibleProjects,
+    projects,
   };
 }
 
