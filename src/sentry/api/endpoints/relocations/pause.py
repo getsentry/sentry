@@ -28,7 +28,7 @@ ERR_COULD_NOT_PAUSE_RELOCATION = (
 
 @region_silo_endpoint
 class RelocationPauseEndpoint(Endpoint):
-    owner = ApiOwner.RELOCATION
+    owner = ApiOwner.OPEN_SOURCE
     publish_status = {
         # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "PUT": ApiPublishStatus.EXPERIMENTAL,
