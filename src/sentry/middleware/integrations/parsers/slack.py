@@ -2,10 +2,8 @@ from __future__ import annotations
 
 import dataclasses
 import logging
-from typing import Any, Dict, List
+from typing import List
 
-import requests
-import sentry_sdk
 from django.http import HttpResponse
 from rest_framework import status
 from rest_framework.request import Request
@@ -24,13 +22,11 @@ from sentry.integrations.slack.webhooks.action import (
 from sentry.integrations.slack.webhooks.base import SlackDMEndpoint
 from sentry.integrations.slack.webhooks.command import SlackCommandsEndpoint
 from sentry.integrations.slack.webhooks.event import SlackEventEndpoint
+from sentry.middleware.integrations.tasks import convert_to_async_slack_response
 from sentry.models.integrations.integration import Integration
 from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
-from sentry.silo.base import SiloMode
-from sentry.silo.client import RegionSiloClient
-from sentry.tasks.base import instrumented_task
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.types.region import Region, get_region_by_name
+from sentry.types.region import Region
 from sentry.utils import json
 from sentry.utils.signing import unsign
 
@@ -39,36 +35,6 @@ from .base import BaseRequestParser
 logger = logging.getLogger(__name__)
 
 ACTIONS_ENDPOINT_ALL_SILOS_ACTIONS = UNFURL_ACTION_OPTIONS + NOTIFICATION_SETTINGS_ACTION_OPTIONS
-
-
-@instrumented_task(
-    name="sentry.middleware.integrations.parsers.slack.convert_to_async_response",
-    queue="integrations",
-    silo_mode=SiloMode.CONTROL,
-)
-def convert_to_async_response(payload: Dict[str, Any], region_names: List[str]):
-    webhook_payload = ControlOutbox.get_webhook_payload_from_outbox(payload=payload)
-    regions = [get_region_by_name(rn) for rn in region_names]
-    # TODO: Refactor out of a for loop, just testing if this works
-    for region in regions:
-        response = RegionSiloClient(region=region).request(
-            method=webhook_payload.method,
-            path=webhook_payload.path,
-            headers=webhook_payload.headers,
-            data=webhook_payload.body,
-            json=False,
-        )
-        try:
-            request_data = json.loads(webhook_payload.body.decode(encoding="utf-8"))
-            response_url = request_data.get("response_url")
-            payload = json.loads(response.content.decode(encoding="utf-8"))
-            response = requests.post(response_url, json=payload)
-            logger.info(
-                "slack.async_response",
-                extra={"path": webhook_payload.path, "status_code": response.status_code},
-            )
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
 
 
 class SlackRequestParser(BaseRequestParser):
@@ -109,20 +75,12 @@ class SlackRequestParser(BaseRequestParser):
             return self.get_response_from_control_silo()
 
         webhook_payload = ControlOutbox.get_webhook_payload_from_request(request=self.request)
-        # convert_to_async_response.apply_async(
-        #     kwargs={"webhook_payload": dataclasses.asdict(webhook_payload)}
-        # )
-        # convert_to_async_response(
-        #     payload=dataclasses.asdict(webhook_payload),
-        #     region_names=[r.name for r in regions],
-        # )
-        convert_to_async_response.apply_async(
+        convert_to_async_slack_response.apply_async(
             kwargs={
                 "payload": dataclasses.asdict(webhook_payload),
                 "region_names": [r.name for r in regions],
             }
         )
-        # print("i should have kicked off a task?")
 
         # We may want to enrich this with a waiting message
         return HttpResponse(status=status.HTTP_202_ACCEPTED)
@@ -190,5 +148,8 @@ class SlackRequestParser(BaseRequestParser):
         # places where we post to slack on their webhook request. This would cause multiple
         # calls back to slack for every region we forward to.
         # By convention, we use the first integration organization/region
-        if self.response_url:
-            return self.get_async_region_response(regions=[regions[0]])
+        return (
+            self.get_async_region_response(regions=[regions[0]])
+            if self.response_url
+            else self.get_response_from_first_region()
+        )

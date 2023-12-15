@@ -798,6 +798,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.statistical_detectors",
     "sentry.debug_files.tasks",
     "sentry.tasks.on_demand_metrics",
+    "sentry.middleware.integrations.tasks",
 )
 
 default_exchange = Exchange("default", type="direct")
