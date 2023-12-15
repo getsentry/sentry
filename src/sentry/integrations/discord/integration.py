@@ -266,9 +266,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
         )
         raise IntegrationError("Could not retrieve Discord user information.")
 
-    def get_params_for_oauth(
-        self,
-    ):
+    def get_params_for_oauth(self):
         return {
             "client_id": self.application_id,
             "permissions": self.bot_permissions,
