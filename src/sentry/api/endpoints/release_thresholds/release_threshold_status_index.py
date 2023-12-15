@@ -332,9 +332,6 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                     )  # so we can fill all thresholds under the same key
             elif threshold_type == ReleaseThresholdType.NEW_ISSUE_COUNT:
                 metrics.incr("release.threshold_health_status.check.new_issue_count")
-
-                # Get new issue counts by project and release
-
                 for ethreshold in category_thresholds:
                     release_threshold_health[ethreshold["key"]].append(
                         ethreshold
