@@ -46,7 +46,7 @@ class ApiTokensEndpoint(Endpoint):
                 "application"
             )
         )
-
+        # Token value will NOT be present
         return Response(serialize(token_list, request.user))
 
     @method_decorator(never_cache)
@@ -74,7 +74,8 @@ class ApiTokensEndpoint(Endpoint):
 
             analytics.record("api_token.created", user_id=request.user.id)
 
-            return Response(serialize(token, request.user), status=201)
+            # This is THE ONLY TIME that the token is available
+            return Response(serialize(token, request.user, include_token=True), status=201)
         return Response(serializer.errors, status=400)
 
     @method_decorator(never_cache)
