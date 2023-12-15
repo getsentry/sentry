@@ -298,7 +298,7 @@ function ActionSet({
         items={menuItems}
         triggerProps={{
           'aria-label': t('More issue actions'),
-          icon: <IconEllipsis size="xs" />,
+          icon: <IconEllipsis />,
           showChevron: false,
           size: 'xs',
         }}
@@ -313,7 +313,7 @@ function isActionSupported(
   actionType: keyof IssueTypeConfig['actions']
 ) {
   for (const issue of selectedIssues) {
-    const info = getConfigForIssueType(issue).actions[actionType];
+    const info = getConfigForIssueType(issue, issue.project).actions[actionType];
 
     if (!info.enabled) {
       return info;

@@ -31,7 +31,7 @@ function NoteHeader({authorName, user, onEdit, onDelete}: Props) {
             size: 'xs',
             showChevron: false,
             borderless: true,
-            icon: <IconEllipsis size="xs" />,
+            icon: <IconEllipsis />,
             'aria-label': t('Comment Actions'),
           }}
           items={[

@@ -2,11 +2,6 @@ from abc import ABC, abstractmethod
 
 
 class ElevatedMode(ABC):
-    @staticmethod
-    @abstractmethod
-    def _needs_validation():
-        pass
-
     @property
     @abstractmethod
     def is_active(self):

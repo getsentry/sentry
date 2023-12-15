@@ -9,9 +9,10 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {PerformanceScoreBreakdownChart} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
-import {getWeights} from 'sentry/views/performance/browser/webVitals/utils/getWeights';
-import {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
-import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
+import {
+  ProjectScore,
+  WebVitals,
+} from 'sentry/views/performance/browser/webVitals/utils/types';
 
 import PerformanceScoreRingWithTooltips from './components/performanceScoreRingWithTooltips';
 
@@ -20,9 +21,6 @@ type Props = {
   projectScore?: ProjectScore;
   transaction?: string;
   webVital?: WebVitals | null;
-  weights?: {
-    [key in WebVitals]: number;
-  };
 };
 
 export const ORDER = ['lcp', 'fcp', 'fid', 'cls', 'ttfb'];
@@ -58,7 +56,16 @@ export function PerformanceScoreChart({
   const period = pageFilters.selection.datetime.period;
   const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
 
-  const weights = getWeights(projectScore);
+  // Gets weights to dynamically size the performance score ring segments
+  const weights = projectScore
+    ? {
+        cls: projectScore.clsWeight,
+        fcp: projectScore.fcpWeight,
+        fid: projectScore.fidWeight,
+        lcp: projectScore.lcpWeight,
+        ttfb: projectScore.ttfbWeight,
+      }
+    : undefined;
 
   return (
     <Flex>

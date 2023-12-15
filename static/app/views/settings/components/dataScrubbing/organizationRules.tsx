@@ -90,7 +90,7 @@ export class OrganizationRules extends Component<Props, State> {
                 ? t('Expand Organization Rules')
                 : t('Collapse Organization Rules')
             }
-            icon={<IconChevron size="xs" direction={isCollapsed ? 'down' : 'up'} />}
+            icon={<IconChevron direction={isCollapsed ? 'down' : 'up'} />}
             size="xs"
             aria-label={t('Toggle Organization Rules')}
           />

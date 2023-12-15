@@ -3,7 +3,7 @@ from typing import Any, List, Mapping, Union
 # TODO(mgaeta): Continue fleshing out these types.
 SlackAttachment = Mapping[str, Any]
 SlackBlock = Mapping[str, Any]
-SlackBody = Union[SlackAttachment, List[SlackAttachment]]
+SlackBody = Union[SlackAttachment, SlackBlock, List[SlackAttachment]]
 
 # Attachment colors used for issues with no actions take.
 LEVEL_TO_COLOR = {
@@ -23,3 +23,13 @@ INCIDENT_COLOR_MAPPING = {
 }
 
 SLACK_URL_FORMAT = "<{url}|{text}>"
+
+LEVEL_TO_EMOJI = {
+    "_actioned_issue": ":white_check_mark:",
+    "_incident_resolved": ":green_circle:",
+    "debug": ":yellow_circle:",
+    "error": ":red_circle:",
+    "fatal": ":red_circle:",
+    "info": ":large_blue_circle:",
+    "warning": ":yellow_circle:",
+}

@@ -13,6 +13,8 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.services.hybrid_cloud import RpcModel
+from sentry.services.hybrid_cloud.identity.model import RpcIdentity, RpcIdentityProvider
+from sentry.services.hybrid_cloud.user.model import RpcUser
 
 
 class RpcIntegration(RpcModel):
@@ -74,3 +76,10 @@ class RpcIntegrationExternalProject(RpcModel):
     external_id: str
     resolved_status: str
     unresolved_status: str
+
+
+class RpcIntegrationIdentityContext(RpcModel):
+    integration: Optional[RpcIntegration]
+    identity_provider: Optional[RpcIdentityProvider]
+    identity: Optional[RpcIdentity]
+    user: Optional[RpcUser]

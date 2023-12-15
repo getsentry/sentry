@@ -136,7 +136,11 @@ function Context({
 
   const fileExtension = getFileExtension(frame.filename || '') ?? '';
   const lines = usePrismTokens({
-    code: contextLines?.map(([, code]) => code).join('\n') ?? '',
+    // Some events have context lines with newline characters at the end,
+    // so we need to remove them to be consistent.
+    code:
+      contextLines?.map(([, code]) => code?.replaceAll(/\r?\n/g, '') ?? '').join('\n') ??
+      '',
     language: fileExtension,
   });
 
@@ -173,7 +177,7 @@ function Context({
 
                 return (
                   <Fragment key={i}>
-                    <ContextLineWrapper isActive={isActive}>
+                    <ContextLineWrapper isActive={isActive} data-test-id="context-line">
                       <ContextLineNumber
                         lineNumber={contextLine[0]}
                         isActive={isActive}

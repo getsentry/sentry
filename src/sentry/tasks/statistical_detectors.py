@@ -962,6 +962,15 @@ def limit_regressions_by_project(
             yield regression
 
 
+def generate_fingerprint(regression_type: RegressionType, regression: BreakpointData) -> str:
+    if regression_type == RegressionType.ENDPOINT:
+        return fingerprint_regression(regression["transaction"])
+    elif regression_type == RegressionType.FUNCTION:
+        return f"{int(regression['transaction']):x}"
+    else:
+        raise ValueError(f"Unsupported RegressionType: {regression_type}")
+
+
 def redirect_escalations(
     regressions: Generator[BreakpointData, None, None],
     regression_type: RegressionType,
@@ -975,7 +984,7 @@ def redirect_escalations(
                 [
                     (
                         int(regression["project"]),
-                        fingerprint_regression(regression["transaction"]),
+                        generate_fingerprint(regression_type, regression),
                     )
                     for regression in regression_chunk
                 ],
@@ -984,7 +993,7 @@ def redirect_escalations(
 
         for regression in regression_chunk:
             project_id = int(regression["project"])
-            fingerprint = fingerprint_regression(regression["transaction"])
+            fingerprint = generate_fingerprint(regression_type, regression)
             group = existing_regression_groups.get((project_id, fingerprint))
 
             if group is None:
@@ -1005,7 +1014,6 @@ def save_versioned_regressions(
     regression_type: RegressionType,
     batch_size=100,
 ) -> Generator[BreakpointData, None, None]:
-
     for regression_chunk in chunked(versioned_regressions, batch_size):
         RegressionGroup.objects.bulk_create(
             [
@@ -1017,7 +1025,7 @@ def save_versioned_regressions(
                     version=version,
                     active=True,
                     project_id=int(regression["project"]),
-                    fingerprint=fingerprint_regression(regression["transaction"]),
+                    fingerprint=generate_fingerprint(regression_type, regression),
                     baseline=regression["aggregate_range_1"],
                     regressed=regression["aggregate_range_2"],
                 )
