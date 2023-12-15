@@ -853,7 +853,6 @@ function WidgetViewerModal(props: Props) {
             cursor={cursor}
             dashboardFilters={dashboardFilters}
           >
-            {/* TODO(ddm): Check if we need to use a diffrent implementation, for now we fallback to release table */}
             {renderMetricsTable}
           </MetricWidgetQueries>
         );
