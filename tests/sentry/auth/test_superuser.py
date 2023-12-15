@@ -63,9 +63,7 @@ class SuperuserTestCase(TestCase):
         user=None,
     ):
         if user is None:
-            print("creating user")
             user = self.create_user("foo@example.com", is_superuser=True)
-            print("user_id", user.id)
         current_datetime = self.current_datetime
         request = self.make_request(user=user)
         if cookie_token is not None:
