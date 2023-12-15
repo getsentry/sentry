@@ -635,6 +635,17 @@ class Release(Model):
 
         return False
 
+    @property
+    def semver_tuple(self):
+        return (
+            self.major,
+            self.minor,
+            self.patch,
+            self.revision,
+            1 if self.prerelease == "" else 0,
+            self.prerelease,
+        )
+
     @classmethod
     def get_cache_key(cls, organization_id, version):
         return f"release:3:{organization_id}:{md5_text(version).hexdigest()}"
