@@ -9,23 +9,18 @@ jest.mock('sentry/utils/useLocation', () => ({
 const mockedUseLocation = jest.requireMock('sentry/utils/useLocation').useLocation;
 
 describe('ExternalRedirect', () => {
-  let originalHref;
+  let originalClose;
 
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
-    originalHref = window.location.href;
-    Object.defineProperty(window.location, 'href', {
-      writable: true,
-      value: 'http://initial-url.com',
-    });
+    originalClose = window.close;
+    window.close = jest.fn();
   });
 
   afterEach(() => {
-    Object.defineProperty(window.location, 'href', {
-      writable: true,
-      value: originalHref,
-    });
+    window.close = originalClose; // Restore the original window.close
+    jest.useRealTimers();
   });
 
   it('should render correctly with a valid URL', () => {
@@ -43,20 +38,19 @@ describe('ExternalRedirect', () => {
     expect(window.location.href).toBe(testUrl);
   });
 
-  // it('renders correctly with an invalid URL', () => {
-  //   const testUrl = 'bad://test-url.com';
-  //   mockedUseLocation.mockReturnValue({query: {url: testUrl}});
-  //   render(<ExternalRedirect />);
+  it('renders correctly with an invalid URL', () => {
+    const testUrl = 'bad://test-url.com';
+    const windowCloseSpy = jest.spyOn(window, 'close');
+    mockedUseLocation.mockReturnValue({query: {url: testUrl}});
+    render(<ExternalRedirect />);
 
-  //   // Ensure url is rendered on the redirect page
-  //   expect(screen.getByText('Error: Invalid URL')).toBeInTheDocument();
+    // Ensure url is rendered on the redirect page
+    expect(screen.getByText('Error: Invalid URL')).toBeInTheDocument();
 
-  //   act(() => {
-  //     jest.advanceTimersByTime(5000);
-  //   });
+    act(() => {
+      jest.advanceTimersByTime(5000);
+    });
 
-  //   // expect(window).toBeNull();
-  // });
-
-  // Other tests...
+    expect(windowCloseSpy).toHaveBeenCalled();
+  });
 });
