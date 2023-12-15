@@ -20,7 +20,13 @@ describe('NoDataMessage', () => {
     MockApiClient.clearMockResponses();
     usePageFilters.mockClear();
 
-    ProjectsStore.loadInitialData([Project({name: 'Awesome API', slug: 'awesome-api'})]);
+    ProjectsStore.loadInitialData([
+      Project({
+        name: 'Awesome API',
+        slug: 'awesome-api',
+        features: ['span-metrics-extraction'],
+      }),
+    ]);
 
     usePageFilters.mockImplementation(() => ({
       selection: PageFilters({projects: [2]}),
@@ -63,7 +69,7 @@ describe('NoDataMessage', () => {
     ).toBeInTheDocument();
     expect(
       screen.queryByText(
-        textWithMarkupMatcher('You may also be missing data due to outdated SDKs')
+        textWithMarkupMatcher('You may be missing data due to outdated SDKs')
       )
     ).not.toBeInTheDocument();
   });
@@ -84,13 +90,51 @@ describe('NoDataMessage', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        textWithMarkupMatcher('You may also be missing data due to outdated SDKs')
+        textWithMarkupMatcher('You may be missing data due to outdated SDKs')
       )
     ).toBeInTheDocument();
 
     expect(screen.getAllByRole('link')[1]).toHaveAttribute(
       'href',
       '/organizations/org-slug/projects/awesome-api/'
+    );
+  });
+
+  it('shows a list of denylisted projects if any are are set', async function () {
+    const sdkMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sdk-updates/',
+      body: [],
+    });
+
+    ProjectsStore.loadInitialData([
+      Project({name: 'Terrible API', slug: 'terrible-api', features: []}),
+      Project({name: 'Awful API', slug: 'awful-api', features: []}),
+    ]);
+
+    render(<NoDataMessage isDataAvailable={false} />);
+
+    await waitFor(() => expect(sdkMock).toHaveBeenCalled());
+    await tick(); // There is no visual indicator, this awaits the promise resolve
+
+    expect(
+      screen.queryByText(textWithMarkupMatcher('No queries found.'))
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        textWithMarkupMatcher('You may be missing data due to outdated SDKs')
+      )
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          'Some of your projects have been omitted from metrics extraction'
+        )
+      )
+    ).toBeInTheDocument();
+
+    expect(screen.getAllByRole('link')[2]).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/projects/awful-api/'
     );
   });
 });
