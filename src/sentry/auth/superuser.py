@@ -128,7 +128,6 @@ class Superuser(ElevatedMode):
 
     @property
     def is_active(self):
-        # breakpoint()
         org = getattr(self.request, "organization", None)
         if org and org.id != self.org_id:
             return self._check_expired_on_org_change()
