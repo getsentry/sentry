@@ -122,7 +122,7 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
                     "rule_id": rule_id,
                     "provider": provider,
                     "integration_id": integration.id,
-                    "message": str(e),
+                    "error_message": str(e),
                 },
             )
             metrics.incr(
