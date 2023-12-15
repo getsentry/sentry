@@ -86,8 +86,7 @@ class StaffTestCase(TestCase):
             }
         return request
 
-    @patch("sentry.auth.staff.has_completed_sso", return_value=True)
-    def test_ips(self, mock_has_completed_sso):
+    def test_ips(self):
         user = User(is_staff=True)
         request = self.make_request(user=user)
         request.META["REMOTE_ADDR"] = "10.0.0.1"
@@ -109,24 +108,23 @@ class StaffTestCase(TestCase):
         user = User(is_staff=True)
         request = self.make_request(user=user)
 
-        with patch("sentry.auth.staff.has_completed_sso", return_value=True):
-            # no ips = any host
-            staff = Staff(request)
-            staff.set_logged_in(request.user)
-            assert staff.is_active is True
-
+        # no ips = any host
         staff = Staff(request)
         staff.set_logged_in(request.user)
-        assert staff.is_active is False
+        assert staff.is_active is True
 
+        # Set ORG_ID so we run the SSO check
         with override_org_id(new_org_id=self.organization.id):
+            staff = Staff(request)
+            staff.set_logged_in(request.user)
+            assert staff.is_active is False
+
             mark_sso_complete(request, self.organization.id)
             staff = Staff(request)
             staff.set_logged_in(request.user)
             assert staff.is_active is True
 
-    @patch("sentry.auth.staff.has_completed_sso", return_value=True)
-    def test_valid_data(self, mock_has_completed_sso):
+    def test_valid_data(self):
         request = self.build_request()
         staff = Staff(request, allowed_ips=())
         assert staff.is_active is True
@@ -172,8 +170,7 @@ class StaffTestCase(TestCase):
         staff = Staff(request, allowed_ips=())
         assert staff.is_active is False
 
-    @patch("sentry.auth.staff.has_completed_sso", return_value=True)
-    def test_login_saves_session(self, mock_has_completed_sso):
+    def test_login_saves_session(self):
         user = self.create_user("foo@example.com")
         request = self.make_request()
         staff = Staff(request, allowed_ips=(), current_datetime=self.current_datetime)
@@ -192,8 +189,7 @@ class StaffTestCase(TestCase):
         assert len(data["tok"]) == 12
         assert data["uid"] == str(user.id)
 
-    @patch("sentry.auth.staff.has_completed_sso", return_value=True)
-    def test_logout_clears_session(self, mock_has_completed_sso):
+    def test_logout_clears_session(self):
         request = self.build_request()
         staff = Staff(request, allowed_ips=(), current_datetime=self.current_datetime)
         staff.set_logged_out()
@@ -201,8 +197,7 @@ class StaffTestCase(TestCase):
         assert not staff.is_active
         assert not request.session.get(SESSION_KEY)
 
-    @patch("sentry.auth.staff.has_completed_sso", return_value=True)
-    def test_changed_user(self, mock_has_completed_sso):
+    def test_changed_user(self):
         request = self.build_request()
         staff = Staff(request, allowed_ips=())
         assert staff.is_active
