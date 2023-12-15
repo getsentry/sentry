@@ -49,13 +49,14 @@ export type SpanStringFields =
   | 'span.action'
   | 'span.domain'
   | 'span.group'
-  | 'project.id'
   | 'transaction'
   | 'transaction.method'
   | 'release';
 
 export type SpanMetricsQueryFilters = {
   [Field in SpanStringFields]?: string;
+} & {
+  [SpanMetricsField.PROJECT_ID]?: string;
 };
 
 export type SpanStringArrayFields = 'span.domain';
@@ -87,6 +88,8 @@ export type MetricsResponse = {
   [Property in SpanStringFields as `${Property}`]: string;
 } & {
   [Property in SpanStringArrayFields as `${Property}`]: string[];
+} & {
+  ['project.id']: number;
 };
 
 export type MetricsFilters = {
