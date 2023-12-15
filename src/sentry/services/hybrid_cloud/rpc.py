@@ -36,7 +36,6 @@ from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, RpcM
 from sentry.services.hybrid_cloud.rpcmetrics import RpcMetricRecord
 from sentry.services.hybrid_cloud.sig import SerializableFunctionSignature
 from sentry.silo import SiloMode
-from sentry.silo.base import SiloLimit
 from sentry.types.region import Region, RegionMappingNotFound
 from sentry.utils import json, metrics
 from sentry.utils.env import in_test_environment
@@ -404,7 +403,8 @@ def dispatch_to_local_service(
 ) -> Any:
     service, method = _look_up_service_method(service_name, method_name)
     raw_arguments = service.deserialize_rpc_arguments(method_name, serial_arguments)
-    result = method(**raw_arguments.__dict__)
+    with SiloMode.enter_virtual_single_process_silo_context(service.local_mode):
+        result = method(**raw_arguments.__dict__)
 
     def result_to_dict(value: Any) -> Any:
         if isinstance(value, RpcModel):

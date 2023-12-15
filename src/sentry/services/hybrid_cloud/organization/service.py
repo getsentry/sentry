@@ -375,13 +375,28 @@ class OrganizationCheckService(abc.ABC):
 def _control_check_organization() -> OrganizationCheckService:
     from sentry.services.hybrid_cloud.organization.impl import ControlOrganizationCheckService
 
-    return ControlOrganizationCheckService()
+    with SiloMode.enter_virtual_single_process_silo_context(SiloMode.CONTROL):
+        return ControlOrganizationCheckService()
 
 
 def _region_check_organization() -> OrganizationCheckService:
     from sentry.services.hybrid_cloud.organization.impl import RegionOrganizationCheckService
 
-    return RegionOrganizationCheckService()
+    with SiloMode.enter_virtual_single_process_silo_context(SiloMode.REGION):
+        return RegionOrganizationCheckService()
+
+
+def _monolith_check_organization() -> OrganizationCheckService:
+    from sentry.services.hybrid_cloud.organization.impl import (
+        ControlOrganizationCheckService,
+        RegionOrganizationCheckService,
+    )
+
+    if SiloMode.get_virtual_mode() == SiloMode.CONTROL:
+        return ControlOrganizationCheckService()
+
+    with SiloMode.enter_virtual_single_process_silo_context(SiloMode.REGION):
+        return RegionOrganizationCheckService()
 
 
 class OrganizationSignalService(abc.ABC):
@@ -413,7 +428,7 @@ _organization_check_service: OrganizationCheckService = silo_mode_delegation(
     {
         SiloMode.REGION: _region_check_organization,
         SiloMode.CONTROL: _control_check_organization,
-        SiloMode.MONOLITH: _region_check_organization,
+        SiloMode.MONOLITH: _monolith_check_organization,
     }
 )
 
