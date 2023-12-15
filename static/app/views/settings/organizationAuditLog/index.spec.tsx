@@ -14,6 +14,7 @@ describe('OrganizationAuditLog', function () {
   const user: UserType = {
     ...User(),
     options: {
+      ...User().options,
       clock24Hours: true,
       timezone: 'America/Los_Angeles',
     },

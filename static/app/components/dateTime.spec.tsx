@@ -8,6 +8,7 @@ import ConfigStore from 'sentry/stores/configStore';
 describe('DateTime', () => {
   const user = User({
     options: {
+      ...User().options,
       clock24Hours: false,
       timezone: 'America/Los_Angeles',
     },

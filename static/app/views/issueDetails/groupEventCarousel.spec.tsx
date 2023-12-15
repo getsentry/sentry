@@ -44,16 +44,19 @@ describe('GroupEventCarousel', () => {
   describe('recommended event ui', () => {
     const recommendedUser = User({
       options: {
+        ...User().options,
         defaultIssueEvent: 'recommended',
       },
     });
     const latestUser = User({
       options: {
+        ...User().options,
         defaultIssueEvent: 'latest',
       },
     });
     const oldestUser = User({
       options: {
+        ...User().options,
         defaultIssueEvent: 'oldest',
       },
     });
