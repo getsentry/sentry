@@ -49,7 +49,7 @@ const getInstallConfig = (params: Params) => [
   },
 ];
 
-const replayOnboardingJsLoaderJavascript: OnboardingConfig = {
+const replayOnboardingJsLoader: OnboardingConfig = {
   install: (params: Params) => getInstallConfig(params),
   configure: () => [
     {
@@ -74,4 +74,4 @@ const StyledAlert = styled(Alert)`
   margin: 0;
 `;
 
-export default replayOnboardingJsLoaderJavascript;
+export default replayOnboardingJsLoader;

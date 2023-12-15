@@ -243,11 +243,8 @@ class DiscordIntegrationProvider(IntegrationProvider):
             )
             token = response["access_token"]  # type: ignore
 
-        except ApiError as e:
+        except (ApiError, KeyError) as e:
             logger.error("discord.install.failed_to_complete_oauth2_flow", extra={"code": e.code})
-            raise IntegrationError("Failed to complete Discord OAuth2 flow.")
-        except KeyError as e:
-            logger.error("discord.install.failed_to_extract_oauth2_access_token")
             raise IntegrationError("Failed to complete Discord OAuth2 flow.")
 
         headers = {"Authorization": f"Bearer {token}"}

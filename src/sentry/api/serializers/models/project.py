@@ -120,20 +120,15 @@ def get_access_by_project(
         )
 
         team_scopes = set()
-        with sentry_sdk.start_span(op="project.check-team-access", description=project.id) as span:
+        with sentry_sdk.start_span(
+            op="project.check-team-access", description=f"project={project.id}"
+        ) as span:
             span.set_tag("project.member_count", len(member_teams))
             if has_access:
                 # Project can be the child of several Teams, and the User can join
                 # several Teams and receive roles at each of them,
                 for member in member_teams:
-                    role_org = member.organizationmember.organization
-                    if role_org.id not in has_team_roles_cache:
-                        has_team_roles_cache[role_org.id] = features.has(
-                            "organizations:team-roles", role_org
-                        )
-                    team_scopes = team_scopes.union(
-                        *[member.get_scopes(has_team_roles_cache[role_org.id])]
-                    )
+                    team_scopes = team_scopes.union(*[member.get_scopes(has_team_roles_cache)])
 
                 # User may have elevated team-roles from their org-role
                 top_org_role = org_roles[0] if org_roles else None
@@ -249,6 +244,7 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     firstTransactionEvent: bool
     access: List[str]
     hasAccess: bool
+    hasCustomMetrics: bool
     hasMinifiedStackTrace: bool
     hasMonitors: bool
     hasProfiles: bool
@@ -491,6 +487,7 @@ class ProjectSerializer(Serializer):
             "firstTransactionEvent": bool(obj.flags.has_transactions),
             "access": attrs["access"],
             "hasAccess": attrs["has_access"],
+            "hasCustomMetrics": bool(obj.flags.has_custom_metrics),
             "hasMinifiedStackTrace": bool(obj.flags.has_minified_stack_trace),
             "hasMonitors": bool(obj.flags.has_cron_monitors),
             "hasProfiles": bool(obj.flags.has_profiles),
@@ -729,6 +726,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             hasReplays=bool(obj.flags.has_replays),
             hasFeedbacks=bool(obj.flags.has_feedbacks),
             hasNewFeedbacks=bool(obj.flags.has_new_feedbacks),
+            hasCustomMetrics=bool(obj.flags.has_custom_metrics),
             hasMonitors=bool(obj.flags.has_cron_monitors),
             hasMinifiedStackTrace=bool(obj.flags.has_minified_stack_trace),
             platform=obj.platform,
