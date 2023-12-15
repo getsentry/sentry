@@ -57,6 +57,7 @@ from sentry.statistical_detectors.detector import (
     DetectorState,
     RegressionDetector,
     TrendType,
+    generate_fingerprint,
 )
 from sentry.statistical_detectors.issue_platform_adapter import (
     fingerprint_regression,
@@ -975,7 +976,7 @@ def redirect_escalations(
                 [
                     (
                         int(regression["project"]),
-                        fingerprint_regression(regression["transaction"]),
+                        generate_fingerprint(regression_type, regression["transaction"]),
                     )
                     for regression in regression_chunk
                 ],
@@ -984,7 +985,7 @@ def redirect_escalations(
 
         for regression in regression_chunk:
             project_id = int(regression["project"])
-            fingerprint = fingerprint_regression(regression["transaction"])
+            fingerprint = generate_fingerprint(regression_type, regression["transaction"])
             group = existing_regression_groups.get((project_id, fingerprint))
 
             if group is None:
@@ -1005,7 +1006,6 @@ def save_versioned_regressions(
     regression_type: RegressionType,
     batch_size=100,
 ) -> Generator[BreakpointData, None, None]:
-
     for regression_chunk in chunked(versioned_regressions, batch_size):
         RegressionGroup.objects.bulk_create(
             [
@@ -1017,7 +1017,7 @@ def save_versioned_regressions(
                     version=version,
                     active=True,
                     project_id=int(regression["project"]),
-                    fingerprint=fingerprint_regression(regression["transaction"]),
+                    fingerprint=generate_fingerprint(regression_type, regression["transaction"]),
                     baseline=regression["aggregate_range_1"],
                     regressed=regression["aggregate_range_2"],
                 )

@@ -53,7 +53,7 @@ function OrganizationApiKeysList({
     <Button
       priority="primary"
       size="sm"
-      icon={<IconAdd size="xs" isCircled />}
+      icon={<IconAdd isCircled />}
       busy={busy}
       disabled={busy}
       onClick={onAddApiKey}

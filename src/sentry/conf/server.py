@@ -678,7 +678,7 @@ RPC_TIMEOUT = 5.0
 
 # The protocol, host and port for control silo
 # Usecases include sending requests to the Integration Proxy Endpoint and RPC requests.
-SENTRY_CONTROL_ADDRESS = os.environ.get("SENTRY_CONTROL_ADDRESS", None)
+SENTRY_CONTROL_ADDRESS: str | None = os.environ.get("SENTRY_CONTROL_ADDRESS", None)
 
 # Fallback region name for monolith deployments
 # This region name is also used by the ApiGateway to proxy org-less region
@@ -1869,6 +1869,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
     # Updated spike protection heuristic
     "organizations:spike-protection-decay-heuristic": False,
+    # Enable Slack messages using Block Kit
+    "organizations:slack-block-kit": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -3858,10 +3860,6 @@ SHOW_LOGIN_BANNER = False
 #   },
 # }
 SLICED_KAFKA_TOPICS: Mapping[tuple[str, int], Mapping[str, Any]] = {}
-
-# Used by silo tests -- when requests pass through decorated endpoints, switch the server silo mode to match that
-# decorator.
-SINGLE_SERVER_SILO_MODE = False
 
 # Used by silo tests -- activate all silo mode test decorators even if not marked stable
 FORCE_SILOED_TESTS = os.environ.get("SENTRY_FORCE_SILOED_TESTS", False)

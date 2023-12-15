@@ -54,7 +54,7 @@ function IssueListSortOptions({onSelect, sort, query}: Props) {
       value={sortKey}
       triggerProps={{
         size: 'xs',
-        icon: <IconSort size="xs" />,
+        icon: <IconSort />,
       }}
     />
   );

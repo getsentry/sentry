@@ -1,8 +1,10 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 
 from sentry.api.fields.sentry_slug import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.scheduledeletion import RegionScheduledDeletion
@@ -13,13 +15,14 @@ from sentry.monitors.models import (
     Monitor,
     MonitorCheckIn,
     MonitorEnvironment,
-    MonitorObjectStatus,
     ScheduleType,
 )
 from sentry.monitors.utils import get_timeout_at
+from sentry.quotas.base import SeatAssignmentResult
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.outcomes import Outcome
 
 
 @region_silo_test
@@ -166,6 +169,29 @@ class UpdateMonitorTest(MonitorTestCase):
 
         monitor = Monitor.objects.get(id=monitor.id)
         assert not monitor.is_muted
+
+    def test_deprecated_status_mute(self):
+        monitor = self._create_monitor()
+
+        # Mute via status
+        resp = self.get_success_response(
+            self.organization.slug, monitor.slug, method="PUT", **{"status": "muted"}
+        )
+        assert resp.data["slug"] == monitor.slug
+
+        monitor = Monitor.objects.get(id=monitor.id)
+        assert monitor.is_muted
+        assert monitor.status == ObjectStatus.ACTIVE
+
+        # Unmute via status
+        resp = self.get_success_response(
+            self.organization.slug, monitor.slug, method="PUT", **{"status": "active"}
+        )
+        assert resp.data["slug"] == monitor.slug
+
+        monitor = Monitor.objects.get(id=monitor.id)
+        assert not monitor.is_muted
+        assert monitor.status == ObjectStatus.ACTIVE
 
     def test_timezone(self):
         monitor = self._create_monitor()
@@ -544,6 +570,56 @@ class UpdateMonitorTest(MonitorTestCase):
             resp.data["detail"]["message"] == "existing monitors may not be moved between projects"
         ), resp.content
 
+    @patch("sentry.quotas.backend.check_assign_monitor_seat")
+    @patch("sentry.quotas.backend.assign_monitor_seat")
+    def test_activate_monitor_success(self, assign_monitor_seat, check_assign_monitor_seat):
+        check_assign_monitor_seat.return_value = SeatAssignmentResult(assignable=True)
+        assign_monitor_seat.return_value = Outcome.ACCEPTED
+
+        monitor = self._create_monitor()
+        monitor.update(status=ObjectStatus.DISABLED)
+
+        self.get_success_response(
+            self.organization.slug, monitor.slug, method="PUT", **{"status": "active"}
+        )
+
+        monitor = Monitor.objects.get(id=monitor.id)
+        assert monitor.status == ObjectStatus.ACTIVE
+        assert assign_monitor_seat.called
+
+    @patch("sentry.quotas.backend.check_assign_monitor_seat")
+    @patch("sentry.quotas.backend.assign_monitor_seat")
+    def test_activate_monitor_invalid(self, assign_monitor_seat, check_assign_monitor_seat):
+        result = SeatAssignmentResult(
+            assignable=False,
+            reason="Over quota",
+        )
+        check_assign_monitor_seat.return_value = result
+
+        monitor = self._create_monitor()
+        monitor.update(status=ObjectStatus.DISABLED)
+
+        resp = self.get_error_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            status_code=400,
+            **{"status": "active"},
+        )
+
+        assert resp.data["status"][0] == result.reason
+        assert not assign_monitor_seat.called
+
+    @patch("sentry.quotas.backend.disable_monitor_seat")
+    def test_deactivate_monitor(self, disable_monitor_seat):
+        monitor = self._create_monitor()
+
+        self.get_success_response(
+            self.organization.slug, monitor.slug, method="PUT", **{"status": "disabled"}
+        )
+
+        assert disable_monitor_seat.called
+
 
 @region_silo_test()
 class DeleteMonitorTest(MonitorTestCase):
@@ -562,7 +638,7 @@ class DeleteMonitorTest(MonitorTestCase):
         )
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == MonitorObjectStatus.PENDING_DELETION
+        assert monitor.status == ObjectStatus.PENDING_DELETION
         # Slug should update on deletion
         assert monitor.slug != old_slug
         assert RegionScheduledDeletion.objects.filter(
@@ -586,10 +662,10 @@ class DeleteMonitorTest(MonitorTestCase):
         )
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == MonitorObjectStatus.ACTIVE
+        assert monitor.status == ObjectStatus.ACTIVE
 
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
-        assert monitor_environment.status == MonitorObjectStatus.PENDING_DELETION
+        assert monitor_environment.status == ObjectStatus.PENDING_DELETION
         assert RegionScheduledDeletion.objects.filter(
             object_id=monitor_environment.id, model_name="MonitorEnvironment"
         ).exists()
@@ -608,16 +684,16 @@ class DeleteMonitorTest(MonitorTestCase):
         )
 
         monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.status == MonitorObjectStatus.ACTIVE
+        assert monitor.status == ObjectStatus.ACTIVE
 
         monitor_environment_a = MonitorEnvironment.objects.get(id=monitor_environment_a.id)
-        assert monitor_environment_a.status == MonitorObjectStatus.PENDING_DELETION
+        assert monitor_environment_a.status == ObjectStatus.PENDING_DELETION
         assert RegionScheduledDeletion.objects.filter(
             object_id=monitor_environment_a.id, model_name="MonitorEnvironment"
         ).exists()
 
         monitor_environment_b = MonitorEnvironment.objects.get(id=monitor_environment_b.id)
-        assert monitor_environment_b.status == MonitorObjectStatus.PENDING_DELETION
+        assert monitor_environment_b.status == ObjectStatus.PENDING_DELETION
         assert RegionScheduledDeletion.objects.filter(
             object_id=monitor_environment_b.id, model_name="MonitorEnvironment"
         ).exists()
@@ -642,7 +718,7 @@ class DeleteMonitorTest(MonitorTestCase):
         )
 
         rule = Rule.objects.get(project_id=monitor.project_id, id=monitor.config["alert_rule_id"])
-        assert rule.status == MonitorObjectStatus.PENDING_DELETION
+        assert rule.status == ObjectStatus.PENDING_DELETION
         assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.DELETED.value).exists()
 
     def test_simple_with_alert_rule_deleted(self):

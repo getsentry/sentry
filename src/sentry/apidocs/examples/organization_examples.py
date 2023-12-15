@@ -39,6 +39,7 @@ class OrganizationExamples:
                     "hasReplays": True,
                     "hasMinifiedStackTrace": False,
                     "hasMonitors": True,
+                    "hasCustomMetrics": False,
                     "hasUserReports": False,
                     "latestRelease": None,
                 }

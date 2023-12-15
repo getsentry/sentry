@@ -45,6 +45,11 @@ export default storyBook('Button', story => {
       <Matrix<ButtonProps>
         render={Button}
         propMatrix={propMatrix}
+        selectedProps={['size', 'icon']}
+      />
+      <Matrix<ButtonProps>
+        render={Button}
+        propMatrix={propMatrix}
         selectedProps={['borderless', 'translucentBorder']}
       />
       <Matrix<ButtonProps>

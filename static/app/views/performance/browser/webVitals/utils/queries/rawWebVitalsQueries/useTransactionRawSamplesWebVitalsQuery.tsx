@@ -10,9 +10,11 @@ import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVit
 import {
   DEFAULT_INDEXED_SORT,
   SORTABLE_INDEXED_FIELDS,
+  SORTABLE_INDEXED_SCORE_FIELDS,
   TransactionSampleRowWithScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 
 type Props = {
@@ -37,11 +39,18 @@ export const useTransactionRawSamplesWebVitalsQuery = ({
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const location = useLocation();
+  const shouldUseStoredScores = useStoredScoresSetting();
+
+  const filteredSortableFields = shouldUseStoredScores
+    ? SORTABLE_INDEXED_FIELDS
+    : SORTABLE_INDEXED_FIELDS.filter(
+        field => !SORTABLE_INDEXED_SCORE_FIELDS.includes(field)
+      );
 
   const sort = useWebVitalsSort({
     sortName,
     defaultSort: DEFAULT_INDEXED_SORT,
-    sortableFields: SORTABLE_INDEXED_FIELDS as unknown as string[],
+    sortableFields: filteredSortableFields as unknown as string[],
   });
 
   const eventView = EventView.fromNewQueryWithPageFilters(
@@ -62,7 +71,11 @@ export const useTransactionRawSamplesWebVitalsQuery = ({
         'project',
       ],
       name: 'Web Vitals',
-      query: `transaction.op:pageload transaction:"${transaction}" ${query ? query : ''}`,
+      query: [
+        'transaction.op:pageload',
+        `transaction:"${transaction}"`,
+        ...(query ? [query] : []),
+      ].join(' '),
       orderby: mapWebVitalToOrderBy(orderBy) ?? withProfiles ? '-profile.id' : undefined,
       version: 2,
     },
@@ -83,7 +96,7 @@ export const useTransactionRawSamplesWebVitalsQuery = ({
     referrer: 'api.performance.browser.web-vitals.transaction',
   });
 
-  const toNumber = (item: ReactText) => (item ? parseFloat(item.toString()) : null);
+  const toNumber = (item: ReactText) => (item ? parseFloat(item.toString()) : undefined);
   const tableData: TransactionSampleRowWithScore[] =
     !isLoading && data?.data.length
       ? data.data
@@ -113,7 +126,7 @@ export const useTransactionRawSamplesWebVitalsQuery = ({
               });
             return {
               ...row,
-              score: totalScore ?? 0,
+              totalScore: totalScore ?? 0,
               clsScore: clsScore ?? 0,
               fcpScore: fcpScore ?? 0,
               lcpScore: lcpScore ?? 0,

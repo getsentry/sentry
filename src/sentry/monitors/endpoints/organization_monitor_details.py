@@ -8,7 +8,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log
+from sentry import audit_log, quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -23,6 +23,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
+from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.monitors.endpoints.base import MonitorEndpoint
@@ -31,7 +32,6 @@ from sentry.monitors.models import (
     Monitor,
     MonitorCheckIn,
     MonitorEnvironment,
-    MonitorObjectStatus,
     MonitorStatus,
 )
 from sentry.monitors.serializers import MonitorSerializer
@@ -42,6 +42,7 @@ from sentry.monitors.utils import (
     update_alert_rule,
 )
 from sentry.monitors.validators import MonitorValidator
+from sentry.utils.outcomes import Outcome
 
 
 @region_silo_endpoint
@@ -117,7 +118,11 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                 "config": monitor.config,
                 "project": project,
             },
-            context={"organization": organization, "access": request.access},
+            context={
+                "organization": organization,
+                "access": request.access,
+                "monitor": monitor,
+            },
         )
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
@@ -131,9 +136,6 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
             params["slug"] = result["slug"]
         if "status" in result:
             params["status"] = result["status"]
-
-            # TODO(epurkhiser): Remove dual-writing once status no longer tracks muted
-            params["is_muted"] = result["status"] == MonitorObjectStatus.MUTED
         if "is_muted" in result:
             params["is_muted"] = result["is_muted"]
         if "config" in result:
@@ -154,6 +156,22 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
 
         if "project" in result and result["project"].id != monitor.project_id:
             raise ParameterValidationError("existing monitors may not be moved between projects")
+
+        # Update monitor slug
+        if "slug" in result:
+            quotas.backend.update_monitor_slug(monitor.slug, params["slug"], monitor.project_id)
+
+        # Attempt to assign a monitor seat
+        if params["status"] == ObjectStatus.ACTIVE:
+            outcome = quotas.backend.assign_monitor_seat(monitor)
+            # The MonitorValidator checks if a seat assignment is availble.
+            # This protects against a race condition
+            if outcome != Outcome.ACCEPTED:
+                raise ParameterValidationError("Failed to enable monitor, please try again")
+
+        # Attempt to unassign the monitor seat
+        if params["status"] == ObjectStatus.DISABLED:
+            quotas.backend.disable_monitor_seat(monitor)
 
         if params:
             monitor.update(**params)
@@ -216,8 +234,8 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                     )
                     .exclude(
                         monitor__status__in=[
-                            MonitorObjectStatus.PENDING_DELETION,
-                            MonitorObjectStatus.DELETION_IN_PROGRESS,
+                            ObjectStatus.PENDING_DELETION,
+                            ObjectStatus.DELETION_IN_PROGRESS,
                         ]
                     )
                     .exclude(
@@ -231,8 +249,8 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
             else:
                 monitor_objects = Monitor.objects.filter(id=monitor.id).exclude(
                     status__in=[
-                        MonitorObjectStatus.PENDING_DELETION,
-                        MonitorObjectStatus.DELETION_IN_PROGRESS,
+                        ObjectStatus.PENDING_DELETION,
+                        ObjectStatus.DELETION_IN_PROGRESS,
                     ]
                 )
                 event = audit_log.get_event_id("MONITOR_REMOVE")
@@ -248,14 +266,14 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                         )
                         .exclude(
                             status__in=[
-                                MonitorObjectStatus.PENDING_DELETION,
-                                MonitorObjectStatus.DELETION_IN_PROGRESS,
+                                ObjectStatus.PENDING_DELETION,
+                                ObjectStatus.DELETION_IN_PROGRESS,
                             ]
                         )
                         .first()
                     )
                     if rule:
-                        rule.update(status=MonitorObjectStatus.PENDING_DELETION)
+                        rule.update(status=ObjectStatus.PENDING_DELETION)
                         RuleActivity.objects.create(
                             rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
                         )
@@ -274,7 +292,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
             # create copy of queryset as update will remove objects
             monitor_objects_list = list(monitor_objects)
             if not monitor_objects or not monitor_objects.update(
-                status=MonitorObjectStatus.PENDING_DELETION
+                status=ObjectStatus.PENDING_DELETION
             ):
                 return self.respond(status=404)
 

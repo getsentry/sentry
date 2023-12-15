@@ -61,7 +61,7 @@ export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps)
                     referrer: 'issue',
                   },
                 })}
-                icon={<IconProfiling size="xs" />}
+                icon={<IconProfiling />}
               >
                 {t('View Profile')}
               </Button>

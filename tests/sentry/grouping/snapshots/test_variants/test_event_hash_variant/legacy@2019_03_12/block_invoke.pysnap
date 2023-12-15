@@ -1,0 +1,43 @@
+---
+created: '2023-12-12T18:45:37.447995Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (logentry takes precedence)
+      threads
+        stacktrace
+          frame
+            function (function name is not used if module or filename are available)
+              "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
+          frame (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function (function name is not used if module or filename are available)
+              "__99+[Something else]_block_invoke_2"
+          frame (non app frame)
+            function (function name is not used if module or filename are available)
+              "__00+[Something else]_block_invoke_2"
+--------------------------------------------------------------------------
+default:
+  hash: "1356c67d7ad1638d816bfb822dd2c25d"
+  component:
+    default*
+      message*
+        "Foo"
+--------------------------------------------------------------------------
+system:
+  hash: null
+  component:
+    system (logentry takes precedence)
+      threads
+        stacktrace
+          frame
+            function (function name is not used if module or filename are available)
+              "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
+          frame (marked in-app by stack trace rule (family:native package:**/containers/bundle/application/** +app))
+            function (function name is not used if module or filename are available)
+              "__99+[Something else]_block_invoke_2"
+          frame
+            function (function name is not used if module or filename are available)
+              "__00+[Something else]_block_invoke_2"

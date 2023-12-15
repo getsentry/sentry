@@ -67,7 +67,7 @@ function SpanSummaryPage({params}: Props) {
 
   const sort = useModuleSort(QueryParameterNames.ENDPOINTS_SORT, DEFAULT_SORT);
 
-  const {data: spanMetrics} = useSpanMetrics(
+  const {data} = useSpanMetrics(
     filters,
     [
       SpanMetricsField.SPAN_OP,
@@ -81,8 +81,13 @@ function SpanSummaryPage({params}: Props) {
       `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
       `${SpanFunction.HTTP_ERROR_COUNT}()`,
     ],
+    undefined,
+    undefined,
+    undefined,
     'api.starfish.span-summary-page-metrics'
   );
+
+  const spanMetrics = data[0] ?? {};
 
   const span = {
     ...spanMetrics,

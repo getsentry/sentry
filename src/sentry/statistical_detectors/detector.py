@@ -21,6 +21,7 @@ from sentry.models.statistical_detectors import (
 )
 from sentry.search.events.fields import get_function_alias
 from sentry.seer.utils import BreakpointData, detect_breakpoints
+from sentry.statistical_detectors.issue_platform_adapter import fingerprint_regression
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.snuba import SnubaTSResult
@@ -307,7 +308,10 @@ class RegressionDetector(ABC):
                 for group in get_regression_groups(
                     cls.regression_type,
                     [
-                        (payload.project_id, payload.fingerprint)
+                        (
+                            payload.project_id,
+                            generate_fingerprint(cls.regression_type, payload.group),
+                        )
                         for trend_type, score, payload, state in trend_chunk
                     ],
                     active=True,
@@ -316,7 +320,12 @@ class RegressionDetector(ABC):
 
             for trend_type, score, payload, state in trend_chunk:
                 try:
-                    group = active_regression_groups.get((payload.project_id, payload.fingerprint))
+                    group = active_regression_groups.get(
+                        (
+                            payload.project_id,
+                            generate_fingerprint(cls.regression_type, payload.group),
+                        )
+                    )
                     if group is not None and state.should_auto_resolve(
                         group.baseline, cls.resolution_rel_threshold
                     ):
@@ -346,3 +355,12 @@ class RegressionDetector(ABC):
             tags={"source": cls.source, "kind": cls.kind},
             sample_rate=1.0,
         )
+
+
+def generate_fingerprint(regression_type: RegressionType, name: str) -> str:
+    if regression_type == RegressionType.ENDPOINT:
+        return fingerprint_regression(name, full=True)
+    elif regression_type == RegressionType.FUNCTION:
+        return f"{int(name):x}"
+    else:
+        raise ValueError(f"Unsupported RegressionType: {regression_type}")
