@@ -95,15 +95,11 @@ async def hello_world(request):
         `,
         },
       ],
-      additionalInfo: (
-        <p>
-          {tct(
-            'When you point your browser to [link:http://localhost:8000/] an error will be sent to Sentry.',
-            {
-              link: <ExternalLink href="http://localhost:8000/" />,
-            }
-          )}
-        </p>
+      additionalInfo: tct(
+        'When you point your browser to [link:http://localhost:8000/] an error will be sent to Sentry.',
+        {
+          link: <ExternalLink href="http://localhost:8000/" />,
+        }
       ),
     },
   ],
