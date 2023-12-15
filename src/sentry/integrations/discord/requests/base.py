@@ -124,10 +124,12 @@ class DiscordRequest:
         return {k: v for k, v in data.items() if v}
 
     @property
-    def response_url(self):
+    def response_url(self) -> str | None:
         """Used for async responses in DiscordRequestParser"""
         application_id = self._data.get("application_id")
         token = self._data.get("token")
+        if not token or not application_id:
+            return None
         return f"https://discord.com/api/v10/webhooks/{application_id}/{token}"
 
     def _get_context(self):

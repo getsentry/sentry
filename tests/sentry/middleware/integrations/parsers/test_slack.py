@@ -1,4 +1,5 @@
 from unittest.mock import MagicMock, patch, sentinel
+from urllib.parse import urlencode
 
 import pytest
 from django.test import RequestFactory
@@ -36,12 +37,11 @@ class SlackRequestParserTest(TestCase):
         )
 
     def get_parser(self, path: str):
-        self.request = self.factory.post(path)
+        data = urlencode({"team_id": self.integration.external_id}).encode("utf-8")
+        self.request = self.factory.post(
+            path, content_type="application/x-www-form-urlencoded", data=data
+        )
         return SlackRequestParser(self.request, self.get_response)
-
-    @pytest.mark.skip(reason="Will be implemented after frontend installation is setup")
-    def test_installation(self):
-        pass
 
     @patch.object(SlackCommandRequest, "integration")
     @patch.object(SlackCommandRequest, "validate_integration")
