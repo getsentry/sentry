@@ -88,7 +88,8 @@ class Staff(ElevatedMode):
         # _admin should have always completed SSO to gain status.
         # We expect ORG_ID to always be set in production.
         if ORG_ID and not has_completed_sso(self.request, ORG_ID):
-            return False, "incomplete-sso"
+            if not DISABLE_SSO_CHECK_FOR_LOCAL_DEV:
+                return False, "incomplete-sso"
 
         # if there's no IPs configured, we allow assume its the same as *
         if not allowed_ips:
