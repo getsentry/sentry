@@ -704,7 +704,7 @@ function WidgetViewerModal(props: Props) {
     // For now we only support one aggregate in metric widgets, once we support multiple aggregates we will need to do the sorting on the backend
     const mainField = props.widget.queries[0].aggregates[0];
     const sortedData = [...data].sort(
-      (a, b) => Number(a[mainField]) - Number(b[mainField])
+      (a, b) => Number(b[mainField]) - Number(a[mainField])
     );
 
     return (
