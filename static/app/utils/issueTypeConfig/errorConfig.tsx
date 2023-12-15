@@ -45,7 +45,7 @@ const ErrorInfoChecks: Array<ErrorInfo> = [
   },
   {
     errorTitle: 'Invariant: attempted to hard navigate to the same URL',
-    projectCheck: false,
+    projectCheck: true,
     errorHelpType: ErrorHelpType.HANDLE_HARD_NAVIGATE_ERROR,
   },
 ];
