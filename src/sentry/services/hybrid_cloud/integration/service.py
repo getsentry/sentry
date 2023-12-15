@@ -110,6 +110,7 @@ class IntegrationService(RpcService):
         status: Optional[int] = None,
         providers: Optional[List[str]] = None,
         has_grace_period: Optional[bool] = None,
+        grace_period_expired: bool | None = None,
         limit: Optional[int] = None,
     ) -> List[RpcOrganizationIntegration]:
         """
