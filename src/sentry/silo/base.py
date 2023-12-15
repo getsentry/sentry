@@ -101,15 +101,21 @@ class SiloMode(Enum):
         resources (e.g. database models), functions, etc. For any silo mode violations, we emit a Sentry error event.
         """
         original_virtual_mode = single_process_silo_mode_state.virtual_mode
-        if original_virtual_mode is not None:
+        if original_virtual_mode is not None and original_virtual_mode != mode:
             # enter_virtual_single_process_silo_context should only be called once to set the virtual mode
-            sentry_sdk.capture_exception(
-                Exception("Re-entrant on enter_virtual_single_process_silo_context")
-            )
+            message = "Re-entrant on enter_virtual_single_process_silo_context with different mode"
+            try:
+                raise Exception(message)
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+
         if mode == SiloMode.MONOLITH:
-            sentry_sdk.capture_exception(
-                Exception("Incorrect use of enter_virtual_single_process_silo_context")
-            )
+            message = "Incorrect use of enter_virtual_single_process_silo_context"
+            try:
+                raise Exception(message)
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+
         single_process_silo_mode_state.virtual_mode = mode
         try:
             yield
