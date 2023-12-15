@@ -116,6 +116,10 @@ class Superuser(ElevatedMode):
             self.allowed_ips = frozenset(
                 ipaddress.ip_network(str(v), strict=False) for v in allowed_ips or ()
             )
+        logger.info(
+            "superuser.setting_org_id",
+            extra={"module_org_id": ORG_ID, "class_org_id": self.org_id, "arg_org_id": org_id},
+        )
         if org_id is not UNSET:
             self.org_id = org_id
         self._populate(current_datetime=current_datetime)
