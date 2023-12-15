@@ -26,10 +26,13 @@ import {
   isEquationAlias,
   Sort,
 } from 'sentry/utils/discover/fields';
+import {NumberContainer} from 'sentry/utils/discover/styles';
 import {
   eventDetailsRouteWithEventView,
   generateEventSlug,
 } from 'sentry/utils/discover/urls';
+import {formatMetricUsingUnit} from 'sentry/utils/metrics';
+import {formatMRIField, parseField, parseMRI} from 'sentry/utils/metrics/mri';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {ISSUE_FIELDS} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
@@ -198,6 +201,15 @@ export const renderGridBodyCell = ({
         break;
       case WidgetType.DISCOVER:
       default:
+        const parsedField = parseField(columnKey);
+        if (parsedField) {
+          const unit = parseMRI(parsedField.mri)?.unit ?? '';
+          return (
+            <NumberContainer>
+              {formatMetricUsingUnit(dataRow[column.key], unit)}
+            </NumberContainer>
+          );
+        }
         if (!tableData || !tableData.meta) {
           return dataRow[column.key];
         }
@@ -360,10 +372,30 @@ export const renderReleaseGridHeaderCell = ({
     );
   };
 
+export const renderMetricGridHeaderCell = () =>
+  function (
+    column: TableColumn<keyof TableDataRow>,
+    _columnIndex: number
+  ): React.ReactNode {
+    const align = parseField(column.name) ? 'right' : 'left';
+    const titleText = formatMRIField(column.name);
+
+    return (
+      <StyledTooltip skipWrapper showOnlyOnOverflow title={titleText}>
+        <AlignedText align={align}>{titleText}</AlignedText>
+      </StyledTooltip>
+    );
+  };
+
 const StyledTooltip = styled(Tooltip)`
   display: initial;
 `;
 
 const PrependHeader = styled('span')`
   color: ${p => p.theme.subText};
+`;
+
+const AlignedText = styled('div')<{align: string}>`
+  width: 100%;
+  text-align: ${p => p.align};
 `;
