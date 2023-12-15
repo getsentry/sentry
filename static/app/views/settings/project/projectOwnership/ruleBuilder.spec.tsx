@@ -1,5 +1,6 @@
 import selectEvent from 'react-select-event';
 import {Team} from 'sentry-fixture/team';
+import {User} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -21,7 +22,7 @@ describe('RuleBuilder', function () {
   let project: Project;
   let handleAdd: jest.Mock;
 
-  const USER_1 = TestStubs.User({
+  const USER_1 = User({
     id: '1',
     name: 'Jane Bloggs',
     email: 'janebloggs@example.com',
@@ -31,7 +32,7 @@ describe('RuleBuilder', function () {
       email: 'janebloggs@example.com',
     },
   });
-  const USER_2 = TestStubs.User({
+  const USER_2 = User({
     id: '2',
     name: 'John Smith',
     email: 'johnsmith@example.com',

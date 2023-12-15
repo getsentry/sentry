@@ -1,5 +1,6 @@
 import {Members} from 'sentry-fixture/members';
 import {Organization} from 'sentry-fixture/organization';
+import {User} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -11,7 +12,7 @@ import {EditOwnershipRules} from './editRulesModal';
 describe('Project Ownership Input', () => {
   const org = Organization();
   const project = TestStubs.Project();
-  const user = TestStubs.User();
+  const user = User();
 
   beforeEach(() => {
     ConfigStore.set('user', user);

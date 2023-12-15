@@ -1,4 +1,5 @@
 import {Commit} from 'sentry-fixture/commit';
+import {User} from 'sentry-fixture/user';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
@@ -44,7 +45,7 @@ describe('ResolutionBox', function () {
       <ResolutionBox
         statusDetails={{
           inNextRelease: true,
-          actor: TestStubs.User(),
+          actor: User(),
         }}
         projectId="1"
         activities={[

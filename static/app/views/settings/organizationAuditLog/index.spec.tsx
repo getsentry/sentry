@@ -1,4 +1,5 @@
 import {AuditLogsApiEventNames} from 'sentry-fixture/auditLogsApiEventNames';
+import {User} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -6,12 +7,12 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {Config, User} from 'sentry/types';
+import {Config, User as UserType} from 'sentry/types';
 import OrganizationAuditLog from 'sentry/views/settings/organizationAuditLog';
 
 describe('OrganizationAuditLog', function () {
-  const user: User = {
-    ...TestStubs.User(),
+  const user: UserType = {
+    ...User(),
     options: {
       clock24Hours: true,
       timezone: 'America/Los_Angeles',
@@ -32,7 +33,7 @@ describe('OrganizationAuditLog', function () {
         rows: [
           {
             id: '4500000',
-            actor: TestStubs.User(),
+            actor: User(),
             event: 'project.remove',
             ipAddress: '127.0.0.1',
             note: 'removed project test',
@@ -43,7 +44,7 @@ describe('OrganizationAuditLog', function () {
           },
           {
             id: '430000',
-            actor: TestStubs.User(),
+            actor: User(),
             event: 'org.create',
             ipAddress: '127.0.0.1',
             note: 'created the organization',
@@ -89,7 +90,7 @@ describe('OrganizationAuditLog', function () {
       body: {
         rows: [
           {
-            actor: TestStubs.User(),
+            actor: User(),
             event: 'sampling_priority.enabled',
             ipAddress: '127.0.0.1',
             id: '14',
@@ -105,7 +106,7 @@ describe('OrganizationAuditLog', function () {
             },
           },
           {
-            actor: TestStubs.User(),
+            actor: User(),
             event: 'sampling_priority.disabled',
             ipAddress: '127.0.0.1',
             id: '15',

@@ -1,10 +1,12 @@
+import {User} from 'sentry-fixture/user';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import DateTime from 'sentry/components/dateTime';
 import ConfigStore from 'sentry/stores/configStore';
 
 describe('DateTime', () => {
-  const user = TestStubs.User({
+  const user = User({
     options: {
       clock24Hours: false,
       timezone: 'America/Los_Angeles',

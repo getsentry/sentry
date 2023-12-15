@@ -1,6 +1,7 @@
 import {Event as EventFixture} from 'sentry-fixture/event';
 import {Tags} from 'sentry-fixture/tags';
 import {Team} from 'sentry-fixture/team';
+import {User} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -195,13 +196,13 @@ describe('GroupSidebar', function () {
     };
     const teams = [{...Team(), type: 'team'}];
     const users = [
-      TestStubs.User({
+      User({
         id: '2',
         name: 'John Smith',
         email: 'johnsmith@example.com',
         type: 'user',
       }),
-      TestStubs.User({
+      User({
         id: '3',
         name: 'Sohn Jmith',
         email: 'sohnjmith@example.com',
