@@ -328,7 +328,7 @@ class TestEventManagerSeverity(TestCase):
             assert (
                 event.group
                 and event.group.get_event_metadata()["severity"] == 0.1121
-                and event.group.get_event_metadata()["severity.reason"] == "ml"
+                and event.group.get_event_metadata()["severity_reason"] == "ml"
             )
 
     @patch("sentry.event_manager._get_severity_score", return_value=(0.1121, "ml"))

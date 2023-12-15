@@ -1865,13 +1865,8 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
     # add sdk tag to metadata
     group_data.setdefault("metadata", {}).update(sdk_metadata_from_event(event))
 
-    # get severity score for use in alerting
-    if features.has("projects:first-event-severity-calculation", event.project):
-        severity, reason = _get_severity_score(event)
-
-        group_data.setdefault("metadata", {})
-        group_data["metadata"]["severity"] = severity
-        group_data["metadata"]["severity.reason"] = reason
+    # add severity to metadata for alert filtering
+    group_data["metadata"].update(_get_severity_metadata_for_group(event))
 
     return Group.objects.create(
         project=project,
@@ -2086,6 +2081,27 @@ severity_connection_pool = connection_from_url(
     ),
     timeout=settings.SEVERITY_DETECTION_TIMEOUT,  # Defaults to 300 milliseconds
 )
+
+
+def _get_severity_metadata_for_group(event: Event) -> Mapping[str, Any]:
+    """
+    Returns severity metadata for an event if the feature flag is enabled.
+    Returns {} on feature flag not enabled or exception.
+    """
+    if features.has("projects:first-event-severity-calculation", event.project):
+        try:
+            severity, reason = _get_severity_score(event)
+
+            return {
+                "severity": severity,
+                "severity_reason": reason,
+            }
+        except Exception as e:
+            logger.warning("Failed to calculate severity score for group", repr(e))
+
+            return {}
+
+    return {}
 
 
 def _get_severity_score(event: Event) -> Tuple[float, str]:
