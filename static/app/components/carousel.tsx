@@ -100,7 +100,7 @@ function Carousel({children, visibleRatio = 0.8}: CarouselProps) {
           onClick={scrollLeft}
           direction="left"
           aria-label={t('Scroll left')}
-          icon={<IconArrow size="sm" direction="left" />}
+          icon={<IconArrow direction="left" />}
         />
       )}
       {!isAtEnd && (
@@ -108,7 +108,7 @@ function Carousel({children, visibleRatio = 0.8}: CarouselProps) {
           onClick={scrollRight}
           direction="right"
           aria-label={t('Scroll right')}
-          icon={<IconArrow size="sm" direction="right" />}
+          icon={<IconArrow direction="right" />}
         />
       )}
     </CarouselContainer>

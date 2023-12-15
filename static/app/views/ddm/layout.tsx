@@ -113,10 +113,8 @@ const ScrollingPage = styled(Layout.Page)`
 
 const PaddedContainer = styled('div')`
   margin-bottom: ${space(2)};
-  display: grid;
-  grid-template: 1fr / 1fr max-content;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
   gap: ${space(1)};
-  @media (max-width: ${props => props.theme.breakpoints.small}) {
-    grid-template: 1fr 1fr / 1fr;
-  }
 `;
