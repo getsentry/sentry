@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
+import {Project} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -27,11 +28,6 @@ export function NoDataMessage({Wrapper = DivWrapper, isDataAvailable}: Props) {
       enabled: pageFilterIsReady && !isDataAvailable,
     });
 
-  const organization = useOrganization();
-
-  const hasMoreOutdatedProjectsThanVisible =
-    outdatedProjects.length > MAX_LISTED_PROJECTS;
-
   if (areOutdatedProjectsFetching) {
     return null;
   }
@@ -39,8 +35,6 @@ export function NoDataMessage({Wrapper = DivWrapper, isDataAvailable}: Props) {
   if (isDataAvailable) {
     return null;
   }
-
-  const firstOutdatedProjects = outdatedProjects.slice(0, MAX_LISTED_PROJECTS + 1);
 
   return (
     <Wrapper>
@@ -55,33 +49,44 @@ export function NoDataMessage({Wrapper = DivWrapper, isDataAvailable}: Props) {
       )}{' '}
       {outdatedProjects.length > 0 &&
         tct('You may also be missing data due to outdated SDKs: [projectList]', {
-          documentation: (
-            <ExternalLink href="https://docs.sentry.io/product/performance/query-insights/" />
-          ),
-          projectList: (
-            <Fragment>
-              {firstOutdatedProjects.map((project, projectIndex) => {
-                return (
-                  <span key={project.id}>
-                    <a
-                      href={normalizeUrl(
-                        `/organizations/${organization.slug}/projects/${project.slug}/`
-                      )}
-                    >
-                      {project.name}
-                    </a>
-                    {projectIndex < firstOutdatedProjects.length - 1 && ', '}
-                  </span>
-                );
-              })}
-            </Fragment>
-          ),
+          projectList: <ProjectList projects={outdatedProjects} />,
         })}
-      {hasMoreOutdatedProjectsThanVisible &&
-        tct(' and [count] more.', {
-          count: outdatedProjects.length - MAX_LISTED_PROJECTS,
-        })}{' '}
     </Wrapper>
+  );
+}
+
+interface ProjectListProps {
+  projects: Project[];
+  limit?: number;
+}
+
+function ProjectList({projects, limit = MAX_LISTED_PROJECTS}: ProjectListProps) {
+  const organization = useOrganization();
+
+  const visibleProjects = projects.slice(0, limit + 1);
+  const hasMoreProjectsThanVisible = projects.length > MAX_LISTED_PROJECTS;
+
+  return (
+    <Fragment>
+      {visibleProjects.slice(0, limit).map((project, projectIndex) => {
+        return (
+          <span key={project.id}>
+            <a
+              href={normalizeUrl(
+                `/organizations/${organization.slug}/projects/${project.slug}/`
+              )}
+            >
+              {project.name}
+            </a>
+            {projectIndex < visibleProjects.length - 1 && ', '}
+          </span>
+        );
+      })}
+      {hasMoreProjectsThanVisible &&
+        tct(' and [count] more.', {
+          count: projects.length - limit,
+        })}{' '}
+    </Fragment>
   );
 }
 
