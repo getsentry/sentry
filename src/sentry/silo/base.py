@@ -42,10 +42,6 @@ class SiloMode(Enum):
         return str(self.value)
 
     @classmethod
-    def single_process_silo_mode(cls) -> bool:
-        return bool(settings.SINGLE_SERVER_SILO_MODE)
-
-    @classmethod
     @contextlib.contextmanager
     def enter_single_process_silo_context(
         cls, mode: SiloMode, region: Region | None = None

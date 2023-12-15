@@ -3861,10 +3861,6 @@ SHOW_LOGIN_BANNER = False
 # }
 SLICED_KAFKA_TOPICS: Mapping[tuple[str, int], Mapping[str, Any]] = {}
 
-# Used by silo tests -- when requests pass through decorated endpoints, switch the server silo mode to match that
-# decorator.
-SINGLE_SERVER_SILO_MODE = False
-
 # Used by silo tests -- activate all silo mode test decorators even if not marked stable
 FORCE_SILOED_TESTS = os.environ.get("SENTRY_FORCE_SILOED_TESTS", False)
 
