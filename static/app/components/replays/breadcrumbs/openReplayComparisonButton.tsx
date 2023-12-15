@@ -29,6 +29,7 @@ export function OpenReplayComparisonButton({
     <Button
       role="button"
       size="xs"
+      analyticsEventKey="replay.details-hydration-modal-opened"
       onClick={() => {
         openModal(
           deps => (
