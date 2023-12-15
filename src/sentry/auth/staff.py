@@ -58,7 +58,7 @@ class Staff(ElevatedMode):
         self.uid: str | None = None
         self.request = request
         print("setting org_id", ORG_ID)
-        self.org_id = getattr(settings, "STAFF_ORG_ID", None)
+        self.org_id = ORG_ID
         if allowed_ips is not UNSET:
             self.allowed_ips = frozenset(
                 ipaddress.ip_network(str(v), strict=False) for v in allowed_ips or ()
@@ -71,14 +71,19 @@ class Staff(ElevatedMode):
         if not hasattr(self.request, "user"):
             return False
         # if we've been logged out
+        print("is_authenticated", self.request.user.is_authenticated)
         if not self.request.user.is_authenticated:
+            print("logged out")
             return False
         # if staff status was changed
         if not self.request.user.is_staff:
             return False
         # if the user has changed
+        print("user_id", self.request.user.id, "uid", self.uid)
         if str(self.request.user.id) != self.uid:
+            print("user changed")
             return False
+        print("hit self._is_active")
         return self._is_active
 
     def is_privileged_request(self):
@@ -88,8 +93,9 @@ class Staff(ElevatedMode):
         allowed_ips = self.allowed_ips
 
         # _admin should always have completed SSO to gain status
-        print(ORG_ID)
+        print("current org_id", self.org_id, "constant: ", ORG_ID)
         if not has_completed_sso(self.request, ORG_ID):
+            print("failed SSO")
             return False, "incomplete-sso"
 
         # if there's no IPs configured, we allow assume its the same as *
@@ -142,8 +148,10 @@ class Staff(ElevatedMode):
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
             )
             return
+        print("session token", session_token, "cookie token", cookie_token)
 
         if not constant_time_compare(cookie_token, session_token):
+            print("hit invalid token")
             logger.warning(
                 "staff.invalid-token",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
@@ -151,6 +159,7 @@ class Staff(ElevatedMode):
             return
 
         if data["uid"] != str(request.user.id):
+            print("hit invalid uid")
             logger.warning(
                 "staff.invalid-uid",
                 extra={
@@ -174,7 +183,10 @@ class Staff(ElevatedMode):
             )
             return
 
+        print("idl", data["idl"], "current", current_datetime)
+
         if data["idl"] < current_datetime:
+            print("hit idle session expired")
             logger.info(
                 "staff.session-expired",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
@@ -192,6 +204,7 @@ class Staff(ElevatedMode):
             return
 
         if data["exp"] < current_datetime:
+            print("hit session expired")
             logger.info(
                 "staff.session-expired",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
@@ -211,9 +224,11 @@ class Staff(ElevatedMode):
         elif not (user and user.is_staff):
             data = None
         else:
+            print("getting data from session")
             data = self.get_session_data(current_datetime=current_datetime)
 
         if not data:
+            print("data not found, logging out")
             self._set_logged_out()
         else:
             self._set_logged_in(expires=data["exp"], token=data["tok"], user=user)
@@ -245,6 +260,7 @@ class Staff(ElevatedMode):
         if current_datetime is None:
             current_datetime = timezone.now()
         self.token = token
+        print("setting uid", user.id)
         self.uid = str(user.id)
         # the absolute maximum age of this session
         self.expires = expires

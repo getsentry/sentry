@@ -116,7 +116,6 @@ class Superuser(ElevatedMode):
             self.allowed_ips = frozenset(
                 ipaddress.ip_network(str(v), strict=False) for v in allowed_ips or ()
             )
-        print(self.org_id, ORG_ID)
         if org_id is not UNSET:
             self.org_id = org_id
         self._populate(current_datetime=current_datetime)
@@ -129,21 +128,29 @@ class Superuser(ElevatedMode):
 
     @property
     def is_active(self):
+        # breakpoint()
         org = getattr(self.request, "organization", None)
         if org and org.id != self.org_id:
             return self._check_expired_on_org_change()
         # We have a wsgi request with no user.
         if not hasattr(self.request, "user"):
+            print("no user on wsgi request")
             return False
         # if we've been logged out
+        print("is_authenticated", self.request.user.is_authenticated)
         if not self.request.user.is_authenticated:
+            print("logged out")
             return False
         # if superuser status was changed
         if not self.request.user.is_superuser:
+            print("user is not superuser")
             return False
         # if the user has changed
+        print("user_id", self.request.user.id, "uid", self.uid)
         if str(self.request.user.id) != self.uid:
+            print("user changed")
             return False
+        print("hit self._is_active")
         return self._is_active
 
     def is_privileged_request(self):
@@ -236,6 +243,7 @@ class Superuser(ElevatedMode):
             return
 
         if data["idl"] < current_datetime:
+            print("superuser.session-expired")
             logger.info(
                 "superuser.session-expired",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
