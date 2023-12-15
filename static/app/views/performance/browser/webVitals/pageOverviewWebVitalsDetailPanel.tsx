@@ -53,7 +53,7 @@ const columnOrder: GridColumnOrder[] = [
 ];
 
 const sort: GridColumnSortBy<keyof TransactionSampleRowWithScore> = {
-  key: 'score',
+  key: 'totalScore',
   order: 'desc',
 };
 
@@ -174,8 +174,8 @@ export function PageOverviewWebVitalsDetailPanel({
     return <NoOverflow>{col.name}</NoOverflow>;
   };
 
-  const getFormattedDuration = (value: number | null) => {
-    if (value === null) {
+  const getFormattedDuration = (value: number) => {
+    if (value === undefined) {
       return null;
     }
     if (value < 1000) {
@@ -188,7 +188,7 @@ export function PageOverviewWebVitalsDetailPanel({
     const {key} = col;
     const projectSlug = getProjectSlug(row);
     if (key === 'score') {
-      if (row[`measurements.${webVital}`] !== null) {
+      if (row[`measurements.${webVital}`] !== undefined) {
         return (
           <AlignCenter>
             <PerformanceBadge score={row[`${webVital}Score`]} />
@@ -198,10 +198,14 @@ export function PageOverviewWebVitalsDetailPanel({
       return null;
     }
     if (col.key === 'webVital') {
-      if (row[key] === null) {
-        return <NoValue>{t('(no value)')}</NoValue>;
-      }
       const value = row[`measurements.${webVital}`];
+      if (value === undefined) {
+        return (
+          <AlignRight>
+            <NoValue>{t('(no value)')}</NoValue>
+          </AlignRight>
+        );
+      }
       const formattedValue =
         webVital === 'cls' ? value?.toFixed(2) : getFormattedDuration(value);
       return <AlignRight>{formattedValue}</AlignRight>;
@@ -217,7 +221,7 @@ export function PageOverviewWebVitalsDetailPanel({
     }
     if (key === 'replayId') {
       const replayTarget =
-        row['transaction.duration'] !== null &&
+        row['transaction.duration'] !== undefined &&
         replayLinkGenerator(
           organization,
           {
@@ -267,7 +271,7 @@ export function PageOverviewWebVitalsDetailPanel({
   return (
     <PageErrorProvider>
       <DetailPanel detailKey={webVital ?? undefined} onClose={onClose}>
-        {webVital && projectData && webVitalScore !== null && (
+        {webVital && projectData && webVitalScore !== undefined && (
           <WebVitalDetailHeader
             value={
               webVital !== 'cls'

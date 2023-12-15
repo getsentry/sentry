@@ -29,15 +29,15 @@ import {PageOverviewSidebar} from 'sentry/views/performance/browser/webVitals/co
 import {PerformanceScoreBreakdownChart} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
 import WebVitalMeters from 'sentry/views/performance/browser/webVitals/components/webVitalMeters';
 import {PageOverviewWebVitalsDetailPanel} from 'sentry/views/performance/browser/webVitals/pageOverviewWebVitalsDetailPanel';
-import {
-  PageSamplePerformanceTable,
-  TransactionSampleRowWithScoreAndExtra,
-} from 'sentry/views/performance/browser/webVitals/pageSamplePerformanceTable';
+import {PageSamplePerformanceTable} from 'sentry/views/performance/browser/webVitals/pageSamplePerformanceTable';
 import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
-import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
+import {
+  TransactionSampleRowWithScore,
+  WebVitals,
+} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 
@@ -59,9 +59,7 @@ const LANDING_DISPLAYS = [
   },
 ];
 
-const SAMPLES_COLUMN_ORDER: GridColumnOrder<
-  keyof TransactionSampleRowWithScoreAndExtra
->[] = [
+const SAMPLES_COLUMN_ORDER: GridColumnOrder<keyof TransactionSampleRowWithScore>[] = [
   {key: 'id', width: COL_WIDTH_UNDEFINED, name: 'Event ID'},
   {key: 'user.display', width: COL_WIDTH_UNDEFINED, name: 'User'},
   {key: 'measurements.lcp', width: COL_WIDTH_UNDEFINED, name: 'LCP'},
@@ -71,7 +69,7 @@ const SAMPLES_COLUMN_ORDER: GridColumnOrder<
   {key: 'measurements.ttfb', width: COL_WIDTH_UNDEFINED, name: 'TTFB'},
   {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
   {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: 'Replay'},
-  {key: 'score', width: COL_WIDTH_UNDEFINED, name: 'Score'},
+  {key: 'totalScore', width: COL_WIDTH_UNDEFINED, name: 'Score'},
 ];
 
 function getCurrentTabSelection(selectedTab) {

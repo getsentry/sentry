@@ -12,11 +12,11 @@ import useMouseTracking from 'sentry/utils/replays/hooks/useMouseTracking';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import PerformanceScoreRing from 'sentry/views/performance/browser/webVitals/components/performanceScoreRing';
+import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {
-  PERFORMANCE_SCORE_WEIGHTS,
   ProjectScore,
-} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
-import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
+  WebVitals,
+} from 'sentry/views/performance/browser/webVitals/utils/types';
 
 import {ORDER} from '../performanceScoreChart';
 

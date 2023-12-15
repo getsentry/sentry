@@ -34,10 +34,11 @@ export const useProjectRawWebVitalsQuery = ({transaction, tag, dataset}: Props =
         'count()',
       ],
       name: 'Web Vitals',
-      query:
-        'transaction.op:pageload' +
-        (transaction ? ` transaction:"${transaction}"` : '') +
-        (tag ? ` ${tag.key}:"${tag.name}"` : ''),
+      query: [
+        'transaction.op:pageload',
+        ...(transaction ? [`transaction:"${transaction}"`] : []),
+        ...(tag ? [`{tag.key}:"${tag.name}"`] : []),
+      ].join(' '),
       version: 2,
       dataset: dataset ?? DiscoverDatasets.METRICS,
     },

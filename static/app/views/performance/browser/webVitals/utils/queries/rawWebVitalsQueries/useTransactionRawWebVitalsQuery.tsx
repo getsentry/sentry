@@ -5,7 +5,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
+import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {RowWithScore} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 
@@ -13,6 +13,7 @@ type Props = {
   defaultSort?: Sort;
   enabled?: boolean;
   limit?: number;
+  query?: string;
   sortName?: string;
   transaction?: string | null;
 };
@@ -23,6 +24,7 @@ export const useTransactionRawWebVitalsQuery = ({
   defaultSort,
   sortName = 'sort',
   enabled = true,
+  query,
 }: Props) => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -40,11 +42,19 @@ export const useTransactionRawWebVitalsQuery = ({
         'p75(measurements.cls)',
         'p75(measurements.ttfb)',
         'p75(measurements.fid)',
+        'count_web_vitals(measurements.lcp, any)',
+        'count_web_vitals(measurements.fcp, any)',
+        'count_web_vitals(measurements.cls, any)',
+        'count_web_vitals(measurements.ttfb, any)',
+        'count_web_vitals(measurements.fid, any)',
         'count()',
       ],
       name: 'Web Vitals',
-      query:
-        'transaction.op:pageload' + (transaction ? ` transaction:"${transaction}"` : ''),
+      query: [
+        'transaction.op:pageload',
+        ...(transaction ? [`transaction:"${transaction}"`] : []),
+        ...(query ? [query] : []),
+      ].join(' '),
       version: 2,
       dataset: DiscoverDatasets.METRICS,
     },
@@ -77,19 +87,28 @@ export const useTransactionRawWebVitalsQuery = ({
             'p75(measurements.ttfb)': row['p75(measurements.ttfb)'] as number,
             'p75(measurements.fid)': row['p75(measurements.fid)'] as number,
             'count()': row['count()'] as number,
+            'count_web_vitals(measurements.lcp, any)': row[
+              'count_web_vitals(measurements.lcp, any)'
+            ] as number,
+            'count_web_vitals(measurements.fcp, any)': row[
+              'count_web_vitals(measurements.fcp, any)'
+            ] as number,
+            'count_web_vitals(measurements.cls, any)': row[
+              'count_web_vitals(measurements.cls, any)'
+            ] as number,
+            'count_web_vitals(measurements.ttfb, any)': row[
+              'count_web_vitals(measurements.ttfb, any)'
+            ] as number,
+            'count_web_vitals(measurements.fid, any)': row[
+              'count_web_vitals(measurements.fid, any)'
+            ] as number,
           }))
           .map(row => {
             const {totalScore, clsScore, fcpScore, lcpScore, ttfbScore, fidScore} =
-              calculatePerformanceScore({
-                lcp: row['p75(measurements.lcp)'],
-                fcp: row['p75(measurements.fcp)'],
-                cls: row['p75(measurements.cls)'],
-                ttfb: row['p75(measurements.ttfb)'],
-                fid: row['p75(measurements.fid)'],
-              });
+              calculatePerformanceScoreFromTableDataRow({id: '', ...row}); // dummy id to satisfy type
             return {
               ...row,
-              score: totalScore ?? 0,
+              totalScore: totalScore ?? 0,
               clsScore: clsScore ?? 0,
               fcpScore: fcpScore ?? 0,
               lcpScore: lcpScore ?? 0,

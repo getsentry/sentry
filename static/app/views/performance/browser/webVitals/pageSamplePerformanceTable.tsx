@@ -37,21 +37,15 @@ import {
   DEFAULT_INDEXED_SORT,
   SORTABLE_INDEXED_FIELDS,
   SORTABLE_INDEXED_SCORE_FIELDS,
-  TransactionSampleRow,
+  TransactionSampleRowWithScore,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
-export type TransactionSampleRowWithScoreAndExtra = TransactionSampleRow & {
-  score: number;
-};
+type Column = GridColumnHeader<keyof TransactionSampleRowWithScore>;
 
-type Column = GridColumnHeader<keyof TransactionSampleRowWithScoreAndExtra>;
-
-export const COLUMN_ORDER: GridColumnOrder<
-  keyof TransactionSampleRowWithScoreAndExtra
->[] = [
+export const COLUMN_ORDER: GridColumnOrder<keyof TransactionSampleRowWithScore>[] = [
   {key: 'user.display', width: COL_WIDTH_UNDEFINED, name: 'User'},
   {key: 'transaction.duration', width: COL_WIDTH_UNDEFINED, name: 'Duration'},
   {key: 'measurements.lcp', width: COL_WIDTH_UNDEFINED, name: 'LCP'},
@@ -59,12 +53,12 @@ export const COLUMN_ORDER: GridColumnOrder<
   {key: 'measurements.fid', width: COL_WIDTH_UNDEFINED, name: 'FID'},
   {key: 'measurements.cls', width: COL_WIDTH_UNDEFINED, name: 'CLS'},
   {key: 'measurements.ttfb', width: COL_WIDTH_UNDEFINED, name: 'TTFB'},
-  {key: 'score', width: COL_WIDTH_UNDEFINED, name: 'Score'},
+  {key: 'totalScore', width: COL_WIDTH_UNDEFINED, name: 'Score'},
 ];
 
 type Props = {
   transaction: string;
-  columnOrder?: GridColumnOrder<keyof TransactionSampleRowWithScoreAndExtra>[];
+  columnOrder?: GridColumnOrder<keyof TransactionSampleRowWithScore>[];
   limit?: number;
   search?: string;
 };
@@ -103,24 +97,24 @@ export function PageSamplePerformanceTable({
 
   // Do 3 queries filtering on LCP to get a spread of good, meh, and poor events
   // We can't query by performance score yet, so we're using LCP as a best estimate
-  const {data, isLoading, pageLinks} = useTransactionSamplesWebVitalsQuery({
+  const {
+    data: tableData,
+    isLoading,
+    pageLinks,
+  } = useTransactionSamplesWebVitalsQuery({
     limit,
     transaction,
     query: search,
     withProfiles: true,
   });
 
-  const tableData: TransactionSampleRowWithScoreAndExtra[] = data.map(row => ({
-    ...row,
-    view: null,
-  }));
   const getFormattedDuration = (value: number) => {
     return getDuration(value, value < 1 ? 0 : 2, true);
   };
 
   function renderHeadCell(col: Column) {
     function generateSortLink() {
-      const key = col.key === 'score' ? 'measurements.score.total' : col.key;
+      const key = col.key === 'totalScore' ? 'measurements.score.total' : col.key;
       let newSortDirection: Sort['kind'] = 'desc';
       if (sort?.field === key) {
         if (sort.kind === 'desc') {
@@ -165,7 +159,7 @@ export function PageSamplePerformanceTable({
         </AlignRight>
       );
     }
-    if (col.key === 'score') {
+    if (col.key === 'totalScore') {
       return (
         <SortLink
           title={
@@ -203,12 +197,12 @@ export function PageSamplePerformanceTable({
     return <span>{col.name}</span>;
   }
 
-  function renderBodyCell(col: Column, row: TransactionSampleRowWithScoreAndExtra) {
+  function renderBodyCell(col: Column, row: TransactionSampleRowWithScore) {
     const {key} = col;
-    if (key === 'score') {
+    if (key === 'totalScore') {
       return (
         <AlignCenter>
-          <PerformanceBadge score={row.score} />
+          <PerformanceBadge score={row.totalScore} />
         </AlignCenter>
       );
     }
@@ -243,7 +237,7 @@ export function PageSamplePerformanceTable({
     ) {
       return (
         <AlignRight>
-          {row[key] === null ? (
+          {row[key] === undefined ? (
             <NoValue>{' \u2014 '}</NoValue>
           ) : (
             getFormattedDuration((row[key] as number) / 1000)
@@ -252,7 +246,15 @@ export function PageSamplePerformanceTable({
       );
     }
     if (['measurements.cls', 'opportunity'].includes(key)) {
-      return <AlignRight>{Math.round((row[key] as number) * 100) / 100}</AlignRight>;
+      return (
+        <AlignRight>
+          {row[key] === undefined ? (
+            <NoValue>{' \u2014 '}</NoValue>
+          ) : (
+            Math.round((row[key] as number) * 100) / 100
+          )}
+        </AlignRight>
+      );
     }
     if (key === 'profile.id') {
       const profileTarget =
@@ -280,7 +282,7 @@ export function PageSamplePerformanceTable({
 
     if (key === 'replayId') {
       const replayTarget =
-        row['transaction.duration'] !== null &&
+        row['transaction.duration'] !== undefined &&
         replayLinkGenerator(
           organization,
           {

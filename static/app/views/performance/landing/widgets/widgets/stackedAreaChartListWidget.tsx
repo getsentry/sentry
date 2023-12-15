@@ -419,8 +419,8 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
               fid: listItem['p75(measurements.fid)'] as number,
             });
             const opportunity =
-              projectScore.totalScore !== null &&
-              rowScore.totalScore !== null &&
+              projectScore.totalScore !== undefined &&
+              rowScore.totalScore !== undefined &&
               count !== undefined
                 ? calculateOpportunity(
                     projectScore.totalScore,
@@ -440,7 +440,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
                   <Truncate value={transaction} maxLength={40} />
                 </GrowLink>
                 <StyledRightAlignedCell>
-                  {rowScore.totalScore !== null && (
+                  {rowScore.totalScore !== undefined && (
                     <Tooltip
                       title={
                         <span>
