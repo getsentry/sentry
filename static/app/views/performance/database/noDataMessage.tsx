@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import sumBy from 'lodash/sumBy';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
@@ -7,36 +6,25 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useIneligibleProjects} from 'sentry/views/performance/database/useIneligibleProjects';
-import {useProjectSpanMetricCounts} from 'sentry/views/starfish/queries/useProjectSpanMetricsCounts';
 
 interface Props {
   Wrapper?: React.ComponentType;
+  isDataAvailable?: boolean;
 }
 
 function DivWrapper(props) {
   return <div {...props} />;
 }
 
-export function NoDataMessage({Wrapper = DivWrapper}: Props) {
+export function NoDataMessage({Wrapper = DivWrapper, isDataAvailable}: Props) {
   const {selection, isReady: pageFilterIsReady} = usePageFilters();
 
   const selectedProjectIds = selection.projects.map(projectId => projectId.toString());
 
-  const {data: projectSpanMetricsCounts, isLoading: areSpanMetricCountsLoading} =
-    useProjectSpanMetricCounts({
-      query: 'span.module:db',
-      statsPeriod: SAMPLE_STATS_PERIOD,
-      enabled: pageFilterIsReady,
-      projectId: selectedProjectIds,
-    });
-
-  const doesAnySelectedProjectHaveMetrics =
-    sumBy(projectSpanMetricsCounts, 'count()') > 0;
-
   const {ineligibleProjects, isFetching: areIneligibleProjectsFetching} =
     useIneligibleProjects({
       projectId: selectedProjectIds,
-      enabled: pageFilterIsReady && !doesAnySelectedProjectHaveMetrics,
+      enabled: pageFilterIsReady && !isDataAvailable,
     });
 
   const organization = useOrganization();
@@ -44,15 +32,11 @@ export function NoDataMessage({Wrapper = DivWrapper}: Props) {
   const hasMoreIneligibleProjectsThanVisible =
     ineligibleProjects.length > MAX_LISTED_PROJECTS;
 
-  if (areSpanMetricCountsLoading || areIneligibleProjectsFetching) {
+  if (areIneligibleProjectsFetching) {
     return null;
   }
 
-  if (!projectSpanMetricsCounts) {
-    return null;
-  }
-
-  if (doesAnySelectedProjectHaveMetrics) {
+  if (isDataAvailable) {
     return null;
   }
 
@@ -102,5 +86,3 @@ export function NoDataMessage({Wrapper = DivWrapper}: Props) {
 }
 
 const MAX_LISTED_PROJECTS = 3;
-
-const SAMPLE_STATS_PERIOD = '14d'; // The time period in which to check for any presence of span metrics
