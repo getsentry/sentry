@@ -9,9 +9,10 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {PerformanceScoreBreakdownChart} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
-import {containsWeights} from 'sentry/views/performance/browser/webVitals/utils/containsWeights';
-import {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
-import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
+import {
+  ProjectScore,
+  WebVitals,
+} from 'sentry/views/performance/browser/webVitals/utils/types';
 
 import PerformanceScoreRingWithTooltips from './components/performanceScoreRingWithTooltips';
 
@@ -55,16 +56,15 @@ export function PerformanceScoreChart({
   const period = pageFilters.selection.datetime.period;
   const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
 
-  const weights =
-    projectScore && containsWeights(projectScore)
-      ? {
-          cls: projectScore.clsWeight,
-          fcp: projectScore.fcpWeight,
-          fid: projectScore.fidWeight,
-          lcp: projectScore.lcpWeight,
-          ttfb: projectScore.ttfbWeight,
-        }
-      : undefined;
+  const weights = projectScore
+    ? {
+        cls: projectScore.clsWeight,
+        fcp: projectScore.fcpWeight,
+        fid: projectScore.fidWeight,
+        lcp: projectScore.lcpWeight,
+        ttfb: projectScore.ttfbWeight,
+      }
+    : undefined;
 
   return (
     <Flex>

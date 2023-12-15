@@ -49,11 +49,11 @@ const columnOrder: GridColumnOrder[] = [
   {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: 'Replay'},
   {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
   {key: 'webVital', width: COL_WIDTH_UNDEFINED, name: 'Web Vital'},
-  {key: 'score', width: COL_WIDTH_UNDEFINED, name: 'Score'},
+  {key: 'totalScore', width: COL_WIDTH_UNDEFINED, name: 'Score'},
 ];
 
 const sort: GridColumnSortBy<keyof TransactionSampleRowWithScore> = {
-  key: 'score',
+  key: 'totalScore',
   order: 'desc',
 };
 

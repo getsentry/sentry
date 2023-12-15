@@ -18,7 +18,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Sort} from 'sentry/utils/discover/fields';
+import {parseFunction, Sort} from 'sentry/utils/discover/fields';
 import {formatAbbreviatedNumber, getDuration} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -32,14 +32,12 @@ import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/perf
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionWebVitalsQuery';
 import {
-  Row,
+  RowWithScoreAndOpportunity,
   SORTABLE_FIELDS,
   SORTABLE_SCORE_FIELDS,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
-
-type RowWithScoreAndOpportunity = Row & {score: number; opportunity?: number};
 
 type Column = GridColumnHeader<keyof RowWithScoreAndOpportunity>;
 
@@ -51,7 +49,7 @@ const columnOrder: GridColumnOrder<keyof RowWithScoreAndOpportunity>[] = [
   {key: 'p75(measurements.fid)', width: COL_WIDTH_UNDEFINED, name: 'FID'},
   {key: 'p75(measurements.cls)', width: COL_WIDTH_UNDEFINED, name: 'CLS'},
   {key: 'p75(measurements.ttfb)', width: COL_WIDTH_UNDEFINED, name: 'TTFB'},
-  {key: 'score', width: COL_WIDTH_UNDEFINED, name: 'Score'},
+  {key: 'totalScore', width: COL_WIDTH_UNDEFINED, name: 'Score'},
   {key: 'opportunity', width: COL_WIDTH_UNDEFINED, name: 'Opportunity'},
 ];
 
@@ -98,15 +96,13 @@ export function PagePerformanceTable() {
   const tableData: RowWithScoreAndOpportunity[] = data.map(row => ({
     ...row,
     opportunity: shouldUseStoredScores
-      ? ((row.opportunity ?? 0) * 100) / scoreCount
-      : count !== undefined
-      ? calculateOpportunity(
+      ? (((row as RowWithScoreAndOpportunity).opportunity ?? 0) * 100) / scoreCount
+      : calculateOpportunity(
           projectScore.totalScore ?? 0,
           count,
-          row.score,
+          row.totalScore,
           row['count()']
-        )
-      : undefined,
+        ),
   }));
   const getFormattedDuration = (value: number) => {
     return getDuration(value, value < 1 ? 0 : 2, true);
@@ -115,7 +111,7 @@ export function PagePerformanceTable() {
   function renderHeadCell(col: Column) {
     function generateSortLink() {
       const key =
-        col.key === 'score'
+        col.key === 'totalScore'
           ? 'avg(measurements.score.total)'
           : col.key === 'opportunity'
           ? 'opportunity_score(measurements.score.total)'
@@ -150,7 +146,7 @@ export function PagePerformanceTable() {
         />
       );
     }
-    if (col.key === 'score') {
+    if (col.key === 'totalScore') {
       return (
         <SortLink
           title={
@@ -213,10 +209,10 @@ export function PagePerformanceTable() {
 
   function renderBodyCell(col: Column, row: RowWithScoreAndOpportunity) {
     const {key} = col;
-    if (key === 'score') {
+    if (key === 'totalScore') {
       return (
         <AlignCenter>
-          <PerformanceBadge score={row.score} />
+          <PerformanceBadge score={row.totalScore} />
         </AlignCenter>
       );
     }
@@ -264,11 +260,12 @@ export function PagePerformanceTable() {
         'p75(measurements.fid)',
       ].includes(key)
     ) {
-      const countWebVitalKey = shouldUseStoredScores
-        ? key.replace('p75(measurements.', 'count_scores(measurements.score.')
-        : key.replace('p75(', 'count_web_vitals(').replace(')', ', any)');
+      const measurement = parseFunction(key)?.arguments?.[0];
+      const func = shouldUseStoredScores ? 'count_scores' : 'count_web_vitals';
+      const args = [measurement, ...(shouldUseStoredScores ? [] : ['any'])];
+      const countWebVitalKey = `${func}(${args.join(',')})`;
       const countWebVital = row[countWebVitalKey];
-      if (countWebVital === 0) {
+      if (measurement === undefined || countWebVital === 0) {
         return (
           <AlignRight>
             <NoValue>{' \u2014 '}</NoValue>

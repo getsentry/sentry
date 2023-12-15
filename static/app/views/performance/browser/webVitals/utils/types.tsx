@@ -26,15 +26,18 @@ export type TransactionSampleRow = {
   'user.display': string;
 };
 
-export type Score = {
+export type TransactionSampleRowWithScore = TransactionSampleRow & Score;
+
+type Score = {
   clsScore: number;
   fcpScore: number;
   fidScore: number;
   lcpScore: number;
-  score: number;
+  totalScore: number;
   ttfbScore: number;
-  opportunity?: number;
-} & Partial<Weight>;
+};
+
+export type ScoreWithWeightsAndOpportunity = Score & Weight & Opportunity;
 
 export type Weight = {
   clsWeight: number;
@@ -44,9 +47,27 @@ export type Weight = {
   ttfbWeight: number;
 };
 
-export type RowWithScore = Row & Score;
+export type Opportunity = {
+  opportunity: number;
+};
 
-export type TransactionSampleRowWithScore = TransactionSampleRow & Score;
+export type ProjectScore = {
+  clsScore: number | null;
+  clsWeight: number;
+  fcpScore: number | null;
+  fcpWeight: number;
+  fidScore: number | null;
+  fidWeight: number;
+  lcpScore: number | null;
+  lcpWeight: number;
+  totalScore: number | null;
+  ttfbScore: number | null;
+  ttfbWeight: number;
+};
+
+export type RowWithScoreAndOpportunity = Row & Score & Opportunity;
+
+export type RowWithScore = Row & Score;
 
 export type WebVitals = 'lcp' | 'fcp' | 'cls' | 'ttfb' | 'fid';
 

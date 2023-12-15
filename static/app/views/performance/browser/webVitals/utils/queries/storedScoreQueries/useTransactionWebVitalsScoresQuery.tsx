@@ -7,7 +7,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
 import {
-  RowWithScore,
+  RowWithScoreAndOpportunity,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
@@ -87,7 +87,7 @@ export const useTransactionWebVitalsScoresQuery = ({
     referrer: 'api.performance.browser.web-vitals.transactions-scores',
   });
 
-  const tableData: RowWithScore[] =
+  const tableData: RowWithScoreAndOpportunity[] =
     !isLoading && data?.data.length
       ? data.data.map(row => {
           const {totalScore, clsScore, fcpScore, lcpScore, ttfbScore, fidScore} =
@@ -115,7 +115,7 @@ export const useTransactionWebVitalsScoresQuery = ({
             'count_scores(measurements.score.fid)': row[
               'count_scores(measurements.score.fid)'
             ] as number,
-            score: totalScore ?? 0,
+            totalScore: totalScore ?? 0,
             clsScore: clsScore ?? 0,
             fcpScore: fcpScore ?? 0,
             lcpScore: lcpScore ?? 0,

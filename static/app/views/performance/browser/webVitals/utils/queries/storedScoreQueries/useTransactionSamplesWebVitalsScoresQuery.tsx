@@ -120,7 +120,9 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
             'profile.id': row['profile.id']?.toString(),
             projectSlug: row.project?.toString(),
             timestamp: row.timestamp?.toString(),
-            score: Math.round((toNumber(row['measurements.score.total']) ?? 0) * 100),
+            totalScore: Math.round(
+              (toNumber(row['measurements.score.total']) ?? 0) * 100
+            ),
             ...(webVital
               ? {
                   [`${webVital}Score`]: Math.round(

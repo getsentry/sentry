@@ -126,7 +126,7 @@ export const useTransactionRawSamplesWebVitalsQuery = ({
               });
             return {
               ...row,
-              score: totalScore ?? 0,
+              totalScore: totalScore ?? 0,
               clsScore: clsScore ?? 0,
               fcpScore: fcpScore ?? 0,
               lcpScore: lcpScore ?? 0,

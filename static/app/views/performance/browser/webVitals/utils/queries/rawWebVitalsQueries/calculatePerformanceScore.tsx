@@ -1,5 +1,6 @@
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {getWebVitalsFromTableData} from 'sentry/views/performance/browser/webVitals/utils/getWebVitalValues';
+import {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/types';
 
 export const PERFORMANCE_SCORE_WEIGHTS = {
   lcp: 30,
@@ -23,20 +24,6 @@ export const PERFORMANCE_SCORE_P90S = {
   cls: 0.1,
   fid: 100,
   ttfb: 200,
-};
-
-export type ProjectScore = {
-  clsScore: number | null;
-  fcpScore: number | null;
-  fidScore: number | null;
-  lcpScore: number | null;
-  totalScore: number | null;
-  ttfbScore: number | null;
-  clsWeight?: number | null;
-  fcpWeight?: number | null;
-  fidWeight?: number | null;
-  lcpWeight?: number | null;
-  ttfbWeight?: number | null;
 };
 
 type Vitals = {
@@ -100,6 +87,11 @@ export const calculatePerformanceScore = (vitals: Vitals): ProjectScore => {
     ttfbScore: ttfbScore !== null ? Math.round(ttfbScore * 100) : null,
     clsScore: clsScore !== null ? Math.round(clsScore * 100) : null,
     fidScore: fidScore !== null ? Math.round(fidScore * 100) : null,
+    lcpWeight: PERFORMANCE_SCORE_WEIGHTS.lcp,
+    fcpWeight: PERFORMANCE_SCORE_WEIGHTS.fcp,
+    ttfbWeight: PERFORMANCE_SCORE_WEIGHTS.ttfb,
+    clsWeight: PERFORMANCE_SCORE_WEIGHTS.cls,
+    fidWeight: PERFORMANCE_SCORE_WEIGHTS.fid,
   };
 };
 

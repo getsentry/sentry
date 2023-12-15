@@ -32,7 +32,7 @@ import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/w
 import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionWebVitalsQuery';
 import {
   Row,
-  RowWithScore,
+  RowWithScoreAndOpportunity,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
@@ -104,15 +104,16 @@ export function WebVitalsDetailPanel({
       .map(row => ({
         ...row,
         opportunity: shouldUseStoredScores
-          ? Math.round(((row.opportunity ?? 0) * 100 * 100) / sumWeights) / 100
-          : count !== undefined
-          ? calculateOpportunity(
+          ? Math.round(
+              (((row as RowWithScoreAndOpportunity).opportunity ?? 0) * 100 * 100) /
+                sumWeights
+            ) / 100
+          : calculateOpportunity(
               projectScore[`${webVital}Score`],
               count,
               row[`${webVital}Score`],
               row['count()']
-            )
-          : undefined,
+            ),
       }))
       .sort((a, b) => {
         if (a.opportunity === undefined) {
@@ -190,7 +191,7 @@ export function WebVitalsDetailPanel({
     return getDuration(value / 1000, 2, true);
   };
 
-  const renderBodyCell = (col: Column, row: RowWithScore) => {
+  const renderBodyCell = (col: Column, row: RowWithScoreAndOpportunity) => {
     const {key} = col;
     if (key === 'score') {
       return (

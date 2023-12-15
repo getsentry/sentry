@@ -1,6 +1,9 @@
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
-import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
+import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
+import {
+  ProjectScore,
+  WebVitals,
+} from 'sentry/views/performance/browser/webVitals/utils/types';
 
 export const calculatePerformanceScoreFromStoredTableDataRow = (
   data?: TableDataRow
@@ -44,6 +47,11 @@ export function getWebVitalScores(data?: TableDataRow): ProjectScore {
       ttfbScore: null,
       fidScore: null,
       totalScore: null,
+      lcpWeight: PERFORMANCE_SCORE_WEIGHTS.lcp,
+      fcpWeight: PERFORMANCE_SCORE_WEIGHTS.fcp,
+      clsWeight: PERFORMANCE_SCORE_WEIGHTS.cls,
+      ttfbWeight: PERFORMANCE_SCORE_WEIGHTS.ttfb,
+      fidWeight: PERFORMANCE_SCORE_WEIGHTS.fid,
     };
   }
 

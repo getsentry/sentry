@@ -16,9 +16,9 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {MiniAggregateWaterfall} from 'sentry/views/performance/browser/webVitals/components/miniAggregateWaterfall';
 import PerformanceScoreRingWithTooltips from 'sentry/views/performance/browser/webVitals/components/performanceScoreRingWithTooltips';
-import {containsWeights} from 'sentry/views/performance/browser/webVitals/utils/containsWeights';
-import {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
+import {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 
 const CHART_HEIGHTS = 100;
@@ -38,6 +38,7 @@ export function PageOverviewSidebar({
   const theme = useTheme();
   const router = useRouter();
   const pageFilters = usePageFilters();
+  const shouldUseStoredScores = useStoredScoresSetting();
   const {period, start, end, utc} = pageFilters.selection.datetime;
   const shouldDoublePeriod = shouldFetchPreviousPeriod({
     includePrevious: true,
@@ -115,8 +116,9 @@ export function PageOverviewSidebar({
   const ringSegmentColors = theme.charts.getColorPalette(3);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
+  // Gets weights to dynamically size the performance score ring segments
   const weights =
-    projectScore && containsWeights(projectScore)
+    projectScore && shouldUseStoredScores
       ? {
           cls: projectScore.clsWeight,
           fcp: projectScore.fcpWeight,
