@@ -20,7 +20,7 @@ from sentry.snuba.referrer import Referrer
 @region_silo_endpoint
 class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization) -> Response:
@@ -48,7 +48,7 @@ UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')
 @region_silo_endpoint
 class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, EnvironmentMixin):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization) -> Response:

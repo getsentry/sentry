@@ -14,7 +14,7 @@ from sentry.models.project import Project
 @region_silo_endpoint
 class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization, project_slug, event_id) -> Response:

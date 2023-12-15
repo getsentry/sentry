@@ -148,11 +148,10 @@ class SpansPerformanceSerializer(serializers.Serializer):
 @region_silo_endpoint
 class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsSpansEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization: Organization) -> Response:
-
         try:
             params = self.get_snuba_params(request, organization)
         except NoProjects:
@@ -227,11 +226,10 @@ class SpanSerializer(serializers.Serializer):
 @region_silo_endpoint
 class OrganizationEventsSpansExamplesEndpoint(OrganizationEventsSpansEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization: Organization) -> Response:
-
         try:
             params = self.get_snuba_params(request, organization)
         except NoProjects:
@@ -312,11 +310,10 @@ class SpanExamplesPaginator:
 @region_silo_endpoint
 class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization: Organization) -> Response:
-
         serializer = SpanSerializer(data=request.GET)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)

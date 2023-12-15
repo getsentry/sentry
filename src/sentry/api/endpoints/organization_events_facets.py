@@ -16,7 +16,7 @@ from sentry.snuba import discover
 @region_silo_endpoint
 class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization) -> Response:

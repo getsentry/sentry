@@ -37,7 +37,7 @@ class SpansHistogramSerializer(serializers.Serializer):
 @region_silo_endpoint
 class OrganizationEventsSpansHistogramEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def has_feature(self, organization, request):
