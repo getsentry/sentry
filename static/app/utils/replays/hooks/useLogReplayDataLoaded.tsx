@@ -48,11 +48,7 @@ function useLogReplayDataLoaded({fetchError, fetching, projectSlug, replay}: Pro
 
     // TODO(session-replay-show-hydration-errors): remove this analytic on GA
     if (!organization.features.includes('session-replay-show-hydration-errors')) {
-      // @ts-expect-error the hydration frames are filtered when the flag is off
-      const allFrames = replay._sortedBreadcrumbFrames;
-      const hydrationErrorFrames = allFrames.filter(
-        frame => frame.category === 'replay.hydrate-error'
-      );
+      const hydrationErrorFrames = replay.getHydrationFrames();
       if (hydrationErrorFrames.length > 0) {
         // Track when a hydration breadcrumb is present but unable to be viewed
         trackAnalytics('replay.details-has-hydration-error', {

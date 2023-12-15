@@ -301,6 +301,12 @@ export default class ReplayReader {
     ].sort(sortFrames)
   );
 
+  // TODO(session-replay-show-hydration-errors): remove this analytic on GA
+  getHydrationFrames = () =>
+    this._sortedBreadcrumbFrames.filter(
+      frame => frame.category === 'replay.hydrate-error'
+    );
+
   getPerfFrames = memoize(() =>
     [
       ...removeDuplicateClicks(
