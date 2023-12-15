@@ -222,7 +222,7 @@ class FeatureManager(RegisteredFeatureManager):
         >>> FeatureManager.has('organizations:feature', organization, actor=request.user)
 
         """
-        from sentry.db.models.manager.base import BaseManager
+        from sentry.db.models.manager.base import BaseManager, flush_manager_local_cache
 
         # Use thread local cache to store any cached models such as Subscriptions in addition to Django's cache.
         # This helps shortcut around memcache's performance issues
@@ -250,6 +250,9 @@ class FeatureManager(RegisteredFeatureManager):
             except Exception:
                 logging.exception("Failed to run feature check")
                 return False
+
+        # Flush and clear the thread local cache
+        flush_manager_local_cache()
 
     def batch_has(
         self,
