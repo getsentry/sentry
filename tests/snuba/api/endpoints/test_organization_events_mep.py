@@ -2993,18 +2993,12 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
     def test_transaction_user_misery(self) -> None:
         resp = self._on_demand_query_check(
             {
-                # TODO: Create environment for organization
-                # "environment": "production",  # Adding this gives a 404
                 "field": ["user_misery(300)", "apdex(300)"],
-                "query": "",
                 "project": self.project.id,
-                "sort": "-user_misery(300)",
-                "yAxis": ["user_misery(300)", "apdex(300)"],
-                "name": "",
-                "per_page": "20",
                 "query": "",
+                "sort": "-user_misery(300)",
+                "per_page": "20",
                 "referrer": "api.dashboards.tablewidget",
-                "sort": "-user_misery(300)",  # Is this orderby?
             },
             groupbys=["transaction"],
         )
