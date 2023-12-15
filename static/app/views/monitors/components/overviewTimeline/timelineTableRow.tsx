@@ -64,8 +64,8 @@ export function TimelineTableRow({
                     <EnvActionButton
                       {...triggerProps}
                       aria-label={t('Monitor environment actions')}
-                      size="zero"
-                      icon={<IconEllipsis size="sm" />}
+                      size="xs"
+                      icon={<IconEllipsis />}
                     />
                   )}
                   items={[
