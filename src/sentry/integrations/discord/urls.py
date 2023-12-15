@@ -28,10 +28,4 @@ urlpatterns = [
         DiscordExtensionConfigurationView.as_view(),
         name="discord-extension-configuration",
     ),
-    # Install flow from Sentry
-    re_path(
-        r"^setup/$",
-        DiscordExtensionConfigurationView.as_view(),
-        name="discord-integration-setup",
-    ),
 ]

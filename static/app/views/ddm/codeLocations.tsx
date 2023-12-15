@@ -12,19 +12,12 @@ import {IconChevron, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Frame} from 'sentry/types';
-import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
 import {useMetricsCodeLocations} from 'sentry/utils/metrics/useMetricsCodeLocations';
-import useOrganization from 'sentry/utils/useOrganization';
 
 import {MetricCodeLocationFrame, MetricMetaCodeLocation} from '../../utils/metrics/index';
 
 export function CodeLocations({mri}: {mri: string}) {
   const {data, isLoading, isError, refetch} = useMetricsCodeLocations(mri);
-  const organization = useOrganization();
-
-  if (!hasDDMExperimentalFeature(organization)) {
-    return null;
-  }
 
   if (isLoading) {
     return <LoadingIndicator />;

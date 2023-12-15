@@ -342,3 +342,16 @@ class EventManagerGroupingTest(TestCase):
             )[event1.group.id]
             == 1
         )
+
+    def test_none_exception(self):
+        """Test that when the exception is None, the group is still formed."""
+        manager = EventManager(
+            make_event(
+                exception=None,
+            )
+        )
+        with self.tasks():
+            manager.normalize()
+            event = manager.save(self.project.id)
+
+        assert event.group

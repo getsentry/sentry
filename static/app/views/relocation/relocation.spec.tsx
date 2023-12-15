@@ -238,7 +238,12 @@ describe('Relocation', function () {
       const input = screen.getByLabelText('file-upload');
       await userEvent.upload(input, relocationFile);
       await userEvent.click(await screen.findByText('Start Relocation'));
-      await waitFor(() => expect(mockapi).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(mockapi).toHaveBeenCalledWith(
+          '/relocations/',
+          expect.objectContaining({host: 'https://example.com', method: 'POST'})
+        )
+      );
       expect(addSuccessMessage).toHaveBeenCalledWith(
         "Your relocation has started - we'll email you with updates as soon as we have 'em!"
       );

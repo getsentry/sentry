@@ -83,6 +83,10 @@ export function parseField(field: string): {mri: MRI; op: string} | null {
   };
 }
 
+export function isMRIField(field: string): boolean {
+  return !!parseMRI(parseField(field)?.mri);
+}
+
 // convenience function to get the MRI from a field, returns defaut MRI if it fails
 export function getMRI(field: string): MRI {
   const parsed = parseField(field);
