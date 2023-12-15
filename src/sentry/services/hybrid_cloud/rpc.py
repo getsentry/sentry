@@ -495,7 +495,12 @@ class _RemoteSiloCall:
             if use_test_client:
                 response = self._fire_test_request(headers, data)
             else:
-                response = self._fire_request(headers, data)
+                if self.region:
+                    target_mode = SiloMode.REGION
+                else:
+                    target_mode = SiloMode.CONTROL
+                with SiloMode.enter_virtual_single_process_silo_context(target_mode):
+                    response = self._fire_request(headers, data)
             metrics.incr(
                 "hybrid_cloud.dispatch_rpc.response_code",
                 tags=self._metrics_tags(status=response.status_code),

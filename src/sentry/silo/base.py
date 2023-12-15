@@ -9,7 +9,6 @@ import typing
 from enum import Enum
 from typing import Any, Callable, Generator, Iterable
 
-import sentry_sdk
 from django.conf import settings
 
 from sentry.utils.env import in_test_environment
@@ -101,21 +100,6 @@ class SiloMode(Enum):
         resources (e.g. database models), functions, etc. For any silo mode violations, we emit a Sentry error event.
         """
         original_virtual_mode = single_process_silo_mode_state.virtual_mode
-        if original_virtual_mode is not None and original_virtual_mode != mode:
-            # enter_virtual_single_process_silo_context should only be called once to set the virtual mode
-            message = "Re-entrant on enter_virtual_single_process_silo_context with different mode"
-            try:
-                raise Exception(message)
-            except Exception as e:
-                sentry_sdk.capture_exception(e)
-
-        if mode == SiloMode.MONOLITH:
-            message = "Incorrect use of enter_virtual_single_process_silo_context"
-            try:
-                raise Exception(message)
-            except Exception as e:
-                sentry_sdk.capture_exception(e)
-
         single_process_silo_mode_state.virtual_mode = mode
         try:
             yield
@@ -158,6 +142,9 @@ class SiloLimit(abc.ABC):
     class AvailabilityError(Exception):
         """Indicate that something in unavailable in the current silo mode."""
 
+    class VirtualAvailabilityError(Exception):
+        """Indicate that something in unavailable in the current virtual silo mode."""
+
     @abc.abstractmethod
     def handle_when_unavailable(
         self,
@@ -177,13 +164,9 @@ class SiloLimit(abc.ABC):
         current_mode = SiloMode.get_current_mode()
         return current_mode == SiloMode.MONOLITH or current_mode in self.modes
 
-    def check_virtual_silo_mode(self, original_method: Callable[..., Any]) -> None:
+    def is_valid_virtual_silo_mode(self, original_method: Callable[..., Any]) -> bool:
         virtual_mode = SiloMode.get_virtual_mode()
-        if virtual_mode == SiloMode.MONOLITH:
-            return
-        if virtual_mode not in self.modes:
-            message = f"{original_method.__name__} called in virtual silo mode: {virtual_mode}. Expected silo modes: {self.modes}"
-            sentry_sdk.capture_exception(self.AvailabilityError(message))
+        return virtual_mode == SiloMode.MONOLITH or virtual_mode in self.modes
 
     def create_override(
         self,
@@ -204,7 +187,24 @@ class SiloLimit(abc.ABC):
             # settings.SILO_MODE effectively. Otherwise, availability would be
             # immutably determined when the decorator is first evaluated.
             is_available = self.is_available()
-            self.check_virtual_silo_mode(original_method)
+
+            if not self.is_valid_virtual_silo_mode(original_method):
+                try:
+                    handler = self.handle_when_unavailable(
+                        original_method,
+                        SiloMode.get_virtual_mode(),
+                        itertools.chain([SiloMode.MONOLITH], self.modes),
+                    )
+                    return handler(*args, **kwargs)
+                except Exception as err:
+                    virtual_mode = SiloMode.get_virtual_mode()
+                    expected_silo_modes = ", ".join([mode.name for mode in self.modes])
+                    new_err = self.VirtualAvailabilityError(
+                        f"Invalid virtual silo mode: {virtual_mode}. Expected silo modes: {expected_silo_modes}"
+                    )
+                    new_err.__cause__ = err
+                    raise new_err
+                    # sentry_sdk.capture_exception(new_err)
 
             if is_available:
                 return original_method(*args, **kwargs)

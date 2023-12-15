@@ -134,19 +134,31 @@ class AccessService(abc.ABC):
 def impl_by_region_resources() -> AccessService:
     from sentry.services.hybrid_cloud.access.impl import RegionAccessService
 
-    return RegionAccessService()
+    with SiloMode.enter_virtual_single_process_silo_context(SiloMode.REGION):
+        return RegionAccessService()
 
 
 def impl_by_control_resources() -> AccessService:
     from sentry.services.hybrid_cloud.access.impl import ControlAccessService
 
-    return ControlAccessService()
+    with SiloMode.enter_virtual_single_process_silo_context(SiloMode.CONTROL):
+        return ControlAccessService()
+
+
+def impl_by_monolith_resources() -> AccessService:
+    from sentry.services.hybrid_cloud.access.impl import ControlAccessService, RegionAccessService
+
+    if SiloMode.get_virtual_mode() == SiloMode.REGION:
+        return RegionAccessService()
+
+    with SiloMode.enter_virtual_single_process_silo_context(SiloMode.CONTROL):
+        return ControlAccessService()
 
 
 access_service: AccessService = silo_mode_delegation(
     {
         SiloMode.REGION: impl_by_region_resources,
         SiloMode.CONTROL: impl_by_control_resources,
-        SiloMode.MONOLITH: impl_by_control_resources,
+        SiloMode.MONOLITH: impl_by_monolith_resources,
     }
 )
