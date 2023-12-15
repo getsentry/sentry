@@ -87,7 +87,7 @@ export default function Monitors() {
             <ButtonBar gap={1}>
               <FeedbackWidgetButton />
               {showAddMonitor && (
-                <NewMonitorButton size="sm" icon={<IconAdd isCircled size="xs" />}>
+                <NewMonitorButton size="sm" icon={<IconAdd isCircled />}>
                   {t('Add Monitor')}
                 </NewMonitorButton>
               )}

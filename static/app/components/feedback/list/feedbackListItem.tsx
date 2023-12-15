@@ -23,7 +23,7 @@ import {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {useReplayCountForFeedbacks} from 'sentry/utils/replayCount/replayCountForFeedbacks';
+import useReplayCountForFeedbacks from 'sentry/utils/replayCount/useReplayCountForFeedbacks';
 import {darkTheme, lightTheme} from 'sentry/utils/theme';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -107,7 +107,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
 
             <BottomGrid style={{gridArea: 'bottom'}}>
               <Row justify="flex-start" gap={space(0.75)}>
-                <ProjectAvatar
+                <StyledProjectAvatar
                   project={feedbackItem.project}
                   size={12}
                   title={feedbackItem.project.slug}
@@ -187,6 +187,12 @@ const BottomGrid = styled('div')`
   gap: ${space(1)};
 
   overflow: hidden;
+`;
+
+const StyledProjectAvatar = styled(ProjectAvatar)`
+  && img {
+    box-shadow: none;
+  }
 `;
 
 export default FeedbackListItem;

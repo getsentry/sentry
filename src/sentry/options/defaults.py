@@ -9,6 +9,7 @@ from sentry.options.manager import (
     FLAG_IMMUTABLE,
     FLAG_MODIFIABLE_BOOL,
     FLAG_MODIFIABLE_RATE,
+    FLAG_MODIFIABLE_SCALAR,
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
     FLAG_REQUIRED,
@@ -276,6 +277,9 @@ register("beacon.anonymous", type=Bool, flags=FLAG_REQUIRED)
 # Filestore (default)
 register("filestore.backend", default="filesystem", flags=FLAG_NOSTORE)
 register("filestore.options", default={"location": "/tmp/sentry-files"}, flags=FLAG_NOSTORE)
+register(
+    "filestore.relocation", default={"location": "/tmp/sentry-relocation-files"}, flags=FLAG_NOSTORE
+)
 
 # Filestore for control silo
 register("filestore.control.backend", default="", flags=FLAG_NOSTORE)
@@ -865,7 +869,7 @@ register(
 # Drop delete_old_primary_hash messages for a particular project.
 register("reprocessing2.drop-delete-old-primary-hash", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# BEGIN PROJECT ABUSE QUOTAS
+# BEGIN ABUSE QUOTAS
 
 # Example:
 # >>> org = Organization.objects.get(slug='foo')
@@ -946,7 +950,15 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# END PROJECT ABUSE QUOTAS
+
+register(
+    "organization-abuse-quota.metric-bucket-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# END ABUSE QUOTAS
 
 # Send event messages for specific project IDs to random partitions in Kafka
 # contents are a list of project IDs to message types to be randomly assigned
@@ -1785,11 +1797,38 @@ register(
     default=100,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Use database backed stateful extraction state
+register(
+    "on_demand_metrics.widgets.use_stateful_extraction",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Relocation
-register("relocation.enabled", default=False)
-
-# Throttling limits for relocation requests
-register("relocation.daily-limit-small", default=0)
-register("relocation.daily-limit-medium", default=0)
-register("relocation.daily-limit-large", default=0)
+register(
+    "relocation.enabled",
+    default=False,
+    # TODO(getsentry/team-ospo#214): Eventually change this to `FLAG_BOOL |
+    # FLAG_AUTOMATOR_MODIFIABLE`, to enforce it only being toggled from code.
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "relocation.self-serve",
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "relocation.daily-limit.small",
+    default=0,
+    flags=FLAG_MODIFIABLE_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "relocation.daily-limit.medium",
+    default=0,
+    flags=FLAG_MODIFIABLE_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "relocation.daily-limit.large",
+    default=0,
+    flags=FLAG_MODIFIABLE_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
+)

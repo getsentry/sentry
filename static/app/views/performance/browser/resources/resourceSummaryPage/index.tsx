@@ -41,7 +41,7 @@ function ResourceSummary() {
   const {
     query: {transaction},
   } = useLocation();
-  const {data: spanMetrics} = useSpanMetrics(
+  const {data} = useSpanMetrics(
     {
       'span.group': groupId,
     },
@@ -59,6 +59,8 @@ function ResourceSummary() {
   const isImage = IMAGE_FILE_EXTENSIONS.includes(
     spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]?.split('.').pop() || ''
   );
+
+  const spanMetrics = data[0] ?? {};
 
   return (
     <ModulePageProviders

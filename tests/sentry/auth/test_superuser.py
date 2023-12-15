@@ -153,7 +153,11 @@ class SuperuserTestCase(TestCase):
 
     @freeze_time(BASETIME + EXPIRE_TIME)
     def test_expired(self):
-        request = self.build_request(expires=self.current_datetime)
+        # Set idle time to the current time so we fail on checking expire time
+        # and not idle time.
+        request = self.build_request(
+            idle_expires=BASETIME + EXPIRE_TIME, expires=self.current_datetime
+        )
         superuser = Superuser(request, allowed_ips=())
         assert superuser.is_active is False
 
@@ -181,7 +185,7 @@ class SuperuserTestCase(TestCase):
             superuser = Superuser(request, org_id=None)
             superuser.set_logged_in(request.user)
             assert superuser.is_active is True
-            assert logger.info.call_count == 2
+            assert logger.info.call_count == 4
             logger.info.assert_any_call(
                 "superuser.superuser_access",
                 extra={
@@ -402,7 +406,7 @@ class SuperuserTestCase(TestCase):
         superuser = Superuser(request, org_id=None)
         superuser.set_logged_in(request.user)
         assert superuser.is_active is True
-        assert logger.info.call_count == 1
+        assert logger.info.call_count == 3
         logger.info.assert_any_call(
             "superuser.logged-in",
             extra={"ip_address": "127.0.0.1", "user_id": user.id},
