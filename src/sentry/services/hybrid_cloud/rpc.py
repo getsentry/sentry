@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+import functools
 import hashlib
 import hmac
 import inspect
@@ -35,6 +36,7 @@ from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, RpcM
 from sentry.services.hybrid_cloud.rpcmetrics import RpcMetricRecord
 from sentry.services.hybrid_cloud.sig import SerializableFunctionSignature
 from sentry.silo import SiloMode
+from sentry.silo.base import SiloLimit
 from sentry.types.region import Region, RegionMappingNotFound
 from sentry.utils import json, metrics
 from sentry.utils.env import in_test_environment
@@ -297,6 +299,13 @@ class RpcService(abc.ABC):
                     "Does not match specified parameters "
                     f"(expected: {sig_params!r}; actual: {impl_params!r})",
                 )
+
+            wrapper = SiloMode.enter_virtual_single_process_silo_context(cls.local_mode)(
+                method_impl
+            )
+
+            functools.update_wrapper(wrapper, method_impl)
+            setattr(impl, method_sig.__name__, wrapper)
 
         return impl
 

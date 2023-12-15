@@ -219,7 +219,7 @@ class SiloLimit(abc.ABC):
         functools.update_wrapper(override, original_method)
         return override
 
-    def create_override_with_virtual_mode(self, original_func: Callable[..., Any]) -> None:
+    def create_override_with_virtual_mode(self, original_func: Callable[..., Any]) -> Any:
         if len(self.modes) == 1:
             virtual_silo_mode = next(iter(self.modes))
 
