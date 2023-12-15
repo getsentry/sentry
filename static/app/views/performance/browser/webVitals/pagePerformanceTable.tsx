@@ -135,7 +135,7 @@ export function PagePerformanceTable() {
       : SORTABLE_FIELDS.filter(field => !SORTABLE_SCORE_FIELDS.includes(field));
     const canSort = (sortableFields as unknown as string[]).includes(col.key);
 
-    if (canSort && !['score', 'opportunity'].includes(col.key)) {
+    if (canSort && !['totalScore', 'opportunity'].includes(col.key)) {
       return (
         <SortLink
           align="right"

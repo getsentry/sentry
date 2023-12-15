@@ -41,12 +41,6 @@ function hasWebVitalScore(data: TableDataRow, webVital: WebVitals): boolean {
 export function getWebVitalScores(data?: TableDataRow): ProjectScore {
   if (!data) {
     return {
-      lcpScore: null,
-      fcpScore: null,
-      clsScore: null,
-      ttfbScore: null,
-      fidScore: null,
-      totalScore: null,
       lcpWeight: PERFORMANCE_SCORE_WEIGHTS.lcp,
       fcpWeight: PERFORMANCE_SCORE_WEIGHTS.fcp,
       clsWeight: PERFORMANCE_SCORE_WEIGHTS.cls,
@@ -62,11 +56,11 @@ export function getWebVitalScores(data?: TableDataRow): ProjectScore {
   const hasTtfb = hasWebVitalScore(data, 'ttfb');
 
   const scores = {
-    lcpScore: hasLcp ? Math.round(getWebVitalScore(data, 'lcp') * 100) : null,
-    fcpScore: hasFcp ? Math.round(getWebVitalScore(data, 'fcp') * 100) : null,
-    clsScore: hasCls ? Math.round(getWebVitalScore(data, 'cls') * 100) : null,
-    ttfbScore: hasTtfb ? Math.round(getWebVitalScore(data, 'ttfb') * 100) : null,
-    fidScore: hasFid ? Math.round(getWebVitalScore(data, 'fid') * 100) : null,
+    lcpScore: hasLcp ? Math.round(getWebVitalScore(data, 'lcp') * 100) : undefined,
+    fcpScore: hasFcp ? Math.round(getWebVitalScore(data, 'fcp') * 100) : undefined,
+    clsScore: hasCls ? Math.round(getWebVitalScore(data, 'cls') * 100) : undefined,
+    ttfbScore: hasTtfb ? Math.round(getWebVitalScore(data, 'ttfb') * 100) : undefined,
+    fidScore: hasFid ? Math.round(getWebVitalScore(data, 'fid') * 100) : undefined,
     totalScore: Math.round(getTotalScore(data) * 100),
     lcpWeight: Math.round(getWebVitalWeight(data, 'lcp') * 100),
     fcpWeight: Math.round(getWebVitalWeight(data, 'fcp') * 100),

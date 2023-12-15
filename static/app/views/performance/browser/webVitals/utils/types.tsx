@@ -12,18 +12,18 @@ export type Row = {
 
 export type TransactionSampleRow = {
   id: string;
-  'measurements.cls': number | null;
-  'measurements.fcp': number | null;
-  'measurements.fid': number | null;
-  'measurements.lcp': number | null;
-  'measurements.ttfb': number | null;
   'profile.id': string;
   projectSlug: string;
   replayId: string;
   timestamp: string;
   transaction: string;
-  'transaction.duration': number | null;
   'user.display': string;
+  'measurements.cls'?: number;
+  'measurements.fcp'?: number;
+  'measurements.fid'?: number;
+  'measurements.lcp'?: number;
+  'measurements.ttfb'?: number;
+  'transaction.duration'?: number;
 };
 
 export type TransactionSampleRowWithScore = TransactionSampleRow & Score;
@@ -51,19 +51,7 @@ export type Opportunity = {
   opportunity: number;
 };
 
-export type ProjectScore = {
-  clsScore: number | null;
-  clsWeight: number;
-  fcpScore: number | null;
-  fcpWeight: number;
-  fidScore: number | null;
-  fidWeight: number;
-  lcpScore: number | null;
-  lcpWeight: number;
-  totalScore: number | null;
-  ttfbScore: number | null;
-  ttfbWeight: number;
-};
+export type ProjectScore = Partial<Score> & Weight;
 
 export type RowWithScoreAndOpportunity = Row & Score & Opportunity;
 
@@ -73,7 +61,7 @@ export type WebVitals = 'lcp' | 'fcp' | 'cls' | 'ttfb' | 'fid';
 
 // TODO: Refactor once stored scores are GA'd
 export const SORTABLE_SCORE_FIELDS = [
-  'score',
+  'totalScore',
   'opportunity',
   'avg(measurements.score.total)',
   'opportunity_score(measurements.score.total)',
@@ -89,7 +77,7 @@ export const SORTABLE_FIELDS = [
   ...SORTABLE_SCORE_FIELDS,
 ] as const;
 
-export const SORTABLE_INDEXED_SCORE_FIELDS = ['score', 'measurements.score.total'];
+export const SORTABLE_INDEXED_SCORE_FIELDS = ['totalScore', 'measurements.score.total'];
 
 export const SORTABLE_INDEXED_FIELDS = [
   'measurements.lcp',

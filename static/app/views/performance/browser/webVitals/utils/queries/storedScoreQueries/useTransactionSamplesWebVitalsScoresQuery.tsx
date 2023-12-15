@@ -102,7 +102,7 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
     referrer: 'api.performance.browser.web-vitals.transaction',
   });
 
-  const toNumber = (item: ReactText) => (item ? parseFloat(item.toString()) : null);
+  const toNumber = (item: ReactText) => (item ? parseFloat(item.toString()) : undefined);
   const tableData: TransactionSampleRowWithScore[] =
     !isLoading && data?.data.length
       ? (data.data.map(

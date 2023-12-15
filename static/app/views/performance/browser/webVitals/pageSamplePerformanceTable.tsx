@@ -97,17 +97,17 @@ export function PageSamplePerformanceTable({
 
   // Do 3 queries filtering on LCP to get a spread of good, meh, and poor events
   // We can't query by performance score yet, so we're using LCP as a best estimate
-  const {data, isLoading, pageLinks} = useTransactionSamplesWebVitalsQuery({
+  const {
+    data: tableData,
+    isLoading,
+    pageLinks,
+  } = useTransactionSamplesWebVitalsQuery({
     limit,
     transaction,
     query: search,
     withProfiles: true,
   });
 
-  const tableData: TransactionSampleRowWithScore[] = data.map(row => ({
-    ...row,
-    view: null,
-  }));
   const getFormattedDuration = (value: number) => {
     return getDuration(value, value < 1 ? 0 : 2, true);
   };
@@ -237,7 +237,7 @@ export function PageSamplePerformanceTable({
     ) {
       return (
         <AlignRight>
-          {row[key] === null ? (
+          {row[key] === undefined ? (
             <NoValue>{' \u2014 '}</NoValue>
           ) : (
             getFormattedDuration((row[key] as number) / 1000)
@@ -246,7 +246,15 @@ export function PageSamplePerformanceTable({
       );
     }
     if (['measurements.cls', 'opportunity'].includes(key)) {
-      return <AlignRight>{Math.round((row[key] as number) * 100) / 100}</AlignRight>;
+      return (
+        <AlignRight>
+          {row[key] === undefined ? (
+            <NoValue>{' \u2014 '}</NoValue>
+          ) : (
+            Math.round((row[key] as number) * 100) / 100
+          )}
+        </AlignRight>
+      );
     }
     if (key === 'profile.id') {
       const profileTarget =
@@ -274,7 +282,7 @@ export function PageSamplePerformanceTable({
 
     if (key === 'replayId') {
       const replayTarget =
-        row['transaction.duration'] !== null &&
+        row['transaction.duration'] !== undefined &&
         replayLinkGenerator(
           organization,
           {

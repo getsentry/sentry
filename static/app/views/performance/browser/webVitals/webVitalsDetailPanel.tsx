@@ -240,7 +240,7 @@ export function WebVitalsDetailPanel({
   return (
     <PageErrorProvider>
       <DetailPanel detailKey={detailKey ?? undefined} onClose={onClose}>
-        {webVital && webVitalScore !== null && (
+        {webVital && webVitalScore !== undefined && (
           <WebVitalDescription
             value={
               webVital !== 'cls'
