@@ -49,7 +49,7 @@ describe('UserBadge', function () {
     });
     render(<UserBadge user={ipUser} />);
 
-    expect(screen.getByText(ipUser.ipAddress)).toBeInTheDocument();
+    expect(screen.getByText('127.0.0.1')).toBeInTheDocument();
   });
 
   it('can coalesce using id', function () {
@@ -80,6 +80,6 @@ describe('UserBadge', function () {
     });
     render(<UserBadge user={ipUser} />);
 
-    expect(screen.getByText(ipUser.ip)).toBeInTheDocument();
+    expect(screen.getByText('127.0.0.1')).toBeInTheDocument();
   });
 });
