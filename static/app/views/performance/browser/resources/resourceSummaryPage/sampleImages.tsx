@@ -79,8 +79,12 @@ const ImageWrapper = styled('div')`
 `;
 
 const getFileNameFromDescription = (description: string) => {
-  const url = new URL(description);
-  return url.pathname.split('/').pop() || '';
+  try {
+    const url = new URL(description);
+    return url.pathname.split('/').pop() || '';
+  } catch (e) {
+    return '';
+  }
 };
 
 export default SampleImages;
