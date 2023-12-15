@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
     silo_mode=SiloMode.CONTROL,
 )
 def convert_to_async_slack_response(payload: Dict[str, Any], region_names: List[str]):
-    print("### - Starting convert_to_async_slack_response")  # can't seem to get this to run?
+    logger.info("####-Starting convert_to_async_slack_response")  # can't seem to get this to run?
     webhook_payload = ControlOutbox.get_webhook_payload_from_outbox(payload=payload)
     regions = [get_region_by_name(rn) for rn in region_names]
     # TODO: Refactor out of a for loop, just testing if this works
@@ -51,7 +51,7 @@ def convert_to_async_slack_response(payload: Dict[str, Any], region_names: List[
     silo_mode=SiloMode.CONTROL,
 )
 def convert_to_async_discord_response(payload: Dict[str, Any], region_names: List[str]):
-    print("### - Starting convert_to_async_discord_response")  # can't seem to get this to run?
+    logger.info("####-Starting convert_to_async_discord_response")  # can't seem to get this to run?
     webhook_payload = ControlOutbox.get_webhook_payload_from_outbox(payload=payload)
     regions = [get_region_by_name(rn) for rn in region_names]
 
