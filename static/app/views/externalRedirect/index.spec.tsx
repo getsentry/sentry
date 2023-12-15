@@ -44,7 +44,6 @@ describe('ExternalRedirect', () => {
     mockedUseLocation.mockReturnValue({query: {url: testUrl}});
     render(<ExternalRedirect />);
 
-    // Ensure url is rendered on the redirect page
     expect(screen.getByText('Error: Invalid URL')).toBeInTheDocument();
 
     act(() => {
