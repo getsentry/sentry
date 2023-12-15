@@ -177,7 +177,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         status: int | None = None,
         providers: List[str] | None = None,
         has_grace_period: bool | None = None,
-        grace_period_expired: bool | None = None,
+        grace_period_expired: Optional[bool] = None,
         limit: int | None = None,
     ) -> List[RpcOrganizationIntegration]:
         oi_kwargs: Dict[str, Any] = {}
