@@ -9,6 +9,7 @@ type Props = {
   enabled?: boolean;
   limit?: number;
   opportunityWebVital?: WebVitals | 'total';
+  query?: string;
   sortName?: string;
   transaction?: string | null;
 };
@@ -20,6 +21,7 @@ export const useTransactionWebVitalsQuery = ({
   sortName = 'sort',
   opportunityWebVital,
   enabled,
+  query,
 }: Props) => {
   const shouldUseStoredScores = useStoredScoresSetting();
   const storedScoresResult = useTransactionWebVitalsScoresQuery({
@@ -29,6 +31,7 @@ export const useTransactionWebVitalsQuery = ({
     sortName,
     enabled: shouldUseStoredScores && enabled,
     opportunityWebVital,
+    query,
   });
   const rawWebVitalsResult = useTransactionRawWebVitalsQuery({
     limit,
@@ -36,6 +39,7 @@ export const useTransactionWebVitalsQuery = ({
     defaultSort,
     sortName,
     enabled: !shouldUseStoredScores && enabled,
+    query,
   });
   if (shouldUseStoredScores) {
     return storedScoresResult;

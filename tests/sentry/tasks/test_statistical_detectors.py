@@ -16,8 +16,7 @@ from sentry.seer.utils import BreakpointData
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.discover import zerofill
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
-from sentry.statistical_detectors.detector import DetectorPayload, TrendType
-from sentry.statistical_detectors.issue_platform_adapter import fingerprint_regression
+from sentry.statistical_detectors.detector import DetectorPayload, TrendType, generate_fingerprint
 from sentry.tasks.statistical_detectors import (
     detect_function_change_points,
     detect_function_trends,
@@ -356,7 +355,7 @@ def test_detect_transaction_trends_auto_resolution(
             version=1,
             active=True,
             project_id=project.id,
-            fingerprint=fingerprint_regression("/123"),
+            fingerprint=generate_fingerprint(RegressionType.ENDPOINT, "/123"),
             baseline=100,
             regressed=300,
         )
@@ -364,7 +363,7 @@ def test_detect_transaction_trends_auto_resolution(
             detect_transaction_trends([project.organization.id], [project.id], ts)
 
     status_change = StatusChangeMessage(
-        fingerprint=[fingerprint_regression("/123", full=True)],
+        fingerprint=[generate_fingerprint(RegressionType.ENDPOINT, "/123")],
         project_id=project.id,
         new_status=GroupStatus.RESOLVED,
         new_substatus=None,
@@ -511,36 +510,36 @@ def test_limit_regressions_by_project(ratelimit, timestamp, expected_idx):
         pytest.param([], [1], id="no existing"),
         pytest.param(
             [
-                (1, False, "transaction_1"),
-                (2, False, "transaction_1"),
+                (1, False, "1"),
+                (2, False, "1"),
             ],
             [3],
             id="existing inactive",
         ),
         pytest.param(
             [
-                (1, False, "transaction_1"),
-                (2, True, "transaction_1"),
+                (1, False, "1"),
+                (2, True, "1"),
             ],
             [None],
             id="existing active",
         ),
         pytest.param(
             [
-                (1, False, "transaction_1"),
-                (2, False, "transaction_1"),
-                (1, False, "transaction_2"),
-                (2, False, "transaction_2"),
-                (3, False, "transaction_2"),
-                (4, True, "transaction_2"),
+                (1, False, "1"),
+                (2, False, "1"),
+                (1, False, "2"),
+                (2, False, "2"),
+                (3, False, "2"),
+                (4, True, "2"),
             ],
             [3, None],
             id="mixed active and inactive",
         ),
         pytest.param(
             [
-                (1, True, "transaction_1"),
-                (2, False, "transaction_1"),
+                (1, True, "1"),
+                (2, False, "1"),
             ],
             [3],
             id="use latest version",
@@ -563,7 +562,10 @@ def test_redirect_escalations(
                 version=version,
                 active=active,
                 project_id=project.id,
-                fingerprint=fingerprint_regression(transaction),
+                fingerprint=generate_fingerprint(
+                    regression_type,
+                    transaction,
+                ),
                 baseline=100000000.0,
                 regressed=500000000.0,
             )
@@ -577,7 +579,7 @@ def test_redirect_escalations(
             "aggregate_range_2": 500000000.0,
             "breakpoint": 1687323600,
             "project": str(project.id),
-            "transaction": "transaction_1",
+            "transaction": "1",
             "trend_difference": 400000000.0,
             "trend_percentage": 5.0,
             "unweighted_p_value": 0.0,

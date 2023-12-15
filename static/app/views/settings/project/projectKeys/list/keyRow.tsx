@@ -82,7 +82,7 @@ function KeyRow({
               'Are you sure you want to remove this key? This action is irreversible.'
             )}
           >
-            <Button size="xs" icon={<IconDelete size="xs" />} aria-label={t('Delete')} />
+            <Button size="xs" icon={<IconDelete />} aria-label={t('Delete')} />
           </Confirm>
         </Controls>
       </PanelHeader>

@@ -134,7 +134,7 @@ function TeamRow({
         onConfirm={() => onRemoveTeam(team.slug)}
         disabled={disabled}
       >
-        <Button size="xs" icon={<IconSubtract isCircled size="xs" />} disabled={disabled}>
+        <Button size="xs" icon={<IconSubtract isCircled />} disabled={disabled}>
           {t('Remove')}
         </Button>
       </Confirm>
