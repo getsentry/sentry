@@ -1,12 +1,9 @@
 from contextlib import contextmanager
 from datetime import datetime, timedelta
-from unittest import mock
 from unittest.mock import patch
 
-import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
-from django.test import override_settings
 from django.utils import timezone
 
 from sentry.auth import staff
@@ -24,7 +21,6 @@ from sentry.models.user import User
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import control_silo_test
-from sentry.utils import json
 from sentry.utils.auth import mark_sso_complete
 
 UNSET = object()
@@ -72,7 +68,6 @@ class StaffTestCase(TestCase):
     ):
         request = self.make_request(user=self.user)
         if cookie_token is not None:
-            print("cookie_token is not None")
             request.COOKIES[COOKIE_NAME] = signing.get_cookie_signer(
                 salt=COOKIE_NAME + COOKIE_SALT
             ).sign(self.default_token if cookie_token is UNSET else cookie_token)
@@ -91,7 +86,6 @@ class StaffTestCase(TestCase):
             }
         return request
 
-    # TODO: Find out if this actually needs to be mocked, or if we have a bug
     @patch("sentry.auth.staff.has_completed_sso", return_value=True)
     def test_ips(self, mock_has_completed_sso):
         user = User(is_staff=True)
@@ -131,8 +125,8 @@ class StaffTestCase(TestCase):
             staff.set_logged_in(request.user)
             assert staff.is_active is True
 
-    # TODO: Should SSO part be added here?
-    def test_valid_data(self):
+    @patch("sentry.auth.staff.has_completed_sso", return_value=True)
+    def test_valid_data(self, mock_has_completed_sso):
         request = self.build_request()
         staff = Staff(request, allowed_ips=())
         assert staff.is_active is True
@@ -180,7 +174,7 @@ class StaffTestCase(TestCase):
 
     @patch("sentry.auth.staff.has_completed_sso", return_value=True)
     def test_login_saves_session(self, mock_has_completed_sso):
-        user = self.create_user("foo@example.com", is_superuser=True)
+        user = self.create_user("foo@example.com")
         request = self.make_request()
         staff = Staff(request, allowed_ips=(), current_datetime=self.current_datetime)
         staff.set_logged_in(user, current_datetime=self.current_datetime)
@@ -217,46 +211,33 @@ class StaffTestCase(TestCase):
         request.user = AnonymousUser()
         assert not staff.is_active
 
-        # # a non-staff
-        # request.user = self.create_user("baz@example.com", is_staff=False)
-        # assert not staff.is_active
+        # a non-staff
+        request.user = self.create_user("baz@example.com", is_staff=False)
+        assert not staff.is_active
 
-        # # a staff
-        # request.user.update(is_superuser=True)
-        # assert not staff.is_active
+        # a staff
+        request.user.update(is_staff=True)
+        assert not staff.is_active
 
-    # def test_is_active_superuser_sys_token(self):
-    #     request = self.build_request()
-    #     request.auth = SystemToken()
-    #     assert is_active_superuser(request)
+    def test_is_active_staff_sys_token(self):
+        request = self.build_request()
+        request.auth = SystemToken()
+        assert is_active_staff(request)
 
-    # def test_is_active_superuser(self):
-    #     request = self.build_request()
-    #     request.staff = Staff(request, allowed_ips=())
-    #     request.staff._is_active = True
-    #     assert is_active_superuser(request)
+    def test_is_active_staff(self):
+        request = self.build_request()
+        request.staff = Staff(request, allowed_ips=())
+        request.staff._is_active = True
+        assert is_active_staff(request)
 
-    # def test_is_not_active_superuser(self):
-    #     request = self.build_request()
-    #     request.staff = Staff(request, allowed_ips=())
-    #     request.staff._is_active = False
-    #     assert not is_active_superuser(request)
+    def test_is_not_active_staff(self):
+        request = self.build_request()
+        request.staff = Staff(request, allowed_ips=())
+        request.staff._is_active = False
+        assert not is_active_staff(request)
 
-    # @patch.object(Staff, "is_active", return_value=True)
-    # def test_is_active_superuser_from_request(self, _mock_is_active):
-    #     request = self.build_request()
-    #     request.staff = None
-    #     assert is_active_superuser(request)
-
-    # @mock.patch("sentry.auth.staff.logger")
-    # def test_superuser_session_doesnt_needs_validatation_superuser_prompts(self, logger):
-    #     user = User(is_superuser=True)
-    #     request = self.make_request(user=user, method="PUT")
-    #     staff = Staff(request, org_id=None)
-    #     staff.set_logged_in(request.user)
-    #     assert staff.is_active is True
-    #     assert logger.info.call_count == 1
-    #     logger.info.assert_any_call(
-    #         "staff.logged-in",
-    #         extra={"ip_address": "127.0.0.1", "user_id": user.id},
-    #     )
+    @patch.object(Staff, "is_active", return_value=True)
+    def test_is_active_staff_from_request(self, mock_is_active):
+        request = self.build_request()
+        request.staff = None
+        assert is_active_staff(request)
