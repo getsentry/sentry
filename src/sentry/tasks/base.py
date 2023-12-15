@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import resource
 from contextlib import contextmanager
 from datetime import datetime
@@ -31,7 +32,9 @@ class TaskSiloLimit(SiloLimit):
     ) -> Callable[..., Any]:
         def handle(*args: Any, **kwargs: Any) -> Any:
             name = original_method.__name__
-            message = f"Cannot call or spawn {name} in {current_mode},"
+            message = (
+                f"Cannot call or spawn {name} in {current_mode}. Available modes: {available_modes}"
+            )
             raise self.AvailabilityError(message)
 
         return handle
@@ -45,7 +48,7 @@ class TaskSiloLimit(SiloLimit):
                 limited_attr = self.create_override(task_attr)
                 setattr(decorated_task, attr_name, limited_attr)
 
-        limited_func = self.create_override(decorated_task)
+        limited_func = self.create_override(self.create_override_with_virtual_mode(decorated_task))
         if hasattr(decorated_task, "name"):
             limited_func.name = decorated_task.name
         return limited_func
@@ -88,7 +91,6 @@ def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=Fals
     def wrapped(func):
         @wraps(func)
         def _wrapped(*args, **kwargs):
-
             # TODO(dcramer): we want to tag a transaction ID, but overriding
             # the base on app.task seems to cause problems w/ Celery internals
             transaction_id = kwargs.pop("__transaction_id", None)

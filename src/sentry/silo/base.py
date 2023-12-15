@@ -9,6 +9,7 @@ import typing
 from enum import Enum
 from typing import Any, Callable, Generator, Iterable
 
+import sentry_sdk
 from django.conf import settings
 
 from sentry.utils.env import in_test_environment
@@ -90,14 +91,48 @@ class SiloMode(Enum):
             single_process_silo_mode_state.region = old_region
 
     @classmethod
+    @contextlib.contextmanager
+    def enter_virtual_single_process_silo_context(
+        cls, mode: SiloMode
+    ) -> Generator[None, None, None]:
+        """
+        Used in entry points such as tasks, endpoints, or views to established the assumed silo mode
+        (or virtual silo mode) for the duration of the context. This is used to test expected silo modes of code paths,
+        resources (e.g. database models), functions, etc. For any silo mode violations, we emit a Sentry error event.
+        """
+        original_virtual_mode = single_process_silo_mode_state.virtual_mode
+        if original_virtual_mode is not None:
+            # enter_virtual_single_process_silo_context should only be called once to set the virtual mode
+            sentry_sdk.capture_exception(
+                Exception("Re-entrant on enter_virtual_single_process_silo_context")
+            )
+        if mode == SiloMode.MONOLITH:
+            sentry_sdk.capture_exception(
+                Exception("Incorrect use of enter_virtual_single_process_silo_context")
+            )
+        single_process_silo_mode_state.virtual_mode = mode
+        try:
+            yield
+        finally:
+            single_process_silo_mode_state.virtual_mode = original_virtual_mode
+
+    @classmethod
     def get_current_mode(cls) -> SiloMode:
         process_level_silo_mode = cls.resolve(settings.SILO_MODE)
         return cls.resolve(single_process_silo_mode_state.mode, process_level_silo_mode)
+
+    @classmethod
+    def get_virtual_mode(cls) -> SiloMode:
+        virtual_mode = single_process_silo_mode_state.virtual_mode
+        if virtual_mode is None:
+            return SiloMode.MONOLITH
+        return virtual_mode
 
 
 class SingleProcessSiloModeState(threading.local):
     mode: SiloMode | None = None
     region: Region | None = None
+    virtual_mode: SiloMode | None = None
 
 
 single_process_silo_mode_state = SingleProcessSiloModeState()
@@ -136,6 +171,14 @@ class SiloLimit(abc.ABC):
         current_mode = SiloMode.get_current_mode()
         return current_mode == SiloMode.MONOLITH or current_mode in self.modes
 
+    def check_virtual_silo_mode(self, original_method: Callable[..., Any]) -> None:
+        virtual_mode = SiloMode.get_virtual_mode()
+        if virtual_mode == SiloMode.MONOLITH:
+            return
+        if virtual_mode not in self.modes:
+            message = f"{original_method.__name__} called in virtual silo mode: {virtual_mode}. Expected silo modes: {self.modes}"
+            sentry_sdk.capture_exception(self.AvailabilityError(message))
+
     def create_override(
         self,
         original_method: Callable[..., Any],
@@ -155,6 +198,7 @@ class SiloLimit(abc.ABC):
             # settings.SILO_MODE effectively. Otherwise, availability would be
             # immutably determined when the decorator is first evaluated.
             is_available = self.is_available()
+            self.check_virtual_silo_mode(original_method)
 
             if is_available:
                 return original_method(*args, **kwargs)
@@ -168,3 +212,15 @@ class SiloLimit(abc.ABC):
 
         functools.update_wrapper(override, original_method)
         return override
+
+    def create_override_with_virtual_mode(self, original_func: Callable[..., Any]) -> None:
+        if len(self.modes) == 1:
+            virtual_silo_mode = next(iter(self.modes))
+
+            def wrapper(*args: Any, **kwargs: Any):
+                with SiloMode.enter_virtual_single_process_silo_context(virtual_silo_mode):
+                    return original_func(*args, **kwargs)
+
+            functools.update_wrapper(wrapper, original_func)
+            return wrapper
+        return original_func
