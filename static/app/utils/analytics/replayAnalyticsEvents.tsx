@@ -21,7 +21,6 @@ export type ReplayEventParameters = {
     num_errors: number;
     replay_id: string;
   };
-  'replay.details-hydration-modal-opened': {};
   'replay.details-layout-changed': {
     chosen_layout: LayoutKey;
     default_layout: LayoutKey;
@@ -112,7 +111,6 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.accessibility-issue-clicked': 'Clicked Replay Accessibility Issue',
   'replay.details-data-loaded': 'Replay Details Data Loaded',
   'replay.details-has-hydration-error': 'Replay Details Has Hydration Error',
-  'replay.details-hydration-modal-opened': 'Replay Details Hydration Modal Opened',
   'replay.details-layout-changed': 'Changed Replay Details Layout',
   'replay.details-network-panel-closed': 'Closed Replay Network Details Panel',
   'replay.details-network-panel-opened': 'Opened Replay Network Details Panel',

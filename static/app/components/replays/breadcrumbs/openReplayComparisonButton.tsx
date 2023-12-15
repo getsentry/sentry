@@ -30,6 +30,7 @@ export function OpenReplayComparisonButton({
       role="button"
       size="xs"
       analyticsEventKey="replay.details-hydration-modal-opened"
+      analyticsEventName="Replay Details Hydration Modal Opened"
       onClick={() => {
         openModal(
           deps => (
