@@ -79,6 +79,26 @@ class BulkDeleteObjectsTest(TestCase):
         assert result, "Could be more work to do"
         assert len(UserReport.objects.all()) == 0
 
+    def test_basic_tuple(self):
+        total = 10
+        records = []
+        for i in range(total):
+            records.append(self.create_userreport(project=self.project, event_id=str(i) * 32))
+
+        result = bulk_delete_objects(UserReport, id__in=tuple([r.id for r in records]))
+        assert result, "Could be more work to do"
+        assert len(UserReport.objects.all()) == 0
+
+    def test_basic_set(self):
+        total = 10
+        records = []
+        for i in range(total):
+            records.append(self.create_userreport(project=self.project, event_id=str(i) * 32))
+
+        result = bulk_delete_objects(UserReport, id__in={r.id for r in records})
+        assert result, "Could be more work to do"
+        assert len(UserReport.objects.all()) == 0
+
     def test_limiting(self):
         total = 10
         records = []
