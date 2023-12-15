@@ -312,7 +312,7 @@ export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.MONITOR_SEAT]: {
     name: DataCategoryExact.MONITOR_SEAT,
     apiName: 'monitorSeat',
-    plural: 'cron monitors',
+    plural: 'monitorSeats',
     displayName: 'cron monitors',
     titleName: t('Cron Monitors'),
     uid: 13,
