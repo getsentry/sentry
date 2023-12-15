@@ -18,7 +18,15 @@ export default function ReplayProcessingError({className, processingErrors}: Pro
       scope.setLevel('warning');
       scope.setFingerprint(['replay-processing-error']);
       processingErrors.forEach(error => {
-        Sentry.captureException(error);
+        Sentry.metrics.increment(`replay.processing-error`, 1, {
+          tags: {
+            // There are only 2 different error types
+            type:
+              error.toLowerCase() === 'missing meta frame'
+                ? 'missing-meta-frame'
+                : 'insufficient-replay-frames',
+          },
+        });
       });
     });
   }, [processingErrors]);
