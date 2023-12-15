@@ -172,7 +172,7 @@ export function ScreenLoadSpansTable({
         ? parseFloat(row['ttfd_contribution_rate()'])
         : 0;
 
-      if (!isNaN(ttid_contribution_rate) && ttid_contribution_rate === 1) {
+      if (!isNaN(ttid_contribution_rate) && ttid_contribution_rate > 0.99) {
         const tooltipValue = tct(
           'This span always ends before TTID and TTFD and may affect initial and final display. [link: Learn more.]',
           {
@@ -186,7 +186,7 @@ export function ScreenLoadSpansTable({
         );
       }
 
-      if (!isNaN(ttfd_contribution_rate) && ttfd_contribution_rate === 1) {
+      if (!isNaN(ttfd_contribution_rate) && ttfd_contribution_rate > 0.99) {
         const tooltipValue = tct(
           'This span always ends before TTFD and may affect final display. [link: Learn more.] (TTID contribution rate: [ttid_contribution_rate])',
           {
@@ -220,7 +220,7 @@ export function ScreenLoadSpansTable({
         ? parseFloat(row['ttid_contribution_rate()'])
         : 0;
 
-      if (!isNaN(ttid_contribution_rate) && ttid_contribution_rate === 1) {
+      if (!isNaN(ttid_contribution_rate) && ttid_contribution_rate > 0.99) {
         const tooltipValue = tct(
           'This span always ends before TTID and may affect initial display. [link: Learn more.]',
           {
@@ -273,6 +273,11 @@ export function ScreenLoadSpansTable({
       width: column.width,
     };
 
+    const affectsIsCurrentSort =
+      column.key === 'affects' &&
+      (sort?.field === 'ttid_contribution_rate()' ||
+        sort?.field === 'ttfd_contribution_rate()');
+
     function generateSortLink() {
       if (!tableMeta) {
         return undefined;
@@ -285,21 +290,38 @@ export function ScreenLoadSpansTable({
         }
       }
 
-      const newSort = `${newSortDirection === 'desc' ? '-' : ''}${column.key}`;
+      function getNewSort() {
+        if (column.key === 'affects') {
+          if (sort?.field === 'ttid_contribution_rate()') {
+            return '-ttfd_contribution_rate()';
+          }
+          return '-ttid_contribution_rate()';
+        }
+        return `${newSortDirection === 'desc' ? '-' : ''}${column.key}`;
+      }
 
       return {
         ...location,
-        query: {...location.query, [QueryParameterNames.SPANS_SORT]: newSort},
+        query: {...location.query, [QueryParameterNames.SPANS_SORT]: getNewSort()},
       };
     }
 
-    const canSort = isFieldSortable(field, tableMeta?.fields, true);
+    const canSort =
+      column.key === 'affects' || isFieldSortable(field, tableMeta?.fields, true);
 
     const sortLink = (
       <SortLink
         align={alignment}
         title={column.name}
-        direction={sort?.field === column.key ? sort.kind : undefined}
+        direction={
+          affectsIsCurrentSort
+            ? sort?.field === 'ttid_contribution_rate()'
+              ? 'desc'
+              : 'asc'
+            : sort?.field === column.key
+            ? sort.kind
+            : undefined
+        }
         canSort={canSort}
         generateSortLink={generateSortLink}
       />
