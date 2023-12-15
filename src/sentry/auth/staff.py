@@ -57,7 +57,6 @@ class Staff(ElevatedMode):
     def __init__(self, request, allowed_ips=UNSET, current_datetime=None):
         self.uid: str | None = None
         self.request = request
-        self.org_id = ORG_ID
         if allowed_ips is not UNSET:
             self.allowed_ips = frozenset(
                 ipaddress.ip_network(str(v), strict=False) for v in allowed_ips or ()
@@ -86,8 +85,9 @@ class Staff(ElevatedMode):
         """
         allowed_ips = self.allowed_ips
 
-        # _admin should always have completed SSO to gain status
-        if not has_completed_sso(self.request, ORG_ID):
+        # _admin should have always completed SSO to gain status.
+        # We expect ORG_ID to always be set in production.
+        if ORG_ID and not has_completed_sso(self.request, ORG_ID):
             return False, "incomplete-sso"
 
         # if there's no IPs configured, we allow assume its the same as *
