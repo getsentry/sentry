@@ -251,6 +251,15 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
         allowed_roles = get_allowed_org_roles(request, organization)
 
+        # We allow requests from integration tokens to invite new members as the member role only
+        if not allowed_roles and request.access.is_integration_token:
+            # Error if the assigned role is not a member
+            if request.data.get("role") != "member" and request.data.get("orgRole") != "member":
+                raise serializers.ValidationError(
+                    "Integration tokens are restricted to inviting new members to have the member role only."
+                )
+            allowed_roles = [organization_roles.get("member")]
+
         serializer = OrganizationMemberSerializer(
             data=request.data,
             context={
