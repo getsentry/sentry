@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import zipfile
 from enum import Enum
-from typing import IO, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import IO, Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple
 
 import sentry_sdk
 from django.conf import settings
@@ -306,8 +306,9 @@ class ArtifactBundleArchive:
     def __init__(self, fileobj: IO, build_memory_map: bool = True):
         self._fileobj = fileobj
         self._zip_file = zipfile.ZipFile(self._fileobj)
+        self._entries_by_debug_id: dict[tuple[str, SourceFileType], tuple[str, str, dict[str, Any]]]
         self._entries_by_debug_id = {}
-        self._entries_by_url = {}
+        self._entries_by_url: dict[str, tuple[str, dict[str, Any]]] = {}
 
         self.manifest = self._read_manifest()
         self.artifact_count = len(self.manifest.get("files", {}))
@@ -378,7 +379,7 @@ class ArtifactBundleArchive:
     def get_all_urls(self) -> List[str]:
         return [url for url in self._entries_by_url.keys()]
 
-    def get_all_debug_ids(self) -> Sequence[Tuple[str, SourceFileType]]:
+    def get_all_debug_ids(self) -> Iterable[tuple[str, SourceFileType]]:
         return self._entries_by_debug_id.keys()
 
     def has_debug_ids(self):
@@ -440,8 +441,8 @@ class ArtifactBundleArchive:
 
                 # We also want to try and normalize the query so that we can match for example:
                 # 2b69e5bd2e984c578ce1b58da19110ae with 2b69e5bd-2e98-4c57-8ce1-b58da19110ae.
-                normalized_query = self.normalize_debug_id(normalized_query)
-                if normalized_query is not None and normalized_query in debug_id:
+                maybe_normalized_query = self.normalize_debug_id(normalized_query)
+                if maybe_normalized_query is not None and maybe_normalized_query in debug_id:
                     return True
 
             return False
@@ -449,6 +450,8 @@ class ArtifactBundleArchive:
         return self.get_files_by(filter_function)
 
     def get_file_info(self, file_path: Optional[str]) -> Optional[zipfile.ZipInfo]:
+        if file_path is None:
+            return None
         try:
             return self._zip_file.getinfo(file_path)
         except KeyError:
