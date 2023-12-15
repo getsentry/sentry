@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {getInterval} from 'sentry/components/charts/utils';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {OpsDot} from 'sentry/components/events/opsBreakdown';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -74,7 +75,11 @@ function AppStartBreakdownWidget({additionalFilters}) {
   }
 
   if (!data) {
-    return null;
+    return (
+      <EmptyStateWarning small>
+        <p>{t('There was no app start data found for these two releases')}</p>
+      </EmptyStateWarning>
+    );
   }
 
   const startsByReleaseSeries = data.data.reduce((acc, row) => {
@@ -87,7 +92,6 @@ function AppStartBreakdownWidget({additionalFilters}) {
   return (
     <MiniChartPanel
       title={t('App Start')}
-      // button={<div style={{position: 'absolute'}}>potato</div>}
       subtitle={
         primaryRelease
           ? t(

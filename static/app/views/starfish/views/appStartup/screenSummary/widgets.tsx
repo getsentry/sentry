@@ -7,27 +7,14 @@ import AppStartBreakdownWidget from './appStartBreakdownWidget';
 function SummaryWidgets({additionalFilters}) {
   return (
     <WidgetLayout>
-      <WidgetPosition style={{gridArea: '1 / 1 / 1 / 1'}}>
+      <div style={{gridArea: '1 / 1 / 1 / 1'}}>
         <AppStartBreakdownWidget additionalFilters={additionalFilters} />
-      </WidgetPosition>
-
-      {/* TODO: these are the new widgets that will populate the grid */}
-      {/* <WidgetPosition style={{gridArea: '2 / 1 / 2 / 1'}}>
-        System v Application
-      </WidgetPosition>
-      <WidgetPosition style={{gridArea: '1 / 2 / 1 / 2'}}>Cold Start</WidgetPosition>
-      <WidgetPosition style={{gridArea: '2 / 2 / 2 / 2'}}>Warm Start</WidgetPosition>
-      <WidgetPosition style={{gridArea: '1 / 3 / 2 / 3'}}>
-        Dynamically loaded libraries
-      </WidgetPosition>
-      <WidgetPosition style={{gridArea: '2 / 3 / 3 / 3'}}>Count</WidgetPosition> */}
+      </div>
     </WidgetLayout>
   );
 }
 
 export default SummaryWidgets;
-
-const WidgetPosition = styled('div')``;
 
 const WidgetLayout = styled('div')`
   display: grid;
