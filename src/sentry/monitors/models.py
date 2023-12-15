@@ -212,7 +212,7 @@ class Monitor(Model):
     is_muted = models.BooleanField(default=False)
     """
     Monitor is operating normally but will not produce incidents or produce
-    occurences into the issues platform.
+    occurrences into the issues platform.
     """
 
     name = models.CharField(max_length=128)
