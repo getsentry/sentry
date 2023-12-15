@@ -56,6 +56,7 @@ export function PerformanceScoreChart({
   const period = pageFilters.selection.datetime.period;
   const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
 
+  // Gets weights to dynamically size the performance score ring segments
   const weights = projectScore
     ? {
         cls: projectScore.clsWeight,
