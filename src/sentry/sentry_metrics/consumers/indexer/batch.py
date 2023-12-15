@@ -510,61 +510,62 @@ class IndexerBatch:
             else:
                 new_messages.append(Message(message.value.replace(kafka_payload)))
 
-        for use_case_id in self.__message_count:
-            metrics.incr(
-                "metrics_consumer.process_message.messages_seen",
-                amount=self.__message_count[use_case_id],
-                tags={"use_case_id": use_case_id.value},
-            )
-            metrics.distribution(
+        with metrics.timer("metrics_consumer.reconstruct_messages_emit_metrics"):
+            for use_case_id in self.__message_count:
+                metrics.incr(
+                    "metrics_consumer.process_message.messages_seen",
+                    amount=self.__message_count[use_case_id],
+                    tags={"use_case_id": use_case_id.value},
+                )
+                metrics.distribution(
+                    "metrics_consumer.process_message.message.avg_size_in_batch",
+                    self.__message_bytes[use_case_id] / self.__message_count[use_case_id],
+                    tags={"use_case_id": use_case_id.value},
+                    unit="byte",
+                )
+                metrics.distribution(
+                    "metrics_consumer.process_message.message.avg_tags_len_in_batch",
+                    self.__message_tags_len[use_case_id] / self.__message_count[use_case_id],
+                    tags={"use_case_id": use_case_id.value},
+                    unit="int",
+                )
+                metrics.distribution(
+                    "metrics_consumer.process_message.message.avg_value_len_in_batch",
+                    self.__message_value_len[use_case_id] / self.__message_count[use_case_id],
+                    tags={"use_case_id": use_case_id.value},
+                    unit="int",
+                )
+                metrics.gauge(
+                    "metrics_consumer.process_message.message.max_size_in_batch",
+                    self.__message_bytes_max[use_case_id],
+                    tags={"use_case_id": use_case_id.value},
+                    unit="byte",
+                )
+                metrics.gauge(
+                    "metrics_consumer.process_message.message.max_tags_len_in_batch",
+                    self.__message_tags_len_max[use_case_id],
+                    tags={"use_case_id": use_case_id.value},
+                    unit="int",
+                )
+                metrics.gauge(
+                    "metrics_consumer.process_message.message.max_value_len_in_batch",
+                    self.__message_value_len_max[use_case_id],
+                    tags={"use_case_id": use_case_id.value},
+                    unit="int",
+                )
+            num_messages = sum(self.__message_count.values())
+            metrics.gauge(
                 "metrics_consumer.process_message.message.avg_size_in_batch",
-                self.__message_bytes[use_case_id] / self.__message_count[use_case_id],
-                tags={"use_case_id": use_case_id.value},
-                unit="byte",
+                sum(self.__message_bytes.values()) / num_messages,
             )
-            metrics.distribution(
+            metrics.gauge(
                 "metrics_consumer.process_message.message.avg_tags_len_in_batch",
-                self.__message_tags_len[use_case_id] / self.__message_count[use_case_id],
-                tags={"use_case_id": use_case_id.value},
-                unit="int",
+                sum(self.__message_tags_len.values()) / num_messages,
             )
-            metrics.distribution(
+            metrics.gauge(
                 "metrics_consumer.process_message.message.avg_value_len_in_batch",
-                self.__message_value_len[use_case_id] / self.__message_count[use_case_id],
-                tags={"use_case_id": use_case_id.value},
-                unit="int",
+                sum(self.__message_value_len.values()) / num_messages,
             )
-            metrics.gauge(
-                "metrics_consumer.process_message.message.max_size_in_batch",
-                self.__message_bytes_max[use_case_id],
-                tags={"use_case_id": use_case_id.value},
-                unit="byte",
-            )
-            metrics.gauge(
-                "metrics_consumer.process_message.message.max_tags_len_in_batch",
-                self.__message_tags_len_max[use_case_id],
-                tags={"use_case_id": use_case_id.value},
-                unit="int",
-            )
-            metrics.gauge(
-                "metrics_consumer.process_message.message.max_value_len_in_batch",
-                self.__message_value_len_max[use_case_id],
-                tags={"use_case_id": use_case_id.value},
-                unit="int",
-            )
-        num_messages = sum(self.__message_count.values())
-        metrics.gauge(
-            "metrics_consumer.process_message.message.avg_size_in_batch",
-            sum(self.__message_bytes.values()) / num_messages,
-        )
-        metrics.gauge(
-            "metrics_consumer.process_message.message.avg_tags_len_in_batch",
-            sum(self.__message_tags_len.values()) / num_messages,
-        )
-        metrics.gauge(
-            "metrics_consumer.process_message.message.avg_value_len_in_batch",
-            sum(self.__message_value_len.values()) / num_messages,
-        )
 
         return IndexerOutputMessageBatch(
             new_messages,
