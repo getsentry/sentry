@@ -256,7 +256,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             # Error if the assigned role is not a member
             if request.data.get("role") != "member" and request.data.get("orgRole") != "member":
                 raise serializers.ValidationError(
-                    "Integration tokens are restricted to inviting new members to have the member role only."
+                    "Integration tokens are restricted to inviting new members with the member role only."
                 )
             allowed_roles = [organization_roles.get("member")]
 
