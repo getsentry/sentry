@@ -8,7 +8,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import PerformanceScoreRingWithTooltips from 'sentry/views/performance/browser/webVitals/components/performanceScoreRingWithTooltips';
-import {getWeights} from 'sentry/views/performance/browser/webVitals/utils/getWeights';
 import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
@@ -38,6 +37,16 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
       : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
   const ringSegmentColors = theme.charts.getColorPalette(3);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
+
+  const weights = projectScore
+    ? {
+        cls: projectScore.clsWeight,
+        fid: projectScore.fidWeight,
+        fcp: projectScore.fcpWeight,
+        lcp: projectScore.lcpWeight,
+        ttfb: projectScore.ttfbWeight,
+      }
+    : undefined;
 
   return (
     <GenericPerformanceWidget
@@ -100,7 +109,7 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
                   ringSegmentColors={ringSegmentColors}
                   radiusPadding={10}
                   labelHeightPadding={0}
-                  weights={getWeights(projectScore)}
+                  weights={weights}
                 />
               ) : isLoading ? (
                 <StyledLoadingIndicator size={40} />

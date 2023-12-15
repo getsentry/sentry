@@ -23,6 +23,7 @@ import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/perf
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import {useProjectWebVitalsTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useProjectWebVitalsTimeseriesQuery';
 import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionWebVitalsQuery';
+import {RowWithScoreAndOpportunity} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import Chart from 'sentry/views/starfish/components/chart';
 
@@ -49,8 +50,6 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
   const theme = useTheme();
   const shouldUseStoredScores = useStoredScoresSetting();
 
-  // TODO Abdullah Khan: Create a new widget type/file for Best Page Opportunity
-  // Web vitals widget. Code path is very different from generic stacked area chart widget.
   const {data: projectData, isLoading: isProjectWebVitalDataLoading} =
     useProjectRawWebVitalsQuery();
   const {data: projectScoresData, isLoading: isProjectScoresLoading} =
@@ -108,12 +107,15 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
             'count_scores(measurements.score.total)'
           ] as number;
           const opportunity = shouldUseStoredScores
-            ? ((listItem.opportunity ?? 0) * 100) / scoreCount
+            ? scoreCount
+              ? (((listItem as RowWithScoreAndOpportunity).opportunity ?? 0) * 100) /
+                scoreCount
+              : 0
             : count !== undefined
             ? calculateOpportunity(
                 projectScore.totalScore ?? 0,
                 count,
-                listItem.score,
+                listItem.totalScore,
                 listItem['count()']
               )
             : 0;
@@ -128,7 +130,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
                 <Truncate value={transaction} maxLength={40} />
               </GrowLink>
               <StyledRightAlignedCell>
-                {listItem.score !== null && (
+                {listItem.totalScore !== null && (
                   <Tooltip
                     title={
                       <span>
@@ -142,7 +144,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
                     isHoverable
                   >
                     <PerformanceBadgeWrapper>
-                      <PerformanceBadge score={listItem.score} />
+                      <PerformanceBadge score={listItem.totalScore} />
                     </PerformanceBadgeWrapper>
                   </Tooltip>
                 )}
