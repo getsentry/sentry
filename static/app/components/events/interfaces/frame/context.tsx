@@ -3,7 +3,9 @@ import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
 import ClippedBox from 'sentry/components/clippedBox';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import ContextLine from 'sentry/components/events/interfaces/frame/contextLine';
+import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -13,6 +15,8 @@ import {
   Frame,
   LineCoverage,
   Organization,
+  SentryAppComponent,
+  SentryAppSchemaStacktraceLink,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -28,9 +32,11 @@ import {Assembly} from './assembly';
 import ContextLineNumber from './contextLineNumber';
 import {FrameRegisters} from './frameRegisters';
 import {FrameVariables} from './frameVariables';
+import {OpenInContextLine} from './openInContextLine';
 import useStacktraceLink from './useStacktraceLink';
 
 type Props = {
+  components: SentryAppComponent<SentryAppSchemaStacktraceLink>[];
   event: Event;
   frame: Frame;
   registers: {[key: string]: string};
@@ -70,6 +76,7 @@ function Context({
   hasAssembly = false,
   emptySourceNotation = false,
   registers,
+  components,
   frame,
   event,
   organization,
@@ -80,6 +87,13 @@ function Context({
   const hasSyntaxHighlighting =
     organization?.features?.includes('issue-details-stacktrace-syntax-highlighting') ??
     false;
+
+  const hasStacktraceLinkFeatureFlag =
+    organization?.features?.includes('issue-details-stacktrace-link-in-frame') ?? false;
+
+  // This is the old design. Only show if the feature flag is not enabled for this organization.
+  const hasStacktraceLink =
+    frame.inApp && !!frame.filename && isExpanded && !hasStacktraceLinkFeatureFlag;
 
   const {projects} = useProjects();
   const project = useMemo(
@@ -164,6 +178,8 @@ function Context({
               {lines.map((line, i) => {
                 const contextLine = contextLines[i];
                 const isActive = activeLineNumber === contextLine[0];
+                const hasComponents = isActive && components.length > 0;
+                const showStacktraceLink = hasStacktraceLink && isActive;
 
                 return (
                   <Fragment key={i}>
@@ -181,6 +197,26 @@ function Context({
                         ))}
                       </ContextLineCode>
                     </ContextLineWrapper>
+                    {hasComponents && (
+                      <ErrorBoundary mini>
+                        <OpenInContextLine
+                          key={i}
+                          lineNo={contextLine[0]}
+                          filename={frame.filename || ''}
+                          components={components}
+                        />
+                      </ErrorBoundary>
+                    )}
+                    {showStacktraceLink && (
+                      <ErrorBoundary customComponent={null}>
+                        <StacktraceLink
+                          key={i}
+                          line={contextLine[1]}
+                          frame={frame}
+                          event={event}
+                        />
+                      </ErrorBoundary>
+                    )}
                   </Fragment>
                 );
               })}
@@ -192,6 +228,8 @@ function Context({
       {frame.context && !hasSyntaxHighlighting
         ? contextLines.map((line, index) => {
             const isActive = activeLineNumber === line[0];
+            const hasComponents = isActive && components.length > 0;
+            const showStacktraceLink = hasStacktraceLink && isActive;
 
             return (
               <ContextLine
@@ -199,7 +237,28 @@ function Context({
                 line={line}
                 isActive={isActive}
                 coverage={lineCoverage[index]}
-              />
+              >
+                {hasComponents && (
+                  <ErrorBoundary mini>
+                    <OpenInContextLine
+                      key={index}
+                      lineNo={line[0]}
+                      filename={frame.filename || ''}
+                      components={components}
+                    />
+                  </ErrorBoundary>
+                )}
+                {showStacktraceLink && (
+                  <ErrorBoundary customComponent={null}>
+                    <StacktraceLink
+                      key={index}
+                      line={line[1]}
+                      frame={frame}
+                      event={event}
+                    />
+                  </ErrorBoundary>
+                )}
+              </ContextLine>
             );
           })
         : null}

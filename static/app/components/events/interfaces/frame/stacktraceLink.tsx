@@ -36,6 +36,7 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import StacktraceLinkModal from './stacktraceLinkModal';
 import useStacktraceLink from './useStacktraceLink';
@@ -167,11 +168,13 @@ function CodecovLink({
       ...getAnalyticsDataForEvent(event),
     });
   };
+  const hasStacktraceLinkFeatureFlag =
+    organization?.features?.includes('issue-details-stacktrace-link-in-frame') ?? false;
 
   return (
     <OpenInLink href={coverageUrl} openInNewTab onClick={onOpenCodecovLink}>
       <StyledIconWrapper>{getIntegrationIcon('codecov', 'sm')}</StyledIconWrapper>
-      {t('Codecov')}
+      {hasStacktraceLinkFeatureFlag ? t('Codecov') : t('Open in Codecov')}
     </OpenInLink>
   );
 }
@@ -236,6 +239,9 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
       : {}
   );
 
+  const hasStacktraceLinkFeatureFlag =
+    organization?.features?.includes('issue-details-stacktrace-link-in-frame') ?? false;
+
   const onOpenLink = e => {
     e.stopPropagation();
     const provider = match!.config?.provider;
@@ -261,7 +267,10 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   if (isLoading || !match) {
     return (
       <StacktraceLinkWrapper>
-        <Placeholder height="14px" width="171px" />
+        <Placeholder
+          height={hasStacktraceLinkFeatureFlag ? '14px' : '24px'}
+          width={hasStacktraceLinkFeatureFlag ? '171px' : '120px'}
+        />
       </StacktraceLinkWrapper>
     );
   }
@@ -282,7 +291,9 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           <StyledIconWrapper>
             {getIntegrationIcon(match.config.provider.key, 'sm')}
           </StyledIconWrapper>
-          {match.config.provider.name}
+          {hasStacktraceLinkFeatureFlag
+            ? match.config.provider.name
+            : t('Open this line in %s', match.config.provider.name)}
         </OpenInLink>
         {shouldShowCodecovFeatures(organization, match) ? (
           <CodecovLink
@@ -319,7 +330,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
       <StacktraceLinkWrapper>
         <OpenInLink onClick={onOpenLink} href={frame.sourceLink} openInNewTab>
           <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
-          {t('GitHub')}
+          {hasStacktraceLinkFeatureFlag ? t('GitHub') : t('Open this line in GitHub')}
         </OpenInLink>
         {shouldShowCodecovFeatures(organization, match) ? (
           <CodecovLink
@@ -401,25 +412,45 @@ const fadeIn = keyframes`
   to { opacity: 1; }
 `;
 
-const StacktraceLinkWrapper = styled('div')`
+const StacktraceLinkWrapper = withOrganization(styled('div')<{
+  organization: Organization;
+}>`
   display: flex;
   gap: ${space(2)};
   align-items: center;
   color: ${p => p.theme.subText};
   font-family: ${p => p.theme.text.family};
-  padding: ${space(0)} ${space(1)};
-`;
 
-const FixMappingButton = styled(Button)`
+  ${p =>
+    p.organization.features.includes('issue-details-stacktrace-link-in-frame')
+      ? `
+      padding: ${space(0)} ${space(1)};
+    `
+      : `
+      background-color: ${p.theme.background};
+      border-bottom: 1px solid ${p.theme.border};
+      padding: ${space(0.25)} ${space(3)};
+      box-shadow: ${p.theme.dropShadowLight};
+      min-height: 28px;
+
+      `}
+`);
+
+const FixMappingButton = withOrganization(styled(Button)<{organization: Organization}>`
   color: ${p => p.theme.subText};
 
-  &:hover {
-    color: ${p => p.theme.subText};
-    text-decoration: underline;
-    text-decoration-color: ${p => p.theme.subText};
-    text-underline-offset: ${space(0.5)};
-  }
-`;
+  ${p =>
+    p.organization.features.includes('issue-details-stacktrace-link-in-frame')
+      ? `
+      &:hover {
+        color: ${p.theme.subText};
+        text-decoration: underline;
+        text-decoration-color: ${p.theme.subText};
+        text-underline-offset: ${space(0.5)};
+      }
+    `
+      : ``}
+`);
 
 const CloseButton = styled(Button)`
   color: ${p => p.theme.subText};
@@ -436,17 +467,23 @@ const LinkStyles = css`
   gap: ${space(0.75)};
 `;
 
-const OpenInLink = styled(ExternalLink)`
+const OpenInLink = withOrganization(styled(ExternalLink)<{organization: Organization}>`
   ${LinkStyles}
-  color: ${p => p.theme.linkColor};
-  animation: ${fadeIn} 0.2s ease-in-out forwards;
-
-  &:hover {
-    text-decoration: underline;
-    text-decoration-color: ${p => p.theme.linkUnderline};
-    text-underline-offset: ${space(0.5)};
-  }
-`;
+  ${p =>
+    p.organization.features.includes('issue-details-stacktrace-link-in-frame')
+      ? `
+      color: ${p.theme.linkColor};
+      animation: ${fadeIn} 0.2s ease-in-out forwards;
+      &:hover {
+        text-decoration: underline;
+        text-decoration-color: ${p.theme.linkUnderline};
+        text-underline-offset: ${space(0.5)};
+      }
+    `
+      : `
+      color: ${p.theme.gray300};
+      `}
+`);
 
 const StyledLink = styled(Link)`
   ${LinkStyles}

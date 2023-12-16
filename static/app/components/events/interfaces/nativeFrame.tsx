@@ -26,9 +26,15 @@ import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
-import {Frame, PlatformKey} from 'sentry/types';
+import {
+  Frame,
+  PlatformKey,
+  SentryAppComponent,
+  SentryAppSchemaStacktraceLink,
+} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
 import DebugImage from './debugMeta/debugImage';
 import {combineStatus} from './debugMeta/utils';
@@ -36,6 +42,7 @@ import Context from './frame/context';
 import {SymbolicatorStatus} from './types';
 
 type Props = {
+  components: SentryAppComponent<SentryAppSchemaStacktraceLink>[];
   event: Event;
   frame: Frame;
   isUsedForGrouping: boolean;
@@ -73,6 +80,7 @@ function NativeFrame({
   registers,
   isOnlyFrame,
   event,
+  components,
   hiddenFrameCount,
   isShowFramesToggleExpanded,
   isSubFrame,
@@ -371,6 +379,7 @@ function NativeFrame({
           frame={frame}
           event={event}
           registers={registers}
+          components={components}
           hasContextSource={hasContextSource(frame)}
           hasContextVars={hasContextVars(frame)}
           hasContextRegisters={hasContextRegisters(registers)}
@@ -385,7 +394,7 @@ function NativeFrame({
   );
 }
 
-export default NativeFrame;
+export default withSentryAppComponents(NativeFrame, {componentType: 'stacktrace-link'});
 
 const AddressCellWrapper = styled('div')`
   display: flex;
