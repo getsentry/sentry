@@ -16,13 +16,13 @@ def add_control_silo_proxy_response(
     if additional_matchers is None:
         additional_matchers = []
 
+    matchers = additional_matchers.copy()
+
     if path:
-        additional_matchers.append(
-            responses.matchers.header_matcher({PROXY_PATH: path.lstrip("/")})
-        )
+        matchers.append(responses.matchers.header_matcher({PROXY_PATH: path.lstrip("/")}))
     return responses.add(
         method=method,
         url="http://controlserver/api/0/internal/integration-proxy/",
-        match=additional_matchers,
+        match=matchers,
         **additional_response_kwargs,
     )
