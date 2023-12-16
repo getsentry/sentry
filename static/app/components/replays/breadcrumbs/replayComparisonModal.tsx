@@ -110,7 +110,7 @@ function ReplaySide({expectedTime, selector, onLoad}) {
         const body = iframe.contentWindow?.document.body;
         if (body) {
           onLoad(
-            beautify.html(body.innerHTML.repeat(100), {
+            beautify.html(body.innerHTML, {
               indent_size: 2,
               wrap_line_length: 80,
             })
