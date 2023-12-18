@@ -18,7 +18,7 @@ class StaffMiddleware(MiddlewareMixin):
 
         stf = Staff(request)
 
-        request.staff = stf
+        request.staff = stf  # type: ignore[attr-defined]
 
         if stf.is_active:
             logger.info(
