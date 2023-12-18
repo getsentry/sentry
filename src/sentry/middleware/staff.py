@@ -3,16 +3,11 @@ from django.utils.deprecation import MiddlewareMixin
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.auth.staff import Staff, logger
 
 
 class StaffMiddleware(MiddlewareMixin):
     def process_request(self, request: Request):
-        user = getattr(request, "user", None)
-        if not features.has("auth:enterprise-staff-cookie", actor=user):
-            return
-
         # This avoids touching user session, which means we avoid
         # setting `Vary: Cookie` as a response header which will
         # break HTTP caching entirely.

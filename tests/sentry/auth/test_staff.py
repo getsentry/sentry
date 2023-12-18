@@ -26,7 +26,6 @@ from sentry.middleware.staff import StaffMiddleware
 from sentry.models.user import User
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.auth import mark_sso_complete
 
@@ -207,7 +206,6 @@ class StaffTestCase(TestCase):
         assert not staff.is_active
         assert not request.session.get(SESSION_KEY)
 
-    @with_feature({"auth:enterprise-staff-cookie": True})
     def test_middleware_as_staff(self):
         request = self.build_request()
 
@@ -231,7 +229,6 @@ class StaffTestCase(TestCase):
             domain=COOKIE_DOMAIN,
         )
 
-    @with_feature({"auth:enterprise-staff-cookie": True})
     def test_middleware_as_staff_without_session(self):
         request = self.build_request(session_data=False)
 
@@ -246,7 +243,6 @@ class StaffTestCase(TestCase):
         middleware.process_response(request, response)
         response.delete_cookie.assert_called_once_with(COOKIE_NAME)
 
-    @with_feature({"auth:enterprise-staff-cookie": True})
     def test_middleware_as_non_staff(self):
         user = self.create_user("foo@example.com", is_staff=False)
         request = self.build_request(user=user)
