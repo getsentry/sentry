@@ -23,6 +23,8 @@ import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releas
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
+import AppStartWidgets from './widgets';
+
 type Query = {
   primaryRelease: string;
   project: string;
@@ -82,7 +84,11 @@ function ScreenSummary() {
                   </PageFilterBar>
                   <ReleaseComparisonSelector />
                 </Container>
-                <ErrorBoundary mini>Screen detail page content</ErrorBoundary>
+                <ErrorBoundary mini>
+                  <AppStartWidgets
+                    additionalFilters={[`transaction:${transactionName}`]}
+                  />
+                </ErrorBoundary>
               </PageFiltersContainer>
             </Layout.Main>
           </Layout.Body>
