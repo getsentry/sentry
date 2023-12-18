@@ -182,6 +182,7 @@ class SlackNoteNotificationTest(SlackActivityNotificationTest, PerformanceIssueT
         assert blocks[0]["text"]["text"] == fallback_text
         notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
         comment = notification.activity.data["text"]
+        assert event.group
         assert (
             blocks[1]["text"]["text"]
             == f"<http://testserver/organizations/{self.organization.slug}/issues/{event.group.id}/?referrer=note_activity-slack&notification_uuid={notification_uuid}|*{TEST_ISSUE_OCCURRENCE.issue_title}*>  \n{comment}"
