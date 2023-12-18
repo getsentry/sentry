@@ -117,6 +117,7 @@ default_manager.add("organizations:investigation-bias", OrganizationFeature, Fea
 default_manager.add("organizations:invite-members-rate-limits", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:invite-members", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:issue-alert-fallback-targeting", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:issue-details-new-experience-toggle", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-details-replay-event", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-details-stacktrace-link-in-frame", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-details-stacktrace-syntax-highlighting", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
