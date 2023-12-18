@@ -55,6 +55,11 @@ const ErrorInfoChecks: Array<ErrorInfo> = [
     projectCheck: true,
     errorHelpType: ErrorHelpType.DYNAMIC_SERVER_USAGE,
   },
+  {
+    errorTitle: 'TypeError: Load failed',
+    projectCheck: false,
+    errorHelpType: ErrorHelpType.LOAD_FAILED,
+  },
 ];
 
 const errorHelpTypeResourceMap: Record<
@@ -121,6 +126,21 @@ const errorHelpTypeResourceMap: Record<
         {
           text: t('Resolving "app/ Static to Dynamic Error" in Next.js'),
           link: 'https://nextjs.org/docs/messages/app-static-to-dynamic-error',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [ErrorHelpType.LOAD_FAILED]: {
+    resources: {
+      description: tct(
+        '[errorTypes] occur on Apple devices when there is an error with Fetch API.  To learn more about how to fix these errors, check out these resources:',
+        {errorTypes: <b>Load Failed errors</b>}
+      ),
+      links: [
+        {
+          text: t('Fixing Load Failed errors in Javascript'),
+          link: 'https://sentry.io/answers/load-failed-javascript/',
         },
       ],
       linksByPlatform: {},
