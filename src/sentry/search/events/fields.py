@@ -1532,6 +1532,14 @@ FUNCTIONS = {
             redundant_grouping=True,
         ),
         DiscoverFunction(
+            "p90",
+            optional_args=[with_default("transaction.duration", NumericColumn("column"))],
+            aggregate=["quantile(0.90)", ArgValue("column"), None],
+            result_type_fn=reflective_result_type(),
+            default_result_type="duration",
+            redundant_grouping=True,
+        ),
+        DiscoverFunction(
             "p95",
             optional_args=[with_default("transaction.duration", NumericColumn("column"))],
             aggregate=["quantile(0.95)", ArgValue("column"), None],
