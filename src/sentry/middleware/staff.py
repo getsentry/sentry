@@ -19,7 +19,6 @@ class StaffMiddleware(MiddlewareMixin):
         stf = Staff(request)
 
         request.staff = stf
-        request.is_staff = lambda: request.staff.is_active
 
         if stf.is_active:
             logger.info(
@@ -40,18 +39,5 @@ class StaffMiddleware(MiddlewareMixin):
             pass
         stf = getattr(request, "staff", None)
         if stf:
-            if stf.is_active:
-                # What do we log here? Should we log access to orgs?
-                org_slug = getattr(getattr(request, "organization", None), "slug", None)
-                if org_slug:
-                    logger.info(
-                        "staff.staff_access",
-                        extra={
-                            "staff_token_id": stf.token,
-                            "user_id": request.user.id,
-                            "user_email": request.user.email,
-                            "su_org_accessed": org_slug,
-                        },
-                    )
             stf.on_response(response)
         return response
