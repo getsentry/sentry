@@ -74,6 +74,7 @@ def _notify_recipient(
         text = notification.get_notification_title(ExternalProviders.SLACK, shared_context)
 
         if features.has("organizations:slack-block-kit", notification.organization):
+            # TODO: enable billing attachments for block kit
             blocks = []
             if text:
                 # equivalent of "text" field in legacy attachment system ("text" field does not
