@@ -1,3 +1,4 @@
+from dataclasses import asdict
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlencode, urlparse
@@ -6,6 +7,7 @@ import responses
 from isodate import parse_datetime
 
 from sentry.integrations.github_enterprise import GitHubEnterpriseIntegrationProvider
+from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
@@ -100,6 +102,23 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             responses.GET,
             self.base_url + "/user/installations",
             json={"installations": [{"id": installation_id}]},
+        )
+
+        responses.add(
+            method=responses.GET,
+            url=self.base_url + "/rate_limit",
+            json={
+                "resources": {
+                    "graphql": {
+                        "limit": 5000,
+                        "used": 1,
+                        "remaining": 4999,
+                        "reset": 1613064000,
+                    }
+                }
+            },
+            status=200,
+            content_type="application/json",
         )
 
         resp = self.client.get(
@@ -419,3 +438,79 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         }
 
         assert commit_context == commit_context_expected
+
+    @patch("sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1")
+    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_commit_context_all_frames(self, _, __):
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.example.org/Test-Organization/foo",
+                provider="integrations:github_enterprise",
+                external_id=123,
+                config={"name": "Test-Organization/foo"},
+                integration_id=integration.id,
+            )
+        installation = integration.get_installation(self.organization.id)
+
+        file = SourceLineInfo(
+            path="src/github.py",
+            lineno=10,
+            ref="master",
+            repo=repo,
+            code_mapping=None,  # type: ignore
+        )
+
+        responses.add(
+            responses.POST,
+            url="https://github.example.org/api/graphql",
+            json={
+                "data": {
+                    "repository0": {
+                        "ref0": {
+                            "target": {
+                                "blame0": {
+                                    "ranges": [
+                                        {
+                                            "commit": {
+                                                "oid": "123",
+                                                "author": {
+                                                    "name": "Foo",
+                                                    "email": "foo@example.com",
+                                                },
+                                                "message": "hello",
+                                                "committedDate": "2023-01-01T00:00:00Z",
+                                            },
+                                            "startingLine": 10,
+                                            "endingLine": 15,
+                                            "age": 0,
+                                        },
+                                    ]
+                                },
+                            }
+                        }
+                    }
+                }
+            },
+            content_type="application/json",
+            status=200,
+        )
+
+        response = installation.get_commit_context_all_frames([file], extra={})
+
+        assert response == [
+            FileBlameInfo(
+                **asdict(file),
+                commit=CommitInfo(
+                    commitId="123",
+                    commitMessage="hello",
+                    committedDate=datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                    commitAuthorEmail="foo@example.com",
+                    commitAuthorName="Foo",
+                ),
+            )
+        ]
