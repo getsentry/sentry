@@ -8,13 +8,9 @@ from sentry.api.endpoints.internal.feature_flags import InternalFeatureFlagsEndp
 from sentry.api.endpoints.internal.integration_proxy import InternalIntegrationProxyEndpoint
 from sentry.api.endpoints.org_auth_token_details import OrgAuthTokenDetailsEndpoint
 from sentry.api.endpoints.org_auth_tokens import OrgAuthTokensEndpoint
-from sentry.api.endpoints.organization_events_facets_stats_performance import (
-    OrganizationEventsFacetsStatsPerformanceEndpoint,
-)
 from sentry.api.endpoints.organization_events_root_cause_analysis import (
     OrganizationEventsRootCauseAnalysisEndpoint,
 )
-from sentry.api.endpoints.organization_events_starfish import OrganizationEventsStarfishEndpoint
 from sentry.api.endpoints.organization_integration_migrate_opsgenie import (
     OrganizationIntegrationMigrateOpsgenieEndpoint,
 )
@@ -1288,16 +1284,6 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/events-facets/$",
         OrganizationEventsFacetsEndpoint.as_view(),
         name="sentry-api-0-organization-events-facets",
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^\/]+)/events-facets-stats/$",
-        OrganizationEventsFacetsStatsPerformanceEndpoint.as_view(),
-        name="sentry-api-0-organization-events-facets-stats-performance",
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^\/]+)/events-starfish/$",
-        OrganizationEventsStarfishEndpoint.as_view(),
-        name="sentry-api-0-organization-events-starfish",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/events-facets-performance/$",
@@ -2821,7 +2807,7 @@ INTERNAL_URLS = [
     ),
     re_path(
         # If modifying, ensure PROXY_BASE_PATH is updated as well
-        r"^integration-proxy/\S*$",
+        r"^integration-proxy/$",
         InternalIntegrationProxyEndpoint.as_view(),
         name="sentry-api-0-internal-integration-proxy",
     ),

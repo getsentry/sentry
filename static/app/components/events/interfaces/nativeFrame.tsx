@@ -187,10 +187,21 @@ function NativeFrame({
     return undefined;
   }
 
+  // this is the status of image that belongs to this frame
   function getStatus() {
-    // this is the status of image that belongs to this frame
+    // If a matching debug image doesn't exist, fall back to symbolicator_status
     if (!image) {
-      return undefined;
+      switch (frame.symbolicatorStatus) {
+        case SymbolicatorStatus.SYMBOLICATED:
+          return 'success';
+        case SymbolicatorStatus.MISSING:
+        case SymbolicatorStatus.MALFORMED:
+          return 'error';
+        case SymbolicatorStatus.MISSING_SYMBOL:
+        case SymbolicatorStatus.UNKNOWN_IMAGE:
+        default:
+          return undefined;
+      }
     }
 
     const combinedStatus = combineStatus(image.debug_status, image.unwind_status);
@@ -249,7 +260,11 @@ function NativeFrame({
                   'This frame has missing debug files and could not be symbolicated'
                 )}
               >
-                <IconFileBroken size="sm" color="errorText" />
+                <IconFileBroken
+                  size="sm"
+                  color="errorText"
+                  data-test-id="symbolication-error-icon"
+                />
               </Tooltip>
             ) : status === undefined ? (
               <Tooltip
@@ -257,7 +272,11 @@ function NativeFrame({
                   'This frame has an unknown problem and could not be symbolicated'
                 )}
               >
-                <IconWarning size="sm" color="warningText" />
+                <IconWarning
+                  size="sm"
+                  color="warningText"
+                  data-test-id="symbolication-warning-icon"
+                />
               </Tooltip>
             ) : null}
           </SymbolicatorIcon>
@@ -477,6 +496,19 @@ const StackTraceFrame = styled('li')`
   :not(:last-child) {
     ${RowHeader} {
       border-bottom: 1px solid ${p => p.theme.border};
+    }
+  }
+
+  &:last-child {
+    ${RowHeader} {
+      border-bottom-right-radius: 5px;
+      border-bottom-left-radius: 5px;
+    }
+  }
+
+  &:first-child {
+    ${RowHeader} {
+      border-top-right-radius: 5px;
     }
   }
 `;

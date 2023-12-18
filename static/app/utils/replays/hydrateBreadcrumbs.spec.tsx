@@ -8,7 +8,7 @@ import {BreadcrumbFrame} from 'sentry/utils/replays/types';
 
 const ONE_DAY_MS = 60 * 60 * 24 * 1000;
 
-const mockRRWebFrames = []; // This is only needed for replay.hydrate breadcrumbs.
+const mockRRWebFrames = []; // This is only needed for replay.hydrate-error breadcrumbs.
 
 describe('hydrateBreadcrumbs', () => {
   const replayRecord = ReplayRecordFixture({started_at: new Date('2023/12/23')});

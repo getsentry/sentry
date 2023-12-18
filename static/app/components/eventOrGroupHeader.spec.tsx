@@ -1,4 +1,5 @@
 import {Event as EventFixture} from 'sentry-fixture/event';
+import {User} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -245,7 +246,7 @@ describe('EventOrGroupHeader', function () {
             function: 'useOverflowTabs',
             display_title_with_tree_label: false,
           },
-          actor: TestStubs.User(),
+          actor: User(),
           isTombstone: true,
         }}
         {...router}

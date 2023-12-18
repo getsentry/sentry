@@ -2,11 +2,13 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {Button} from 'sentry/components/button';
-import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
+import RelocationCodeBlock from 'sentry/views/relocation/components/relocationCodeBlock';
 import StepHeading from 'sentry/views/relocation/components/stepHeading';
+import Wrapper from 'sentry/views/relocation/components/wrapper';
 
 import {StepProps} from './types';
 
@@ -16,7 +18,7 @@ export function EncryptBackup(props: StepProps) {
   return (
     <Wrapper>
       <StepHeading step={3}>
-        {t('Create an encrypted backup of current self-hosted instance')}
+        {t('Create an encrypted backup of your current self-hosted instance')}
       </StepHeading>
       <motion.div
         transition={testableTransition()}
@@ -31,14 +33,15 @@ export function EncryptBackup(props: StepProps) {
             'You’ll need to have the public key saved in the previous step accessible when you run the following command in your terminal. Make sure your current working directory is the root of your `self-hosted` install when you execute it.'
           )}
         </p>
-        <EncryptCodeSnippet
+        <RelocationCodeBlock
           dark
           language="bash"
-          filename=">_ TERMINAL"
+          filename="TERMINAL"
+          icon={<IconTerminal />}
           hideCopyButton={false}
         >
           {code}
-        </EncryptCodeSnippet>
+        </RelocationCodeBlock>
         <p className="encrypt-help">
           <b>{t('Understanding the command:')}</b>
         </p>
@@ -54,7 +57,7 @@ export function EncryptBackup(props: StepProps) {
           <mark>{'/path/to/encrypted/backup/output/file.tar'}</mark>
           {t('file that will be uploaded in the next step')}
         </p>
-        <ContinueButton size="md" priority="primary" onClick={() => props.onComplete()}>
+        <ContinueButton priority="primary" onClick={() => props.onComplete()}>
           {t('Continue')}
         </ContinueButton>
       </motion.div>
@@ -63,40 +66,6 @@ export function EncryptBackup(props: StepProps) {
 }
 
 export default EncryptBackup;
-
-const EncryptCodeSnippet = styled(CodeSnippet)`
-  margin: ${space(2)} 0 ${space(4)};
-  padding: 4px;
-`;
-
-const Wrapper = styled('div')`
-  max-width: 769px;
-  max-height: 525px;
-  margin-left: auto;
-  margin-right: auto;
-  padding: ${space(4)};
-  background-color: ${p => p.theme.surface400};
-  z-index: 100;
-  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
-  border-radius: 10px;
-  width: 100%;
-  color: ${p => p.theme.gray300};
-  mark {
-    border-radius: 8px;
-    padding: ${space(0.25)} ${space(0.5)} ${space(0.25)} ${space(0.5)};
-    background: ${p => p.theme.gray100};
-    margin-right: ${space(1)};
-  }
-  h2 {
-    color: ${p => p.theme.gray500};
-  }
-  p {
-    margin-bottom: ${space(1)};
-  }
-  .encrypt-help {
-    color: ${p => p.theme.gray500};
-  }
-`;
 
 const ContinueButton = styled(Button)`
   margin-top: ${space(1.5)};

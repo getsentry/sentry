@@ -1,6 +1,6 @@
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 
-type ProductSelectionMap = Record<ProductSolution, boolean>;
+export type ProductSelectionMap = Record<ProductSolution, boolean>;
 
 /**
  * Transforms the product selection array into a map of booleans for each product for easier access.

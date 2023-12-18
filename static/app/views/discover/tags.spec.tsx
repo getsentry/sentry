@@ -1,5 +1,6 @@
 import {Organization} from 'sentry-fixture/organization';
 import {Team} from 'sentry-fixture/team';
+import {User} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -26,7 +27,7 @@ const commonQueryConditions = {
   environment: [],
   topEvents: '',
   yAxis: '',
-  createdBy: TestStubs.User(),
+  createdBy: User(),
   team: [parseInt(Team().id, 10)],
   statsPeriod: '14d',
 };

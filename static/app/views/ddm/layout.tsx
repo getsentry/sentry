@@ -16,17 +16,14 @@ import SplitPanel, {BaseSplitDivider, DividerProps} from 'sentry/components/spli
 import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import useOrganization from 'sentry/utils/useOrganization';
 import {MetricScratchpad} from 'sentry/views/ddm/scratchpad';
 import {ScratchpadSelector} from 'sentry/views/ddm/scratchpadSelector';
-import {TraceTable} from 'sentry/views/ddm/traceTable';
 import {TrayContent} from 'sentry/views/ddm/trayContent';
 
 const SIZE_LOCAL_STORAGE_KEY = 'ddm-split-size';
 
-function MainContent({showTraceTable}: {showTraceTable?: boolean}) {
+function MainContent() {
   return (
     <Fragment>
       <Layout.Header>
@@ -63,27 +60,15 @@ function MainContent({showTraceTable}: {showTraceTable?: boolean}) {
           </PaddedContainer>
           <MetricScratchpad />
         </Layout.Main>
-        {showTraceTable && <TraceTable />}
       </Layout.Body>
     </Fragment>
   );
 }
 
 export const DDMLayout = memo(() => {
-  const organization = useOrganization();
-  const hasNewLayout = hasDDMExperimentalFeature(organization);
-
   const measureRef = useRef<HTMLDivElement>(null);
   const {height} = useDimensions({elementRef: measureRef});
   const hasSize = height > 0;
-
-  if (!hasNewLayout) {
-    return (
-      <Layout.Page>
-        <MainContent showTraceTable />
-      </Layout.Page>
-    );
-  }
 
   return (
     <FullViewport ref={measureRef}>
@@ -128,10 +113,8 @@ const ScrollingPage = styled(Layout.Page)`
 
 const PaddedContainer = styled('div')`
   margin-bottom: ${space(2)};
-  display: grid;
-  grid-template: 1fr / 1fr max-content;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
   gap: ${space(1)};
-  @media (max-width: ${props => props.theme.breakpoints.small}) {
-    grid-template: 1fr 1fr / 1fr;
-  }
 `;

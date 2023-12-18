@@ -200,7 +200,7 @@ class IntegrationExternalMappings extends DeprecatedAsyncComponent<Props, State>
               data-test-id="add-mapping-button"
               onClick={() => onCreate()}
               size="xs"
-              icon={<IconAdd size="xs" isCircled />}
+              icon={<IconAdd isCircled />}
             >
               {tct('Add [type] Mapping', {type})}
             </AddButton>,

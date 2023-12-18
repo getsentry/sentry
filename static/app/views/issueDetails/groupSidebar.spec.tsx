@@ -1,3 +1,4 @@
+import {Actor} from 'sentry-fixture/actor';
 import {Event as EventFixture} from 'sentry-fixture/event';
 import {Tags} from 'sentry-fixture/tags';
 import {Team} from 'sentry-fixture/team';
@@ -195,13 +196,13 @@ describe('GroupSidebar', function () {
     };
     const teams = [{...Team(), type: 'team'}];
     const users = [
-      TestStubs.User({
+      Actor({
         id: '2',
         name: 'John Smith',
         email: 'johnsmith@example.com',
         type: 'user',
       }),
-      TestStubs.User({
+      Actor({
         id: '3',
         name: 'Sohn Jmith',
         email: 'sohnjmith@example.com',

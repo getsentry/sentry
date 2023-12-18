@@ -11,24 +11,27 @@ from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
-from sentry.models.statistical_detectors import RegressionGroup, RegressionType
+from sentry.models.statistical_detectors import (
+    RegressionGroup,
+    RegressionType,
+    get_regression_groups,
+)
 from sentry.seer.utils import BreakpointData
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.discover import zerofill
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
-from sentry.statistical_detectors.detector import DetectorPayload, TrendType
-from sentry.statistical_detectors.issue_platform_adapter import fingerprint_regression
+from sentry.statistical_detectors.detector import DetectorPayload, TrendType, generate_fingerprint
 from sentry.tasks.statistical_detectors import (
+    EndpointRegressionDetector,
+    FunctionRegressionDetector,
     detect_function_change_points,
     detect_function_trends,
     detect_transaction_change_points,
     detect_transaction_trends,
     emit_function_regression_issue,
-    limit_regressions_by_project,
     query_functions,
     query_transactions,
     query_transactions_timeseries,
-    redirect_escalations,
     run_detection,
 )
 from sentry.testutils.cases import MetricsAPIBaseTestCase, ProfilesSnubaTestCase
@@ -356,7 +359,7 @@ def test_detect_transaction_trends_auto_resolution(
             version=1,
             active=True,
             project_id=project.id,
-            fingerprint=fingerprint_regression("/123"),
+            fingerprint=generate_fingerprint(RegressionType.ENDPOINT, "/123"),
             baseline=100,
             regressed=300,
         )
@@ -364,7 +367,7 @@ def test_detect_transaction_trends_auto_resolution(
             detect_transaction_trends([project.organization.id], [project.id], ts)
 
     status_change = StatusChangeMessage(
-        fingerprint=[fingerprint_regression("/123", full=True)],
+        fingerprint=[generate_fingerprint(RegressionType.ENDPOINT, "/123")],
         project_id=project.id,
         new_status=GroupStatus.RESOLVED,
         new_substatus=None,
@@ -456,6 +459,13 @@ def test_detect_transaction_trends_ratelimit(
 
 
 @pytest.mark.parametrize(
+    ["detector_cls"],
+    [
+        pytest.param(EndpointRegressionDetector, id="endpoint"),
+        pytest.param(FunctionRegressionDetector, id="function"),
+    ],
+)
+@pytest.mark.parametrize(
     ["ratelimit", "expected_idx"],
     [
         pytest.param(-1, 4, id="all"),
@@ -465,7 +475,7 @@ def test_detect_transaction_trends_ratelimit(
         pytest.param(3, 4, id="three per project"),
     ],
 )
-def test_limit_regressions_by_project(ratelimit, timestamp, expected_idx):
+def test_limit_regressions_by_project(detector_cls, ratelimit, timestamp, expected_idx):
     payloads = {
         (project_id, group): DetectorPayload(
             project_id=project_id,
@@ -494,15 +504,15 @@ def test_limit_regressions_by_project(ratelimit, timestamp, expected_idx):
         payloads[(3, 2)],
         payloads[(3, 1)],
     ][:expected_idx]
-    regressions = limit_regressions_by_project(trends(), ratelimit)
+    regressions = detector_cls.limit_regressions_by_project(trends(), ratelimit)
     assert set(regressions) == set(expected_regressions)
 
 
 @pytest.mark.parametrize(
-    ["regression_type"],
+    ["detector_cls"],
     [
-        pytest.param(RegressionType.ENDPOINT, id="endpoint"),
-        pytest.param(RegressionType.FUNCTION, id="function"),
+        pytest.param(EndpointRegressionDetector, id="endpoint"),
+        pytest.param(FunctionRegressionDetector, id="function"),
     ],
 )
 @pytest.mark.parametrize(
@@ -511,36 +521,36 @@ def test_limit_regressions_by_project(ratelimit, timestamp, expected_idx):
         pytest.param([], [1], id="no existing"),
         pytest.param(
             [
-                (1, False, "transaction_1"),
-                (2, False, "transaction_1"),
+                (1, False, "1"),
+                (2, False, "1"),
             ],
             [3],
             id="existing inactive",
         ),
         pytest.param(
             [
-                (1, False, "transaction_1"),
-                (2, True, "transaction_1"),
+                (1, False, "1"),
+                (2, True, "1"),
             ],
             [None],
             id="existing active",
         ),
         pytest.param(
             [
-                (1, False, "transaction_1"),
-                (2, False, "transaction_1"),
-                (1, False, "transaction_2"),
-                (2, False, "transaction_2"),
-                (3, False, "transaction_2"),
-                (4, True, "transaction_2"),
+                (1, False, "1"),
+                (2, False, "1"),
+                (1, False, "2"),
+                (2, False, "2"),
+                (3, False, "2"),
+                (4, True, "2"),
             ],
             [3, None],
             id="mixed active and inactive",
         ),
         pytest.param(
             [
-                (1, True, "transaction_1"),
-                (2, False, "transaction_1"),
+                (1, True, "1"),
+                (2, False, "1"),
             ],
             [3],
             id="use latest version",
@@ -549,7 +559,7 @@ def test_limit_regressions_by_project(ratelimit, timestamp, expected_idx):
 )
 @django_db_all
 def test_redirect_escalations(
-    regression_type,
+    detector_cls,
     existing,
     expected_versions,
     project,
@@ -558,12 +568,15 @@ def test_redirect_escalations(
     if existing:
         RegressionGroup.objects.bulk_create(
             RegressionGroup(
-                type=regression_type.value,
+                type=detector_cls.regression_type.value,
                 date_regressed=timestamp,
                 version=version,
                 active=active,
                 project_id=project.id,
-                fingerprint=fingerprint_regression(transaction),
+                fingerprint=generate_fingerprint(
+                    detector_cls.regression_type,
+                    transaction,
+                ),
                 baseline=100000000.0,
                 regressed=500000000.0,
             )
@@ -577,7 +590,7 @@ def test_redirect_escalations(
             "aggregate_range_2": 500000000.0,
             "breakpoint": 1687323600,
             "project": str(project.id),
-            "transaction": "transaction_1",
+            "transaction": "1",
             "trend_difference": 400000000.0,
             "trend_percentage": 5.0,
             "unweighted_p_value": 0.0,
@@ -588,12 +601,7 @@ def test_redirect_escalations(
     def mock_regressions():
         yield from breakpoints
 
-    regressions = list(
-        redirect_escalations(
-            mock_regressions(),
-            regression_type,
-        )
-    )
+    regressions = list(detector_cls.redirect_escalations(mock_regressions()))
 
     assert regressions == [
         (expected_version, breakpoints[i])
@@ -843,6 +851,79 @@ def test_detect_function_change_points(
     with override_options(options), Feature(features):
         detect_function_change_points([(project.id, fingerprint)], timestamp)
     assert mock_emit_function_regression_issue.called
+
+
+@pytest.mark.parametrize(
+    ["detector_cls", "object_name"],
+    [
+        pytest.param(
+            EndpointRegressionDetector,
+            "transaction_1",
+            id="endpoint",
+        ),
+        pytest.param(
+            FunctionRegressionDetector,
+            "123",
+            id="function",
+        ),
+    ],
+)
+@mock.patch("sentry.statistical_detectors.detector.produce_occurrence_to_kafka")
+@django_db_all
+def test_new_regression_group(
+    produce_occurrence_to_kafka,
+    detector_cls,
+    object_name,
+    project,
+    timestamp,
+):
+    def get_regressions():
+        yield {
+            "project": str(project.id),
+            "transaction": object_name,
+            "aggregate_range_1": 100,
+            "aggregate_range_2": 200,
+            "unweighted_t_value": 1.23,
+            "unweighted_p_value": 1.23,
+            "trend_percentage": 1.23,
+            "absolute_percentage_change": 1.23,
+            "trend_difference": 1.23,
+            "breakpoint": (timestamp - timedelta(hours=12)).timestamp(),
+        }
+
+    regressions = get_regressions()
+    versioned_regressions = detector_cls.redirect_escalations(regressions)
+    regressions = detector_cls.save_versioned_regressions(versioned_regressions)
+    assert len(list(regressions)) == 1  # indicates we should've saved 1 regression group
+
+    regression_groups = get_regression_groups(
+        detector_cls.regression_type,
+        [(project.id, generate_fingerprint(detector_cls.regression_type, object_name))],
+        active=True,
+    )
+    assert len(regression_groups) == 1  # confirm the regression group was saved
+
+    def get_trends():
+        payload = DetectorPayload(
+            project_id=project.id,
+            group=object_name,
+            fingerprint="",  # this fingerprint isn't used so leave it blank
+            count=100,
+            value=100,
+            timestamp=timestamp - timedelta(hours=1),
+        )
+        state = detector_cls.state_cls(
+            timestamp=timestamp - timedelta(hours=1),
+            count=100,
+            moving_avg_short=100,
+            moving_avg_long=100,
+        )
+        yield TrendType.Unchanged, 1, payload, state
+
+    trends = get_trends()
+    trends = detector_cls.redirect_resolutions(trends, timestamp)
+    assert len(list(trends)) == 0  # should resolve, so it is redirected, thus 0
+    assert produce_occurrence_to_kafka.called
 
 
 @region_silo_test

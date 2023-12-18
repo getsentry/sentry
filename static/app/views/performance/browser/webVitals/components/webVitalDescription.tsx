@@ -13,10 +13,11 @@ import {Tag} from 'sentry/types';
 import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {getScoreColor} from 'sentry/views/performance/browser/webVitals/utils/getScoreColor';
-import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
+import {
+  ProjectScore,
+  WebVitals,
+} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils';
-
-import {ProjectScore} from '../utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 
 import PerformanceScoreRingWithTooltips from './performanceScoreRingWithTooltips';
 
