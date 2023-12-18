@@ -408,6 +408,19 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'line',
   },
+  [AggregationKey.P90]: {
+    ...getDocsAndOutputType(AggregationKey.P90),
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
+        defaultValue: 'transaction.duration',
+        required: false,
+      },
+    ],
+    isSortable: true,
+    multiPlotType: 'line',
+  },
   [AggregationKey.P95]: {
     ...getDocsAndOutputType(AggregationKey.P95),
     parameters: [
