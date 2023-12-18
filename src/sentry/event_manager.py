@@ -769,6 +769,8 @@ def _calculate_secondary_hash(
             op="event_manager",
             description="event_manager.save.secondary_calculate_event_grouping",
         ):
+            # create a copy since `_calculate_event_grouping` modifies the event to add all sorts
+            # of grouping info and we don't want the backup grouping data in there
             event_copy = copy.deepcopy(job["event"])
             secondary_hashes = _calculate_event_grouping(
                 project, event_copy, secondary_grouping_config
