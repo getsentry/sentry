@@ -57,7 +57,8 @@ def serialize_sentry_app_installation(
     api_token = None
     if installation.api_token_id:
         try:
-            api_token = installation.api_token.token
+            if token := installation.api_token:
+                api_token = token.token
         except ApiToken.DoesNotExist:
             pass
 
