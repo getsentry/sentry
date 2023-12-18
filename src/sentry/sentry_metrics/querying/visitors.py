@@ -16,7 +16,12 @@ from snuba_sdk.conditions import ConditionGroup
 from sentry.models.environment import Environment
 from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
 from sentry.sentry_metrics.querying.registry import ExpressionRegistry
-from sentry.sentry_metrics.querying.types import Argument, InheritFilters, QueryExpression
+from sentry.sentry_metrics.querying.types import (
+    Argument,
+    InheritFilters,
+    InheritGroupby,
+    QueryExpression,
+)
 
 TVisited = TypeVar("TVisited")
 
@@ -59,10 +64,15 @@ class ExpansionVisitor(QueryExpressionVisitor[QueryExpression]):
         if registry_entry is None:
             return timeseries
 
+        # We always map the metric as the param at index 0.
+        timeseries_params = [timeseries.metric] + (timeseries.aggregate_params or [])
+
         # We compute the first expression.
         expression = registry_entry.expression()
         # We run the replacement visitor to replace placeholders.
-        expression = ReplacementVisitor(timeseries.aggregate_params).visit(expression)
+        expression = ReplacementVisitor(
+            arguments=timeseries_params, filters=timeseries.filters, groupby=timeseries.groupby
+        ).visit(expression)
 
         # We recursively run substitutions in the newly created tree. We need to be careful about possible infinite
         # recursion.
@@ -106,11 +116,15 @@ class ValidationVisitor(QueryExpressionVisitor[QueryExpression]):
 
 
 class ReplacementVisitor(QueryExpressionVisitor[QueryExpression]):
+    """
+    Visitor that recursively replaces `Placeholder` elements with the correct values.
+    """
+
     def __init__(
         self,
         arguments: Sequence[Any],
         filters: Optional[ConditionGroup],
-        groupby: Sequence[Union[Column, AliasedExpression]],
+        groupby: Optional[Sequence[Union[Column, AliasedExpression]]],
     ):
         self._arguments = arguments
         self._filters = filters
@@ -118,22 +132,35 @@ class ReplacementVisitor(QueryExpressionVisitor[QueryExpression]):
 
     def _visit_timeseries(self, timeseries: Timeseries) -> QueryExpression:
         if isinstance(timeseries.metric, Argument):
-            timeseries.set_metric(self._visit_argument(timeseries.metric))
+            timeseries = timeseries.set_metric(self._visit_argument(timeseries.metric))
 
         replaced_aggregate_params = []
-        for aggregate_param in timeseries.aggregate_params:
+        for aggregate_param in timeseries.aggregate_params or ():
             if isinstance(aggregate_param, Argument):
                 replaced_aggregate_params.append(self._visit_argument(aggregate_param))
             else:
                 replaced_aggregate_params.append(aggregate_param)
+        timeseries = timeseries.set_aggregate(
+            timeseries.aggregate, replaced_aggregate_params or None
+        )
 
         replaced_filters = []
-        for filter in timeseries.filters:
+        for filter in timeseries.filters or ():
             if isinstance(filter, InheritFilters):
-                # TODO: merge filters.
-                pass
+                replaced_filters += self._filters or []
+            else:
+                replaced_filters.append(filter)
+        timeseries = timeseries.set_filters(replaced_filters or None)
 
-        return timeseries.set_aggregate(timeseries.aggregate, replaced_aggregate_params)
+        replaced_groupby = []
+        for groupby in timeseries.groupby:
+            if isinstance(groupby, InheritGroupby):
+                replaced_groupby += self._groupby or []
+            else:
+                replaced_groupby.append(groupby)
+        timeseries = timeseries.set_groupby(replaced_groupby or None)
+
+        return timeseries
 
     def _visit_argument(self, argument: Argument) -> Any:
         arg_value = self._arguments[argument.position]

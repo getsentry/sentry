@@ -3,9 +3,9 @@ from unittest.mock import patch
 
 import pytest
 from django.utils import timezone as django_timezone
-from snuba_sdk import ArithmeticOperator, Formula, Metric, Timeseries
 
 from sentry.sentry_metrics.querying.api import run_metrics_query
+from sentry.sentry_metrics.querying.derived_expressions import FailureRate
 from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     MetricsQueryExecutionError,
@@ -357,42 +357,26 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
 
     @patch("sentry.sentry_metrics.querying.api.default_expression_registry")
     def test_query_with_expansion(self, default_expression_registry):
-        stored_mri = "g:custom/page_load@millisecond"
-        derived_mri = "g:custom/average_gauge@none"
+        mri = "c:custom/user_click@none"
 
         registry = ExpressionRegistry()
-        registry.register(
-            derived_mri,
-            Formula(
-                operator=ArithmeticOperator.DIVIDE,
-                parameters=[
-                    Timeseries(aggregate="sum", metric=Metric(mri=stored_mri)),
-                    Timeseries(aggregate="count", metric=Metric(mri=stored_mri)),
-                ],
-            ),
-        )
+        registry.register(FailureRate())
 
         default_expression_registry.return_value = registry
 
         self.store_metric(
             self.project.organization.id,
             self.project.id,
-            "gauge",
-            stored_mri,
-            {},
+            "counter",
+            mri,
+            {"failure": "true"},
             self.ts(self.now()),
-            {
-                "min": 1.0,
-                "max": 20.0,
-                "sum": 25.0,
-                "count": 10,
-                "last": 20.0,
-            },
+            10,
             UseCaseID.CUSTOM,
         )
 
         results = run_metrics_query(
-            fields=[derived_mri],
+            fields=[f"failure_rate({mri})"],
             query=None,
             group_bys=None,
             start=self.now() - timedelta(minutes=30),
