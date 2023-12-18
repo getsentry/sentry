@@ -3988,7 +3988,7 @@ if ngrok_host and SILO_MODE != "REGION":
     CSRF_TRUSTED_ORIGINS = [f".{ngrok_host}"]
     ALLOWED_HOSTS = [f".{ngrok_host}", "localhost", "127.0.0.1", ".docker.internal"]
 
-    SESSION_COOKIE_DOMAIN = f".{ngrok_host}"
+    SESSION_COOKIE_DOMAIN: str = f".{ngrok_host}"
     CSRF_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
     SUDO_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
 
