@@ -38,6 +38,7 @@ class SiloUtilityTest(TestCase):
             "X-Test-Header-2": "Two",
             "X-Test-Header-3": "Three",
             "X-Forwarded-Proto": "https",
+            "X-Sentry-From-Silo": "CONTROL",
         }
     )
     secret = "hush-hush-im-invisible"
