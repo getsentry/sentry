@@ -74,12 +74,6 @@ describe('InvestigationRule', function () {
     } catch (e) {
       // continue
     }
-    // wait for the label to appear (it shouldn't)
-    try {
-      await screen.findByText(labelText);
-    } catch (e) {
-      // continue
-    }
 
     // check we don't have either button or label ( even after waiting for them to appear)
     // we already waited for the button to not be there, so we can just check for the label
@@ -123,7 +117,7 @@ describe('InvestigationRule', function () {
       {organization}
     );
     // wait for the button to appear
-    const button = await screen.findByText(buttonText);
+    const button = await screen.findByRole('button', {name: buttonText});
     expect(button).toBeInTheDocument();
     // make sure we are not showing the label
     const labels = screen.queryAllByText(labelText);
@@ -150,7 +144,7 @@ describe('InvestigationRule', function () {
     expect(getRuleMock).toHaveBeenCalledTimes(1);
   });
 
-  it('does not render when the rule is not a transaction rule', async function () {
+  it('does render disabled when the rule is not a transaction rule', async function () {
     initComponentEnvironment({hasFeature: true, hasRule: false});
     const getRule = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dynamic-sampling/custom-rules/',
@@ -162,7 +156,14 @@ describe('InvestigationRule', function () {
       <InvestigationRuleCreation buttonProps={{}} eventView={eventView} numSamples={1} />,
       {organization}
     );
-    await expectNotToRender();
+
+    // wait for the button to appear
+    const button = await screen.findByRole('button', {name: buttonText});
+    expect(button).toBeInTheDocument();
+    expect(button).toBeDisabled();
+    // we should  not be showing the label
+    const labels = screen.queryAllByText(labelText);
+    expect(labels).toHaveLength(0);
 
     expect(addErrorMessage).not.toHaveBeenCalled();
     // check we did call the endpoint to check if a rule exists
@@ -203,7 +204,7 @@ describe('InvestigationRule', function () {
     );
 
     // wait for the button to appear
-    const button = await screen.findByText(buttonText);
+    const button = await screen.findByRole('button', {name: buttonText});
     expect(button).toBeInTheDocument();
     // we should  not be showing the label
     const labels = screen.queryAllByText(labelText);
@@ -244,7 +245,7 @@ describe('InvestigationRule', function () {
     );
 
     // wait for the button to appear
-    const button = await screen.findByText(buttonText);
+    const button = await screen.findByRole('button', {name: buttonText});
     expect(button).toBeInTheDocument();
     // we should  not be showing the label
     const labels = screen.queryAllByText(labelText);
@@ -272,7 +273,7 @@ describe('InvestigationRule', function () {
     );
 
     // wait for the button to appear
-    const button = await screen.findByText(buttonText);
+    const button = await screen.findByRole('button', {name: buttonText});
     expect(button).toBeInTheDocument();
     // we should  not be showing the label
     const labels = screen.queryAllByText(labelText);

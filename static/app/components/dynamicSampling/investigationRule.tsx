@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
@@ -116,7 +117,7 @@ function useGetExistingRule(
   return result;
 }
 
-function useCreateInvestigationRuleMutation(vars: CreateCustomRuleVariables) {
+function useCreateInvestigationRuleMutation() {
   const api = useApi();
   const queryClient = useQueryClient();
   const {mutate} = useMutation<
@@ -124,7 +125,7 @@ function useCreateInvestigationRuleMutation(vars: CreateCustomRuleVariables) {
     RequestError,
     CreateCustomRuleVariables
   >({
-    mutationFn: (variables: CreateCustomRuleVariables) => {
+    mutationFn: variables => {
       const {organization} = variables;
       const endpoint = `/organizations/${organization.slug}/dynamic-sampling/custom-rules/`;
       return api.requestPromise(endpoint, {
@@ -132,21 +133,25 @@ function useCreateInvestigationRuleMutation(vars: CreateCustomRuleVariables) {
         data: variables,
       });
     },
-    onSuccess: (_data: CustomDynamicSamplingRule) => {
+    onSuccess: (_data, variables) => {
       addSuccessMessage(t('Successfully created investigation rule'));
       // invalidate the rule-exists query
       queryClient.invalidateQueries(
-        makeRuleExistsQueryKey(vars.query, vars.projects, vars.organization)
+        makeRuleExistsQueryKey(
+          variables.query,
+          variables.projects,
+          variables.organization
+        )
       );
       trackAnalytics('dynamic_sampling.custom_rule_add', {
-        organization: vars.organization,
-        projects: vars.projects,
-        query: vars.query,
+        organization: variables.organization,
+        projects: variables.projects,
+        query: variables.query,
         success: true,
       });
     },
-    onError: (_error: RequestError) => {
-      if (_error.status === 429) {
+    onError: (error, variables) => {
+      if (error.status === 429) {
         addErrorMessage(
           t(
             'You have reached the maximum number of concurrent investigation rules allowed'
@@ -157,9 +162,9 @@ function useCreateInvestigationRuleMutation(vars: CreateCustomRuleVariables) {
       }
 
       trackAnalytics('dynamic_sampling.custom_rule_add', {
-        organization: vars.organization,
-        projects: vars.projects,
-        query: vars.query,
+        organization: variables.organization,
+        projects: variables.projects,
+        query: variables.query,
         success: false,
       });
     },
@@ -177,21 +182,18 @@ const InvestigationInProgressNotification = styled('span')`
   gap: ${space(0.5)};
 `;
 
-function handleRequestError(error: RequestError) {
-  // check why it failed (if it is due to the fact that the query is not supported (e.g. non transaction query)
-  // do nothing we just don't show the button
-  if (error.responseJSON?.query) {
+function checkIsTransactionQueryMissing(error: RequestError | null) {
+  if (error?.responseJSON?.query) {
     const query = error.responseJSON.query;
     if (Array.isArray(query)) {
       for (const reason of query) {
         if (reason === 'not_transaction_query') {
-          return; // this is not an error we just don't show the button
+          return true;
         }
       }
     }
   }
-  const errorResponse = t('Unable to fetch investigation rule');
-  addErrorMessage(errorResponse);
+  return false;
 }
 
 function InvestigationRuleCreationInternal(props: PropsInternal) {
@@ -199,31 +201,38 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
   const organization = props.organization;
   const period = props.eventView.statsPeriod || null;
   const query = props.eventView.getQuery();
-  const createInvestigationRule = useCreateInvestigationRuleMutation({
-    query,
-    projects,
-    organization,
-    period,
-  });
-  const request = useGetExistingRule(query, projects, organization, props.numSamples);
+  const createInvestigationRule = useCreateInvestigationRuleMutation();
+  const {
+    data: rule,
+    isLoading,
+    isError,
+    error,
+  } = useGetExistingRule(query, projects, organization, props.numSamples);
+
+  const isTransactionQueryMissing = checkIsTransactionQueryMissing(error);
+  const isBreakingRequestError = isError && !isTransactionQueryMissing;
+
+  useEffect(() => {
+    if (isBreakingRequestError) {
+      addErrorMessage(t('Unable to fetch investigation rule'));
+    }
+  }, [isBreakingRequestError]);
 
   if (!hasTooFewSamples(props.numSamples)) {
     // no results yet (we can't take a decision) or enough results,
     // we don't need investigation rule UI
     return null;
   }
-  if (request.isLoading) {
+  if (isLoading) {
     return null;
   }
-  if (request.isError) {
-    handleRequestError(request.error);
+  if (isBreakingRequestError) {
     return null;
   }
 
-  const rule = request.data;
-  const haveInvestigationRuleInProgress = !!rule;
+  const isInvestigationRuleInProgress = !!rule;
 
-  if (haveInvestigationRuleInProgress) {
+  if (isInvestigationRuleInProgress) {
     // investigation rule in progress, just show a message
     const existingRule = rule as CustomDynamicSamplingRule;
     const ruleStartDate = new Date(existingRule.startDate);
@@ -238,9 +247,10 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
           isHoverable
           title={tct(
             'A user has temporarily adjusted retention priorities, increasing the odds of getting events matching your search query. [link:Learn more.]',
-            // TODO find out where this link is pointing to
             {
-              link: <ExternalLink href="https://docs.sentry.io" />,
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/#investigation-mode" />
+              ),
             }
           )}
         >
@@ -254,17 +264,31 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
   return (
     <Tooltip
       isHoverable
-      title={tct(
-        'We can find more events that match your search query by adjusting your retention priorities for an hour, increasing the odds of getting matching events. [link:Learn more.]',
-        // TODO find out where this link is pointing to
-        {
-          link: <ExternalLink href="https://docs.sentry.io" />,
-        }
-      )}
+      title={
+        isTransactionQueryMissing
+          ? tct(
+              'If you filter by [code:event.type:transaction] we can adjust your retention priorities, increasing the odds of getting matching events. [link:Learn more.]',
+              {
+                code: <code />,
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/#investigation-mode" />
+                ),
+              }
+            )
+          : tct(
+              'We can find more events that match your search query by adjusting your retention priorities for an hour, increasing the odds of getting matching events. [link:Learn more.]',
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/#investigation-mode" />
+                ),
+              }
+            )
+      }
     >
       <Button
         priority="primary"
         {...props.buttonProps}
+        disabled={isTransactionQueryMissing}
         onClick={() => createInvestigationRule({organization, period, projects, query})}
         icon={<IconStack />}
       >
