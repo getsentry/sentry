@@ -1597,6 +1597,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:invite-members-rate-limits": True,
     # Enable new issue alert "issue owners" fallback
     "organizations:issue-alert-fallback-targeting": False,
+    # Enables a toggle for entering the new issue details UI
+    "organizations:issue-details-new-experience-toggle": False,
     # Enable experimental replay-issue rendering on Issue Details page
     "organizations:issue-details-replay-event": False,
     # Enables syntax highlighting in the stack trace
