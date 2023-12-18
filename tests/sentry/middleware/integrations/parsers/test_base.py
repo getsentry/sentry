@@ -38,11 +38,12 @@ class BaseRequestParserTest(TestCase):
         self.parser = BaseRequestParser(self.request, self.response_handler)
 
     @override_settings(SILO_MODE=SiloMode.MONOLITH)
-    def test_fails_in_monolith_mode(self):
-        with raises(SiloLimit.AvailabilityError):
-            self.parser.get_response_from_control_silo()
-        with raises(SiloLimit.AvailabilityError):
-            self.parser.get_responses_from_region_silos(regions=self.region_config)
+    @patch.object(BaseRequestParser, "get_response_from_region_silo")
+    def test_doesnt_fail_in_monolith_mode(self, mock__get_response):
+        mock__get_response.side_effect = lambda region: region.name
+
+        self.parser.get_response_from_control_silo()
+        self.parser.get_responses_from_region_silos(regions=self.region_config)
 
     @override_settings(SILO_MODE=SiloMode.REGION)
     def test_fails_in_region_mode(self):
