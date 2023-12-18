@@ -1601,6 +1601,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-details-replay-event": False,
     # Enables syntax highlighting in the stack trace
     "organizations:issue-details-stacktrace-syntax-highlighting": False,
+    # Enables the new Stacktrace Link UI in frame header
+    "organizations:issue-details-stacktrace-link-in-frame": False,
     # Enable tag improvements in the issue details page
     "organizations:issue-details-tag-improvements": False,
     # Enable issue platform
