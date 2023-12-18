@@ -7,14 +7,23 @@ import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import DateTime from 'sentry/components/dateTime';
+import {Chunk} from 'sentry/components/events/contexts/chunk';
+import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {
   isNotMarkMeasurement,
   isNotPerformanceScoreMeasurement,
   TraceEventCustomPerformanceMetric,
 } from 'sentry/components/events/eventCustomPerformanceMetrics';
+import {Entries} from 'sentry/components/events/eventEntries';
+import {EventEvidence} from 'sentry/components/events/eventEvidence';
+import {EventExtraData} from 'sentry/components/events/eventExtraData';
+import {EventSdk} from 'sentry/components/events/eventSdk';
+import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {Breadcrumbs} from 'sentry/components/events/interfaces/breadcrumbs';
 import {getFormattedTimeRangeWithLeadingAndTrailingZero} from 'sentry/components/events/interfaces/spans/utils';
 import {generateStats} from 'sentry/components/events/opsBreakdown';
+import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
+import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
@@ -34,13 +43,14 @@ import {IconChevron, IconOpen} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {EntryBreadcrumbs, EntryType, EventTransaction, Organization} from 'sentry/types';
+import {objectIsEmpty} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {PageErrorProvider} from 'sentry/utils/performance/contexts/pageError';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
-import Projects from 'sentry/utils/projects';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 
@@ -117,10 +127,12 @@ function BreadCrumbsSection({
 
   useEffect(() => {
     setTimeout(() => {
-      breadCrumbsContainerRef.current?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'end',
-      });
+      if (showBreadCrumbs) {
+        breadCrumbsContainerRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'end',
+        });
+      }
     }, 100);
   }, [showBreadCrumbs, breadCrumbsContainerRef]);
 
@@ -162,7 +174,16 @@ function BreadCrumbsSection({
   );
 }
 function EventDetails({detail, organization, location}: EventDetailProps) {
+  const {projects} = useProjects();
+
+  if (!detail.event) {
+    return <LoadingIndicator />;
+  }
+
+  const {user, contexts, projectSlug} = detail.event;
+  const {feedback} = contexts ?? {};
   const eventJsonUrl = `/api/0/projects/${organization.slug}/${detail.traceFullDetailedEvent.project_slug}/events/${detail.traceFullDetailedEvent.event_id}/json/`;
+  const project = projects.find(proj => proj.slug === detail.event?.projectSlug);
   const {errors, performance_issues} = detail.traceFullDetailedEvent;
   const hasIssues = errors.length + performance_issues.length > 0;
   const startTimestamp = Math.min(
@@ -208,7 +229,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
     );
   };
 
-  return detail.event ? (
+  return (
     <Wrapper>
       <Actions>
         <Button
@@ -227,27 +248,15 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
       </Actions>
 
       <Title>
-        <Projects
-          orgId={organization.slug}
-          slugs={[detail.traceFullDetailedEvent.project_slug]}
-        >
-          {({projects}) => {
-            const project = projects.find(
-              p => p.slug === detail.traceFullDetailedEvent.project_slug
-            );
-            return (
-              <Tooltip title={detail.traceFullDetailedEvent.project_slug}>
-                <ProjectBadge
-                  project={
-                    project ? project : {slug: detail.traceFullDetailedEvent.project_slug}
-                  }
-                  avatarSize={50}
-                  hideName
-                />
-              </Tooltip>
-            );
-          }}
-        </Projects>
+        <Tooltip title={detail.traceFullDetailedEvent.project_slug}>
+          <ProjectBadge
+            project={
+              project ? project : {slug: detail.traceFullDetailedEvent.project_slug}
+            }
+            avatarSize={50}
+            hideName
+          />
+        </Tooltip>
         <div>
           <div>{t('Event')}</div>
           <TransactionOp>
@@ -376,10 +385,51 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
           )}
         </tbody>
       </StyledTable>
+      {project && <EventEvidence event={detail.event} project={project} />}
+      {projectSlug && (
+        <Entries
+          definedEvent={detail.event}
+          projectSlug={projectSlug}
+          group={undefined}
+          organization={organization}
+          isShare={false}
+          hideBeforeReplayEntries
+          hideBreadCrumbs
+        />
+      )}
+      {!objectIsEmpty(feedback) && (
+        <Chunk
+          key="feedback"
+          type="feedback"
+          alias="feedback"
+          group={undefined}
+          event={detail.event}
+          value={feedback}
+        />
+      )}
+      {user && !objectIsEmpty(user) && (
+        <Chunk
+          key="user"
+          type="user"
+          alias="user"
+          group={undefined}
+          event={detail.event}
+          value={user}
+        />
+      )}
+      <EventExtraData event={detail.event} />
+      <EventSdk sdk={detail.event.sdk} meta={detail.event._meta?.sdk} />
       <BreadCrumbsSection event={detail.event} organization={organization} />
+      {projectSlug && <EventAttachments event={detail.event} projectSlug={projectSlug} />}
+      {project && <EventViewHierarchy event={detail.event} project={project} />}
+      {projectSlug && (
+        <EventRRWebIntegration
+          event={detail.event}
+          orgId={organization.slug}
+          projectSlug={projectSlug}
+        />
+      )}
     </Wrapper>
-  ) : (
-    <LoadingIndicator />
   );
 }
 
@@ -401,6 +451,10 @@ const Wrapper = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
+
+  ${DataSection} {
+    padding: 0;
+  }
 `;
 
 const FlexBox = styled('div')`
@@ -444,7 +498,7 @@ const StyledButton = styled(Button)`
 `;
 
 const StyledTable = styled('table')`
-  margin-bottom: 0;
+  margin-bottom: 0 !important;
 `;
 
 export default TraceViewDetailPanel;
