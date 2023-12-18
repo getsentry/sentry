@@ -103,6 +103,7 @@ class OrganizationDDMMetaEndpointTest(MetricsAPIBaseTestCase):
             metric=mris,
             project=[project.id for project in projects],
             statsPeriod="1d",
+            codeLocations="true",
         )
         code_locations = response.data["codeLocations"]
 

@@ -1,3 +1,6 @@
+from enum import Enum
+from typing import Any, Sequence
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -11,6 +14,18 @@ from sentry.api.utils import get_date_range_from_params
 from sentry.sentry_metrics.querying.metadata import get_code_locations
 
 
+class MetaType(Enum):
+    CODE_LOCATIONS = "codeLocations"
+    SPANS = "spans"
+
+
+META_TYPE_SERIALIZER = {
+    MetaType.CODE_LOCATIONS.value: CodeLocationsSerializer(),
+    # TODO: replace with new serializer for spans.
+    MetaType.SPANS.value: CodeLocationsSerializer(),
+}
+
+
 @region_silo_endpoint
 class OrganizationDDMMetaEndpoint(OrganizationEndpoint):
     publish_status = {
@@ -21,18 +36,35 @@ class OrganizationDDMMetaEndpoint(OrganizationEndpoint):
     """Get meta data for one or more metrics for a given set of projects in a time interval"""
     # Returns only code locations for now
 
+    def _extract_meta_types(self, request: Request) -> Sequence[MetaType]:
+        meta_types = []
+
+        for meta_type in MetaType:
+            if request.GET.get(meta_type.value) == "true":
+                meta_types.append(meta_type)
+
+        return meta_types
+
     def get(self, request: Request, organization) -> Response:
         start, end = get_date_range_from_params(request.GET)
 
-        code_locations = get_code_locations(
-            metric_mris=request.GET.getlist("metric", []),
-            start=start,
-            end=end,
-            organization=organization,
-            projects=self.get_projects(request, organization),
-        )
+        response = {}
+        for meta_type in self._extract_meta_types(request):
+            response_data: Any = {}
 
-        return Response(
-            {"codeLocations": serialize(code_locations, request.user, CodeLocationsSerializer())},
-            status=200,
-        )
+            if meta_type == MetaType.CODE_LOCATIONS:
+                response_data = get_code_locations(
+                    metric_mris=request.GET.getlist("metric", []),
+                    start=start,
+                    end=end,
+                    organization=organization,
+                    projects=self.get_projects(request, organization),
+                )
+            elif meta_type == MetaType.SPANS:
+                pass
+
+            response[meta_type.value] = serialize(
+                response_data, request.user, META_TYPE_SERIALIZER[meta_type.value]
+            )
+
+        return Response(response, status=200)
