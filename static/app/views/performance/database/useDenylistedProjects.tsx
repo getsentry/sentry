@@ -1,7 +1,6 @@
 import useProjects from 'sentry/utils/useProjects';
 
 interface Options {
-  enabled?: boolean;
   projectId?: string[];
 }
 
