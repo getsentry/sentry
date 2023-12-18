@@ -11,6 +11,7 @@ class Column:
     discover_name: Optional[str]
     alias: str
     issue_platform_name: Optional[str] = None
+    spans_name: Optional[str] = None
 
 
 class Columns(Enum):
@@ -635,6 +636,7 @@ class Columns(Enum):
         event_name=None,
         transaction_name="measurements.key",
         discover_name="measurements.key",
+        spans_name="measurements.key",
         alias="measurements_key",
     )
     MEASUREMENTS_VALUES = Column(
@@ -642,6 +644,7 @@ class Columns(Enum):
         event_name=None,
         transaction_name="measurements.value",
         discover_name="measurements.value",
+        spans_name="measurements.value",
         alias="measurements_value",
     )
     SPAN_OP_BREAKDOWNS_KEYS = Column(
