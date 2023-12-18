@@ -55,7 +55,8 @@ const ErrorInfoChecks: Array<ErrorInfo> = [
     projectCheck: true,
     errorHelpType: ErrorHelpType.MODULE_NOT_FOUND,
   },
-  {errorTitle: 'Dynamic server usage',
+  {
+    errorTitle: 'Dynamic server usage',
     projectCheck: true,
     errorHelpType: ErrorHelpType.DYNAMIC_SERVER_USAGE,
   },
@@ -130,7 +131,7 @@ const errorHelpTypeResourceMap: Record<
       linkByPlatform: {},
     },
   },
-    [ErrorHelpType.DYNAMIC_SERVER_USAGE]: {
+  [ErrorHelpType.DYNAMIC_SERVER_USAGE]: {
     resources: {
       description: tct(
         '[errorTypes] occur in Next.js applications when a route is statically generated, but uses dynamic server values at runtime. To learn more about how to fix these errors, check out these resources:',
