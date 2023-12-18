@@ -373,7 +373,7 @@ export function Provider({
           lineWidth: 2,
           strokeStyle: theme.purple200,
         },
-        plugins: organization.features.includes('session-replay-enable-canvas')
+        plugins: organization.features.includes('session-replay-enable-canvas-replayer')
           ? [CanvasReplayerPlugin(events)]
           : [],
         skipInactive: savedReplayConfigRef.current.skip ?? true,
