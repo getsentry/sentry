@@ -119,6 +119,13 @@ class OrganizationMetricsMetaTest(OrganizationMetricMetaIntegrationTestCase):
 
         assert response.status_code == 400
 
+    def test_metrics_meta_no_projects(self):
+        response = self.get_success_response(
+            self.organization.slug, project=[], useCase=["transactions"]
+        )
+
+        assert isinstance(response.data, list)
+
     def test_metrics_meta_for_custom_metrics(self):
         project_1 = self.create_project()
         project_2 = self.create_project()

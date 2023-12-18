@@ -191,7 +191,7 @@ def get_available_derived_metrics(
 
 def get_metrics_meta(projects: Sequence[Project], use_case_id: UseCaseID) -> Sequence[MetricMeta]:
     metas = []
-    stored_mris = get_stored_mris(projects, use_case_id) if projects else []
+    stored_mris = get_stored_mris(projects, use_case_id) if projects else {}
 
     for metric_mri, project_ids in stored_mris.items():
         parsed_mri = parse_mri(metric_mri)
