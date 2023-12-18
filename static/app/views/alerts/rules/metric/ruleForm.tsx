@@ -28,7 +28,6 @@ import {EventsStats, MultiSeriesEventsStats, Organization, Project} from 'sentry
 import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
-import {AggregationKey} from 'sentry/utils/fields';
 import {
   getForceMetricsLayerQueryExtras,
   hasDDMFeature,
@@ -48,7 +47,10 @@ import Triggers from 'sentry/views/alerts/rules/metric/triggers';
 import TriggersChart from 'sentry/views/alerts/rules/metric/triggers/chart';
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
-import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
+import {
+  isOnDemandMetricAlert,
+  isValidOnDemandMetricAlert,
+} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 import {
   hasIgnoreArchivedFeatureFlag,
@@ -551,13 +553,11 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   };
 
   validateOnDemandMetricAlert() {
-    if (
-      !isOnDemandMetricAlert(this.state.dataset, this.state.aggregate, this.state.query)
-    ) {
-      return true;
-    }
-
-    return !this.state.includes(AggregationKey.PERCENTILE);
+    return isValidOnDemandMetricAlert(
+      this.state.dataset,
+      this.state.aggregate,
+      this.state.query
+    );
   }
 
   handleSubmit = async (
