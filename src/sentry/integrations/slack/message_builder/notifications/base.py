@@ -64,20 +64,8 @@ class SlackNotificationsMessageBuilder(BlockSlackMessageBuilder):
 
         actions_block = []
         for action in actions:
-            if (
-                action.label
-                in (
-                    "Archive",
-                    "Ignore",
-                    "Mark as Ongoing",
-                    "Stop Ignoring",
-                    "Turn on personal notifications",
-                )
-                or action.url
-            ):
+            if action.label == "Turn on personal notifications" or action.url:
                 actions_block.append(self.get_button_action(action))
-            elif action.name == "assign":
-                actions_block.append(self.get_static_action(action))
 
         if actions_block:
             blocks.append({"type": "actions", "elements": [action for action in actions_block]})
