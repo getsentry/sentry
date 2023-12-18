@@ -1,7 +1,9 @@
 import {Fragment} from 'react';
 
+import {openHelpSearchModal} from 'sentry/actionCreators/modal';
+import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {Project} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -19,6 +21,7 @@ function DivWrapper(props) {
 }
 
 export function NoDataMessage({Wrapper = DivWrapper, isDataAvailable}: Props) {
+  const organization = useOrganization();
   const {selection, isReady: pageFilterIsReady} = usePageFilters();
 
   const selectedProjectIds = selection.projects.map(projectId => projectId.toString());
@@ -65,10 +68,12 @@ export function NoDataMessage({Wrapper = DivWrapper, isDataAvailable}: Props) {
         })}{' '}
       {denylistedProjects.length > 0 &&
         tct(
-          'Some of your projects have been omitted from query performance analysis. Please contact [support]. Omitted projects: [projectList].',
+          'Some of your projects have been omitted from query performance analysis. Please [supportLink]. Omitted projects: [projectList].',
           {
-            support: (
-              <ExternalLink href="https://sentry.io/support/">support</ExternalLink>
+            supportLink: (
+              <Button priority="link" onClick={() => openHelpSearchModal({organization})}>
+                {t('contact support')}
+              </Button>
             ),
             projectList: <ProjectList projects={denylistedProjects} />,
           }
