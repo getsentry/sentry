@@ -288,6 +288,7 @@ class MetricMeta(TypedDict):
     operations: Collection[MetricOperationType]
     unit: Optional[MetricUnit]
     mri: str
+    project_ids: Sequence[int]
 
 
 class MetricMetaWithTagKeys(MetricMeta):

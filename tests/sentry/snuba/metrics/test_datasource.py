@@ -39,15 +39,34 @@ class DatasourceTestCase(BaseMetricsLayerTestCase, TestCase):
             )
         )
 
+        custom_mri = "d:custom/page_load@millisecond"
+        self.store_metric(
+            self.project.organization.id,
+            self.project.id,
+            "distribution",
+            custom_mri,
+            {},
+            int(self.now.timestamp()),
+            10,
+            UseCaseID.CUSTOM,
+        )
+
         mris = get_stored_mris([self.project], UseCaseID.TRANSACTIONS)
-        assert mris == ["d:transactions/duration@millisecond"]
+        assert mris == {
+            "d:transactions/duration@millisecond": [self.project.id],
+        }
 
         mris = get_stored_mris([self.project], UseCaseID.SESSIONS)
-        assert mris == [
-            "d:sessions/duration@second",
-            "c:sessions/session@none",
-            "s:sessions/user@none",
-        ]
+        assert mris == {
+            "d:sessions/duration@second": [self.project.id],
+            "c:sessions/session@none": [self.project.id],
+            "s:sessions/user@none": [self.project.id],
+        }
+
+        mris = get_stored_mris([self.project], UseCaseID.CUSTOM)
+        assert mris == {
+            custom_mri: [self.project.id],
+        }
 
     def test_get_tag_values_with_mri(self):
         releases = ["1.0", "2.0"]
