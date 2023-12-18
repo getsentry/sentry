@@ -12,11 +12,12 @@ interface Options {
  * @param options.projectId List of project IDs to check against. If omitted, checks all organization projects
  * @returns List of projects
  */
-export function useDenylistedProjects(options?: Options) {
+export function useDenylistedProjects(options: Options = {}) {
   const {projects, fetching} = useProjects();
 
-  const shouldCheckAllProjects =
-    options?.projectId?.length === 0 || options?.projectId?.includes('-1');
+  const {projectId = []} = options;
+
+  const shouldCheckAllProjects = projectId.length === 0 || projectId.includes('-1');
 
   const projectsToCheck = shouldCheckAllProjects
     ? projects
