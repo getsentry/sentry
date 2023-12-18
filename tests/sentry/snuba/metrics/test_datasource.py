@@ -68,6 +68,10 @@ class DatasourceTestCase(BaseMetricsLayerTestCase, TestCase):
             custom_mri: [self.project.id],
         }
 
+        # We want to also test without projects.
+        mris = get_stored_mris([], UseCaseID.CUSTOM)
+        assert len(mris) == 0
+
     def test_get_tag_values_with_mri(self):
         releases = ["1.0", "2.0"]
         for release in ("1.0", "2.0"):
