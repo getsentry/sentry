@@ -1,5 +1,5 @@
 import selectEvent from 'react-select-event';
-import {Authenticators} from 'sentry-fixture/authenticators';
+import {UserEnrolledAuthenticator} from 'sentry-fixture/authenticators';
 import {Organization} from 'sentry-fixture/organization';
 import {OrgRoleList} from 'sentry-fixture/roleList';
 import {Team} from 'sentry-fixture/team';
@@ -536,9 +536,9 @@ describe('OrganizationMemberDetail', function () {
       user: User({
         has2fa: true,
         authenticators: [
-          Authenticators().Totp(),
-          Authenticators().Sms(),
-          Authenticators().U2f(),
+          UserEnrolledAuthenticator({type: 'totp', id: 'totp'}),
+          UserEnrolledAuthenticator({type: 'sms', id: 'sms'}),
+          UserEnrolledAuthenticator({type: 'u2f', id: 'u2f'}),
         ],
         canReset2fa: true,
       }),
@@ -549,7 +549,7 @@ describe('OrganizationMemberDetail', function () {
       id: '7',
       user: User({
         has2fa: true,
-        authenticators: [Authenticators().Totp()],
+        authenticators: [UserEnrolledAuthenticator({type: 'totp', id: 'totp'})],
         canReset2fa: false,
       }),
     });

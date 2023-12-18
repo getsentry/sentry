@@ -25,7 +25,7 @@ export type AvatarUser = {
 /**
  * This is an authenticator that a user is enrolled in
  */
-type UserEnrolledAuthenticator = {
+export type UserEnrolledAuthenticator = {
   dateCreated: EnrolledAuthenticator['createdAt'];
   dateUsed: EnrolledAuthenticator['lastUsedAt'];
   id: EnrolledAuthenticator['authId'];
