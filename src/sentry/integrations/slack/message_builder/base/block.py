@@ -76,6 +76,7 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
 
         return button
 
+    @staticmethod
     def get_link_button(action):
         return {
             "type": "section",
