@@ -264,7 +264,7 @@ describe('ContextPickerModal', function () {
   it('is superUser and no integration configurations and calls `onFinish` with URL to integration overview page', async function () {
     OrganizationsStore.load([org]);
     OrganizationStore.onUpdate(org);
-    ConfigStore.config = User({isSuperuser: false});
+    ConfigStore.config.user = User({isSuperuser: false});
 
     const provider = {slug: 'github'};
     const configUrl = `/api/0/organizations/${org.slug}/integrations/?provider_key=${provider.slug}&includeConfig=0`;
