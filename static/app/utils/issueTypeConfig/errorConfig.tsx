@@ -128,7 +128,7 @@ const errorHelpTypeResourceMap: Record<
           link: 'https://sentry.io/answers/module-not-found-nextjs/',
         },
       ],
-      linkByPlatform: {},
+      linksByPlatform: {},
     },
   },
   [ErrorHelpType.DYNAMIC_SERVER_USAGE]: {
