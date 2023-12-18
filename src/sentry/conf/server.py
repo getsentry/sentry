@@ -3981,6 +3981,16 @@ REGION_PINNED_URL_NAMES = {
 EVENT_PROCESSING_STORE = "rc_processing_redis"
 COGS_EVENT_STORE_LABEL = "bigtable_nodestore"
 
+# Devserver configuration overrides.
+ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
+if ngrok_host and SILO_MODE != "REGION":
+    SENTRY_OPTIONS["system.url-prefix"] = f"https://{ngrok_host}"
+    CSRF_TRUSTED_ORIGINS = [f".{ngrok_host}"]
+    ALLOWED_HOSTS = [f".{ngrok_host}", "localhost", "127.0.0.1", "docker.internal"]
+
+    SESSION_COOKIE_DOMAIN = f".{ngrok_host}"
+    CSRF_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
+    SUDO_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
 
 if SILO_DEVSERVER:
     # Add connections for the region & control silo databases.
