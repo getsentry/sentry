@@ -521,14 +521,15 @@ class SlackActionEndpoint(Endpoint):
             org_context = organization_service.get_organization_by_id(
                 id=org_integrations[0].organization_id
             )
-            use_block_kit = any(
-                [
-                    True
-                    if features.has("organizations:slack-block-kit", org_context.organization)
-                    else False
-                    for oi in org_integrations
-                ]
-            )
+            if org_context:
+                use_block_kit = any(
+                    [
+                        True
+                        if features.has("organizations:slack-block-kit", org_context.organization)
+                        else False
+                        for oi in org_integrations
+                    ]
+                )
 
         action_list = self.get_action_list(slack_request=slack_request, use_block_kit=use_block_kit)
         return self._handle_group_actions(slack_request, request, action_list)
