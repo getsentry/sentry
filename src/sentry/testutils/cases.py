@@ -1275,6 +1275,22 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
+    def store_span(self, span):
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/entities/spans/insert", data=json.dumps([span])
+            ).status_code
+            == 200
+        )
+
+    def store_spans(self, spans):
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/entities/spans/insert", data=json.dumps(spans)
+            ).status_code
+            == 200
+        )
+
     def to_snuba_time_format(self, datetime_value):
         date_format = "%Y-%m-%d %H:%M:%S%z"
         return datetime_value.strftime(date_format)
