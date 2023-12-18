@@ -66,8 +66,8 @@ const commonAggregations = [
   AggregationKey.PERCENTILE,
   AggregationKey.P50,
   AggregationKey.P75,
-  AggregationKey.P95,
   AggregationKey.P90,
+  AggregationKey.P95,
   AggregationKey.P99,
   AggregationKey.P100,
 ];
