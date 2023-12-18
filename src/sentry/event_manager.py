@@ -769,9 +769,9 @@ def _calculate_secondary_hash(
             op="event_manager",
             description="event_manager.save.secondary_calculate_event_grouping",
         ):
-            secondary_event = copy.deepcopy(job["event"])
+            event_copy = copy.deepcopy(job["event"])
             secondary_hashes = _calculate_event_grouping(
-                project, secondary_event, secondary_grouping_config
+                project, event_copy, secondary_grouping_config
             )
     except Exception:
         sentry_sdk.capture_exception()
