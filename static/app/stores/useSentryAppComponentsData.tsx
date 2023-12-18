@@ -1,9 +1,10 @@
 import {useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {fetchSentryAppComponents} from 'sentry/actionCreators/sentryAppComponents';
-import fetchSentryAppInstallations from 'sentry/utils/fetchSentryAppInstallations';
-import useApi from 'sentry/utils/useApi';
+import SentryAppComponentsStore from 'sentry/stores/sentryAppComponentsStore';
+import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
+import {SentryAppComponent, SentryAppInstallation} from 'sentry/types';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
@@ -11,20 +12,31 @@ interface Props {
 }
 
 export default function useSentryAppComponentsData({projectId}: Props) {
-  const api = useApi();
   const organization = useOrganization();
 
+  const {data: installs} = useApiQuery<SentryAppInstallation[]>(
+    [`/organizations/${organization.slug}/sentry-app-installations/`],
+    {staleTime: Infinity}
+  );
+  if (installs) {
+    SentryAppInstallationStore.load(installs);
+  }
+
+  const {data: components} = useApiQuery<SentryAppComponent[]>(
+    [`/organizations/${organization.slug}/sentry-app-components/`, {query: {projectId}}],
+    {enabled: Boolean(projectId), staleTime: Infinity}
+  );
+  if (components) {
+    SentryAppComponentsStore.loadComponents(components);
+  }
+
   useEffect(() => {
-    fetchSentryAppInstallations(api, organization.slug);
-    // TODO(marcos): Sometimes PageFiltersStore cannot pick a project.
-    if (projectId) {
-      fetchSentryAppComponents(api, organization.slug, projectId);
-    } else {
+    if (!projectId) {
       Sentry.withScope(scope => {
         scope.setExtra('orgSlug', organization.slug);
         scope.setExtra('projectId', projectId);
         Sentry.captureMessage('Project ID was not set');
       });
     }
-  }, [api, organization.slug, projectId]);
+  }, [organization.slug, projectId]);
 }
