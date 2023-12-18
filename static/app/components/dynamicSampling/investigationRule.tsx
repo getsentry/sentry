@@ -247,7 +247,6 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
           isHoverable
           title={tct(
             'A user has temporarily adjusted retention priorities, increasing the odds of getting events matching your search query. [link:Learn more.]',
-            // TODO find out where this link is pointing to
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/#investigation-mode" />
@@ -269,7 +268,6 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
         isTransactionQueryMissing
           ? tct(
               'If you filter by [code:event.type:transaction] we can adjust your retention priorities, increasing the odds of getting matching events. [link:Learn more.]',
-              // TODO find out where this link is pointing to
               {
                 code: <code />,
                 link: (
@@ -279,7 +277,6 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
             )
           : tct(
               'We can find more events that match your search query by adjusting your retention priorities for an hour, increasing the odds of getting matching events. [link:Learn more.]',
-              // TODO find out where this link is pointing to
               {
                 link: (
                   <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/#investigation-mode" />
