@@ -47,7 +47,6 @@ from sentry.snuba.metrics.fields.base import (
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import (
     get_available_operations,
-    get_entity_key_from_entity_type,
     is_custom_measurement,
     is_mri,
     parse_mri,
@@ -206,9 +205,7 @@ def get_metrics_meta(projects: Sequence[Project], use_case_id: UseCaseID) -> Seq
                     Sequence[MetricOperationType], get_available_operations(parsed_mri)
                 ),
                 unit=cast(MetricUnit, parsed_mri.unit),
-                type=get_entity_key_from_entity_type(
-                    parsed_mri.entity, use_case_id != UseCaseID.SESSIONS
-                ).value,
+                type=parsed_mri.entity,
                 project_ids=project_ids,
             )
         )
