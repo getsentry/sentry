@@ -557,7 +557,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       return true;
     }
 
-    return !this.state.includes(AggregationKey.PERCENTILE);
+    return !this.state.aggregate.includes(AggregationKey.PERCENTILE);
   }
 
   handleSubmit = async (
