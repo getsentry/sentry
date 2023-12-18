@@ -1432,6 +1432,8 @@ SENTRY_EARLY_FEATURES = {
 
 # NOTE: Please maintain alphabetical order when adding new feature flags
 SENTRY_FEATURES: dict[str, bool | None] = {
+    # Enables the staff cookie on requests
+    "auth:enterprise-staff-cookie": False,
     # Enables user registration.
     "auth:register": True,
     # Enable advanced search features, like negation and wildcard matching.
@@ -1601,6 +1603,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-details-replay-event": False,
     # Enables syntax highlighting in the stack trace
     "organizations:issue-details-stacktrace-syntax-highlighting": False,
+    # Enables the new Stacktrace Link UI in frame header
+    "organizations:issue-details-stacktrace-link-in-frame": False,
     # Enable tag improvements in the issue details page
     "organizations:issue-details-tag-improvements": False,
     # Enable issue platform
