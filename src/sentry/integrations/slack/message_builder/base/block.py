@@ -87,8 +87,8 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
             "accessory": {
                 "type": "button",
                 "text": {"type": "plain_text", "text": action.name, "emoji": True},
-                "style": "primary",
-                "value": "click_me_123",
+                "style": action.style,
+                "value": action.value,
                 "url": action.url,
             },
         }

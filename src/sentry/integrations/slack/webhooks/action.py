@@ -500,8 +500,8 @@ class SlackActionEndpoint(Endpoint):
 
         action_option = self.get_action_option(slack_request=slack_request)
 
-        # If a user is just clicking our auto response in the messages tab we just return a 200
-        if action_option == "sentry_docs_link_clicked":
+        # If a user is just clicking a button link we return a 200
+        if action_option in ("sentry_docs_link_clicked", "grace_period_warning"):
             return self.respond()
 
         if action_option in UNFURL_ACTION_OPTIONS:
