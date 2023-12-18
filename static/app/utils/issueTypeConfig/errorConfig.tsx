@@ -50,6 +50,11 @@ const ErrorInfoChecks: Array<ErrorInfo> = [
     projectCheck: true,
     errorHelpType: ErrorHelpType.HANDLE_HARD_NAVIGATE_ERROR,
   },
+  {
+    errorTitle: 'Dynamic server usage',
+    projectCheck: true,
+    errorHelpType: ErrorHelpType.DYNAMIC_SERVER_USAGE,
+  },
 ];
 
 const errorHelpTypeResourceMap: Record<
@@ -101,6 +106,21 @@ const errorHelpTypeResourceMap: Record<
         {
           text: t('Fixing handleHardNavigation errors in Next.js'),
           link: 'https://sentry.io/answers/handle-hard-navigation-errors-in-nextjs/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [ErrorHelpType.DYNAMIC_SERVER_USAGE]: {
+    resources: {
+      description: tct(
+        '[errorTypes] occur in Next.js applications when a route is statically generated, but uses dynamic server values at runtime. To learn more about how to fix these errors, check out these resources:',
+        {errorTypes: <b>Dynamic server usage errors</b>}
+      ),
+      links: [
+        {
+          text: t('Resolving "app/ Static to Dynamic Error" in Next.js'),
+          link: 'https://nextjs.org/docs/messages/app-static-to-dynamic-error',
         },
       ],
       linksByPlatform: {},
