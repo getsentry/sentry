@@ -1,5 +1,6 @@
 import {Organization} from 'sentry-fixture/organization';
 import {Team} from 'sentry-fixture/team';
+import {User} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -34,7 +35,7 @@ describe('TeamKeyTransactionButton', function () {
     end: '2019-10-02T00:00:00',
     statsPeriod: '14d',
     environment: [],
-    createdBy: TestStubs.User(),
+    createdBy: User(),
     display: 'line',
     team: ['myteams'],
     topEvents: '5',

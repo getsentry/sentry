@@ -1,4 +1,4 @@
-import type {Authenticator, EnrolledAuthenticator} from './auth';
+import type {UserEnrolledAuthenticator} from './auth';
 import type {Avatar, Scope} from './core';
 import type {UserExperiments} from './experiments';
 
@@ -20,17 +20,6 @@ export type AvatarUser = {
   options?: {
     avatarType: Avatar['avatarType'];
   };
-};
-
-/**
- * This is an authenticator that a user is enrolled in
- */
-type UserEnrolledAuthenticator = {
-  dateCreated: EnrolledAuthenticator['createdAt'];
-  dateUsed: EnrolledAuthenticator['lastUsedAt'];
-  id: EnrolledAuthenticator['authId'];
-  name: EnrolledAuthenticator['name'];
-  type: Authenticator['id'];
 };
 
 export interface User extends Omit<AvatarUser, 'options'> {
