@@ -34,19 +34,17 @@ export function NoDataMessage({Wrapper = DivWrapper, isDataAvailable}: Props) {
       projectId: selectedProjectIds,
     });
 
-  // Hide message while fetching outdated projects or denylisted projects
-  if (areOutdatedProjectsFetching || areDenylistProjectsFetching) {
+  const isDataFetching = areOutdatedProjectsFetching || areDenylistProjectsFetching;
+
+  if (isDataFetching) {
     return null;
   }
 
-  // Hide message if all conditions are satisfied
-  if (
-    isDataAvailable &&
-    !areOutdatedProjectsFetching &&
-    !areDenylistProjectsFetching &&
-    outdatedProjects.length === 0 &&
-    denylistedProjects.length === 0
-  ) {
+  const hasAnyProblematicProjects =
+    (!areOutdatedProjectsFetching && outdatedProjects.length > 0) ||
+    (!areDenylistProjectsFetching && denylistedProjects.length > 0);
+
+  if (isDataAvailable && !hasAnyProblematicProjects) {
     return null;
   }
 
