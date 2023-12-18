@@ -46,7 +46,7 @@ class ApiTokensEndpoint(Endpoint):
                 "application"
             )
         )
-
+        # TODO: when the delete endpoint no longer requires the full token value, update this to stop including token
         return Response(serialize(token_list, request.user))
 
     @method_decorator(never_cache)
@@ -82,6 +82,7 @@ class ApiTokensEndpoint(Endpoint):
         user_id = request.user.id
         if is_active_superuser(request):
             user_id = request.data.get("userId", user_id)
+        # TODO: we should not be requiring full token value in the delete endpoint, and should instead be using the id
         token = request.data.get("token")
         if not token:
             return Response({"token": ""}, status=400)
