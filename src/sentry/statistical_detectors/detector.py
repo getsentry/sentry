@@ -403,11 +403,13 @@ class RegressionDetector(ABC):
         )
 
     @classmethod
-    def redirect_escalations(
+    def get_regression_versions(
         cls,
         regressions: Generator[BreakpointData, None, None],
-        batch_size=1_000,
+        batch_size=100,
     ) -> Generator[Tuple[int, BreakpointData], None, None]:
+        active_regressions = 0
+
         for regression_chunk in chunked(regressions, batch_size):
             existing_regression_groups = {
                 (group.project_id, group.fingerprint): group
@@ -433,19 +435,24 @@ class RegressionDetector(ABC):
                 elif not group.active:
                     yield group.version + 1, regression
                 else:
-                    # TODO:
-                    # If there is an active regression group, we should check
-                    # - if the issue group is still unresolved
-                    # - if the issue escalted
-                    # then emit an status change message if necessary.
-                    pass
+                    # There is an active regression group already, so skip it
+                    active_regressions += 1
+
+        metrics.incr(
+            "statistical_detectors.breakpoint.skipped",
+            amount=active_regressions,
+            tags={"source": cls.source, "kind": cls.kind},
+            sample_rate=1.0,
+        )
 
     @classmethod
-    def save_versioned_regressions(
+    def save_regressions_with_versions(
         cls,
-        versioned_regressions: Generator[Tuple[int, BreakpointData], None, None],
+        regressions: Generator[BreakpointData, None, None],
         batch_size=100,
     ) -> Generator[BreakpointData, None, None]:
+        versioned_regressions = cls.get_regression_versions(regressions)
+
         for regression_chunk in chunked(versioned_regressions, batch_size):
             RegressionGroup.objects.bulk_create(
                 [

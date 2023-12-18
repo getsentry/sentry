@@ -243,6 +243,7 @@ def detect_transaction_trends(
 
     trends = EndpointRegressionDetector.detect_trends(projects, start)
     trends = EndpointRegressionDetector.redirect_resolutions(trends, start)
+    trends = EndpointRegressionDetector.redirect_resolutions(trends, start)
     regressions = EndpointRegressionDetector.limit_regressions_by_project(trends)
 
     delay = 12  # hours
@@ -287,8 +288,7 @@ def detect_transaction_change_points(
     regressions = EndpointRegressionDetector.detect_regressions(
         transaction_pairs, start, "p95(transaction.duration)", TIMESERIES_PER_BATCH
     )
-    versioned_regressions = EndpointRegressionDetector.redirect_escalations(regressions)
-    regressions = EndpointRegressionDetector.save_versioned_regressions(versioned_regressions)
+    regressions = EndpointRegressionDetector.save_regressions_with_versions(regressions)
 
     breakpoint_count = 0
 
@@ -364,10 +364,7 @@ def detect_function_change_points(
     regressions = FunctionRegressionDetector.detect_regressions(
         function_pairs, start, "p95()", TIMESERIES_PER_BATCH
     )
-
-    versioned_regressions = FunctionRegressionDetector.redirect_escalations(regressions)
-
-    regressions = FunctionRegressionDetector.save_versioned_regressions(versioned_regressions)
+    regressions = FunctionRegressionDetector.save_regressions_with_versions(regressions)
 
     breakpoint_count = 0
     emitted_count = 0
