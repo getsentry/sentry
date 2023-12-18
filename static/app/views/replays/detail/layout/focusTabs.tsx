@@ -47,7 +47,7 @@ function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
         <FeatureBadge
           type="alpha"
           title={t('This feature is available for early adopters and may change')}
-          tooltipProps={{style: {display: 'flex'}}}
+          tooltipProps={{overlayStyle: {display: 'flex'}}}
         />
       </Fragment>
     ) : null,
