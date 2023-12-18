@@ -34,9 +34,9 @@ class KeyTransactionPermission(OrganizationPermission):
 @region_silo_endpoint
 class KeyTransactionEndpoint(KeyTransactionBase):
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (KeyTransactionPermission,)
 
@@ -146,7 +146,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 @region_silo_endpoint
 class KeyTransactionListEndpoint(KeyTransactionBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (KeyTransactionPermission,)
 

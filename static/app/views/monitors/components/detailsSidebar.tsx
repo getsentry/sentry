@@ -57,7 +57,7 @@ export default function DetailsSidebar({monitorEnv, monitor}: Props) {
           )}
         </div>
         <div>
-          {monitorEnv?.nextCheckIn ? (
+          {monitor.status !== 'disabled' && monitorEnv?.nextCheckIn ? (
             <TimeSince
               unitStyle="regular"
               liveUpdateInterval="second"

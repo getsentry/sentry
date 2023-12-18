@@ -1,3 +1,5 @@
+import {User} from 'sentry-fixture/user';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -6,7 +8,7 @@ import {fields} from 'sentry/data/forms/projectGeneralSettings';
 
 import {JsonFormObject} from './types';
 
-const user = TestStubs.User();
+const user = User();
 
 describe('JsonForm', function () {
   describe('form prop', function () {

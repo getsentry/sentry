@@ -105,6 +105,7 @@ export const enum ErrorHelpType {
   DOCUMENT_OR_WINDOW_OBJECT_ERROR = 'document_or_window_object_error',
   HANDLE_HARD_NAVIGATE_ERROR = 'handle_hard_navigate_error',
   MODULE_NOT_FOUND = 'module_not_found',
+  DYNAMIC_SERVER_USAGE = 'dynamic_server_usage',
 }
 
 export interface ErrorInfo {

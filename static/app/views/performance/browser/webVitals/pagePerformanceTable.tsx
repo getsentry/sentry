@@ -263,7 +263,7 @@ export function PagePerformanceTable() {
       const measurement = parseFunction(key)?.arguments?.[0];
       const func = shouldUseStoredScores ? 'count_scores' : 'count_web_vitals';
       const args = [measurement, ...(shouldUseStoredScores ? [] : ['any'])];
-      const countWebVitalKey = `${func}(${args.join(',')})`;
+      const countWebVitalKey = `${func}(${args.join(', ')})`;
       const countWebVital = row[countWebVitalKey];
       if (measurement === undefined || countWebVital === 0) {
         return (

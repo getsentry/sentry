@@ -1,6 +1,7 @@
 import {Organization} from 'sentry-fixture/organization';
 import {Repository} from 'sentry-fixture/repository';
 import {Team} from 'sentry-fixture/team';
+import {User} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -28,7 +29,7 @@ describe('GroupActivity', function () {
     project = TestStubs.Project();
     ProjectsStore.loadInitialData([project]);
     ConfigStore.init();
-    ConfigStore.set('user', TestStubs.User({id: '123'}));
+    ConfigStore.set('user', User({id: '123'}));
     GroupStore.init();
   });
 
@@ -47,7 +48,7 @@ describe('GroupActivity', function () {
     const group = TestStubs.Group({
       id: '1337',
       activity: activity ?? [
-        {type: 'note', id: 'note-1', data: {text: 'Test Note'}, user: TestStubs.User()},
+        {type: 'note', id: 'note-1', data: {text: 'Test Note'}, user: User()},
       ],
       project,
     });
@@ -75,7 +76,7 @@ describe('GroupActivity', function () {
   });
 
   it('renders a marked reviewed activity', function () {
-    const user = TestStubs.User({name: 'Samwise'});
+    const user = User({name: 'Samwise'});
     createWrapper({
       activity: [
         {
@@ -93,7 +94,7 @@ describe('GroupActivity', function () {
   });
 
   it('renders a pr activity', function () {
-    const user = TestStubs.User({name: 'Test User'});
+    const user = User({name: 'Test User'});
     const repository = Repository();
     createWrapper({
       activity: [
@@ -120,7 +121,7 @@ describe('GroupActivity', function () {
   });
 
   it('renders a assigned to self activity', function () {
-    const user = TestStubs.User({id: '123', name: 'Mark'});
+    const user = User({id: '123', name: 'Mark'});
     createWrapper({
       activity: [
         {
@@ -153,7 +154,7 @@ describe('GroupActivity', function () {
             assigneeType: 'user',
             integration: 'codeowners',
             rule: 'path:something/*.py #workflow',
-            user: TestStubs.User(),
+            user: User(),
           },
           project: TestStubs.Project(),
           dateCreated: '2021-10-01T15:31:38.950115Z',
@@ -169,7 +170,7 @@ describe('GroupActivity', function () {
   });
 
   it('renders an assigned via slack activity', function () {
-    const user = TestStubs.User({id: '301', name: 'Mark'});
+    const user = User({id: '301', name: 'Mark'});
     createWrapper({
       activity: [
         {
@@ -178,7 +179,7 @@ describe('GroupActivity', function () {
             assigneeEmail: 'anotheruser@sentry.io',
             assigneeType: 'user',
             integration: 'slack',
-            user: TestStubs.User(),
+            user: User(),
           },
           project: TestStubs.Project(),
           dateCreated: '2021-10-01T15:31:38.950115Z',
@@ -210,7 +211,7 @@ describe('GroupActivity', function () {
               releases: [],
             },
           },
-          user: TestStubs.User(),
+          user: User(),
         },
       ],
     });
@@ -242,7 +243,7 @@ describe('GroupActivity', function () {
               ],
             },
           },
-          user: TestStubs.User(),
+          user: User(),
         },
       ],
     });
@@ -289,7 +290,7 @@ describe('GroupActivity', function () {
               ],
             },
           },
-          user: TestStubs.User(),
+          user: User(),
         },
       ],
     });
@@ -314,7 +315,7 @@ describe('GroupActivity', function () {
           data: {
             assignee: team.id,
             assigneeType: 'team',
-            user: TestStubs.User(),
+            user: User(),
           },
           dateCreated: '2021-10-28T13:40:10.634821Z',
         },
@@ -338,7 +339,7 @@ describe('GroupActivity', function () {
         url: '/organizations/org-slug/issues/1337/comments/note-1/',
         method: 'DELETE',
       });
-      ConfigStore.set('user', TestStubs.User({id: '123', isSuperuser: true}));
+      ConfigStore.set('user', User({id: '123', isSuperuser: true}));
     });
 
     it('should do nothing if not present in GroupStore', async function () {
@@ -384,7 +385,7 @@ describe('GroupActivity', function () {
           data: {
             ignoreUntilEscalating: true,
           },
-          user: TestStubs.User(),
+          user: User(),
           dateCreated,
         },
       ],
@@ -404,7 +405,7 @@ describe('GroupActivity', function () {
           data: {
             ignoreUntilEscalating: true,
           },
-          user: TestStubs.User(),
+          user: User(),
           dateCreated,
         },
       ],
@@ -481,7 +482,7 @@ describe('GroupActivity', function () {
             ignoreCount: 400,
             ignoreWindow: 1,
           },
-          user: TestStubs.User(),
+          user: User(),
           dateCreated,
         },
       ],
@@ -575,7 +576,7 @@ describe('GroupActivity', function () {
           type: GroupActivityType.SET_IGNORED,
           project: TestStubs.Project(),
           data: {},
-          user: TestStubs.User(),
+          user: User(),
           dateCreated,
         },
       ],
@@ -596,7 +597,7 @@ describe('GroupActivity', function () {
           data: {
             version: 'frontend@1.0.0',
           },
-          user: TestStubs.User(),
+          user: User(),
           dateCreated,
         },
       ],
@@ -616,7 +617,7 @@ describe('GroupActivity', function () {
           data: {
             current_release_version: 'frontend@1.0.0',
           },
-          user: TestStubs.User(),
+          user: User(),
           dateCreated,
         },
       ],

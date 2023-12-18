@@ -1,3 +1,5 @@
+import {User} from 'sentry-fixture/user';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -10,7 +12,7 @@ describe('getCustomFieldRenderer', function () {
   const baseEventViewOptions: EventViewOptions = {
     start: undefined,
     end: undefined,
-    createdBy: TestStubs.User(),
+    createdBy: User(),
     display: undefined,
     fields: [],
     sorts: [],

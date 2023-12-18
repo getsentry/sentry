@@ -127,6 +127,10 @@ SPAN_COLUMN_MAP = {
     "profile_id": "profile_id",
 }
 
+SPAN_COLUMN_MAP.update(
+    {col.value.alias: col.value.spans_name for col in Columns if col.value.spans_name is not None}
+)
+
 SESSIONS_FIELD_LIST = [
     "release",
     "sessions",
