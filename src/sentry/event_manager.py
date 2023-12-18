@@ -564,6 +564,10 @@ class EventManager:
         ), metrics.timer("event_manager.calculate_event_grouping", tags=metric_tags):
             hashes = _calculate_event_grouping(project, job["event"], grouping_config)
 
+        # Track the total number of grouping calculations done overall, so we can divide by the
+        # count to get an average number of calculations per event
+        metrics.incr("grouping.hashes_calculated", amount=2 if secondary_hashes else 1)
+
         # Because this logic is not complex enough we want to special case the situation where we
         # migrate from a hierarchical hash to a non hierarchical hash.  The reason being that
         # `_save_aggregate` needs special logic to not create orphaned hashes in migration cases
