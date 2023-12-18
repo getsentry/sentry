@@ -16,7 +16,7 @@ describe('GuideStore', function () {
       user: User({
         id: '5',
         isSuperuser: false,
-        dateJoined: new Date(2020, 0, 1),
+        dateJoined: '2020-01-01T00:00:00',
       }),
     });
     GuideStore.init();
