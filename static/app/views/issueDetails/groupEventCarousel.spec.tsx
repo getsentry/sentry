@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
 import {Event as EventFixture} from 'sentry-fixture/event';
 import {Organization} from 'sentry-fixture/organization';
+import {User} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
@@ -41,18 +42,21 @@ describe('GroupEventCarousel', () => {
   });
 
   describe('recommended event ui', () => {
-    const recommendedUser = TestStubs.User({
+    const recommendedUser = User({
       options: {
+        ...User().options,
         defaultIssueEvent: 'recommended',
       },
     });
-    const latestUser = TestStubs.User({
+    const latestUser = User({
       options: {
+        ...User().options,
         defaultIssueEvent: 'latest',
       },
     });
-    const oldestUser = TestStubs.User({
+    const oldestUser = User({
       options: {
+        ...User().options,
         defaultIssueEvent: 'oldest',
       },
     });

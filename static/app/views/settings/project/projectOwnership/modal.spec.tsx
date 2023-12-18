@@ -2,6 +2,7 @@ import {Event as EventFixture} from 'sentry-fixture/event';
 import {EventEntryStacktrace} from 'sentry-fixture/eventEntryStacktrace';
 import {Members} from 'sentry-fixture/members';
 import {Organization} from 'sentry-fixture/organization';
+import {User} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -17,7 +18,7 @@ describe('Project Ownership', () => {
   const event = EventFixture({
     entries: [stacktrace],
   });
-  const user = TestStubs.User();
+  const user = User();
 
   beforeEach(() => {
     ConfigStore.set('user', user);

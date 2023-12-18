@@ -1,3 +1,5 @@
+import {User} from 'sentry-fixture/user';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -105,9 +107,9 @@ describe('getFieldRenderer', function () {
     beforeEach(function () {
       ConfigStore.loadInitialData(
         TestStubs.Config({
-          user: TestStubs.User({
+          user: User({
             options: {
-              ...TestStubs.User().options,
+              ...User().options,
               timezone: 'America/Los_Angeles',
             },
           }),
@@ -146,9 +148,9 @@ describe('getFieldRenderer', function () {
     // Set timezone
     ConfigStore.loadInitialData(
       TestStubs.Config({
-        user: TestStubs.User({
+        user: User({
           options: {
-            ...TestStubs.User().options,
+            ...User().options,
             timezone: 'America/Los_Angeles',
           },
         }),
@@ -335,7 +337,7 @@ describe('getFieldRenderer', function () {
           organization,
           eventView: new EventView({
             sorts: [{field: 'spans.db', kind: 'desc'}],
-            createdBy: TestStubs.User(),
+            createdBy: User(),
             display: undefined,
             end: undefined,
             start: undefined,

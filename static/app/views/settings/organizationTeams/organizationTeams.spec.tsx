@@ -1,6 +1,7 @@
 import {AccessRequest} from 'sentry-fixture/accessRequest';
 import {Organization} from 'sentry-fixture/organization';
 import {Team} from 'sentry-fixture/team';
+import {User} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -202,7 +203,7 @@ describe('OrganizationTeams', function () {
     const accessRequest = AccessRequest({
       requester: {},
     });
-    const requester = TestStubs.User({
+    const requester = User({
       id: '9',
       username: 'requester@example.com',
       email: 'requester@example.com',

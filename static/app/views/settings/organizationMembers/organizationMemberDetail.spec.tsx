@@ -1,8 +1,9 @@
 import selectEvent from 'react-select-event';
-import {Authenticators} from 'sentry-fixture/authenticators';
+import {UserEnrolledAuthenticator} from 'sentry-fixture/authenticators';
 import {Organization} from 'sentry-fixture/organization';
 import {OrgRoleList} from 'sentry-fixture/roleList';
 import {Team} from 'sentry-fixture/team';
+import {User} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -520,24 +521,24 @@ describe('OrganizationMemberDetail', function () {
     const noAccess = TestStubs.Member({
       ...fields,
       id: '4',
-      user: TestStubs.User({has2fa: false, authenticators: undefined}),
+      user: User({has2fa: false, authenticators: undefined}),
     });
 
     const no2fa = TestStubs.Member({
       ...fields,
       id: '5',
-      user: TestStubs.User({has2fa: false, authenticators: [], canReset2fa: true}),
+      user: User({has2fa: false, authenticators: [], canReset2fa: true}),
     });
 
     const has2fa = TestStubs.Member({
       ...fields,
       id: '6',
-      user: TestStubs.User({
+      user: User({
         has2fa: true,
         authenticators: [
-          Authenticators().Totp(),
-          Authenticators().Sms(),
-          Authenticators().U2f(),
+          UserEnrolledAuthenticator({type: 'totp', id: 'totp'}),
+          UserEnrolledAuthenticator({type: 'sms', id: 'sms'}),
+          UserEnrolledAuthenticator({type: 'u2f', id: 'u2f'}),
         ],
         canReset2fa: true,
       }),
@@ -546,9 +547,9 @@ describe('OrganizationMemberDetail', function () {
     const multipleOrgs = TestStubs.Member({
       ...fields,
       id: '7',
-      user: TestStubs.User({
+      user: User({
         has2fa: true,
-        authenticators: [Authenticators().Totp()],
+        authenticators: [UserEnrolledAuthenticator({type: 'totp', id: 'totp'})],
         canReset2fa: false,
       }),
     });

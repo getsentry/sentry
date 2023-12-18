@@ -1,5 +1,6 @@
 import {AuditLogs} from 'sentry-fixture/auditLogs';
 import {AuditLogsApiEventNames} from 'sentry-fixture/auditLogsApiEventNames';
+import {User} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -97,7 +98,7 @@ describe('OrganizationAuditLog', function () {
       body: {
         rows: [
           {
-            actor: TestStubs.User(),
+            actor: User(),
             event: 'rule.edit',
             ipAddress: '127.0.0.1',
             id: '214',
@@ -107,7 +108,7 @@ describe('OrganizationAuditLog', function () {
             data: {},
           },
           {
-            actor: TestStubs.User(),
+            actor: User(),
             event: 'alertrule.edit',
             ipAddress: '127.0.0.1',
             id: '215',
