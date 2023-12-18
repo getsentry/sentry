@@ -139,7 +139,7 @@ def relay_server(relay_server_setup, settings):
             break
         except Exception as ex:
             if i == 7:
-                _log.exception(ex)
+                _log.exception(str(ex))
                 raise ValueError(
                     f"relay did not start in time {url}:\n{container.logs().decode()}"
                 ) from ex

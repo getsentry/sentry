@@ -29,6 +29,7 @@ export const ON_DEMAND_METRICS_UNSUPPORTED_TAGS = new Set([
   FieldKey.TRACE_SPAN,
   FieldKey.TRACE,
   FieldKey.USER,
+  FieldKey.USER_DISPLAY,
   ...Object.values(SpanOpBreakdown),
   ...Object.values(StackTags),
   ...Object.values(ErrorTags),

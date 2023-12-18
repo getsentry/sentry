@@ -1,9 +1,11 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 
 describe('EventEvidence', () => {
-  const event = TestStubs.Event({
+  const event = EventFixture({
     occurrence: {
       evidenceData: {},
       evidenceDisplay: [
@@ -26,14 +28,14 @@ describe('EventEvidence', () => {
   const defaultProps = {
     event,
     group: TestStubs.Group(),
-    projectSlug: 'project-slug',
+    project: TestStubs.Project({slug: 'project-slug'}),
   };
 
   it('renders nothing when evidence display is empty', () => {
     const {container} = render(
       <EventEvidence
         {...defaultProps}
-        event={TestStubs.Event({occurrence: {evidenceDisplay: []}})}
+        event={EventFixture({occurrence: {evidenceDisplay: []}})}
       />
     );
 

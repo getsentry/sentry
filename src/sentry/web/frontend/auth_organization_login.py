@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.http import HttpResponse
+from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
@@ -17,7 +17,7 @@ PRIVACY_POLICY_URL = "https://sentry.io/privacy/"
 
 
 class AuthOrganizationLoginView(AuthLoginView):
-    def respond_login(self, request: Request, context, *args, **kwargs) -> HttpResponse:
+    def respond_login(self, request: Request, context, *args, **kwargs) -> HttpResponseBase:
         return self.respond("sentry/organization-login.html", context)
 
     def handle_sso(self, request: Request, organization: RpcOrganization, auth_provider):
@@ -55,7 +55,7 @@ class AuthOrganizationLoginView(AuthLoginView):
         return self.respond("sentry/organization-login.html", context)
 
     @method_decorator(never_cache)
-    def handle(self, request: Request, organization_slug) -> HttpResponse:
+    def handle(self, request: Request, organization_slug) -> HttpResponseBase:
         org_context = organization_service.get_organization_by_slug(
             slug=organization_slug, only_visible=True
         )

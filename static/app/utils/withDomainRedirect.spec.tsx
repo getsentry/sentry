@@ -241,7 +241,7 @@ describe('withDomainRedirect', function () {
   });
 
   it('updates path when :orgId is present in the routes and there is no subdomain', function () {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       slug: 'albertos-apples',
       features: ['customer-domains'],
     });

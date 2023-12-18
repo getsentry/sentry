@@ -19,7 +19,6 @@ from sentry.monitors.models import (
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorIncident,
-    MonitorObjectStatus,
     MonitorStatus,
     MonitorType,
     ScheduleType,
@@ -548,7 +547,7 @@ class MarkFailedTestCase(TestCase):
 
     @with_feature("organizations:issue-platform")
     @patch("sentry.issues.producer.produce_occurrence_to_kafka")
-    def test_mark_failed_disabled(self, mock_produce_occurrence_to_kafka):
+    def test_mark_failed_muted(self, mock_produce_occurrence_to_kafka):
         monitor = Monitor.objects.create(
             name="test monitor",
             organization_id=self.organization.id,
@@ -560,7 +559,7 @@ class MarkFailedTestCase(TestCase):
                 "max_runtime": None,
                 "checkin_margin": None,
             },
-            status=MonitorObjectStatus.DISABLED,
+            is_muted=True,
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
@@ -577,7 +576,7 @@ class MarkFailedTestCase(TestCase):
 
         monitor.refresh_from_db()
         monitor_environment.refresh_from_db()
-        assert monitor.status == MonitorObjectStatus.DISABLED
+        assert monitor.is_muted
         assert monitor_environment.status == MonitorStatus.ERROR
 
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
@@ -800,7 +799,7 @@ class MarkFailedTestCase(TestCase):
                 "max_runtime": None,
                 "checkin_margin": None,
             },
-            status=MonitorObjectStatus.DISABLED,
+            is_muted=True,
         )
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
@@ -818,7 +817,7 @@ class MarkFailedTestCase(TestCase):
 
         monitor.refresh_from_db()
         monitor_environment.refresh_from_db()
-        assert monitor.status == MonitorObjectStatus.DISABLED
+        assert monitor.is_muted
         assert monitor_environment.status == MonitorStatus.ERROR
 
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0

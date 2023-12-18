@@ -61,7 +61,7 @@ def process_attachments_and_events(raw_message: Message[IngestMessage]) -> None:
         with metrics.timer("ingest_consumer.fetch_project"):
             project = Project.objects.get_from_cache(id=project_id)
     except Project.DoesNotExist:
-        logger.error("Project for ingested event does not exist: %s", project_id)
+        logger.exception("Project for ingested event does not exist: %s", project_id)
         return None
 
     if message_type == "attachment":

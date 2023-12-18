@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -47,7 +48,7 @@ describe('NoProjectMessage', function () {
   it('shows "Create Project" button when user has team-level access', function () {
     ProjectsStore.loadInitialData([]);
     TeamStore.loadInitialData([
-      {...TestStubs.Team(), access: ['team:admin', 'team:write', 'team:read']},
+      {...Team(), access: ['team:admin', 'team:write', 'team:read']},
     ]);
 
     // No org-level access

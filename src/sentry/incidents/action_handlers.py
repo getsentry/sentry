@@ -23,7 +23,7 @@ from sentry.incidents.models import (
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.user import User
 from sentry.notifications.types import NotificationSettingEnum
-from sentry.notifications.utils.participants import get_notification_recipients_v2
+from sentry.notifications.utils.participants import get_notification_recipients
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -131,7 +131,7 @@ class EmailActionHandler(ActionHandler):
 
         elif self.action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
             users = None
-            out = get_notification_recipients_v2(
+            out = get_notification_recipients(
                 recipients=list(
                     RpcActor(id=member.user_id, actor_type=ActorType.USER)
                     for member in target.member_set

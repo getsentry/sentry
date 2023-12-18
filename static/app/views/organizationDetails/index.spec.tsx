@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -39,7 +40,7 @@ describe('OrganizationDetails', function () {
     });
     getTeamsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/teams/',
-      body: [TestStubs.Team()],
+      body: [Team()],
     });
     getProjectsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',

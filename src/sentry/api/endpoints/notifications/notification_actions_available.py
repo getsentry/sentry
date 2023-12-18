@@ -13,11 +13,10 @@ from sentry.services.hybrid_cloud.integration import integration_service
 
 @region_silo_endpoint
 class NotificationActionsAvailableEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.ECOSYSTEM
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
-
-    owner = ApiOwner.ENTERPRISE
 
     def get(self, request: Request, organization: Organization) -> Response:
         """

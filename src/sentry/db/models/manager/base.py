@@ -197,7 +197,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
                 version=self.cache_version,
             )
         except Exception as e:
-            logger.error(e, exc_info=True)
+            logger.exception(str(e))
         instance._state.db = db
 
         # Kill off any keys which are no longer valid
@@ -507,7 +507,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
             del self._triggers[key]
 
     def _execute_triggers(self, condition: ModelManagerTriggerCondition) -> None:
-        for (next_condition, next_action) in self._triggers.values():
+        for next_condition, next_action in self._triggers.values():
             if condition == next_condition:
                 next_action(self.model)
 

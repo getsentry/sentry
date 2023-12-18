@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -9,7 +10,7 @@ describe('ErrorRobot', function () {
   let routerContext;
 
   beforeEach(function () {
-    routerContext = TestStubs.routerContext();
+    routerContext = RouterContextFixture();
     getIssues = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/issues/',
       method: 'GET',

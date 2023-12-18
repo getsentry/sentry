@@ -5,6 +5,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
@@ -18,6 +19,7 @@ from sentry.web.decorators import transaction_start
 
 @region_silo_endpoint
 class ProjectRulePreviewEndpoint(ProjectEndpoint):
+    owner = ApiOwner.ISSUES
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,
     }

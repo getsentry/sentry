@@ -1,3 +1,4 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
 import {Organization} from 'sentry-fixture/organization';
 import {RRWebInitFrameEvents} from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
@@ -18,11 +19,14 @@ jest.mock('sentry/utils/replays/hooks/useReplayReader');
 jest.mock('sentry/utils/useProjects');
 
 const now = new Date();
-const mockReplay = ReplayReader.factory({
-  replayRecord: ReplayRecordFixture({started_at: now}),
-  errors: [],
-  attachments: RRWebInitFrameEvents({timestamp: now}),
-});
+const mockReplay = ReplayReader.factory(
+  {
+    replayRecord: ReplayRecordFixture({started_at: now}),
+    errors: [],
+    attachments: RRWebInitFrameEvents({timestamp: now}),
+  },
+  {}
+);
 
 jest.mocked(useReplayReader).mockImplementation(() => {
   return {
@@ -52,7 +56,7 @@ describe('EventReplay', function () {
   });
 
   const defaultProps = {
-    event: TestStubs.Event({
+    event: EventFixture({
       entries: [],
       tags: [],
       platform: 'javascript',
@@ -105,7 +109,7 @@ describe('EventReplay', function () {
     render(
       <EventReplay
         {...defaultProps}
-        event={TestStubs.Event({
+        event={EventFixture({
           entries: [],
           tags: [],
         })}
@@ -128,7 +132,7 @@ describe('EventReplay', function () {
     render(
       <EventReplay
         {...defaultProps}
-        event={TestStubs.Event({
+        event={EventFixture({
           entries: [],
           tags: [{key: 'replayId', value: '761104e184c64d439ee1014b72b4d83b'}],
           platform: 'javascript',
@@ -151,7 +155,7 @@ describe('EventReplay', function () {
     render(
       <EventReplay
         {...defaultProps}
-        event={TestStubs.Event({
+        event={EventFixture({
           entries: [],
           tags: [],
           contexts: {

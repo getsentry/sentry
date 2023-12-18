@@ -5,7 +5,10 @@ import type {
   OnboardingConfig,
   PlatformOption,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {
+  getReplayConfigureDescription,
+  getUploadSourceMapsStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
@@ -19,39 +22,75 @@ export enum SiblingOption {
 
 type PlaformOptionKey = 'siblingOption';
 
-const getSentryInitLayout = (params: Params): string => {
-  const otherConfigs: string[] = [];
+const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
+  siblingOption: {
+    label: t('Sibling Package'),
+    items: [
+      {
+        label: t('Angular 12+'),
+        value: SiblingOption.ANGULARV12,
+      },
+      {
+        label: t('Angular 10 and 11'),
+        value: SiblingOption.ANGULARV10,
+      },
+      {
+        label: t('React'),
+        value: SiblingOption.REACT,
+      },
+      {
+        label: t('Vue 3'),
+        value: SiblingOption.VUE3,
+      },
+      {
+        label: t('Vue 2'),
+        value: SiblingOption.VUE2,
+      },
+    ],
+  },
+};
 
-  let content: string[] = [];
-  let integrations: string[] = [];
+type PlatformOptions = typeof platformOptions;
+type Params = DocsParams<PlatformOptions>;
 
-  if (params.isPerformanceSelected) {
-    integrations = getPerformanceIntegration(params.platformOptions.siblingOption);
-    otherConfigs.push(performanceOtherConfig);
+const getSentryInitLayout = (params: Params, siblingOption: string): string => {
+  return `${
+    siblingOption === SiblingOption.VUE2
+      ? `Vue,`
+      : siblingOption === SiblingOption.VUE3
+      ? 'app,'
+      : ''
+  }dsn: "${params.dsn}",
+  integrations: [${
+    params.isPerformanceSelected
+      ? `
+          new ${getSiblingImportName(siblingOption)}.BrowserTracing({
+            // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
+            tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],
+          ${
+            params.isPerformanceSelected ? getPerformanceIntegration(siblingOption) : ''
+          }})`
+      : ''
+  }${
+    params.isReplaySelected
+      ? `
+          new ${getSiblingImportName(siblingOption)}.Replay(),`
+      : ''
   }
-
-  if (params.isReplaySelected) {
-    integrations.push(replayIntegration.trim());
-    otherConfigs.push(replayOtherConfig.trim());
-  }
-
-  if (params.platformOptions.siblingOption === SiblingOption.VUE3) {
-    content.push(`app`);
-  } else if (params.platformOptions.siblingOption === SiblingOption.VUE2) {
-    content.push(`Vue`);
-  }
-
-  content.push(`dsn: "${params.dsn}"`);
-  if (integrations.length > 0) {
-    content.push(`integrations: [
-${integrations}
-]`);
-  }
-
-  if (otherConfigs.length > 0) {
-    content = content.concat(otherConfigs);
-  }
-  return content.join();
+  ],${
+    params.isPerformanceSelected
+      ? `
+        // Performance Monitoring
+        tracesSampleRate: 1.0, //  Capture 100% of the transactions`
+      : ''
+  }${
+    params.isReplaySelected
+      ? `
+        // Session Replay
+        replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
+        replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
+      : ''
+  }`;
 };
 
 const getNextStep = (
@@ -85,139 +124,88 @@ const isAngular = (siblingOption: string): boolean =>
 const isVue = (siblingOption: string): boolean =>
   siblingOption === SiblingOption.VUE2 || siblingOption === SiblingOption.VUE3;
 
-// Configuration Start
-const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
-  siblingOption: {
-    label: t('Sibling Package'),
-    items: [
-      {
-        label: t('Angular 12+'),
-        value: SiblingOption.ANGULARV12,
-      },
-      {
-        label: t('Angular 10 and 11'),
-        value: SiblingOption.ANGULARV10,
-      },
-      {
-        label: t('React'),
-        value: SiblingOption.REACT,
-      },
-      {
-        label: t('Vue 3'),
-        value: SiblingOption.VUE3,
-      },
-      {
-        label: t('Vue 2'),
-        value: SiblingOption.VUE2,
-      },
-    ],
-  },
-};
-
-type PlatformOptions = typeof platformOptions;
-type Params = DocsParams<PlatformOptions>;
-
-const replayIntegration = `
-new SiblingSdk.Replay(),
-`;
-
-const replayOtherConfig = `
-// Session Replay
-replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
-replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.
-`;
-
-function getPerformanceIntegration(siblingOption: string): string[] {
-  const integration: string[] = [];
-  integration.push(`new SiblingSdk.BrowserTracing({
-// Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/]`);
-  if (isVue(siblingOption)) {
-    integration.push(
-      'routingInstrumentation: SiblingSdk.vueRouterInstrumentation(router)'
-    );
-  }
-  if (isAngular(siblingOption)) {
-    integration.push('routingInstrumentation: SiblingSdk.routingInstrumentation');
-  }
-  integration.push(`}),`);
-  return integration;
+function getPerformanceIntegration(siblingOption: string): string {
+  return `${
+    isVue(siblingOption)
+      ? `routingInstrumentation: SentryVue.vueRouterInstrumentation(router),`
+      : isAngular(siblingOption)
+      ? `routingInstrumentation: SentryAngular.routingInstrumentation,`
+      : ''
+  }`;
 }
-
-const performanceOtherConfig = `
-// Performance Monitoring
-tracesSampleRate: 1.0, // Capture 100% of the transactions`;
 
 const performanceAngularErrorHandler = `,
 {
-  provide: SiblingSdk.TraceService,
+  provide: SentryAngular.TraceService,
   deps: [Router],
 },
 {
   provide: APP_INITIALIZER,
   useFactory: () => () => {},
-  deps: [SiblingSdk.TraceService],
+  deps: [SentryAngular.TraceService],
   multi: true,
 },`;
 
+const getInstallStep = (params: Params) => [
+  {
+    type: StepType.INSTALL,
+    description: (
+      <p>
+        {tct(
+          `Install the Sentry Capacitor SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn], alongside the Sentry [siblingName:] SDK:`,
+          {
+            codeYarn: <code />,
+            codeNpm: <code />,
+            siblingName: getSiblingName(params.platformOptions.siblingOption),
+          }
+        )}
+      </p>
+    ),
+    configurations: [
+      {
+        language: 'bash',
+        code: [
+          {
+            label: 'npm',
+            value: 'npm',
+            language: 'bash',
+            code: `npm install --save @sentry/capacitor ${getNpmPackage(
+              params.platformOptions.siblingOption
+            )}`,
+          },
+          {
+            label: 'yarn',
+            value: 'yarn',
+            language: 'bash',
+            code: `yarn add @sentry/capacitor ${getNpmPackage(
+              params.platformOptions.siblingOption
+            )} --exact`,
+          },
+        ],
+      },
+      {
+        additionalInfo: (
+          <p>
+            {tct(
+              `The version of the Sentry [siblingName:] SDK must match with the version referred by Sentry Capacitor. To check which version of the Sentry [siblingName:] SDK is installed, use the following command: [code:npm info @sentry/capacitor peerDependencies]`,
+              {
+                code: <code />,
+                siblingName: getSiblingName(params.platformOptions.siblingOption),
+              }
+            )}
+          </p>
+        ),
+      },
+    ],
+  },
+];
+
 const onboarding: OnboardingConfig<PlatformOptions> = {
-  install: params => [
-    {
-      type: StepType.INSTALL,
-      description: (
-        <p>
-          {tct(
-            `Install the Sentry Capacitor SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn], alongside the Sentry [siblingName:] SDK:`,
-            {
-              codeYarn: <code />,
-              codeNpm: <code />,
-              siblingName: getSiblingName(params.platformOptions.siblingOption),
-            }
-          )}
-        </p>
-      ),
-      configurations: [
-        {
-          language: 'bash',
-          code: [
-            {
-              label: 'npm',
-              value: 'npm',
-              language: 'bash',
-              code: `npm install --save @sentry/capacitor ${getNpmPackage(
-                params.platformOptions.siblingOption
-              )}`,
-            },
-            {
-              label: 'yarn',
-              value: 'yarn',
-              language: 'bash',
-              code: `yarn add @sentry/capacitor ${getNpmPackage(
-                params.platformOptions.siblingOption
-              )} --exact`,
-            },
-          ],
-        },
-        {
-          additionalInfo: (
-            <p>
-              {tct(
-                `The version of the Sentry [siblingName:] SDK must match with the version referred by Sentry Capacitor. To check which version of the Sentry [siblingName:] SDK is installed, use the following command: [code:npm info @sentry/capacitor peerDependencies]`,
-                {
-                  code: <code />,
-                  siblingName: getSiblingName(params.platformOptions.siblingOption),
-                }
-              )}
-            </p>
-          ),
-        },
-      ],
-    },
-  ],
+  install: params => getInstallStep(params),
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      configurations: getSetupConfiguration(params),
+      configurations: getSetupConfiguration({params, showExtraStep: true}),
     },
     getUploadSourceMapsStep({
       guideLink:
@@ -306,31 +294,41 @@ function getVueConstSetup(siblingOption: string): string {
   }
 }
 
-function getSetupConfiguration(params: Params) {
-  const sentryInitLayout = getSentryInitLayout(params);
+function getSetupConfiguration({
+  params,
+  showExtraStep,
+}: {
+  params: Params;
+  showExtraStep: boolean;
+}) {
   const siblingOption = params.platformOptions.siblingOption;
+  const sentryInitLayout = getSentryInitLayout(params, siblingOption);
+
   const configuration = [
     {
       description: tct(
-        `You should init the Sentry capacitor SDK in your main.ts file as soon as possible during application load up, before initializing Sentry [siblingName:]:`,
+        `You should init the Sentry capacitor SDK in your [code:main.ts] file as soon as possible during application load up, before initializing Sentry [siblingName:]:`,
         {
           siblingName: getSiblingName(siblingOption),
+          code: <code />,
         }
       ),
       language: 'javascript',
       code: `${getSiblingImportsSetupConfiguration(siblingOption)}
           import * as Sentry from '@sentry/capacitor';
-          import * as SiblingSdk from '${getNpmPackage(siblingOption)}';
+          import * as ${getSiblingImportName(siblingOption)} from '${getNpmPackage(
+            siblingOption
+          )}';
           ${getVueConstSetup(siblingOption)}
           Sentry.init({
             ${sentryInitLayout}
 },
 // Forward the init method from ${getNpmPackage(params.platformOptions.siblingOption)}
-SiblingSdk.init
+${getSiblingImportName(siblingOption)}.init
 );`,
     },
   ];
-  if (isAngular(siblingOption)) {
+  if (isAngular(siblingOption) && showExtraStep) {
     configuration.push({
       description: tct(
         "The Sentry Angular SDK exports a function to instantiate ErrorHandler provider that will automatically send JavaScript errors captured by the Angular's error handler.",
@@ -340,14 +338,14 @@ SiblingSdk.init
       code: `
 import { APP_INITIALIZER, ErrorHandler, NgModule } from "@angular/core";
 import { Router } from "@angular/router";
-import * as SiblingSdk from "${getNpmPackage(siblingOption)}";
+import * as SentryAngular from "${getNpmPackage(siblingOption)}";
 
 @NgModule({
 // ...
 providers: [
 {
   provide: ErrorHandler,
-  useValue: SiblingSdk.createErrorHandler(),
+  useValue: SentryAngular.createErrorHandler(),
 }${params.isPerformanceSelected ? performanceAngularErrorHandler : ' '}
 ],
 // ...
@@ -384,11 +382,49 @@ function getSiblingName(siblingOption: string): string {
       return '';
   }
 }
-// Configuration End
+
+function getSiblingImportName(siblingOption: string): string {
+  siblingOption;
+  switch (siblingOption) {
+    case SiblingOption.ANGULARV10:
+    case SiblingOption.ANGULARV12:
+      return 'SentryAngular';
+    case SiblingOption.REACT:
+      return 'SentryReact';
+    case SiblingOption.VUE2:
+    case SiblingOption.VUE3:
+      return 'SentryVue';
+    default:
+      return '';
+  }
+}
+
+const replayOnboarding: OnboardingConfig<PlatformOptions> = {
+  install: params => getInstallStep(params),
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      configurations: [
+        {
+          description: getReplayConfigureDescription({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/session-replay/',
+          }),
+          configurations: getSetupConfiguration({
+            params: {...params, isReplaySelected: true},
+            showExtraStep: false,
+          }),
+        },
+      ],
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
 
 const docs: Docs<PlatformOptions> = {
   onboarding,
   platformOptions,
+  replayOnboardingNpm: replayOnboarding,
 };
 
 export default docs;

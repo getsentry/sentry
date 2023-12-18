@@ -58,7 +58,7 @@ export function OnDemandMetricAlert({
         <DismissButton
           priority="link"
           size="sm"
-          icon={<IconClose size="xs" />}
+          icon={<IconClose />}
           aria-label={t('Close Alert')}
           onClick={dismiss}
         />

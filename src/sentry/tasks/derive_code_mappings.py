@@ -15,7 +15,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration, integration_service
-from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.base import instrumented_task
 from sentry.utils.json import JSONData
 from sentry.utils.locking import UnableToAcquireLock
@@ -59,7 +59,7 @@ def process_error(error: ApiError, extra: Dict[str, str]) -> None:
     # Logging the exception and returning is better than re-raising the error
     # Otherwise, API errors would not group them since the HTTPError in the stack
     # has unique URLs, thus, separating the errors
-    logger.exception(
+    logger.error(
         "Unhandled ApiError occurred. Nothing is broken. Investigate. Multiple issues grouped.",
         extra=extra,
     )

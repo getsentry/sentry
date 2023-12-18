@@ -332,7 +332,8 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         self.is_organization_member(user.id, member.id)
 
         auth_log.warning.assert_called_with(
-            "Could not remove 2FA noncompliant user from org",
+            "Could not remove %s noncompliant user from org",
+            "2FA",
             extra={"organization_id": self.org.id, "user_id": user.id, "member_id": member.id},
         )
 

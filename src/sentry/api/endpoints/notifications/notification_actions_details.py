@@ -31,13 +31,12 @@ logger = logging.getLogger(__name__)
 @region_silo_endpoint
 @extend_schema(tags=["Alerts"])
 class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.ECOSYSTEM
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
-
-    owner = ApiOwner.ENTERPRISE
 
     """
     Manages a single NotificationAction via the action_id passed in the path.

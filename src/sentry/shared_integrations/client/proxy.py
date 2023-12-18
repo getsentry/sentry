@@ -1,15 +1,23 @@
 from __future__ import annotations
 
+import ipaddress
 import logging
+import socket
+from functools import lru_cache
 from typing import Any, Mapping
 from urllib.parse import ParseResult, urljoin, urlparse
 
+import sentry_sdk
+import urllib3
 from django.conf import settings
 from django.http import HttpResponse
+from django.utils.encoding import force_str
 from requests import PreparedRequest
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
+from sentry.http import build_session
 from sentry.integrations.client import ApiClient
+from sentry.net.http import SafeSession
 from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.silo.base import SiloMode
@@ -17,6 +25,7 @@ from sentry.silo.util import (
     DEFAULT_REQUEST_BODY,
     PROXY_BASE_PATH,
     PROXY_BASE_URL_HEADER,
+    PROXY_KEYID_HEADER,
     PROXY_OI_HEADER,
     PROXY_SIGNATURE_HEADER,
     encode_subnet_signature,
@@ -25,6 +34,36 @@ from sentry.silo.util import (
 from sentry.utils.env import in_test_environment
 
 logger = logging.getLogger(__name__)
+
+
+@lru_cache(maxsize=1)
+def get_control_silo_ip_address() -> ipaddress.IPv4Address | ipaddress.IPv6Address | None:
+    address: str | None = settings.SENTRY_CONTROL_ADDRESS
+    if address is None:
+        return None
+
+    url = urllib3.util.parse_url(address)
+    if url.host:
+        # This is an IPv4 address.
+        # In the future we can consider adding IPv4/v6 dual stack support if and when we start using IPv6 addresses.
+        ip = socket.gethostbyname(url.host)
+        return ipaddress.ip_address(force_str(ip, strings_only=True))
+    else:
+        sentry_sdk.capture_exception(
+            Exception(f"Unable to parse hostname of control silo address: {address}")
+        )
+    return None
+
+
+def is_control_silo_ip_address(ip: str) -> bool:
+    ip_address = ipaddress.ip_address(force_str(ip, strings_only=True))
+
+    expected_address = get_control_silo_ip_address()
+    result = ip_address == expected_address
+
+    if not result:
+        sentry_sdk.capture_exception(Exception(f"Disallowed Control Silo IP address: {ip}"))
+    return result
 
 
 def infer_org_integration(
@@ -76,6 +115,7 @@ class IntegrationProxyClient(ApiClient):
         self,
         integration_id: int | None = None,
         org_integration_id: int | None = None,
+        keyid: str | None = None,
         verify_ssl: bool = True,
         logging_context: Mapping[str, Any] | None = None,
     ) -> None:
@@ -83,6 +123,7 @@ class IntegrationProxyClient(ApiClient):
             verify_ssl=verify_ssl, logging_context=logging_context, integration_id=integration_id
         )
         self.org_integration_id = org_integration_id
+        self.keyid = keyid
 
         if self.determine_whether_should_proxy_to_control():
             self._should_proxy_to_control = True
@@ -91,6 +132,17 @@ class IntegrationProxyClient(ApiClient):
         if in_test_environment() and not self._use_proxy_url_for_tests:
             logger.info("proxy_disabled_in_test_env")
             self.proxy_url = self.base_url
+
+    def build_session(self) -> SafeSession:
+        """
+        Generates a safe Requests session for the API client to use.
+        This injects a custom is_ipaddress_permitted function to allow only connections to the IP address of the Control Silo.
+        We only validate the IP address from within the Region Silo.
+        For all other silo modes, we use the default is_ipaddress_permitted function, which tests against SENTRY_DISALLOWED_IPS.
+        """
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            return build_session(is_ipaddress_permitted=is_control_silo_ip_address)
+        return build_session()
 
     @staticmethod
     def determine_whether_should_proxy_to_control() -> bool:
@@ -115,7 +167,6 @@ class IntegrationProxyClient(ApiClient):
         where tokens are added in by Control Silo. We do this to avoid race conditions around
         stale tokens and centralize token refresh flows.
         """
-
         if not self._should_proxy_to_control or not prepared_request.url:
             prepared_request = self.authorize_request(prepared_request=prepared_request)
             return prepared_request
@@ -145,6 +196,8 @@ class IntegrationProxyClient(ApiClient):
         if not isinstance(request_body, bytes):
             request_body = request_body.encode("utf-8") if request_body else DEFAULT_REQUEST_BODY
         prepared_request.headers[PROXY_OI_HEADER] = str(self.org_integration_id)
+        if self.keyid:
+            prepared_request.headers[PROXY_KEYID_HEADER] = str(self.keyid)
         prepared_request.headers[PROXY_BASE_URL_HEADER] = base_url
         prepared_request.headers[PROXY_SIGNATURE_HEADER] = encode_subnet_signature(
             secret=settings.SENTRY_SUBNET_SECRET,

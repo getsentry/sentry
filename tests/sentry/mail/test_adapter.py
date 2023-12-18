@@ -1601,7 +1601,8 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
             assert notify.call_count == 1
             assert event.group
             mock_logger.info.assert_called_with(
-                "mail.adapter.notification.dispatched",
+                "mail.adapter.notification.%s",
+                "dispatched",
                 extra={
                     "event_id": event.event_id,
                     "group_id": event.group.id,
@@ -1628,7 +1629,8 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
         assert digests.add.call_count == 1
         assert event.group
         mock_logger.info.assert_called_with(
-            "mail.adapter.notification.dispatched",
+            "mail.adapter.notification.%s",
+            "dispatched",
             extra={
                 "event_id": event.event_id,
                 "group_id": event.group.id,

@@ -2,6 +2,7 @@ import {Incident} from 'sentry-fixture/incident';
 import {MetricRule} from 'sentry-fixture/metricRule';
 import {Organization} from 'sentry-fixture/organization';
 import {ProjectAlertRule} from 'sentry-fixture/projectAlertRule';
+import {Team} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -17,7 +18,6 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {IncidentStatus} from 'sentry/views/alerts/types';
-import {DatasetOption} from 'sentry/views/alerts/utils';
 
 import AlertRulesList from './alertRulesList';
 
@@ -27,7 +27,7 @@ describe('AlertRulesList', () => {
   const defaultOrg = Organization({
     access: ['alerts:write'],
   });
-  TeamStore.loadInitialData([TestStubs.Team()], false, null);
+  TeamStore.loadInitialData([Team()], false, null);
   let rulesMock!: jest.Mock;
   let projectMock!: jest.Mock;
   const pageLinks =
@@ -65,7 +65,7 @@ describe('AlertRulesList', () => {
         TestStubs.Project({
           slug: 'earth',
           platform: 'javascript',
-          teams: [TestStubs.Team()],
+          teams: [Team()],
         }),
       ],
     });
@@ -254,7 +254,7 @@ describe('AlertRulesList', () => {
       'ascending'
     );
 
-    expect(rulesMock).toHaveBeenCalledTimes(2);
+    expect(rulesMock).toHaveBeenCalledTimes(1);
     expect(rulesMock).toHaveBeenCalledWith(
       '/organizations/org-slug/combined-rules/',
       expect.objectContaining({
@@ -289,43 +289,6 @@ describe('AlertRulesList', () => {
         query: {
           name: testQuery,
         },
-      })
-    );
-  });
-
-  it('searches by alert type', async () => {
-    const {routerContext, organization, router} = initializeOrg();
-    render(<AlertRulesList />, {context: routerContext, organization});
-
-    const performanceControl = await screen.getByRole('radio', {name: 'Performance'});
-    expect(performanceControl).toBeInTheDocument();
-    await userEvent.click(performanceControl);
-
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: {
-          dataset: DatasetOption.PERFORMANCE,
-        },
-      })
-    );
-  });
-
-  it('calls api with correct query params when searching by alert type', () => {
-    const {routerContext, organization} = initializeOrg({
-      router: {
-        location: {
-          query: {
-            dataset: DatasetOption.PERFORMANCE,
-          },
-        },
-      },
-    });
-    render(<AlertRulesList />, {context: routerContext, organization});
-
-    expect(rulesMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/combined-rules/',
-      expect.objectContaining({
-        query: expect.objectContaining({dataset: ['generic_metrics', 'transactions']}),
       })
     );
   });

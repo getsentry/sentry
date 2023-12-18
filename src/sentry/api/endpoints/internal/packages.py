@@ -1,4 +1,5 @@
-import pkg_resources
+import importlib.metadata
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -17,7 +18,9 @@ class InternalPackagesEndpoint(Endpoint):
 
     def get(self, request: Request) -> Response:
         data = {
-            "modules": sorted((p.project_name, p.version) for p in pkg_resources.working_set),
+            "modules": sorted(
+                (dist.metadata["name"], dist.version) for dist in importlib.metadata.distributions()
+            ),
             "extensions": [
                 (p.get_title(), f"{p.__module__}.{p.__class__.__name__}")
                 for p in plugins.all(version=None)

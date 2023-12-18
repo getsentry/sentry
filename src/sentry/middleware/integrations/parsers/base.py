@@ -13,6 +13,7 @@ from rest_framework import status
 from sentry.models.integrations import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
+from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.silo import SiloLimit, SiloMode
@@ -107,7 +108,9 @@ class BaseRequestParser(abc.ABC):
                     region_response = future.result()
                 # This will capture errors from this silo and any 4xx/5xx responses from others
                 except Exception as e:
-                    logger.error("region_proxy_error", extra={"region": region.name, "error": e})
+                    logger.exception(
+                        "region_proxy_error", extra={"region": region.name, "error": e}
+                    )
                     region_to_response_map[region.name] = RegionResult(error=e)
                 else:
                     region_to_response_map[region.name] = RegionResult(response=region_response)
@@ -178,7 +181,7 @@ class BaseRequestParser(abc.ABC):
     # Optional Overrides
 
     def get_organizations_from_integration(
-        self, integration: Optional[Integration] = None
+        self, integration: Optional[Integration | RpcIntegration] = None
     ) -> Sequence[RpcOrganizationSummary]:
         """
         Use the get_integration_from_request() method to identify organizations associated with
@@ -187,7 +190,7 @@ class BaseRequestParser(abc.ABC):
         if not integration:
             integration = self.get_integration_from_request()
         if not integration:
-            logger.info(f"{self.provider}.no_integration", extra={"path": self.request.path})
+            logger.info("%s.no_integration", self.provider, extra={"path": self.request.path})
             return []
         organization_integrations = OrganizationIntegration.objects.filter(
             integration_id=integration.id
@@ -204,7 +207,7 @@ class BaseRequestParser(abc.ABC):
         if not organizations:
             organizations = self.get_organizations_from_integration()
         if not organizations:
-            logger.info(f"{self.provider}.no_organizations", extra={"path": self.request.path})
+            logger.info("%s.no_organizations", self.provider, extra={"path": self.request.path})
             return []
 
         return [get_region_for_organization(organization.slug) for organization in organizations]

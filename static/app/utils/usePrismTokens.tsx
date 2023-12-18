@@ -1,8 +1,10 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
-import * as Prism from 'prismjs';
+import Prism from 'prismjs';
 
-import {loadPrismLanguage, prismLanguageMap} from 'sentry/utils/prism';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {getPrismLanguage, loadPrismLanguage} from 'sentry/utils/prism';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type PrismHighlightParams = {
   code: string;
@@ -21,27 +23,37 @@ type IntermediateToken = {
   types: Set<string>;
 };
 
-const useLoadPrismLanguage = (language: string, {onLoad}: {onLoad: () => void}) => {
+const useLoadPrismLanguage = (
+  language: string,
+  {code, onLoad}: {code: string; onLoad: () => void}
+) => {
+  const organization = useOrganization({allowNull: true});
+
   useEffect(() => {
-    if (!language) {
+    if (!language || !code) {
       return;
     }
 
-    loadPrismLanguage(language, {
-      onLoad,
-      onError: () => {
-        Sentry.captureException(
-          new Error('Prism.js failed to load language for stack trace'),
-          {extra: {language}}
-        );
-      },
-    });
-  }, [language, onLoad]);
+    if (!getPrismLanguage(language)) {
+      trackAnalytics('stack_trace.prism_missing_language', {
+        organization,
+        attempted_language: language.toLowerCase(),
+      });
+      return;
+    }
+
+    loadPrismLanguage(language, {onLoad});
+  }, [code, language, onLoad, organization]);
 };
 
 const getPrismGrammar = (language: string) => {
-  const fullLanguage = prismLanguageMap[language];
-  return Prism.languages[fullLanguage] ?? null;
+  try {
+    const fullLanguage = getPrismLanguage(language);
+    return Prism.languages[fullLanguage] ?? null;
+  } catch (e) {
+    Sentry.captureException(e);
+    return null;
+  }
 };
 
 const splitMultipleTokensByLine = (
@@ -133,17 +145,23 @@ export const usePrismTokens = ({
   const [grammar, setGrammar] = useState<Prism.Grammar | null>(() =>
     getPrismGrammar(language)
   );
-  useLoadPrismLanguage(language, {
-    onLoad: () => {
-      setGrammar(getPrismGrammar(language));
-    },
-  });
+
+  const onLoad = useCallback(() => {
+    setGrammar(getPrismGrammar(language));
+  }, [language]);
+  useLoadPrismLanguage(language, {code, onLoad});
+
   const lines = useMemo(() => {
-    if (!grammar) {
-      return breakTokensByLine([code]);
+    try {
+      if (!grammar) {
+        return breakTokensByLine([code]);
+      }
+      const tokens = Prism.tokenize(code, grammar);
+      return breakTokensByLine(tokens);
+    } catch (e) {
+      Sentry.captureException(e);
+      return [];
     }
-    const tokens = Prism.tokenize(code, grammar);
-    return breakTokensByLine(tokens);
   }, [grammar, code]);
 
   return lines;

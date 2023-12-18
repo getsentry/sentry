@@ -6393,3 +6393,31 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             "opportunity_score(measurements.score.lcp)": 0.27,
             "opportunity_score(measurements.score.total)": 1.57,
         }
+
+    def test_count_scores(self):
+        self.transaction_data["measurements"] = {
+            "score.lcp": {"value": 0.03},
+            "score.total": {"value": 0.43},
+        }
+        self.store_event(self.transaction_data, self.project.id)
+        self.transaction_data["measurements"] = {
+            "score.total": {"value": 1.0},
+        }
+        self.store_event(self.transaction_data, self.project.id)
+        self.transaction_data["measurements"] = {
+            "score.total": {"value": 0.0},
+        }
+        self.store_event(self.transaction_data, self.project.id)
+        query = {
+            "field": [
+                "count_scores(measurements.score.lcp)",
+                "count_scores(measurements.score.total)",
+            ]
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0] == {
+            "count_scores(measurements.score.lcp)": 1,
+            "count_scores(measurements.score.total)": 3,
+        }

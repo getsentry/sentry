@@ -10,6 +10,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.integrations.github.webhook import (
     InstallationEventWebhook,
@@ -121,7 +122,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
             host = get_host(request=request)
             if not host:
                 logger.warning("github_enterprise.webhook.missing-enterprise-host")
-                logger.exception("Missing enterprise host.")
+                logger.error("Missing enterprise host.")
                 return HttpResponse(status=400)
 
             extra = {"host": host}
@@ -178,6 +179,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
 
 @region_silo_endpoint
 class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
+    owner = ApiOwner.ECOSYSTEM
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,
     }

@@ -7,20 +7,14 @@ statusProvider:
   config:
     contexts:
       - 'self-hosted-builder (sentryio)'
-artifactProvider:
-  name: gcs
-  config:
-    bucket: sentryio-cloudbuild-opensource
-requireNames:
-  - /^sentry-.+-py3\d?-none-any.whl$/
 targets:
   - id: release
     name: docker
-    source: us.gcr.io/sentryio/sentry
+    source: ghcr.io/getsentry/sentry-self-hosted
     target: getsentry/sentry
   - id: latest
     name: docker
-    source: us.gcr.io/sentryio/sentry
+    source: ghcr.io/getsentry/sentry-self-hosted
     target: getsentry/sentry
     targetFormat: '{{{target}}}:latest'
   - name: github

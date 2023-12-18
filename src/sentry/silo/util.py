@@ -11,6 +11,7 @@ PROXY_BASE_PATH = "/api/0/internal/integration-proxy"
 PROXY_OI_HEADER = "X-Sentry-Subnet-Organization-Integration"
 PROXY_BASE_URL_HEADER = "X-Sentry-Subnet-Base-URL"
 PROXY_SIGNATURE_HEADER = "X-Sentry-Subnet-Signature"
+PROXY_KEYID_HEADER = "X-Sentry-Subnet-Keyid"
 PROXY_DIRECT_LOCATION_HEADER = "X-Sentry-Proxy-URL"
 
 INVALID_PROXY_HEADERS = {"Host", "X-Forwarded-Proto", "Content-Length", "Content-Encoding"}

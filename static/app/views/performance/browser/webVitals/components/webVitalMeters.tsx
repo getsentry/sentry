@@ -3,23 +3,28 @@ import styled from '@emotion/styled';
 import toUpper from 'lodash/toUpper';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import ExternalLink from 'sentry/components/links/externalLink';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getDuration} from 'sentry/utils/formatters';
 import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/performance/browser/webVitals/utils/performanceScoreColors';
-import {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {
   scoreToStatus,
   STATUS_TEXT,
 } from 'sentry/views/performance/browser/webVitals/utils/scoreToStatus';
-import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
+import {
+  ProjectScore,
+  WebVitals,
+} from 'sentry/views/performance/browser/webVitals/utils/types';
 
 type Props = {
   onClick?: (webVital: WebVitals) => void;
   projectData?: TableData;
   projectScore?: ProjectScore;
+  showTooltip?: boolean;
   transaction?: string;
 };
 
@@ -46,7 +51,12 @@ const WEB_VITALS_METERS_CONFIG = {
   },
 };
 
-export default function WebVitalMeters({onClick, projectData, projectScore}: Props) {
+export default function WebVitalMeters({
+  onClick,
+  projectData,
+  projectScore,
+  showTooltip = true,
+}: Props) {
   if (!projectScore) {
     return null;
   }
@@ -57,7 +67,7 @@ export default function WebVitalMeters({onClick, projectData, projectScore}: Pro
     <Container>
       <Flex>
         {webVitals.map(webVital => {
-          const webVitalExists = projectScore[`${webVital}Score`] !== null;
+          const webVitalExists = projectScore[`${webVital}Score`] !== undefined;
           const formattedMeterValueText = webVitalExists ? (
             WEB_VITALS_METERS_CONFIG[webVital].formatter(
               projectData?.data?.[0]?.[`p75(measurements.${webVital})`] as number
@@ -69,6 +79,27 @@ export default function WebVitalMeters({onClick, projectData, projectScore}: Pro
           const meterBody = (
             <Fragment>
               <MeterBarBody>
+                {showTooltip && (
+                  <StyledQuestionTooltip
+                    isHoverable
+                    size="xs"
+                    title={
+                      <span>
+                        {tct(
+                          `The p75 [webVital] value and aggregate [webVital] score of your selected project(s).
+                          Scores and values may share some (but not perfect) correlation.`,
+                          {
+                            webVital: toUpper(webVital),
+                          }
+                        )}
+                        <br />
+                        <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#performance-score">
+                          {t('Find out how performance scores are calculated here.')}
+                        </ExternalLink>
+                      </span>
+                    }
+                  />
+                )}
                 <MeterHeader>{headerText}</MeterHeader>
                 <MeterValueText>{formattedMeterValueText}</MeterValueText>
               </MeterBarBody>
@@ -148,8 +179,8 @@ const MeterValueText = styled('div')`
   text-align: center;
 `;
 
-function MeterBarFooter({score}: {score: number | null}) {
-  if (score === null) {
+function MeterBarFooter({score}: {score: number | undefined}) {
+  if (score === undefined) {
     return (
       <MeterBarFooterContainer status="none">{t('No Data')}</MeterBarFooterContainer>
     );
@@ -183,4 +214,9 @@ function NoValue() {
 
 const StyledTooltip = styled(Tooltip)`
   display: block;
+`;
+
+const StyledQuestionTooltip = styled(QuestionTooltip)`
+  position: absolute;
+  right: ${space(1)};
 `;

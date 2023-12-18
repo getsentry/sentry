@@ -2,6 +2,7 @@ import {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
+import {IconFile} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {StoriesQuery} from 'sentry/views/stories/types';
@@ -37,7 +38,10 @@ function FolderContent({path, content}: {content: DirContent; path: string}) {
           const to = `/stories/?name=${childPath}`;
           return (
             <ListItem key={name} aria-current={isCurrent}>
-              <FolderLink to={to}>{name}</FolderLink>
+              <FolderLink to={to}>
+                <IconFile size="xs" />
+                {name}
+              </FolderLink>
             </ListItem>
           );
         }
@@ -101,13 +105,13 @@ const ListItem = styled('li')`
 
 const Folder = styled('details')`
   cursor: pointer;
-  padding-left: ${space(1.5)};
+  padding-left: ${space(2)};
   position: relative;
 
   &:before {
     content: '⏵';
     position: absolute;
-    left: ${space(0.25)};
+    left: ${space(0.5)};
     top: ${space(0.25)};
   }
   &[open]:before {
@@ -135,9 +139,12 @@ const FolderName = styled('summary')`
 `;
 
 const FolderLink = styled(Link)`
-  display: block;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  align-items: baseline;
+  gap: ${space(0.5)};
   padding: ${space(0.25)};
-  padding-left: 14px;
+  white-space: nowrap;
 
   color: inherit;
   &:hover {

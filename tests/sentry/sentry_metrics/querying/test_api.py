@@ -390,4 +390,37 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         groups = results["groups"]
         assert len(groups) == 1
         assert groups[0]["by"] == {}
-        assert groups[0]["series"] == {"query_1": [0.0, 2.5, 0.0]}
+        assert groups[0]["series"] == {"query_1": [0.0, 1.0, 0.0]}
+
+    def test_query_with_custom_set(self):
+        mri = "s:custom/user_click@none"
+        for user in ("marco", "marco", "john"):
+            self.store_metric(
+                self.project.organization.id,
+                self.project.id,
+                "set",
+                mri,
+                {},
+                self.ts(self.now()),
+                user,
+                UseCaseID.CUSTOM,
+            )
+
+        field = f"count_unique({mri})"
+        results = run_metrics_query(
+            fields=[field],
+            query=None,
+            group_bys=None,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        groups = results["groups"]
+        assert len(groups) == 1
+        assert groups[0]["by"] == {}
+        assert groups[0]["series"] == {"query_1": [0, 2, 0]}
+        assert groups[0]["totals"] == {"query_1": 2}

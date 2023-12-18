@@ -162,7 +162,7 @@ export function AggregateFlamegraphTreeTable({
     (frame: FlamegraphFrame) => {
       return formatColorForFrame(
         frame,
-        colorMap.get(frame.key) ?? theme.COLORS.FRAME_GRAYSCALE_COLOR
+        colorMap.get(frame.key) ?? theme.COLORS.FRAME_FALLBACK_COLOR
       );
     },
     [theme, colorMap]

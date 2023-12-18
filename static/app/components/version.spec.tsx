@@ -1,3 +1,5 @@
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import Version from 'sentry/components/version';
@@ -5,7 +7,7 @@ import Version from 'sentry/components/version';
 const VERSION = 'foo.bar.Baz@1.0.0+20200101';
 
 describe('Version', () => {
-  const context = TestStubs.routerContext();
+  const context = RouterContextFixture();
   afterEach(() => {
     jest.resetAllMocks();
   });

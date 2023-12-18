@@ -64,6 +64,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         if version == "3" and request.relay_request_data.get("global"):
             response["global"] = get_global_config()
+            response["global_status"] = "ready"
 
         if self._should_post_or_schedule(version, request):
             # Always compute the full config. It's invalid to send partial

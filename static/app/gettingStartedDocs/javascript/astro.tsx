@@ -7,6 +7,10 @@ import {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getReplayConfigureDescription,
+  getReplaySDKSetupSnippet,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -46,36 +50,38 @@ const getVerifyAstroSnippet = () => `
 </button>
 `;
 
+const getInstallConfig = () => [
+  {
+    type: StepType.INSTALL,
+    description: tct(
+      'Install the [sentryAstroPkg:@sentry/astro] package with the [astroCli:astro] CLI:',
+      {
+        sentryAstroPkg: <code />,
+        astroCli: <code />,
+      }
+    ),
+    configurations: [
+      {
+        language: 'bash',
+        code: [
+          {
+            label: 'bash',
+            value: 'bash',
+            language: 'bash',
+            code: `npx astro add @sentry/astro`,
+          },
+        ],
+      },
+    ],
+  },
+];
+
 const onboarding: OnboardingConfig = {
   introduction: () =>
     tct("Sentry's integration with [astroLink:Astro] supports Astro 3.0.0 and above.", {
       astroLink: <ExternalLink href="https://astro.build/" />,
     }),
-  install: (_params: Params) => [
-    {
-      type: StepType.INSTALL,
-      configurations: [
-        {
-          description: tct(
-            'Install the [sentryAstroPkg:@sentry/astro] package with the [astroCli:astro] CLI:',
-            {
-              sentryAstroPkg: <code />,
-              astroCli: <code />,
-            }
-          ),
-          language: 'bash',
-          code: [
-            {
-              label: 'bash',
-              value: 'bash',
-              language: 'bash',
-              code: `npx astro add @sentry/astro`,
-            },
-          ],
-        },
-      ],
-    },
-  ],
+  install: () => getInstallConfig(),
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
@@ -188,8 +194,38 @@ const onboarding: OnboardingConfig = {
   ],
 };
 
+const replayOnboarding: OnboardingConfig = {
+  install: () => getInstallConfig(),
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: getReplayConfigureDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/astro/session-replay/',
+      }),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getReplaySDKSetupSnippet({
+                importStatement: `import * as Sentry from "@sentry/astro";`,
+                dsn: params.dsn,
+              }),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  replayOnboardingNpm: replayOnboarding,
 };
 
 export default docs;

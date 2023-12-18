@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
 import {TeamIssuesBreakdown as TeamIssuesBreakdownFixture} from 'sentry-fixture/teamIssuesBreakdown';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -7,7 +8,7 @@ import TeamIssuesBreakdown from 'sentry/views/organizationStats/teamInsights/tea
 
 describe('TeamIssuesBreakdown', () => {
   it('should render graph with table of issues reviewed', async () => {
-    const team = TestStubs.Team();
+    const team = Team();
     const project = TestStubs.Project({id: '2', slug: 'javascript'});
     const organization = Organization();
     const teamIssuesActions = MockApiClient.addMockResponse({

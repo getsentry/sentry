@@ -19,7 +19,6 @@ import useInitialTimeOffsetMs, {
   TimeOffsetLocationQueryParams,
 } from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import useLogReplayDataLoaded from 'sentry/utils/replays/hooks/useLogReplayDataLoaded';
-import useReplayLayout from 'sentry/utils/replays/hooks/useReplayLayout';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -29,7 +28,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import ReplaysLayout from 'sentry/views/replays/detail/layout';
 import Page from 'sentry/views/replays/detail/page';
 import ReplayTransactionContext from 'sentry/views/replays/detail/trace/replayTransactionContext';
-import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = RouteComponentProps<
   {replaySlug: string},
@@ -147,36 +145,6 @@ function ReplayDetails({params: {replaySlug}}: Props) {
     );
   }
 
-  if (!fetching && replay && replay.getRRWebFrames().length < 2) {
-    return (
-      <Page
-        orgSlug={orgSlug}
-        replayRecord={replayRecord}
-        projectSlug={projectSlug}
-        replayErrors={replayErrors}
-      >
-        <DetailedError
-          hideSupportLinks
-          heading={t('Error loading replay')}
-          message={
-            <Fragment>
-              <p>
-                {t(
-                  'Expected two or more replay events. This Replay may not have captured any user actions.'
-                )}
-              </p>
-              <p>
-                {t(
-                  'Or there may be an issue loading the actions from the server, click to try loading the Replay again.'
-                )}
-              </p>
-            </Fragment>
-          }
-        />
-      </Page>
-    );
-  }
-
   return (
     <ReplayContextProvider
       isFetching={fetching}
@@ -184,39 +152,16 @@ function ReplayDetails({params: {replaySlug}}: Props) {
       initialTimeOffsetMs={initialTimeOffsetMs}
     >
       <ReplayTransactionContext replayRecord={replayRecord}>
-        <DetailsInsideContext
+        <Page
           orgSlug={orgSlug}
           replayRecord={replayRecord}
           projectSlug={projectSlug}
           replayErrors={replayErrors}
-        />
+        >
+          <ReplaysLayout />
+        </Page>
       </ReplayTransactionContext>
     </ReplayContextProvider>
-  );
-}
-
-function DetailsInsideContext({
-  orgSlug,
-  replayRecord,
-  projectSlug,
-  replayErrors,
-}: {
-  orgSlug: string;
-  projectSlug: string | null;
-  replayErrors: ReplayError[];
-  replayRecord: ReplayRecord | undefined;
-}) {
-  const {getLayout} = useReplayLayout();
-
-  return (
-    <Page
-      orgSlug={orgSlug}
-      replayRecord={replayRecord}
-      projectSlug={projectSlug}
-      replayErrors={replayErrors}
-    >
-      <ReplaysLayout layout={getLayout()} />
-    </Page>
   );
 }
 

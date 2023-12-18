@@ -91,6 +91,7 @@ class FeedbackIngestTest(MonitorIngestTestCase):
 
             self.project.refresh_from_db()
             assert self.project.flags.has_feedbacks
+            assert self.project.flags.has_new_feedbacks
 
     def test_no_feature_enabled(self):
         # Feature disabled should lead to unsuccessful save

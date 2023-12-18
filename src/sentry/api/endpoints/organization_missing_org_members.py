@@ -24,14 +24,15 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.integration import integration_service
 
-FILTERED_EMAIL_DOMAINS = {
-    "gmail.com",
-    "yahoo.com",
-    "icloud.com",
-    "hotmail.com",
-    "outlook.com",
-    "noreply.github.com",
-    "localhost",
+FILTERED_EMAILS = {
+    "%%@gmail.com",
+    "%%@yahoo.com",
+    "%%@icloud.com",
+    "%%@hotmail.com",
+    "%%@outlook.com",
+    "%%@noreply.github.com",
+    "%%@localhost",
+    "action@github.com",
 }
 
 FILTERED_CHARACTERS = {"+"}
@@ -72,10 +73,8 @@ def _get_missing_organization_members(
     if shared_domain:
         domain_query = f"AND sentry_commitauthor.email::text LIKE '%%{shared_domain}'"
     else:
-        for filtered_email_domain in FILTERED_EMAIL_DOMAINS:
-            domain_query += (
-                f"AND sentry_commitauthor.email::text NOT LIKE '%%{filtered_email_domain}' "
-            )
+        for filtered_email in FILTERED_EMAILS:
+            domain_query += f"AND sentry_commitauthor.email::text NOT LIKE '{filtered_email}' "
 
     date_added = (timezone.now() - timedelta(days=30)).strftime("%Y-%m-%d, %H:%M:%S")
 
@@ -147,11 +146,10 @@ def _get_shared_email_domain(organization: Organization) -> str | None:
 
 @region_silo_endpoint
 class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.ECOSYSTEM
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
-
-    owner = ApiOwner.ENTERPRISE
 
     permission_classes = (MissingMembersPermission,)
 

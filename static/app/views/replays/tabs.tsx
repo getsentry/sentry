@@ -21,6 +21,7 @@ export default function ReplayTabs({selected}: Props) {
         key: 'replays',
         label: t('Replays'),
         pathname: normalizeUrl(`/organizations/${organization.slug}/replays/`),
+        query: {...location.query, sort: undefined},
       },
       {
         key: 'selectors',
@@ -30,9 +31,10 @@ export default function ReplayTabs({selected}: Props) {
           </Fragment>
         ),
         pathname: normalizeUrl(`/organizations/${organization.slug}/replays/selectors/`),
+        query: {...location.query, sort: '-count_dead_clicks'},
       },
     ],
-    [organization.slug]
+    [organization.slug, location.query]
   );
 
   return (
@@ -44,6 +46,7 @@ export default function ReplayTabs({selected}: Props) {
             to={{
               ...location,
               pathname: tab.pathname,
+              query: tab.query,
             }}
           >
             {tab.label}

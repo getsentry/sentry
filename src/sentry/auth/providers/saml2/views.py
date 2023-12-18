@@ -1,4 +1,4 @@
-from django.http import HttpResponse
+from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 
 from sentry.auth.providers.saml2.forms import process_metadata
@@ -7,7 +7,7 @@ from sentry.auth.view import AuthView
 
 def make_simple_setup(form_cls, template_path):
     class SelectIdP(AuthView):
-        def handle(self, request: Request, helper) -> HttpResponse:
+        def handle(self, request: Request, helper) -> HttpResponseBase:
             form = process_metadata(form_cls, request, helper)
 
             if form:

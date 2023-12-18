@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {Event as EventFixture} from 'sentry-fixture/event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
@@ -337,7 +338,7 @@ describe('getExpandedResults()', function () {
       fields: [{field: 'count()'}, {field: 'epm()'}, {field: 'eps()'}],
     });
 
-    const result = getExpandedResults(view, {}, TestStubs.Event());
+    const result = getExpandedResults(view, {}, EventFixture());
 
     expect(result.fields).toEqual([{field: 'id', width: -1}]);
   });
@@ -345,7 +346,7 @@ describe('getExpandedResults()', function () {
   it('preserves aggregated fields', () => {
     let view = new EventView(state);
 
-    let result = getExpandedResults(view, {}, TestStubs.Event());
+    let result = getExpandedResults(view, {}, EventFixture());
     // id should be omitted as it is an implicit property on unaggregated results.
     expect(result.fields).toEqual([
       {field: 'timestamp', width: -1},
@@ -367,7 +368,7 @@ describe('getExpandedResults()', function () {
       ],
     });
 
-    result = getExpandedResults(view, {}, TestStubs.Event());
+    result = getExpandedResults(view, {}, EventFixture());
     // id should be omitted as it is an implicit property on unaggregated results.
     expect(result.fields).toEqual([
       {field: 'timestamp', width: -1},
@@ -400,7 +401,7 @@ describe('getExpandedResults()', function () {
       ],
     });
 
-    result = getExpandedResults(view, {}, TestStubs.Event());
+    result = getExpandedResults(view, {}, EventFixture());
     expect(result.fields).toEqual([
       {field: 'timestamp', width: -1},
       {field: 'title'},
@@ -422,7 +423,7 @@ describe('getExpandedResults()', function () {
       ],
     });
 
-    result = getExpandedResults(view, {}, TestStubs.Event());
+    result = getExpandedResults(view, {}, EventFixture());
     expect(result.fields).toEqual([
       {field: 'transaction.duration', width: -1},
       {field: 'measurements.foo', width: -1},
@@ -438,33 +439,33 @@ describe('getExpandedResults()', function () {
       ...state,
       fields: [...state.fields, {field: 'measurements.lcp'}, {field: 'measurements.fcp'}],
     });
-    let result = getExpandedResults(view, {extra: 'condition'}, TestStubs.Event());
+    let result = getExpandedResults(view, {extra: 'condition'}, EventFixture());
     expect(result.query).toEqual('event.type:error extra:condition title:ApiException');
 
     // handles user tag values.
-    result = getExpandedResults(view, {user: 'id:12735'}, TestStubs.Event());
+    result = getExpandedResults(view, {user: 'id:12735'}, EventFixture());
     expect(result.query).toEqual('event.type:error user:id:12735 title:ApiException');
-    result = getExpandedResults(view, {user: 'name:uhoh'}, TestStubs.Event());
+    result = getExpandedResults(view, {user: 'name:uhoh'}, EventFixture());
     expect(result.query).toEqual('event.type:error user:name:uhoh title:ApiException');
 
     // quotes value
-    result = getExpandedResults(view, {extra: 'has space'}, TestStubs.Event());
+    result = getExpandedResults(view, {extra: 'has space'}, EventFixture());
     expect(result.query).toEqual('event.type:error extra:"has space" title:ApiException');
 
     // appends to existing conditions
-    result = getExpandedResults(view, {'event.type': 'csp'}, TestStubs.Event());
+    result = getExpandedResults(view, {'event.type': 'csp'}, EventFixture());
     expect(result.query).toEqual('event.type:csp title:ApiException');
 
     // Includes empty strings
-    result = getExpandedResults(view, {}, TestStubs.Event({id: '0', custom_tag: ''}));
+    result = getExpandedResults(view, {}, EventFixture({id: '0', custom_tag: ''}));
     expect(result.query).toEqual('event.type:error title:ApiException custom_tag:""');
 
     // Includes 0
-    result = getExpandedResults(view, {}, TestStubs.Event({id: '0', custom_tag: 0}));
+    result = getExpandedResults(view, {}, EventFixture({id: '0', custom_tag: 0}));
     expect(result.query).toEqual('event.type:error title:ApiException custom_tag:0');
 
     // Includes null
-    result = getExpandedResults(view, {}, TestStubs.Event({id: '0', custom_tag: null}));
+    result = getExpandedResults(view, {}, EventFixture({id: '0', custom_tag: null}));
     expect(result.query).toEqual('event.type:error title:ApiException custom_tag:""');
 
     // Handles measurements while ignoring null values
@@ -481,7 +482,7 @@ describe('getExpandedResults()', function () {
 
   it('removes any aggregates in either search conditions or extra conditions', () => {
     const view = new EventView({...state, query: 'event.type:error count(id):<10'});
-    const result = getExpandedResults(view, {'count(id)': '>2'}, TestStubs.Event());
+    const result = getExpandedResults(view, {'count(id)': '>2'}, EventFixture());
     expect(result.query).toEqual('event.type:error title:ApiException');
   });
 
@@ -490,14 +491,14 @@ describe('getExpandedResults()', function () {
     const result = getExpandedResults(
       view,
       {extra: 'condition'},
-      TestStubs.Event({title: 'Event title'})
+      EventFixture({title: 'Event title'})
     );
     expect(result.query).toEqual('event.type:error extra:condition title:"Event title"');
   });
 
   it('applies tag key conditions from event data', () => {
     const view = new EventView(state);
-    const event = TestStubs.Event({
+    const event = EventFixture({
       type: 'error',
       tags: [
         {key: 'nope', value: 'nope'},
@@ -512,7 +513,7 @@ describe('getExpandedResults()', function () {
 
   it('generate eventview from an empty eventview', () => {
     const view = EventView.fromLocation(TestStubs.location());
-    const result = getExpandedResults(view, {some_tag: 'value'}, TestStubs.Event());
+    const result = getExpandedResults(view, {some_tag: 'value'}, EventFixture());
     expect(result.fields).toEqual([]);
     expect(result.query).toEqual('some_tag:value');
   });
@@ -557,7 +558,7 @@ describe('getExpandedResults()', function () {
       ...state,
       fields: [...state.fields, {field: 'error.type'}],
     });
-    const event = TestStubs.Event({
+    const event = EventFixture({
       type: 'error',
       tags: [
         {key: 'nope', value: 'nope'},
@@ -592,7 +593,7 @@ describe('getExpandedResults()', function () {
       ...state,
       fields: [{field: 'project'}, {field: 'environment'}, {field: 'title'}],
     });
-    const event = TestStubs.Event({
+    const event = EventFixture({
       title: 'something bad',
       timestamp: '2020-02-13T17:05:46+00:00',
       tags: [
@@ -614,7 +615,7 @@ describe('getExpandedResults()', function () {
       ...state,
       fields: [{field: 'user'}, {field: 'title'}],
     });
-    let event = TestStubs.Event({
+    let event = EventFixture({
       title: 'something bad',
       // user context should be ignored.
       user: {
@@ -626,7 +627,7 @@ describe('getExpandedResults()', function () {
     let result = getExpandedResults(view, {}, event);
     expect(result.query).toEqual('event.type:error user:id:1234 title:"something bad"');
 
-    event = TestStubs.Event({
+    event = EventFixture({
       title: 'something bad',
       tags: [{key: 'user', value: '1234'}],
     });
@@ -639,7 +640,7 @@ describe('getExpandedResults()', function () {
       ...state,
       fields: [{field: 'user'}, {field: 'title'}],
     });
-    const event = TestStubs.Event({
+    const event = EventFixture({
       title: 'something bad',
       user: 'id:1234',
     });
@@ -653,7 +654,7 @@ describe('getExpandedResults()', function () {
       fields: [{field: 'timestamp'}],
       sorts: [{field: 'timestamp', kind: 'desc'}],
     });
-    const event = TestStubs.Event({
+    const event = EventFixture({
       type: 'error',
       timestamp: '2020-02-13T17:05:46+00:00',
     });
@@ -667,7 +668,7 @@ describe('getExpandedResults()', function () {
       ...state,
       query: 'event.type:error title:bogus',
     });
-    const event = TestStubs.Event({
+    const event = EventFixture({
       title: 'bogus',
     });
     const result = getExpandedResults(view, {trace: 'abc123'}, event);
@@ -681,7 +682,7 @@ describe('getExpandedResults()', function () {
       query: '',
       fields: [{field: 'project'}],
     });
-    const event = TestStubs.Event({project: 'whoosh'});
+    const event = EventFixture({project: 'whoosh'});
     const result = getExpandedResults(view, {}, event);
     expect(result.query).toEqual('project:whoosh');
   });
@@ -693,7 +694,7 @@ describe('getExpandedResults()', function () {
       query: '',
       fields: [{field: 'project.name'}],
     });
-    const event = TestStubs.Event({'project.name': 'whoosh'});
+    const event = EventFixture({'project.name': 'whoosh'});
     const result = getExpandedResults(view, {}, event);
     expect(result.query).toEqual('project.name:whoosh');
   });
@@ -706,7 +707,7 @@ describe('getExpandedResults()', function () {
       fields: [{field: 'title'}],
     });
     // needs to be quoted because of whitespace in middle
-    const event = TestStubs.Event({title: 'hello there '});
+    const event = EventFixture({title: 'hello there '});
     const result = getExpandedResults(view, {}, event);
     expect(result.query).toEqual('title:"hello there "');
   });
@@ -720,7 +721,7 @@ describe('getExpandedResults()', function () {
       fields: [{field: 'environment'}],
     });
     expect(view.environment).toEqual([]);
-    const event = TestStubs.Event({environment: 'staging'});
+    const event = EventFixture({environment: 'staging'});
     const result = getExpandedResults(view, {}, event);
     expect(result.environment).toEqual(['staging']);
   });
@@ -733,7 +734,7 @@ describe('getExpandedResults()', function () {
       fields: [{field: 'environment'}],
     });
     expect(view.environment).toEqual(['staging']);
-    const event = TestStubs.Event({environment: 'staging'});
+    const event = EventFixture({environment: 'staging'});
     const result = getExpandedResults(view, {}, event);
     expect(result.environment).toEqual(['staging']);
   });

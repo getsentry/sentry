@@ -10,6 +10,8 @@ import {Flex} from 'sentry/components/profiling/flex';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DeepPartial} from 'sentry/types/utils';
+import type {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';
 import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {Frame} from 'sentry/utils/profiling/frame';
@@ -17,6 +19,13 @@ import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggre
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
+
+const DEFAULT_AGGREGATE_FLAMEGRAPH_PREFERENCES: DeepPartial<FlamegraphState> = {
+  preferences: {
+    sorting: 'alphabetical',
+    view: 'bottom up',
+  },
+};
 
 class EmptyFlamegraphException extends Error {}
 
@@ -68,14 +77,7 @@ export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
         traceID=""
         frameFilter={hideSystemFrames ? applicationFrameOnly : undefined}
       >
-        <FlamegraphStateProvider
-          initialState={{
-            preferences: {
-              sorting: 'alphabetical',
-              view: 'bottom up',
-            },
-          }}
-        >
+        <FlamegraphStateProvider initialState={DEFAULT_AGGREGATE_FLAMEGRAPH_PREFERENCES}>
           <FlamegraphThemeProvider>
             <Panel>
               <Flex h={400} column justify="center">

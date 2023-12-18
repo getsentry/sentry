@@ -15,8 +15,7 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import PullRequest, PullRequestComment, PullRequestCommit
 from sentry.models.repository import Repository
-from sentry.shared_integrations.exceptions import ApiRateLimitedError
-from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.tasks.commit_context import PR_COMMENT_WINDOW, process_commit_context
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format

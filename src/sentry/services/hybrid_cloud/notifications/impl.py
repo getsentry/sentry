@@ -9,7 +9,6 @@ from sentry.models.notificationsettingprovider import NotificationSettingProvide
 from sentry.models.user import User
 from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.types import (
-    NOTIFICATION_SETTING_TYPES,
     NotificationScopeEnum,
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
@@ -43,16 +42,15 @@ class DatabaseBackedNotificationsService(NotificationsService):
             kwargs["scope_type"] = NotificationScopeEnum.TEAM.value
             kwargs["scope_identifier"] = team_id
 
-        type_str_list = list(map(lambda t: t.value, types)) if types else None
         with transaction.atomic(router.db_for_write(NotificationSettingProvider)):
-            for type_str in NOTIFICATION_SETTING_TYPES.values():
+            for type_enum in NotificationSettingEnum:
                 # check the type if it's an input
-                if type_str_list and type_str not in type_str_list:
+                if types and type_enum not in types:
                     continue
                 NotificationSettingProvider.objects.create_or_update(
                     **kwargs,
                     provider=external_provider.value,
-                    type=type_str,
+                    type=type_enum.value,
                     values={
                         "value": NotificationSettingsOptionEnum.ALWAYS.value,
                     },

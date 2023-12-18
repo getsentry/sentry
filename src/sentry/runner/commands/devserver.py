@@ -210,6 +210,7 @@ def devserver(
         "thunder-lock": False,
         "timeout": 600,
         "harakiri": 600,
+        "workers": 1 if debug_server else 2,
     }
 
     if reload:
@@ -407,7 +408,6 @@ Alternatively, run without --workers.
     server = SentryHTTPServer(
         host=host,
         port=int(server_port),
-        workers=1,
         extra_options=uwsgi_overrides,
         debug=debug_server,
     )

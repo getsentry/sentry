@@ -210,7 +210,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 headers=[(k, v.encode("utf-8")) for k, v in headers.items()],
             )
         except Exception as error:
-            logger.error("Could not publish message: %s", error, exc_info=True)
+            logger.exception("Could not publish message: %s", error)
             return
 
         if not asynchronous:

@@ -49,9 +49,6 @@ class Cursor:
     def __bool__(self) -> bool:
         return bool(self.has_results)
 
-    # python2 compatibility
-    __nonzero__ = __bool__
-
     @classmethod
     def from_string(cls, cursor_str: str) -> Cursor:
         bits = cursor_str.split(":")

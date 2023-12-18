@@ -35,10 +35,23 @@ function _parseMRI(mri: MRI): ParsedMRI {
 
   return {
     type: metricType as MetricType,
-    name,
+    name: parseName(name, useCase as UseCase),
     unit,
     useCase: useCase as UseCase,
   };
+}
+
+function parseName(name: string, useCase: UseCase): string {
+  if (useCase === 'custom') {
+    return name;
+  }
+  if (useCase === 'transactions') {
+    if (name === 'duration') {
+      return 'transaction.duration';
+    }
+    return name;
+  }
+  return `${useCase}.${name}`;
 }
 
 export function toMRI({type, useCase, name, unit}: ParsedMRI): MRI {
@@ -68,6 +81,10 @@ export function parseField(field: string): {mri: MRI; op: string} | null {
     mri: parsedFunction.arguments[0] as MRI,
     op: parsedFunction.name,
   };
+}
+
+export function isMRIField(field: string): boolean {
+  return !!parseMRI(parseField(field)?.mri);
 }
 
 // convenience function to get the MRI from a field, returns defaut MRI if it fails

@@ -290,9 +290,6 @@ class Fixtures:
     def create_internal_integration_token(self, *args, **kwargs):
         return Factories.create_internal_integration_token(*args, **kwargs)
 
-    def create_org_auth_token(self, *args, **kwargs):
-        return Factories.create_org_auth_token(*args, **kwargs)
-
     def create_sentry_app_installation(self, *args, **kwargs):
         return Factories.create_sentry_app_installation(*args, **kwargs)
 

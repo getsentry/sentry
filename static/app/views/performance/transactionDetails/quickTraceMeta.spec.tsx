@@ -1,3 +1,6 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
@@ -8,10 +11,10 @@ import {
 import QuickTraceMeta from 'sentry/views/performance/transactionDetails/quickTraceMeta';
 
 describe('QuickTraceMeta', function () {
-  const routerContext = TestStubs.routerContext();
+  const routerContext = RouterContextFixture();
   const location = routerContext.context.location;
   const project = TestStubs.Project({platform: 'javascript'});
-  const event = TestStubs.Event({contexts: {trace: {trace_id: 'a'.repeat(32)}}});
+  const event = EventFixture({contexts: {trace: {trace_id: 'a'.repeat(32)}}});
   const emptyQuickTrace: QuickTraceQueryChildrenProps = {
     isLoading: false,
     error: null,
@@ -132,7 +135,7 @@ describe('QuickTraceMeta', function () {
   });
 
   it('renders missing trace when trace id is not present', function () {
-    const newEvent = TestStubs.Event();
+    const newEvent = EventFixture();
     render(
       <QuickTraceMeta
         event={newEvent}
@@ -152,7 +155,7 @@ describe('QuickTraceMeta', function () {
   });
 
   it('renders missing trace with hover card when feature disabled', async function () {
-    const newEvent = TestStubs.Event();
+    const newEvent = EventFixture();
     render(
       <QuickTraceMeta
         event={newEvent}
@@ -184,7 +187,7 @@ describe('QuickTraceMeta', function () {
 
   it('does not render when platform does not support tracing', function () {
     const newProject = TestStubs.Project();
-    const newEvent = TestStubs.Event();
+    const newEvent = EventFixture();
     const result = render(
       <QuickTraceMeta
         event={newEvent}

@@ -5,7 +5,6 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
 
 class GenericMetricsTestMixIn:
-
     use_case_id = UseCaseID.TRANSACTIONS
     org_id = 2
     project_id = 1
@@ -13,7 +12,7 @@ class GenericMetricsTestMixIn:
     set_values = [5, 3]
     counter_value = 5
     dist_values = [5, 3]
-    tags = {"a": "b"}
+    metrics_tags = {"a": "b"}
     retention_days = 90
     unit = "millisecond"
 

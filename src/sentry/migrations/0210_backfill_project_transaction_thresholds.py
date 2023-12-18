@@ -40,7 +40,9 @@ def migrate_project_transaction_thresholds(apps, schema_editor):
                 )
             except Exception:
                 logging.exception(
-                    f"Error migrating project {project.id} for organization {option.organization_id}"
+                    "Error migrating project %s for organization %s",
+                    project.id,
+                    option.organization_id,
                 )
 
 

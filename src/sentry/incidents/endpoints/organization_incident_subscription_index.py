@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
@@ -20,6 +21,7 @@ class IncidentSubscriptionPermission(IncidentPermission):
 
 @region_silo_endpoint
 class OrganizationIncidentSubscriptionIndexEndpoint(IncidentEndpoint):
+    owner = ApiOwner.ISSUES
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,

@@ -15,6 +15,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
 from sentry import analytics, features, options
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
@@ -220,7 +221,7 @@ class InstallationEventWebhook(Webhook):
                         "external_id": str(external_id),
                     },
                 )
-                logger.exception("Installation is missing.")
+                logger.error("Installation is missing.")
 
     def _handle_delete(
         self,
@@ -537,11 +538,26 @@ class PullRequestEventWebhook(Webhook):
             pass
 
 
-class GitHubWebhookBase(Endpoint):
-    """https://docs.github.com/en/webhooks-and-events/webhooks/about-webhooks"""
+@all_silo_endpoint
+class GitHubIntegrationsWebhookEndpoint(Endpoint):
+    """
+    GitHub Webhook API reference:
+    https://docs.github.com/en/webhooks-and-events/webhooks/about-webhooks
+    """
 
     authentication_classes = ()
     permission_classes = ()
+
+    owner = ApiOwner.ECOSYSTEM
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+
+    _handlers = {
+        "push": PushEventWebhook,
+        "pull_request": PullRequestEventWebhook,
+        "installation": InstallationEventWebhook,
+    }
 
     def get_handler(self, event_type: str) -> Callable[[], Callable[[JSONData], Any]] | None:
         handler: Callable[[], Callable[[JSONData], Any]] | None = self._handlers.get(event_type)
@@ -564,11 +580,16 @@ class GitHubWebhookBase(Endpoint):
         return super().dispatch(request, *args, **kwargs)
 
     def get_logging_data(self) -> Dict[str, Any] | None:
-        """TODO(mgaeta): Get logger.error() to with with Mapping."""
-        return None
+        return {
+            "request_method": self.request.method,
+            "request_path": self.request.path,
+        }
 
     def get_secret(self) -> str | None:
-        raise NotImplementedError
+        return options.get("github-app.webhook-secret")
+
+    def post(self, request: Request) -> HttpResponse:
+        return self.handle(request)
 
     def handle(self, request: Request) -> HttpResponse:
         clear_tags_and_context()
@@ -586,7 +607,7 @@ class GitHubWebhookBase(Endpoint):
         try:
             handler = self.get_handler(request.META["HTTP_X_GITHUB_EVENT"])
         except KeyError:
-            logger.error("github.webhook.missing-event", extra=self.get_logging_data())
+            logger.exception("github.webhook.missing-event", extra=self.get_logging_data())
             logger.exception("Missing Github event in webhook.")
             return HttpResponse(status=400)
 
@@ -600,7 +621,7 @@ class GitHubWebhookBase(Endpoint):
         try:
             method, signature = request.META["HTTP_X_HUB_SIGNATURE"].split("=", 1)
         except (KeyError, IndexError):
-            logger.error("github.webhook.missing-signature", extra=self.get_logging_data())
+            logger.exception("github.webhook.missing-signature", extra=self.get_logging_data())
             logger.exception("Missing webhook secret.")
             return HttpResponse(status=400)
 
@@ -611,36 +632,9 @@ class GitHubWebhookBase(Endpoint):
         try:
             event = json.loads(body.decode("utf-8"))
         except json.JSONDecodeError:
-            logger.error(
-                "github.webhook.invalid-json", extra=self.get_logging_data(), exc_info=True
-            )
+            logger.exception("github.webhook.invalid-json", extra=self.get_logging_data())
             logger.exception("Invalid JSON.")
             return HttpResponse(status=400)
 
         handler()(event)
         return HttpResponse(status=204)
-
-
-@all_silo_endpoint
-class GitHubIntegrationsWebhookEndpoint(GitHubWebhookBase):
-    publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
-    }
-    _handlers = {
-        "push": PushEventWebhook,
-        "pull_request": PullRequestEventWebhook,
-        "installation": InstallationEventWebhook,
-    }
-
-    @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
-        if request.method != "POST":
-            return HttpResponse(status=405)
-
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_secret(self) -> str | None:
-        return options.get("github-app.webhook-secret")
-
-    def post(self, request: Request) -> HttpResponse:
-        return self.handle(request)

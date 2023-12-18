@@ -17,7 +17,7 @@ from sentry.notifications.types import (
     FallthroughChoiceType,
     NotificationSettingEnum,
 )
-from sentry.notifications.utils.participants import get_notification_recipients_v2
+from sentry.notifications.utils.participants import get_notification_recipients
 from sentry.plugins.base.structs import Notification
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.tasks.digests import deliver_digest
@@ -98,7 +98,7 @@ class MailAdapter:
                 notification, target_type, target_identifier, fallthrough_choice, notification_uuid
             )
 
-        logger.info("mail.adapter.notification.%s" % log_event, extra=extra)
+        logger.info("mail.adapter.notification.%s", log_event, extra=extra)
 
     @staticmethod
     def get_sendable_user_objects(project):
@@ -108,7 +108,7 @@ class MailAdapter:
         """
         user_ids = project.member_set.values_list("user_id", flat=True)
         actors = [RpcActor(id=uid, actor_type=ActorType.USER) for uid in user_ids]
-        recipients = get_notification_recipients_v2(
+        recipients = get_notification_recipients(
             recipients=actors,
             type=NotificationSettingEnum.ISSUE_ALERTS,
             project_ids=[project.id],
@@ -167,7 +167,7 @@ class MailAdapter:
         metrics.incr("mail_adapter.notify_about_activity")
         email_cls = EMAIL_CLASSES_BY_TYPE.get(activity.type)
         if not email_cls:
-            logger.debug(f"No email associated with activity type `{activity.get_type_display()}`")
+            logger.debug("No email associated with activity type `%s`", activity.get_type_display())
             return
 
         email_cls(activity).send()

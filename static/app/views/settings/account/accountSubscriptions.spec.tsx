@@ -1,3 +1,4 @@
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 import {Subscriptions} from 'sentry-fixture/subscriptions';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -17,7 +18,7 @@ describe('AccountSubscriptions', function () {
       body: [],
     });
     render(<AccountSubscriptions />, {
-      context: TestStubs.routerContext(),
+      context: RouterContextFixture(),
     });
   });
 

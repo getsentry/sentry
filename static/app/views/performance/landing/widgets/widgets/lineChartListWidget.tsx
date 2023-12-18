@@ -22,7 +22,7 @@ import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
-import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/performance/browser/resources/jsCssView';
+import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/performance/browser/resources/resourceView';
 import {getResourcesEventViewQuery} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
 import DurationChart from 'sentry/views/performance/charts/chart';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';

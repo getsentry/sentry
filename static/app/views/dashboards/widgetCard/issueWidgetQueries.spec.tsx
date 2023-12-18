@@ -141,7 +141,7 @@ describe('IssueWidgetQueries', function () {
       expect.objectContaining({
         data: expect.objectContaining({
           query:
-            'assigned_or_suggested:#visibility timesSeen:>100 release:[abc@1.2.0,abc@1.3.0] ',
+            'assigned_or_suggested:#visibility timesSeen:>100 release:["abc@1.2.0","abc@1.3.0"] ',
         }),
       })
     );

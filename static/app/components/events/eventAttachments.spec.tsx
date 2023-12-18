@@ -1,3 +1,4 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
 import {EventAttachment} from 'sentry-fixture/eventAttachment';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -20,7 +21,7 @@ describe('EventAttachments', function () {
       attachmentsRole: 'member',
     },
   } as any);
-  const event = TestStubs.Event({metadata: {stripped_crash: false}});
+  const event = EventFixture({metadata: {stripped_crash: false}});
 
   const props = {
     projectSlug: project.slug,
