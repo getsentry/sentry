@@ -582,7 +582,7 @@ class Factories:
 
         return release
 
-    def create_group_release(project: Project, group: Group, release: Release):
+    def create_group_release(project: Project, group: Group, release: Release) -> GroupRelease:
         return GroupRelease.objects.create(
             project_id=project.id,
             group_id=group.id,
