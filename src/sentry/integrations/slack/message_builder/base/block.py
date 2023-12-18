@@ -71,6 +71,9 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
             button["action_id"] = action.value
             button["value"] = action.value
 
+        if action.action_id:
+            button["action_id"] = action.action_id
+
         if action.url:
             button["url"] = action.url
 
@@ -134,8 +137,8 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         if block_id:
             blocks["blocks"][0]["block_id"] = block_id
 
-        # if callback_id:
-        #     blocks["callback_id"] = callback_id
+        if callback_id:
+            blocks["callback_id"] = callback_id
 
         return blocks
 

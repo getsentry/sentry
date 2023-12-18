@@ -44,20 +44,44 @@ class SlackNotificationsMessageBuilder(BlockSlackMessageBuilder):
                 callback_id=callback_id,
             )
 
-        blocks = [
-            self.get_markdown_block(text=f"<{title_link}|*{escape_slack_text(title)}*>  \n{text}"),
-            self.get_context_block(text=footer),
-        ]
+        first_block_text = ""
+        if title_link:
+            if title:
+                first_block_text += f"<{title_link}|*{escape_slack_text(title)}*>  \n"
+            else:
+                first_block_text += f"<{title_link}|*{escape_slack_text(title_link)}*>  \n"
+        elif title:  # ie. "ZeroDivisionError",
+            first_block_text += f"*{escape_slack_text(title)}*  \n"
 
-        actions = []
+        if text:  # ie. "division by zero", comments
+            first_block_text += text
+
+        blocks = []
+        if first_block_text:
+            blocks.append(self.get_markdown_block(text=first_block_text))
+        if footer:
+            blocks.append(self.get_context_block(text=footer))
+
+        actions_block = []
         for action in actions:
-            if action.label in ("Archive", "Ignore", "Mark as Ongoing", "Stop Ignoring"):
-                actions.append(self.get_button_action(action))
+            if (
+                action.label
+                in (
+                    "Archive",
+                    "Ignore",
+                    "Mark as Ongoing",
+                    "Stop Ignoring",
+                    "Turn on personal notifications",
+                )
+                or action.url
+            ):
+                actions_block.append(self.get_button_action(action))
             elif action.name == "assign":
-                actions.append(self.get_static_action(action))
+                actions_block.append(self.get_static_action(action))
 
-        if actions:
-            action_block = {"type": "actions", "elements": [action for action in actions]}
-            blocks.append(action_block)
+        if actions_block:
+            blocks.append({"type": "actions", "elements": [action for action in actions_block]})
 
-        return self._build_blocks(*blocks, fallback_text=text, callback_id=callback_id)
+        return self._build_blocks(
+            *blocks, fallback_text=text if text else None, callback_id=callback_id
+        )

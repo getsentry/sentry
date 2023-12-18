@@ -74,7 +74,12 @@ def _notify_recipient(
         text = notification.get_notification_title(ExternalProviders.SLACK, shared_context)
 
         if features.has("organizations:slack-block-kit", notification.organization):
-            blocks = [BlockSlackMessageBuilder.get_markdown_block(text)]
+            blocks = []
+            if text:
+                # equivalent of "text" field in legacy attachment system ("text" field does not
+                # show up in notification for block system but is instead used as the fallback text)
+                # ie. "Issue marked as regression", "New comment by <user>"
+                blocks.append(BlockSlackMessageBuilder.get_markdown_block(text))
             attachment_blocks = local_attachments.get("blocks")
             if attachment_blocks:
                 for attachment in attachment_blocks:
@@ -86,6 +91,9 @@ def _notify_recipient(
                 "text": text,
                 "blocks": json.dumps(blocks),
             }
+            if local_attachments.get("callback_id"):
+                # callback_id is now at the same level as blocks, rather than within attachments
+                payload["callback_id"] = local_attachments.get("callback_id")
         else:
             # Add optional billing related attachment.
             additional_attachment = get_additional_attachment(
@@ -101,9 +109,7 @@ def _notify_recipient(
                 "link_names": 1,
                 "unfurl_links": False,
                 "unfurl_media": False,
-                "text": notification.get_notification_title(
-                    ExternalProviders.SLACK, shared_context
-                ),
+                "text": text,
                 "attachments": json.dumps(local_attachments),
             }
 
