@@ -39,10 +39,10 @@ import {combineStatus} from '../debugMeta/utils';
 
 import Context from './context';
 import DefaultTitle from './defaultTitle';
+import {OpenInContextLine} from './openInContextLine';
 import {PackageStatusIcon} from './packageStatus';
 import {FunctionNameToggleIcon} from './symbol';
 import {AddressToggleIcon} from './togglableAddress';
-import {OpenInContextLine} from './openInContextLine';
 import {
   getPlatform,
   hasAssembly,
@@ -430,21 +430,21 @@ export class DeprecatedLine extends Component<Props, State> {
                 </SourceMapDebuggerModalButton>
               </Fragment>
             ) : null}
-            {showSentryAppStacktraceLink && (
-              <ErrorBoundary mini>
-                <OpenInContextLine
-                  lineNo={contextLine[0]}
-                  filename={data.filename || ''}
-                  components={this.props.components}
-                />
-              </ErrorBoundary>
-            )}
             {showStacktraceLink && (
               <ErrorBoundary>
                 <StacktraceLink
                   frame={data}
                   line={contextLine[1]}
                   event={this.props.event}
+                />
+              </ErrorBoundary>
+            )}
+            {showSentryAppStacktraceLink && (
+              <ErrorBoundary mini>
+                <OpenInContextLine
+                  lineNo={contextLine[0]}
+                  filename={data.filename || ''}
+                  components={this.props.components}
                 />
               </ErrorBoundary>
             )}
