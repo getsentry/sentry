@@ -63,11 +63,18 @@ export function CanvasReplayerPlugin(events: eventWithTime[]) {
   function cloneCanvas(id: number, node: HTMLCanvasElement) {
     const cloneNode = node.cloneNode() as HTMLCanvasElement;
     canvases.set(id, cloneNode);
-    const el = document.createElement('img');
-    node.appendChild(el);
     document.adoptNode(cloneNode);
-    containers.set(id, el);
     return cloneNode;
+  }
+
+  const promises: Promise<any>[] = [];
+  for (const event of events) {
+    if (
+      event.type === EventType.IncrementalSnapshot &&
+      event.data.source === IncrementalSource.CanvasMutation
+    ) {
+      promises.push(deserializeAndPreloadCanvasEvents(event.data, event));
+    }
   }
 
   return {
@@ -76,31 +83,15 @@ export function CanvasReplayerPlugin(events: eventWithTime[]) {
      * `canvas` element is built (in rrweb), insert an image element which will
      * be used to mirror the drawn canvas.
      */
-    onBuild: async (node, {id}) => {
+    onBuild: (node, {id}) => {
       if (!node) {
         return;
       }
 
-      if (node.nodeType === 9) {
-        // on full snapshot... deserialize all canvas events
-        const promises: Promise<any>[] = [];
-        containers.clear();
-        for (const event of events) {
-          if (
-            event.type === EventType.IncrementalSnapshot &&
-            event.data.source === IncrementalSource.CanvasMutation
-          ) {
-            promises.push(deserializeAndPreloadCanvasEvents(event.data, event));
-          }
-        }
-
-        await Promise.all(promises);
-      }
-
-      if (node.nodeName === 'CANVAS' && node instanceof HTMLCanvasElement) {
+      if (node.nodeName === 'CANVAS' && node.nodeType === 1) {
         // Add new image container that will be written to
-        const el = document.createElement('img');
-        node.appendChild(el);
+        const el = containers.get(id) || document.createElement('img');
+        (node as HTMLCanvasElement).appendChild(el);
         containers.set(id, el);
       }
     },

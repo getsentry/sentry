@@ -215,7 +215,7 @@ function SavedIssueSearches({
             aria-label={t('Collapse sidebar')}
             borderless
             onClick={() => setIsOpen(false)}
-            icon={<IconClose size="sm" />}
+            icon={<IconClose />}
           />
         </HeadingContainer>
         <CreateSavedSearchWrapper>

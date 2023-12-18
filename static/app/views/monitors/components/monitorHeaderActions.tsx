@@ -13,6 +13,8 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {Monitor} from '../types';
 
+import {StatusToggleButton} from './statusToggleButton';
+
 type Props = {
   monitor: Monitor;
   onUpdate: (data: Monitor) => void;
@@ -45,32 +47,32 @@ function MonitorHeaderActions({monitor, orgId, onUpdate}: Props) {
     onUpdate?.(resp);
   };
 
-  const toggleStatus = () => handleUpdate({isMuted: !monitor.isMuted});
+  const toggleMute = () => handleUpdate({isMuted: !monitor.isMuted});
+
+  const toggleStatus = () =>
+    handleUpdate({status: monitor.status === 'active' ? 'disabled' : 'active'});
 
   return (
     <ButtonBar gap={1}>
       <FeedbackWidgetButton />
+      <Button
+        size="sm"
+        icon={monitor.isMuted ? <IconSubscribed /> : <IconUnsubscribed />}
+        onClick={toggleMute}
+      >
+        {monitor.isMuted ? t('Unmute') : t('Mute')}
+      </Button>
+      <StatusToggleButton size="sm" onClick={toggleStatus} monitor={monitor} />
       <Confirm
         onConfirm={handleDelete}
         message={t('Are you sure you want to permanently delete this cron monitor?')}
       >
-        <Button size="sm" icon={<IconDelete size="xs" />}>
-          {t('Delete')}
-        </Button>
+        <Button size="sm" icon={<IconDelete size="xs" />} aria-label={t('Delete')} />
       </Confirm>
-      <Button
-        size="sm"
-        icon={
-          monitor.isMuted ? <IconSubscribed size="xs" /> : <IconUnsubscribed size="xs" />
-        }
-        onClick={toggleStatus}
-      >
-        {monitor.isMuted ? t('Unmute') : t('Mute')}
-      </Button>
       <Button
         priority="primary"
         size="sm"
-        icon={<IconEdit size="xs" />}
+        icon={<IconEdit />}
         to={{
           pathname: `/organizations/${orgId}/crons/${monitor.slug}/edit/`,
           // TODO(davidenwang): Right now we have to pass the environment

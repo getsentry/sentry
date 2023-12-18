@@ -107,6 +107,7 @@ def assert_proxy_request(request, is_proxy=True):
 class SiloHttpHeaders(TypedDict, total=False):
     HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION: str
     HTTP_X_SENTRY_SUBNET_SIGNATURE: str
+    HTTP_X_SENTRY_SUBNET_PATH: str
 
 
 SENTRY_SUBNET_SECRET = "hush-hush-im-invisible"

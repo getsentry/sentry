@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from sentry.api.event_search import SearchFilter
 
 from sentry.models.environment import Environment
-from sentry.models.group import STATUS_QUERY_CHOICES
+from sentry.models.group import STATUS_QUERY_CHOICES, Group
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
@@ -367,6 +367,7 @@ def get_latest_release(
     projects: Sequence[Project | int],
     environments: Optional[Sequence[Environment]],
     organization_id: Optional[int] = None,
+    adopted=False,
 ) -> Sequence[str]:
     if organization_id is None:
         project = projects[0]
@@ -389,12 +390,20 @@ def get_latest_release(
     versions: Set[str] = set()
     versions.update(
         _run_latest_release_query(
-            LatestReleaseOrders.SEMVER, semver_project_ids, environments, organization_id
+            LatestReleaseOrders.SEMVER,
+            semver_project_ids,
+            environments,
+            organization_id,
+            adopted=adopted,
         )
     )
     versions.update(
         _run_latest_release_query(
-            LatestReleaseOrders.DATE, date_project_ids, environments, organization_id
+            LatestReleaseOrders.DATE,
+            date_project_ids,
+            environments,
+            organization_id,
+            adopted=adopted,
         )
     )
 
@@ -404,27 +413,43 @@ def get_latest_release(
     return list(sorted(versions))
 
 
+def _get_release_query_type_sql(query_type: LatestReleaseOrders, last: bool) -> Tuple[str, str]:
+    direction = "DESC" if last else "ASC"
+    extra_conditions = ""
+    if query_type == LatestReleaseOrders.SEMVER:
+        rank_order_by = f"major {direction}, minor {direction}, patch {direction}, revision {direction}, CASE WHEN (prerelease = '') THEN 1 ELSE 0 END {direction}, prerelease {direction}, sr.id {direction}"
+        extra_conditions += " AND sr.major IS NOT NULL"
+    else:
+        rank_order_by = f"COALESCE(date_released, date_added) {direction}"
+    return rank_order_by, extra_conditions
+
+
 def _run_latest_release_query(
     query_type: LatestReleaseOrders,
     project_ids: Sequence[int],
     environments: Optional[Sequence[Environment]],
     organization_id: int,
+    # Only include adopted releases in the results
+    adopted: bool = False,
 ) -> Sequence[str]:
     if not project_ids:
         return []
 
     env_join = ""
     env_where = ""
+    extra_conditions = ""
     if environments:
         env_join = "INNER JOIN sentry_releaseprojectenvironment srpe on srpe.release_id = sr.id"
         env_where = "AND srpe.environment_id in %s"
-
-    extra_conditions = ""
-    if query_type == LatestReleaseOrders.SEMVER:
-        rank_order_by = "major DESC, minor DESC, patch DESC, revision DESC, CASE WHEN (prerelease = '') THEN 1 ELSE 0 END DESC, prerelease DESC, sr.id desc"
-        extra_conditions = "AND sr.major IS NOT NULL"
+        adopted_table_alias = "srpe"
     else:
-        rank_order_by = "COALESCE(date_released, date_added) DESC"
+        adopted_table_alias = "srp"
+
+    if adopted:
+        extra_conditions += f" AND {adopted_table_alias}.adopted IS NOT NULL AND {adopted_table_alias}.unadopted IS NULL "
+
+    rank_order_by, query_type_conditions = _get_release_query_type_sql(query_type, True)
+    extra_conditions += query_type_conditions
 
     query = f"""
         SELECT DISTINCT version
@@ -449,6 +474,39 @@ def _run_latest_release_query(
         query_args.append(tuple(e.id for e in environments))
     cursor.execute(query, query_args)
     return [row[0] for row in cursor.fetchall()]
+
+
+def get_first_last_release_for_group(
+    group: Group,
+    query_type: LatestReleaseOrders,
+    last: bool,
+) -> Sequence[str]:
+    """
+    Fetches the first or last release associated with a group. `query_type` determines whether we use semver or date
+    ordering to order the releases.
+    """
+    direction = "DESC" if last else "ASC"
+    rank_order_by, extra_conditions = _get_release_query_type_sql(query_type, last)
+
+    query = f"""
+        SELECT sr.*
+        FROM sentry_release sr
+        INNER JOIN (
+            SELECT sgr.release_id
+            FROM sentry_grouprelease sgr
+            WHERE sgr.group_id = %s
+            ORDER BY sgr.first_seen {direction}
+            -- We limit the number of groupreleases we check here to handle edge cases of groups with 100k+ releases
+            LIMIT 1000
+        ) sgr ON sr.id = sgr.release_id
+        {extra_conditions}
+        ORDER BY {rank_order_by}
+        LIMIT 1
+    """
+    result = list(Release.objects.raw(query, [group.id]))
+    if not result:
+        raise Release.DoesNotExist
+    return result[0]
 
 
 def parse_release(

@@ -3,13 +3,13 @@ import os
 from sentry.logging import LoggingFormat
 from sentry.options import register
 from sentry.options.manager import (
-    FLAG_ADMIN_MODIFIABLE,
     FLAG_ALLOW_EMPTY,
     FLAG_AUTOMATOR_MODIFIABLE,
     FLAG_CREDENTIAL,
     FLAG_IMMUTABLE,
     FLAG_MODIFIABLE_BOOL,
     FLAG_MODIFIABLE_RATE,
+    FLAG_MODIFIABLE_SCALAR,
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
     FLAG_REQUIRED,
@@ -752,6 +752,13 @@ register(
 
 register(
     "issues.severity.high-priority-alerts-projects-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.severity.new-escalation-projects-allowlist",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
@@ -1797,8 +1804,14 @@ register(
     default=100,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Use database backed stateful extraction state
+register(
+    "on_demand_metrics.widgets.use_stateful_extraction",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
-# Relocation
+# Relocation: whether or not the self-serve API for the feature is enabled.
 register(
     "relocation.enabled",
     default=False,
@@ -1806,23 +1819,25 @@ register(
     # FLAG_AUTOMATOR_MODIFIABLE`, to enforce it only being toggled from code.
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "relocation.self-serve",
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
+
+# Relocation: globally limits the number of small (<=10MB) relocations allowed per silo per day.
 register(
     "relocation.daily-limit.small",
     default=0,
-    flags=FLAG_ADMIN_MODIFIABLE | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_MODIFIABLE_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Relocation: globally limits the number of medium (>10MB && <=100MB) relocations allowed per silo
+# per day.
 register(
     "relocation.daily-limit.medium",
     default=0,
-    flags=FLAG_ADMIN_MODIFIABLE | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_MODIFIABLE_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Relocation: globally limits the number of large (>100MB) relocations allowed per silo per day.
 register(
     "relocation.daily-limit.large",
     default=0,
-    flags=FLAG_ADMIN_MODIFIABLE | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_MODIFIABLE_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
 )
