@@ -424,7 +424,11 @@ class SlackActionEndpoint(Endpoint):
                 return self.api_error(slack_request, group, identity_user, error, "status_dialog")
 
             attachment = SlackIssuesMessageBuilder(
-                group, identity=identity, actions=[action], tags=original_tags_from_request
+                group,
+                identity=identity,
+                actions=[action],
+                tags=original_tags_from_request,
+                skip_fallback=True,
             ).build()
             body = self.construct_reply(
                 attachment, is_message=slack_request.callback_data["is_message"]

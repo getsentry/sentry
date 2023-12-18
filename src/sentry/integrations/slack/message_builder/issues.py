@@ -301,6 +301,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         notification: ProjectNotification | None = None,
         recipient: RpcActor | None = None,
         is_unfurl: bool = False,
+        skip_fallback: bool = False,
     ) -> None:
         super().__init__()
         self.group = group
@@ -314,6 +315,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.notification = notification
         self.recipient = recipient
         self.is_unfurl = is_unfurl
+        self.skip_fallback = skip_fallback
 
     @property
     def escape_text(self) -> bool:
@@ -438,6 +440,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             *blocks,
             fallback_text=self.build_fallback_text(obj, project.slug),
             block_id=json.dumps({"issue": self.group.id}),
+            skip_fallback=self.skip_fallback,
         )
 
 
