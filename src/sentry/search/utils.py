@@ -367,6 +367,7 @@ def get_latest_release(
     projects: Sequence[Project | int],
     environments: Optional[Sequence[Environment]],
     organization_id: Optional[int] = None,
+    adopted=False,
 ) -> Sequence[str]:
     if organization_id is None:
         project = projects[0]
@@ -389,12 +390,20 @@ def get_latest_release(
     versions: Set[str] = set()
     versions.update(
         _run_latest_release_query(
-            LatestReleaseOrders.SEMVER, semver_project_ids, environments, organization_id
+            LatestReleaseOrders.SEMVER,
+            semver_project_ids,
+            environments,
+            organization_id,
+            adopted=adopted,
         )
     )
     versions.update(
         _run_latest_release_query(
-            LatestReleaseOrders.DATE, date_project_ids, environments, organization_id
+            LatestReleaseOrders.DATE,
+            date_project_ids,
+            environments,
+            organization_id,
+            adopted=adopted,
         )
     )
 
@@ -409,20 +418,28 @@ def _run_latest_release_query(
     project_ids: Sequence[int],
     environments: Optional[Sequence[Environment]],
     organization_id: int,
+    # Only include adopted releases in the results
+    adopted: bool = False,
 ) -> Sequence[str]:
     if not project_ids:
         return []
 
     env_join = ""
     env_where = ""
+    extra_conditions = ""
     if environments:
         env_join = "INNER JOIN sentry_releaseprojectenvironment srpe on srpe.release_id = sr.id"
         env_where = "AND srpe.environment_id in %s"
+        adopted_table_alias = "srpe"
+    else:
+        adopted_table_alias = "srp"
 
-    extra_conditions = ""
+    if adopted:
+        extra_conditions += f" AND {adopted_table_alias}.adopted IS NOT NULL AND {adopted_table_alias}.unadopted IS NULL "
+
     if query_type == LatestReleaseOrders.SEMVER:
         rank_order_by = "major DESC, minor DESC, patch DESC, revision DESC, CASE WHEN (prerelease = '') THEN 1 ELSE 0 END DESC, prerelease DESC, sr.id desc"
-        extra_conditions = "AND sr.major IS NOT NULL"
+        extra_conditions += " AND sr.major IS NOT NULL"
     else:
         rank_order_by = "COALESCE(date_released, date_added) DESC"
 
