@@ -1,10 +1,24 @@
 from __future__ import annotations
 
+import heapq
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Generator, Generic, Iterable, List, Mapping, Optional, Set, Tuple, TypeVar
+from typing import (
+    Any,
+    DefaultDict,
+    Generator,
+    Generic,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Set,
+    Tuple,
+    TypeVar,
+)
 
 import sentry_sdk
 
@@ -282,14 +296,46 @@ class RegressionDetector(ABC):
                 )
 
     @classmethod
-    @abstractmethod
+    def limit_regressions_by_project(
+        cls,
+        trends: Generator[
+            Tuple[Optional[TrendType], float, DetectorPayload, DetectorState], None, None
+        ],
+        ratelimit: Optional[int] = None,
+    ) -> Generator[DetectorPayload, None, None]:
+        if ratelimit is None:
+            ratelimit = options.get("statistical_detectors.ratelimit.ema")
+
+        regressions_by_project: DefaultDict[int, List[Tuple[float, DetectorPayload]]] = defaultdict(
+            list
+        )
+
+        for trend_type, score, payload, state in trends:
+            if trend_type != TrendType.Regressed:
+                continue
+            heapq.heappush(regressions_by_project[payload.project_id], (score, payload))
+
+            while ratelimit >= 0 and len(regressions_by_project[payload.project_id]) > ratelimit:
+                heapq.heappop(regressions_by_project[payload.project_id])
+
+        for regressions in regressions_by_project.values():
+            for _, regression in regressions:
+                yield regression
+
+    @classmethod
     def make_status_change_message(
         cls,
         payload: DetectorPayload,
         status: int,
         substatus: Optional[int] = None,
     ) -> StatusChangeMessage:
-        ...
+        return StatusChangeMessage(
+            # To align with the issue, we need to use the full fingerprint here
+            fingerprint=[generate_fingerprint(cls.regression_type, payload.group)],
+            project_id=payload.project_id,
+            new_status=status,
+            new_substatus=substatus,
+        )
 
     @classmethod
     def redirect_resolutions(
@@ -356,8 +402,76 @@ class RegressionDetector(ABC):
             sample_rate=1.0,
         )
 
+    @classmethod
+    def redirect_escalations(
+        cls,
+        regressions: Generator[BreakpointData, None, None],
+        batch_size=1_000,
+    ) -> Generator[Tuple[int, BreakpointData], None, None]:
+        for regression_chunk in chunked(regressions, batch_size):
+            existing_regression_groups = {
+                (group.project_id, group.fingerprint): group
+                for group in get_regression_groups(
+                    cls.regression_type,
+                    [
+                        (
+                            int(regression["project"]),
+                            generate_fingerprint(cls.regression_type, regression["transaction"]),
+                        )
+                        for regression in regression_chunk
+                    ],
+                )
+            }
 
-def generate_fingerprint(regression_type: RegressionType, name: str) -> str:
+            for regression in regression_chunk:
+                project_id = int(regression["project"])
+                fingerprint = generate_fingerprint(cls.regression_type, regression["transaction"])
+                group = existing_regression_groups.get((project_id, fingerprint))
+
+                if group is None:
+                    yield 1, regression
+                elif not group.active:
+                    yield group.version + 1, regression
+                else:
+                    # TODO:
+                    # If there is an active regression group, we should check
+                    # - if the issue group is still unresolved
+                    # - if the issue escalted
+                    # then emit an status change message if necessary.
+                    pass
+
+    @classmethod
+    def save_versioned_regressions(
+        cls,
+        versioned_regressions: Generator[Tuple[int, BreakpointData], None, None],
+        batch_size=100,
+    ) -> Generator[BreakpointData, None, None]:
+        for regression_chunk in chunked(versioned_regressions, batch_size):
+            RegressionGroup.objects.bulk_create(
+                [
+                    RegressionGroup(
+                        type=cls.regression_type.value,
+                        date_regressed=datetime.utcfromtimestamp(regression["breakpoint"]).replace(
+                            tzinfo=timezone.utc
+                        ),
+                        version=version,
+                        active=True,
+                        project_id=int(regression["project"]),
+                        fingerprint=generate_fingerprint(
+                            cls.regression_type, regression["transaction"]
+                        ),
+                        baseline=regression["aggregate_range_1"],
+                        regressed=regression["aggregate_range_2"],
+                    )
+                    for version, regression in regression_chunk
+                ]
+            )
+
+            for _, regression in regression_chunk:
+                yield regression
+
+
+def generate_fingerprint(regression_type: RegressionType, name: str | int) -> str:
     if regression_type == RegressionType.ENDPOINT:
         return fingerprint_regression(name, full=True)
     elif regression_type == RegressionType.FUNCTION:
