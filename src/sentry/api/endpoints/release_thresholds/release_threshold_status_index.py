@@ -169,7 +169,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         release_query = Q(organization=organization, date_added__gte=start, date_added__lte=end)
         if environments_list:
             release_query &= Q(
-                releaseprojectenvironment__environment__name__in=environments_list,
+                rpe_set__environment__name__in=environments_list,
             )
         if project_slug_list:
             release_query &= Q(
@@ -251,7 +251,8 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                         )
                         if rpe_query.exists():
                             last_deploy_id = rpe_query.latest("last_seen").last_deploy_id
-                            latest_deploy = release.deploy_set.filter(id=last_deploy_id)
+                            deploy_query = release.deploy_set.filter(id=last_deploy_id)
+                            latest_deploy = deploy_query[0] if deploy_query.exists() else None
 
                     # NOTE: query window starts at the earliest release up until the latest threshold window
                     if latest_deploy:
