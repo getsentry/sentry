@@ -234,7 +234,16 @@ def build_actions(
             value="ignored:until_escalating" if has_escalating else "ignored:forever",
         )
 
-    def _resolve_button() -> MessageAction:
+    def _resolve_button(use_block_kit) -> MessageAction:
+        if use_block_kit:
+            # TODO(CEO): handle if the issue is resolved - render a button that unresolves
+            # TODO(CEO): handle if not project.flags.has_releases in block kit - render a resolve button instead of a modal
+            return MessageAction(
+                name="status",
+                label="Resolve",
+                value="resolve_dialog",
+            )
+
         if status == GroupStatus.RESOLVED:
             return MessageAction(
                 name="status",
@@ -269,7 +278,7 @@ def build_actions(
 
     action_list = [
         a
-        for a in [_resolve_button(), _ignore_button(), _assign_button(use_block_kit)]
+        for a in [_resolve_button(use_block_kit), _ignore_button(), _assign_button(use_block_kit)]
         if a is not None
     ]
 
@@ -408,7 +417,15 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         # build actions
         actions = []
         for action in payload_actions:
-            if action.label in ("Archive", "Ignore", "Mark as Ongoing", "Stop Ignoring"):
+            if action.label in (
+                "Archive",
+                "Ignore",
+                "Mark as Ongoing",
+                "Stop Ignoring",
+                "Resolve",
+                "Unresolve",
+                "Resolve...",
+            ):
                 actions.append(self.get_button_action(action))
             elif action.name == "assign":
                 actions.append(self.get_static_action(action))
