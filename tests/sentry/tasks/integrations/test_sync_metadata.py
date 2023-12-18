@@ -18,7 +18,9 @@ class SyncMetadataTest(TestCase):
                 "shared_secret": "super-sekret",
             },
         )
-        integration.organizationintegration_set.first().delete()
+        org_integration = integration.organizationintegration_set.first()
+        if org_integration:
+            org_integration.delete()
         sync_metadata(integration.id)
         assert len(responses.calls) == 0
 
