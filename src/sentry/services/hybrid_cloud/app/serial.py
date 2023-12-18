@@ -2,6 +2,7 @@ from typing import Optional
 
 from sentry.constants import SentryAppStatus
 from sentry.models.apiapplication import ApiApplication
+from sentry.models.apitoken import ApiToken
 from sentry.models.integrations import SentryAppComponent
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
@@ -52,9 +53,14 @@ def serialize_sentry_app_installation(
     if app is None:
         app = installation.sentry_app
         assert app is not None
+
     api_token = None
-    if installation.api_token_id and installation.api_token:
-        api_token = installation.api_token.token
+    if installation.api_token_id:
+        try:
+            if token := installation.api_token:
+                api_token = token.token
+        except ApiToken.DoesNotExist:
+            pass
 
     return RpcSentryAppInstallation(
         id=installation.id,
