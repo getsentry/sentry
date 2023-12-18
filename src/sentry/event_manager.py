@@ -565,7 +565,7 @@ class EventManager:
             op="event_manager",
             description="event_manager.save.calculate_event_grouping",
         ), metrics.timer("event_manager.calculate_event_grouping", tags=metric_tags):
-            hashes = _calculate_event_grouping(project, job["event"], grouping_config)
+            hashes = _calculate_primary_hash(project, job, grouping_config)
 
         # Track the total number of grouping calculations done overall, so we can divide by the
         # count to get an average number of calculations per event
@@ -753,6 +753,17 @@ def _should_run_secondary_grouping(project: Project) -> bool:
     if secondary_grouping_config and (secondary_grouping_expiry or 0) >= time.time():
         result = True
     return result
+
+
+def _calculate_primary_hash(
+    project: Project, job: Job, grouping_config: GroupingConfig
+) -> CalculatedHashes:
+    """
+    Get the primary hash for the event.
+
+    This is pulled out into a separate function mostly in order to make testing easier.
+    """
+    return _calculate_event_grouping(project, job["event"], grouping_config)
 
 
 def _calculate_secondary_hash(
