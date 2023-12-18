@@ -422,7 +422,7 @@ const StacktraceLinkWrapper = withOrganization(styled('div')<{
   font-family: ${p => p.theme.text.family};
 
   ${p =>
-    p.organization.features.includes('issue-details-stacktrace-link-in-frame')
+    p.organization?.features?.includes('issue-details-stacktrace-link-in-frame')
       ? `
       padding: ${space(0)} ${space(1)};
     `
@@ -440,7 +440,7 @@ const FixMappingButton = withOrganization(styled(Button)<{organization: Organiza
   color: ${p => p.theme.subText};
 
   ${p =>
-    p.organization.features.includes('issue-details-stacktrace-link-in-frame')
+    p.organization?.features?.includes('issue-details-stacktrace-link-in-frame')
       ? `
       &:hover {
         color: ${p.theme.subText};
@@ -470,7 +470,7 @@ const LinkStyles = css`
 const OpenInLink = withOrganization(styled(ExternalLink)<{organization: Organization}>`
   ${LinkStyles}
   ${p =>
-    p.organization.features.includes('issue-details-stacktrace-link-in-frame')
+    p.organization?.features?.includes('issue-details-stacktrace-link-in-frame')
       ? `
       color: ${p.theme.linkColor};
       animation: ${fadeIn} 0.2s ease-in-out forwards;

@@ -76,7 +76,7 @@ const OpenInContainer = withOrganization(styled('div')<{
   overflow: auto;
   white-space: nowrap;
   ${p =>
-    p.organization.features.includes('issue-details-stacktrace-link-in-frame')
+    p.organization?.features?.includes('issue-details-stacktrace-link-in-frame')
       ? `
    color: ${p.theme.linkColor};
    animation: ${fadeIn} 0.2s ease-in-out forwards;
@@ -96,14 +96,14 @@ const OpenInLink = withOrganization(styled(ExternalLink)<{organization: Organiza
   gap: ${space(0.75)};
   align-items: center;
   ${p =>
-    p.organization.features.includes('issue-details-stacktrace-link-in-frame')
+    p.organization?.features?.includes('issue-details-stacktrace-link-in-frame')
       ? ``
       : `color: ${p.theme.gray300};`}
 `);
 
 export const OpenInName = withOrganization(styled('span')<{organization: Organization}>`
   ${p =>
-    p.organization.features.includes('issue-details-stacktrace-link-in-frame')
+    p.organization?.features?.includes('issue-details-stacktrace-link-in-frame')
       ? `
     &:hover {
       text-decoration: underline;
