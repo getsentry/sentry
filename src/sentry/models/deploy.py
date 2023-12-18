@@ -26,7 +26,7 @@ class Deploy(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
-    release = FlexibleForeignKey("sentry.Release", related_name="deploy_set")
+    release = FlexibleForeignKey("sentry.Release")
     environment_id = BoundedPositiveIntegerField(db_index=True)
     date_finished = models.DateTimeField(default=timezone.now, db_index=True)
     date_started = models.DateTimeField(null=True, blank=True)
