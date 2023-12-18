@@ -9,9 +9,16 @@ from django.test import override_settings
 from sentry.integrations.msteams.client import MsTeamsClient
 from sentry.models.integrations.integration import Integration
 from sentry.silo.base import SiloMode
-from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
+from sentry.silo.util import (
+    PROXY_BASE_PATH,
+    PROXY_BASE_URL_HEADER,
+    PROXY_OI_HEADER,
+    PROXY_PATH,
+    PROXY_SIGNATURE_HEADER,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
 
 
 @control_silo_test
@@ -199,9 +206,9 @@ class MsTeamsProxyApiClientTest(TestCase):
             "https://smba.trafficmanager.net/amer/v3/teams/foobar",
             json={},
         )
-        responses.add(
-            responses.GET,
-            "http://controlserver/api/0/internal/integration-proxy/v3/teams/foobar",
+        self.control_proxy_response = add_control_silo_proxy_response(
+            method=responses.GET,
+            path="v3/teams/foobar",
             json={},
         )
 
@@ -255,9 +262,8 @@ class MsTeamsProxyApiClientTest(TestCase):
 
             # API request to service url
             request = responses.calls[0].request
-            assert (
-                "http://controlserver/api/0/internal/integration-proxy/v3/teams/foobar"
-                == request.url
-            )
+            assert self.control_proxy_response.call_count == 1
+            assert request.headers[PROXY_PATH] == "v3/teams/foobar"
+            assert request.headers[PROXY_BASE_URL_HEADER] == "https://smba.trafficmanager.net/amer"
             assert client.base_url not in request.url
             assert_proxy_request(request, is_proxy=True)

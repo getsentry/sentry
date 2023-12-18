@@ -27,6 +27,7 @@ from sentry.silo.util import (
     PROXY_BASE_URL_HEADER,
     PROXY_KEYID_HEADER,
     PROXY_OI_HEADER,
+    PROXY_PATH,
     PROXY_SIGNATURE_HEADER,
     encode_subnet_signature,
     trim_leading_slashes,
@@ -190,12 +191,23 @@ class IntegrationProxyClient(ApiClient):
         # E.g. client.get("/chat.postMessage") -> proxy_path = 'chat.postMessage'
         proxy_path = trim_leading_slashes(prepared_request.url[len(base_url) :])
         proxy_url = self.proxy_url.rstrip("/")
-        url = f"{proxy_url}/{proxy_path}"
+
+        url = f"{proxy_url}/"
+
+        if (
+            not self._should_proxy_to_control
+            or (in_test_environment() and not self._use_proxy_url_for_tests)
+            and proxy_path
+        ):
+            # When proxying to control is disabled, or in the default test environment
+            # This proxy acts as a passthrough, so we need to append the path directly
+            url = f"{url}{proxy_path}".rstrip("/")
 
         request_body = prepared_request.body
         if not isinstance(request_body, bytes):
             request_body = request_body.encode("utf-8") if request_body else DEFAULT_REQUEST_BODY
         prepared_request.headers[PROXY_OI_HEADER] = str(self.org_integration_id)
+        prepared_request.headers[PROXY_PATH] = proxy_path
         if self.keyid:
             prepared_request.headers[PROXY_KEYID_HEADER] = str(self.keyid)
         prepared_request.headers[PROXY_BASE_URL_HEADER] = base_url

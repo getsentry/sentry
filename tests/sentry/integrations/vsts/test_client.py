@@ -16,7 +16,7 @@ from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
-from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
+from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_PATH, PROXY_SIGNATURE_HEADER
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
@@ -338,16 +338,16 @@ class VstsProxyApiClientTest(VstsIntegrationTestCase):
         )
         responses.add(
             responses.GET,
-            "http://controlserver/api/0/internal/integration-proxy/_apis/git/repositories/albertos-apples/commits",
+            "http://controlserver/api/0/internal/integration-proxy/",
             body=b"{}",
             match=[
-                matchers.query_param_matcher({"commit": "b", "$top": "10"}),
                 matchers.header_matcher(
                     {
                         "Accept": "application/json; api-version=4.1",
                         "Content-Type": "application/json",
                         "X-HTTP-Method-Override": "GET",
                         "X-TFS-FedAuthRedirect": "Suppress",
+                        PROXY_PATH: "_apis/git/repositories/albertos-apples/commits?commit=b&%24top=10",
                     }
                 ),
             ],
@@ -420,9 +420,10 @@ class VstsProxyApiClientTest(VstsIntegrationTestCase):
 
             assert len(responses.calls) == 1
             request = responses.calls[0].request
+            assert request.url == "http://controlserver/api/0/internal/integration-proxy/"
             assert (
-                "http://controlserver/api/0/internal/integration-proxy/_apis/git/repositories/albertos-apples/commits?commit=b&%24top=10"
-                == request.url
+                request.headers[PROXY_PATH]
+                == "_apis/git/repositories/albertos-apples/commits?commit=b&%24top=10"
             )
             assert client.base_url and (client.base_url.lower() not in request.url)
             assert_proxy_request(request, is_proxy=True)
