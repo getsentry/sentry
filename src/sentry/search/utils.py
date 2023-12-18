@@ -480,7 +480,7 @@ def get_first_last_release_for_group(
     group: Group,
     query_type: LatestReleaseOrders,
     last: bool,
-) -> Sequence[str]:
+) -> Release:
     """
     Fetches the first or last release associated with a group. `query_type` determines whether we use semver or date
     ordering to order the releases.

@@ -3,6 +3,7 @@ from __future__ import annotations
 import itertools
 import logging
 import re
+from collections import namedtuple
 from dataclasses import dataclass
 from time import time
 from typing import ClassVar, List, Mapping, Optional, Sequence, Union
@@ -66,6 +67,12 @@ class UnsafeReleaseDeletion(Exception):
 
 
 class ReleaseCommitError(Exception):
+    pass
+
+
+class SemverVersion(
+    namedtuple("SemverVersion", "major minor patch revision prerelease_case prerelease")
+):
     pass
 
 
@@ -634,6 +641,17 @@ class Release(Model):
             return release_date > other_release_date
 
         return False
+
+    @property
+    def semver_tuple(self) -> SemverVersion:
+        return SemverVersion(
+            self.major,
+            self.minor,
+            self.patch,
+            self.revision,
+            1 if self.prerelease == "" else 0,
+            self.prerelease,
+        )
 
     @classmethod
     def get_cache_key(cls, organization_id, version):
