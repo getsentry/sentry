@@ -493,16 +493,19 @@ class IndexerBatch:
 
                     new_payload_value = new_payload_v2
 
-                kafka_payload = KafkaPayload(
-                    key=message.payload.key,
-                    value=rapidjson.dumps(new_payload_value).encode(),
-                    headers=[
-                        *message.payload.headers,
-                        ("mapping_sources", mapping_header_content),
-                        # XXX: type mismatch, but seems to work fine in prod
-                        ("metric_type", new_payload_value["type"]),  # type: ignore
-                    ],
-                )
+                with metrics.timer(
+                    "metrics_consumer.reconstruct_messages.build_new_payload.json_step"
+                ):
+                    kafka_payload = KafkaPayload(
+                        key=message.payload.key,
+                        value=rapidjson.dumps(new_payload_value).encode(),
+                        headers=[
+                            *message.payload.headers,
+                            ("mapping_sources", mapping_header_content),
+                            # XXX: type mismatch, but seems to work fine in prod
+                            ("metric_type", new_payload_value["type"]),  # type: ignore
+                        ],
+                    )
                 if self.is_output_sliced:
                     routing_payload = RoutingPayload(
                         routing_header={"org_id": org_id},
