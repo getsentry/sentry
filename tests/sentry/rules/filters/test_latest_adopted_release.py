@@ -35,9 +35,13 @@ class LatestAdoptedReleaseFilterTest(RuleTestCase):
             environments=[prod],
             adopted=now,
         )
+        # Test no release
+        data = {"release_age_type": "oldest", "age_comparison": "newer", "environment_id": prod.id}
+        rule = self.get_rule(data=data)
+        self.assertDoesNotPass(rule, event)
+
         self.create_group_release(group=self.event.group, release=newest_release)
 
-        data = {"release_age_type": "oldest", "age_comparison": "newer", "environment_id": prod.id}
         rule = self.get_rule(data=data)
         self.assertPasses(rule, event)
 

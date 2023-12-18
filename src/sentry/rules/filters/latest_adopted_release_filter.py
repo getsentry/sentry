@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from itertools import product
 from typing import Any
 
 from django import forms
@@ -20,8 +21,8 @@ from sentry.rules.age import (
 from sentry.rules.filters.base import EventFilter
 from sentry.search.utils import (
     LatestReleaseOrders,
+    get_first_last_release_for_group,
     get_latest_release,
-    get_terminal_release_for_group,
 )
 from sentry.utils.cache import cache
 
@@ -89,16 +90,21 @@ class LatestAdoptedReleaseFilter(EventFilter):
                 cache.set(cache_key, False, 600)
         return latest_release
 
-    def get_terminal_release_for_env(
+    def get_first_last_release_for_env(
         self, event: GroupEvent, release_age_type: str, order_type: LatestReleaseOrders
     ) -> Release | None:
+        """
+        Fetches the first/last release for the group associated with this group
+        """
         group = event.group
-        cache_key = get_terminal_release_for_group_cache_key(group.id, release_age_type)
+        cache_key = get_first_last_release_for_group_cache_key(
+            group.id, release_age_type, order_type
+        )
         release = cache.get(cache_key)
         if release is None:
 
             try:
-                release = get_terminal_release_for_group(
+                release = get_first_last_release_for_group(
                     group, order_type, release_age_type == ModelAgeType.NEWEST
                 )
             except Release.DoesNotExist:
@@ -125,7 +131,7 @@ class LatestAdoptedReleaseFilter(EventFilter):
         if not latest_project_release:
             return False
 
-        release = self.get_terminal_release_for_env(event, release_age_type, order_type)
+        release = self.get_first_last_release_for_env(event, release_age_type, order_type)
         if not release:
             return False
 
@@ -144,10 +150,11 @@ class LatestAdoptedReleaseFilter(EventFilter):
 def is_newer_release(
     release: Release, comparison_release: Release, order_type: LatestReleaseOrders
 ):
-    if order_type == LatestReleaseOrders.SEMVER:
-        if not release.is_semver_release or not comparison_release.is_semver_release:
-            # Error?
-            pass
+    if (
+        order_type == LatestReleaseOrders.SEMVER
+        and release.is_semver_release
+        and comparison_release.is_semver_release
+    ):
         return release.semver_tuple > comparison_release.semver_tuple
     else:
         release_date = release.date_released if release.date_released else release.date_added
@@ -159,15 +166,21 @@ def is_newer_release(
         return release_date > comparison_date
 
 
-def get_terminal_release_for_group_cache_key(group_id: int, release_age_type: str) -> str:
-    return f"group:{group_id}:age_type:{release_age_type}:terminal_release"
+def get_first_last_release_for_group_cache_key(
+    group_id: int, release_age_type: str, order_type: LatestReleaseOrders
+) -> str:
+    return f"group:{group_id}:{release_age_type}:{order_type.name.lower()}:first_last_release"
 
 
-def clear_get_terminal_release_for_group_cache(instance: GroupRelease, **kwargs: Any) -> None:
+def clear_get_first_last_release_for_group_cache(instance: GroupRelease, **kwargs: Any) -> None:
+    model_ages_types = [ModelAgeType.NEWEST, ModelAgeType.OLDEST]
+    order_types = [val for val in LatestReleaseOrders]
     cache.delete_many(
         [
-            get_terminal_release_for_group_cache_key(instance.group_id, release_age_type)
-            for release_age_type in [ModelAgeType.NEWEST, ModelAgeType.OLDEST]
+            get_first_last_release_for_group_cache_key(
+                instance.group_id, model_age_type, order_type
+            )
+            for model_age_type, order_type in product(model_ages_types, order_types)
         ]
     )
 
@@ -191,8 +204,8 @@ def clear_release_environment_project_cache(instance: ReleaseEnvironment, **kwar
     )
 
 
-post_save.connect(clear_get_terminal_release_for_group_cache, sender=GroupRelease, weak=False)
-post_delete.connect(clear_get_terminal_release_for_group_cache, sender=GroupRelease, weak=False)
+post_save.connect(clear_get_first_last_release_for_group_cache, sender=GroupRelease, weak=False)
+post_delete.connect(clear_get_first_last_release_for_group_cache, sender=GroupRelease, weak=False)
 
 post_save.connect(clear_release_environment_project_cache, sender=ReleaseEnvironment, weak=False)
 post_delete.connect(clear_release_environment_project_cache, sender=ReleaseEnvironment, weak=False)
