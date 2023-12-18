@@ -414,6 +414,28 @@ describe('Incident Rules Form', () => {
       expect(onSubmitSuccess).toHaveBeenCalled();
     });
 
+    it('shows errors for an invalid on demand metric rule', async () => {
+      const invalidOnDemandMetricRule = TestStubs.MetricRule({
+        aggregate: 'percentile()',
+        query: 'transaction.duration:<1s',
+        dataset: 'generic_metrics',
+      });
+
+      const onSubmitSuccess = jest.fn();
+
+      createWrapper({
+        ruleId: invalidOnDemandMetricRule.id,
+        rule: {
+          ...invalidOnDemandMetricRule,
+          eventTypes: ['transaction'],
+        },
+        onSubmitSuccess,
+      });
+
+      await userEvent.click(screen.getByLabelText('Save Rule'), {delay: null});
+      expect(onSubmitSuccess).not.toHaveBeenCalled();
+    });
+
     it('hides fields when migrating error metric alerts to filter archived issues', async () => {
       const errorAlert = MetricRule({
         dataset: Dataset.ERRORS,
