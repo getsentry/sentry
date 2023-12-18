@@ -458,7 +458,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
         # possible to query that with the API). So instead we just use the first
         # project Icon.
         if len(projects) > 0:
-            avatar = (projects[0]["avatarUrls"]["48x48"],)
+            avatar = projects[0]["avatarUrls"]["48x48"]
             self.model.metadata.update({"icon": avatar})
 
         self.model.save()
