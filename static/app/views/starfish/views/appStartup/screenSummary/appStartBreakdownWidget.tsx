@@ -47,7 +47,11 @@ function AppStartBreakdownWidget({additionalFilters}) {
     query.addStringFilter(prepareQueryForLandingPage(searchQuery, false));
   }
 
-  const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
+  const queryString = `${appendReleaseFilters(
+    query,
+    primaryRelease,
+    secondaryRelease
+  )} span.description:["Cold Start","Warm Start"]`;
 
   const {data, isLoading} = useTableQuery({
     eventView: EventView.fromNewQueryWithPageFilters(
