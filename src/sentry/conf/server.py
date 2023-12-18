@@ -1829,6 +1829,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-count-query-optimize": False,
     # Enable canvas recording
     "organizations:session-replay-enable-canvas": False,
+    # Enable canvas replaying
+    "organizations:session-replay-enable-canvas-replayer": False,
     # Enable replay event linking in event processing
     "organizations:session-replay-event-linking": False,
     # Enable linking from 'new issue' email notifs to the issue replay list
