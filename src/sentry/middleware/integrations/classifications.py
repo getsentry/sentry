@@ -147,7 +147,7 @@ class IntegrationClassification(BaseClassification):
             request=request,
             response_handler=self.response_handler,
         )
-        # TODO: test organization_id in option here??
+
         self.logger.info(
             "integration_control.routing_request.%s",
             parser.provider,
