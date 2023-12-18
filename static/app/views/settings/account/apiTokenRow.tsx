@@ -9,27 +9,43 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {InternalAppApiToken} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens';
 
 type Props = {
   onRemove: (token: InternalAppApiToken) => void;
   token: InternalAppApiToken;
 };
 
+// TODO: After the BE portion of code changes have been released, remove the conditional rendering of the token.
+// We are currently doing the conditional logic to do safe blue/green deploys and handle contract changes.
 function ApiTokenRow({token, onRemove}: Props) {
   return (
     <StyledPanelItem>
       <Controls>
-        <InputWrapper>
-          <TextCopyInput>
-            {getDynamicText({value: token.token, fixed: 'CI_AUTH_TOKEN'})}
-          </TextCopyInput>
-        </InputWrapper>
-        <Button
-          onClick={() => onRemove(token)}
-          icon={<IconSubtract isCircled size="xs" />}
-        >
-          {t('Remove')}
-        </Button>
+        {token.tokenLastCharacters ? (
+          <TokenPreview aria-label={t('Token preview')}>
+            {tokenPreview(
+              getDynamicText({
+                value: token.tokenLastCharacters,
+                fixed: 'ABCD',
+              })
+            )}
+          </TokenPreview>
+        ) : (
+          <InputWrapper>
+            <TextCopyInput>
+              {getDynamicText({value: token.token, fixed: 'CI_AUTH_TOKEN'})}
+            </TextCopyInput>
+          </InputWrapper>
+        )}
+        <ButtonWrapper>
+          <Button
+            onClick={() => onRemove(token)}
+            icon={<IconSubtract isCircled size="xs" />}
+          >
+            {t('Remove')}
+          </Button>
+        </ButtonWrapper>
       </Controls>
 
       <Details>
@@ -94,6 +110,20 @@ const Heading = styled('div')`
   text-transform: uppercase;
   color: ${p => p.theme.subText};
   margin-bottom: ${space(1)};
+`;
+
+const TokenPreview = styled('div')`
+  color: ${p => p.theme.gray300};
+`;
+
+const ButtonWrapper = styled('div')`
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-end;
+  font-size: ${p => p.theme.fontSizeSmall};
+  gap: ${space(1)};
 `;
 
 export default ApiTokenRow;
