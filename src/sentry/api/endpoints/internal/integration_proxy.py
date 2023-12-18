@@ -188,16 +188,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         self.log_extra["full_url"] = full_url
         headers = clean_outbound_headers(request.headers)
 
-        if self.client.should_delegate():
-            response: HttpResponse = self.client.delegate(
-                request=request,
-                proxy_path=self.proxy_path,
-                headers=headers,
-            )
-        else:
-            response = self._call_third_party_api(
-                request=request, full_url=full_url, headers=headers
-            )
+        response = self._call_third_party_api(request=request, full_url=full_url, headers=headers)
 
         metrics.incr(
             "hybrid_cloud.integration_proxy.complete.response_code",
