@@ -67,7 +67,7 @@ export function NoDataMessage({Wrapper = DivWrapper, isDataAvailable}: Props) {
         })}{' '}
       {denylistedProjects.length > 0 &&
         tct(
-          'Some of your projects have been omitted from database metrics extraction. Please contact [support]. Omitted projects: [projectList].',
+          'Some of your projects have been omitted from query performance analysis. Please contact [support]. Omitted projects: [projectList].',
           {
             support: (
               <ExternalLink href="https://sentry.io/support/">support</ExternalLink>

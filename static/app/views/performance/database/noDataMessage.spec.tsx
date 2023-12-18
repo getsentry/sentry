@@ -116,7 +116,7 @@ describe('NoDataMessage', () => {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          'Some of your projects have been omitted from database metrics extraction'
+          'Some of your projects have been omitted from query performance analysis'
         )
       )
     ).toBeInTheDocument();
