@@ -4,7 +4,8 @@ import pytest
 from django.utils import timezone
 
 from sentry.models.group import GroupStatus
-from sentry.models.release import Release
+from sentry.models.release import Release, ReleaseProject
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.team import Team
 from sentry.search.base import ANY
 from sentry.search.utils import (
@@ -726,18 +727,66 @@ class GetLatestReleaseTest(TestCase):
             other_project_env_release.version,
         ]
 
+        with pytest.raises(Release.DoesNotExist):
+            assert get_latest_release([self.project, project_2], [environment], adopted=True) == [
+                new.version,
+                other_project_env_release.version,
+            ]
+
+        ReleaseProjectEnvironment.objects.filter(
+            release__in=[new, other_project_env_release]
+        ).update(adopted=datetime.now())
+
+        assert get_latest_release([self.project, project_2], [environment], adopted=True) == [
+            new.version,
+            other_project_env_release.version,
+        ]
+
     def test_semver(self):
         project_2 = self.create_project()
-        release_1 = self.create_release(version="test@2.0.0")
-        self.create_release(version="test@1.3.2")
-        self.create_release(version="test@1.0.0")
+        release_1 = self.create_release(version="test@2.0.0", environments=[self.environment])
+        env_2 = self.create_environment()
+        self.create_release(version="test@1.3.2", environments=[env_2])
+        self.create_release(version="test@1.0.0", environments=[self.environment, env_2])
 
         # Check when we're using a single project that we sort by semver
         assert get_latest_release([self.project], None) == [release_1.version]
         assert get_latest_release([project_2, self.project], None) == [release_1.version]
-        release_4 = self.create_release(project_2, version="test@1.3.3")
+        release_3 = self.create_release(
+            project_2, version="test@1.3.3", environments=[self.environment, env_2]
+        )
         assert get_latest_release([project_2, self.project], None) == [
-            release_4.version,
+            release_3.version,
+            release_1.version,
+        ]
+
+        with pytest.raises(Release.DoesNotExist):
+            get_latest_release([project_2, self.project], [self.environment, env_2], adopted=True)
+
+        ReleaseProjectEnvironment.objects.filter(release__in=[release_3, release_1]).update(
+            adopted=datetime.now()
+        )
+        assert get_latest_release(
+            [project_2, self.project], [self.environment, env_2], adopted=True
+        ) == [
+            release_3.version,
+            release_1.version,
+        ]
+        assert get_latest_release([project_2, self.project], [env_2], adopted=True) == [
+            release_3.version,
+        ]
+        # Make sure unadopted releases are ignored
+        ReleaseProjectEnvironment.objects.filter(release__in=[release_3]).update(
+            unadopted=datetime.now()
+        )
+        assert get_latest_release(
+            [project_2, self.project], [self.environment, env_2], adopted=True
+        ) == [
+            release_1.version,
+        ]
+
+        ReleaseProject.objects.filter(release__in=[release_1]).update(adopted=datetime.now())
+        assert get_latest_release([project_2, self.project], None, adopted=True) == [
             release_1.version,
         ]
 
