@@ -5,7 +5,7 @@ from collections import namedtuple
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from functools import reduce
-from typing import Any, List, Mapping, NamedTuple, Sequence, Set, Tuple, Union
+from typing import Any, List, Literal, Mapping, NamedTuple, Sequence, Set, Tuple, Union
 
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
@@ -1166,10 +1166,15 @@ default_config = SearchConfig(
     },
 )
 
+QueryOp = Literal["AND", "OR"]
+QueryToken = Union[SearchFilter, QueryOp, ParenExpression]
+
 
 def parse_search_query(
     query, config=None, params=None, builder=None, config_overrides=None
-) -> list[SearchFilter]:
+) -> list[
+    SearchFilter
+]:  # TODO: use the `Sequence[QueryToken]` type and update the code that fails type checking.
     if config is None:
         config = default_config
 
@@ -1188,4 +1193,5 @@ def parse_search_query(
 
     if config_overrides:
         config = SearchConfig.create_from(config, **config_overrides)
+
     return SearchVisitor(config, params=params, builder=builder).visit(tree)
