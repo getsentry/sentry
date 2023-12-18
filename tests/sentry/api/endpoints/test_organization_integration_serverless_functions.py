@@ -234,7 +234,7 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
 
     @responses.activate
     @patch.object(AwsLambdaIntegration, "get_serialized_lambda_function")
-    @patch("sentry.integrations.aws_lambda.client.gen_aws_client")
+    @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
     def test_enable_node_layer(self, mock_gen_aws_client, mock_get_serialized_lambda_function):
         mock_client = mock_gen_aws_client.return_value
 
@@ -247,25 +247,24 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
             },
         }
 
-        if SiloMode.get_current_mode() == SiloMode.REGION:
-            update_function_configuration_kwargs = {
-                "FunctionName": "lambdaD",
-                "Layers": [
-                    "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
-                    "arn:aws:lambda:us-east-2:1234:layer:my-layer:3",
-                ],
-                "Environment": {
-                    "Variables": {
-                        "NODE_OPTIONS": "-r @sentry/serverless/dist/awslambda-auto",
-                        "SENTRY_DSN": self.sentry_dsn,
-                        "SENTRY_TRACES_SAMPLE_RATE": "1.0",
-                    }
-                },
-            }
-            self.set_up_response_mocks(
-                get_function_response=get_function_response,
-                update_function_configuration_kwargs=update_function_configuration_kwargs,
-            )
+        update_function_configuration_kwargs = {
+            "FunctionName": "lambdaD",
+            "Layers": [
+                "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
+                "arn:aws:lambda:us-east-2:1234:layer:my-layer:3",
+            ],
+            "Environment": {
+                "Variables": {
+                    "NODE_OPTIONS": "-r @sentry/serverless/dist/awslambda-auto",
+                    "SENTRY_DSN": self.sentry_dsn,
+                    "SENTRY_TRACES_SAMPLE_RATE": "1.0",
+                }
+            },
+        }
+        self.set_up_response_mocks(
+            get_function_response=get_function_response,
+            update_function_configuration_kwargs=update_function_configuration_kwargs,
+        )
 
         mock_client.get_function = MagicMock(return_value=get_function_response)
         mock_client.update_function_configuration = MagicMock()
@@ -280,29 +279,25 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
 
         assert self.get_response(action="enable", target="lambdaD").data == return_value
 
-        if SiloMode.get_current_mode() == SiloMode.REGION:
-            assert mock_client.get_function.call_count == 0
-            assert mock_client.update_function_configuration.call_count == 0
-        else:
-            mock_client.get_function.assert_called_with(FunctionName="lambdaD")
-            mock_client.update_function_configuration.assert_called_with(
-                FunctionName="lambdaD",
-                Layers=[
-                    "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
-                    "arn:aws:lambda:us-east-2:1234:layer:my-layer:3",
-                ],
-                Environment={
-                    "Variables": {
-                        "NODE_OPTIONS": "-r @sentry/serverless/dist/awslambda-auto",
-                        "SENTRY_DSN": self.sentry_dsn,
-                        "SENTRY_TRACES_SAMPLE_RATE": "1.0",
-                    }
-                },
-            )
+        mock_client.get_function.assert_called_with(FunctionName="lambdaD")
+        mock_client.update_function_configuration.assert_called_with(
+            FunctionName="lambdaD",
+            Layers=[
+                "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
+                "arn:aws:lambda:us-east-2:1234:layer:my-layer:3",
+            ],
+            Environment={
+                "Variables": {
+                    "NODE_OPTIONS": "-r @sentry/serverless/dist/awslambda-auto",
+                    "SENTRY_DSN": self.sentry_dsn,
+                    "SENTRY_TRACES_SAMPLE_RATE": "1.0",
+                }
+            },
+        )
 
     @responses.activate
     @patch.object(AwsLambdaIntegration, "get_serialized_lambda_function")
-    @patch("sentry.integrations.aws_lambda.client.gen_aws_client")
+    @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
     def test_enable_python_layer(self, mock_gen_aws_client, mock_get_serialized_lambda_function):
         mock_client = mock_gen_aws_client.return_value
 
@@ -316,26 +311,25 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
             },
         }
 
-        if SiloMode.get_current_mode() == SiloMode.REGION:
-            update_function_configuration_kwargs = {
-                "FunctionName": "lambdaE",
-                "Layers": [
-                    "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
-                    "arn:aws:lambda:us-east-2:1234:layer:my-python-layer:34",
-                ],
-                "Environment": {
-                    "Variables": {
-                        "SENTRY_INITIAL_HANDLER": "lambda_handler.test_handler",
-                        "SENTRY_DSN": self.sentry_dsn,
-                        "SENTRY_TRACES_SAMPLE_RATE": "1.0",
-                    }
-                },
-                "Handler": "sentry_sdk.integrations.init_serverless_sdk.sentry_lambda_handler",
-            }
-            self.set_up_response_mocks(
-                get_function_response=get_function_response,
-                update_function_configuration_kwargs=update_function_configuration_kwargs,
-            )
+        update_function_configuration_kwargs = {
+            "FunctionName": "lambdaE",
+            "Layers": [
+                "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
+                "arn:aws:lambda:us-east-2:1234:layer:my-python-layer:34",
+            ],
+            "Environment": {
+                "Variables": {
+                    "SENTRY_INITIAL_HANDLER": "lambda_handler.test_handler",
+                    "SENTRY_DSN": self.sentry_dsn,
+                    "SENTRY_TRACES_SAMPLE_RATE": "1.0",
+                }
+            },
+            "Handler": "sentry_sdk.integrations.init_serverless_sdk.sentry_lambda_handler",
+        }
+        self.set_up_response_mocks(
+            get_function_response=get_function_response,
+            update_function_configuration_kwargs=update_function_configuration_kwargs,
+        )
 
         mock_client.get_function = MagicMock(return_value=get_function_response)
         mock_client.update_function_configuration = MagicMock()
@@ -350,30 +344,26 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
 
         assert self.get_response(action="enable", target="lambdaE").data == return_value
 
-        if SiloMode.get_current_mode() == SiloMode.REGION:
-            assert mock_client.get_function.call_count == 0
-            assert mock_client.update_function_configuration.call_count == 0
-        else:
-            mock_client.get_function.assert_called_with(FunctionName="lambdaE")
-            mock_client.update_function_configuration.assert_called_with(
-                FunctionName="lambdaE",
-                Layers=[
-                    "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
-                    "arn:aws:lambda:us-east-2:1234:layer:my-python-layer:34",
-                ],
-                Environment={
-                    "Variables": {
-                        "SENTRY_INITIAL_HANDLER": "lambda_handler.test_handler",
-                        "SENTRY_DSN": self.sentry_dsn,
-                        "SENTRY_TRACES_SAMPLE_RATE": "1.0",
-                    }
-                },
-                Handler="sentry_sdk.integrations.init_serverless_sdk.sentry_lambda_handler",
-            )
+        mock_client.get_function.assert_called_with(FunctionName="lambdaE")
+        mock_client.update_function_configuration.assert_called_with(
+            FunctionName="lambdaE",
+            Layers=[
+                "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
+                "arn:aws:lambda:us-east-2:1234:layer:my-python-layer:34",
+            ],
+            Environment={
+                "Variables": {
+                    "SENTRY_INITIAL_HANDLER": "lambda_handler.test_handler",
+                    "SENTRY_DSN": self.sentry_dsn,
+                    "SENTRY_TRACES_SAMPLE_RATE": "1.0",
+                }
+            },
+            Handler="sentry_sdk.integrations.init_serverless_sdk.sentry_lambda_handler",
+        )
 
     @responses.activate
     @patch.object(AwsLambdaIntegration, "get_serialized_lambda_function")
-    @patch("sentry.integrations.aws_lambda.client.gen_aws_client")
+    @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
     def test_disable_node(self, mock_gen_aws_client, mock_get_serialized_lambda_function):
         mock_client = mock_gen_aws_client.return_value
 
@@ -397,16 +387,15 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
             },
         }
 
-        if SiloMode.get_current_mode() == SiloMode.REGION:
-            update_function_configuration_kwargs = {
-                "Environment": {"Variables": {"OTHER": "hi"}},
-                "FunctionName": "lambdaD",
-                "Layers": ["arn:aws:lambda:us-east-2:1234:layer:something-else:2"],
-            }
-            self.set_up_response_mocks(
-                get_function_response=get_function_response,
-                update_function_configuration_kwargs=update_function_configuration_kwargs,
-            )
+        update_function_configuration_kwargs = {
+            "Environment": {"Variables": {"OTHER": "hi"}},
+            "FunctionName": "lambdaD",
+            "Layers": ["arn:aws:lambda:us-east-2:1234:layer:something-else:2"],
+        }
+        self.set_up_response_mocks(
+            get_function_response=get_function_response,
+            update_function_configuration_kwargs=update_function_configuration_kwargs,
+        )
 
         mock_client.get_function = MagicMock(return_value=get_function_response)
         mock_client.update_function_configuration = MagicMock()
@@ -420,21 +409,17 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
         mock_get_serialized_lambda_function.return_value = return_value
 
         assert self.get_response(action="disable", target="lambdaD").data == return_value
-        if SiloMode.get_current_mode() == SiloMode.REGION:
-            assert mock_client.get_function.call_count == 0
-            assert mock_client.update_function_configuration.call_count == 0
-        else:
-            mock_client.get_function.assert_called_with(FunctionName="lambdaD")
+        mock_client.get_function.assert_called_with(FunctionName="lambdaD")
 
-            mock_client.update_function_configuration.assert_called_with(
-                FunctionName="lambdaD",
-                Layers=["arn:aws:lambda:us-east-2:1234:layer:something-else:2"],
-                Environment={"Variables": {"OTHER": "hi"}},
-            )
+        mock_client.update_function_configuration.assert_called_with(
+            FunctionName="lambdaD",
+            Layers=["arn:aws:lambda:us-east-2:1234:layer:something-else:2"],
+            Environment={"Variables": {"OTHER": "hi"}},
+        )
 
     @responses.activate
     @patch.object(AwsLambdaIntegration, "get_serialized_lambda_function")
-    @patch("sentry.integrations.aws_lambda.client.gen_aws_client")
+    @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
     def test_disable_python(self, mock_gen_aws_client, mock_get_serialized_lambda_function):
         mock_client = mock_gen_aws_client.return_value
 
@@ -459,17 +444,16 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
             },
         }
 
-        if SiloMode.get_current_mode() == SiloMode.REGION:
-            update_function_configuration_kwargs = {
-                "FunctionName": "lambdaF",
-                "Layers": ["arn:aws:lambda:us-east-2:1234:layer:something-else:2"],
-                "Environment": {"Variables": {"OTHER": "hi"}},
-                "Handler": "lambda_handler.test_handler",
-            }
-            self.set_up_response_mocks(
-                get_function_response=get_function_response,
-                update_function_configuration_kwargs=update_function_configuration_kwargs,
-            )
+        update_function_configuration_kwargs = {
+            "FunctionName": "lambdaF",
+            "Layers": ["arn:aws:lambda:us-east-2:1234:layer:something-else:2"],
+            "Environment": {"Variables": {"OTHER": "hi"}},
+            "Handler": "lambda_handler.test_handler",
+        }
+        self.set_up_response_mocks(
+            get_function_response=get_function_response,
+            update_function_configuration_kwargs=update_function_configuration_kwargs,
+        )
 
         mock_client.get_function = MagicMock(return_value=get_function_response)
         mock_client.update_function_configuration = MagicMock()
@@ -484,22 +468,18 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
 
         assert self.get_response(action="disable", target="lambdaF").data == return_value
 
-        if SiloMode.get_current_mode() == SiloMode.REGION:
-            assert mock_client.get_function.call_count == 0
-            assert mock_client.update_function_configuration.call_count == 0
-        else:
-            mock_client.get_function.assert_called_with(FunctionName="lambdaF")
+        mock_client.get_function.assert_called_with(FunctionName="lambdaF")
 
-            mock_client.update_function_configuration.assert_called_with(
-                FunctionName="lambdaF",
-                Layers=["arn:aws:lambda:us-east-2:1234:layer:something-else:2"],
-                Environment={"Variables": {"OTHER": "hi"}},
-                Handler="lambda_handler.test_handler",
-            )
+        mock_client.update_function_configuration.assert_called_with(
+            FunctionName="lambdaF",
+            Layers=["arn:aws:lambda:us-east-2:1234:layer:something-else:2"],
+            Environment={"Variables": {"OTHER": "hi"}},
+            Handler="lambda_handler.test_handler",
+        )
 
     @responses.activate
     @patch.object(AwsLambdaIntegration, "get_serialized_lambda_function")
-    @patch("sentry.integrations.aws_lambda.client.gen_aws_client")
+    @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
     def test_update_node_version(self, mock_gen_aws_client, mock_get_serialized_lambda_function):
         mock_client = mock_gen_aws_client.return_value
 
@@ -523,18 +503,17 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
             },
         }
 
-        if SiloMode.get_current_mode() == SiloMode.REGION:
-            update_function_configuration_kwargs = {
-                "FunctionName": "lambdaD",
-                "Layers": [
-                    "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
-                    "arn:aws:lambda:us-east-2:1234:layer:my-layer:3",
-                ],
-            }
-            self.set_up_response_mocks(
-                get_function_response=get_function_response,
-                update_function_configuration_kwargs=update_function_configuration_kwargs,
-            )
+        update_function_configuration_kwargs = {
+            "FunctionName": "lambdaD",
+            "Layers": [
+                "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
+                "arn:aws:lambda:us-east-2:1234:layer:my-layer:3",
+            ],
+        }
+        self.set_up_response_mocks(
+            get_function_response=get_function_response,
+            update_function_configuration_kwargs=update_function_configuration_kwargs,
+        )
 
         mock_client.get_function = MagicMock(return_value=get_function_response)
         mock_client.update_function_configuration = MagicMock()
@@ -549,24 +528,20 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
 
         assert self.get_response(action="updateVersion", target="lambdaD").data == return_value
 
-        if SiloMode.get_current_mode() == SiloMode.REGION:
-            assert mock_client.get_function.call_count == 0
-            assert mock_client.update_function_configuration.call_count == 0
-        else:
-            mock_client.get_function.assert_called_with(FunctionName="lambdaD")
+        mock_client.get_function.assert_called_with(FunctionName="lambdaD")
 
-            mock_client.update_function_configuration.assert_called_with(
-                # **update_function_configuration_kwargs
-                FunctionName="lambdaD",
-                Layers=[
-                    "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
-                    "arn:aws:lambda:us-east-2:1234:layer:my-layer:3",
-                ],
-            )
+        mock_client.update_function_configuration.assert_called_with(
+            # **update_function_configuration_kwargs
+            FunctionName="lambdaD",
+            Layers=[
+                "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
+                "arn:aws:lambda:us-east-2:1234:layer:my-layer:3",
+            ],
+        )
 
     @responses.activate
     @patch.object(AwsLambdaIntegration, "get_serialized_lambda_function")
-    @patch("sentry.integrations.aws_lambda.client.gen_aws_client")
+    @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
     def test_update_python_version(self, mock_gen_aws_client, mock_get_serialized_lambda_function):
         mock_client = mock_gen_aws_client.return_value
 
@@ -591,18 +566,17 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
             },
         }
 
-        if SiloMode.get_current_mode() == SiloMode.REGION:
-            update_function_configuration_kwargs = {
-                "FunctionName": "lambdaG",
-                "Layers": [
-                    "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
-                    "arn:aws:lambda:us-east-2:1234:layer:my-python-layer:34",
-                ],
-            }
-            self.set_up_response_mocks(
-                get_function_response=get_function_response,
-                update_function_configuration_kwargs=update_function_configuration_kwargs,
-            )
+        update_function_configuration_kwargs = {
+            "FunctionName": "lambdaG",
+            "Layers": [
+                "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
+                "arn:aws:lambda:us-east-2:1234:layer:my-python-layer:34",
+            ],
+        }
+        self.set_up_response_mocks(
+            get_function_response=get_function_response,
+            update_function_configuration_kwargs=update_function_configuration_kwargs,
+        )
 
         mock_client.get_function = MagicMock(return_value=get_function_response)
         mock_client.update_function_configuration = MagicMock()
@@ -617,23 +591,19 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
 
         assert self.get_response(action="updateVersion", target="lambdaG").data == return_value
 
-        if SiloMode.get_current_mode() == SiloMode.REGION:
-            assert mock_client.get_function.call_count == 0
-            assert mock_client.update_function_configuration.call_count == 0
-        else:
-            mock_client.get_function.assert_called_with(FunctionName="lambdaG")
+        mock_client.get_function.assert_called_with(FunctionName="lambdaG")
 
-            mock_client.update_function_configuration.assert_called_with(
-                FunctionName="lambdaG",
-                Layers=[
-                    "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
-                    "arn:aws:lambda:us-east-2:1234:layer:my-python-layer:34",
-                ],
-            )
+        mock_client.update_function_configuration.assert_called_with(
+            FunctionName="lambdaG",
+            Layers=[
+                "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
+                "arn:aws:lambda:us-east-2:1234:layer:my-python-layer:34",
+            ],
+        )
 
     @responses.activate
     @patch.object(AwsLambdaIntegration, "get_serialized_lambda_function")
-    @patch("sentry.integrations.aws_lambda.client.gen_aws_client")
+    @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
     def test_enable_python_layer_on_already_enabled(
         self, mock_gen_aws_client, mock_get_serialized_lambda_function
     ):
@@ -668,26 +638,25 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
             },
         }
 
-        if SiloMode.get_current_mode() == SiloMode.REGION:
-            update_function_configuration_kwargs = {
-                "FunctionName": "lambdaZ",
-                "Layers": [
-                    "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
-                    "arn:aws:lambda:us-east-2:1234:layer:my-python-layer:34",
-                ],
-                "Environment": {
-                    "Variables": {
-                        "SENTRY_INITIAL_HANDLER": "lambda_handler.test_handler",
-                        "SENTRY_DSN": self.sentry_dsn,
-                        "SENTRY_TRACES_SAMPLE_RATE": "1.0",
-                    }
-                },
-                "Handler": "sentry_sdk.integrations.init_serverless_sdk.sentry_lambda_handler",
-            }
-            self.set_up_response_mocks(
-                get_function_response=get_function_response,
-                update_function_configuration_kwargs=update_function_configuration_kwargs,
-            )
+        update_function_configuration_kwargs = {
+            "FunctionName": "lambdaZ",
+            "Layers": [
+                "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
+                "arn:aws:lambda:us-east-2:1234:layer:my-python-layer:34",
+            ],
+            "Environment": {
+                "Variables": {
+                    "SENTRY_INITIAL_HANDLER": "lambda_handler.test_handler",
+                    "SENTRY_DSN": self.sentry_dsn,
+                    "SENTRY_TRACES_SAMPLE_RATE": "1.0",
+                }
+            },
+            "Handler": "sentry_sdk.integrations.init_serverless_sdk.sentry_lambda_handler",
+        }
+        self.set_up_response_mocks(
+            get_function_response=get_function_response,
+            update_function_configuration_kwargs=update_function_configuration_kwargs,
+        )
 
         mock_client.get_function = MagicMock(return_value=get_function_response)
         mock_client.update_function_configuration = MagicMock()
@@ -702,24 +671,20 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
 
         assert self.get_response(action="enable", target="lambdaZ").data == return_value
 
-        if SiloMode.get_current_mode() == SiloMode.REGION:
-            assert mock_client.get_function.call_count == 0
-            assert mock_client.update_function_configuration.call_count == 0
-        else:
-            mock_client.get_function.assert_called_with(FunctionName="lambdaZ")
+        mock_client.get_function.assert_called_with(FunctionName="lambdaZ")
 
-            mock_client.update_function_configuration.assert_called_with(
-                FunctionName="lambdaZ",
-                Layers=[
-                    "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
-                    "arn:aws:lambda:us-east-2:1234:layer:my-python-layer:34",
-                ],
-                Environment={
-                    "Variables": {
-                        "SENTRY_INITIAL_HANDLER": "lambda_handler.test_handler",
-                        "SENTRY_DSN": self.sentry_dsn,
-                        "SENTRY_TRACES_SAMPLE_RATE": "1.0",
-                    }
-                },
-                Handler="sentry_sdk.integrations.init_serverless_sdk.sentry_lambda_handler",
-            )
+        mock_client.update_function_configuration.assert_called_with(
+            FunctionName="lambdaZ",
+            Layers=[
+                "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
+                "arn:aws:lambda:us-east-2:1234:layer:my-python-layer:34",
+            ],
+            Environment={
+                "Variables": {
+                    "SENTRY_INITIAL_HANDLER": "lambda_handler.test_handler",
+                    "SENTRY_DSN": self.sentry_dsn,
+                    "SENTRY_TRACES_SAMPLE_RATE": "1.0",
+                }
+            },
+            Handler="sentry_sdk.integrations.init_serverless_sdk.sentry_lambda_handler",
+        )

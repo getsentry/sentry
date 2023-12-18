@@ -10,7 +10,6 @@ from urllib.parse import ParseResult, urljoin, urlparse
 import sentry_sdk
 import urllib3
 from django.conf import settings
-from django.http import HttpResponse
 from django.utils.encoding import force_str
 from requests import PreparedRequest
 
@@ -227,15 +226,3 @@ class IntegrationProxyClient(ApiClient):
             },
         )
         return prepared_request
-
-    def should_delegate(self) -> bool:
-        return False
-
-    def delegate(self, request, proxy_path: str, headers) -> HttpResponse:
-        """
-        Rather than letting the internal integration proxy endpoint perform the 3rd-party API request, this method
-        performs the processing of that request whenever should_delegate() returns True.
-
-        This method should be implemented in cases when an integration uses a Python SDK API client (e.g. boto3).
-        """
-        raise NotImplementedError
