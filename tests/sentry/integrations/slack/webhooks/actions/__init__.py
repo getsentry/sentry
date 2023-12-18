@@ -62,3 +62,79 @@ class BaseEventTest(APITestCase):
         payload = {"payload": json.dumps(payload)}
 
         return self.client.post("/extensions/slack/action/", data=payload)
+
+    @patch(
+        "sentry.integrations.slack.requests.base.SlackRequest._check_signing_secret",
+        return_value=True,
+    )
+    def post_webhook_block_kit(
+        self,
+        check_signing_secret_mock,
+        action_data=None,
+        type="block_actions",
+        data=None,
+        team_id="TXXXXXXX1",
+        slack_user=None,
+        original_message=None,
+        selected_option=None,
+        view=None,
+        private_metadata=None,
+    ):
+        """Respond as if we were Slack"""
+        if slack_user is None:
+            slack_user = {
+                "id": self.external_id,
+                "name": "colleen",
+                "username": "colleen",
+                "team_id": team_id,
+            }
+
+        if original_message is None:
+            original_message = {}
+
+        payload = {
+            "type": type,
+            "team": {
+                "id": team_id,
+                "domain": "hb-meowcraft",
+            },
+            "user": slack_user,
+            "api_app_id": "A058NGW5NDP",
+            "token": "6IM9MzJR4Ees5x4jkW29iKbj",
+            "trigger_id": self.trigger_id,
+            "view": view,
+            "response_urls": [],
+            "enterprise": None,
+            "is_enterprise_install": False,
+        }
+
+        if type == "block_actions":
+            payload["container"] = {
+                "type": "message",
+                "message_ts": "1702424381.221719",
+                "channel_id": "C065W1189",
+                "is_ephemeral": False,
+            }
+            payload["channel"] = {
+                "id": "C065W1189",
+                "name": "general",
+            }
+            payload["message"] = original_message
+            payload["state"] = {
+                "values": {
+                    "bXwil": {
+                        "assign": {
+                            "type": "static_select",
+                            "selected_option": selected_option,
+                        }
+                    }
+                }
+            }
+            payload["response_url"] = self.response_url
+            payload["actions"] = action_data or []
+
+        if data:
+            payload.update(data)
+
+        payload = {"payload": json.dumps(payload)}
+        return self.client.post("/extensions/slack/action/", data=payload)
