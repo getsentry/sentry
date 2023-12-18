@@ -142,6 +142,45 @@ def get_option_groups(group: Group) -> Sequence[Mapping[str, Any]]:
     return option_groups
 
 
+def get_option_groups_block_kit(group: Group) -> Sequence[Mapping[str, Any]]:
+    all_members = group.project.get_members_as_rpc_users()
+    members = list({m.id: m for m in all_members}.values())
+    teams = group.project.teams.all()
+    use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
+
+    option_groups = []
+    if teams:
+        team_options = format_actor_options(teams, use_block_kit)
+        option_groups.append(
+            {"label": {"type": "plain_text", "text": "Teams"}, "options": team_options}
+        )
+
+    if members:
+        member_options = format_actor_options(members, use_block_kit)
+        option_groups.append(
+            {"label": {"type": "plain_text", "text": "People"}, "options": member_options}
+        )
+    return option_groups
+
+
+def get_group_assignees(group: Group) -> Sequence[Mapping[str, Any]]:
+    """Get teams and users that can be issue assignees for block kit"""
+    all_members = group.project.get_members_as_rpc_users()
+    members = list({m.id: m for m in all_members}.values())
+    teams = group.project.teams.all()
+
+    option_groups = []
+    if teams:
+        for team in teams:
+            option_groups.append({"label": team.slug, "value": f"team:{team.id}"})
+
+    if members:
+        for member in members:
+            option_groups.append({"label": member.email, "value": f"user:{member.id}"})
+
+    return option_groups
+
+
 def get_action_text(
     text: str, actions: Sequence[Any], identity: RpcIdentity, has_escalating: bool = False
 ) -> str:
@@ -170,6 +209,7 @@ def build_actions(
 ) -> tuple[Sequence[MessageAction], str, str]:
     """Having actions means a button will be shown on the Slack message e.g. ignore, resolve, assign."""
     has_escalating = features.has("organizations:escalating-issues", project.organization)
+    use_block_kit = features.has("organizations:slack-block-kit", project.organization)
 
     if actions and identity:
         text = get_action_text(text, actions, identity, has_escalating)
@@ -214,19 +254,23 @@ def build_actions(
             value="resolve_dialog",
         )
 
-    def _assign_button() -> MessageAction:
+    def _assign_button(use_block_kit) -> MessageAction:
         assignee = group.get_assignee()
         assign_button = MessageAction(
             name="assign",
             label="Select Assignee...",
             type="select",
             selected_options=format_actor_options([assignee]) if assignee else [],
-            option_groups=get_option_groups(group),
+            option_groups=get_option_groups(group)
+            if not use_block_kit
+            else get_option_groups_block_kit(group),
         )
         return assign_button
 
     action_list = [
-        a for a in [_resolve_button(), _ignore_button(), _assign_button()] if a is not None
+        a
+        for a in [_resolve_button(), _ignore_button(), _assign_button(use_block_kit)]
+        if a is not None
     ]
 
     return action_list, text, color
@@ -360,6 +404,18 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             ts = self.group.last_seen
             timestamp = max(ts, self.event.datetime) if self.event else ts
         blocks.append(self.get_context_block(text=footer, timestamp=timestamp))
+
+        # build actions
+        actions = []
+        for action in payload_actions:
+            if action.label in ("Archive", "Ignore", "Mark as Ongoing", "Stop Ignoring"):
+                actions.append(self.get_button_action(action))
+            elif action.name == "assign":
+                actions.append(self.get_static_action(action))
+
+        if actions:
+            action_block = {"type": "actions", "elements": [action for action in actions]}
+            blocks.append(action_block)
 
         return self._build_blocks(
             *blocks,

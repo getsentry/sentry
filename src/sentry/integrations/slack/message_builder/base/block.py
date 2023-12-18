@@ -65,10 +65,12 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
     def get_button_action(action):
         button = {
             "type": "button",
-            "action_id": action.value,
             "text": {"type": "plain_text", "text": action.label},
-            "value": action.value,
         }
+        if action.value:
+            button["action_id"] = action.value
+            button["value"] = action.value
+
         if action.url:
             button["url"] = action.url
 
