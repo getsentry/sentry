@@ -148,7 +148,7 @@ export default function WizardField({
             alertType,
           });
         const fieldOptions = generateFieldOptions({organization, ...fieldOptionsConfig});
-        const fieldValue = getFieldValue(aggregate ?? '');
+        const fieldValue = getFieldValue(aggregate ?? '', model);
 
         const fieldKey =
           fieldValue?.kind === FieldValueKind.FUNCTION
@@ -215,7 +215,7 @@ export default function WizardField({
 
 // swaps out custom percentile values for known percentiles, used while we fade out custom percentiles in metric alerts
 // TODO(telemetry-experience): remove once we migrate all custom percentile alerts
-const getFieldValue = (aggregate: string | undefined): QueryFieldValue => {
+const getFieldValue = (aggregate: string | undefined, model) => {
   const fieldValue = explodeFieldString(aggregate ?? '');
 
   if (fieldValue?.kind !== FieldValueKind.FUNCTION) {
@@ -226,7 +226,7 @@ const getFieldValue = (aggregate: string | undefined): QueryFieldValue => {
     return fieldValue;
   }
 
-  return {
+  const newFieldValue: QueryFieldValue = {
     kind: FieldValueKind.FUNCTION,
     function: [
       getApproximateKnownPercentile(fieldValue.function[2] as string),
@@ -236,6 +236,10 @@ const getFieldValue = (aggregate: string | undefined): QueryFieldValue => {
     ],
     alias: fieldValue.alias,
   };
+
+  model.setValue('aggregate', generateFieldAsString(newFieldValue));
+
+  return newFieldValue;
 };
 
 const getApproximateKnownPercentile = (customPercentile: string) => {
