@@ -486,6 +486,12 @@ const StackTraceFrame = styled('li')`
       border-bottom-left-radius: 5px;
     }
   }
+
+  &:first-child {
+    ${RowHeader} {
+      border-top-right-radius: 5px;
+    }
+  }
 `;
 
 const SymbolicatorIcon = styled('div')`
