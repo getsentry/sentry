@@ -272,6 +272,48 @@ class SlackActionEndpoint(Endpoint):
             user_id=user.id,
         )
 
+    def build_resolve_modal_payload(self, callback_id):
+        formatted_resolve_options = []
+        for text, value in RESOLVE_OPTIONS.items():
+            formatted_resolve_options.append(
+                {
+                    "text": {
+                        "type": "plain_text",
+                        "text": text,
+                        "emoji": True,
+                    },
+                    "value": value,
+                }
+            )
+
+        return {
+            "type": "modal",
+            "title": {"type": "plain_text", "text": "Resolve Issue"},
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": "Resolve in"},
+                    "accessory": {
+                        "type": "static_select",
+                        "initial_option": {
+                            "text": {
+                                "type": "plain_text",
+                                "text": "Immediately",
+                                "emoji": True,
+                            },
+                            "value": "resolved",
+                        },
+                        "options": formatted_resolve_options,
+                        "action_id": "static_select-action",
+                    },
+                }
+            ],
+            "close": {"type": "plain_text", "text": "Cancel"},
+            "submit": {"type": "plain_text", "text": "Resolve"},
+            "private_metadata": callback_id,
+            "callback_id": callback_id,
+        }
+
     def open_resolve_dialog(self, slack_request: SlackActionRequest, group: Group) -> None:
         # XXX(epurkhiser): In order to update the original message we have to
         # keep track of the response_url in the callback_id. Definitely hacky,
@@ -304,46 +346,7 @@ class SlackActionEndpoint(Endpoint):
 
         if use_block_kit:
             # XXX(CEO): the second you make a selection (without hitting Submit) it sends a slightly different request
-            formatted_resolve_options = []
-            for text, value in RESOLVE_OPTIONS.items():
-                formatted_resolve_options.append(
-                    {
-                        "text": {
-                            "type": "plain_text",
-                            "text": text,
-                            "emoji": True,
-                        },
-                        "value": value,
-                    }
-                )
-
-            modal_payload = {
-                "type": "modal",
-                "title": {"type": "plain_text", "text": "Resolve Issue"},
-                "blocks": [
-                    {
-                        "type": "section",
-                        "text": {"type": "mrkdwn", "text": "Resolve in"},
-                        "accessory": {
-                            "type": "static_select",
-                            "initial_option": {
-                                "text": {
-                                    "type": "plain_text",
-                                    "text": "Immediately",
-                                    "emoji": True,
-                                },
-                                "value": "resolved",
-                            },
-                            "options": formatted_resolve_options,
-                            "action_id": "static_select-action",
-                        },
-                    }
-                ],
-                "close": {"type": "plain_text", "text": "Cancel"},
-                "submit": {"type": "plain_text", "text": "Resolve"},
-                "private_metadata": callback_id,
-                "callback_id": callback_id,
-            }
+            modal_payload = self.build_resolve_modal_payload(callback_id)
             try:
                 payload = {
                     "view": json.dumps(modal_payload),
@@ -352,13 +355,13 @@ class SlackActionEndpoint(Endpoint):
                 headers = {"content-type": "application/json; charset=utf-8"}
                 slack_client.post("/views.open", data=json.dumps(payload), headers=headers)
             except ApiError as e:
-                logger.error("slack.action.response-error", extra={"error": str(e)})
+                logger.exception("slack.action.response-error", extra={"error": str(e)})
 
         else:
             try:
                 slack_client.post("/dialog.open", data=payload)
             except ApiError as e:
-                logger.error("slack.action.response-error", extra={"error": str(e)})
+                logger.exception("slack.action.response-error", extra={"error": str(e)})
 
     def construct_reply(self, attachment: SlackBody, is_message: bool = False) -> SlackBody:
         # XXX(epurkhiser): Slack is inconsistent about it's expected responses
@@ -407,14 +410,20 @@ class SlackActionEndpoint(Endpoint):
 
             # Masquerade a status action
             selection = None
-            values = slack_request.data["view"]["state"]["values"]
-            for value in values:
-                for val in values[value]:
-                    selection = values[value][val]["selected_option"]["value"]
-                    if selection:
-                        break
-                if selection:
-                    break
+            view = slack_request.data.get("view")
+            if view:
+                state = view.get("state")
+            if state:
+                values = state.get("values")
+            if values:
+                for value in values:
+                    for val in values[value]:
+                        selection = values[value][val]["selected_option"]["value"]
+                        if selection:
+                            break
+
+            if not selection:
+                return self.respond()
 
             action = MessageAction(name="status", value=selection)
 

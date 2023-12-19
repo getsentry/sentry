@@ -55,6 +55,9 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
         def send_notification(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             rules = [f.rule for f in futures]
+            additional_attachment = get_additional_attachment(
+                integration, self.project.organization
+            )
             if features.has("organizations:slack-block-kit", event.group.project.organization):
                 blocks = build_group_attachment(
                     event.group,
@@ -62,9 +65,6 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     tags=tags,
                     rules=rules,
                     notification_uuid=notification_uuid,
-                )
-                additional_attachment = get_additional_attachment(
-                    integration, self.project.organization
                 )
                 if additional_attachment:
                     for block in additional_attachment:
@@ -89,9 +89,6 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     )
                 ]
                 # getsentry might add a billing related attachment
-                additional_attachment = get_additional_attachment(
-                    integration, self.project.organization
-                )
                 if additional_attachment:
                     attachments.append(additional_attachment)
 
