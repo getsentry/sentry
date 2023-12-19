@@ -25,7 +25,6 @@ export function ThroughputChart({series, isLoading}: Props) {
         }}
         data={[series]}
         loading={isLoading}
-        utc={false}
         chartColors={[THROUGHPUT_COLOR]}
         isLineChart
         aggregateOutputFormat="rate"

@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -12,7 +13,7 @@ import TableView from 'sentry/views/discover/table/tableView';
 describe('TableView > CellActions', function () {
   let initialData, rows, onChangeShowTags;
 
-  const location = TestStubs.location({
+  const location = LocationFixture({
     pathname: '/organizations/org-slug/discover/results/',
     query: {
       id: '42',

@@ -7,6 +7,8 @@ statusProvider:
   config:
     contexts:
       - 'self-hosted'
+artifactProvider:
+  name: none
 targets:
   - id: release
     name: docker
