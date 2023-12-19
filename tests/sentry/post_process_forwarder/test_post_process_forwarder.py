@@ -1,5 +1,4 @@
 import importlib
-import logging
 import os
 import time
 import uuid
@@ -23,8 +22,6 @@ pytestmark = [requires_kafka]
 
 SENTRY_KAFKA_HOSTS = os.environ.get("SENTRY_KAFKA_HOSTS", "127.0.0.1:9092")
 settings.KAFKA_CLUSTERS["default"] = {"common": {"bootstrap.servers": SENTRY_KAFKA_HOSTS}}
-
-logger = logging.getLogger(__name__)
 
 
 def kafka_message_payload() -> Any:
@@ -58,9 +55,7 @@ class PostProcessForwarderTest(TestCase):
         super().setUp()
         self.consumer_and_topic_suffix = uuid.uuid4().hex
         self.events_topic = f"events-{self.consumer_and_topic_suffix}"
-        logger.info(f"events_topic: {self.events_topic}")
         self.commit_log_topic = f"events-commit-{self.consumer_and_topic_suffix}"
-        logger.info(f"commit_log_topic: {self.commit_log_topic}")
         self.override_settings_cm = override_settings(
             KAFKA_EVENTS=self.events_topic,
             KAFKA_TRANSACTIONS=self.events_topic,
@@ -105,9 +100,7 @@ class PostProcessForwarderTest(TestCase):
 
     def run_post_process_forwarder_streaming_consumer(self, ppf_mode: str) -> None:
         consumer_group = f"consumer-{self.consumer_and_topic_suffix}"
-        logger.info(f"consumer_group: {consumer_group}")
         synchronize_commit_group = f"sync-consumer-{self.consumer_and_topic_suffix}"
-        logger.info(f"synchronize_commit_group: {synchronize_commit_group}")
 
         events_producer = self._get_producer("default")
         commit_log_producer = self._get_producer("default")
