@@ -34,12 +34,11 @@ export const useIndexedResourcesQuery = ({
         'project',
         'span.group',
         SPAN_DESCRIPTION,
-        HTTP_RESPONSE_CONTENT_LENGTH,
+        `measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`,
       ],
       name: 'Indexed Resource Query',
       query: queryConditions.join(' '),
       version: 2,
-      orderby: '-count()',
       dataset: DiscoverDatasets.SPANS_INDEXED,
     },
     pageFilters.selection
@@ -66,9 +65,9 @@ export const useIndexedResourcesQuery = ({
       'transaction.id': row['transaction.id'] as string,
       [SPAN_DESCRIPTION]: row[SPAN_DESCRIPTION]?.toString(),
       // TODO - parseFloat here is temporary, we should be parsing from the backend
-      [HTTP_RESPONSE_CONTENT_LENGTH]: parseFloat(
-        (row[HTTP_RESPONSE_CONTENT_LENGTH] as string) || '0'
-      ),
+      'measurements.http.response_content_length': row[
+        `measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`
+      ] as number,
     })) ?? [];
 
   return {...result, data};
