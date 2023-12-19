@@ -1003,6 +1003,15 @@ def _bulk_snuba_query(
 RawResult = Tuple[urllib3.response.HTTPResponse, Callable[[Any], Any], Callable[[Any], Any]]
 
 
+def _snql_query(
+    params: tuple[
+        tuple[SnubaQuery, Callable[[Any], Any], Callable[[Any], Any]], Hub, Mapping[str, str], str
+    ]
+) -> RawResult:
+    # TODO: For backwards compatibility. Some modules in Sentry use this function directly (despite it being marked private).
+    return _snuba_query(tuple([*params, False]))
+
+
 def _snuba_query(
     params: tuple[
         tuple[SnubaQuery, Callable[[Any], Any], Callable[[Any], Any]],
