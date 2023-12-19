@@ -93,7 +93,7 @@ function BaseGroupRow({
   showLastTriggered = false,
 }: Props) {
   const organization = useOrganization();
-  const issueTypeConfig = getConfigForIssueType(group);
+  const issueTypeConfig = getConfigForIssueType(group, group.project);
   const selectedGroups = useLegacyStore(SelectedGroupStore);
   const isSelected = selectedGroups[id];
 
