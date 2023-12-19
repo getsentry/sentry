@@ -15,7 +15,7 @@ const imageWidth = '200px';
 function SampleImages({groupId}: Props) {
   const imageResources = useIndexedResourcesQuery({
     queryConditions: [`${SPAN_GROUP}:${groupId}`],
-    sorts: [{field: HTTP_RESPONSE_CONTENT_LENGTH, kind: 'desc'}],
+    sorts: [{field: `measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`, kind: 'desc'}],
     limit: 100,
   });
 
@@ -40,7 +40,7 @@ function SampleImages({groupId}: Props) {
             <ImageContainer
               src={resource[SPAN_DESCRIPTION]}
               fileName={getFileNameFromDescription(resource[SPAN_DESCRIPTION])}
-              size={resource[HTTP_RESPONSE_CONTENT_LENGTH]}
+              size={resource[`measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`]}
               key={resource[SPAN_DESCRIPTION]}
             />
           );
