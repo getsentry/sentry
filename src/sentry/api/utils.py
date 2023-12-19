@@ -29,7 +29,8 @@ from sentry.services.hybrid_cloud.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
-from sentry.types.region import RegionContextError, get_local_region
+from sentry.silo import SiloMode
+from sentry.types.region import get_local_region
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.sdk import capture_exception, merge_context_into_scope
 
@@ -260,11 +261,8 @@ def generate_organization_url(org_slug: str) -> str:
 
 def generate_region_url(region_name: str | None = None) -> str:
     region_url_template: str | None = options.get("system.region-api-url-template")
-    if region_name is None:
-        try:
-            region_name = get_local_region().name
-        except RegionContextError:
-            region_name = None
+    if region_name is None and SiloMode.get_current_mode() == SiloMode.REGION:
+        region_name = get_local_region().name
     if not region_url_template or not region_name:
         return options.get("system.url-prefix")
     return region_url_template.replace("{region}", region_name)
