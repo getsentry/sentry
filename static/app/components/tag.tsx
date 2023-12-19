@@ -57,7 +57,7 @@ interface Props extends React.HTMLAttributes<HTMLSpanElement> {
   type?: keyof Theme['tag'];
 }
 
-function Tag({
+function BaseTag({
   type = 'default',
   icon,
   tooltipText,
@@ -145,13 +145,13 @@ function Tag({
   }
 
   return (
-    <TagWrapper {...props} onClick={trackClickEvent}>
+    <span {...props} onClick={trackClickEvent}>
       {tagWithParent()}
-    </TagWrapper>
+    </span>
   );
 }
 
-const TagWrapper = styled('span')`
+const Tag = styled(BaseTag)`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
