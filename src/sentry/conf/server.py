@@ -1432,6 +1432,8 @@ SENTRY_EARLY_FEATURES = {
 
 # NOTE: Please maintain alphabetical order when adding new feature flags
 SENTRY_FEATURES: dict[str, bool | None] = {
+    # Enables the staff cookie on requests
+    "auth:enterprise-staff-cookie": False,
     # Enables user registration.
     "auth:register": True,
     # Enable advanced search features, like negation and wildcard matching.
@@ -1597,10 +1599,14 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:invite-members-rate-limits": True,
     # Enable new issue alert "issue owners" fallback
     "organizations:issue-alert-fallback-targeting": False,
+    # Enables a toggle for entering the new issue details UI
+    "organizations:issue-details-new-experience-toggle": False,
     # Enable experimental replay-issue rendering on Issue Details page
     "organizations:issue-details-replay-event": False,
     # Enables syntax highlighting in the stack trace
     "organizations:issue-details-stacktrace-syntax-highlighting": False,
+    # Enables the new Stacktrace Link UI in frame header
+    "organizations:issue-details-stacktrace-link-in-frame": False,
     # Enable tag improvements in the issue details page
     "organizations:issue-details-tag-improvements": False,
     # Enable issue platform
@@ -1829,6 +1835,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-count-query-optimize": False,
     # Enable canvas recording
     "organizations:session-replay-enable-canvas": False,
+    # Enable canvas replaying
+    "organizations:session-replay-enable-canvas-replayer": False,
     # Enable replay event linking in event processing
     "organizations:session-replay-event-linking": False,
     # Enable linking from 'new issue' email notifs to the issue replay list
