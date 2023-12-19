@@ -114,11 +114,12 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                     project_slug,
                     environment,
                     ...,
-                    key: {release}-{proj}-{env},
+                    key: {release}-{proj},
                     release_version: '',
                     is_healthy: True/False,
                     start: datetime,
                     end: datetime,
+                    metric_value: int,
                 },
                 {...},
                 {...}
@@ -138,7 +139,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         # STEP 1: Validate request data
         #
         # NOTE: start/end parameters determine window to query for releases
-        # This is NOT the window to query for event data - nor the individual threshold windows
+        # This is NOT the window to query snuba for event data - nor the individual threshold windows
         # ========================================================================
         data = request.data if len(request.GET) == 0 and hasattr(request, "data") else request.GET
         start: datetime
