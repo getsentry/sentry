@@ -331,7 +331,7 @@ const replayBackendPlatforms: readonly PlatformKey[] = [
 ];
 
 // These are the frontend platforms that can set up replay.
-const replayFrontendPlatforms: readonly PlatformKey[] = [
+export const replayFrontendPlatforms: readonly PlatformKey[] = [
   'capacitor',
   'electron',
   'javascript-angular',

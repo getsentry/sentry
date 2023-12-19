@@ -234,8 +234,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     : undefined;
 
   const docKeys = useMemo(() => {
-    return currentPlatform ? generateDocKeys(currentPlatform.id) : [];
-  }, [currentPlatform]);
+    return currentPlatform && !newOnboarding ? generateDocKeys(currentPlatform.id) : [];
+  }, [currentPlatform, newOnboarding]);
 
   const {docContents, isLoading, hasOnboardingContents} = useOnboardingDocs({
     project: currentProject,
