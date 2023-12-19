@@ -1026,7 +1026,7 @@ describe('Results', function () {
         pinnedFilters: new Set(['projects']),
       });
 
-      ProjectsStore.loadInitialData([ProjectFixture({id: 1, slug: 'Pinned Project'})]);
+      ProjectsStore.loadInitialData([ProjectFixture({id: '1', slug: 'Pinned Project'})]);
 
       render(
         <Results

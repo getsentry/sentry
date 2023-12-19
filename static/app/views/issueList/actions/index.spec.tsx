@@ -61,7 +61,7 @@ describe('IssueListActions', function () {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
-      body: [ProjectFixture({id: 1})],
+      body: [ProjectFixture({id: '1'})],
     });
   });
 

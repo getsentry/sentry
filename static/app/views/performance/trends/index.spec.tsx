@@ -328,7 +328,7 @@ describe('Performance > Trends', function () {
   });
 
   it('view summary menu action links to the correct view', async function () {
-    const projects = [ProjectFixture({id: 1, slug: 'internal'}), ProjectFixture()];
+    const projects = [ProjectFixture({id: '1', slug: 'internal'}), ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
     render(
@@ -352,7 +352,7 @@ describe('Performance > Trends', function () {
   });
 
   it('view summary menu action opens performance change explorer with feature flag', async function () {
-    const projects = [ProjectFixture({id: 1, slug: 'internal'}), ProjectFixture()];
+    const projects = [ProjectFixture({id: '1', slug: 'internal'}), ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['1']}, true, [
       'performance-change-explorer',
     ]);
@@ -384,7 +384,7 @@ describe('Performance > Trends', function () {
   });
 
   it('hide from list menu action modifies query', async function () {
-    const projects = [ProjectFixture({id: 1, slug: 'internal'}), ProjectFixture()];
+    const projects = [ProjectFixture({id: '1', slug: 'internal'}), ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
     render(
@@ -414,7 +414,7 @@ describe('Performance > Trends', function () {
   });
 
   it('Changing search causes cursors to be reset', async function () {
-    const projects = [ProjectFixture({id: 1, slug: 'internal'}), ProjectFixture()];
+    const projects = [ProjectFixture({id: '1', slug: 'internal'}), ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
     render(
@@ -440,7 +440,7 @@ describe('Performance > Trends', function () {
   });
 
   it('exclude greater than list menu action modifies query', async function () {
-    const projects = [ProjectFixture({id: 1, slug: 'internal'}), ProjectFixture()];
+    const projects = [ProjectFixture({id: '1', slug: 'internal'}), ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
     render(
@@ -470,7 +470,7 @@ describe('Performance > Trends', function () {
   });
 
   it('exclude less than list menu action modifies query', async function () {
-    const projects = [ProjectFixture({id: 1, slug: 'internal'}), ProjectFixture()];
+    const projects = [ProjectFixture({id: '1', slug: 'internal'}), ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
     render(
@@ -531,7 +531,7 @@ describe('Performance > Trends', function () {
   });
 
   it('sets LCP as a default trend parameter for frontend project if query does not specify trend parameter', async function () {
-    const projects = [ProjectFixture({id: 1, platform: 'javascript'})];
+    const projects = [ProjectFixture({id: '1', platform: 'javascript'})];
     const data = initializeTrendsData(projects, {project: [1]});
 
     render(
@@ -547,7 +547,7 @@ describe('Performance > Trends', function () {
   });
 
   it('sets duration as a default trend parameter for backend project if query does not specify trend parameter', async function () {
-    const projects = [ProjectFixture({id: 1, platform: 'python'})];
+    const projects = [ProjectFixture({id: '1', platform: 'python'})];
     const data = initializeTrendsData(projects, {project: [1]});
 
     render(
@@ -563,7 +563,7 @@ describe('Performance > Trends', function () {
   });
 
   it('sets trend parameter from query and ignores default trend parameter', async function () {
-    const projects = [ProjectFixture({id: 1, platform: 'javascript'})];
+    const projects = [ProjectFixture({id: '1', platform: 'javascript'})];
     const data = initializeTrendsData(projects, {project: [1], trendParameter: 'FCP'});
 
     render(

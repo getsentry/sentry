@@ -304,8 +304,8 @@ describe('Performance > Content', function () {
 
   it('renders onboarding state when the selected project has no events', async function () {
     const projects = [
-      ProjectFixture({id: 1, firstTransactionEvent: false}),
-      ProjectFixture({id: 2, firstTransactionEvent: true}),
+      ProjectFixture({id: '1', firstTransactionEvent: false}),
+      ProjectFixture({id: '2', firstTransactionEvent: true}),
     ];
     const data = initializeData(projects, {project: [1]});
 
@@ -396,8 +396,8 @@ describe('Performance > Content', function () {
 
   it('Default page (transactions) without trends feature will not update filters if none are set', async function () {
     const projects = [
-      ProjectFixture({id: 1, firstTransactionEvent: false}),
-      ProjectFixture({id: 2, firstTransactionEvent: true}),
+      ProjectFixture({id: '1', firstTransactionEvent: false}),
+      ProjectFixture({id: '2', firstTransactionEvent: true}),
     ];
     const data = initializeData(projects, {view: undefined});
 
@@ -442,8 +442,8 @@ describe('Performance > Content', function () {
 
   it('Display Create Sample Transaction Button', async function () {
     const projects = [
-      ProjectFixture({id: 1, firstTransactionEvent: false}),
-      ProjectFixture({id: 2, firstTransactionEvent: false}),
+      ProjectFixture({id: '1', firstTransactionEvent: false}),
+      ProjectFixture({id: '2', firstTransactionEvent: false}),
     ];
     const data = initializeData(projects, {view: undefined});
 

@@ -63,7 +63,7 @@ describe('useProjects', function () {
     reactHooks.act(() => void ProjectsStore.loadInitialData(mockProjects));
     reactHooks.act(() => void OrganizationStore.onUpdate(org, {replace: true}));
 
-    const projectFoo = ProjectFixture({id: 3, slug: 'foo'});
+    const projectFoo = ProjectFixture({id: '3', slug: 'foo'});
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/projects/`,
       method: 'GET',

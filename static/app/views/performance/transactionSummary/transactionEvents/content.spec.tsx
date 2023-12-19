@@ -277,7 +277,7 @@ describe('Performance Transaction Events Content', function () {
           webVital={WebVital.LCP}
           setError={() => {}}
           projectId="1"
-          projects={[ProjectFixture({id: 1, platform: 'python'})]}
+          projects={[ProjectFixture({id: '1', platform: 'python'})]}
         />
       </OrganizationContext.Provider>,
       {context: initialData.routerContext}

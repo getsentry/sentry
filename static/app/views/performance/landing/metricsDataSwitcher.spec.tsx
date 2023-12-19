@@ -196,8 +196,8 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
       unparamCount: 0,
       compatibleProjects: [1],
     });
-    const project = ProjectFixture({id: 1});
-    const project2 = ProjectFixture({id: 2});
+    const project = ProjectFixture({id: '1'});
+    const project2 = ProjectFixture({id: '2'});
     const data = initializeData({
       project: '-1',
       projects: [project, project2],
@@ -218,8 +218,8 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
       unparamCount: 0,
       compatibleProjects: [],
     });
-    const project = ProjectFixture({id: 1});
-    const project2 = ProjectFixture({id: 2});
+    const project = ProjectFixture({id: '1'});
+    const project2 = ProjectFixture({id: '2'});
     const data = initializeData({
       project: '-1',
       projects: [project, project2],

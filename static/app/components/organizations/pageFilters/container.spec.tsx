@@ -358,7 +358,7 @@ describe('PageFiltersContainer', function () {
       organization: {
         features: ['global-views'],
       },
-      projects: [ProjectFixture({id: 1}), ProjectFixture({id: 2})],
+      projects: [ProjectFixture({id: '1'}), ProjectFixture({id: '2'})],
       router: {
         // we need this to be set to make sure org in context is same as
         // current org in URL

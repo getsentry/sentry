@@ -441,7 +441,7 @@ describe('Discover > Homepage', () => {
   });
 
   it('overrides homepage filters with pinned filters if they exist', async () => {
-    ProjectsStore.loadInitialData([ProjectFixture({id: 1}), ProjectFixture({id: 2})]);
+    ProjectsStore.loadInitialData([ProjectFixture({id: '1'}), ProjectFixture({id: '2'})]);
     jest.spyOn(pageFilterUtils, 'getPageFilterStorage').mockReturnValueOnce({
       pinnedFilters: new Set(['projects']),
       state: {
