@@ -112,6 +112,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/alerts/rules/{event.project.slug}/{self.rule.id}/details/|ja rule>"
         )
         assert blocks[0]["text"]["text"] == fallback_text
+        assert event.group
         assert (
             blocks[1]["text"]["text"]
             == f"<http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={self.rule.id}&alert_type=issue|*Hello world*>  \n"
@@ -346,6 +347,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/alerts/rules/{event.project.slug}/{rule.id}/details/|ja rule>"
         )
         assert blocks[0]["text"]["text"] == fallback_text
+        assert event.group
         assert (
             blocks[1]["text"]["text"]
             == f"<http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>  \n"
@@ -453,6 +455,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/alerts/rules/{event.project.slug}/{rule.id}/details/|ja rule>"
         )
         assert blocks[0]["text"]["text"] == fallback_text
+        assert event.group
         assert (
             blocks[1]["text"]["text"]
             == f"<http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&environment={environment.name}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>  \n"
@@ -596,9 +599,9 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
                 value="always",
             )
 
-        rule = GrammarRule(Matcher("path", "*"), [Owner("team", self.team.slug)])
+        g_rule = GrammarRule(Matcher("path", "*"), [Owner("team", self.team.slug)])
         ProjectOwnership.objects.create(
-            project_id=self.project.id, schema=dump_schema([rule]), fallthrough=True
+            project_id=self.project.id, schema=dump_schema([g_rule]), fallthrough=True
         )
 
         event = self.store_event(
@@ -649,6 +652,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/alerts/rules/{event.project.slug}/{rule.id}/details/|ja rule>"
         )
         assert blocks[0]["text"]["text"] == fallback_text
+        assert event.group
         assert (
             blocks[1]["text"]["text"]
             == f"<http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>  \n"
@@ -985,6 +989,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             == f"Alert triggered <http://example.com/organizations/{event.organization.slug}/alerts/rules/{event.project.slug}/{rule.id}/details/|ja rule>"
         )
         assert blocks[0]["text"]["text"] == fallback_text
+        assert event.group
         assert (
             blocks[1]["text"]["text"]
             == f"<http://example.com/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>  \n"
@@ -1248,6 +1253,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/alerts/rules/{event.project.slug}/{rule.id}/details/|my rule>"
         )
         assert blocks[0]["text"]["text"] == fallback_text
+        assert event.group
         assert (
             blocks[1]["text"]["text"]
             == f"<http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>  \n"

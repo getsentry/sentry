@@ -177,6 +177,7 @@ class SlackResolvedNotificationTest(SlackActivityNotificationTest, PerformanceIs
 
         blocks, fallback_text = get_blocks_and_fallback_text()
         notification_uuid = self.get_notification_uuid(blocks[0]["text"]["text"])
+        assert event.group
         assert (
             fallback_text
             == f"{self.name} marked <http://testserver/organizations/{self.organization.slug}/issues/{event.group.id}/?referrer=activity_notification&notification_uuid={notification_uuid}|{self.project.slug.upper()}-{event.group.short_id}> as resolved"
