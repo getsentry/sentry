@@ -421,7 +421,6 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         metrics.incr(OPEN_PR_METRICS_BASE.format(key="no_issues"))
         return
 
-    # TODO(cathy): update comment template
     # format issues per file into comment
     issue_tables = []
     first_table = True
