@@ -72,7 +72,7 @@ export function NoDataMessage({Wrapper = DivWrapper, isDataAvailable}: Props) {
           {
             supportLink: (
               <Button priority="link" onClick={() => openHelpSearchModal({organization})}>
-                {t('contact support')}
+                {t('Contact Support')}
               </Button>
             ),
             projectList: <ProjectList projects={denylistedProjects} />,
