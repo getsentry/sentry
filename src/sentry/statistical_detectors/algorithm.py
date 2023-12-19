@@ -86,6 +86,21 @@ class MovingAverageDetectorState(DetectorState):
 
         return False
 
+    def should_escalate(
+        self, baseline: float, regressed: float, min_change: float, rel_threshold: float
+    ) -> bool:
+        value = self.moving_avg_long
+
+        change = value - regressed
+        if change < min_change:
+            return False
+
+        rel_change = change / baseline
+        if rel_change > rel_threshold:
+            return True
+
+        return False
+
     @classmethod
     def empty(cls) -> MovingAverageDetectorState:
         return cls(
