@@ -1,3 +1,35 @@
+23.12.0
+-------
+
+### Various fixes & improvements
+
+- fix(craft): Set craft artifact provider to none (#62001) by @hubertdeng123
+- fix(starfish): Obey `utc` URL parameter (#61963) by @gggritso
+- ref(stats-detectors): Move classes for better imports (#61959) by @Zylphrex
+- feat(devserver) Bake in options to streamline devserver + ngrok (#61953) by @markstory
+- feat(replays): Remove scalar query optimization (#61815) by @cmanallen
+- fix(ddm): display all code locations (#61994) by @obostjancic
+- ref: upgrade to python 3.9 (#36860) by @asottile-sentry
+- feat(ddm): Move feedback button to header (#61997) by @ArthurKnaus
+- feat(inbound-filters): Relax pattern for matching ChunkLoadError(s) (#61988) by @iambriccardo
+- feat(discover): Add support for p90 in discover (#61990) by @iambriccardo
+- feat(ddm): Rename ddm to metrics (#61993) by @matejminar
+- fix(ddm): code location copy event propagation (#61987) by @obostjancic
+- feat(alerts): fade out custom percentiles (#61926) by @obostjancic
+- Fix Craft publish (#61982) by @chadwhitacre
+- ref(crons): Move tolerance fields out in monitor form (#61807) by @davidenwang
+- fix(replay): Fix alignment of FeatureBadge in Replay Details tabs (#61970) by @ryan953
+- feat(backup): Add creator/owner email/username to GET /relocations/ (#61969) by @azaslavsky
+- feat(crons): Sort DISABLED monitors to the end (#61950) by @evanpurkhiser
+- nit: Allow skipping scope_list argument in util func (#61967) by @schew2381
+- feat(staff): Create initial staff class for _admin mode (#61653) by @schew2381
+- Revert "ref: remove self-hosted cloudbuild (#61727)" (ae39b423) by @getsentry-bot
+- feat(spans): Groundwork for indexed spans tests (#61766) by @wmak
+- fix(user token): Stop leaking API token (#61941) by @ykamo001
+- fix(slack); Check for existence of org_context (#61966) by @ceorourke
+
+_Plus 934 more_
+
 23.11.2
 -------
 
