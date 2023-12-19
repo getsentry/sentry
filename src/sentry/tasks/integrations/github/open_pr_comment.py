@@ -249,7 +249,7 @@ def get_projects_and_filenames_from_source_file(
 
 
 def get_top_5_issues_by_count_for_file(
-    projects: List[Project], sentry_filenames: List[str]
+    projects: List[Project], sentry_filenames: List[str], function_names: List[str]
 ) -> List[Dict[str, Any]]:
     """Given a list of issue group ids, return a sublist of the top 5 ordered by event count"""
     group_ids = list(
@@ -273,9 +273,18 @@ def get_top_5_issues_by_count_for_file(
                     Column("group_id"),
                     Function("count", [], "event_count"),
                     Function("isHandled", [], "is_handled"),
+                    Function(
+                        "arrayElement", (Column("exception_frames.function"), -1), "function_name"
+                    ),
                 ]
             )
-            .set_groupby([Column("group_id"), Column("exception_stacks.mechanism_handled")])
+            .set_groupby(
+                [
+                    Column("group_id"),
+                    Column("exception_stacks.mechanism_handled"),
+                    Column("exception_frames.function"),
+                ]
+            )
             .set_where(
                 [
                     Condition(Column("project_id"), Op.IN, project_ids),
@@ -287,6 +296,11 @@ def get_top_5_issues_by_count_for_file(
                         Function("arrayElement", (Column("exception_frames.filename"), -1)),
                         Op.IN,
                         sentry_filenames,
+                    ),
+                    Condition(
+                        Function("arrayElement", (Column("exception_frames.function"), -1)),
+                        Op.IN,
+                        function_names,
                     ),
                     Condition(Function("notHandled", []), Op.EQ, 1),
                 ]
@@ -364,22 +378,27 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         )
         return
 
-    # TODO(cathy): return patches
-    pr_filenames, _ = get_pr_filenames_and_patches(pr_files)
+    pr_filenames, patches = get_pr_filenames_and_patches(pr_files)
 
     issue_table_contents = {}
     top_issues_per_file = []
 
     # fetch issues related to the files
-    # TODO(cathy): include fetching function names
-    for pr_filename in pr_filenames:
+    for i, pr_filename in enumerate(pr_filenames):
         projects, sentry_filenames = get_projects_and_filenames_from_source_file(
             org_id, pr_filename
         )
         if not len(projects) or not len(sentry_filenames):
             continue
 
-        top_issues = get_top_5_issues_by_count_for_file(list(projects), list(sentry_filenames))
+        function_names = get_file_functions(patches[i])
+
+        if not len(function_names):
+            continue
+
+        top_issues = get_top_5_issues_by_count_for_file(
+            list(projects), list(sentry_filenames), list(function_names)
+        )
         if not len(top_issues):
             continue
 
@@ -393,6 +412,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         metrics.incr(OPEN_PR_METRICS_BASE.format(key="no_issues"))
         return
 
+    # TODO(cathy): update comment template
     # format issues per file into comment
     issue_tables = []
     first_table = True

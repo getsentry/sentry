@@ -36,6 +36,7 @@ class CreateEventTestCase(TestCase):
         culprit=None,
         timestamp=None,
         filenames=None,
+        function_names=None,
         project_id=None,
         user_id=None,
         handled=False,
@@ -46,8 +47,16 @@ class CreateEventTestCase(TestCase):
             timestamp = iso_format(before_now(seconds=5))
         if filenames is None:
             filenames = ["foo.py", "baz.py"]
+        if function_names is None:
+            function_names = ["hello", "world"]
         if project_id is None:
             project_id = self.project.id
+
+        assert len(function_names) == len(filenames)
+
+        frames = []
+        for i, filename in enumerate(filenames):
+            frames.append({"filename": filename, "function": function_names[i]})
 
         return self.store_event(
             data={
@@ -60,7 +69,7 @@ class CreateEventTestCase(TestCase):
                         {
                             "type": "Error",
                             "stacktrace": {
-                                "frames": [{"filename": filename} for filename in filenames],
+                                "frames": frames,
                             },
                             "mechanism": {"handled": handled, "type": "generic"},
                         },
@@ -329,9 +338,17 @@ class TestGetCommentIssues(CreateEventTestCase):
         self.another_org_project = self.create_project(organization=self.another_org)
 
     def test_simple(self):
-        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"])
+        group_id = [
+            self._create_event(function_names=["blue", "planet"], user_id=str(i)) for i in range(7)
+        ][0].group.id
+        top_5_issues = get_top_5_issues_by_count_for_file(
+            [self.project], ["baz.py"], ["world", "planet"]
+        )
+
         top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
-        assert top_5_issue_ids == [self.group_id]
+        function_names = [issue["function_name"] for issue in top_5_issues]
+        assert top_5_issue_ids == [group_id, self.group_id]
+        assert function_names == ["planet", "world"]
 
     def test_filters_resolved_issue(self):
         group = Group.objects.all()[0]
@@ -339,13 +356,13 @@ class TestGetCommentIssues(CreateEventTestCase):
         group.status = GroupStatus.RESOLVED
         group.save()
 
-        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"])
+        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"], ["world"])
         assert len(top_5_issues) == 0
 
     def test_filters_handled_issue(self):
         group_id = self._create_event(filenames=["bar.py", "baz.py"], handled=True).group.id
 
-        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"])
+        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"], ["world"])
         top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
         assert group_id != self.group_id
         assert top_5_issue_ids == [self.group_id]
@@ -354,7 +371,7 @@ class TestGetCommentIssues(CreateEventTestCase):
         # we fetch all group_ids that belong to the projects passed into the function
         self._create_event(project_id=self.another_org_project.id)
 
-        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"])
+        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"], ["world"])
         top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
         assert top_5_issue_ids == [self.group_id]
 
@@ -363,7 +380,17 @@ class TestGetCommentIssues(CreateEventTestCase):
             filenames=["foo.py", "bar.py"],
         ).group.id
 
-        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"])
+        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"], ["world"])
+        top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
+        assert group_id != self.group_id
+        assert top_5_issue_ids == [self.group_id]
+
+    def test_function_name_mismatch(self):
+        group_id = self._create_event(
+            function_names=["world", "hello"],
+        ).group.id
+
+        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"], ["world"])
         top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
         assert group_id != self.group_id
         assert top_5_issue_ids == [self.group_id]
@@ -373,40 +400,66 @@ class TestGetCommentIssues(CreateEventTestCase):
             timestamp=iso_format(before_now(days=15)), filenames=["bar.py", "baz.py"]
         ).group.id
 
-        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"])
+        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"], ["world"])
         top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
         assert group_id != self.group_id
         assert top_5_issue_ids == [self.group_id]
 
     def test_fetches_top_five_issues(self):
         group_id_1 = [
-            self._create_event(filenames=["bar.py", "baz.py"], user_id=str(i), handled=False)
+            self._create_event(
+                filenames=["bar.py", "baz.py"],
+                function_names=["blue", "planet"],
+                user_id=str(i),
+                handled=False,
+            )
             for i in range(5)
         ][0].group.id
         [
-            self._create_event(filenames=["hello.py", "baz.py"], user_id=str(i), handled=True)
+            self._create_event(
+                filenames=["hello.py", "baz.py"],
+                function_names=["green", "planet"],
+                user_id=str(i),
+                handled=True,
+            )
             for i in range(4)
         ]
         group_id_3 = [
-            self._create_event(filenames=["base.py", "baz.py"], user_id=str(i), handled=False)
+            self._create_event(
+                filenames=["base.py", "baz.py"],
+                function_names=["wonderful", "world"],
+                user_id=str(i),
+                handled=False,
+            )
             for i in range(3)
         ][0].group.id
         [
-            self._create_event(filenames=["nom.py", "baz.py"], user_id=str(i), handled=True)
+            self._create_event(
+                filenames=["nom.py", "baz.py"],
+                function_names=["jurassic", "world"],
+                user_id=str(i),
+                handled=True,
+            )
             for i in range(2)
         ]
         # 6th issue
-        self._create_event(filenames=["nan.py", "baz.py"], handled=True)
+        self._create_event(
+            filenames=["nan.py", "baz.py"], function_names=["my_own", "world"], handled=True
+        )
         # unrelated issue with same stack trace in different project
         self._create_event(project_id=self.another_org_project.id)
 
-        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"])
+        top_5_issues = get_top_5_issues_by_count_for_file(
+            [self.project], ["baz.py"], ["world", "planet"]
+        )
         top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
         is_handled = [issue["is_handled"] for issue in top_5_issues]
+        function_names = [issue["function_name"] for issue in top_5_issues]
 
         # filters handled issues
         assert top_5_issue_ids == [self.group_id, group_id_1, group_id_3]
         assert is_handled == [0, 0, 0]
+        assert function_names == ["world", "planet", "world"]
 
     def test_get_issue_table_contents(self):
         group_id_1 = [
@@ -434,7 +487,7 @@ class TestGetCommentIssues(CreateEventTestCase):
             for i in range(2)
         ][0].group.id
 
-        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"])
+        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"], ["world"])
         affected_users = [6, 5, 4, 3, 2]
         event_count = [issue["event_count"] for issue in top_5_issues]
         is_handled = [bool(issue["is_handled"]) for issue in top_5_issues]
@@ -533,7 +586,12 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
             0
         ].group.id
         self.group_id_2 = [
-            self._create_event(culprit="issue2", filenames=["foo.py", "bar.py"], user_id=str(i))
+            self._create_event(
+                culprit="issue2",
+                filenames=["foo.py", "bar.py"],
+                function_names=["blue", "planet"],
+                user_id=str(i),
+            )
             for i in range(6)
         ][0].group.id
 
@@ -563,6 +621,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
     @patch(
         "sentry.tasks.integrations.github.open_pr_comment.get_projects_and_filenames_from_source_file"
     )
+    @patch("sentry.tasks.integrations.github.open_pr_comment.get_file_functions")
     @patch("sentry.tasks.integrations.github.open_pr_comment.get_top_5_issues_by_count_for_file")
     @patch(
         "sentry.tasks.integrations.github.open_pr_comment.safe_for_comment", return_value=(True, [])
@@ -574,12 +633,14 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         mock_metrics,
         mock_safe_for_comment,
         mock_issues,
+        mock_function_names,
         mock_reverse_codemappings,
         mock_pr_filenames,
     ):
         # two filenames, the second one has a toggle table
-        mock_pr_filenames.return_value = (["foo.py", "bar.py"], [])
+        mock_pr_filenames.return_value = (["foo.py", "bar.py"], ["a", "b"])
         mock_reverse_codemappings.return_value = ([self.project], ["foo.py"])
+        mock_function_names.return_value = ["world", "planet"]
 
         mock_issues.return_value = self.groups
 
@@ -607,6 +668,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
     @patch(
         "sentry.tasks.integrations.github.open_pr_comment.get_projects_and_filenames_from_source_file"
     )
+    @patch("sentry.tasks.integrations.github.open_pr_comment.get_file_functions")
     @patch("sentry.tasks.integrations.github.open_pr_comment.get_top_5_issues_by_count_for_file")
     @patch(
         "sentry.tasks.integrations.github.open_pr_comment.safe_for_comment", return_value=(True, [])
@@ -618,12 +680,14 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         mock_metrics,
         mock_safe_for_comment,
         mock_issues,
+        mock_function_names,
         mock_reverse_codemappings,
         mock_pr_filenames,
     ):
         # two filenames, the second one has a toggle table
-        mock_pr_filenames.return_value = (["foo.py", "bar.py"], [])
+        mock_pr_filenames.return_value = (["foo.py", "bar.py"], ["a", "b"])
         mock_reverse_codemappings.return_value = ([self.project], ["foo.py"])
+        mock_function_names.return_value = ["world", "planet"]
 
         mock_issues.return_value = self.groups
 
@@ -658,7 +722,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
     @patch(
         "sentry.tasks.integrations.github.open_pr_comment.get_projects_and_filenames_from_source_file"
     )
-    @patch("sentry.tasks.integrations.github.open_pr_comment.get_top_5_issues_by_count_for_file")
+    @patch("sentry.tasks.integrations.github.open_pr_comment.get_file_functions")
     @patch(
         "sentry.tasks.integrations.github.open_pr_comment.safe_for_comment", return_value=(True, [])
     )
@@ -668,14 +732,13 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         self,
         mock_metrics,
         mock_safe_for_comment,
-        mock_issues,
+        mock_function_names,
         mock_reverse_codemappings,
         mock_pr_filenames,
     ):
-        mock_pr_filenames.return_value = (["foo.py"], [])
+        mock_pr_filenames.return_value = (["foo.py"], ["a"])
         # no codemappings
         mock_reverse_codemappings.return_value = ([], [])
-        mock_issues.return_value = []
 
         open_pr_comment_workflow(self.pr.id)
 
@@ -683,9 +746,18 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         assert len(pull_request_comment_query) == 0
         mock_metrics.incr.assert_called_with("github_open_pr_comment.no_issues")
 
-        # has codemappings but no issues
+        # has codemappings but no functions in diff
         mock_reverse_codemappings.return_value = ([self.project], ["foo.py"])
+        mock_function_names.return_value = []
 
+        open_pr_comment_workflow(self.pr.id)
+
+        pull_request_comment_query = PullRequestComment.objects.all()
+        assert len(pull_request_comment_query) == 0
+        mock_metrics.incr.assert_called_with("github_open_pr_comment.no_issues")
+
+        # has codemappings and functions but no issues
+        mock_function_names.return_value = ["world"]
         open_pr_comment_workflow(self.pr.id)
 
         pull_request_comment_query = PullRequestComment.objects.all()
@@ -696,6 +768,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
     @patch(
         "sentry.tasks.integrations.github.open_pr_comment.get_projects_and_filenames_from_source_file"
     )
+    @patch("sentry.tasks.integrations.github.open_pr_comment.get_file_functions")
     @patch("sentry.tasks.integrations.github.open_pr_comment.get_top_5_issues_by_count_for_file")
     @patch(
         "sentry.tasks.integrations.github.open_pr_comment.safe_for_comment", return_value=(True, [])
@@ -707,11 +780,13 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         mock_metrics,
         mock_safe_for_comment,
         mock_issues,
+        mock_function_names,
         mock_reverse_codemappings,
         mock_pr_filenames,
     ):
-        mock_pr_filenames.return_value = (["foo.py"], [])
+        mock_pr_filenames.return_value = (["foo.py"], ["a"])
         mock_reverse_codemappings.return_value = ([self.project], ["foo.py"])
+        mock_function_names.return_value = ["world"]
 
         mock_issues.return_value = self.groups
 
