@@ -193,7 +193,7 @@ def fallback_to_stale_or_zero(
     with client.pipeline() as p:
         p.watch(threshold_key)
         existing_ttl = p.ttl(threshold_key)  # get the ttl of the stale threshold
-        if isinstance(existing_ttl, int) and existing_ttl > 0:
+        if stale_threshold is not None and isinstance(existing_ttl, int) and existing_ttl > 0:
             ttl = existing_ttl
         else:
             # if the stale threshold doesn't exist, doesn't have an expiry, or is exactly expired
