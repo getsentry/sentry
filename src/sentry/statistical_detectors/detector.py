@@ -5,20 +5,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from enum import Enum
-from typing import (
-    Any,
-    DefaultDict,
-    Generator,
-    Generic,
-    Iterable,
-    List,
-    Mapping,
-    Optional,
-    Set,
-    Tuple,
-    TypeVar,
-)
+from typing import DefaultDict, Generator, Iterable, List, Optional, Set, Tuple
 
 import sentry_sdk
 
@@ -35,87 +22,18 @@ from sentry.models.statistical_detectors import (
 )
 from sentry.search.events.fields import get_function_alias
 from sentry.seer.utils import BreakpointData, detect_breakpoints
+from sentry.statistical_detectors.algorithm import DetectorAlgorithm
+from sentry.statistical_detectors.base import (
+    DetectorConfig,
+    DetectorPayload,
+    DetectorState,
+    TrendType,
+)
 from sentry.statistical_detectors.issue_platform_adapter import fingerprint_regression
+from sentry.statistical_detectors.store import DetectorStore
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.snuba import SnubaTSResult
-
-
-class TrendType(Enum):
-    Regressed = "regressed"
-    Improved = "improved"
-    Unchanged = "unchanged"
-
-
-@dataclass(frozen=True)
-class DetectorPayload:
-    project_id: int
-    group: str | int
-    fingerprint: str
-    count: float
-    value: float
-    timestamp: datetime
-
-
-@dataclass(frozen=True)
-class DetectorState(ABC):
-    @classmethod
-    @abstractmethod
-    def from_redis_dict(cls, data: Any) -> DetectorState:
-        ...
-
-    @abstractmethod
-    def to_redis_dict(self) -> Mapping[str | bytes, bytes | float | int | str]:
-        ...
-
-    @abstractmethod
-    def should_auto_resolve(self, target: float, rel_threshold: float) -> bool:
-        ...
-
-    @classmethod
-    @abstractmethod
-    def empty(cls) -> DetectorState:
-        ...
-
-
-@dataclass(frozen=True)
-class DetectorConfig(ABC):
-    ...
-
-
-C = TypeVar("C")
-T = TypeVar("T")
-
-
-class DetectorStore(ABC, Generic[T]):
-    @abstractmethod
-    def bulk_read_states(self, payloads: List[DetectorPayload]) -> List[T]:
-        ...
-
-    @abstractmethod
-    def bulk_write_states(self, payloads: List[DetectorPayload], states: List[T]):
-        ...
-
-
-class DetectorAlgorithm(ABC, Generic[T]):
-    @abstractmethod
-    def __init__(
-        self,
-        source: str,
-        kind: str,
-        state: DetectorState,
-        config: DetectorConfig,
-    ):
-        ...
-
-    @abstractmethod
-    def update(self, payload: DetectorPayload) -> Tuple[Optional[TrendType], float]:
-        ...
-
-    @property
-    @abstractmethod
-    def state(self) -> DetectorState:
-        ...
 
 
 @dataclass(frozen=True)
@@ -124,11 +42,15 @@ class RegressionDetector(ABC):
     kind: str
     regression_type: RegressionType
     config: DetectorConfig
-    store: DetectorStore
     state_cls: type[DetectorState]
     detector_cls: type[DetectorAlgorithm]
     min_change: int
     resolution_rel_threshold: float
+
+    @classmethod
+    @abstractmethod
+    def make_detector_store(cls) -> DetectorStore:
+        ...
 
     @classmethod
     def all_payloads(
@@ -164,10 +86,12 @@ class RegressionDetector(ABC):
         regressed_count = 0
         improved_count = 0
 
+        store = cls.make_detector_store()
+
         for payloads in chunked(cls.all_payloads(projects, start), 100):
             total_count += len(payloads)
 
-            raw_states = cls.store.bulk_read_states(payloads)
+            raw_states = store.bulk_read_states(payloads)
 
             states = []
 
@@ -198,7 +122,7 @@ class RegressionDetector(ABC):
 
                 yield (trend_type, score, payload, algorithm.state)
 
-            cls.store.bulk_write_states(payloads, states)
+            store.bulk_write_states(payloads, states)
 
         metrics.incr(
             "statistical_detectors.projects.active",
