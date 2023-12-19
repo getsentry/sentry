@@ -1,12 +1,17 @@
 import {Fragment, memo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import emptyStateImg from 'sentry-images/spot/replays-empty-state.svg';
+
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import {GithubFeedbackButton} from 'sentry/components/githubFeedbackButton';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -17,6 +22,8 @@ import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import {useDDMContext} from 'sentry/views/ddm/context';
+import {useMetricsOnboardingSidebar} from 'sentry/views/ddm/ddmOnboarding/useMetricsOnboardingSidebar';
 import {MetricScratchpad} from 'sentry/views/ddm/scratchpad';
 import {ScratchpadSelector} from 'sentry/views/ddm/scratchpadSelector';
 import {TrayContent} from 'sentry/views/ddm/trayContent';
@@ -24,6 +31,9 @@ import {TrayContent} from 'sentry/views/ddm/trayContent';
 const SIZE_LOCAL_STORAGE_KEY = 'ddm-split-size';
 
 function MainContent() {
+  const {metricsMeta, hasCustomMetrics, isLoading} = useDDMContext();
+  const hasMetrics = !isLoading && metricsMeta.length > 0;
+  const {activateSidebar} = useMetricsOnboardingSidebar();
   return (
     <Fragment>
       <Layout.Header>
@@ -39,6 +49,11 @@ function MainContent() {
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
+            {hasMetrics && !hasCustomMetrics && (
+              <Button priority="primary" onClick={activateSidebar} size="sm">
+                {t('Add Custom Metric')}
+              </Button>
+            )}
             <GithubFeedbackButton
               href="https://github.com/getsentry/sentry/discussions/58584"
               label={t('Discussion')}
@@ -58,7 +73,23 @@ function MainContent() {
             </PageFilterBar>
             <ScratchpadSelector />
           </PaddedContainer>
-          <MetricScratchpad />
+          {isLoading ? (
+            <LoadingIndicator />
+          ) : hasMetrics ? (
+            <MetricScratchpad />
+          ) : (
+            <OnboardingPanel image={<img src={emptyStateImg} />}>
+              <h3>{t('Get started with custom metrics')}</h3>
+              <p>
+                {t(
+                  'See a video-like reproduction of your user sessions so you can see what happened before, during, and after an error or latency issue occurred.'
+                )}
+              </p>
+              <Button priority="primary" onClick={activateSidebar}>
+                {t('Add Custom Metric')}
+              </Button>
+            </OnboardingPanel>
+          )}
         </Layout.Main>
       </Layout.Body>
     </Fragment>
