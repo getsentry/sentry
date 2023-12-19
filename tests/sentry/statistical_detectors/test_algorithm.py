@@ -7,7 +7,7 @@ from sentry.statistical_detectors.algorithm import (
     MovingAverageRelativeChangeDetector,
     MovingAverageRelativeChangeDetectorConfig,
 )
-from sentry.statistical_detectors.detector import DetectorPayload, TrendType
+from sentry.statistical_detectors.base import DetectorPayload, TrendType
 from sentry.utils.math import ExponentialMovingAverage
 
 

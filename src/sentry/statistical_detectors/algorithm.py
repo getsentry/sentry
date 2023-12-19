@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import logging
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Callable, Mapping, MutableMapping, Optional, Tuple
 
-from sentry.statistical_detectors.detector import (
-    DetectorAlgorithm,
+from sentry.statistical_detectors.base import (
     DetectorConfig,
     DetectorPayload,
     DetectorState,
@@ -16,6 +16,27 @@ from sentry.utils import metrics
 from sentry.utils.math import MovingAverage
 
 logger = logging.getLogger("sentry.tasks.statistical_detectors.algorithm")
+
+
+class DetectorAlgorithm(ABC):
+    @abstractmethod
+    def __init__(
+        self,
+        source: str,
+        kind: str,
+        state: DetectorState,
+        config: DetectorConfig,
+    ):
+        ...
+
+    @abstractmethod
+    def update(self, payload: DetectorPayload) -> Tuple[Optional[TrendType], float]:
+        ...
+
+    @property
+    @abstractmethod
+    def state(self) -> DetectorState:
+        ...
 
 
 @dataclass(frozen=True)

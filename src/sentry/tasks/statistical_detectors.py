@@ -45,12 +45,14 @@ from sentry.statistical_detectors.algorithm import (
     MovingAverageRelativeChangeDetector,
     MovingAverageRelativeChangeDetectorConfig,
 )
-from sentry.statistical_detectors.detector import DetectorPayload, RegressionDetector
+from sentry.statistical_detectors.base import DetectorPayload
+from sentry.statistical_detectors.detector import RegressionDetector
 from sentry.statistical_detectors.issue_platform_adapter import (
     fingerprint_regression,
     send_regression_to_platform,
 )
-from sentry.statistical_detectors.redis import DetectorType, RedisDetectorStore
+from sentry.statistical_detectors.redis import RedisDetectorStore
+from sentry.statistical_detectors.store import DetectorStore
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
@@ -166,11 +168,14 @@ class EndpointRegressionDetector(RegressionDetector):
         long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
         threshold=0.2,
     )
-    store = RedisDetectorStore(detector_type=DetectorType.ENDPOINT)
     state_cls = MovingAverageDetectorState
     detector_cls = MovingAverageRelativeChangeDetector
     min_change = 200  # 200ms in ms
     resolution_rel_threshold = 0.1
+
+    @classmethod
+    def make_detector_store(cls) -> DetectorStore:
+        return RedisDetectorStore(regression_type=RegressionType.ENDPOINT)
 
     @classmethod
     def query_payloads(
@@ -200,11 +205,14 @@ class FunctionRegressionDetector(RegressionDetector):
         long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
         threshold=0.2,
     )
-    store = RedisDetectorStore(detector_type=DetectorType.FUNCTION)
     state_cls = MovingAverageDetectorState
     detector_cls = MovingAverageRelativeChangeDetector
     min_change = 100_000_000  # 100ms in ns
     resolution_rel_threshold = 0.1
+
+    @classmethod
+    def make_detector_store(cls) -> DetectorStore:
+        return RedisDetectorStore(regression_type=RegressionType.FUNCTION)
 
     @classmethod
     def query_payloads(

@@ -20,7 +20,8 @@ from sentry.seer.utils import BreakpointData
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.discover import zerofill
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
-from sentry.statistical_detectors.detector import DetectorPayload, TrendType, generate_fingerprint
+from sentry.statistical_detectors.base import DetectorPayload, TrendType
+from sentry.statistical_detectors.detector import generate_fingerprint
 from sentry.tasks.statistical_detectors import (
     EndpointRegressionDetector,
     FunctionRegressionDetector,
