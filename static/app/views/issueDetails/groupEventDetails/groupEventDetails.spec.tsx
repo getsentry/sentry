@@ -76,7 +76,6 @@ function TestComponent(
   );
 
   const mergedProps: GroupEventDetailsProps = {
-    api: new MockApiClient(),
     group,
     event,
     project,
@@ -263,8 +262,9 @@ const mockGroupApis = (
   });
 
   MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/sentry-app-components/?projectId=${project.id}`,
+    url: `/organizations/${organization.slug}/sentry-app-components/`,
     body: [],
+    match: [MockApiClient.matchQuery({projectId: project.id})],
   });
 
   MockApiClient.addMockResponse({
@@ -557,8 +557,9 @@ describe('Platform Integrations', () => {
     });
 
     componentsRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/sentry-app-components/?projectId=${props.project.id}`,
+      url: `/organizations/${props.organization.slug}/sentry-app-components/`,
       body: [component],
+      match: [MockApiClient.matchQuery({projectId: props.project.id})],
     });
 
     render(<TestComponent />, {organization: props.organization});
