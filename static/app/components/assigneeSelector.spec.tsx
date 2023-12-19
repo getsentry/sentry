@@ -64,18 +64,18 @@ describe('AssigneeSelector', () => {
 
     GROUP_1 = GroupFixture({
       id: '1337',
-      project: {
+      project: ProjectFixture({
         id: PROJECT_1.id,
         slug: PROJECT_1.slug,
-      },
+      }),
     });
 
     GROUP_2 = GroupFixture({
       id: '1338',
-      project: {
+      project: ProjectFixture({
         id: PROJECT_1.id,
         slug: PROJECT_1.slug,
-      },
+      }),
       owners: [
         {
           type: 'suspectCommit',
