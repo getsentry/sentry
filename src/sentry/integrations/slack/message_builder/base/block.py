@@ -71,6 +71,9 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
             button["action_id"] = action.value
             button["value"] = action.value
 
+        if action.action_id:
+            button["action_id"] = action.action_id
+
         if action.url:
             button["url"] = action.url
 
@@ -137,6 +140,7 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         fallback_text: Optional[str] = None,
         color: Optional[str] = None,
         block_id: Optional[dict[str, int]] = None,
+        callback_id: Optional[str] = None,
     ) -> SlackBlock:
         blocks: dict[str, Any] = {"blocks": list(args)}
 
@@ -149,6 +153,9 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         # put the block_id into the first block
         if block_id:
             blocks["blocks"][0]["block_id"] = block_id
+
+        if callback_id:
+            blocks["callback_id"] = callback_id
 
         return blocks
 
