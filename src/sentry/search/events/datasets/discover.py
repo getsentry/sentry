@@ -323,6 +323,16 @@ class DiscoverDatasetConfig(DatasetConfig):
                     redundant_grouping=True,
                 ),
                 SnQLFunction(
+                    "p90",
+                    optional_args=[
+                        with_default("transaction.duration", NumericColumn("column")),
+                    ],
+                    snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.90),
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
                     "p95",
                     optional_args=[
                         with_default("transaction.duration", NumericColumn("column")),
