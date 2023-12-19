@@ -60,6 +60,7 @@ from sentry.dynamic_sampling import LatestReleaseBias, LatestReleaseParams
 from sentry.eventstore.processing import event_processing_store
 from sentry.eventtypes import EventType
 from sentry.eventtypes.transaction import TransactionEvent
+from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import (
     BackgroundGroupingConfigLoader,
     GroupingConfig,
