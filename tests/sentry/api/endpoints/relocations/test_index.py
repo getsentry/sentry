@@ -117,6 +117,12 @@ class GetRelocationsTest(APITestCase):
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data) == 1
         assert response.data[0]["status"] == Relocation.Status.IN_PROGRESS.name
+        assert response.data[0]["creatorId"] == str(self.superuser.id)
+        assert response.data[0]["creatorEmail"] == str(self.superuser.email)
+        assert response.data[0]["creatorUsername"] == str(self.superuser.username)
+        assert response.data[0]["ownerId"] == str(self.owner.id)
+        assert response.data[0]["ownerEmail"] == str(self.owner.email)
+        assert response.data[0]["ownerUsername"] == str(self.owner.username)
 
     def test_good_status_pause(self):
         self.login_as(user=self.superuser, superuser=True)

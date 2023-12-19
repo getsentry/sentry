@@ -115,4 +115,5 @@ class RelocationUnpauseEndpoint(Endpoint):
                 )
 
             task.delay(str(relocation.uuid))
-            return self.respond(serialize(relocation))
+
+        return self.respond(serialize(relocation))
