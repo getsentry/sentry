@@ -29,6 +29,7 @@ from sentry.utils import metrics
 logger = logging.getLogger("sentry.release_threshold_status")
 
 if TYPE_CHECKING:
+    from sentry.models.deploy import Deploy
     from sentry.models.organization import Organization
     from sentry.models.project import Project
     from sentry.models.release_threshold.release_threshold import ReleaseThreshold
@@ -247,12 +248,12 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                             "end": datetime.now(tz=timezone.utc),
                         }
 
-                    latest_deploy = None
+                    latest_deploy: Deploy | None = None
                     if threshold.environment:
                         # NOTE: if a threshold has no environment set, we monitor from start of the release creation
                         # If a deploy does not exist for the thresholds environment, we monitor from start of release creation
                         # ReleaseProjectEnvironment model
-                        rpe_entry: ReleaseProjectEnvironment = next(
+                        rpe_entry: ReleaseProjectEnvironment | None = next(
                             (
                                 rpe
                                 for rpe in release.releaseprojectenvironment_set.all()
