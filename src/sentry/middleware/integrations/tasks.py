@@ -40,7 +40,7 @@ def convert_to_async_slack_response(
         )
         region_response = cast(Response, region_response)
         region_to_response_map[region.name] = region_response
-        if region_response.status_code > 200 and region_response.status_code < 300:
+        if region_response.status_code >= 200 and region_response.status_code < 300:
             result["response"] = region_response
             result["region"] = region
 
@@ -54,6 +54,8 @@ def convert_to_async_slack_response(
             },
         },
     )
+    if not result["response"]:
+        return
 
     try:
         payload = json.loads(result["response"].content.decode(encoding="utf-8"))
@@ -103,7 +105,7 @@ def convert_to_async_discord_response(
         )
         region_response = cast(Response, region_response)
         region_to_response_map[region.name] = region_response
-        if region_response.status_code > 200 and region_response.status_code < 300:
+        if region_response.status_code >= 200 and region_response.status_code < 300:
             result["response"] = region_response
             result["region"] = region
 
@@ -117,6 +119,8 @@ def convert_to_async_discord_response(
             },
         },
     )
+    if not result["response"]:
+        return
 
     try:
         # Region will return a response assuming it's meant to go directly to Discord. Since we're
