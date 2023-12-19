@@ -59,7 +59,7 @@ function MonitorIssues({orgSlug, monitor, monitorEnvs}: Props) {
           trailingItems={
             <ButtonBar gap={1}>
               <LinkButton
-                size="sm"
+                size="xs"
                 to={{
                   pathname: `/organizations/${orgSlug}/crons/${monitor.slug}/edit/`,
                   query: {
