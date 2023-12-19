@@ -11,18 +11,18 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.code_locations import CodeLocationsSerializer
 from sentry.api.utils import get_date_range_from_params
-from sentry.sentry_metrics.querying.metadata import get_code_locations
+from sentry.sentry_metrics.querying.metadata.code_locations import get_code_locations
 
 
 class MetaType(Enum):
     CODE_LOCATIONS = "codeLocations"
-    SPANS = "spans"
+    METRIC_SPANS = "metricSpans"
 
 
 META_TYPE_SERIALIZER = {
     MetaType.CODE_LOCATIONS.value: CodeLocationsSerializer(),
     # TODO: replace with new serializer for spans.
-    MetaType.SPANS.value: CodeLocationsSerializer(),
+    MetaType.METRIC_SPANS.value: CodeLocationsSerializer(),
 }
 
 
@@ -60,7 +60,7 @@ class OrganizationDDMMetaEndpoint(OrganizationEndpoint):
                     organization=organization,
                     projects=self.get_projects(request, organization),
                 )
-            elif meta_type == MetaType.SPANS:
+            elif meta_type == MetaType.METRIC_SPANS:
                 pass
 
             response[meta_type.value] = serialize(
