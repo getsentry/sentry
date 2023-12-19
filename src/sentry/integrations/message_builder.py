@@ -65,7 +65,10 @@ def build_attachment_title(obj: Group | GroupEvent) -> str:
     title = obj.title
 
     if ev_type == "error" and "type" in ev_metadata:
-        title = ev_metadata["type"]
+        if "title" in ev_metadata:
+            title = ev_metadata["title"]
+        else:
+            title = ev_metadata["type"]
 
     elif ev_type == "csp":
         title = f'{ev_metadata["directive"]} - {ev_metadata["uri"]}'
