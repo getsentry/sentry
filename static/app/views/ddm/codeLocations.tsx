@@ -106,6 +106,7 @@ function CodeLocation({codeLocation, isFirst, isLast}: CodeLocationProps) {
                 size="zero"
                 iconSize="xs"
                 borderless
+                onClick={(event: React.MouseEvent) => event.stopPropagation()}
               />
               <ToggleCodeLocationContextButton
                 disabled={!hasContext}
