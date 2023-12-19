@@ -280,15 +280,6 @@ def get_stored_crashreports(cache_key: Optional[str], event: Event, max_crashrep
     return query[:max_crashreports].count()
 
 
-class HashDiscarded(Exception):
-    def __init__(
-        self, message: str = "", reason: Optional[str] = None, tombstone_id: Optional[int] = None
-    ):
-        super().__init__(message)
-        self.reason = reason
-        self.tombstone_id = tombstone_id
-
-
 class ScoreClause(Func):
     def __init__(self, group=None, last_seen=None, times_seen=None, *args, **kwargs):
         self.group = group
