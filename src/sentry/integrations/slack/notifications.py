@@ -85,11 +85,15 @@ def _notify_recipient(
             if attachment_blocks:
                 for attachment in attachment_blocks:
                     blocks.append(attachment)
+            if (
+                not text
+            ):  # if there isn't a notification title, try using message description as fallback
+                text = notification.get_message_description(recipient, ExternalProviders.SLACK)
             payload = {
                 "channel": channel,
                 "unfurl_links": False,
                 "unfurl_media": False,
-                "text": text,
+                "text": text if text else "",
                 "blocks": json.dumps(blocks),
             }
             if local_attachments.get("callback_id"):

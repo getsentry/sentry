@@ -8,7 +8,7 @@ from sentry.notifications.notifications.integration_nudge import (
 )
 from sentry.testutils.cases import SlackActivityNotificationTest
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.slack import get_attachment_no_text, get_blocks_no_text
+from sentry.testutils.helpers.slack import get_attachment_no_text, get_blocks_and_fallback_text
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
@@ -53,8 +53,9 @@ class SlackNudgeNotificationTest(SlackActivityNotificationTest):
         with self.tasks():
             notification.send()
 
-        blocks = get_blocks_no_text()
-        assert blocks[0]["text"]["text"] == MESSAGE_LIBRARY[SEED].format(provider="Slack")
+        blocks, fallback_text = get_blocks_and_fallback_text()
+        assert fallback_text == MESSAGE_LIBRARY[SEED].format(provider="Slack")
+        assert blocks[0]["text"]["text"] == fallback_text
         assert len(blocks[1]["elements"]) == 1
         assert blocks[1]["elements"][0]["action_id"] == "enable_notifications"
         assert blocks[1]["elements"][0]["text"]["text"] == "Turn on personal notifications"
