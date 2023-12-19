@@ -16,10 +16,11 @@ from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist
 from sentry.constants import ObjectStatus
+from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
-from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn
+from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorEnvironment
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
 
@@ -57,6 +58,7 @@ class MonitorEndpoint(Endpoint):
         request: Request,
         organization_slug: str,
         monitor_slug: str,
+        environment_name: str | None = None,
         checkin_id: str | None = None,
         *args,
         **kwargs,
@@ -73,6 +75,16 @@ class MonitorEndpoint(Endpoint):
 
         project = Project.objects.get_from_cache(id=monitor.project_id)
         if project.status != ObjectStatus.ACTIVE:
+            raise ResourceDoesNotExist
+
+        try:
+            environment = Environment.objects.get_from_cache(name=environment_name)
+            monitor_environment = MonitorEnvironment.objects.get(
+                monitor_id=monitor.id, environment_id=environment.id
+            )
+            kwargs["environment"] = environment
+            kwargs["monitor_environment"] = monitor_environment
+        except (Environment.DoesNotExist, MonitorEnvironment.DoesNotExist):
             raise ResourceDoesNotExist
 
         self.check_object_permissions(request, project)
