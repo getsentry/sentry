@@ -512,7 +512,7 @@ def delay_kafka_rebalance(consumer_name: str) -> None:
 
     get the seconds delay to sleep from an option.
 
-    and then continue to sleep until you get to the exact second when you want to start/stop the app.
+    and then continue to sleep for 0.5 seconds until you get to the exact second when you want to start/stop the app.
     """
 
 
