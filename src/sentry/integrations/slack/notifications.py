@@ -77,9 +77,11 @@ def _notify_recipient(
             # TODO: enable billing attachments for block kit
             blocks = []
             if text:
-                # equivalent of "text" field in legacy attachment system ("text" field does not
-                # show up in notification for block system but is instead used as the fallback text)
-                # ie. "Issue marked as regression", "New comment by <user>"
+                # NOTE(isabella): with legacy attachments, the notification title was
+                # automatically rendered based on the `text` field in the payload; in the block
+                # system, that payload field is used strictly as preview/fallback text, so we need
+                # to add this block to render the title in the notification ie. "Issue marked as
+                # regression", "New comment by <user>"
                 blocks.append(BlockSlackMessageBuilder.get_markdown_block(text))
             attachment_blocks = local_attachments.get("blocks")
             if attachment_blocks:
