@@ -246,6 +246,12 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
           }
         ),
       },
+      {
+        name: 'enable-images',
+        type: 'boolean',
+        label: t('Images'),
+        help: t('Enables images from real data to be displayed'),
+      },
     ];
     return fields;
   }

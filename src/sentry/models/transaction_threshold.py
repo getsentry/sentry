@@ -88,6 +88,7 @@ class ProjectTransactionThreshold(DefaultFieldsModel):
     project = FlexibleForeignKey("sentry.Project", unique=True, db_constraint=False)
     organization = FlexibleForeignKey("sentry.Organization")
     threshold = models.IntegerField()
+    enable_images = models.BooleanField(default=False)
     metric = models.PositiveSmallIntegerField(default=TransactionMetric.DURATION.value)
     edited_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
 
