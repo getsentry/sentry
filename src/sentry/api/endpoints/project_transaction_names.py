@@ -19,7 +19,7 @@ from sentry.ingest.transaction_clusterer.tree import TreeClusterer
 class ProjectTransactionNamesCluster(ProjectEndpoint):
     owner = ApiOwner.OWNERS_INGEST
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, project) -> Response:
