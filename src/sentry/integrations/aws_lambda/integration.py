@@ -4,7 +4,6 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
-import sentry_sdk
 from botocore.exceptions import ClientError
 from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
@@ -28,7 +27,6 @@ from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, or
 from sentry.services.hybrid_cloud.project import project_service
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.services.hybrid_cloud.util import control_silo_function
-from sentry.silo import SiloMode
 from sentry.utils.sdk import capture_exception
 
 from .client import ConfigurationError, gen_aws_client
@@ -326,9 +324,7 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
             # now validate the arn works
             try:
                 gen_aws_client(account_number, region, aws_external_id)
-            except ClientError as e:
-                if SiloMode.get_current_mode() != SiloMode.MONOLITH:
-                    sentry_sdk.capture_exception(e)
+            except ClientError:
                 return render_response(
                     _("Please validate the Cloudformation stack was created successfully")
                 )
@@ -336,8 +332,6 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
                 # if we have a configuration error, we should blow up the pipeline
                 raise
             except Exception as e:
-                if SiloMode.get_current_mode() != SiloMode.MONOLITH:
-                    sentry_sdk.capture_exception(e)
                 logger.exception(
                     "AwsLambdaCloudFormationPipelineView.unexpected_error",
                     extra={"error": str(e)},
