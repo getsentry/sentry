@@ -115,6 +115,7 @@ def process_profile_task(
         prepare_android_js_profile(profile)
         if not _symbolicate_profile(profile["js_profile"], project):
             return
+        clean_android_js_profile(profile)
 
     if not _normalize_profile(profile, organization, project):
         return
@@ -965,3 +966,13 @@ def prepare_android_js_profile(profile: Profile):
     p["event_id"] = profile["event_id"]
     p["release"] = profile["release"]
     p["dist"] = profile["dist"]
+
+
+def clean_android_js_profile(profile: Profile):
+    p = profile["js_profile"]
+    del p["platform"]
+    del p["debug_meta"]
+    del p["version"]
+    del p["event_id"]
+    del p["release"]
+    del p["dist"]
