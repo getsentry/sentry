@@ -12,6 +12,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.code_locations import CodeLocationsSerializer
 from sentry.api.utils import get_date_range_from_params
 from sentry.sentry_metrics.querying.metadata.code_locations import get_code_locations
+from sentry.sentry_metrics.querying.metadata.metric_spans import get_metric_spans
 
 
 class MetaType(Enum):
@@ -49,19 +50,34 @@ class OrganizationDDMMetaEndpoint(OrganizationEndpoint):
         start, end = get_date_range_from_params(request.GET)
 
         response = {}
+
+        metric_mris = request.GET.getlist("metric", [])
+        projects = self.get_projects(request, organization)
+
         for meta_type in self._extract_meta_types(request):
             response_data: Any = {}
 
             if meta_type == MetaType.CODE_LOCATIONS:
                 response_data = get_code_locations(
-                    metric_mris=request.GET.getlist("metric", []),
+                    metric_mris=metric_mris,
                     start=start,
                     end=end,
                     organization=organization,
-                    projects=self.get_projects(request, organization),
+                    projects=projects,
                 )
             elif meta_type == MetaType.METRIC_SPANS:
-                pass
+                min_value = request.GET.get("min")
+                max_value = request.GET.get("max")
+
+                response_data = get_metric_spans(
+                    metric_mris=metric_mris,
+                    start=start,
+                    end=end,
+                    min_value=float(min_value) if min_value else None,
+                    max_value=float(max_value) if max_value else None,
+                    organization=organization,
+                    projects=projects,
+                )
 
             response[meta_type.value] = serialize(
                 response_data, request.user, META_TYPE_SERIALIZER[meta_type.value]

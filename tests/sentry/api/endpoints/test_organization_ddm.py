@@ -4,22 +4,23 @@ from unittest.mock import patch
 
 import pytest
 from django.utils import timezone
+import requests
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.metadata import get_cache_key_for_code_location
+from sentry.sentry_metrics.querying.metadata.code_locations import get_cache_key_for_code_location
 from sentry.sentry_metrics.querying.utils import get_redis_client_for_metrics_meta
-from sentry.testutils.cases import MetricsAPIBaseTestCase
-from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time, before_now
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
-
+from django.conf import settings
 pytestmark = pytest.mark.sentry_metrics
 
 
 @region_silo_test
 @freeze_time("2023-11-21T10:30:30.000Z")
-class OrganizationDDMMetaEndpointTest(MetricsAPIBaseTestCase):
+class OrganizationDDMEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-ddm-meta"
 
     def setUp(self):
@@ -143,6 +144,7 @@ class OrganizationDDMMetaEndpointTest(MetricsAPIBaseTestCase):
             # We use an interval of 1 day but shifted by 1 day in the past.
             start=(self.current_time - timedelta(days=2)).isoformat(),
             end=(self.current_time - timedelta(days=1)).isoformat(),
+            codeLocations="true",
         )
         code_locations = response.data["codeLocations"]
 
@@ -172,13 +174,14 @@ class OrganizationDDMMetaEndpointTest(MetricsAPIBaseTestCase):
             # We use an interval outside which we have no data.
             start=(self.current_time - timedelta(days=3)).isoformat(),
             end=(self.current_time - timedelta(days=2)).isoformat(),
+            codeLocations="true",
         )
         codeLocations = response.data["codeLocations"]
 
         assert len(codeLocations) == 0
 
-    @patch("sentry.sentry_metrics.querying.metadata.CodeLocationsFetcher._get_code_locations")
-    @patch("sentry.sentry_metrics.querying.metadata.CodeLocationsFetcher.BATCH_SIZE", 10)
+    @patch("sentry.sentry_metrics.querying.metadata.code_locations.CodeLocationsFetcher._get_code_locations")
+    @patch("sentry.sentry_metrics.querying.metadata.code_locations.CodeLocationsFetcher.BATCH_SIZE", 10)
     def test_get_locations_batching(self, get_code_locations_mock):
         get_code_locations_mock.return_value = []
 
@@ -190,6 +193,7 @@ class OrganizationDDMMetaEndpointTest(MetricsAPIBaseTestCase):
             metric=mris,
             project=[project.id for project in projects],
             statsPeriod="90d",
+            codeLocations="true",
         )
 
         # With a window of 90 days, it means that we are actually requesting 91 days, thus we have 10 batches of 10
@@ -213,6 +217,7 @@ class OrganizationDDMMetaEndpointTest(MetricsAPIBaseTestCase):
             metric=[mri],
             project=[project.id],
             statsPeriod="1d",
+            codeLocations="true",
         )
         code_locations = response.data["codeLocations"]
 
@@ -247,6 +252,7 @@ class OrganizationDDMMetaEndpointTest(MetricsAPIBaseTestCase):
             project=[project.id],
             statsPeriod="1d",
             status_code=500,
+            codeLocations="true",
         )
 
     def test_get_pre_post_context(self):
@@ -266,6 +272,7 @@ class OrganizationDDMMetaEndpointTest(MetricsAPIBaseTestCase):
             metric=[mri],
             project=[project.id],
             statsPeriod="1d",
+            codeLocations="true",
         )
 
         code_locations = response.data["codeLocations"]
@@ -291,6 +298,7 @@ class OrganizationDDMMetaEndpointTest(MetricsAPIBaseTestCase):
             metric=[mri],
             project=[project.id],
             statsPeriod="1d",
+            codeLocations="true",
         )
 
         code_locations = response.data["codeLocations"]
@@ -299,7 +307,7 @@ class OrganizationDDMMetaEndpointTest(MetricsAPIBaseTestCase):
         assert frame["preContext"] == []
         assert frame["postContext"] == []
 
-    @patch("sentry.sentry_metrics.querying.metadata.CodeLocationsFetcher.MAXIMUM_KEYS", 50)
+    @patch("sentry.sentry_metrics.querying.metadata.code_locations.CodeLocationsFetcher.MAXIMUM_KEYS", 50)
     def test_get_locations_with_too_many_combinations(self):
         project = self.create_project(name="project_1")
         mri = "d:custom/sentry.process_profile.track_outcome@second"
@@ -310,4 +318,44 @@ class OrganizationDDMMetaEndpointTest(MetricsAPIBaseTestCase):
             project=[project.id],
             statsPeriod="90d",
             status_code=500,
+            codeLocations="true",
         )
+
+    def store_metric_summary(
+        self,
+        project_id,
+        span_id,
+        trace_id,
+        metric_mri,
+        min,
+        max,
+        sum,
+        count,
+        timestamp,
+        tags,
+    ):
+        if timestamp is None:
+            timestamp = before_now(minutes=10)
+
+        functions_payload = {
+            "project_id": project_id,
+            "span_id": span_id,
+            "trace_id": trace_id,
+            "metric_mri": metric_mri,
+            "min": min,
+            "max": max,
+            "sum": sum,
+            "count": count,
+            "end_timestamp": timestamp,
+            "tags": tags,
+            "retention_days": 90,
+            "deleted": 0,
+        }
+
+        response = requests.post(
+            settings.SENTRY_SNUBA + "/tests/entities/metrics_summaries/insert", json=[functions_payload]
+        )
+        assert response.status_code == 200
+
+    def test_get_metric_spans(self):
+        pass
