@@ -108,7 +108,91 @@ class BaseEventTest(APITestCase):
             "is_enterprise_install": False,
         }
 
-        if type == "block_actions":
+        if type == "view_submission":
+            view = {
+                "id": "V069MCJ1Y4X",
+                "team_id": team_id,
+                "type": "modal",
+                "blocks": [
+                    {
+                        "type": "section",
+                        "block_id": "a6HD+",
+                        "text": {"type": "mrkdwn", "text": "Resolve in", "verbatim": False},
+                        "accessory": {
+                            "type": "static_select",
+                            "action_id": "static_select-action",
+                            "initial_option": {
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "Immediately",
+                                    "emoji": True,
+                                },
+                                "value": "resolved",
+                            },
+                            "options": [
+                                {
+                                    "text": {
+                                        "type": "plain_text",
+                                        "text": "Immediately",
+                                        "emoji": True,
+                                    },
+                                    "value": "resolved",
+                                },
+                                {
+                                    "text": {
+                                        "type": "plain_text",
+                                        "text": "In the next release",
+                                        "emoji": True,
+                                    },
+                                    "value": "resolved:inNextRelease",
+                                },
+                                {
+                                    "text": {
+                                        "type": "plain_text",
+                                        "text": "In the current release",
+                                        "emoji": True,
+                                    },
+                                    "value": "resolved:inCurrentRelease",
+                                },
+                            ],
+                        },
+                    }
+                ],
+                "private_metadata": private_metadata,
+                "state": {
+                    "values": {
+                        "a6HD+": {
+                            "static_select-action": {
+                                "type": "static_select",
+                                "selected_option": {
+                                    "text": {
+                                        "type": "plain_text",
+                                        "text": "Immediately",
+                                        "emoji": True,
+                                    },
+                                    "value": selected_option,
+                                },
+                            }
+                        }
+                    }
+                },
+                "hash": "1702502121.CZNlXHKw",
+                "title": {"type": "plain_text", "text": "Resolve Issue", "emoji": True},
+                "clear_on_close": False,
+                "notify_on_close": False,
+                "close": {"type": "plain_text", "text": "Cancel", "emoji": True},
+                "submit": {"type": "plain_text", "text": "Resolve", "emoji": True},
+                "previous_view_id": None,
+                "root_view_id": "V069MCJ1Y4X",
+                "app_id": "A058NGW5NDP",
+                "external_id": "",
+                "app_installed_team_id": "TA17GH2QL",
+                "bot_id": "B058CDV2LKW",
+            }
+            payload["response_urls"] = []
+            payload["view"] = view
+
+        elif type == "block_actions":
             payload["container"] = {
                 "type": "message",
                 "message_ts": "1702424381.221719",
