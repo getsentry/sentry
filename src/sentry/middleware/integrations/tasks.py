@@ -81,6 +81,13 @@ def convert_to_async_discord_response(
     payload: Dict[str, Any],
     response_url: str,
 ):
+    """
+    This task asks relevant region silos for response data to send asynchronously to Discord. It
+    assumes Discord has received a callback of type:5 (DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE).
+    (See https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-interaction-callback-type)
+
+    In the event this task finishes prior to returning the above type, the outbound post will fail.
+    """
     webhook_payload = ControlOutbox.get_webhook_payload_from_outbox(payload=payload)
     regions = [get_region_by_name(rn) for rn in region_names]
     region_to_response_map: MutableMapping[str, Response] = {}
@@ -112,9 +119,10 @@ def convert_to_async_discord_response(
     )
 
     try:
-        # Region will return a response assuming it's meant to go directly to Discord. Since it
-        # we're handling the request asynchronously, we extract only the data, and post it to
-        # the webhook endpoint.
+        # Region will return a response assuming it's meant to go directly to Discord. Since we're
+        # handling the request asynchronously, we extract only the data, and post it to the webhook
+        # that discord provides.
+        # https://discord.com/developers/docs/interactions/receiving-and-responding#followup-messages
         payload = json.loads(result["response"].content.decode(encoding="utf-8")).get("data")
         integration_response = requests.post(response_url, json=payload)
         logger.info(
