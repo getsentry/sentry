@@ -177,6 +177,10 @@ describe('Performance > Web Vitals', function () {
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replay-count/',
+      body: {},
+    });
   });
 
   afterEach(() => {

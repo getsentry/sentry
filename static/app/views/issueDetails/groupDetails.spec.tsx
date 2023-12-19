@@ -144,6 +144,10 @@ describe('groupDetails', () => {
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/tags/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replay-count/',
+      body: {},
+    });
   });
 
   afterEach(() => {
