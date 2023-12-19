@@ -11,6 +11,7 @@ from typing import Optional
 
 import click
 
+from sentry import options as sentry_options
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.ingest.types import ConsumerType
 from sentry.runner.decorators import configuration, log_options
@@ -507,7 +508,7 @@ def occurrences_ingest_consumer(**options):
         run_processor_with_signals(consumer)
 
 
-def delay_kafka_rebalance(consumer_name: str) -> None:
+def delay_kafka_rebalance(configured_delay: int) -> None:
     """
     get current time.
     get the seconds part of the current time.
@@ -516,7 +517,6 @@ def delay_kafka_rebalance(consumer_name: str) -> None:
 
     and then continue to sleep for 0.5 seconds until you get to the exact second when you want to start/stop the app.
     """
-    configured_delay = 15
     now = float(datetime.now().strftime("%S.%f"))
 
     next_tick, remainder = divmod(now, configured_delay)
@@ -622,10 +622,11 @@ def basic_consumer(consumer_name, consumer_args, topic, **options):
     add_global_tags(kafka_topic=topic, consumer_group=options["group_id"])
     initialize_arroyo_main()
 
-    if consumer_name == "ingest-generic-metrics":
-        # check if option is enabled
-        # if yes, call delay_kafka_rebalance
-        pass
+    if consumer_name == "ingest-generic-metrics" and sentry_options.get(
+        "sentry-metrics.synchronize-kafka-rebalances"
+    ):
+        configured_delay = sentry_options.get("sentry-metrics.synchronized-rebalance-delay")
+        delay_kafka_rebalance(configured_delay)
 
     processor = get_stream_processor(consumer_name, consumer_args, topic=topic, **options)
     run_processor_with_signals(processor)
