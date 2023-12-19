@@ -58,7 +58,7 @@ class MonitorEndpoint(Endpoint):
         request: Request,
         organization_slug: str,
         monitor_slug: str,
-        environment_name: str | None = None,
+        environment: str | None = None,
         checkin_id: str | None = None,
         *args,
         **kwargs,
@@ -78,11 +78,11 @@ class MonitorEndpoint(Endpoint):
             raise ResourceDoesNotExist
 
         try:
-            environment = Environment.objects.get_from_cache(name=environment_name)
+            environment_object = Environment.objects.get_from_cache(name=environment)
             monitor_environment = MonitorEnvironment.objects.get(
-                monitor_id=monitor.id, environment_id=environment.id
+                monitor_id=monitor.id, environment_id=environment_object.id
             )
-            kwargs["environment"] = environment
+            kwargs["environment"] = environment_object
             kwargs["monitor_environment"] = monitor_environment
         except (Environment.DoesNotExist, MonitorEnvironment.DoesNotExist):
             raise ResourceDoesNotExist
