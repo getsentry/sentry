@@ -1,3 +1,4 @@
+import logging
 from string import Template
 
 from django.db import DatabaseError, router, transaction
@@ -25,6 +26,8 @@ ERR_COULD_NOT_UNPAUSE_RELOCATION = (
     "Could not unpause relocation, perhaps because it is no longer in-progress."
 )
 
+logger = logging.getLogger(__name__)
+
 
 @region_silo_endpoint
 class RelocationUnpauseEndpoint(Endpoint):
@@ -51,6 +54,8 @@ class RelocationUnpauseEndpoint(Endpoint):
 
         :auth: required
         """
+
+        logger.info("relocations.unpause.put.start", extra={"caller": request.user.id})
 
         # Use a `select_for_update` transaction to prevent duplicate tasks from being started by
         # racing unpause calls.

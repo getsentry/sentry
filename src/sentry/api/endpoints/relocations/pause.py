@@ -1,3 +1,4 @@
+import logging
 from string import Template
 
 from django.db import DatabaseError
@@ -25,6 +26,8 @@ ERR_COULD_NOT_PAUSE_RELOCATION = (
     "Could not pause relocation, perhaps because it is no longer in-progress."
 )
 
+logger = logging.getLogger(__name__)
+
 
 @region_silo_endpoint
 class RelocationPauseEndpoint(Endpoint):
@@ -51,6 +54,8 @@ class RelocationPauseEndpoint(Endpoint):
 
         :auth: required
         """
+
+        logger.info("relocations.pause.put.start", extra={"caller": request.user.id})
 
         try:
             relocation: Relocation = Relocation.objects.get(uuid=relocation_uuid)

@@ -1,3 +1,4 @@
+import logging
 from string import Template
 
 from django.db import DatabaseError
@@ -24,6 +25,8 @@ ERR_COULD_NOT_CANCEL_RELOCATION_AT_STEP = Template(
     """Could not cancel relocation at step `$step`; this is likely because this step has already
     started."""
 )
+
+logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
@@ -53,6 +56,8 @@ class RelocationCancelEndpoint(Endpoint):
 
         :auth: required
         """
+
+        logger.info("relocations.cancel.put.start", extra={"caller": request.user.id})
 
         try:
             relocation: Relocation = Relocation.objects.get(uuid=relocation_uuid)
