@@ -1385,7 +1385,7 @@ def detect_new_escalation(job: PostProcessJob):
     lock = locks.get(f"detect_escalation:{group.id}", duration=10, name="detect_escalation")
     extra = {
         "org_id": group.organization.id,
-        "project_Id": job["event"].project.id,
+        "project_id": job["event"].project.id,
         "group_id": group.id,
     }
     try:
