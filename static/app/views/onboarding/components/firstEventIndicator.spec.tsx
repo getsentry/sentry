@@ -31,7 +31,7 @@ describe('FirstEventIndicator', function () {
           organization={organization}
           project={project}
           eventType="error"
-          firstIssue={GroupFixture({id: 1})}
+          firstIssue={GroupFixture({id: '1'})}
         />
       );
 

@@ -51,7 +51,7 @@ describe('IssueList -> Polling', function () {
   });
 
   const group = GroupFixture({project});
-  const group2 = GroupFixture({project, id: 2});
+  const group2 = GroupFixture({project, id: '2'});
 
   const defaultProps = {
     location: LocationFixture({
