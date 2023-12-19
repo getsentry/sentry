@@ -60,7 +60,6 @@ function MonitorIssues({orgSlug, monitor, monitorEnvs}: Props) {
             <ButtonBar gap={1}>
               <LinkButton
                 size="sm"
-                priority="primary"
                 to={{
                   pathname: `/organizations/${orgSlug}/crons/${monitor.slug}/edit/`,
                   query: {
