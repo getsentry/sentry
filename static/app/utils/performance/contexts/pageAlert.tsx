@@ -4,7 +4,7 @@ import {Theme} from '@emotion/react';
 import {Alert} from 'sentry/components/alert';
 
 export type PageAlertOptions = {
-  message: string | undefined;
+  message: React.ReactNode | undefined;
   type: keyof Theme['alert'];
 };
 
