@@ -523,7 +523,7 @@ def delay_kafka_rebalance(configured_delay: int) -> None:
     if remainder > 0:
         next_tick += 1
 
-    seconds_sleep = (15 * next_tick) - now
+    seconds_sleep = (configured_delay * next_tick) - now
     while seconds_sleep >= 0.5:
         time.sleep(0.5)
         seconds_sleep -= 0.5
