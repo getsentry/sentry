@@ -49,7 +49,7 @@ export async function updateMonitor(
   orgId: string,
   monitorSlug: string,
   data: Partial<Monitor>
-) {
+): Promise<Monitor | null> {
   addLoadingMessage();
 
   try {
