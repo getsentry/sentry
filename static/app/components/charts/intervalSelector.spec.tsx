@@ -13,7 +13,7 @@ describe('IntervalSelector', function () {
     name: 'test query',
     version: 2,
     fields: ['transaction', 'count()'],
-    projects: [project.id],
+    projects: [parseInt(project.id, 10)],
   });
   it('resets small interval', function () {
     let interval: string | undefined = '1s';

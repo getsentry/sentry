@@ -67,7 +67,7 @@ describe('getCustomFieldRenderer', function () {
           eventView: new EventView({
             ...baseEventViewOptions,
             fields: [{field: 'id'}],
-            project: [project.id],
+            project: [parseInt(project.id, 10)],
           }),
         }
       ) as React.ReactElement<any, any>,
@@ -84,7 +84,7 @@ describe('getCustomFieldRenderer', function () {
         id: undefined,
         interval: undefined,
         name: undefined,
-        project: [project.id],
+        project: [parseInt(project.id, 10)],
         query: '',
         sort: [],
         topEvents: undefined,
@@ -109,7 +109,7 @@ describe('getCustomFieldRenderer', function () {
           eventView: new EventView({
             ...baseEventViewOptions,
             fields: [{field: 'id'}],
-            project: [project.id],
+            project: [parseInt(project.id, 10)],
           }),
         }
       ) as React.ReactElement<any, any>,

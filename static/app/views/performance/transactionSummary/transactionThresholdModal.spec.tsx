@@ -49,7 +49,7 @@ describe('TransactionThresholdModal', function () {
     fields: ['count()'],
     orderby: '-count',
     query: '',
-    projects: [project.id],
+    projects: [parseInt(project.id, 10)],
     start: '2019-10-01T00:00:00',
     end: '2019-10-02T00:00:00',
     environment: [],

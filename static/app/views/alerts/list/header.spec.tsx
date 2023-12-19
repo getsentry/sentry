@@ -14,7 +14,7 @@ describe('AlertHeader', () => {
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(
       {
-        projects: [project.id],
+        projects: [parseInt(project.id, 10)],
         environments: [],
         datetime: {
           period: '7d',

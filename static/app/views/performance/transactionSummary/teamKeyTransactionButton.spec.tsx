@@ -31,7 +31,7 @@ describe('TeamKeyTransactionButton', function () {
     fields: [{field: 'count()'}],
     sorts: [{field: 'count', kind: 'desc'}],
     query: '',
-    project: [project.id],
+    project: [parseInt(project.id, 10)],
     start: '2019-10-01T00:00:00',
     end: '2019-10-02T00:00:00',
     statsPeriod: '14d',

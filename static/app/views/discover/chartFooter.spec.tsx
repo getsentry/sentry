@@ -21,7 +21,7 @@ describe('Discover > ChartFooter', function () {
     name: 'test query',
     version: 2,
     fields: ['transaction', 'count()'],
-    projects: [project.id],
+    projects: [parseInt(project.id, 10)],
   });
 
   afterEach(function () {});
