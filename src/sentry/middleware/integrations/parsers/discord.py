@@ -53,8 +53,9 @@ class DiscordRequestParser(BaseRequestParser):
         webhook_payload = ControlOutbox.get_webhook_payload_from_request(request=self.request)
         convert_to_async_discord_response.apply_async(
             kwargs={
-                "payload": dataclasses.asdict(webhook_payload),
                 "region_names": [r.name for r in regions],
+                "payload": dataclasses.asdict(webhook_payload),
+                "response_url": self.discord_request.response_url,
             }
         )
 
