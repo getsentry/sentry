@@ -34,7 +34,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
         )
         has_issue_severity_alerts = features.has("projects:first-event-severity-alerting", project)
         has_latest_adopted_release = features.has(
-            "organizations:latest-adopted-release-filter", project
+            "organizations:latest-adopted-release-filter", project.organization
         )
 
         # TODO: conditions need to be based on actions

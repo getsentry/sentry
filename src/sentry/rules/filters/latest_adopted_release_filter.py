@@ -40,9 +40,9 @@ class LatestAdoptedReleaseForm(forms.Form):
     def clean_environment(self):
         environment = self.cleaned_data.get("environment")
         if environment:
-            if not Environment.objects.filter(
-                name=environment, organization_id=self.project.organization_id
-            ).exists():
+            try:
+                Environment.get_for_organization_id(self.project.organization_id, environment)
+            except Environment.DoesNotExist:
                 raise forms.ValidationError(
                     "environment does not exist or is not associated with this organization"
                 )
@@ -60,22 +60,17 @@ class LatestAdoptedReleaseFilter(EventFilter):
         "environment": {"type": "string", "placeholder": "value"},
     }
 
-    def get_latest_release_for_env(self, event: GroupEvent, environment: str) -> Release | None:
-        cache_key = get_project_release_cache_key(event.project_id, environment)
+    def get_latest_release_for_env(
+        self, event: GroupEvent, environment: Environment
+    ) -> Release | None:
+        cache_key = get_project_release_cache_key(event.project_id, environment.id)
         latest_release = cache.get(cache_key)
         if latest_release is None:
             organization_id = event.organization.id
             try:
-                try:
-                    environment_instance = Environment.objects.get(
-                        name=environment, organization_id=self.project.organization_id
-                    )
-                except Environment.DoesNotExist:
-                    logging.info("Environment not found")
-                    return None
                 latest_release_versions = get_latest_release(
                     [event.project],
-                    [environment_instance],
+                    [environment],
                     organization_id,
                     adopted=True,
                 )
@@ -122,12 +117,19 @@ class LatestAdoptedReleaseFilter(EventFilter):
     def passes(self, event: GroupEvent, state: EventState) -> bool:
         release_age_type = self.get_option("oldest_or_newest")
         age_comparison = self.get_option("older_or_newer")
-        environment = self.get_option("environment")
+        environment_name = self.get_option("environment")
 
         if follows_semver_versioning_scheme(event.organization.id, event.project_id):
             order_type = LatestReleaseOrders.SEMVER
         else:
             order_type = LatestReleaseOrders.DATE
+
+        try:
+            environment = Environment.get_for_organization_id(
+                self.project.organization_id, environment_name
+            )
+        except Environment.DoesNotExist:
+            return False
 
         latest_project_release = self.get_latest_release_for_env(event, environment)
         if not latest_project_release:
@@ -187,8 +189,8 @@ def clear_get_first_last_release_for_group_cache(instance: GroupRelease, **kwarg
     )
 
 
-def get_project_release_cache_key(project_id: int, environment: str) -> str:
-    return f"project:{project_id}:env:{environment}:latest_release_adopted"
+def get_project_release_cache_key(project_id: int, environment_id: int) -> str:
+    return f"project:{project_id}:env:{environment_id}:latest_release_adopted"
 
 
 def clear_release_environment_project_cache(instance: ReleaseEnvironment, **kwargs: Any) -> None:
@@ -200,7 +202,7 @@ def clear_release_environment_project_cache(instance: ReleaseEnvironment, **kwar
 
     cache.delete_many(
         [
-            get_project_release_cache_key(proj_id, instance.environment.name)
+            get_project_release_cache_key(proj_id, instance.environment_id)
             for proj_id in release_project_ids
         ]
     )
