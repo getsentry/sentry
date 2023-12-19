@@ -4,6 +4,7 @@ import random
 from contextlib import contextmanager
 from typing import Collection, Sequence
 
+from sentry.silo import SiloMode
 from sentry.types.region import Region, RegionDirectory, get_global_directory
 
 
@@ -88,5 +89,9 @@ def in_local_region(region: Region):
     preferable to overriding the `SENTRY_REGION` setting value directly because the
     region mapping may already be cached.
     """
-    with get_test_env_directory().swap_state(local_region=region):
+    directory = get_test_env_directory()
+    if SiloMode.get_current_mode() == SiloMode.REGION:
+        with directory.swap_state(local_region=region):
+            yield
+    else:
         yield
