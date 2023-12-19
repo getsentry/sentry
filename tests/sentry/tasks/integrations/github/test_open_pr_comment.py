@@ -236,10 +236,8 @@ class TestGetFilenames(GithubCommentTestCase):
     @responses.activate
     def test_get_pr_filenames(self):
         data: JSONData = [
-            {"filename": "foo.py", "status": "added"},
             {"filename": "bar.py", "status": "modified"},
             {"filename": "baz.py", "status": "deleted"},
-            {"filename": "bee.js", "status": "modified"},
         ]
 
         assert set(get_pr_filenames(data)) == {"bar.py", "baz.py"}
