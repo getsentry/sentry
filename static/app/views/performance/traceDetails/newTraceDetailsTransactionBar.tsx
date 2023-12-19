@@ -8,10 +8,10 @@ import {Observer} from 'mobx-react';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Count from 'sentry/components/count';
 import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
+import {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import NewTraceDetailsSpanTree from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanTree';
 import * as ScrollbarManager from 'sentry/components/events/interfaces/spans/scrollbarManager';
 import * as SpanContext from 'sentry/components/events/interfaces/spans/spanContext';
-import {SpanDetailProps} from 'sentry/components/events/interfaces/spans/spanDetail';
 import {MeasurementMarker} from 'sentry/components/events/interfaces/spans/styles';
 import {
   getMeasurementBounds,

@@ -24,10 +24,7 @@ import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
 import {useTransactionProfileId} from 'sentry/components/profiling/transactionProfileIdProvider';
 import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
-import {
-  generateIssueEventTarget,
-  generateTraceTarget,
-} from 'sentry/components/quickTrace/utils';
+import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {ALL_ACCESS_PROJECTS, PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -87,7 +84,7 @@ type TransactionResult = {
   transaction: string;
 };
 
-type Props = {
+export type SpanDetailProps = {
   childTransactions: QuickTraceEvent[] | null;
   event: Readonly<EventTransaction>;
   isRoot: boolean;
@@ -99,7 +96,7 @@ type Props = {
   trace: Readonly<ParsedTraceType>;
 };
 
-function SpanDetail(props: Props) {
+function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   const [errorsOpened, setErrorsOpened] = useState(false);
   const location = useLocation();
   const profileId = useTransactionProfileId();
@@ -238,20 +235,6 @@ function SpanDetail(props: Props) {
       <Row title="Child Transaction" extra={viewChildButton}>
         {`${transactionResult.transaction} (${transactionResult['project.name']})`}
       </Row>
-    );
-  }
-
-  function renderTraceButton() {
-    const {span, organization, event} = props;
-
-    if (isGapSpan(span)) {
-      return null;
-    }
-
-    return (
-      <StyledButton size="xs" to={generateTraceTarget(event, organization)}>
-        {t('View Trace')}
-      </StyledButton>
     );
   }
 
@@ -466,11 +449,6 @@ function SpanDetail(props: Props) {
                   }`}
                 />
               </Row>
-              <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
-              {renderSpanChild()}
-              <Row title="Trace ID" extra={renderTraceButton()}>
-                {span.trace_id}
-              </Row>
               {profileId && project?.slug && (
                 <Row
                   title="Profile ID"
@@ -493,7 +471,8 @@ function SpanDetail(props: Props) {
                 {span?.description ?? ''}
               </Row>
               <Row title="Status">{span.status || ''}</Row>
-              <Row title="Start Date">
+              <Row title="Duration">{durationString}</Row>
+              <Row title="Date Range">
                 {getDynamicText({
                   fixed: 'Mar 16, 2020 9:10:12 AM UTC',
                   value: (
@@ -503,8 +482,7 @@ function SpanDetail(props: Props) {
                     </Fragment>
                   ),
                 })}
-              </Row>
-              <Row title="End Date">
+                <br />
                 {getDynamicText({
                   fixed: 'Mar 16, 2020 9:10:13 AM UTC',
                   value: (
@@ -515,11 +493,11 @@ function SpanDetail(props: Props) {
                   ),
                 })}
               </Row>
-              <Row title="Duration">{durationString}</Row>
-              <Row title="Operation">{span.op || ''}</Row>
               <Row title="Origin">
                 {span.origin !== undefined ? String(span.origin) : null}
               </Row>
+              <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
+              {renderSpanChild()}
               <Row title="Same Process as Parent">
                 {span.same_process_as_parent !== undefined
                   ? String(span.same_process_as_parent)
@@ -764,4 +742,4 @@ const ButtonContainer = styled('div')`
   padding: 8px 10px;
 `;
 
-export default SpanDetail;
+export default NewTraceDetailsSpanDetail;

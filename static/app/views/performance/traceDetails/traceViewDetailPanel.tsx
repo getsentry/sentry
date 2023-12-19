@@ -20,11 +20,11 @@ import {EventExtraData} from 'sentry/components/events/eventExtraData';
 import {EventSdk} from 'sentry/components/events/eventSdk';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {Breadcrumbs} from 'sentry/components/events/interfaces/breadcrumbs';
-import SpanDetail, {
+import NewTraceDetailsSpanDetail, {
   SpanDetailContainer,
   SpanDetailProps,
   SpanDetails,
-} from 'sentry/components/events/interfaces/spans/spanDetail';
+} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import {
   getFormattedTimeRangeWithLeadingAndTrailingZero,
   getSpanOperation,
@@ -488,7 +488,7 @@ function SpanDetailsBody({
                   transactionId={detail.event.id}
                   timestamp={detail.event.dateReceived}
                 >
-                  <SpanDetail {...detail} />
+                  <NewTraceDetailsSpanDetail {...detail} />
                 </TransactionProfileIdProvider>
               </ProfileGroupProvider>
             )}

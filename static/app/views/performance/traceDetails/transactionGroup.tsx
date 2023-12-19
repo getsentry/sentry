@@ -1,11 +1,11 @@
 import {Component, Fragment} from 'react';
 import {Location} from 'history';
 
+import {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import {
   ScrollbarManagerChildrenProps,
   withScrollbarManager,
 } from 'sentry/components/events/interfaces/spans/scrollbarManager';
-import {SpanDetailProps} from 'sentry/components/events/interfaces/spans/spanDetail';
 import {
   SpanBoundsType,
   SpanGeneratedBoundsType,

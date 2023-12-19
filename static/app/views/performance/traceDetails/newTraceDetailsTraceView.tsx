@@ -6,8 +6,8 @@ import * as Sentry from '@sentry/react';
 import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
 import MeasurementsPanel from 'sentry/components/events/interfaces/spans/measurementsPanel';
 import TraceViewHeader from 'sentry/components/events/interfaces/spans/newTraceDetailsHeader';
+import {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import * as ScrollbarManager from 'sentry/components/events/interfaces/spans/scrollbarManager';
-import {SpanDetailProps} from 'sentry/components/events/interfaces/spans/spanDetail';
 import {
   boundsGenerator,
   getMeasurements,
