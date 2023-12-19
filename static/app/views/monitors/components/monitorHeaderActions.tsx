@@ -47,22 +47,21 @@ function MonitorHeaderActions({monitor, orgId, onUpdate}: Props) {
     onUpdate?.(resp);
   };
 
-  const toggleMute = () => handleUpdate({isMuted: !monitor.isMuted});
-
-  const toggleStatus = () =>
-    handleUpdate({status: monitor.status === 'active' ? 'disabled' : 'active'});
-
   return (
     <ButtonBar gap={1}>
       <FeedbackWidgetButton />
       <Button
         size="sm"
         icon={monitor.isMuted ? <IconSubscribed /> : <IconUnsubscribed />}
-        onClick={toggleMute}
+        onClick={() => handleUpdate({isMuted: !monitor.isMuted})}
       >
         {monitor.isMuted ? t('Unmute') : t('Mute')}
       </Button>
-      <StatusToggleButton size="sm" onClick={toggleStatus} monitor={monitor} />
+      <StatusToggleButton
+        size="sm"
+        monitor={monitor}
+        onToggleStatus={status => handleUpdate({status})}
+      />
       <Confirm
         onConfirm={handleDelete}
         message={t('Are you sure you want to permanently delete this cron monitor?')}
