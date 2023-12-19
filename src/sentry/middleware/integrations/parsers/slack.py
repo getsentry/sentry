@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import dataclasses
 import logging
-from typing import List
+from typing import Sequence
 
-from django.http import HttpResponse
+from django.http.response import HttpResponse, HttpResponseBase
 from rest_framework import status
 from rest_framework.request import Request
 
@@ -70,7 +70,7 @@ class SlackRequestParser(BaseRequestParser):
     See: `src/sentry/integrations/slack/views`
     """
 
-    def get_async_region_response(self, regions: List[Region]) -> HttpResponse:
+    def get_async_region_response(self, regions: Sequence[Region]) -> HttpResponseBase:
         if not self.response_url:
             return self.get_response_from_control_silo()
 
@@ -82,7 +82,6 @@ class SlackRequestParser(BaseRequestParser):
                 "response_url": self.response_url,
             }
         )
-
         # We may want to enrich this with a waiting message
         return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
@@ -136,7 +135,6 @@ class SlackRequestParser(BaseRequestParser):
             slack_request = self.view_class.slack_request_class(drf_request)
             self.response_url = slack_request.response_url
             action_option = SlackActionEndpoint.get_action_option(slack_request=slack_request)
-
             # All actions other than those below are sent to every region
             if action_option not in ACTIONS_ENDPOINT_ALL_SILOS_ACTIONS:
                 return (

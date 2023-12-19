@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
-from typing import List
+from typing import Sequence
 
 import sentry_sdk
 from django.http import HttpResponse, JsonResponse
@@ -49,15 +49,16 @@ class DiscordRequestParser(BaseRequestParser):
         self._discord_request: DiscordRequest = self.view_class.discord_request_class(drf_request)
         return self._discord_request
 
-    def get_async_region_response(self, regions: List[Region]) -> HttpResponse:
+    def get_async_region_response(self, regions: Sequence[Region]) -> HttpResponse:
         webhook_payload = ControlOutbox.get_webhook_payload_from_request(request=self.request)
-        convert_to_async_discord_response.apply_async(
-            kwargs={
-                "region_names": [r.name for r in regions],
-                "payload": dataclasses.asdict(webhook_payload),
-                "response_url": self.discord_request.response_url,
-            }
-        )
+        if self.discord_request:
+            convert_to_async_discord_response.apply_async(
+                kwargs={
+                    "region_names": [r.name for r in regions],
+                    "payload": dataclasses.asdict(webhook_payload),
+                    "response_url": self.discord_request.response_url,
+                }
+            )
 
         return JsonResponse(data=self.async_response_data, status=status.HTTP_202_ACCEPTED)
 
