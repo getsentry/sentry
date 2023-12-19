@@ -4,6 +4,8 @@ import logging
 import os
 import signal
 import sys
+import time
+from datetime import datetime
 from multiprocessing import cpu_count
 from typing import Optional
 
@@ -514,6 +516,17 @@ def delay_kafka_rebalance(consumer_name: str) -> None:
 
     and then continue to sleep for 0.5 seconds until you get to the exact second when you want to start/stop the app.
     """
+    configured_delay = 15
+    now = float(datetime.now().strftime("%S.%f"))
+
+    next_tick, remainder = divmod(now, configured_delay)
+    if remainder > 0:
+        next_tick += 1
+
+    seconds_sleep = (15 * next_tick) - now
+    while seconds_sleep >= 0.5:
+        time.sleep(0.5)
+        seconds_sleep -= 0.5
 
 
 @run.command("consumer")
