@@ -176,7 +176,6 @@ describe('Avatar', function () {
 
     it('displays platform list icons for project Avatar', function () {
       const project = ProjectFixture({
-        platforms: ['python', 'javascript'],
         platform: 'java',
       });
 
@@ -204,7 +203,7 @@ describe('Avatar', function () {
     });
 
     it('uses onboarding project when platforms is an empty array', function () {
-      const project = ProjectFixture({platforms: [], platform: 'java'});
+      const project = ProjectFixture({platform: 'java'});
 
       render(<AvatarComponent project={project} />);
 
