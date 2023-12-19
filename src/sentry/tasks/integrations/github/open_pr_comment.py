@@ -370,8 +370,10 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         gh_client=client, repository=repo, pull_request=pull_request
     )
 
-    if not safe_to_comment:
-        logger.info("github.open_pr_comment.not_safe_for_comment")
+    if not safe_to_comment or len(pr_files) == 0:
+        logger.info(
+            "github.open_pr_comment.not_safe_for_comment", extra={"file_count": len(pr_files)}
+        )
         metrics.incr(
             OPEN_PR_METRICS_BASE.format(key="error"),
             tags={"type": "unsafe_for_comment"},
