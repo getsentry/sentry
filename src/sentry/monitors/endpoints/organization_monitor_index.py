@@ -131,6 +131,8 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
 
         queryset = queryset.annotate(
             environment_status_ordering=Case(
+                # Sort DISABLED and is_muted monitors to the bottom of the list
+                When(status=ObjectStatus.DISABLED, then=Value(len(DEFAULT_ORDERING) + 1)),
                 When(is_muted=True, then=Value(len(DEFAULT_ORDERING))),
                 default=Subquery(
                     monitor_environments_query.annotate(
