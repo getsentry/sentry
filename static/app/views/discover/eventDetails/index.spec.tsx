@@ -1,3 +1,4 @@
+import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -110,7 +111,7 @@ describe('Discover > EventDetails', function () {
         organization={Organization()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: allEventsView.generateQueryStringObject(),
         }}
       />
@@ -125,7 +126,7 @@ describe('Discover > EventDetails', function () {
         organization={Organization()}
         params={{eventSlug: 'project-slug:abad1'}}
         location={{
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: allEventsView.generateQueryStringObject(),
         }}
       />
@@ -141,7 +142,7 @@ describe('Discover > EventDetails', function () {
         organization={Organization()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: errorsView.generateQueryStringObject(),
         }}
       />
@@ -162,7 +163,7 @@ describe('Discover > EventDetails', function () {
         organization={Organization()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: allEventsView.generateQueryStringObject(),
         }}
       />
@@ -190,7 +191,7 @@ describe('Discover > EventDetails', function () {
         organization={organization}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: allEventsView.generateQueryStringObject(),
         }}
       />,
@@ -273,7 +274,7 @@ describe('Discover > EventDetails', function () {
         organization={organization}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {...allEventsView.generateQueryStringObject(), query: 'Dumpster'},
         }}
       />,

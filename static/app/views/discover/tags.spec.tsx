@@ -1,3 +1,4 @@
+import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import {Team} from 'sentry-fixture/team';
 import {User} from 'sentry-fixture/user';
@@ -85,7 +86,7 @@ describe('Tags', function () {
         api={new MockApiClient()}
         totalValues={30}
         organization={org}
-        location={{...TestStubs.location(), query: {}}}
+        location={{...LocationFixture(), query: {}}}
         generateUrl={generateUrl}
         confirmedQuery={false}
       />
@@ -157,7 +158,7 @@ describe('Tags', function () {
         api={new MockApiClient()}
         totalValues={30}
         organization={org}
-        location={{...TestStubs.location(), query: {}}}
+        location={{...LocationFixture(), query: {}}}
         generateUrl={generateUrl}
         confirmedQuery={false}
       />
@@ -257,7 +258,7 @@ describe('Tags', function () {
         api={new MockApiClient()}
         totalValues={30}
         organization={org}
-        location={{...TestStubs.location(), query: {}}}
+        location={{...LocationFixture(), query: {}}}
         generateUrl={generateUrl}
         confirmedQuery={false}
       />

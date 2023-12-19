@@ -1,4 +1,5 @@
 import {Event as EventFixture} from 'sentry-fixture/event';
+import LocationFixture from 'sentry-fixture/locationFixture';
 import {Team} from 'sentry-fixture/team';
 import {User} from 'sentry-fixture/user';
 
@@ -219,7 +220,7 @@ describe('groupDetails', () => {
     const init = initializeOrg({
       router: {
         ...initRouter,
-        location: TestStubs.location({
+        location: LocationFixture({
           ...initRouter.location,
           query: {environment: 'staging'},
         }),
