@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import itertools
 import logging
+import re
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Set, Tuple
 
@@ -193,13 +194,21 @@ def safe_for_comment(
     return safe_to_comment, filtered_pr_files
 
 
-def get_pr_filenames(pr_files: JSONData) -> List[str]:
+def get_pr_filenames_and_patches(pr_files: JSONData) -> Tuple[List[str], List[str]]:
     # new files will not have sentry issues associated with them
     # only fetch Python files
     pr_filenames: List[str] = [file["filename"] for file in pr_files]
+    patches: List[str] = [file["patch"] for file in pr_files]
 
     logger.info("github.open_pr_comment.pr_filenames", extra={"count": len(pr_filenames)})
-    return pr_filenames
+
+    return pr_filenames, patches
+
+
+# currently Python only
+def get_file_functions(patch: str) -> Set[str]:
+    python_function_regex = r"^@@.*@@\s+def\s+(?P<fnc>.*)\(.*$"
+    return set(re.findall(python_function_regex, patch, flags=re.M))
 
 
 def get_projects_and_filenames_from_source_file(
@@ -342,12 +351,14 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         )
         return
 
-    pr_filenames = get_pr_filenames(pr_files)
+    # TODO(cathy): return patches
+    pr_filenames, _ = get_pr_filenames_and_patches(pr_files)
 
     issue_table_contents = {}
     top_issues_per_file = []
 
     # fetch issues related to the files
+    # TODO(cathy): include fetching function names
     for pr_filename in pr_filenames:
         projects, sentry_filenames = get_projects_and_filenames_from_source_file(
             org_id, pr_filename
