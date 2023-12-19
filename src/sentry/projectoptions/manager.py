@@ -56,7 +56,7 @@ class ProjectOptionsManager:
         return ProjectOption.objects.set_value(project, key, value)
 
     def isset(self, project, key):
-        return project.get_option(project, key, Ellipsis) is not Ellipsis
+        return project.get_option(key, default=Ellipsis) is not Ellipsis
 
     def get(self, project, key, default=None, validate=None):
         from sentry.models.options.project_option import ProjectOption
