@@ -7,11 +7,11 @@ import {
 } from 'sentry/utils/performance/contexts/pageAlert';
 
 function SimpleErrorButton() {
-  const context = usePageAlert();
+  const {setPageError} = usePageAlert();
   return (
     <button
       data-test-id="pageErrorButton"
-      onClick={() => context.setPageAlert({message: 'Fresh new error', type: 'error'})}
+      onClick={() => setPageError('Fresh new error')}
     />
   );
 }
