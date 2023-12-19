@@ -136,7 +136,7 @@ def get_issue_table_contents(issue_list: List[Dict[str, int]]) -> List[PullReque
 # TODO(cathy): Change the client typing to allow for multiple SCM Integrations
 def safe_for_comment(
     gh_client: GitHubAppsClient, repository: Repository, pull_request: PullRequest
-) -> Tuple[bool, JSONData]:
+) -> Tuple[bool, List[Dict[str, str]]]:
     logger.info("github.open_pr_comment.check_safe_for_comment")
     try:
         pr_files = gh_client.get_pullrequest_files(
