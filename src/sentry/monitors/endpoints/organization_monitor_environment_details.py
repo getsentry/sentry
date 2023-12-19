@@ -26,7 +26,7 @@ from sentry.monitors.validators import MonitorValidator
 
 @region_silo_endpoint
 @extend_schema(tags=["Crons"])
-class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
+class OrganizationMonitorEnvironmentDetailsEndpoint(MonitorEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
         "PUT": ApiPublishStatus.EXPERIMENTAL,
