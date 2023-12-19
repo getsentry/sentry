@@ -125,9 +125,10 @@ export type MetricCodeLocationFrame = {
 };
 
 export type MetricMetaCodeLocation = {
-  frames: MetricCodeLocationFrame[];
   mri: string;
   timestamp: number;
+  codeLocations?: MetricCodeLocationFrame[];
+  frames?: MetricCodeLocationFrame[];
 };
 export function getDdmUrl(
   orgSlug: string,
