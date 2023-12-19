@@ -191,16 +191,18 @@ def fallback_to_stale_or_zero(
     )
     client = get_redis_client()
     with client.pipeline() as p:
-        if stale_threshold is None:
-            stale_threshold = 0
-            p.set(threshold_key, stale_threshold, ex=ttl)
+        p.watch(threshold_key)
+        existing_ttl = p.ttl(threshold_key)  # get the ttl of the stale threshold
+        if isinstance(existing_ttl, int) and existing_ttl > 0:
+            ttl = existing_ttl
         else:
-            # use the stale threshold and maintain its ttl so threshold and stale date expire in redis at the same time
-            p.watch(threshold_key)
-            existing_ttl = p.ttl(threshold_key)
-            if isinstance(existing_ttl, int):
-                ttl = existing_ttl
-            p.multi()
+            # if the stale threshold doesn't exist, doesn't have an expiry, or is exactly expired
+            # in redis, don't use it; fallback to zero
+            stale_threshold = 0
+        p.multi()
+
+        if stale_threshold == 0:
+            p.set(threshold_key, stale_threshold, ex=ttl)
         p.set(stale_date_key, str(stale_date), ex=ttl)
         p.execute()
     metrics.incr("issues.update_new_escalation_threshold", tags={"useFallback": True})

@@ -328,3 +328,29 @@ class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         assert redis_client.ttl("threshold-key") == FALLBACK_TTL
         assert redis_client.ttl("date-key") == FALLBACK_TTL
+
+    def test_fallback_to_stale_zero_ttl(self):
+        """
+        Tests that we return 0 and store it in Redis for the next ten minutes as a fallback if our
+        stale threshold has a TTL <= 0.
+        """
+        redis_client = get_redis_client()
+        assert fallback_to_stale_or_zero("threshold-key", "date-key", 0.5) == 0
+        assert redis_client.get("threshold-key") == "0"
+        stored_date = redis_client.get("date-key")
+        assert isinstance(stored_date, str)
+        assert (
+            0
+            <= (
+                datetime.strptime(stored_date, STRING_TO_DATETIME)
+                - (
+                    self.utcnow
+                    - timedelta(seconds=TIME_TO_USE_EXISTING_THRESHOLD)
+                    + timedelta(seconds=FALLBACK_TTL)
+                )
+            ).total_seconds()
+            < 1
+        )
+
+        assert redis_client.ttl("threshold-key") == FALLBACK_TTL
+        assert redis_client.ttl("date-key") == FALLBACK_TTL
