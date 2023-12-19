@@ -135,7 +135,7 @@ def get_issue_table_contents(issue_list: List[Dict[str, int]]) -> List[PullReque
 # TODO(cathy): Change the client typing to allow for multiple SCM Integrations
 def safe_for_comment(
     gh_client: GitHubAppsClient, repository: Repository, pull_request: PullRequest
-) -> Tuple[bool, List[Dict[str, str]]]:
+) -> List[Dict[str, str]]:
     logger.info("github.open_pr_comment.check_safe_for_comment")
     try:
         pr_files = gh_client.get_pullrequest_files(
@@ -159,9 +159,7 @@ def safe_for_comment(
                 tags={"type": GithubAPIErrorType.UNKNOWN.value, "code": e.code},
             )
             logger.exception("github.open_pr_comment.unknown_api_error", extra={"error": str(e)})
-        return False, []
-
-    safe_to_comment = True
+        return []
 
     changed_file_count = 0
     changed_lines_count = 0
@@ -182,15 +180,15 @@ def safe_for_comment(
                 OPEN_PR_METRICS_BASE.format(key="rejected_comment"),
                 tags={"reason": "too_many_files"},
             )
-            return False, []
+            return []
         if changed_lines_count > OPEN_PR_MAX_LINES_CHANGED:
             metrics.incr(
                 OPEN_PR_METRICS_BASE.format(key="rejected_comment"),
                 tags={"reason": "too_many_lines"},
             )
-            return False, []
+            return []
 
-    return safe_to_comment, filtered_pr_files
+    return filtered_pr_files
 
 
 def get_pr_filenames_and_patches(pr_files: List[Dict[str, str]]) -> Tuple[List[str], List[str]]:
@@ -366,11 +364,9 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     # CREATING THE COMMENT
 
     # fetch the files in the PR and determine if it is safe to comment
-    safe_to_comment, pr_files = safe_for_comment(
-        gh_client=client, repository=repo, pull_request=pull_request
-    )
+    pr_files = safe_for_comment(gh_client=client, repository=repo, pull_request=pull_request)
 
-    if not safe_to_comment or len(pr_files) == 0:
+    if len(pr_files) == 0:
         logger.info(
             "github.open_pr_comment.not_safe_for_comment", extra={"file_count": len(pr_files)}
         )

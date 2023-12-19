@@ -108,8 +108,7 @@ class TestSafeForComment(GithubCommentTestCase):
             json=data,
         )
 
-        is_safe, pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
-        assert is_safe
+        pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
         assert pr_files == [
             {"filename": "foo.py", "changes": 100, "status": "modified"},
             {"filename": "bee.py", "changes": 100, "status": "deleted"},
@@ -134,9 +133,8 @@ class TestSafeForComment(GithubCommentTestCase):
             ],
         )
 
-        is_safe, pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
-        assert not is_safe
-        assert pr_files == []
+        pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+        assert pr_files == []  # not safe
         self.mock_metrics.incr.assert_called_with(
             "github_open_pr_comment.rejected_comment", tags={"reason": "too_many_files"}
         )
@@ -153,9 +151,8 @@ class TestSafeForComment(GithubCommentTestCase):
             ],
         )
 
-        is_safe, pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
-        assert not is_safe
-        assert pr_files == []
+        pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+        assert pr_files == []  # not safe
         self.mock_metrics.incr.assert_called_with(
             "github_open_pr_comment.rejected_comment", tags={"reason": "too_many_lines"}
         )
@@ -179,9 +176,8 @@ class TestSafeForComment(GithubCommentTestCase):
             ],
         )
 
-        is_safe, pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
-        assert not is_safe
-        assert pr_files == []
+        pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+        assert pr_files == []  # not safe
         self.mock_metrics.incr.assert_any_call(
             "github_open_pr_comment.rejected_comment", tags={"reason": "too_many_lines"}
         )
@@ -198,9 +194,8 @@ class TestSafeForComment(GithubCommentTestCase):
             },
         )
 
-        is_safe, pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
-        assert not is_safe
-        assert pr_files == []
+        pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+        assert pr_files == []  # not safe
         self.mock_metrics.incr.assert_called_with(
             "github_open_pr_comment.api_error", tags={"type": "gh_rate_limited", "code": 429}
         )
@@ -211,9 +206,8 @@ class TestSafeForComment(GithubCommentTestCase):
             responses.GET, self.gh_path.format(pull_number=self.pr.key), status=404, json={}
         )
 
-        is_safe, pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
-        assert not is_safe
-        assert pr_files == []
+        pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+        assert pr_files == []  # not safe
         self.mock_metrics.incr.assert_called_with(
             "github_open_pr_comment.api_error",
             tags={"type": "missing_gh_pull_request", "code": 404},
@@ -225,9 +219,8 @@ class TestSafeForComment(GithubCommentTestCase):
             responses.GET, self.gh_path.format(pull_number=self.pr.key), status=400, json={}
         )
 
-        is_safe, pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
-        assert not is_safe
-        assert pr_files == []
+        pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
+        assert pr_files == []  # not safe
         self.mock_metrics.incr.assert_called_with(
             "github_open_pr_comment.api_error", tags={"type": "unknown_api_error", "code": 400}
         )
@@ -625,7 +618,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
     @patch("sentry.tasks.integrations.github.open_pr_comment.get_top_5_issues_by_count_for_file")
     @patch(
         "sentry.tasks.integrations.github.open_pr_comment.safe_for_comment",
-        return_value=(True, [{}]),
+        return_value=[{}],
     )
     @patch("sentry.tasks.integrations.github.pr_comment.metrics")
     @responses.activate
@@ -673,7 +666,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
     @patch("sentry.tasks.integrations.github.open_pr_comment.get_top_5_issues_by_count_for_file")
     @patch(
         "sentry.tasks.integrations.github.open_pr_comment.safe_for_comment",
-        return_value=(True, [{}]),
+        return_value=[{}],
     )
     @patch("sentry.tasks.integrations.github.pr_comment.metrics")
     @responses.activate
@@ -737,7 +730,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         mock_pr_filenames,
     ):
         # no python files
-        mock_safe_for_comment.return_value = (True, [])
+        mock_safe_for_comment.return_value = []
         open_pr_comment_workflow(self.pr.id)
 
         pull_request_comment_query = PullRequestComment.objects.all()
@@ -746,7 +739,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
             "github_open_pr_comment.error", tags={"type": "unsafe_for_comment"}
         )
 
-        mock_safe_for_comment.return_value = (True, [{}])
+        mock_safe_for_comment.return_value = [{}]
         mock_pr_filenames.return_value = (["foo.py"], ["a"])
         # no codemappings
         mock_reverse_codemappings.return_value = ([], [])
@@ -783,7 +776,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
     @patch("sentry.tasks.integrations.github.open_pr_comment.get_top_5_issues_by_count_for_file")
     @patch(
         "sentry.tasks.integrations.github.open_pr_comment.safe_for_comment",
-        return_value=(True, [{}]),
+        return_value=[{}],
     )
     @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
     @responses.activate
@@ -918,7 +911,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
     @patch(
         "sentry.tasks.integrations.github.open_pr_comment.safe_for_comment",
-        return_value=(False, []),
+        return_value=[],
     )
     @patch("sentry.tasks.integrations.github.open_pr_comment.get_pr_filenames_and_patches")
     @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
