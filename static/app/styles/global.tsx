@@ -100,6 +100,11 @@ const styles = (theme: Theme, isDark: boolean) => css`
           border-left-color: ${theme.purple300};
         }
 
+        .pattern-bg {
+          opacity: 1;
+          filter: invert(1) brightness(0.6);
+        }
+
         .nav-tabs {
           & > li {
             &.active {
