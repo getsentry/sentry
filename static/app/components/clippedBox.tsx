@@ -17,10 +17,12 @@ function supportsResizeObserver(
 }
 
 function revealAndDisconnectObserver({
+  contentRef,
   observerRef,
   revealRef,
   wrapperRef,
 }: {
+  contentRef: React.MutableRefObject<HTMLElement | null>;
   observerRef: React.MutableRefObject<ResizeObserver | null>;
   revealRef: React.MutableRefObject<boolean>;
   wrapperRef: React.MutableRefObject<HTMLElement | null>;
@@ -29,12 +31,20 @@ function revealAndDisconnectObserver({
     return;
   }
 
-  wrapperRef.current.style.maxHeight = '9999px';
+  wrapperRef.current.style.maxHeight = contentRef.current?.clientHeight
+    ? `${contentRef.current.clientHeight}px`
+    : '9999px';
   revealRef.current = true;
 
   if (observerRef.current) {
     observerRef.current.disconnect();
     observerRef.current = null;
+  }
+}
+
+function clearMaxHeight(wrapperRef: React.MutableRefObject<HTMLElement | null>) {
+  if (wrapperRef.current) {
+    wrapperRef.current.style.maxHeight = 'none';
   }
 }
 
@@ -90,7 +100,7 @@ function ClippedBox(props: ClippedBoxProps) {
 
       event.stopPropagation();
 
-      revealAndDisconnectObserver({wrapperRef, revealRef, observerRef});
+      revealAndDisconnectObserver({contentRef, wrapperRef, revealRef, observerRef});
       if (typeof onReveal === 'function') {
         onReveal();
       }
@@ -159,7 +169,7 @@ function ClippedBox(props: ClippedBoxProps) {
         });
 
         if (!_clipped && contentRef.current) {
-          revealAndDisconnectObserver({wrapperRef, revealRef, observerRef});
+          revealAndDisconnectObserver({contentRef, wrapperRef, revealRef, observerRef});
         }
 
         setClipped(_clipped);
@@ -199,7 +209,11 @@ function ClippedBox(props: ClippedBoxProps) {
   );
 
   return (
-    <Wrapper ref={onWrapperRef} className={props.className}>
+    <Wrapper
+      ref={onWrapperRef}
+      className={props.className}
+      onTransitionEnd={() => clearMaxHeight(wrapperRef)}
+    >
       <div ref={onContentRef}>
         {props.title ? <Title>{props.title}</Title> : null}
         {props.children}
@@ -218,7 +232,7 @@ const Wrapper = styled('div')`
   padding: ${space(1.5)} 0;
   overflow: hidden;
   will-change: max-height;
-  transition: all 5s ease-in-out 0s;
+  transition: max-height 500ms ease-in-out;
 `;
 
 const Title = styled('h5')`
