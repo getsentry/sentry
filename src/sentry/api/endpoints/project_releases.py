@@ -62,8 +62,8 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
             ).filter(Q(status=ReleaseStatus.OPEN) | Q(status=None))
             if environment is not None:
                 queryset = queryset.filter(
-                    releaseprojectenvironment__project=project,
-                    releaseprojectenvironment__environment=environment,
+                    rpe_set__project=project,
+                    rpe_set__environment=environment,
                 )
 
         if query:

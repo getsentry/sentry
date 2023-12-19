@@ -172,7 +172,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         release_query = Q(organization=organization, date_added__gte=start, date_added__lte=end)
         if environments_list:
             release_query &= Q(
-                releaseprojectenvironment__environment__name__in=environments_list,
+                rpe_set__environment__name__in=environments_list,
             )
         if project_slug_list:
             release_query &= Q(

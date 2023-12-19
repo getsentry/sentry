@@ -889,8 +889,8 @@ def _generate_preflight_query_conditions(
         if env_condition is not None:
             op, env_filter_set = env_condition
             environment_orm_conditions = {
-                "releaseprojectenvironment__environment__name__in": env_filter_set,
-                "releaseprojectenvironment__project_id__in": project_ids,
+                "rpe_set__environment__name__in": env_filter_set,
+                "rpe_set__project_id__in": project_ids,
             }
             if op == Op.IN:
                 queryset = queryset.filter(**environment_orm_conditions)

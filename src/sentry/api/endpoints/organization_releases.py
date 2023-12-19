@@ -64,8 +64,8 @@ _release_suffix = re.compile(r"^(.*)\s+\(([^)]+)\)\s*$")
 def add_environment_to_queryset(queryset, filter_params):
     if "environment" in filter_params:
         return queryset.filter(
-            releaseprojectenvironment__environment__name__in=filter_params["environment"],
-            releaseprojectenvironment__project_id__in=filter_params["project_id"],
+            rpe_set__environment__name__in=filter_params["environment"],
+            rpe_set__project_id__in=filter_params["project_id"],
         )
     return queryset
 
@@ -327,7 +327,7 @@ class OrganizationReleasesEndpoint(
             paginator_kwargs["order_by"] = order_by
         elif sort == "adoption":
             # sort by adoption date (most recently adopted first)
-            order_by = F("releaseprojectenvironment__adopted").desc(nulls_last=True)
+            order_by = F("rpe_set__adopted").desc(nulls_last=True)
             queryset = queryset.order_by(order_by)
             paginator_kwargs["order_by"] = order_by
         elif sort in self.SESSION_SORTS:
