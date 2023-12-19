@@ -11,7 +11,9 @@ from sentry.search.base import ANY
 from sentry.search.utils import (
     DEVICE_CLASS,
     InvalidQuery,
+    LatestReleaseOrders,
     convert_user_tag_to_query,
+    get_first_last_release_for_group,
     get_latest_release,
     get_numeric_field_value,
     parse_duration,
@@ -800,6 +802,70 @@ class GetLatestReleaseTest(TestCase):
             release_2.version,
             release_1.version,
         ]
+
+
+@region_silo_test
+class GetFirstLastReleaseForGroupTest(TestCase):
+    def test_date(self):
+        with pytest.raises(Release.DoesNotExist):
+            get_first_last_release_for_group(self.group, LatestReleaseOrders.DATE, True)
+
+        oldest = self.create_release(version="old")
+        self.create_group_release(group=self.group, release=oldest)
+        newest = self.create_release(
+            version="newest", date_released=oldest.date_added + timedelta(minutes=5)
+        )
+        self.create_group_release(group=self.group, release=newest)
+
+        assert newest == get_first_last_release_for_group(
+            self.group, LatestReleaseOrders.DATE, True
+        )
+        assert oldest == get_first_last_release_for_group(
+            self.group, LatestReleaseOrders.DATE, False
+        )
+
+        group_2 = self.create_group()
+        with pytest.raises(Release.DoesNotExist):
+            get_first_last_release_for_group(group_2, LatestReleaseOrders.DATE, True)
+        self.create_group_release(group=group_2, release=oldest)
+        assert oldest == get_first_last_release_for_group(group_2, LatestReleaseOrders.DATE, True)
+        assert oldest == get_first_last_release_for_group(group_2, LatestReleaseOrders.DATE, False)
+
+    def test_semver(self):
+        with pytest.raises(Release.DoesNotExist):
+            get_first_last_release_for_group(self.group, LatestReleaseOrders.SEMVER, True)
+
+        latest = self.create_release(version="test@2.0.0")
+        middle = self.create_release(version="test@1.3.2")
+        earliest = self.create_release(
+            version="test@1.0.0", date_released=latest.date_added + timedelta(minutes=5)
+        )
+        self.create_group_release(group=self.group, release=latest)
+        self.create_group_release(group=self.group, release=middle)
+        self.create_group_release(group=self.group, release=earliest)
+
+        assert latest == get_first_last_release_for_group(
+            self.group, LatestReleaseOrders.SEMVER, True
+        )
+        assert earliest == get_first_last_release_for_group(
+            self.group, LatestReleaseOrders.DATE, True
+        )
+        assert earliest == get_first_last_release_for_group(
+            self.group, LatestReleaseOrders.SEMVER, False
+        )
+        assert latest == get_first_last_release_for_group(
+            self.group, LatestReleaseOrders.DATE, False
+        )
+
+        group_2 = self.create_group()
+        with pytest.raises(Release.DoesNotExist):
+            get_first_last_release_for_group(group_2, LatestReleaseOrders.SEMVER, True)
+        self.create_group_release(group=group_2, release=latest)
+        self.create_group_release(group=group_2, release=middle)
+        assert latest == get_first_last_release_for_group(group_2, LatestReleaseOrders.SEMVER, True)
+        assert middle == get_first_last_release_for_group(
+            group_2, LatestReleaseOrders.SEMVER, False
+        )
 
 
 @control_silo_test

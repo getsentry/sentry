@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {User} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -563,7 +564,7 @@ describe('PageFiltersContainer', function () {
       ConfigStore.init();
       ConfigStore.loadInitialData(
         TestStubs.Config({
-          user: TestStubs.User({isSuperuser: true}),
+          user: User({isSuperuser: true}),
         })
       );
       const project = TestStubs.Project({id: '3', isMember: false});

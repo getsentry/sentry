@@ -76,7 +76,6 @@ export const STARFISH_FIELDS: Record<string, {outputType: AggregationOutputType}
 type Props = {
   data: Series[];
   loading: boolean;
-  utc: boolean;
   aggregateOutputFormat?: AggregationOutputType;
   chartColors?: string[];
   chartGroup?: string;
@@ -159,7 +158,6 @@ function Chart({
   data,
   dataMax,
   previousData,
-  utc,
   loading,
   height,
   grid,
@@ -193,7 +191,7 @@ function Chart({
   const router = useRouter();
   const theme = useTheme();
   const pageFilters = usePageFilters();
-  const {start, end, period} = pageFilters.selection.datetime;
+  const {start, end, period, utc} = pageFilters.selection.datetime;
 
   const defaultRef = useRef<ReactEchartsRef>(null);
   const chartRef = forwardedRef || defaultRef;
@@ -296,7 +294,7 @@ function Chart({
       return getFormatter({
         isGroupedByDate: true,
         showTimeInTooltip: true,
-        utc,
+        utc: utc ?? false,
         valueFormatter: (value, seriesName) => {
           return tooltipFormatter(
             value,

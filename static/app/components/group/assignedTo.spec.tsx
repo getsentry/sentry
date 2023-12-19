@@ -3,6 +3,7 @@ import {CommitAuthor} from 'sentry-fixture/commitAuthor';
 import {Event as EventFixture} from 'sentry-fixture/event';
 import {Organization} from 'sentry-fixture/organization';
 import {Team} from 'sentry-fixture/team';
+import {User} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -17,12 +18,12 @@ import type {
   Organization as TOrganization,
   Project,
   Team as TeamType,
-  User,
+  User as UserType,
 } from 'sentry/types';
 
 describe('Group > AssignedTo', () => {
-  let USER_1!: User;
-  let USER_2!: User;
+  let USER_1!: UserType;
+  let USER_2!: UserType;
   let TEAM_1!: TeamType;
   let PROJECT_1!: Project;
   let GROUP_1!: Group;
@@ -32,12 +33,12 @@ describe('Group > AssignedTo', () => {
 
   beforeEach(() => {
     organization = Organization();
-    USER_1 = TestStubs.User({
+    USER_1 = User({
       id: '1',
       name: 'Jane Bloggs',
       email: 'janebloggs@example.com',
     });
-    USER_2 = TestStubs.User({
+    USER_2 = User({
       id: '2',
       name: 'John Smith',
       email: 'johnsmith@example.com',

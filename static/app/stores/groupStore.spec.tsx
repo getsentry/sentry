@@ -1,3 +1,4 @@
+import {Actor} from 'sentry-fixture/actor';
 import {Project} from 'sentry-fixture/project';
 
 import GroupStore from 'sentry/stores/groupStore';
@@ -221,7 +222,7 @@ describe('GroupStore', function () {
     describe('onAssignToSuccess()', function () {
       it("should treat undefined itemIds argument as 'all'", function () {
         GroupStore.items = [g('1')];
-        const assignedGroup = g('1', {assignedTo: TestStubs.User({type: 'user'})});
+        const assignedGroup = g('1', {assignedTo: Actor()});
         GroupStore.onAssignToSuccess('1337', '1', assignedGroup);
 
         expect(GroupStore.trigger).toHaveBeenCalledTimes(1);

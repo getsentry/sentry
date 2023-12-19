@@ -1,5 +1,7 @@
 import {Event as EventFixture} from 'sentry-fixture/event';
+import LocationFixture from 'sentry-fixture/locationFixture';
 import {Team} from 'sentry-fixture/team';
+import {User} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -50,18 +52,21 @@ describe('groupDetails', () => {
     router: initRouter,
   });
 
-  const recommendedUser = TestStubs.User({
+  const recommendedUser = User({
     options: {
+      ...User().options,
       defaultIssueEvent: 'recommended',
     },
   });
-  const latestUser = TestStubs.User({
+  const latestUser = User({
     options: {
+      ...User().options,
       defaultIssueEvent: 'latest',
     },
   });
-  const oldestUser = TestStubs.User({
+  const oldestUser = User({
     options: {
+      ...User().options,
       defaultIssueEvent: 'oldest',
     },
   });
@@ -215,7 +220,7 @@ describe('groupDetails', () => {
     const init = initializeOrg({
       router: {
         ...initRouter,
-        location: TestStubs.location({
+        location: LocationFixture({
           ...initRouter.location,
           query: {environment: 'staging'},
         }),
