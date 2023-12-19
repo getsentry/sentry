@@ -100,7 +100,10 @@ class TestSafeForComment(GithubCommentTestCase):
 
         is_safe, pr_files = safe_for_comment(self.gh_client, self.gh_repo, self.pr)
         assert is_safe
-        assert pr_files == data
+        assert pr_files == [
+            {"filename": "foo.py", "changes": 100, "status": "modified"},
+            {"filename": "bee.py", "changes": 100, "status": "deleted"},
+        ]
 
     @responses.activate
     def test_too_many_files(self):
@@ -171,9 +174,6 @@ class TestSafeForComment(GithubCommentTestCase):
         assert pr_files == []
         self.mock_metrics.incr.assert_any_call(
             "github_open_pr_comment.rejected_comment", tags={"reason": "too_many_lines"}
-        )
-        self.mock_metrics.incr.assert_any_call(
-            "github_open_pr_comment.rejected_comment", tags={"reason": "too_many_files"}
         )
 
     @responses.activate

@@ -165,6 +165,7 @@ def safe_for_comment(
 
     changed_file_count = 0
     changed_lines_count = 0
+    filtered_pr_files = []
 
     for file in pr_files:
         filename = file["filename"]
@@ -174,32 +175,28 @@ def safe_for_comment(
 
         changed_file_count += 1
         changed_lines_count += file["changes"]
+        filtered_pr_files.append(file)
 
-    if changed_file_count > OPEN_PR_MAX_FILES_CHANGED:
-        metrics.incr(
-            OPEN_PR_METRICS_BASE.format(key="rejected_comment"), tags={"reason": "too_many_files"}
-        )
-        safe_to_comment = False
-    if changed_lines_count > OPEN_PR_MAX_LINES_CHANGED:
-        metrics.incr(
-            OPEN_PR_METRICS_BASE.format(key="rejected_comment"), tags={"reason": "too_many_lines"}
-        )
-        safe_to_comment = False
+        if changed_file_count > OPEN_PR_MAX_FILES_CHANGED:
+            metrics.incr(
+                OPEN_PR_METRICS_BASE.format(key="rejected_comment"),
+                tags={"reason": "too_many_files"},
+            )
+            return False, []
+        if changed_lines_count > OPEN_PR_MAX_LINES_CHANGED:
+            metrics.incr(
+                OPEN_PR_METRICS_BASE.format(key="rejected_comment"),
+                tags={"reason": "too_many_lines"},
+            )
+            return False, []
 
-    if not safe_to_comment:
-        pr_files = []
-
-    return safe_to_comment, pr_files
+    return safe_to_comment, filtered_pr_files
 
 
 def get_pr_filenames(pr_files: JSONData) -> List[str]:
     # new files will not have sentry issues associated with them
     # only fetch Python files
-    pr_filenames: List[str] = [
-        file["filename"]
-        for file in pr_files
-        if file["status"] != "added" and file["filename"].endswith(".py")
-    ]
+    pr_filenames: List[str] = [file["filename"] for file in pr_files]
 
     logger.info("github.open_pr_comment.pr_filenames", extra={"count": len(pr_filenames)})
     return pr_filenames
