@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {
   render,
@@ -25,7 +26,7 @@ function renderComponent(eventView, organization, onChangeThreshold) {
 
 describe('TransactionThresholdButton', function () {
   const organization = Organization({features: ['performance-view']});
-  const project = TestStubs.Project();
+  const project = ProjectFixture();
   const eventView = new EventView({
     id: '1',
     name: 'my query',

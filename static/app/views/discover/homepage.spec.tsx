@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -440,10 +441,7 @@ describe('Discover > Homepage', () => {
   });
 
   it('overrides homepage filters with pinned filters if they exist', async () => {
-    ProjectsStore.loadInitialData([
-      TestStubs.Project({id: 1}),
-      TestStubs.Project({id: 2}),
-    ]);
+    ProjectsStore.loadInitialData([ProjectFixture({id: 1}), ProjectFixture({id: 2})]);
     jest.spyOn(pageFilterUtils, 'getPageFilterStorage').mockReturnValueOnce({
       pinnedFilters: new Set(['projects']),
       state: {

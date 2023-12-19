@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -16,7 +17,7 @@ describe('Discover > ResultsChart', function () {
 
   const organization = Organization({
     features,
-    projects: [TestStubs.Project()],
+    projects: [ProjectFixture()],
   });
 
   const initialData = initializeOrg({

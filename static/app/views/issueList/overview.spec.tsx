@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 import merge from 'lodash/merge';
 import {GroupStats} from 'sentry-fixture/groupStats';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Search} from 'sentry-fixture/search';
 import {Tags} from 'sentry-fixture/tags';
 
@@ -32,7 +33,7 @@ const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575000:0:0>; rel="next"; results="true"; cursor="1443575000:0:0"';
 
-const project = TestStubs.Project({
+const project = ProjectFixture({
   id: '3559',
   name: 'Foo Project',
   slug: 'project-slug',
@@ -1164,19 +1165,19 @@ describe('IssueList', function () {
 
     it('displays when no projects selected and all projects user is member of, async does not have first event', async function () {
       const projects = [
-        TestStubs.Project({
+        ProjectFixture({
           id: '1',
           slug: 'foo',
           isMember: true,
           firstEvent: false,
         }),
-        TestStubs.Project({
+        ProjectFixture({
           id: '2',
           slug: 'bar',
           isMember: true,
           firstEvent: false,
         }),
-        TestStubs.Project({
+        ProjectFixture({
           id: '3',
           slug: 'baz',
           isMember: true,
@@ -1210,19 +1211,19 @@ describe('IssueList', function () {
 
     it('does not display when no projects selected and any projects have a first event', async function () {
       const projects = [
-        TestStubs.Project({
+        ProjectFixture({
           id: '1',
           slug: 'foo',
           isMember: true,
           firstEvent: false,
         }),
-        TestStubs.Project({
+        ProjectFixture({
           id: '2',
           slug: 'bar',
           isMember: true,
           firstEvent: true,
         }),
-        TestStubs.Project({
+        ProjectFixture({
           id: '3',
           slug: 'baz',
           isMember: true,
@@ -1251,19 +1252,19 @@ describe('IssueList', function () {
 
     it('displays when all selected projects do not have first event', async function () {
       const projects = [
-        TestStubs.Project({
+        ProjectFixture({
           id: '1',
           slug: 'foo',
           isMember: true,
           firstEvent: false,
         }),
-        TestStubs.Project({
+        ProjectFixture({
           id: '2',
           slug: 'bar',
           isMember: true,
           firstEvent: false,
         }),
-        TestStubs.Project({
+        ProjectFixture({
           id: '3',
           slug: 'baz',
           isMember: true,
@@ -1302,19 +1303,19 @@ describe('IssueList', function () {
 
     it('does not display when any selected projects have first event', async function () {
       const projects = [
-        TestStubs.Project({
+        ProjectFixture({
           id: '1',
           slug: 'foo',
           isMember: true,
           firstEvent: false,
         }),
-        TestStubs.Project({
+        ProjectFixture({
           id: '2',
           slug: 'bar',
           isMember: true,
           firstEvent: true,
         }),
-        TestStubs.Project({
+        ProjectFixture({
           id: '3',
           slug: 'baz',
           isMember: true,
@@ -1440,7 +1441,7 @@ describe('IssueList', function () {
       });
 
       it('for multiple projects', function () {
-        const projectBar = TestStubs.Project({
+        const projectBar = ProjectFixture({
           id: '3560',
           name: 'Bar Project',
           slug: 'project-slug-bar',

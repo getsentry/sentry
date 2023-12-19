@@ -1,3 +1,5 @@
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
@@ -22,7 +24,7 @@ describe('useOnboardingDocs', function () {
         {children}
       </OrganizationContext.Provider>
     );
-    const project = TestStubs.Project({
+    const project = ProjectFixture({
       platform: 'javascript-react',
       firstTransactionEvent: false,
     });
@@ -76,7 +78,7 @@ describe('useOnboardingDocs', function () {
         {children}
       </OrganizationContext.Provider>
     );
-    const project = TestStubs.Project({
+    const project = ProjectFixture({
       platform: 'javascript-angular',
       firstTransactionEvent: false,
     });
@@ -125,7 +127,7 @@ describe('useOnboardingDocs', function () {
         {children}
       </OrganizationContext.Provider>
     );
-    const project = TestStubs.Project({
+    const project = ProjectFixture({
       platform: 'elixir',
       firstTransactionEvent: false,
     });

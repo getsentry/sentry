@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -245,7 +246,7 @@ describe('Results', function () {
 
       const mockRequests = renderMockRequests();
 
-      ProjectsStore.loadInitialData([TestStubs.Project()]);
+      ProjectsStore.loadInitialData([ProjectFixture()]);
 
       render(
         <Results
@@ -293,7 +294,7 @@ describe('Results', function () {
 
       const mockRequests = renderMockRequests();
 
-      ProjectsStore.loadInitialData([TestStubs.Project()]);
+      ProjectsStore.loadInitialData([ProjectFixture()]);
 
       render(
         <Results
@@ -356,7 +357,7 @@ describe('Results', function () {
 
       renderMockRequests();
 
-      ProjectsStore.loadInitialData([TestStubs.Project()]);
+      ProjectsStore.loadInitialData([ProjectFixture()]);
 
       render(
         <Results
@@ -393,7 +394,7 @@ describe('Results', function () {
 
       renderMockRequests();
 
-      ProjectsStore.loadInitialData([TestStubs.Project()]);
+      ProjectsStore.loadInitialData([ProjectFixture()]);
 
       render(
         <Results
@@ -428,7 +429,7 @@ describe('Results', function () {
         },
       });
 
-      ProjectsStore.loadInitialData([TestStubs.Project()]);
+      ProjectsStore.loadInitialData([ProjectFixture()]);
 
       renderMockRequests();
 
@@ -464,7 +465,7 @@ describe('Results', function () {
         },
       });
 
-      ProjectsStore.loadInitialData([TestStubs.Project()]);
+      ProjectsStore.loadInitialData([ProjectFixture()]);
 
       const mockRequests = renderMockRequests();
 
@@ -506,7 +507,7 @@ describe('Results', function () {
         },
       });
 
-      ProjectsStore.loadInitialData([TestStubs.Project()]);
+      ProjectsStore.loadInitialData([ProjectFixture()]);
 
       const mockRequests = renderMockRequests();
 
@@ -542,7 +543,7 @@ describe('Results', function () {
         },
       });
 
-      ProjectsStore.loadInitialData([TestStubs.Project()]);
+      ProjectsStore.loadInitialData([ProjectFixture()]);
 
       const mockRequests = renderMockRequests();
 
@@ -584,7 +585,7 @@ describe('Results', function () {
         },
       });
 
-      ProjectsStore.loadInitialData([TestStubs.Project()]);
+      ProjectsStore.loadInitialData([ProjectFixture()]);
 
       const mockRequests = renderMockRequests();
 
@@ -621,7 +622,7 @@ describe('Results', function () {
         },
       });
 
-      ProjectsStore.loadInitialData([TestStubs.Project()]);
+      ProjectsStore.loadInitialData([ProjectFixture()]);
 
       const mockRequests = renderMockRequests();
 
@@ -686,7 +687,7 @@ describe('Results', function () {
         },
       });
 
-      ProjectsStore.loadInitialData([TestStubs.Project()]);
+      ProjectsStore.loadInitialData([ProjectFixture()]);
 
       const mockRequests = renderMockRequests();
 
@@ -724,7 +725,7 @@ describe('Results', function () {
         },
       });
 
-      ProjectsStore.loadInitialData([TestStubs.Project()]);
+      ProjectsStore.loadInitialData([ProjectFixture()]);
 
       const {eventsStatsMock, measurementsMetaMock} = renderMockRequests();
 
@@ -803,7 +804,7 @@ describe('Results', function () {
 
       const {eventsStatsMock, measurementsMetaMock} = renderMockRequests();
 
-      ProjectsStore.loadInitialData([TestStubs.Project()]);
+      ProjectsStore.loadInitialData([ProjectFixture()]);
 
       const {rerender} = render(
         <Results
@@ -880,7 +881,7 @@ describe('Results', function () {
 
       const {eventsStatsMock, measurementsMetaMock} = renderMockRequests();
 
-      ProjectsStore.loadInitialData([TestStubs.Project()]);
+      ProjectsStore.loadInitialData([ProjectFixture()]);
 
       const {rerender} = render(
         <Results
@@ -961,7 +962,7 @@ describe('Results', function () {
 
       const mockRequests = renderMockRequests();
 
-      ProjectsStore.loadInitialData([TestStubs.Project()]);
+      ProjectsStore.loadInitialData([ProjectFixture()]);
 
       render(
         <Results
@@ -1025,7 +1026,7 @@ describe('Results', function () {
         pinnedFilters: new Set(['projects']),
       });
 
-      ProjectsStore.loadInitialData([TestStubs.Project({id: 1, slug: 'Pinned Project'})]);
+      ProjectsStore.loadInitialData([ProjectFixture({id: 1, slug: 'Pinned Project'})]);
 
       render(
         <Results
@@ -1068,7 +1069,7 @@ describe('Results', function () {
         },
       });
 
-      ProjectsStore.loadInitialData([TestStubs.Project()]);
+      ProjectsStore.loadInitialData([ProjectFixture()]);
 
       render(
         <Results
@@ -1096,7 +1097,7 @@ describe('Results', function () {
         },
       });
 
-      ProjectsStore.loadInitialData([TestStubs.Project()]);
+      ProjectsStore.loadInitialData([ProjectFixture()]);
 
       renderMockRequests();
 
@@ -1133,7 +1134,7 @@ describe('Results', function () {
         },
       });
 
-      ProjectsStore.loadInitialData([TestStubs.Project()]);
+      ProjectsStore.loadInitialData([ProjectFixture()]);
 
       renderMockRequests();
 
@@ -1175,7 +1176,7 @@ describe('Results', function () {
         },
       });
 
-      ProjectsStore.loadInitialData([TestStubs.Project()]);
+      ProjectsStore.loadInitialData([ProjectFixture()]);
       renderMockRequests();
 
       render(
@@ -1240,7 +1241,7 @@ describe('Results', function () {
         },
       });
 
-      ProjectsStore.loadInitialData([TestStubs.Project()]);
+      ProjectsStore.loadInitialData([ProjectFixture()]);
       renderMockRequests();
 
       const {rerender} = render(
@@ -1309,7 +1310,7 @@ describe('Results', function () {
         },
       });
 
-      ProjectsStore.loadInitialData([TestStubs.Project()]);
+      ProjectsStore.loadInitialData([ProjectFixture()]);
       renderMockRequests();
 
       const {rerender} = render(
@@ -1361,7 +1362,7 @@ describe('Results', function () {
         },
       });
 
-      ProjectsStore.loadInitialData([TestStubs.Project()]);
+      ProjectsStore.loadInitialData([ProjectFixture()]);
       const {measurementsMetaMock} = renderMockRequests();
 
       render(
@@ -1439,7 +1440,7 @@ describe('Results', function () {
         },
       });
 
-      ProjectsStore.loadInitialData([TestStubs.Project()]);
+      ProjectsStore.loadInitialData([ProjectFixture()]);
       const {measurementsMetaMock} = renderMockRequests();
 
       render(

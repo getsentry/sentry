@@ -1,6 +1,7 @@
 import {Incident} from 'sentry-fixture/incident';
 import {MetricRule} from 'sentry-fixture/metricRule';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {ProjectAlertRule} from 'sentry-fixture/projectAlertRule';
 import {Team} from 'sentry-fixture/team';
 
@@ -62,7 +63,7 @@ describe('AlertRulesList', () => {
     projectMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [
-        TestStubs.Project({
+        ProjectFixture({
           slug: 'earth',
           platform: 'javascript',
           teams: [Team()],

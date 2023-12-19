@@ -1,3 +1,5 @@
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -6,7 +8,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import AlertHeader from 'sentry/views/alerts/list/header';
 
 describe('AlertHeader', () => {
-  const project = TestStubs.Project();
+  const project = ProjectFixture();
   const {routerContext, organization} = initializeOrg();
   beforeEach(() => {
     PageFiltersStore.init();

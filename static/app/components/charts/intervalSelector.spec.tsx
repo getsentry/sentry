@@ -1,3 +1,5 @@
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import IntervalSelector from 'sentry/components/charts/intervalSelector';
@@ -5,7 +7,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {DisplayModes} from 'sentry/utils/discover/types';
 
 describe('IntervalSelector', function () {
-  const project = TestStubs.Project();
+  const project = ProjectFixture();
   const eventView = EventView.fromSavedQuery({
     id: '',
     name: 'test query',

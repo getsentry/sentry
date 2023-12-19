@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -22,7 +23,7 @@ describe('Dashboards > Detail', function () {
   const organization = Organization({
     features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
   });
-  const projects = [TestStubs.Project()];
+  const projects = [ProjectFixture()];
 
   describe('prebuilt dashboards', function () {
     let initialData;
@@ -37,7 +38,7 @@ describe('Dashboards > Detail', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
-        body: [TestStubs.Project()],
+        body: [ProjectFixture()],
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/',
@@ -139,7 +140,7 @@ describe('Dashboards > Detail', function () {
       initialData = initializeOrg({
         organization: Organization({
           features: ['global-views', 'dashboards-basic', 'discover-query'],
-          projects: [TestStubs.Project()],
+          projects: [ProjectFixture()],
         }),
       });
 
@@ -280,7 +281,7 @@ describe('Dashboards > Detail', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
-        body: [TestStubs.Project()],
+        body: [ProjectFixture()],
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/',
@@ -482,7 +483,7 @@ describe('Dashboards > Detail', function () {
             'dashboards-edit',
             'discover-query',
           ],
-          projects: [TestStubs.Project()],
+          projects: [ProjectFixture()],
         }),
       });
 
@@ -1275,8 +1276,8 @@ describe('Dashboards > Detail', function () {
 
     it('ignores the order of selection of page filters to render unsaved filters', async () => {
       const testProjects = [
-        TestStubs.Project({id: '1', name: 'first', environments: ['alpha', 'beta']}),
-        TestStubs.Project({id: '2', name: 'second', environments: ['alpha', 'beta']}),
+        ProjectFixture({id: '1', name: 'first', environments: ['alpha', 'beta']}),
+        ProjectFixture({id: '2', name: 'second', environments: ['alpha', 'beta']}),
       ];
 
       act(() => ProjectsStore.loadInitialData(testProjects));

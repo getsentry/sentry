@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -16,7 +17,7 @@ describe('Dashboards - DashboardList', function () {
   let dashboards, widgets, deleteMock, dashboardUpdateMock, createMock;
   const organization = Organization({
     features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
-    projects: [TestStubs.Project()],
+    projects: [ProjectFixture()],
   });
 
   const {router, routerContext} = initializeOrg();

@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {
   render,
@@ -20,7 +21,7 @@ describe('projectPerformance', function () {
   const org = Organization({
     features: ['performance-view', 'performance-issues-dev'],
   });
-  const project = TestStubs.Project();
+  const project = ProjectFixture();
   const configUrl = '/projects/org-slug/project-slug/transaction-threshold/configure/';
   let getMock, postMock, deleteMock;
 
