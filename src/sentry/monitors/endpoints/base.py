@@ -77,15 +77,16 @@ class MonitorEndpoint(Endpoint):
         if project.status != ObjectStatus.ACTIVE:
             raise ResourceDoesNotExist
 
-        try:
-            environment_object = Environment.objects.get_from_cache(name=environment)
-            monitor_environment = MonitorEnvironment.objects.get(
-                monitor_id=monitor.id, environment_id=environment_object.id
-            )
-            kwargs["environment"] = environment_object
-            kwargs["monitor_environment"] = monitor_environment
-        except (Environment.DoesNotExist, MonitorEnvironment.DoesNotExist):
-            raise ResourceDoesNotExist
+        if environment:
+            try:
+                environment_object = Environment.objects.get(name=environment)
+                monitor_environment = MonitorEnvironment.objects.get(
+                    monitor_id=monitor.id, environment_id=environment_object.id
+                )
+                kwargs["environment"] = environment_object
+                kwargs["monitor_environment"] = monitor_environment
+            except (Environment.DoesNotExist, MonitorEnvironment.DoesNotExist):
+                raise ResourceDoesNotExist
 
         self.check_object_permissions(request, project)
 
