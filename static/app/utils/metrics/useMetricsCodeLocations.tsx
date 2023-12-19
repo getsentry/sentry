@@ -3,15 +3,15 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-type ApiResponse = {codeLocations: MetricMetaCodeLocation[]};
+type ApiResponse = {
+  metrics: MetricMetaCodeLocation[];
+};
 
 export function useMetricsCodeLocations(mri: string | undefined) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const {data, isLoading, isError, refetch} = useApiQuery<{
-    codeLocations: MetricMetaCodeLocation[];
-  }>(
+  const {data, isLoading, isError, refetch} = useApiQuery<ApiResponse>(
     [
       `/organizations/${organization.slug}/ddm/meta/`,
       {
@@ -28,29 +28,51 @@ export function useMetricsCodeLocations(mri: string | undefined) {
     }
   );
 
-  if (
-    !data ||
-    !Array.isArray(data?.codeLocations) ||
-    !Array.isArray(data?.codeLocations[0]?.frames)
-  ) {
+  if (!data) {
     return {data, isLoading};
   }
 
+  mapToNewResponseShape(data);
   deduplicateCodeLocations(data);
   sortCodeLocations(data);
 
   return {data, isLoading, isError, refetch};
 }
 
+const mapToNewResponseShape = (data: ApiResponse) => {
+  if (data.metrics) {
+    return;
+  }
+  // @ts-expect-error
+  data.metrics = (data.codeLocations ?? [])?.map(codeLocation => {
+    return {
+      mri: codeLocation.mri,
+      timestamp: codeLocation.timestamp,
+      codeLocations: (codeLocation.frames ?? []).map(frame => {
+        return {
+          function: frame.function,
+          module: frame.module,
+          filename: frame.filename,
+          absPath: frame.absPath,
+          lineNo: frame.lineNo,
+          preContext: frame.preContext,
+          contextLine: frame.contextLine,
+          postContext: frame.postContext,
+        };
+      }),
+    };
+  });
+};
+
 const sortCodeLocations = (data: ApiResponse) => {
-  data.codeLocations.sort((a, b) => {
+  data.metrics.sort((a, b) => {
     return b.timestamp - a.timestamp;
   });
 };
 
 const deduplicateCodeLocations = (data: ApiResponse) => {
-  data.codeLocations = data.codeLocations.filter((element, index) => {
-    return !data.codeLocations.slice(0, index).some(e => equalCodeLocations(e, element));
+  data.metrics = data.metrics.filter((element, index) => {
+    return !data.metrics.slice(0, index).some(e => equalCodeLocations(e, element));
   });
 };
 
@@ -59,8 +81,8 @@ const equalCodeLocations = (a: MetricMetaCodeLocation, b: MetricMetaCodeLocation
     return false;
   }
 
-  const aFrame = JSON.stringify(a.frames?.[0] ?? {});
-  const bFrame = JSON.stringify(b.frames?.[0] ?? {});
+  const aCodeLocation = JSON.stringify(a.codeLocations?.[0] ?? {});
+  const bCodeLocation = JSON.stringify(b.codeLocations?.[0] ?? {});
 
-  return aFrame === bFrame;
+  return aCodeLocation === bCodeLocation;
 };
