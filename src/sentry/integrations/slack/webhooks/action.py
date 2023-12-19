@@ -500,8 +500,8 @@ class SlackActionEndpoint(Endpoint):
 
         action_option = self.get_action_option(slack_request=slack_request)
 
-        # If a user is just clicking our auto response in the messages tab we just return a 200
-        if action_option == "sentry_docs_link_clicked":
+        # If a user is just clicking a button link we return a 200
+        if action_option in ("sentry_docs_link_clicked", "grace_period_warning"):
             return self.respond()
 
         if action_option in UNFURL_ACTION_OPTIONS:
@@ -521,14 +521,15 @@ class SlackActionEndpoint(Endpoint):
             org_context = organization_service.get_organization_by_id(
                 id=org_integrations[0].organization_id
             )
-            use_block_kit = any(
-                [
-                    True
-                    if features.has("organizations:slack-block-kit", org_context.organization)
-                    else False
-                    for oi in org_integrations
-                ]
-            )
+            if org_context:
+                use_block_kit = any(
+                    [
+                        True
+                        if features.has("organizations:slack-block-kit", org_context.organization)
+                        else False
+                        for oi in org_integrations
+                    ]
+                )
 
         action_list = self.get_action_list(slack_request=slack_request, use_block_kit=use_block_kit)
         return self._handle_group_actions(slack_request, request, action_list)

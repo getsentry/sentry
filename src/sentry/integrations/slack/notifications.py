@@ -74,27 +74,42 @@ def _notify_recipient(
         text = notification.get_notification_title(ExternalProviders.SLACK, shared_context)
 
         if features.has("organizations:slack-block-kit", notification.organization):
-            # TODO: enable billing attachments for block kit
             blocks = []
             if text:
-                # equivalent of "text" field in legacy attachment system ("text" field does not
-                # show up in notification for block system but is instead used as the fallback text)
-                # ie. "Issue marked as regression", "New comment by <user>"
+                # NOTE(isabella): with legacy attachments, the notification title was
+                # automatically rendered based on the `text` field in the payload; in the block
+                # system, that payload field is used strictly as preview/fallback text, so we need
+                # to add this block to render the title in the notification ie. "Issue marked as
+                # regression", "New comment by <user>"
                 blocks.append(BlockSlackMessageBuilder.get_markdown_block(text))
             attachment_blocks = local_attachments.get("blocks")
             if attachment_blocks:
                 for attachment in attachment_blocks:
                     blocks.append(attachment)
+            additional_attachment = get_additional_attachment(
+                integration, notification.organization
+            )
+            if additional_attachment:
+                for block in additional_attachment:
+                    blocks.append(block)
+            if (
+                not text
+            ):  # if there isn't a notification title, try using message description as fallback
+                text = notification.get_message_description(recipient, ExternalProviders.SLACK)
             payload = {
                 "channel": channel,
                 "unfurl_links": False,
                 "unfurl_media": False,
-                "text": text,
+                "text": text if text else "",
                 "blocks": json.dumps(blocks),
             }
-            if local_attachments.get("callback_id"):
+            callback_id = local_attachments.get("callback_id")
+            if callback_id:
                 # callback_id is now at the same level as blocks, rather than within attachments
-                payload["callback_id"] = local_attachments.get("callback_id")
+                if isinstance(callback_id, str):
+                    payload["callback_id"] = callback_id
+                else:
+                    payload["callback_id"] = json.dumps(local_attachments.get("callback_id"))
         else:
             # Add optional billing related attachment.
             additional_attachment = get_additional_attachment(

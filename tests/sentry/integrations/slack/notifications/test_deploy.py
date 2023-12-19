@@ -80,9 +80,8 @@ class SlackDeployNotificationTest(SlackActivityNotificationTest):
         Test that a Slack message is sent with the expected payload when a deploy happens.
         and block kit is enabled.
         """
-        release = Release.objects.create(
+        release = self.create_release(
             version="meow" * 10,
-            organization_id=self.project.organization_id,
             date_released=timezone.now(),
         )
 

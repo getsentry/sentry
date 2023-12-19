@@ -131,14 +131,6 @@ def get_blocks_and_fallback_text(index=0):
     return blocks, fallback_text
 
 
-def get_blocks_no_text():
-    assert len(responses.calls) >= 1
-    data = parse_qs(responses.calls[0].request.body)
-    assert "blocks" in data
-    blocks = json.loads(data["blocks"][0])
-    return blocks
-
-
 def setup_slack_with_identities(organization, user):
     integration = install_slack(organization)
     idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})

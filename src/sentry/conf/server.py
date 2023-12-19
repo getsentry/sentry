@@ -1599,6 +1599,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:invite-members-rate-limits": True,
     # Enable new issue alert "issue owners" fallback
     "organizations:issue-alert-fallback-targeting": False,
+    # Enables a toggle for entering the new issue details UI
+    "organizations:issue-details-new-experience-toggle": False,
     # Enable experimental replay-issue rendering on Issue Details page
     "organizations:issue-details-replay-event": False,
     # Enables syntax highlighting in the stack trace
@@ -1627,6 +1629,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-stream-performance": False,
     # Enable issue stream performance improvements (cache)
     "organizations:issue-stream-performance-cache": False,
+    # Enabled latest adopted release filter for issue alerts
+    "organizations:latest-adopted-release-filter": False,
     # Enable metric alert charts in email/slack
     "organizations:metric-alert-chartcuterie": False,
     # Enable ignoring archived issues in metric alerts
@@ -3985,6 +3989,16 @@ REGION_PINNED_URL_NAMES = {
 EVENT_PROCESSING_STORE = "rc_processing_redis"
 COGS_EVENT_STORE_LABEL = "bigtable_nodestore"
 
+# Devserver configuration overrides.
+ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
+if ngrok_host and SILO_MODE != "REGION":
+    SENTRY_OPTIONS["system.url-prefix"] = f"https://{ngrok_host}"
+    CSRF_TRUSTED_ORIGINS = [f".{ngrok_host}"]
+    ALLOWED_HOSTS = [f".{ngrok_host}", "localhost", "127.0.0.1", ".docker.internal"]
+
+    SESSION_COOKIE_DOMAIN: str = f".{ngrok_host}"
+    CSRF_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
+    SUDO_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
 
 if SILO_DEVSERVER:
     # Add connections for the region & control silo databases.
