@@ -9,19 +9,19 @@ export type PageAlertOptions = {
 };
 
 const pageErrorContext = createContext<{
-  setPageError: (message: string | undefined) => void;
-  setPageInfo: (message: string | undefined) => void;
-  setPageMuted: (message: string | undefined) => void;
-  setPageSuccess: (message: string | undefined) => void;
-  setPageWarning: (message: string | undefined) => void;
+  setPageError: (message: React.ReactNode | undefined) => void;
+  setPageInfo: (message: React.ReactNode | undefined) => void;
+  setPageMuted: (message: React.ReactNode | undefined) => void;
+  setPageSuccess: (message: React.ReactNode | undefined) => void;
+  setPageWarning: (message: React.ReactNode | undefined) => void;
   pageAlert?: PageAlertOptions;
 }>({
   pageAlert: undefined,
-  setPageError: (_: string | undefined) => {},
-  setPageInfo: (_: string | undefined) => {},
-  setPageMuted: (_: string | undefined) => {},
-  setPageSuccess: (_: string | undefined) => {},
-  setPageWarning: (_: string | undefined) => {},
+  setPageError: (_: React.ReactNode | undefined) => {},
+  setPageInfo: (_: React.ReactNode | undefined) => {},
+  setPageMuted: (_: React.ReactNode | undefined) => {},
+  setPageSuccess: (_: React.ReactNode | undefined) => {},
+  setPageWarning: (_: React.ReactNode | undefined) => {},
 });
 
 export function PageAlertProvider({children}: {children: React.ReactNode}) {
