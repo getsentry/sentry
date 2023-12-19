@@ -36,6 +36,7 @@ from sentry.tasks.integrations.github.pr_comment import (
 from sentry.templatetags.sentry_helpers import small_count
 from sentry.types.referrer_ids import GITHUB_OPEN_PR_BOT_REFERRER
 from sentry.utils import metrics
+from sentry.utils.json import JSONData
 from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
@@ -134,10 +135,10 @@ def get_issue_table_contents(issue_list: List[Dict[str, int]]) -> List[PullReque
 # TODO(cathy): Change the client typing to allow for multiple SCM Integrations
 def safe_for_comment(
     gh_client: GitHubAppsClient, repository: Repository, pull_request: PullRequest
-) -> bool:
+) -> Tuple[bool, JSONData]:
     logger.info("github.open_pr_comment.check_safe_for_comment")
     try:
-        pullrequest_resp = gh_client.get_pullrequest(
+        pr_files = gh_client.get_pullrequest_files(
             repo=repository.name, pull_number=pull_request.key
         )
     except ApiError as e:
@@ -158,34 +159,47 @@ def safe_for_comment(
                 tags={"type": GithubAPIErrorType.UNKNOWN.value, "code": e.code},
             )
             logger.exception("github.open_pr_comment.unknown_api_error", extra={"error": str(e)})
-        return False
+        return False, []
 
     safe_to_comment = True
-    if pullrequest_resp["state"] != "open":
-        metrics.incr(
-            OPEN_PR_METRICS_BASE.format(key="rejected_comment"), tags={"reason": "incorrect_state"}
-        )
-        safe_to_comment = False
-    if pullrequest_resp["changed_files"] > OPEN_PR_MAX_FILES_CHANGED:
+
+    changed_file_count = 0
+    changed_lines_count = 0
+
+    for file in pr_files:
+        filename = file["filename"]
+        # don't count the file if it was added or is not a Python file
+        if file["status"] == "added" or not filename.endswith(".py"):
+            continue
+
+        changed_file_count += 1
+        changed_lines_count += file["changes"]
+
+    if changed_file_count > OPEN_PR_MAX_FILES_CHANGED:
         metrics.incr(
             OPEN_PR_METRICS_BASE.format(key="rejected_comment"), tags={"reason": "too_many_files"}
         )
         safe_to_comment = False
-    if pullrequest_resp["additions"] + pullrequest_resp["deletions"] > OPEN_PR_MAX_LINES_CHANGED:
+    if changed_lines_count > OPEN_PR_MAX_LINES_CHANGED:
         metrics.incr(
             OPEN_PR_METRICS_BASE.format(key="rejected_comment"), tags={"reason": "too_many_lines"}
         )
         safe_to_comment = False
-    return safe_to_comment
+
+    if not safe_to_comment:
+        pr_files = []
+
+    return safe_to_comment, pr_files
 
 
-def get_pr_filenames(
-    gh_client: GitHubAppsClient, repository: Repository, pull_request: PullRequest
-) -> List[str]:
-    pr_files = gh_client.get_pullrequest_files(repo=repository.name, pull_number=pull_request.key)
-
+def get_pr_filenames(pr_files: JSONData) -> List[str]:
     # new files will not have sentry issues associated with them
-    pr_filenames: List[str] = [file["filename"] for file in pr_files if file["status"] != "added"]
+    # only fetch Python files
+    pr_filenames: List[str] = [
+        file["filename"]
+        for file in pr_files
+        if file["status"] != "added" and file["filename"].endswith(".py")
+    ]
 
     logger.info("github.open_pr_comment.pr_filenames", extra={"count": len(pr_filenames)})
     return pr_filenames
@@ -316,7 +330,14 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     client = installation.get_client()
 
     # CREATING THE COMMENT
-    if not safe_for_comment(gh_client=client, repository=repo, pull_request=pull_request):
+    logger.info("github.open_pr_comment.check_safe_for_comment")
+
+    # fetch the files in the PR and determine if it is safe to comment
+    safe_to_comment, pr_files = safe_for_comment(
+        gh_client=client, repository=repo, pull_request=pull_request
+    )
+
+    if not safe_to_comment:
         logger.info("github.open_pr_comment.not_safe_for_comment")
         metrics.incr(
             OPEN_PR_METRICS_BASE.format(key="error"),
@@ -324,7 +345,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         )
         return
 
-    pr_filenames = get_pr_filenames(gh_client=client, repository=repo, pull_request=pull_request)
+    pr_filenames = get_pr_filenames(pr_files)
 
     issue_table_contents = {}
     top_issues_per_file = []
