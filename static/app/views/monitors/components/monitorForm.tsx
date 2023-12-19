@@ -379,7 +379,7 @@ function MonitorForm({
             }}
           </Observer>
         </InputGroup>
-        <StyledListItem>{t('Set thresholds')}</StyledListItem>
+        <StyledListItem>{t('Set margins')}</StyledListItem>
         <ListItemSubText>
           {t('Configure when we mark your monitor as failed or missed.')}
         </ListItemSubText>
@@ -415,7 +415,7 @@ function MonitorForm({
         </InputGroup>
         {hasIssuePlatform && (
           <Fragment>
-            <StyledListItem>{t('Set tolerance')}</StyledListItem>
+            <StyledListItem>{t('Set thresholds')}</StyledListItem>
             <ListItemSubText>
               {t('Configure when an issue is created or resolved.')}
             </ListItemSubText>

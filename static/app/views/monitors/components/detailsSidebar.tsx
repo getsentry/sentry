@@ -75,7 +75,7 @@ export default function DetailsSidebar({monitorEnv, monitor}: Props) {
           <CrontabText>({schedule})</CrontabText>
         )}
       </Schedule>
-      <SectionHeading>{t('Thresholds')}</SectionHeading>
+      <SectionHeading>{t('Margins')}</SectionHeading>
       <Thresholds>
         <MonitorIcon status={MonitorStatus.MISSED_CHECKIN} size={12} />
         <Text>
