@@ -4,7 +4,7 @@ import {Theme} from '@emotion/react';
 import {Alert} from 'sentry/components/alert';
 
 export type PageAlertOptions = {
-  message: string;
+  message: string | undefined;
   type: keyof Theme['alert'];
 };
 
@@ -28,22 +28,22 @@ export function PageAlertProvider({children}: {children: React.ReactNode}) {
   const [pageAlert, setPageAlert] = useState<PageAlertOptions | undefined>();
 
   const setPageInfo = (message: string | undefined) => {
-    setPageAlert(message ? {message, type: 'info'} : undefined);
+    setPageAlert({message, type: 'info'});
   };
   const setPageMuted = (message: string | undefined) => {
-    setPageAlert(message ? {message, type: 'muted'} : undefined);
+    setPageAlert({message, type: 'muted'});
   };
 
   const setPageSuccess = (message: string | undefined) => {
-    setPageAlert(message ? {message, type: 'success'} : undefined);
+    setPageAlert({message, type: 'success'});
   };
 
   const setPageWarning = (message: string | undefined) => {
-    setPageAlert(message ? {message, type: 'warning'} : undefined);
+    setPageAlert({message, type: 'warning'});
   };
 
   const setPageError = (message: string | undefined) => {
-    setPageAlert(message ? {message, type: 'error'} : undefined);
+    setPageAlert({message, type: 'error'});
   };
 
   return (
