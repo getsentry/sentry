@@ -113,7 +113,7 @@ def get_option_value(function, option):
     if SiloMode.get_current_mode() == SiloMode.REGION:
         with sentry_sdk.push_scope() as scope:
             scope.set_context(
-                "aws_lambda_cahce",
+                "aws_lambda_cache",
                 {
                     "cache_options": cache_options,
                     "key": key,
