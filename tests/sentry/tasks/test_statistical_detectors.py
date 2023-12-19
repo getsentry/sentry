@@ -559,7 +559,7 @@ def test_limit_regressions_by_project(detector_cls, ratelimit, timestamp, expect
     ],
 )
 @django_db_all
-def test_redirect_escalations(
+def test_get_regression_versions(
     detector_cls,
     existing,
     expected_versions,
@@ -602,7 +602,7 @@ def test_redirect_escalations(
     def mock_regressions():
         yield from breakpoints
 
-    regressions = list(detector_cls.redirect_escalations(mock_regressions()))
+    regressions = list(detector_cls.get_regression_versions(mock_regressions()))
 
     assert regressions == [
         (expected_version, breakpoints[i])
@@ -893,8 +893,7 @@ def test_new_regression_group(
         }
 
     regressions = get_regressions()
-    versioned_regressions = detector_cls.redirect_escalations(regressions)
-    regressions = detector_cls.save_versioned_regressions(versioned_regressions)
+    regressions = detector_cls.save_regressions_with_versions(regressions)
     assert len(list(regressions)) == 1  # indicates we should've saved 1 regression group
 
     regression_groups = get_regression_groups(
