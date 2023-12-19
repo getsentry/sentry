@@ -7,7 +7,12 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import StreamGroup from 'sentry/components/stream/group';
 import GroupStore from 'sentry/stores/groupStore';
 import GuideStore from 'sentry/stores/guideStore';
-import {GroupStatus, GroupStatusResolution, MarkReviewed} from 'sentry/types';
+import {
+  EventOrGroupType,
+  GroupStatus,
+  GroupStatusResolution,
+  MarkReviewed,
+} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 jest.mock('sentry/utils/analytics');
@@ -22,7 +27,7 @@ describe('StreamGroup', function () {
         id: '13',
         slug: 'foo-project',
       }),
-      type: 'error',
+      type: EventOrGroupType.ERROR,
       inbox: {
         date_added: '2020-11-24T13:17:42.248751Z',
         reason: 0,
