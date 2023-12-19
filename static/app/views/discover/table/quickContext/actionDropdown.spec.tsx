@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import type {Location} from 'history';
+import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -25,7 +26,7 @@ const mockEventView = EventView.fromSavedQuery({
   projects: [1],
 });
 
-const mockedLocation = TestStubs.location({
+const mockedLocation = LocationFixture({
   query: {
     field: 'title',
   },

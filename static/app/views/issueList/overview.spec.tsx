@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
 import merge from 'lodash/merge';
 import {GroupStats} from 'sentry-fixture/groupStats';
+import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import {Search} from 'sentry-fixture/search';
 import {Tags} from 'sentry-fixture/tags';
@@ -241,7 +242,7 @@ describe('IssueList', function () {
         ],
       });
 
-      const location = TestStubs.location({query: {query: 'level:foo'}});
+      const location = LocationFixture({query: {query: 'level:foo'}});
 
       render(<IssueListWithStores {...merge({}, routerProps, {location})} />, {
         context: routerContext,

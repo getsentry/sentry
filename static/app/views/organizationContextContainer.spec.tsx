@@ -1,3 +1,4 @@
+import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import {Team} from 'sentry-fixture/team';
 
@@ -40,7 +41,7 @@ describe('OrganizationContextContainer', function () {
         {...routerProps}
         api={api}
         params={{orgId: 'org-slug'}}
-        location={TestStubs.location({query: {}})}
+        location={LocationFixture({query: {}})}
         useLastOrganization={false}
         organizationsLoading={false}
         organizations={[]}

@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -213,7 +214,7 @@ describe('Dashboards > Detail', function () {
       initialData = initializeOrg({
         organization,
         router: {
-          location: TestStubs.location(),
+          location: LocationFixture(),
         },
       });
       widgets = [
@@ -1017,7 +1018,7 @@ describe('Dashboards > Detail', function () {
         }),
         router: {
           location: {
-            ...TestStubs.location(),
+            ...LocationFixture(),
             query: {
               statsPeriod: '7d',
               release: ['sentry-android-shop@1.2.0'],
@@ -1081,7 +1082,7 @@ describe('Dashboards > Detail', function () {
         }),
         router: {
           location: {
-            ...TestStubs.location(),
+            ...LocationFixture(),
             query: {
               statsPeriod: '7d',
             },
@@ -1128,7 +1129,7 @@ describe('Dashboards > Detail', function () {
         }),
         router: {
           location: {
-            ...TestStubs.location(),
+            ...LocationFixture(),
             query: {
               start: '2022-07-14T07:00:00',
               end: '2022-07-19T23:59:59',
@@ -1185,7 +1186,7 @@ describe('Dashboards > Detail', function () {
         }),
         router: {
           location: {
-            ...TestStubs.location(),
+            ...LocationFixture(),
             query: {
               statsPeriod: '7d',
               environment: ['alpha', 'beta'],
@@ -1247,7 +1248,7 @@ describe('Dashboards > Detail', function () {
         }),
         router: {
           location: {
-            ...TestStubs.location(),
+            ...LocationFixture(),
             query: {
               statsPeriod: '7d',
               environment: ['alpha', 'beta'],
@@ -1305,7 +1306,7 @@ describe('Dashboards > Detail', function () {
         }),
         router: {
           location: {
-            ...TestStubs.location(),
+            ...LocationFixture(),
             query: {
               environment: ['beta', 'alpha'], // Reversed order from saved dashboard
             },
@@ -1353,7 +1354,7 @@ describe('Dashboards > Detail', function () {
         }),
         router: {
           location: {
-            ...TestStubs.location(),
+            ...LocationFixture(),
             query: {
               release: ['not-selected-1'],
             },
@@ -1400,7 +1401,7 @@ describe('Dashboards > Detail', function () {
         }),
         router: {
           location: {
-            ...TestStubs.location(),
+            ...LocationFixture(),
             query: {
               release: ['not-selected-1'],
             },
@@ -1458,7 +1459,7 @@ describe('Dashboards > Detail', function () {
           ],
         }),
         router: {
-          location: TestStubs.location(),
+          location: LocationFixture(),
         },
       });
       render(
@@ -1521,7 +1522,7 @@ describe('Dashboards > Detail', function () {
           ],
         }),
         router: {
-          location: TestStubs.location(),
+          location: LocationFixture(),
         },
       });
       render(

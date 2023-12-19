@@ -1,3 +1,4 @@
+import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -185,7 +186,7 @@ describe('Dashboards - DashboardList', function () {
         organization={organization}
         dashboards={dashboards}
         pageLinks=""
-        location={{...TestStubs.location(), query: {statsPeriod: '7d'}}}
+        location={{...LocationFixture(), query: {statsPeriod: '7d'}}}
       />,
       {context: routerContext}
     );
@@ -202,7 +203,7 @@ describe('Dashboards - DashboardList', function () {
         organization={organization}
         dashboards={dashboards}
         pageLinks=""
-        location={{...TestStubs.location(), query: {}}}
+        location={{...LocationFixture(), query: {}}}
         onDashboardsChange={dashboardUpdateMock}
       />,
       {context: routerContext}
@@ -239,7 +240,7 @@ describe('Dashboards - DashboardList', function () {
         organization={organization}
         dashboards={singleDashboard}
         pageLinks=""
-        location={TestStubs.location()}
+        location={LocationFixture()}
         onDashboardsChange={dashboardUpdateMock}
       />
     );
@@ -257,7 +258,7 @@ describe('Dashboards - DashboardList', function () {
         organization={organization}
         dashboards={dashboards}
         pageLinks=""
-        location={{...TestStubs.location(), query: {}}}
+        location={{...LocationFixture(), query: {}}}
         onDashboardsChange={dashboardUpdateMock}
       />
     );
@@ -283,7 +284,7 @@ describe('Dashboards - DashboardList', function () {
         organization={organization}
         dashboards={dashboards}
         pageLinks=""
-        location={{...TestStubs.location(), query: {}}}
+        location={{...LocationFixture(), query: {}}}
         onDashboardsChange={dashboardUpdateMock}
       />
     );

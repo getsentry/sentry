@@ -1,3 +1,5 @@
+import LocationFixture from 'sentry-fixture/locationFixture';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -113,7 +115,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
       <ProjectLatestReleases
         organization={organization}
         projectSlug={project.slug}
-        location={TestStubs.location({
+        location={LocationFixture({
           query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},
         })}
         projectId={project.slug}
@@ -135,7 +137,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
       <ProjectLatestReleases
         organization={organization}
         projectSlug={project.slug}
-        location={TestStubs.location({
+        location={LocationFixture({
           query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},
         })}
         projectId={project.slug}

@@ -1,4 +1,5 @@
 import {HiddenEnvironments} from 'sentry-fixture/environments';
+import LocationFixture from 'sentry-fixture/locationFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -19,7 +20,7 @@ function renderComponent(isHidden: boolean) {
     <ProjectEnvironments
       {...routerProps}
       params={{projectId: project.slug}}
-      location={TestStubs.location({pathname})}
+      location={LocationFixture({pathname})}
       organization={organization}
       project={project}
     />

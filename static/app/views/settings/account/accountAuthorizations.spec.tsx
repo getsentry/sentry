@@ -1,3 +1,4 @@
+import LocationFixture from 'sentry-fixture/locationFixture';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {render} from 'sentry-test/reactTestingLibrary';
@@ -19,7 +20,7 @@ describe('AccountAuthorizations', function () {
     const router = TestStubs.router({});
     render(
       <AccountAuthorizations
-        location={TestStubs.location()}
+        location={LocationFixture()}
         routeParams={router.params}
         params={router.params}
         routes={router.routes}
