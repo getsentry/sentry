@@ -1629,6 +1629,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-stream-performance": False,
     # Enable issue stream performance improvements (cache)
     "organizations:issue-stream-performance-cache": False,
+    # Enabled latest adopted release filter for issue alerts
+    "organizations:latest-adopted-release-filter": False,
     # Enable metric alert charts in email/slack
     "organizations:metric-alert-chartcuterie": False,
     # Enable ignoring archived issues in metric alerts
