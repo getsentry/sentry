@@ -505,6 +505,17 @@ def occurrences_ingest_consumer(**options):
         run_processor_with_signals(consumer)
 
 
+def delay_kafka_rebalance(consumer_name: str) -> None:
+    """
+    get current time.
+    get the seconds part of the current time.
+
+    get the seconds delay to sleep from an option.
+
+    and then continue to sleep until you get to the exact second when you want to start/stop the app.
+    """
+
+
 @run.command("consumer")
 @log_options()
 @click.argument(
@@ -597,6 +608,11 @@ def basic_consumer(consumer_name, consumer_args, topic, **options):
 
     add_global_tags(kafka_topic=topic, consumer_group=options["group_id"])
     initialize_arroyo_main()
+
+    if consumer_name == "ingest-generic-metrics":
+        # check if option is enabled
+        # if yes, call delay_kafka_rebalance
+        pass
 
     processor = get_stream_processor(consumer_name, consumer_args, topic=topic, **options)
     run_processor_with_signals(processor)
