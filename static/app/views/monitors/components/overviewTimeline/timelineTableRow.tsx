@@ -239,7 +239,7 @@ const TimelineRow = styled('div')<TimelineRowProps>`
     visibility: hidden;
   }
 
-  /* Disabled monitors become more opqaue */
+  /* Disabled monitors become more opaque */
   --disabled-opacity: ${p => (p.isDisabled ? '0.6' : 'unset')};
 
   &:last-child > *:first-child {
