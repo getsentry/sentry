@@ -1,4 +1,5 @@
 import {Event as EventFixture} from 'sentry-fixture/event';
+import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -10,7 +11,7 @@ describe('EventEntries', function () {
     organization: Organization(),
     project: TestStubs.Project(),
     event: EventFixture(),
-    location: TestStubs.location(),
+    location: LocationFixture(),
   };
 
   beforeEach(function () {
