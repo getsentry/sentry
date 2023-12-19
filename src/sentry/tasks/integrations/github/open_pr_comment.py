@@ -64,14 +64,14 @@ Your pull request is modifying functions with the following pre-existing issues:
 
 <sub>Did you find this useful? React with a 👍 or 👎 or let us know in #proj-github-pr-comments</sub>"""
 
-ISSUE_TABLE_TEMPLATE = """📄 **{filename}**
+ISSUE_TABLE_TEMPLATE = """📄 File: **{filename}**
 
 | Function | Issue  |
 | :------- | :----- |
 {issue_rows}"""
 
 ISSUE_TABLE_TOGGLE_TEMPLATE = """<details>
-<summary><b>📄 {filename} (Click to Expand)</b></summary>
+<summary><b>📄 File: {filename} (Click to Expand)</b></summary>
 
 | Function | Issue  |
 | :------- | :----- |
