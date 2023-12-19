@@ -30,7 +30,7 @@ class DetectorAlgorithm(ABC):
         ...
 
     @abstractmethod
-    def update(self, payload: DetectorPayload) -> Tuple[Optional[TrendType], float]:
+    def update(self, payload: DetectorPayload) -> Tuple[TrendType, float]:
         ...
 
     @property
@@ -142,7 +142,7 @@ class MovingAverageRelativeChangeDetectorConfig(MovingAverageDetectorConfig):
 class MovingAverageRelativeChangeDetector(MovingAverageDetector):
     config: MovingAverageRelativeChangeDetectorConfig
 
-    def update(self, payload: DetectorPayload) -> Tuple[Optional[TrendType], float]:
+    def update(self, payload: DetectorPayload) -> Tuple[TrendType, float]:
         if self.timestamp is not None and self.timestamp > payload.timestamp:
             # In the event that the timestamp is before the payload's timestamps,
             # we do not want to process this payload.
@@ -153,7 +153,7 @@ class MovingAverageRelativeChangeDetector(MovingAverageDetector):
                 payload.timestamp.isoformat(),
                 self.timestamp.isoformat(),
             )
-            return None, 0
+            return TrendType.Skipped, 0
 
         old_moving_avg_short = self.moving_avg_short.value
         old_moving_avg_long = self.moving_avg_long.value

@@ -37,6 +37,15 @@ from sentry.utils.snuba import SnubaTSResult
 
 
 @dataclass(frozen=True)
+class TrendBundle:
+    type: TrendType
+    score: float
+    payload: DetectorPayload
+    state: Optional[DetectorState] = None
+    regression_group: Optional[RegressionGroup] = None
+
+
+@dataclass(frozen=True)
 class RegressionDetector(ABC):
     source: str
     kind: str
@@ -79,7 +88,7 @@ class RegressionDetector(ABC):
     @classmethod
     def detect_trends(
         cls, projects: List[Project], start: datetime
-    ) -> Generator[Tuple[Optional[TrendType], float, DetectorPayload, DetectorState], None, None]:
+    ) -> Generator[TrendBundle, None, None]:
         unique_project_ids: Set[int] = set()
 
         total_count = 0
@@ -111,7 +120,9 @@ class RegressionDetector(ABC):
 
                 # the trend type can be None if no update happened,
                 # pass None to indicate we do not need up update the state
-                states.append(None if trend_type is None else algorithm.state.to_redis_dict())
+                states.append(
+                    None if trend_type == TrendType.Skipped else algorithm.state.to_redis_dict()
+                )
 
                 if trend_type == TrendType.Regressed:
                     regressed_count += 1
@@ -120,7 +131,12 @@ class RegressionDetector(ABC):
 
                 unique_project_ids.add(payload.project_id)
 
-                yield (trend_type, score, payload, algorithm.state)
+                yield TrendBundle(
+                    type=trend_type,
+                    score=score,
+                    payload=payload,
+                    state=algorithm.state,
+                )
 
             store.bulk_write_states(payloads, states)
 
@@ -222,29 +238,32 @@ class RegressionDetector(ABC):
     @classmethod
     def limit_regressions_by_project(
         cls,
-        trends: Generator[
-            Tuple[Optional[TrendType], float, DetectorPayload, DetectorState], None, None
-        ],
+        bundles: Generator[TrendBundle, None, None],
         ratelimit: Optional[int] = None,
-    ) -> Generator[DetectorPayload, None, None]:
+    ) -> Generator[TrendBundle, None, None]:
         if ratelimit is None:
             ratelimit = options.get("statistical_detectors.ratelimit.ema")
 
-        regressions_by_project: DefaultDict[int, List[Tuple[float, DetectorPayload]]] = defaultdict(
+        regressions_by_project: DefaultDict[int, List[Tuple[float, TrendBundle]]] = defaultdict(
             list
         )
 
-        for trend_type, score, payload, state in trends:
-            if trend_type != TrendType.Regressed:
+        for bundle in bundles:
+            if bundle.type != TrendType.Regressed:
                 continue
-            heapq.heappush(regressions_by_project[payload.project_id], (score, payload))
+            heapq.heappush(
+                regressions_by_project[bundle.payload.project_id], (bundle.score, bundle)
+            )
 
-            while ratelimit >= 0 and len(regressions_by_project[payload.project_id]) > ratelimit:
-                heapq.heappop(regressions_by_project[payload.project_id])
+            while (
+                ratelimit >= 0
+                and len(regressions_by_project[bundle.payload.project_id]) > ratelimit
+            ):
+                heapq.heappop(regressions_by_project[bundle.payload.project_id])
 
         for regressions in regressions_by_project.values():
-            for _, regression in regressions:
-                yield regression
+            for _, bundle in regressions:
+                yield bundle
 
     @classmethod
     def make_status_change_message(
@@ -262,66 +281,84 @@ class RegressionDetector(ABC):
         )
 
     @classmethod
-    def redirect_resolutions(
+    def get_regression_groups(
         cls,
-        trends: Generator[
-            Tuple[Optional[TrendType], float, DetectorPayload, DetectorState], None, None
-        ],
-        timestamp: datetime,
-        batch_size=1_000,
-    ) -> Generator[Tuple[Optional[TrendType], float, DetectorPayload, DetectorState], None, None]:
-        groups_to_update = []
-
-        for trend_chunk in chunked(trends, batch_size):
+        bundles: Generator[TrendBundle, None, None],
+        batch_size=100,
+    ) -> Generator[TrendBundle, None, None]:
+        for trend_chunk in chunked(bundles, batch_size):
             active_regression_groups = {
                 (group.project_id, group.fingerprint): group
                 for group in get_regression_groups(
                     cls.regression_type,
                     [
                         (
-                            payload.project_id,
-                            generate_fingerprint(cls.regression_type, payload.group),
+                            bundle.payload.project_id,
+                            generate_fingerprint(cls.regression_type, bundle.payload.group),
                         )
-                        for trend_type, score, payload, state in trend_chunk
+                        for bundle in trend_chunk
                     ],
                     active=True,
                 )
             }
 
-            for trend_type, score, payload, state in trend_chunk:
-                try:
-                    group = active_regression_groups.get(
-                        (
-                            payload.project_id,
-                            generate_fingerprint(cls.regression_type, payload.group),
-                        )
+            for bundle in trend_chunk:
+                group = active_regression_groups.get(
+                    (
+                        bundle.payload.project_id,
+                        generate_fingerprint(cls.regression_type, bundle.payload.group),
                     )
-                    if group is not None and state.should_auto_resolve(
+                )
+                yield TrendBundle(
+                    type=bundle.type,
+                    score=bundle.score,
+                    payload=bundle.payload,
+                    state=bundle.state,
+                    regression_group=group,
+                )
+
+    @classmethod
+    def redirect_resolutions(
+        cls,
+        bundles: Generator[TrendBundle, None, None],
+        timestamp: datetime,
+        batch_size=100,
+    ) -> Generator[TrendBundle, None, None]:
+        groups_to_resolve = []
+
+        for bundle in bundles:
+            group = bundle.regression_group
+            try:
+                if (
+                    group is not None
+                    and bundle.state is not None
+                    and bundle.state.should_auto_resolve(
                         group.baseline, cls.resolution_rel_threshold
-                    ):
-                        group.active = False
-                        group.date_resolved = timestamp
-                        groups_to_update.append(group)
+                    )
+                ):
+                    group.active = False
+                    group.date_resolved = timestamp
+                    groups_to_resolve.append(group)
 
-                        status_change = cls.make_status_change_message(
-                            payload, status=GroupStatus.RESOLVED
-                        )
-                        produce_occurrence_to_kafka(
-                            payload_type=PayloadType.STATUS_CHANGE,
-                            status_change=status_change,
-                        )
+                    status_change = cls.make_status_change_message(
+                        bundle.payload, status=GroupStatus.RESOLVED
+                    )
+                    produce_occurrence_to_kafka(
+                        payload_type=PayloadType.STATUS_CHANGE,
+                        status_change=status_change,
+                    )
 
-                        continue
-                except Exception as e:
-                    sentry_sdk.capture_exception(e)
+                    continue
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
-                yield trend_type, score, payload, state
+            yield bundle
 
-        RegressionGroup.objects.bulk_update(groups_to_update, ["active", "date_resolved"])
+        RegressionGroup.objects.bulk_update(groups_to_resolve, ["active", "date_resolved"])
 
         metrics.incr(
             "statistical_detectors.objects.auto_resolved",
-            amount=len(groups_to_update),
+            amount=len(groups_to_resolve),
             tags={"source": cls.source, "kind": cls.kind},
             sample_rate=1.0,
         )

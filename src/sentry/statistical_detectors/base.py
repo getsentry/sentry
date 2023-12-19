@@ -11,6 +11,7 @@ class TrendType(Enum):
     Regressed = "regressed"
     Improved = "improved"
     Unchanged = "unchanged"
+    Skipped = "skipped"
 
 
 @dataclass(frozen=True)
