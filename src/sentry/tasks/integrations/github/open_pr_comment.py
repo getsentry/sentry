@@ -336,7 +336,6 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     client = installation.get_client()
 
     # CREATING THE COMMENT
-    logger.info("github.open_pr_comment.check_safe_for_comment")
 
     # fetch the files in the PR and determine if it is safe to comment
     safe_to_comment, pr_files = safe_for_comment(
