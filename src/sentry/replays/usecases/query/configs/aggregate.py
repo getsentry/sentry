@@ -78,6 +78,7 @@ search_config: dict[str, FieldProtocol] = {
     "click.class": array_click_field("click_class"),
     "click.id": click_field("click_id"),
     "click.label": click_field("click_aria_label"),
+    "click.react_component_name": click_field("click_react_component_name"),
     "click.role": click_field("click_role"),
     "click.selector": ComputedField(parse_selector, SumOfClickSelectorComposite),
     "click.tag": click_field("click_tag"),

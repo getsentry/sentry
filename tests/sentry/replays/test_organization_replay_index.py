@@ -90,6 +90,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 tag="div",
                 id="myid",
                 class_=["class1", "class2"],
+                react_component_name="SignUpForm",
                 role="button",
                 testid="1",
                 alt="Alt",
@@ -139,6 +140,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                         "click.alt": "Alt",
                         "click.classes": ["class1", "class2"],
                         "click.id": "myid",
+                        "click.react_component_name": "SignUpForm",
                         "click.role": "button",
                         "click.tag": "div",
                         "click.testid": "1",
@@ -1038,6 +1040,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 tag="div",
                 id="myid",
                 class_=["class1", "class2", "class:hover"],
+                react_component_name="SignUpForm",
                 role="button",
                 testid="1",
                 alt="Alt",
@@ -1068,6 +1071,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "click.class:class3",
                 "click.id:myid",
                 "click.label:AriaLabel",
+                "click.react_component_name:SignUpForm",
                 "click.role:button",
                 "click.tag:div",
                 "click.tag:button",
@@ -1077,6 +1081,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "click.selector:div#myid",
                 "click.selector:div[alt=Alt]",
                 "click.selector:div[title=MyTitle]",
+                "click.selector:div[data-sentry-component=SignUpForm]",
                 "click.selector:div[data-testid='1']",
                 "click.selector:div[data-test-id='1']",
                 "click.selector:div[role=button]",
@@ -1100,6 +1105,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "click.class:class4",
                 "click.id:other",
                 "click.label:NotAriaLabel",
+                "click.react_component_name:NotSignUpForm",
                 "click.role:form",
                 "click.tag:header",
                 "click.testid:2",
@@ -1140,6 +1146,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 tag="div",
                 id="myid",
                 class_=["class1", "class2"],
+                react_component_name="SignUpForm",
                 role="button",
                 testid="1",
                 alt="Alt",
@@ -1171,6 +1178,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                             "click.alt": "Alt",
                             "click.classes": ["class1", "class3"],
                             "click.id": "myid",
+                            "click.react_component_name": "SignUpForm",
                             "click.role": "button",
                             "click.tag": "button",
                             "click.testid": "1",
@@ -1182,6 +1190,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                             "click.alt": None,
                             "click.classes": ["class1", "class2"],
                             "click.id": "myid",
+                            "click.react_component_name": None,
                             "click.role": None,
                             "click.tag": "div",
                             "click.testid": None,
@@ -1254,7 +1263,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 assert response.status_code == 400, query
                 assert response.content == (
                     b'{"detail":"Invalid attribute specified. Only alt, aria-label, role, '
-                    b'data-testid, data-test-id, and title are supported."}'
+                    b'data-testid, data-test-id, data-sentry-component, and title are supported."}'
                 ), query
 
     def test_get_replays_filter_clicks_unsupported_operators(self):

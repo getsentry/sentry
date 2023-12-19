@@ -245,6 +245,7 @@ CLICK_FIELD_MAP = {
     "click_aria_label": "click.label",
     "click_classes": "click.classes",
     "click_id": "click.id",
+    "click_react_component_name": "click.react_component_name",
     "click_role": "click.role",
     "click_tag": "click.tag",
     "click_testid": "click.testid",
