@@ -5,14 +5,21 @@ import {
   List as ReactVirtualizedList,
   ListRowProps,
 } from 'react-virtualized';
+import styled from '@emotion/styled';
 
+import Alert from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Placeholder from 'sentry/components/placeholder';
 import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useJumpButtons from 'sentry/components/replays/useJumpButtons';
-import {t} from 'sentry/locale';
+import {IconClose} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useExtractedDomNodes from 'sentry/utils/replays/hooks/useExtractedDomNodes';
+import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 import useVirtualizedInspector from 'sentry/views/replays/detail//useVirtualizedInspector';
 import BreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/breadcrumbFilters';
@@ -27,6 +34,8 @@ import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 import useVirtualListDimentionChange from 'sentry/views/replays/detail/useVirtualListDimentionChange';
 
+const LOCAL_STORAGE_KEY = 'replay-details-mask-config-instructions-dismissed';
+
 // Ensure this object is created once as it is an input to
 // `useVirtualizedList`'s memoization
 const cellMeasurer = {
@@ -35,6 +44,7 @@ const cellMeasurer = {
 };
 
 function Breadcrumbs() {
+  const {dismiss, isDismissed} = useDismissAlert({key: LOCAL_STORAGE_KEY});
   const {currentTime, replay} = useReplayContext();
   const organization = useOrganization();
   const hasPerfTab = organization.features.includes('session-replay-trace-table');
@@ -126,6 +136,27 @@ function Breadcrumbs() {
       <FilterLoadingIndicator isLoading={isFetchingExtractions || isFetchingTraces}>
         <BreadcrumbFilters frames={frames} {...filterProps} />
       </FilterLoadingIndicator>
+      {isDismissed ? null : (
+        <StyledAlert
+          type="info"
+          showIcon
+          trailingItems={
+            <Button
+              aria-label={t('Dismiss banner')}
+              icon={<IconClose />}
+              onClick={dismiss}
+              size="zero"
+              borderless
+            />
+          }
+        >
+          {tct('Learn how to unmask text (****) and unblock media [link:here].', {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/privacy/" />
+            ),
+          })}
+        </StyledAlert>
+      )}
       <TabItemContainer data-test-id="replay-details-breadcrumbs-tab">
         {frames ? (
           <AutoSizer onResize={updateList}>
@@ -171,5 +202,9 @@ function Breadcrumbs() {
     </FluidHeight>
   );
 }
+
+const StyledAlert = styled(Alert)`
+  margin-bottom: ${space(1)};
+`;
 
 export default Breadcrumbs;
