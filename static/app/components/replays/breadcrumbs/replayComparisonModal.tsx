@@ -1,8 +1,9 @@
-import {useEffect, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Flex} from 'sentry/components/profiling/flex';
 import {
   Provider as ReplayContextProvider,
@@ -90,9 +91,33 @@ export default function ReplayComparisonModal({
             </ReplayContextProvider>
           </Flex>
           {activeTab === 'html' && leftBody && rightBody ? (
-            <SplitDiffScrollWrapper>
-              <SplitDiff base={leftBody} target={rightBody} type="words" />
-            </SplitDiffScrollWrapper>
+            <Fragment>
+              <DiffHeader>
+                <Flex flex="1" align="center">
+                  {t('Before Hydration')}
+                  <CopyToClipboardButton
+                    text={leftBody}
+                    size="xs"
+                    iconSize="xs"
+                    borderless
+                    aria-label={t('Copy Before')}
+                  />
+                </Flex>
+                <Flex flex="1" align="center">
+                  {t('After Hydration')}
+                  <CopyToClipboardButton
+                    text={rightBody}
+                    size="xs"
+                    iconSize="xs"
+                    borderless
+                    aria-label={t('Copy After')}
+                  />
+                </Flex>
+              </DiffHeader>
+              <SplitDiffScrollWrapper>
+                <SplitDiff base={leftBody} target={rightBody} type="words" />
+              </SplitDiffScrollWrapper>
+            </Fragment>
           ) : null}
         </Flex>
       </Body>
@@ -131,4 +156,13 @@ const ComparisonSideWrapper = styled('div')`
 const SplitDiffScrollWrapper = styled('div')`
   height: 70vh;
   overflow: auto;
+`;
+
+const DiffHeader = styled('div')`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex: 1;
+  font-weight: 600;
+  line-height: 1.2;
 `;
