@@ -18,10 +18,10 @@ describe('StreamGroup', function () {
   beforeEach(function () {
     group1 = GroupFixture({
       id: '1337',
-      project: {
+      project: ProjectFixture({
         id: '13',
         slug: 'foo-project',
-      },
+      }),
       type: 'error',
       inbox: {
         date_added: '2020-11-24T13:17:42.248751Z',
