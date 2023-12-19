@@ -29,7 +29,7 @@ function MainContent() {
       <Layout.Header>
         <Layout.HeaderContent>
           <Layout.Title>
-            {t('DDM')}
+            {t('Metrics')}
             <PageHeadingQuestionTooltip
               docsUrl="https://develop.sentry.dev/delightful-developer-metrics/"
               title={t('Delightful Developer Metrics.')}

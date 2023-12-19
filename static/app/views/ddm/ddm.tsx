@@ -19,7 +19,7 @@ function DDM() {
   }, []);
 
   return (
-    <SentryDocumentTitle title={t('DDM')} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={t('Metrics')} orgSlug={organization.slug}>
       <PageFiltersContainer disablePersistence>
         <DDMContextProvider>
           <DDMLayout />
