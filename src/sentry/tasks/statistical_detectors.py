@@ -41,9 +41,8 @@ from sentry.snuba.discover import zerofill
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.statistical_detectors.algorithm import (
-    MovingAverageDetectorState,
+    DetectorAlgorithm,
     MovingAverageRelativeChangeDetector,
-    MovingAverageRelativeChangeDetectorConfig,
 )
 from sentry.statistical_detectors.base import DetectorPayload
 from sentry.statistical_detectors.detector import RegressionDetector
@@ -162,17 +161,20 @@ class EndpointRegressionDetector(RegressionDetector):
     source = "transaction"
     kind = "endpoint"
     regression_type = RegressionType.ENDPOINT
-    config = MovingAverageRelativeChangeDetectorConfig(
-        min_data_points=6,
-        short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
-        long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
-        threshold=0.2,
-    )
-    state_cls = MovingAverageDetectorState
-    detector_cls = MovingAverageRelativeChangeDetector
     min_change = 200  # 200ms in ms
     resolution_rel_threshold = 0.1
     escalation_rel_threshold = 0.3
+
+    @classmethod
+    def make_detector_algorithm(cls) -> DetectorAlgorithm:
+        return MovingAverageRelativeChangeDetector(
+            source=cls.source,
+            kind=cls.kind,
+            min_data_points=6,
+            moving_avg_short_factory=lambda: ExponentialMovingAverage(2 / 21),
+            moving_avg_long_factory=lambda: ExponentialMovingAverage(2 / 41),
+            threshold=0.2,
+        )
 
     @classmethod
     def make_detector_store(cls) -> DetectorStore:
@@ -200,17 +202,20 @@ class FunctionRegressionDetector(RegressionDetector):
     source = "profile"
     kind = "function"
     regression_type = RegressionType.FUNCTION
-    config = MovingAverageRelativeChangeDetectorConfig(
-        min_data_points=6,
-        short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
-        long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
-        threshold=0.2,
-    )
-    state_cls = MovingAverageDetectorState
-    detector_cls = MovingAverageRelativeChangeDetector
     min_change = 100_000_000  # 100ms in ns
     resolution_rel_threshold = 0.1
     escalation_rel_threshold = 0.3
+
+    @classmethod
+    def make_detector_algorithm(cls) -> DetectorAlgorithm:
+        return MovingAverageRelativeChangeDetector(
+            source=cls.source,
+            kind=cls.kind,
+            min_data_points=6,
+            moving_avg_short_factory=lambda: ExponentialMovingAverage(2 / 21),
+            moving_avg_long_factory=lambda: ExponentialMovingAverage(2 / 41),
+            threshold=0.2,
+        )
 
     @classmethod
     def make_detector_store(cls) -> DetectorStore:
