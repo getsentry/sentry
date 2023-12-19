@@ -154,13 +154,13 @@ class AsyncDiscordResponseTest(TestCase):
             responses.POST,
             "https://us.testserver/extensions/discord/interactions/",
             status=200,
-            json={"ok": True, "region": "us"},
+            json={"data": {"ok": True, "region": "us"}},
         )
         responses.add(
             responses.POST,
             "https://eu.testserver/extensions/discord/interactions/",
             status=200,
-            json={"ok": True, "region": "eu"},
+            json={"data": {"ok": True, "region": "eu"}},
         )
         discord_response = responses.add(
             responses.POST,
@@ -181,18 +181,20 @@ class AsyncDiscordResponseTest(TestCase):
             responses.POST,
             "https://us.testserver/extensions/discord/interactions/",
             status=404,
-            json={"ok": False, "region": "us"},
+            json={"data": {"ok": False, "region": "us"}},
         )
         responses.add(
             responses.POST,
             "https://eu.testserver/extensions/discord/interactions/",
             status=200,
-            json={"ok": True, "region": "eu"},
+            json={"data": {"ok": True, "region": "eu"}},
         )
         discord_response = responses.add(
             responses.POST,
             self.response_url,
             status=200,
+            # Matcher ensures successful EU response was sent to Discord
+            match=[matchers.json_params_matcher({"ok": True, "region": "eu"})],
         )
         convert_to_async_discord_response(
             region_names=["eu", "us"],
@@ -208,13 +210,13 @@ class AsyncDiscordResponseTest(TestCase):
             responses.POST,
             "https://us.testserver/extensions/discord/interactions/",
             status=404,
-            json={"ok": False, "region": "us"},
+            json={"data": {"ok": False, "region": "us"}},
         )
         responses.add(
             responses.POST,
             "https://eu.testserver/extensions/discord/interactions/",
             status=404,
-            json={"ok": False, "region": "eu"},
+            json={"data": {"ok": False, "region": "eu"}},
         )
         discord_response = responses.add(
             responses.POST,
