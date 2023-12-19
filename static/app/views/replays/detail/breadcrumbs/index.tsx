@@ -15,6 +15,7 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useExtractedDomNodes from 'sentry/utils/replays/hooks/useExtractedDomNodes';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
@@ -135,7 +136,7 @@ function Breadcrumbs() {
         <BreadcrumbFilters frames={frames} {...filterProps} />
       </FilterLoadingIndicator>
       {isDismissed ? null : (
-        <Alert
+        <StyledAlert
           type="info"
           showIcon
           trailingItems={<StyledCloseButton onClick={dismiss} />}
@@ -145,7 +146,7 @@ function Breadcrumbs() {
               <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/privacy/" />
             ),
           })}
-        </Alert>
+        </StyledAlert>
       )}
       <TabItemContainer data-test-id="replay-details-breadcrumbs-tab">
         {frames ? (
@@ -195,6 +196,10 @@ function Breadcrumbs() {
 
 const StyledCloseButton = styled(IconClose)`
   cursor: pointer;
+`;
+
+const StyledAlert = styled(Alert)`
+  margin-bottom: ${space(1)};
 `;
 
 export default Breadcrumbs;
