@@ -1,6 +1,7 @@
 from sentry.constants import ObjectStatus
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.repository import repository_service
+from sentry.types.region import RegionMappingNotFound
 
 from ..base import ModelDeletionTask, ModelRelation
 
@@ -21,9 +22,13 @@ class OrganizationIntegrationDeletionTask(ModelDeletionTask):
         return relations
 
     def delete_instance(self, instance: OrganizationIntegration):
-        repository_service.disassociate_organization_integration(
-            organization_id=instance.organization_id,
-            organization_integration_id=instance.id,
-            integration_id=instance.integration_id,
-        )
+        try:
+            repository_service.disassociate_organization_integration(
+                organization_id=instance.organization_id,
+                organization_integration_id=instance.id,
+                integration_id=instance.integration_id,
+            )
+        except RegionMappingNotFound:
+            # This can happen when an organization has been deleted already.
+            pass
         return super().delete_instance(instance)
