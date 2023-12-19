@@ -6,7 +6,7 @@ statusProvider:
   name: github
   config:
     contexts:
-      - 'self-hosted-builder (sentryio)'
+      - 'self-hosted'
 targets:
   - id: release
     name: docker
