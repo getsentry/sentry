@@ -74,7 +74,6 @@ def _notify_recipient(
         text = notification.get_notification_title(ExternalProviders.SLACK, shared_context)
 
         if features.has("organizations:slack-block-kit", notification.organization):
-            # TODO: enable billing attachments for block kit
             blocks = []
             if text:
                 # NOTE(isabella): with legacy attachments, the notification title was
@@ -87,6 +86,12 @@ def _notify_recipient(
             if attachment_blocks:
                 for attachment in attachment_blocks:
                     blocks.append(attachment)
+            additional_attachment = get_additional_attachment(
+                integration, notification.organization
+            )
+            if additional_attachment:
+                for block in additional_attachment:
+                    blocks.append(block)
             if (
                 not text
             ):  # if there isn't a notification title, try using message description as fallback
