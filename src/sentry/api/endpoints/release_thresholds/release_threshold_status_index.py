@@ -32,6 +32,7 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
     from sentry.models.release_threshold.release_threshold import ReleaseThreshold
+    from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 
 
 class SerializedThreshold(TypedDict):
@@ -213,19 +214,23 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
             # TODO:
             # We should update release model to preserve threshold states.
             # if release.failed_thresholds/passed_thresholds exists - then skip calculating and just return thresholds
-
-            if project_slug_list:
-                project_list = release.projects.filter(slug__in=project_slug_list)
-            else:
-                project_list = release.projects.all()
+            project_list = [
+                p
+                for p in release.projects.all()
+                if (project_slug_list and p.slug in project_slug_list) or (not project_slug_list)
+            ]
 
             for project in project_list:
-                if environments_list:
-                    thresholds_list: List[ReleaseThreshold] = project.release_thresholds.filter(
-                        environment__name__in=environments_list
+                thresholds_list: List[ReleaseThreshold] = [
+                    t
+                    for t in project.release_thresholds.all()
+                    if (
+                        environments_list
+                        and t.environment
+                        and t.environment.name in environments_list
                     )
-                else:
-                    thresholds_list = project.release_thresholds.all()
+                    or (not environments_list)
+                ]
 
                 for threshold in thresholds_list:
                     if threshold.threshold_type not in thresholds_by_type:
@@ -247,21 +252,24 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                         # NOTE: if a threshold has no environment set, we monitor from start of the release creation
                         # If a deploy does not exist for the thresholds environment, we monitor from start of release creation
                         # ReleaseProjectEnvironment model
-                        try:
-                            rpe_entry = release.releaseprojectenvironment_set.get(
-                                environment=threshold.environment, project=threshold.project
-                            )
+                        rpe_entry: ReleaseProjectEnvironment = next(
+                            (
+                                rpe
+                                for rpe in release.releaseprojectenvironment_set.all()
+                                if rpe.environment == threshold.environment
+                                and rpe.project == project
+                            ),
+                            None,
+                        )
+                        if rpe_entry:
                             last_deploy_id = rpe_entry.last_deploy_id
-                            deploy_query = release.deploy_set.filter(id=last_deploy_id)
-                            latest_deploy = deploy_query[0] if deploy_query.exists() else None
-                        except Exception:
-                            logger.info(
-                                "No deploy exists",
-                                extra={
-                                    "project": threshold.project.slug,
-                                    "release": release.version,
-                                    "environment": threshold.environment.name,
-                                },
+                            latest_deploy = next(
+                                (
+                                    deploy
+                                    for deploy in release.deploy_set.all()
+                                    if deploy.id == last_deploy_id
+                                ),
+                                None,
                             )
 
                     # NOTE: query window starts at the earliest release up until the latest threshold window
