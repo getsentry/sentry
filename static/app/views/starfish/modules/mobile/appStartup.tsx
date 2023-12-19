@@ -10,7 +10,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {space} from 'sentry/styles/space';
-import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageError';
+import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';

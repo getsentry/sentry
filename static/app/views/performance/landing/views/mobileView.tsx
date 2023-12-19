@@ -1,5 +1,5 @@
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {usePageAlert} from 'sentry/utils/performance/contexts/pageError';
+import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 
 import Table from '../../table';
@@ -12,7 +12,7 @@ import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
 import {BasePerformanceViewProps} from './types';
 
 export function MobileView(props: BasePerformanceViewProps) {
-  const {setPageAlert} = usePageAlert();
+  const {setPageError} = usePageAlert();
   let columnTitles = checkIsReactNative(props.eventView)
     ? REACT_NATIVE_COLUMN_TITLES
     : MOBILE_COLUMN_TITLES;
@@ -58,11 +58,7 @@ export function MobileView(props: BasePerformanceViewProps) {
       <div>
         <DoubleChartRow {...props} allowedCharts={doubleRowAllowedCharts} />
         <TripleChartRow {...props} allowedCharts={allowedCharts} />
-        <Table
-          {...props}
-          columnTitles={columnTitles}
-          setError={msg => setPageAlert({message: msg, type: 'error'})}
-        />
+        <Table {...props} columnTitles={columnTitles} setError={setPageError} />
       </div>
     </PerformanceDisplayProvider>
   );

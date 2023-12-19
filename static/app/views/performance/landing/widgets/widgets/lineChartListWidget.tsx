@@ -18,7 +18,7 @@ import {
   canUseMetricsData,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {usePageAlert} from 'sentry/utils/performance/contexts/pageError';
+import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
@@ -87,7 +87,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   const mepSetting = useMEPSettingContext();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {ContainerActions, organization, InteractiveTitle} = props;
-  const pageError = usePageAlert();
+  const {setPageError} = usePageAlert();
   const canHaveIntegrationEmptyState = integrationEmptyStateWidgets.includes(
     props.chartSetting
   );
@@ -354,7 +354,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               query={eventView.getQueryWithAdditionalConditions()}
               interval={interval}
               hideError
-              onError={msg => pageError.setPageAlert({message: msg, type: 'error'})}
+              onError={setPageError}
               queryExtras={extraQueryParams}
             />
           );

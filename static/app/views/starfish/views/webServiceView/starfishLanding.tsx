@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageError';
+import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {STARFISH_TYPE_FOR_PROJECT} from 'sentry/views/starfish/allowedProjects';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
 import {ReleaseSelector} from 'sentry/views/starfish/components/releaseSelector';

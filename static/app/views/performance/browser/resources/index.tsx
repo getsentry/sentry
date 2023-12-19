@@ -10,7 +10,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {RateUnits} from 'sentry/utils/discover/fields';
-import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageError';
+import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import ResourceView, {

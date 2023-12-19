@@ -26,7 +26,7 @@ import {
   MEPSettingProvider,
   MEPState,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageError';
+import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useTeams} from 'sentry/utils/useTeams';
 

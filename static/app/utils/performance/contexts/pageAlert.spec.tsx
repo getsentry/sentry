@@ -4,7 +4,7 @@ import {
   PageAlert,
   PageAlertProvider,
   usePageAlert,
-} from 'sentry/utils/performance/contexts/pageError';
+} from 'sentry/utils/performance/contexts/pageAlert';
 
 function SimpleErrorButton() {
   const context = usePageAlert();

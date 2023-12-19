@@ -17,7 +17,7 @@ import {
   canUseMetricsData,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {usePageAlert} from 'sentry/utils/performance/contexts/pageError';
+import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -110,7 +110,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
   const {ContainerActions, eventView, organization, InteractiveTitle} = props;
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const field = props.fields[0];
-  const pageError = usePageAlert();
+  const {setPageError} = usePageAlert();
 
   const {fieldsList, vitalFields, sortField} = transformFieldsWithStops({
     field,
@@ -206,7 +206,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
                 'medium'
               )}
               hideError
-              onError={msg => pageError.setPageAlert({message: msg, type: 'error'})}
+              onError={setPageError}
               queryExtras={getMEPQueryParams(mepSetting)}
             />
           );

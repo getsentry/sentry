@@ -3,7 +3,7 @@ import {
   MetricsEnhancedSettingContext,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {usePageAlert} from 'sentry/utils/performance/contexts/pageError';
+import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 
 import Table from '../../table';
@@ -36,7 +36,7 @@ function getAllowedChartsSmall(
 
 export function BackendView(props: BasePerformanceViewProps) {
   const mepSetting = useMEPSettingContext();
-  const {setPageAlert} = usePageAlert();
+  const {setPageError} = usePageAlert();
 
   const doubleChartRowCharts = [
     PerformanceWidgetSetting.SLOW_HTTP_OPS,
@@ -64,11 +64,7 @@ export function BackendView(props: BasePerformanceViewProps) {
           {...props}
           allowedCharts={getAllowedChartsSmall(props, mepSetting)}
         />
-        <Table
-          {...props}
-          columnTitles={BACKEND_COLUMN_TITLES}
-          setError={msg => setPageAlert({message: msg, type: 'error'})}
-        />
+        <Table {...props} columnTitles={BACKEND_COLUMN_TITLES} setError={setPageError} />
       </div>
     </PerformanceDisplayProvider>
   );
