@@ -172,6 +172,7 @@ class EndpointRegressionDetector(RegressionDetector):
     detector_cls = MovingAverageRelativeChangeDetector
     min_change = 200  # 200ms in ms
     resolution_rel_threshold = 0.1
+    escalation_rel_threshold = 0.3
 
     @classmethod
     def make_detector_store(cls) -> DetectorStore:
@@ -209,6 +210,7 @@ class FunctionRegressionDetector(RegressionDetector):
     detector_cls = MovingAverageRelativeChangeDetector
     min_change = 100_000_000  # 100ms in ns
     resolution_rel_threshold = 0.1
+    escalation_rel_threshold = 0.3
 
     @classmethod
     def make_detector_store(cls) -> DetectorStore:
@@ -252,6 +254,7 @@ def detect_transaction_trends(
     trends = EndpointRegressionDetector.detect_trends(projects, start)
     trends = EndpointRegressionDetector.get_regression_groups(trends)
     trends = EndpointRegressionDetector.redirect_resolutions(trends, start)
+    trends = EndpointRegressionDetector.redirect_escalations(trends, start)
     trends = EndpointRegressionDetector.limit_regressions_by_project(trends)
 
     delay = 12  # hours
@@ -329,6 +332,7 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
     trends = FunctionRegressionDetector.detect_trends(projects, start)
     trends = FunctionRegressionDetector.get_regression_groups(trends)
     trends = FunctionRegressionDetector.redirect_resolutions(trends, start)
+    trends = FunctionRegressionDetector.redirect_escalations(trends, start)
     trends = FunctionRegressionDetector.limit_regressions_by_project(trends)
 
     delay = 12  # hours

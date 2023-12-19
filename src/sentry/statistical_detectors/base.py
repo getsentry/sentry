@@ -39,6 +39,12 @@ class DetectorState(ABC):
     def should_auto_resolve(self, target: float, rel_threshold: float) -> bool:
         ...
 
+    @abstractmethod
+    def should_escalate(
+        self, baseline: float, regressed: float, min_change: float, rel_threshold: float
+    ) -> bool:
+        ...
+
     @classmethod
     @abstractmethod
     def empty(cls) -> DetectorState:

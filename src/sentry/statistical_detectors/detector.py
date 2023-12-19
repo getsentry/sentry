@@ -55,6 +55,7 @@ class RegressionDetector(ABC):
     detector_cls: type[DetectorAlgorithm]
     min_change: int
     resolution_rel_threshold: float
+    escalation_rel_threshold: float
 
     @classmethod
     @abstractmethod
@@ -348,17 +349,55 @@ class RegressionDetector(ABC):
                         status_change=status_change,
                     )
 
-                    continue
+                else:
+                    yield bundle
             except Exception as e:
                 sentry_sdk.capture_exception(e)
-
-            yield bundle
 
         RegressionGroup.objects.bulk_update(groups_to_resolve, ["active", "date_resolved"])
 
         metrics.incr(
             "statistical_detectors.objects.auto_resolved",
             amount=len(groups_to_resolve),
+            tags={"source": cls.source, "kind": cls.kind},
+            sample_rate=1.0,
+        )
+
+    @classmethod
+    def redirect_escalations(
+        cls,
+        bundles: Generator[TrendBundle, None, None],
+        timestamp: datetime,
+        batch_size=100,
+    ) -> Generator[TrendBundle, None, None]:
+        groups_to_escalate = []
+
+        for bundle in bundles:
+            group = bundle.regression_group
+            try:
+                if (
+                    group is not None
+                    and bundle.state is not None
+                    and bundle.state.should_escalate(
+                        group.baseline,
+                        group.regressed,
+                        cls.min_change,
+                        cls.escalation_rel_threshold,
+                    )
+                ):
+                    groups_to_escalate.append(group)
+
+                # For now, keep passing on the bundle.
+                # Eventually, should redirect these bundles to escalation
+                yield bundle
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+
+        # TODO: mark the groups as escalated
+
+        metrics.incr(
+            "statistical_detectors.objects.escalated",
+            amount=len(groups_to_escalate),
             tags={"source": cls.source, "kind": cls.kind},
             sample_rate=1.0,
         )
