@@ -171,7 +171,6 @@ export function MobileStarfishView() {
               height={125}
               data={transformedSeries['avg(measurements.app_start_cold)']}
               loading={seriesIsLoading}
-              utc={false}
               grid={{
                 left: '0',
                 right: '0',
@@ -199,7 +198,6 @@ export function MobileStarfishView() {
               data={transformedSeries['avg(measurements.app_start_warm)']}
               loading={seriesIsLoading}
               showLegend
-              utc={false}
               grid={{
                 left: '0',
                 right: '0',
@@ -227,7 +225,6 @@ export function MobileStarfishView() {
               height={125}
               data={transformedSeries['avg(measurements.time_to_initial_display)']}
               loading={seriesIsLoading}
-              utc={false}
               grid={{
                 left: '0',
                 right: '0',
@@ -254,7 +251,6 @@ export function MobileStarfishView() {
               data={transformedSeries['avg(measurements.time_to_full_display)']}
               loading={seriesIsLoading}
               showLegend
-              utc={false}
               grid={{
                 left: '0',
                 right: '0',
@@ -282,7 +278,6 @@ export function MobileStarfishView() {
               height={125}
               data={transformedSeries['avg(measurements.frames_slow_rate)']}
               loading={seriesIsLoading}
-              utc={false}
               grid={{
                 left: '0',
                 right: '0',
@@ -309,7 +304,6 @@ export function MobileStarfishView() {
               data={transformedSeries['avg(measurements.frames_frozen_rate)']}
               loading={seriesIsLoading}
               showLegend
-              utc={false}
               grid={{
                 left: '0',
                 right: '0',

@@ -293,7 +293,6 @@ function SlowScreensByTTID(props: PerformanceWidgetProps) {
           height={props.chartHeight}
           data={Object.values(transformedReleaseSeries)}
           loading={provided.widgetData.chart.isLoading}
-          utc={false}
           grid={{
             left: '0',
             right: '0',

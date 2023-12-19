@@ -25,7 +25,6 @@ export function InteractionBreakdownChart({operation, element, page}: Props) {
         height={200}
         data={data}
         loading={isLoading}
-        utc={false}
         chartColors={[CHART_PALETTE[0][0]]}
         durationUnit={getDurationUnit(data)}
         aggregateOutputFormat="duration"

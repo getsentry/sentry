@@ -111,7 +111,6 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
         )}
         disableXAxis
         loading={isLoading}
-        utc={false}
         grid={{
           left: 5,
           right: 5,

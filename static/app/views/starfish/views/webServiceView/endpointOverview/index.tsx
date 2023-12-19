@@ -203,7 +203,6 @@ export default function EndpointOverview() {
             height={80}
             data={[percentileData, avgLine]}
             loading={loading}
-            utc={false}
             grid={{
               left: '8px',
               right: '0',
@@ -242,7 +241,6 @@ export default function EndpointOverview() {
             height={80}
             data={[throughputResults, tpsLine]}
             loading={loading}
-            utc={false}
             isLineChart
             definedAxisTicks={2}
             disableXAxis
@@ -285,7 +283,6 @@ export default function EndpointOverview() {
             height={80}
             data={[results['http_error_count()']]}
             loading={loading}
-            utc={false}
             grid={{
               left: '8px',
               right: '0',

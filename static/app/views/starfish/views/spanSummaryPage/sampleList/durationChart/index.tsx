@@ -225,7 +225,6 @@ function DurationChart({
               ? undefined
               : sampledSpanDataSeries
           }
-          utc={false}
           chartColors={[AVG_COLOR, 'black']}
           isLineChart
           definedAxisTicks={4}
