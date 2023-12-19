@@ -197,7 +197,9 @@ def fallback_to_stale_or_zero(
         else:
             # use the stale threshold and maintain its ttl so threshold and stale date expire in redis at the same time
             p.watch(threshold_key)
-            ttl = p.ttl(threshold_key)
+            existing_ttl = p.ttl(threshold_key)
+            if isinstance(existing_ttl, int):
+                ttl = existing_ttl
             p.multi()
         p.set(stale_date_key, str(stale_date), ex=ttl)
         p.execute()
