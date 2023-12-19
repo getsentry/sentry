@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence
-
-from typing_extensions import TypedDict
+from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.integrations import IntegrationProvider

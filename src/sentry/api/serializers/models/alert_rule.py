@@ -2,11 +2,10 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, List, Mapping, MutableMapping, Optional, Sequence, Union
+from typing import Any, List, Mapping, MutableMapping, Optional, Sequence, TypedDict, Union
 
 from django.db.models import Max, Q, prefetch_related_objects
 from drf_spectacular.utils import extend_schema_serializer
-from typing_extensions import TypedDict
 
 from sentry import features
 from sentry.api.serializers import Serializer, register, serialize

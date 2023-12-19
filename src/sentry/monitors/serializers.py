@@ -1,9 +1,8 @@
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, TypedDict
 
 from django.db.models import prefetch_related_objects
-from typing_extensions import TypedDict
 
 from sentry.api.serializers import ProjectSerializerResponse, Serializer, register, serialize
 from sentry.models.project import Project

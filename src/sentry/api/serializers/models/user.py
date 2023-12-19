@@ -13,6 +13,7 @@ from typing import (
     MutableMapping,
     Optional,
     Sequence,
+    TypedDict,
     Union,
     cast,
 )
@@ -20,7 +21,6 @@ from typing import (
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import QuerySet
-from typing_extensions import TypedDict
 
 from sentry import experiments
 from sentry.api.serializers import Serializer, register

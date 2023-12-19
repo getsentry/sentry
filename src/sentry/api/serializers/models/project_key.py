@@ -1,7 +1,5 @@
 from datetime import datetime
-from typing import Any, List, Mapping, Optional
-
-from typing_extensions import TypedDict
+from typing import Any, List, Mapping, Optional, TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.loader.browsersdkversion import (

@@ -12,6 +12,7 @@ from typing import (
     Sequence,
     Set,
     Tuple,
+    TypedDict,
     Union,
     cast,
 )
@@ -20,7 +21,6 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
-from typing_extensions import TypedDict
 
 from sentry import features, onboarding_tasks, quotas, roles
 from sentry.api.fields.sentry_slug import SentrySlugField

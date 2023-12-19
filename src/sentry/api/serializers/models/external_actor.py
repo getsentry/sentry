@@ -1,6 +1,4 @@
-from typing import Any, List, Mapping, MutableMapping, Optional
-
-from typing_extensions import TypedDict
+from typing import Any, List, Mapping, MutableMapping, Optional, TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.models.integrations.external_actor import ExternalActor

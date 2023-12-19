@@ -3,9 +3,7 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
-from typing import Any, List, Optional
-
-from typing_extensions import TypedDict
+from typing import Any, List, Optional, TypedDict
 
 from sentry.services.hybrid_cloud import RpcModel
 

@@ -6,10 +6,9 @@
 import datetime
 import hmac
 from hashlib import sha256
-from typing import Any, Dict, List, Mapping, Optional, Protocol
+from typing import Any, Dict, List, Mapping, Optional, Protocol, TypedDict
 
 from pydantic.fields import Field
-from typing_extensions import TypedDict
 
 from sentry.constants import SentryAppInstallationStatus
 from sentry.services.hybrid_cloud import RpcModel, RpcModelProtocolMeta

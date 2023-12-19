@@ -16,10 +16,10 @@ from typing import (
     Optional,
     Sequence,
     Set,
+    TypedDict,
 )
 
 from django.db.models import Count
-from typing_extensions import TypedDict
 
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize

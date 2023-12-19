@@ -1,11 +1,10 @@
 import hashlib
-from typing import Optional
+from typing import Optional, TypedDict
 from uuid import uuid4
 
 from django.db import router, transaction
 from django.db.models.expressions import CombinedExpression
 from django.utils.text import slugify
-from typing_extensions import TypedDict
 
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.outbox import outbox_context

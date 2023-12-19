@@ -1,7 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
-
-from typing_extensions import TypedDict
+from typing import List, Optional, TypedDict
 
 
 class SerializedAvatarFields(TypedDict, total=False):

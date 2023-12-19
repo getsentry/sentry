@@ -4,12 +4,11 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 from datetime import datetime
 from enum import IntEnum
-from typing import Any, List, Mapping, Optional, Sequence
+from typing import Any, List, Mapping, Optional, Sequence, TypedDict
 
 from django.dispatch import Signal
 from django.utils import timezone
 from pydantic import Field
-from typing_extensions import TypedDict
 
 from sentry import roles
 from sentry.db.models import ValidateFunction, Value

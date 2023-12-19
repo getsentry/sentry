@@ -2,10 +2,20 @@ from __future__ import annotations
 
 import collections
 from itertools import zip_longest
-from typing import Any, Dict, Generator, Iterable, Iterator, List, MutableMapping, Optional, Union
+from typing import (
+    Any,
+    Dict,
+    Generator,
+    Iterable,
+    Iterator,
+    List,
+    MutableMapping,
+    Optional,
+    TypedDict,
+    Union,
+)
 
 from drf_spectacular.utils import extend_schema_serializer
-from typing_extensions import TypedDict
 
 from sentry.replays.validators import VALID_FIELD_SET
 
