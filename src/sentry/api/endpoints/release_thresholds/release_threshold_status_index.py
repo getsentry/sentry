@@ -247,13 +247,22 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                         # NOTE: if a threshold has no environment set, we monitor from start of the release creation
                         # If a deploy does not exist for the thresholds environment, we monitor from start of release creation
                         # ReleaseProjectEnvironment model
-                        rpe_query = release.releaseprojectenvironment_set.filter(
-                            environment=threshold.environment, project=threshold.project
-                        )
-                        if rpe_query.exists():
-                            last_deploy_id = rpe_query.latest("last_seen").last_deploy_id
+                        try:
+                            rpe_entry = release.releaseprojectenvironment_set.get(
+                                environment=threshold.environment, project=threshold.project
+                            )
+                            last_deploy_id = rpe_entry.last_deploy_id
                             deploy_query = release.deploy_set.filter(id=last_deploy_id)
                             latest_deploy = deploy_query[0] if deploy_query.exists() else None
+                        except Exception:
+                            logger.info(
+                                "No deploy exists",
+                                extra={
+                                    "project": threshold.project.slug,
+                                    "release": release.version,
+                                    "environment": threshold.environment.name,
+                                },
+                            )
 
                     # NOTE: query window starts at the earliest release up until the latest threshold window
                     if latest_deploy:
