@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
@@ -100,15 +100,17 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
   ];
   const tableData: Row[] = data;
 
-  if (pageAlert?.message !== RESOURCE_SIZE_ALERT) {
-    for (const row of tableData) {
-      const encodedSize = row[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`];
-      if (encodedSize >= 2147483647) {
-        setPageInfo(RESOURCE_SIZE_ALERT);
-        break;
+  useEffect(() => {
+    if (pageAlert?.message !== RESOURCE_SIZE_ALERT) {
+      for (const row of tableData) {
+        const encodedSize = row[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`];
+        if (encodedSize >= 2147483647) {
+          setPageInfo(RESOURCE_SIZE_ALERT);
+          break;
+        }
       }
     }
-  }
+  }, [tableData, setPageInfo, pageAlert?.message]);
 
   const renderBodyCell = (col: Column, row: Row) => {
     const {key} = col;
