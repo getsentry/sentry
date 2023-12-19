@@ -250,16 +250,17 @@ def detect_transaction_trends(
     )
 
     trends = EndpointRegressionDetector.detect_trends(projects, start)
+    trends = EndpointRegressionDetector.get_regression_groups(trends)
     trends = EndpointRegressionDetector.redirect_resolutions(trends, start)
-    regressions = EndpointRegressionDetector.limit_regressions_by_project(trends)
+    trends = EndpointRegressionDetector.limit_regressions_by_project(trends)
 
     delay = 12  # hours
     delayed_start = start + timedelta(hours=delay)
 
-    for regression_chunk in chunked(regressions, TRANSACTIONS_PER_BATCH):
+    for regression_chunk in chunked(trends, TRANSACTIONS_PER_BATCH):
         detect_transaction_change_points.apply_async(
             args=[
-                [(payload.project_id, payload.group) for payload in regression_chunk],
+                [(bundle.payload.project_id, bundle.payload.group) for bundle in regression_chunk],
                 delayed_start,
             ],
             # delay the check by delay hours because we want to make sure there
@@ -326,16 +327,17 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
     )
 
     trends = FunctionRegressionDetector.detect_trends(projects, start)
+    trends = FunctionRegressionDetector.get_regression_groups(trends)
     trends = FunctionRegressionDetector.redirect_resolutions(trends, start)
-    regressions = FunctionRegressionDetector.limit_regressions_by_project(trends)
+    trends = FunctionRegressionDetector.limit_regressions_by_project(trends)
 
     delay = 12  # hours
     delayed_start = start + timedelta(hours=delay)
 
-    for regression_chunk in chunked(regressions, FUNCTIONS_PER_BATCH):
+    for regression_chunk in chunked(trends, FUNCTIONS_PER_BATCH):
         detect_function_change_points.apply_async(
             args=[
-                [(payload.project_id, payload.group) for payload in regression_chunk],
+                [(bundle.payload.project_id, bundle.payload.group) for bundle in regression_chunk],
                 delayed_start,
             ],
             # delay the check by delay hours because we want to make sure there

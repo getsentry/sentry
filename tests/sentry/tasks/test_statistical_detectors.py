@@ -21,7 +21,7 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.discover import zerofill
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.statistical_detectors.base import DetectorPayload, TrendType
-from sentry.statistical_detectors.detector import generate_fingerprint
+from sentry.statistical_detectors.detector import TrendBundle, generate_fingerprint
 from sentry.tasks.statistical_detectors import (
     EndpointRegressionDetector,
     FunctionRegressionDetector,
@@ -491,19 +491,18 @@ def test_limit_regressions_by_project(detector_cls, ratelimit, timestamp, expect
     }
 
     def trends():
-        # we do not need the detector state here so mock it with None
-        yield (None, 0, payloads[(1, 1)], None)
-        yield (TrendType.Improved, 0, payloads[(2, 1)], None)
-        yield (TrendType.Regressed, 0, payloads[(2, 2)], None)
-        yield (TrendType.Regressed, 0, payloads[(3, 1)], None)
-        yield (TrendType.Regressed, 1, payloads[(3, 2)], None)
-        yield (TrendType.Regressed, 2, payloads[(3, 3)], None)
+        yield TrendBundle(TrendType.Skipped, 0, payloads[(1, 1)])
+        yield TrendBundle(TrendType.Improved, 0, payloads[(2, 1)])
+        yield TrendBundle(TrendType.Regressed, 0, payloads[(2, 2)])
+        yield TrendBundle(TrendType.Regressed, 0, payloads[(3, 1)])
+        yield TrendBundle(TrendType.Regressed, 1, payloads[(3, 2)])
+        yield TrendBundle(TrendType.Regressed, 2, payloads[(3, 3)])
 
     expected_regressions = [
-        payloads[(2, 2)],
-        payloads[(3, 3)],
-        payloads[(3, 2)],
-        payloads[(3, 1)],
+        TrendBundle(TrendType.Regressed, 0, payloads[(2, 2)]),
+        TrendBundle(TrendType.Regressed, 2, payloads[(3, 3)]),
+        TrendBundle(TrendType.Regressed, 1, payloads[(3, 2)]),
+        TrendBundle(TrendType.Regressed, 0, payloads[(3, 1)]),
     ][:expected_idx]
     regressions = detector_cls.limit_regressions_by_project(trends(), ratelimit)
     assert set(regressions) == set(expected_regressions)
@@ -918,9 +917,15 @@ def test_new_regression_group(
             moving_avg_short=100,
             moving_avg_long=100,
         )
-        yield TrendType.Unchanged, 1, payload, state
+        yield TrendBundle(
+            type=TrendType.Unchanged,
+            score=1,
+            payload=payload,
+            state=state,
+        )
 
     trends = get_trends()
+    trends = detector_cls.get_regression_groups(trends)
     trends = detector_cls.redirect_resolutions(trends, timestamp)
     assert len(list(trends)) == 0  # should resolve, so it is redirected, thus 0
     assert produce_occurrence_to_kafka.called
