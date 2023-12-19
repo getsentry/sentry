@@ -106,7 +106,6 @@ function CountWidget({additionalFilters}: Props) {
         data={Object.values(transformedSeries)}
         height={90}
         loading={isSeriesLoading}
-        utc={false}
         grid={{
           left: '0',
           right: '0',
