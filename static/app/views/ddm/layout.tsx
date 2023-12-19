@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
-import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {GithubFeedbackButton} from 'sentry/components/githubFeedbackButton';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -29,7 +29,7 @@ function MainContent() {
       <Layout.Header>
         <Layout.HeaderContent>
           <Layout.Title>
-            {t('DDM')}
+            {t('Metrics')}
             <PageHeadingQuestionTooltip
               docsUrl="https://develop.sentry.dev/delightful-developer-metrics/"
               title={t('Delightful Developer Metrics.')}
@@ -39,6 +39,7 @@ function MainContent() {
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
+            <FeedbackWidgetButton />
             <GithubFeedbackButton
               href="https://github.com/getsentry/sentry/discussions/58584"
               label={t('Discussion')}
@@ -48,7 +49,6 @@ function MainContent() {
         </Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>
-        <FloatingFeedbackWidget />
         <Layout.Main fullWidth>
           <PaddedContainer>
             <PageFilterBar condensed>

@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Team} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -11,7 +12,7 @@ import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 describe('groupDetails', () => {
   const baseUrl = 'BASE_URL/';
   const organization = Organization();
-  const project = TestStubs.Project({
+  const project = ProjectFixture({
     teams: [Team()],
   });
 
@@ -28,7 +29,7 @@ describe('groupDetails', () => {
       const orgWithFeatures = Organization({
         features: ['similarity-view', 'event-attachments', 'session-replay'],
       });
-      const jsProjectWithSimilarityView = TestStubs.Project({
+      const jsProjectWithSimilarityView = ProjectFixture({
         features: ['similarity-view'],
         platform: 'javascript',
       });
@@ -96,7 +97,7 @@ describe('groupDetails', () => {
       const orgWithFeatures = Organization({
         features: ['similarity-view', 'event-attachments', 'session-replay'],
       });
-      const mobileProjectWithSimilarityView = TestStubs.Project({
+      const mobileProjectWithSimilarityView = ProjectFixture({
         features: ['similarity-view'],
         platform: 'apple-ios',
       });
@@ -141,7 +142,7 @@ describe('groupDetails', () => {
         features: ['similarity-view', 'event-attachments', 'session-replay'],
       });
 
-      const projectWithSimilarityView = TestStubs.Project({
+      const projectWithSimilarityView = ProjectFixture({
         features: ['similarity-view'],
       });
 

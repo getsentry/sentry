@@ -23,7 +23,7 @@ from sentry.signals import ownership_rule_created
 from sentry.utils.audit import create_audit_entry
 
 MAX_RAW_LENGTH = 100_000
-HIGHER_MAX_RAW_LENGTH = 200_000
+HIGHER_MAX_RAW_LENGTH = 250_000
 
 
 class ProjectOwnershipRequestSerializer(serializers.Serializer):

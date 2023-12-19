@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Team} from 'sentry-fixture/team';
 import {User} from 'sentry-fixture/user';
 
@@ -21,7 +22,7 @@ describe('IdBadge', function () {
   });
 
   it('renders the correct component when `project` property is passed', function () {
-    render(<IdBadge project={TestStubs.Project()} />);
+    render(<IdBadge project={ProjectFixture()} />);
     expect(screen.getByTestId('badge-display-name')).toHaveTextContent('project-slug');
   });
 
