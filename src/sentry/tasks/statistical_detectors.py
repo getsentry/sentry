@@ -243,7 +243,6 @@ def detect_transaction_trends(
 
     trends = EndpointRegressionDetector.detect_trends(projects, start)
     trends = EndpointRegressionDetector.redirect_resolutions(trends, start)
-    trends = EndpointRegressionDetector.redirect_resolutions(trends, start)
     regressions = EndpointRegressionDetector.limit_regressions_by_project(trends)
 
     delay = 12  # hours
