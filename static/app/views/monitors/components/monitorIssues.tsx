@@ -91,7 +91,7 @@ function MonitorIssues({orgSlug, monitor, monitorEnvs}: Props) {
             .map(e => e.name)
             .join(',')}]`,
           project: monitor.project.id,
-          limit: 5,
+          limit: 20,
           ...timeProps,
         }}
         query=""
