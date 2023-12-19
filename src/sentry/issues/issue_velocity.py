@@ -196,7 +196,9 @@ def fallback_to_stale_or_zero(
             p.set(threshold_key, stale_threshold, ex=ttl)
         else:
             # use the stale threshold and maintain its ttl so threshold and stale date expire in redis at the same time
-            ttl = client.ttl(threshold_key)
+            p.watch(threshold_key)
+            ttl = p.ttl(threshold_key)
+            p.multi()
         p.set(stale_date_key, str(stale_date), ex=ttl)
         p.execute()
     metrics.incr("issues.update_new_escalation_threshold", tags={"useFallback": True})
