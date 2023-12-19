@@ -58,10 +58,10 @@ describe('Group > AssignedTo', () => {
 
     GROUP_1 = GroupFixture({
       id: '1337',
-      project: {
+      project: ProjectFixture({
         id: PROJECT_1.id,
         slug: PROJECT_1.slug,
-      },
+      }),
     });
     event = EventFixture();
 
