@@ -251,12 +251,10 @@ def search_selector(queries: list[QueryType]) -> Function:
         if query.classes:
             has_all = Function("hasAll", parameters=[Column("click_class"), query.classes])
             cmp_functions.append(equals(has_all, 1))
+        if query.component_name:
+            cmp_functions.append(equals(Column("click_component_name"), query.component_name))
         if query.id:
             cmp_functions.append(equals(Column("click_id"), query.id))
-        if query.react_component_name:
-            cmp_functions.append(
-                equals(Column("click_react_component_name"), query.react_component_name)
-            )
         if query.role:
             cmp_functions.append(equals(Column("click_role"), query.role))
         if query.tag:
