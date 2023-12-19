@@ -3,7 +3,7 @@ import {Location} from 'history';
 import {Commit} from 'sentry-fixture/commit';
 import {CommitAuthor} from 'sentry-fixture/commitAuthor';
 import {Event as EventFixture} from 'sentry-fixture/event';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import LocationFixture from 'sentry-fixture/locationFixture';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 import {SentryApp} from 'sentry-fixture/sentryApp';
 import {SentryAppComponent} from 'sentry-fixture/sentryAppComponent';
@@ -39,7 +39,7 @@ const makeDefaultMockData = (
     project: project ?? initializeOrg().project,
     group: TestStubs.Group(),
     router: TestStubs.router({
-      location: TestStubs.location({
+      location: LocationFixture({
         query: {
           environment: environments,
         },
@@ -465,7 +465,7 @@ describe('EventCause', () => {
   it('renders suspect commit', async function () {
     const props = makeDefaultMockData(
       undefined,
-      ProjectFixture({firstEvent: EventFixture()})
+      TestStubs.Project({firstEvent: EventFixture()})
     );
 
     mockGroupApis(

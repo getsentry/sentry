@@ -1,5 +1,3 @@
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -8,7 +6,7 @@ import ProjectSecurityAndPrivacy from 'sentry/views/settings/projectSecurityAndP
 describe('projectSecurityAndPrivacy', function () {
   it('renders form fields', function () {
     const {organization} = initializeOrg();
-    const project = ProjectFixture({
+    const project = TestStubs.Project({
       sensitiveFields: ['creditcard', 'ssn'],
       safeFields: ['business-email', 'company'],
     });
@@ -54,7 +52,7 @@ describe('projectSecurityAndPrivacy', function () {
 
   it('disables field when equivalent org setting is true', function () {
     const {organization} = initializeOrg();
-    const project = ProjectFixture();
+    const project = TestStubs.Project();
 
     organization.dataScrubber = true;
     organization.scrubIPAddresses = false;

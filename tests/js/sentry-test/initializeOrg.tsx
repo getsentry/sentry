@@ -1,7 +1,6 @@
 import type {RouteComponent, RouteComponentProps} from 'react-router';
 import type {Location} from 'history';
 import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {OrgRoleList, TeamRoleList} from 'sentry-fixture/roleList';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
@@ -45,7 +44,7 @@ export function initializeOrg<RouterParams = {orgId: string; projectId: string}>
   const projects = (
     additionalProjects ||
     (additionalProject && [additionalProject]) || [{}]
-  ).map(p => ProjectFixture(p));
+  ).map(p => TestStubs.Project(p));
   const [project] = projects;
   const organization = Organization({
     projects,

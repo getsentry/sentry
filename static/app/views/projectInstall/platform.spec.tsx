@@ -1,4 +1,3 @@
-import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeys} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -53,7 +52,7 @@ describe('ProjectInstallPlatform', function () {
 
   it('should render NotFound if no matching integration/platform', async function () {
     const routeParams = {
-      projectId: ProjectFixture().slug,
+      projectId: TestStubs.Project().slug,
     };
     const {organization, routerProps, project, routerContext} = initializeOrg({
       router: {
@@ -76,7 +75,7 @@ describe('ProjectInstallPlatform', function () {
 
   it('should display info for a non-supported platform', async function () {
     const routeParams = {
-      projectId: ProjectFixture().slug,
+      projectId: TestStubs.Project().slug,
     };
 
     const {organization, routerProps, project} = initializeOrg({
@@ -103,7 +102,7 @@ describe('ProjectInstallPlatform', function () {
   });
 
   it('should render getting started docs for correct platform', async function () {
-    const project = ProjectFixture({platform: 'javascript'});
+    const project = TestStubs.Project({platform: 'javascript'});
 
     const routeParams = {
       projectId: project.slug,
