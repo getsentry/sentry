@@ -471,9 +471,22 @@ const StreamGroup = BaseGroupRow;
 
 export default StreamGroup;
 
+const PlaceholderColoredCircle = styled('span')`
+  padding: 0;
+  position: relative;
+  width: 9px;
+  height: 15px;
+  text-indent: -9999em;
+  display: inline-block;
+  flex-shrink: 0;
+  border-radius: 0 0 3px 3px;
+  background-color: ${p => p.theme.backgroundSecondary};
+`;
+
 export function GroupLoadingPlaceHolder({narrowGroups}: Pick<Props, 'narrowGroups'>) {
   return (
     <StyledGroupPanelItem reviewed={false} useTintRow={false} style={{height: '86px'}}>
+      <PlaceholderColoredCircle />
       <GroupCheckBoxWrapper>
         <Checkbox disabled />
       </GroupCheckBoxWrapper>
