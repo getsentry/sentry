@@ -14,7 +14,7 @@ describe('GroupReleaseStats', function () {
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
-      body: {firstRelease: group.firstRelease, lastRelease: group.lastRelease},
+      body: {id: group.id, firstRelease: undefined, lastRelease: undefined},
     });
   });
 
