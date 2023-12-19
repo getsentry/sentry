@@ -98,7 +98,7 @@ def mark_failed(
     # Create incidents + issues
     use_issue_platform = False
     try:
-        organization = Organization.objects.get(id=monitor_env.monitor.organization_id)
+        organization = Organization.objects.get_from_cache(id=monitor_env.monitor.organization_id)
         use_issue_platform = features.has("organizations:issue-platform", organization=organization)
     except Organization.DoesNotExist:
         pass
