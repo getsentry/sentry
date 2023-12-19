@@ -10,7 +10,7 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import {Group, Organization} from 'sentry/types';
+import {Group, IssueCategory, Organization} from 'sentry/types';
 import GroupEvents from 'sentry/views/issueDetails/groupEvents';
 
 let location: Location;
@@ -186,7 +186,7 @@ describe('groupEvents', () => {
 
   it('renders events table for performance issue', () => {
     const group = GroupFixture();
-    group.issueCategory = 'performance';
+    group.issueCategory = IssueCategory.PERFORMANCE;
 
     render(
       <GroupEvents
@@ -210,7 +210,7 @@ describe('groupEvents', () => {
 
   it('renders event and trace link correctly', async () => {
     const group = GroupFixture();
-    group.issueCategory = 'performance';
+    group.issueCategory = IssueCategory.PERFORMANCE;
 
     render(
       <GroupEvents
