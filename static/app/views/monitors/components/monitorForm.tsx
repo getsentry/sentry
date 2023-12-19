@@ -413,8 +413,42 @@ function MonitorForm({
             </PanelBody>
           </Panel>
         </InputGroup>
+        {hasIssuePlatform && (
+          <Fragment>
+            <StyledListItem>{t('Set tolerance')}</StyledListItem>
+            <ListItemSubText>
+              {t('Configure when an issue is created or resolved.')}
+            </ListItemSubText>
+            <InputGroup>
+              <Panel>
+                <PanelBody>
+                  <NumberField
+                    name="config.failure_issue_threshold"
+                    min={1}
+                    placeholder="1"
+                    help={t(
+                      'Create a new issue when this many consecutive missed or error check-ins are processed.'
+                    )}
+                    label={t('Failure Tolerance')}
+                  />
+                  <NumberField
+                    name="config.recovery_threshold"
+                    min={1}
+                    placeholder="1"
+                    help={t(
+                      'Resolve the issue when this many consecutive healthy check-ins are processed.'
+                    )}
+                    label={t('Recovery Tolerance')}
+                  />
+                </PanelBody>
+              </Panel>
+            </InputGroup>
+          </Fragment>
+        )}
         <StyledListItem>{t('Notifications')}</StyledListItem>
-        <ListItemSubText>{t('Configure who to notify and when.')}</ListItemSubText>
+        <ListItemSubText>
+          {t('Configure who to notify upon issue creation and when.')}
+        </ListItemSubText>
         <InputGroup>
           <Panel>
             <PanelBody>
@@ -436,28 +470,6 @@ function MonitorForm({
                 multiple
                 menuPlacement="auto"
               />
-              {hasIssuePlatform && (
-                <Fragment>
-                  <NumberField
-                    name="config.failure_issue_threshold"
-                    min={1}
-                    placeholder="1"
-                    help={t(
-                      'Create a new issue when this many consecutive missed or error check-ins are processed.'
-                    )}
-                    label={t('Failure Tolerance')}
-                  />
-                  <NumberField
-                    name="config.recovery_threshold"
-                    min={1}
-                    placeholder="1"
-                    help={t(
-                      'Resolve the issue when this many consecutive healthy check-ins are processed.'
-                    )}
-                    label={t('Recovery Tolerance')}
-                  />
-                </Fragment>
-              )}
               <SelectField
                 label={t('Environment')}
                 help={t('Only receive notifications from a specific environment.')}
