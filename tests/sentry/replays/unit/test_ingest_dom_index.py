@@ -62,7 +62,7 @@ def test_get_user_actions():
     assert user_actions[0]["testid"] == "2"
     assert user_actions[0]["aria_label"] == "test"
     assert user_actions[0]["title"] == "3"
-    assert user_actions[0]["react_component_name"] == "SignUpForm"
+    assert user_actions[0]["component_name"] == "SignUpForm"
     assert user_actions[0]["is_dead"] == 0
     assert user_actions[0]["is_rage"] == 0
     assert user_actions[0]["timestamp"] == 1674298825
@@ -151,7 +151,7 @@ def test_parse_replay_actions():
     assert action["alt"] == "1"
     assert action["testid"] == "2"
     assert action["title"] == "3"
-    assert action["react_component_name"] == "SignUpForm"
+    assert action["component_name"] == "SignUpForm"
     assert action["is_dead"] == 0
     assert action["is_rage"] == 0
     assert action["timestamp"] == 1
@@ -289,7 +289,7 @@ def test_parse_replay_dead_click_actions():
     assert action["alt"] == "1"
     assert action["testid"] == "2"
     assert action["title"] == "3"
-    assert action["react_component_name"] == "SignUpForm"
+    assert action["component_name"] == "SignUpForm"
     assert action["is_dead"] == 1
     assert action["is_rage"] == 0
     assert action["timestamp"] == 1
@@ -369,7 +369,7 @@ def test_parse_replay_rage_click_actions():
     assert action["alt"] == "1"
     assert action["testid"] == "2"
     assert action["title"] == "3"
-    assert action["react_component_name"] == "SignUpForm"
+    assert action["component_name"] == "SignUpForm"
     assert action["is_dead"] == 1
     assert action["is_rage"] == 1
     assert action["timestamp"] == 1
