@@ -5,6 +5,7 @@ import {Members} from 'sentry-fixture/members';
 import {Organization} from 'sentry-fixture/organization';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 import {Team} from 'sentry-fixture/team';
+import {User} from 'sentry-fixture/user';
 
 import {
   render,
@@ -450,7 +451,7 @@ describe('OrganizationMembersList', function () {
       id: '123',
       user: null,
       inviteStatus: 'requested_to_be_invited',
-      inviter: TestStubs.User(),
+      inviter: User(),
       role: 'member',
       teams: [],
     });
