@@ -33,6 +33,9 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
             "organizations:integrations-ticket-rules", project.organization
         )
         has_issue_severity_alerts = features.has("projects:first-event-severity-alerting", project)
+        has_latest_adopted_release = features.has(
+            "organizations:latest-adopted-release-filter", project.organization
+        )
 
         # TODO: conditions need to be based on actions
         for rule_type, rule_cls in rules:
@@ -84,6 +87,12 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
                 if (
                     context["id"] == "sentry.rules.filters.issue_severity.IssueSeverityFilter"
                     and not has_issue_severity_alerts
+                ):
+                    continue
+                if (
+                    context["id"]
+                    == "sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter"
+                    and not has_latest_adopted_release
                 ):
                     continue
                 filter_list.append(context)

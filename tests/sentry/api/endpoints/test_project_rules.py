@@ -16,7 +16,7 @@ from sentry.models.user import User
 from sentry.silo import SiloMode
 from sentry.tasks.integrations.slack.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import install_slack
+from sentry.testutils.helpers import install_slack, with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
@@ -761,6 +761,41 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         assert (
             str(response.data["conditions"][0])
             == "Select a valid choice. bad data is not one of the available choices."
+        )
+
+    @with_feature("organizations:latest-adopted-release-filter")
+    def test_latest_adopted_release_filter_validation(self):
+        filter = {
+            "id": "sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter",
+            "oldest_or_newest": "oldest",
+            "older_or_newer": "newer",
+            "environment": self.environment.name + "fake",
+        }
+        response = self.get_error_response(
+            self.project.organization.slug,
+            self.project.slug,
+            name="hello world",
+            actionMatch="any",
+            filterMatch="any",
+            actions=self.notify_event_action,
+            filters=[filter],
+            frequency=30,
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+        assert (
+            str(response.data["filters"][0])
+            == "environment does not exist or is not associated with this organization"
+        )
+        filter["environment"] = self.environment.name
+        self.get_success_response(
+            self.project.organization.slug,
+            self.project.slug,
+            name="hello world",
+            actionMatch="any",
+            filterMatch="any",
+            actions=self.notify_event_action,
+            filters=[filter],
+            frequency=30,
         )
 
     @responses.activate
