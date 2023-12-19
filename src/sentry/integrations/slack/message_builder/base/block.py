@@ -77,6 +77,23 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         return button
 
     @staticmethod
+    def get_link_button(action):
+        return {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": action.label,
+            },
+            "accessory": {
+                "type": "button",
+                "text": {"type": "plain_text", "text": action.name, "emoji": True},
+                "style": action.style,
+                "value": action.value,
+                "url": action.url,
+            },
+        }
+
+    @staticmethod
     def get_action_block(actions: Sequence[Tuple[str, Optional[str], str]]) -> SlackBlock:
         class SlackBlockType(TypedDict):
             type: str

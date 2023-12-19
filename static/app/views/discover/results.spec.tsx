@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
+import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 
@@ -1299,11 +1300,11 @@ describe('Results', function () {
         organization,
         router: {
           location: {
-            ...TestStubs.location(),
+            ...LocationFixture(),
             query: {
               ...EventView.fromNewQueryWithLocation(
                 TRANSACTION_VIEWS[0],
-                TestStubs.location()
+                LocationFixture()
               ).generateQueryStringObject(),
             },
           },
@@ -1429,11 +1430,11 @@ describe('Results', function () {
         organization,
         router: {
           location: {
-            ...TestStubs.location(),
+            ...LocationFixture(),
             query: {
               ...EventView.fromNewQueryWithLocation(
                 DEFAULT_EVENT_VIEW,
-                TestStubs.location()
+                LocationFixture()
               ).generateQueryStringObject(),
             },
           },
@@ -1469,11 +1470,11 @@ describe('Results', function () {
         organization,
         router: {
           location: {
-            ...TestStubs.location(),
+            ...LocationFixture(),
             query: {
               ...EventView.fromNewQueryWithLocation(
                 {...DEFAULT_EVENT_VIEW, query: 'event.type:error'},
-                TestStubs.location()
+                LocationFixture()
               ).generateQueryStringObject(),
             },
           },

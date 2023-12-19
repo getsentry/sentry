@@ -9,7 +9,7 @@ from sentry.api.base import Endpoint, region_silo_endpoint
 @region_silo_endpoint
 class RelayHealthCheck(Endpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     """
     Endpoint checked by downstream Relay when a suspected network error is encountered.

@@ -1,4 +1,5 @@
 import {Event as EventFixture} from 'sentry-fixture/event';
+import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 
@@ -11,7 +12,7 @@ describe('EventEntries', function () {
     organization: Organization(),
     project: ProjectFixture(),
     event: EventFixture(),
-    location: TestStubs.location(),
+    location: LocationFixture(),
   };
 
   beforeEach(function () {

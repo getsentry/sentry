@@ -1,3 +1,4 @@
+import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 
@@ -12,7 +13,7 @@ jest.mock('sentry/components/charts/eventsRequest');
 
 describe('Discover > MiniGraph', function () {
   const features = ['discover-basic'];
-  const location = TestStubs.location({
+  const location = LocationFixture({
     query: {query: 'tag:value'},
     pathname: '/',
   });

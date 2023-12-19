@@ -1,4 +1,5 @@
 import {Incident} from 'sentry-fixture/incident';
+import LocationFixture from 'sentry-fixture/locationFixture';
 import {MetricRule} from 'sentry-fixture/metricRule';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
@@ -241,7 +242,7 @@ describe('AlertRulesList', () => {
     const {routerContext, organization} = initializeOrg({
       organization: defaultOrg,
       router: {
-        location: TestStubs.location({
+        location: LocationFixture({
           query: {asc: '1', sort: 'name'},
           // Sort by the name column
           search: '?asc=1&sort=name`',
@@ -297,7 +298,7 @@ describe('AlertRulesList', () => {
   it('uses empty team query parameter when removing all teams', async () => {
     const {routerContext, organization, router} = initializeOrg({
       router: {
-        location: TestStubs.location({
+        location: LocationFixture({
           query: {team: 'myteams'},
           search: '?team=myteams`',
         }),

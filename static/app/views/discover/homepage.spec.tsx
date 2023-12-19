@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 
@@ -29,7 +30,7 @@ describe('Discover > Homepage', () => {
     initialData = initializeOrg({
       organization,
       router: {
-        location: TestStubs.location(),
+        location: LocationFixture(),
       },
     });
 
@@ -131,7 +132,7 @@ describe('Discover > Homepage', () => {
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['project'],
@@ -255,7 +256,7 @@ describe('Discover > Homepage', () => {
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
           },
@@ -291,7 +292,7 @@ describe('Discover > Homepage', () => {
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
           },
@@ -327,7 +328,7 @@ describe('Discover > Homepage', () => {
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['title'],
@@ -359,7 +360,7 @@ describe('Discover > Homepage', () => {
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['event.type'],
@@ -389,7 +390,7 @@ describe('Discover > Homepage', () => {
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['title'],
@@ -415,7 +416,7 @@ describe('Discover > Homepage', () => {
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['event.type'],
@@ -476,7 +477,7 @@ describe('Discover > Homepage', () => {
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
           },

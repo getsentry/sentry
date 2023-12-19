@@ -1,3 +1,4 @@
+import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 
@@ -28,7 +29,7 @@ describe('projectPerformance', function () {
   const router = TestStubs.router();
   const routerProps = {
     router,
-    location: TestStubs.location(),
+    location: LocationFixture(),
     routes: router.routes,
     route: router.routes[0],
     routeParams: router.params,

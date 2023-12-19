@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from itertools import product
 from typing import Any
 
@@ -28,57 +29,53 @@ from sentry.utils.cache import cache
 
 
 class LatestAdoptedReleaseForm(forms.Form):
-    release_age_type = forms.ChoiceField(choices=list(model_age_choices))
-    age_comparison = forms.ChoiceField(choices=list(age_comparison_choices))
-    environment_id = forms.CharField(required=False)
+    oldest_or_newest = forms.ChoiceField(choices=list(model_age_choices))
+    older_or_newer = forms.ChoiceField(choices=list(age_comparison_choices))
+    environment = forms.CharField()
 
     def __init__(self, project, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.project = project
 
-    def clean_environment_id(self):
-        environment_id = self.cleaned_data.get("environment_id")
-        if environment_id == "None":
-            environment_id = None
-        if environment_id:
+    def clean_environment(self):
+        environment = self.cleaned_data.get("environment")
+        if environment:
             try:
-                environment_id = int(environment_id)
-            except ValueError:
-                raise forms.ValidationError("environmentId must be an integer")
-            if not Environment.objects.filter(
-                environment_id=environment_id, organization_id=self.project.organization_id
-            ).exists():
+                Environment.get_for_organization_id(self.project.organization_id, environment)
+            except Environment.DoesNotExist:
                 raise forms.ValidationError(
-                    "environmentId does not exist or is not associated with this organization"
+                    "environment does not exist or is not associated with this organization"
                 )
-        return environment_id
+        return environment
 
 
 class LatestAdoptedReleaseFilter(EventFilter):
     id = "sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter"
     form_cls = LatestAdoptedReleaseForm
-    label = "The {release_age_type} release associated with the event's issue is {age_comparison} than the latest release in the {environmentId} environment"
+    label = "The {oldest_or_newest} release associated with the event's issue is {older_or_newer} than the latest release in {environment}"
 
     form_fields = {
-        "release_age_type": {"type": "choice", "choices": list(model_age_choices)},
-        "age_comparison": {"type": "choice", "choices": list(age_comparison_choices)},
-        "environment_id": {"type": "string", "placeholder": "value"},
+        "oldest_or_newest": {"type": "choice", "choices": list(model_age_choices)},
+        "older_or_newer": {"type": "choice", "choices": list(age_comparison_choices)},
+        "environment": {"type": "string", "placeholder": "value"},
     }
 
-    def get_latest_release_for_env(self, event: GroupEvent, environment_id: int) -> Release | None:
-        cache_key = get_project_release_cache_key(event.project_id, environment_id)
+    def get_latest_release_for_env(
+        self, event: GroupEvent, environment: Environment
+    ) -> Release | None:
+        cache_key = get_project_release_cache_key(event.project_id, environment.id)
         latest_release = cache.get(cache_key)
         if latest_release is None:
             organization_id = event.organization.id
-            environments = [Environment.objects.get(id=environment_id)]
             try:
                 latest_release_versions = get_latest_release(
                     [event.project],
-                    environments,
+                    [environment],
                     organization_id,
                     adopted=True,
                 )
             except Release.DoesNotExist:
+                logging.info("Latest release not found")
                 return None
             latest_release = Release.objects.get(
                 version=latest_release_versions[0], organization_id=organization_id
@@ -118,16 +115,23 @@ class LatestAdoptedReleaseFilter(EventFilter):
         return release
 
     def passes(self, event: GroupEvent, state: EventState) -> bool:
-        release_age_type = self.get_option("release_age_type")
-        age_comparison = self.get_option("age_comparison")
-        environment_id = self.get_option("environment_id")
+        release_age_type = self.get_option("oldest_or_newest")
+        age_comparison = self.get_option("older_or_newer")
+        environment_name = self.get_option("environment")
 
         if follows_semver_versioning_scheme(event.organization.id, event.project_id):
             order_type = LatestReleaseOrders.SEMVER
         else:
             order_type = LatestReleaseOrders.DATE
 
-        latest_project_release = self.get_latest_release_for_env(event, int(environment_id))
+        try:
+            environment = Environment.get_for_organization_id(
+                self.project.organization_id, environment_name
+            )
+        except Environment.DoesNotExist:
+            return False
+
+        latest_project_release = self.get_latest_release_for_env(event, environment)
         if not latest_project_release:
             return False
 
