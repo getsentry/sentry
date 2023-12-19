@@ -163,23 +163,6 @@ class ParseSearchQueryTest(unittest.TestCase):
 
 
 @region_silo_test
-class ConvertJavaScriptConsoleTagTest(TestCase):
-    def test_valid(self):
-        filters = [SearchFilter(SearchKey("empty_stacktrace.js_console"), "=", SearchValue(True))]
-        with self.feature("organizations:javascript-console-error-tag"):
-            result = convert_query_values(filters, [self.project], self.user, None)
-            assert result[0].value.raw_value is True
-
-    def test_invalid(self):
-        filters = [SearchFilter(SearchKey("empty_stacktrace.js_console"), "=", SearchValue(True))]
-        with self.feature({"organizations:javascript-console-error-tag": False}) and pytest.raises(
-            InvalidSearchQuery,
-            match="The empty_stacktrace.js_console filter is not supported for this organization",
-        ):
-            convert_query_values(filters, [self.project], self.user, None)
-
-
-@region_silo_test
 class ConvertQueryValuesTest(TestCase):
     def test_valid_assign_me_converter(self):
         raw_value = "me"

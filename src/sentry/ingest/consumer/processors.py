@@ -243,7 +243,7 @@ def process_individual_attachment(message: IngestMessage, project: Project) -> N
         event = eventstore.backend.get_event_by_id(project.id, event_id)
     except RateLimitExceeded as e:
         event = None
-        logger.exception(e)
+        logger.exception(str(e))
 
     group_id = None
     if event is not None:
@@ -254,7 +254,7 @@ def process_individual_attachment(message: IngestMessage, project: Project) -> N
         key=cache_key, type=attachment.pop("attachment_type"), **attachment
     )
     if attachment.type not in ("event.attachment", "event.view_hierarchy"):
-        logger.exception("invalid individual attachment type: %s", attachment.type)
+        logger.error("invalid individual attachment type: %s", attachment.type)
         return
 
     save_attachment(

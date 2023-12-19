@@ -3,7 +3,9 @@ import omit from 'lodash/omit';
 import {EventIdQueryResult} from 'sentry-fixture/eventIdQueryResult';
 import {Members} from 'sentry-fixture/members';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {ShortIdQueryResult} from 'sentry-fixture/shortIdQueryResult';
+import {Team} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -44,11 +46,11 @@ describe('ApiSource', function () {
     });
     projectsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
-      body: [TestStubs.Project({slug: 'foo-project'})],
+      body: [ProjectFixture({slug: 'foo-project'})],
     });
     teamsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/teams/',
-      body: [TestStubs.Team({slug: 'foo-team'})],
+      body: [Team({slug: 'foo-team'})],
     });
     membersMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',

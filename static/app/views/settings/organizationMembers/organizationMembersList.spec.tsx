@@ -3,6 +3,9 @@ import selectEvent from 'react-select-event';
 import {AuthProvider} from 'sentry-fixture/authProvider';
 import {Members} from 'sentry-fixture/members';
 import {Organization} from 'sentry-fixture/organization';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {Team} from 'sentry-fixture/team';
+import {User} from 'sentry-fixture/user';
 
 import {
   render,
@@ -55,7 +58,7 @@ const roles = [
 describe('OrganizationMembersList', function () {
   const members = TestStubs.Members();
 
-  const ownerTeam = TestStubs.Team({slug: 'owner-team', orgRole: 'owner'});
+  const ownerTeam = Team({slug: 'owner-team', orgRole: 'owner'});
   const member = TestStubs.Member({
     id: '5',
     email: 'member@sentry.io',
@@ -135,7 +138,7 @@ describe('OrganizationMembersList', function () {
               name: 'sentry@test.com',
             },
           },
-          team: TestStubs.Team(),
+          team: Team(),
         },
       ],
     });
@@ -150,7 +153,7 @@ describe('OrganizationMembersList', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/teams/',
       method: 'GET',
-      body: [TestStubs.Team(), ownerTeam],
+      body: [Team(), ownerTeam],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/invite-requests/',
@@ -181,7 +184,7 @@ describe('OrganizationMembersList', function () {
     });
 
     render(<OrganizationMembersList {...defaultProps} />, {
-      context: TestStubs.routerContext([{organization}]),
+      context: RouterContextFixture([{organization}]),
     });
 
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
@@ -204,7 +207,7 @@ describe('OrganizationMembersList', function () {
     });
 
     render(<OrganizationMembersList {...defaultProps} />, {
-      context: TestStubs.routerContext([{organization}]),
+      context: RouterContextFixture([{organization}]),
     });
 
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
@@ -226,7 +229,7 @@ describe('OrganizationMembersList', function () {
     });
 
     render(<OrganizationMembersList {...defaultProps} />, {
-      context: TestStubs.routerContext([{organization}]),
+      context: RouterContextFixture([{organization}]),
     });
 
     await userEvent.click(screen.getAllByRole('button', {name: 'Leave'})[0]);
@@ -256,7 +259,7 @@ describe('OrganizationMembersList', function () {
     OrganizationsStore.addOrReplace(secondOrg);
 
     render(<OrganizationMembersList {...defaultProps} />, {
-      context: TestStubs.routerContext([{organization}]),
+      context: RouterContextFixture([{organization}]),
     });
 
     await userEvent.click(screen.getAllByRole('button', {name: 'Leave'})[0]);
@@ -282,7 +285,7 @@ describe('OrganizationMembersList', function () {
     });
 
     render(<OrganizationMembersList {...defaultProps} />, {
-      context: TestStubs.routerContext([{organization}]),
+      context: RouterContextFixture([{organization}]),
     });
 
     await userEvent.click(screen.getAllByRole('button', {name: 'Leave'})[0]);
@@ -307,7 +310,7 @@ describe('OrganizationMembersList', function () {
     });
 
     render(<OrganizationMembersList {...defaultProps} />, {
-      context: TestStubs.routerContext([{organization}]),
+      context: RouterContextFixture([{organization}]),
     });
 
     expect(inviteMock).not.toHaveBeenCalled();
@@ -326,7 +329,7 @@ describe('OrganizationMembersList', function () {
     });
 
     render(<OrganizationMembersList {...defaultProps} />, {
-      context: TestStubs.routerContext([{organization}]),
+      context: RouterContextFixture([{organization}]),
     });
 
     expect(inviteMock).not.toHaveBeenCalled();
@@ -341,7 +344,7 @@ describe('OrganizationMembersList', function () {
       body: [],
     });
 
-    const routerContext = TestStubs.routerContext();
+    const routerContext = RouterContextFixture();
 
     render(<OrganizationMembersList {...defaultProps} />, {
       context: routerContext,
@@ -369,7 +372,7 @@ describe('OrganizationMembersList', function () {
       url: '/organizations/org-slug/members/',
       body: [],
     });
-    const routerContext = TestStubs.routerContext();
+    const routerContext = RouterContextFixture();
     render(<OrganizationMembersList {...defaultProps} />, {
       context: routerContext,
     });
@@ -430,7 +433,7 @@ describe('OrganizationMembersList', function () {
   });
 
   it('can filter members with org roles from team membership', async function () {
-    const routerContext = TestStubs.routerContext();
+    const routerContext = RouterContextFixture();
     render(<OrganizationMembersList {...defaultProps} />, {
       context: routerContext,
     });
@@ -448,7 +451,7 @@ describe('OrganizationMembersList', function () {
       id: '123',
       user: null,
       inviteStatus: 'requested_to_be_invited',
-      inviter: TestStubs.User(),
+      inviter: User(),
       role: 'member',
       teams: [],
     });
@@ -479,7 +482,7 @@ describe('OrganizationMembersList', function () {
       });
 
       render(<OrganizationMembersList {...defaultProps} organization={org} />, {
-        context: TestStubs.routerContext([{organization: org}]),
+        context: RouterContextFixture([{organization: org}]),
       });
 
       expect(screen.getByText('Pending Members')).toBeInTheDocument();
@@ -505,7 +508,7 @@ describe('OrganizationMembersList', function () {
       });
 
       render(<OrganizationMembersList {...defaultProps} />, {
-        context: TestStubs.routerContext([{organization: org}]),
+        context: RouterContextFixture([{organization: org}]),
       });
 
       expect(screen.getByText('Pending Members')).toBeInTheDocument();
@@ -543,7 +546,7 @@ describe('OrganizationMembersList', function () {
       });
 
       render(<OrganizationMembersList {...defaultProps} />, {
-        context: TestStubs.routerContext([{organization: org}]),
+        context: RouterContextFixture([{organization: org}]),
       });
 
       expect(screen.getByText('Pending Members')).toBeInTheDocument();
@@ -579,7 +582,7 @@ describe('OrganizationMembersList', function () {
       });
 
       render(<OrganizationMembersList {...defaultProps} />, {
-        context: TestStubs.routerContext([{organization: org}]),
+        context: RouterContextFixture([{organization: org}]),
       });
 
       await selectEvent.select(screen.getAllByRole('textbox')[1], ['Admin']);

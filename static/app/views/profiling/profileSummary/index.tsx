@@ -10,6 +10,7 @@ import Count from 'sentry/components/count';
 import DateTime from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import SearchBar from 'sentry/components/events/searchBar';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
@@ -26,7 +27,6 @@ import {
   ProfilingBreadcrumbs,
   ProfilingBreadcrumbsProps,
 } from 'sentry/components/profiling/profilingBreadcrumbs';
-import ProfilingFeedbackButton from 'sentry/components/profiling/profilingFeedbackButton';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
@@ -157,7 +157,7 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
       </ProfilingHeaderContent>
       {transactionSummaryTarget && (
         <StyledHeaderActions>
-          <ProfilingFeedbackButton />
+          <FeedbackWidgetButton />
           <LinkButton to={transactionSummaryTarget} size="sm">
             {t('View Transaction Summary')}
           </LinkButton>

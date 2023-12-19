@@ -198,3 +198,18 @@ class ProjectRuleConfigurationTest(APITestCase):
             assert "sentry.rules.filters.issue_severity.IssueSeverityFilter" in [
                 filter["id"] for filter in response.data["filters"]
             ]
+
+    def test_high_priority_issue_condition_feature(self):
+        # Hide the high priority issue condition when high-priority-alerts is off
+        with self.feature({"projects:high-priority-alerts": False}):
+            response = self.get_success_response(self.organization.slug, self.project.slug)
+            assert "sentry.rules.conditions.high_priority_issue.HighPriorityIssueCondition" not in [
+                filter["id"] for filter in response.data["conditions"]
+            ]
+
+        # Show the high priority issue condition when high-priority-alerts is on
+        with self.feature({"projects:high-priority-alerts": True}):
+            response = self.get_success_response(self.organization.slug, self.project.slug)
+            assert "sentry.rules.conditions.high_priority_issue.HighPriorityIssueCondition" in [
+                filter["id"] for filter in response.data["conditions"]
+            ]

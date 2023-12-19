@@ -5,7 +5,7 @@ import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import Pagination from 'sentry/components/pagination';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {
@@ -28,21 +28,30 @@ import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {TOP_SCREENS} from 'sentry/views/starfish/views/screens';
 
+const MAX_TABLE_RELEASE_CHARS = 15;
+
 type Props = {
   data: TableData | undefined;
   eventView: EventView;
   isLoading: boolean;
   pageLinks: string | undefined;
+  onCursor?: CursorHandler;
 };
 
-export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
+export function ScreensTable({data, eventView, isLoading, pageLinks, onCursor}: Props) {
   const location = useLocation();
   const {selection} = usePageFilters();
   const {projects} = useProjects();
   const organization = useOrganization();
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
-  const truncatedPrimary = formatVersionAndCenterTruncate(primaryRelease ?? '', 15);
-  const truncatedSecondary = formatVersionAndCenterTruncate(secondaryRelease ?? '', 15);
+  const truncatedPrimary = formatVersionAndCenterTruncate(
+    primaryRelease ?? '',
+    MAX_TABLE_RELEASE_CHARS
+  );
+  const truncatedSecondary = formatVersionAndCenterTruncate(
+    secondaryRelease ?? '',
+    MAX_TABLE_RELEASE_CHARS
+  );
 
   const project = useMemo(() => {
     if (selection.projects.length !== 1) {
@@ -197,7 +206,7 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
               !col.name.startsWith('avg_compare')
           )
           .map((col: TableColumn<React.ReactText>) => {
-            return {...col, name: columnNameMap[col.key]};
+            return {...col, name: columnNameMap[col.key] ?? col.name};
           })}
         columnSortBy={[
           {
@@ -211,7 +220,7 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
           renderBodyCell,
         }}
       />
-      <Pagination pageLinks={pageLinks} />
+      <Pagination pageLinks={pageLinks} onCursor={onCursor} />
     </Fragment>
   );
 }

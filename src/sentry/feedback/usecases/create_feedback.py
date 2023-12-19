@@ -14,7 +14,7 @@ from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOAD_SCHEMA
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.project import Project
-from sentry.signals import first_feedback_received
+from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.utils import metrics
 from sentry.utils.dates import ensure_aware
 from sentry.utils.safe import get_path
@@ -101,6 +101,15 @@ def fix_for_issue_platform(event_data):
     if event_data.get("user", {}).get("id") is not None:
         event_data["user"]["id"] = str(event_data["user"]["id"])
 
+    # If no user email was provided specify the contact-email as the user-email.
+    feedback_obj = event_data.get("contexts", {}).get("feedback", {})
+    contact_email = feedback_obj.get("contact_email")
+    if not ret_event["user"].get("email", ""):
+        ret_event["user"]["email"] = contact_email
+
+    # Set the event message to the feedback message.
+    ret_event["logentry"] = {"message": feedback_obj.get("message")}
+
     return ret_event
 
 
@@ -158,6 +167,16 @@ def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
 
     if not project.flags.has_feedbacks:
         first_feedback_received.send_robust(project=project, sender=Project)
+
+    if (
+        source
+        in [
+            FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
+            FeedbackCreationSource.NEW_FEEDBACK_DJANGO_ENDPOINT,
+        ]
+        and not project.flags.has_new_feedbacks
+    ):
+        first_new_feedback_received.send_robust(project=project, sender=Project)
 
     produce_occurrence_to_kafka(
         payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_fixed

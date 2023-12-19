@@ -426,6 +426,28 @@ export function formatAbbreviatedNumber(
   return number.toLocaleString(undefined, {maximumSignificantDigits: precision});
 }
 
+/**
+ * Rounds to 2 decimal digits without forcing trailing zeros
+ * Will preserve significant decimals for very small numbers
+ * e.g. 0.0001234 -> 0.00012
+ * @param value number to format
+ */
+export function formatNumberWithDynamicDecimalPoints(value: number): string {
+  if ([0, Infinity, -Infinity, NaN].includes(value)) {
+    return value.toLocaleString();
+  }
+
+  const exponent = Math.floor(Math.log10(value));
+
+  const maxFractionDigits = exponent >= 0 ? 2 : Math.abs(exponent) + 1;
+  const numberFormat = {
+    maximumFractionDigits: maxFractionDigits,
+    minimumFractionDigits: 0,
+  };
+
+  return value.toLocaleString(undefined, numberFormat);
+}
+
 export function formatRate(
   value: number,
   unit: RateUnits = RateUnits.PER_SECOND,

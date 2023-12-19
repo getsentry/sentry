@@ -1,5 +1,7 @@
 import {AccessRequest} from 'sentry-fixture/accessRequest';
 import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
+import {User} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -57,7 +59,7 @@ describe('OrganizationTeams', function () {
 
     it('can join team and have link to details', function () {
       const mockTeams = [
-        TestStubs.Team({
+        Team({
           hasAccess: true,
           isMember: false,
         }),
@@ -73,7 +75,7 @@ describe('OrganizationTeams', function () {
     });
 
     it('reloads projects after joining a team', async function () {
-      const team = TestStubs.Team({
+      const team = Team({
         hasAccess: true,
         isMember: false,
       });
@@ -99,9 +101,7 @@ describe('OrganizationTeams', function () {
     });
 
     it('cannot leave idp-provisioned team', function () {
-      const mockTeams = [
-        TestStubs.Team({flags: {'idp:provisioned': true}, isMember: true}),
-      ];
+      const mockTeams = [Team({flags: {'idp:provisioned': true}, isMember: true})];
       act(() => void TeamStore.loadInitialData(mockTeams, false, null));
       createWrapper();
 
@@ -109,9 +109,7 @@ describe('OrganizationTeams', function () {
     });
 
     it('cannot join idp-provisioned team', function () {
-      const mockTeams = [
-        TestStubs.Team({flags: {'idp:provisioned': true}, isMember: false}),
-      ];
+      const mockTeams = [Team({flags: {'idp:provisioned': true}, isMember: false})];
       act(() => void TeamStore.loadInitialData(mockTeams, false, null));
       createWrapper({
         access: new Set([]),
@@ -145,7 +143,7 @@ describe('OrganizationTeams', function () {
 
     it('can request access to team and does not have link to details', function () {
       const mockTeams = [
-        TestStubs.Team({
+        Team({
           hasAccess: false,
           isMember: false,
         }),
@@ -161,7 +159,7 @@ describe('OrganizationTeams', function () {
 
     it('can leave team when you are a member', function () {
       const mockTeams = [
-        TestStubs.Team({
+        Team({
           hasAccess: true,
           isMember: true,
         }),
@@ -175,9 +173,7 @@ describe('OrganizationTeams', function () {
     });
 
     it('cannot request to join idp-provisioned team', function () {
-      const mockTeams = [
-        TestStubs.Team({flags: {'idp:provisioned': true}, isMember: false}),
-      ];
+      const mockTeams = [Team({flags: {'idp:provisioned': true}, isMember: false})];
       act(() => void TeamStore.loadInitialData(mockTeams, false, null));
       createWrapper({
         access: new Set([]),
@@ -187,9 +183,7 @@ describe('OrganizationTeams', function () {
     });
 
     it('cannot leave idp-provisioned team', function () {
-      const mockTeams = [
-        TestStubs.Team({flags: {'idp:provisioned': true}, isMember: true}),
-      ];
+      const mockTeams = [Team({flags: {'idp:provisioned': true}, isMember: true})];
       act(() => void TeamStore.loadInitialData(mockTeams, false, null));
       createWrapper({
         access: new Set([]),
@@ -209,7 +203,7 @@ describe('OrganizationTeams', function () {
     const accessRequest = AccessRequest({
       requester: {},
     });
-    const requester = TestStubs.User({
+    const requester = User({
       id: '9',
       username: 'requester@example.com',
       email: 'requester@example.com',

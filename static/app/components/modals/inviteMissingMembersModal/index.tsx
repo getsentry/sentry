@@ -267,7 +267,7 @@ export function InviteMissingMembersModal({
                 aria-label={t('Add to Team')}
                 data-test-id="select-teams"
                 disabled={false}
-                placeholder={t('Add to teams\u2026')}
+                placeholder={t('None')}
                 onChange={opts => setTeams(opts ? opts.map(v => v.value) : [], i)}
                 multiple
                 clearable

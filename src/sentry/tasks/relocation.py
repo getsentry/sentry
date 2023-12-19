@@ -9,6 +9,7 @@ from typing import Optional
 from zipfile import ZipFile
 
 import yaml
+from celery.app.task import Task
 from cryptography.fernet import Fernet
 from django.db import router, transaction
 from google.cloud.devtools.cloudbuild_v1 import Build
@@ -25,9 +26,8 @@ from sentry.backup.helpers import (
     unwrap_encrypted_export_tarball,
 )
 from sentry.backup.imports import import_in_organization_scope
-from sentry.filestore.gcs import GoogleCloudStorage
 from sentry.models.files.file import File
-from sentry.models.files.utils import get_storage
+from sentry.models.files.utils import get_relocation_storage, get_storage
 from sentry.models.importchunk import ControlImportChunkReplica, RegionImportChunk
 from sentry.models.lostpasswordhash import LostPasswordHash as LostPasswordHash
 from sentry.models.organization import Organization
@@ -49,13 +49,12 @@ from sentry.utils import json
 from sentry.utils.db import atomic_transaction
 from sentry.utils.env import gcp_project_id, log_gcp_credentials_details
 from sentry.utils.relocation import (
-    RELOCATION_BLOB_SIZE,
-    RELOCATION_FILE_TYPE,
-    EmailKind,
+    TASK_TO_STEP,
+    LoggingPrinter,
     OrderedTask,
     create_cloudbuild_yaml,
     fail_relocation,
-    get_bucket_name,
+    get_relocations_bucket_name,
     retry_task_or_fail_relocation,
     send_relocation_update_email,
     start_relocation_task,
@@ -142,7 +141,6 @@ def uploading_complete(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.UPLOADING,
         task=OrderedTask.UPLOADING_COMPLETE,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
@@ -168,7 +166,6 @@ def uploading_complete(uuid: str) -> None:
             .first()
         )
         fp = raw_relocation_file.file.getfile()
-
         with fp:
             preprocessing_scan.delay(uuid)
 
@@ -205,7 +202,6 @@ def preprocessing_scan(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.PREPROCESSING,
         task=OrderedTask.PREPROCESSING_SCAN,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
@@ -315,19 +311,99 @@ def preprocessing_scan(uuid: str) -> None:
             relocation.want_usernames = sorted(usernames)
             relocation.save()
 
-            preprocessing_baseline_config.delay(uuid)
+            preprocessing_transfer.delay(uuid)
 
             # The user's import data looks basically okay - we can use this opportunity to send a
             # "your relocation request has been accepted and is in flight, please give it a few
             # hours" email.
             send_relocation_update_email(
                 relocation,
-                EmailKind.STARTED,
+                Relocation.EmailKind.STARTED,
                 {
                     "uuid": str(relocation.uuid),
                     "orgs": relocation.want_org_slugs,
                 },
             )
+
+
+@instrumented_task(
+    name="sentry.relocation.preprocessing_transfer",
+    queue="relocation",
+    max_retries=MAX_FAST_TASK_RETRIES,
+    retry_backoff=RETRY_BACKOFF,
+    retry_backoff_jitter=True,
+    soft_time_limit=MEDIUM_TIME_LIMIT,
+    silo_mode=SiloMode.REGION,
+)
+def preprocessing_transfer(uuid: str) -> None:
+    """
+    We currently have the user's relocation data stored in the main filestore bucket, but we need to
+    move it to the relocation bucket. This task handles that transfer.
+
+    This function is meant to be idempotent, and should be retried with an exponential backoff.
+    """
+
+    relocation: Optional[Relocation]
+    attempts_left: int
+    (relocation, attempts_left) = start_relocation_task(
+        uuid=uuid,
+        task=OrderedTask.PREPROCESSING_TRANSFER,
+        allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
+    )
+    if relocation is None:
+        return
+
+    with retry_task_or_fail_relocation(
+        relocation,
+        OrderedTask.PREPROCESSING_TRANSFER,
+        attempts_left,
+        ERR_PREPROCESSING_INTERNAL,
+    ):
+        relocation_storage = get_relocation_storage()
+
+        # Build the `cloudbuild.yaml` file we'll use for validation. CloudBuild requires the storage
+        # source to be zipped, even if it is only a single yaml file.
+        cloudbuild_yaml = BytesIO(create_cloudbuild_yaml(relocation))
+        cloudbuild_zip = BytesIO()
+        with ZipFile(cloudbuild_zip, "w") as zf:
+            zf.writestr("cloudbuild.yaml", cloudbuild_yaml.read())
+
+        # Save the ZIP archive to remote storage, so that we may build from it.
+        cloudbuild_yaml.seek(0)
+        cloudbuild_zip.seek(0)
+        relocation_storage.save(f"runs/{uuid}/conf/cloudbuild.yaml", cloudbuild_yaml)
+        relocation_storage.save(f"runs/{uuid}/conf/cloudbuild.zip", cloudbuild_zip)
+
+        # Upload the `key-config.json` file we'll use to identify the correct KMS resource use
+        # during validation.
+        log_gcp_credentials_details(logger)
+        kms_config_bytes = json.dumps(get_default_crypto_key_version()).encode("utf-8")
+        relocation_storage.save(f"runs/{uuid}/in/kms-config.json", BytesIO(kms_config_bytes))
+
+        # Now, upload the relocation data proper.
+        kind = RelocationFile.Kind.RAW_USER_DATA
+        raw_relocation_file = (
+            RelocationFile.objects.filter(
+                relocation=relocation,
+                kind=kind.value,
+            )
+            .select_related("file")
+            .prefetch_related("file__blobs")
+            .first()
+        )
+        if raw_relocation_file is None:
+            raise FileNotFoundError("User-supplied relocation data not found.")
+
+        file: File = raw_relocation_file.file
+        path = f'runs/{uuid}/in/{kind.to_filename("tar")}'
+
+        # Copy all of the files from Django's abstract filestore into an isolated,
+        # backend-specific filestore for relocation operations only.
+        fp = file.getfile()
+        fp.seek(0)
+        relocation_storage.save(path, fp)
+
+        preprocessing_baseline_config.delay(uuid)
 
 
 @instrumented_task(
@@ -350,7 +426,6 @@ def preprocessing_baseline_config(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.PREPROCESSING,
         task=OrderedTask.PREPROCESSING_BASELINE_CONFIG,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
@@ -363,6 +438,10 @@ def preprocessing_baseline_config(uuid: str) -> None:
         attempts_left,
         ERR_PREPROCESSING_INTERNAL,
     ):
+        kind = RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA
+        path = f'runs/{uuid}/in/{kind.to_filename("tar")}'
+        relocation_storage = get_relocation_storage()
+
         # TODO(getsentry/team-ospo#216): A very nice optimization here is to only pull this down
         # once a day - if we've already done a relocation today, we should just copy that file
         # instead of doing this (expensive!) global export again.
@@ -371,16 +450,10 @@ def preprocessing_baseline_config(uuid: str) -> None:
         export_in_config_scope(
             fp,
             encryptor=GCPKMSEncryptor.from_crypto_key_version(get_default_crypto_key_version()),
+            printer=LoggingPrinter(uuid),
         )
         fp.seek(0)
-        kind = RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA
-        file = File.objects.create(name=kind.to_filename("tar"), type=RELOCATION_FILE_TYPE)
-        file.putfile(fp, blob_size=RELOCATION_BLOB_SIZE, logger=logger)
-        RelocationFile.objects.create(
-            relocation=relocation,
-            file=file,
-            kind=kind.value,
-        )
+        relocation_storage.save(path, fp)
 
         preprocessing_colliding_users.delay(uuid)
 
@@ -406,7 +479,6 @@ def preprocessing_colliding_users(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.PREPROCESSING,
         task=OrderedTask.PREPROCESSING_COLLIDING_USERS,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
@@ -419,22 +491,19 @@ def preprocessing_colliding_users(uuid: str) -> None:
         attempts_left,
         ERR_PREPROCESSING_INTERNAL,
     ):
+        kind = RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA
+        path = f'runs/{uuid}/in/{kind.to_filename("tar")}'
+        relocation_storage = get_relocation_storage()
         fp = BytesIO()
         log_gcp_credentials_details(logger)
         export_in_user_scope(
             fp,
             encryptor=GCPKMSEncryptor.from_crypto_key_version(get_default_crypto_key_version()),
             user_filter=set(relocation.want_usernames),
+            printer=LoggingPrinter(uuid),
         )
         fp.seek(0)
-        kind = RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA
-        file = File.objects.create(name=kind.to_filename("tar"), type=RELOCATION_FILE_TYPE)
-        file.putfile(fp, blob_size=RELOCATION_BLOB_SIZE, logger=logger)
-        RelocationFile.objects.create(
-            relocation=relocation,
-            file=file,
-            kind=kind.value,
-        )
+        relocation_storage.save(path, fp)
 
         preprocessing_complete.delay(uuid)
 
@@ -450,9 +519,10 @@ def preprocessing_colliding_users(uuid: str) -> None:
 )
 def preprocessing_complete(uuid: str) -> None:
     """
-    Creates a "composite object" from the uploaded tarball, which could have many pieces. Because
-    creating a composite object in this manner is a synchronous operation, we don't need a follow-up
-    step confirming success.
+    This task ensures that every file CloudBuild will need to do its work is actually present and
+    available. Even if we've "finished" our uploads from the previous step, they may still not (yet)
+    be available on the read side, so this final step just gives us a bit of buffer to ensure that
+    this is the case.
 
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
@@ -461,7 +531,6 @@ def preprocessing_complete(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.PREPROCESSING,
         task=OrderedTask.PREPROCESSING_COMPLETE,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
@@ -474,53 +543,17 @@ def preprocessing_complete(uuid: str) -> None:
         attempts_left,
         ERR_PREPROCESSING_INTERNAL,
     ):
-        storage = get_storage()
-
-        # Build the `cloudbuild.yaml` file we'll use for validation. CloudBuild requires the storage
-        # source to be zipped, even if it is only a single yaml file.
-        cloudbuild_yaml = BytesIO(create_cloudbuild_yaml(relocation))
-        cloudbuild_zip = BytesIO()
-        with ZipFile(cloudbuild_zip, "w") as zf:
-            zf.writestr("cloudbuild.yaml", cloudbuild_yaml.read())
-
-        # Save the ZIP archive to remote storage, so that we may build from it.
-        cloudbuild_yaml.seek(0)
-        cloudbuild_zip.seek(0)
-        storage.save(f"relocations/runs/{uuid}/conf/cloudbuild.yaml", cloudbuild_yaml)
-        storage.save(f"relocations/runs/{uuid}/conf/cloudbuild.zip", cloudbuild_zip)
-
-        # Upload the `key-config.json` file we'll use to identify the correct KMS resource use
-        # during validation.
-        log_gcp_credentials_details(logger)
-        kms_config_bytes = json.dumps(get_default_crypto_key_version()).encode("utf-8")
-        storage.save(f"relocations/runs/{uuid}/in/kms-config.json", BytesIO(kms_config_bytes))
-
-        # Upload the exports we'll be validating.
+        relocation_storage = get_relocation_storage()
+        if not relocation_storage.exists(f"runs/{uuid}/conf/cloudbuild.yaml"):
+            raise FileNotFoundError("Could not locate `cloudbuild.yaml` in relocation bucket.")
+        if not relocation_storage.exists(f"runs/{uuid}/conf/cloudbuild.zip"):
+            raise FileNotFoundError("Could not locate `cloudbuild.zip` in relocation bucket.")
+        if not relocation_storage.exists(f"runs/{uuid}/in/kms-config.json"):
+            raise FileNotFoundError("Could not locate `kms-config.json` in relocation bucket.")
         for kind in RELOCATION_FILES_TO_BE_VALIDATED:
-            raw_relocation_file = (
-                RelocationFile.objects.filter(
-                    relocation=relocation,
-                    kind=kind.value,
-                )
-                .select_related("file")
-                .prefetch_related("file__blobs")
-                .first()
-            )
-
-            file = raw_relocation_file.file
-            path = f'relocations/runs/{uuid}/in/{kind.to_filename("tar")}'
-            if isinstance(storage, GoogleCloudStorage):
-                # If we're using GCS, rather than performing an expensive copy of the file, just
-                # create a composite object.
-                storage.client.bucket(storage.bucket_name).blob(path).compose(
-                    [b.getfile().blob for b in file.blobs.all()]
-                )
-            else:
-                # In S3 or the local filesystem, no "composite object" API exists, so we do a manual
-                # concatenation then copying instead.
-                fp = file.getfile()
-                fp.seek(0)
-                storage.save(path, fp)
+            filename = kind.to_filename("tar")
+            if not relocation_storage.exists(f"runs/{uuid}/in/{filename}"):
+                raise FileNotFoundError(f"Could not locate `{filename}` in relocation bucket.")
 
         with atomic_transaction(
             using=(router.db_for_write(Relocation), router.db_for_write(RelocationValidation))
@@ -692,7 +725,6 @@ def validating_start(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.VALIDATING,
         task=OrderedTask.VALIDATING_START,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
@@ -721,8 +753,8 @@ def validating_start(uuid: str) -> None:
         build = Build(
             source={
                 "storage_source": {
-                    "bucket": get_bucket_name(),
-                    "object_": f"relocations/runs/{uuid}/conf/cloudbuild.zip",
+                    "bucket": get_relocations_bucket_name(),
+                    "object_": f"runs/{uuid}/conf/cloudbuild.zip",
                 }
             },
             steps=convert_dict_key_case(cb_conf["steps"], camel_to_snake_keep_underscores),
@@ -769,7 +801,6 @@ def validating_poll(uuid: str, build_id: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.VALIDATING,
         task=OrderedTask.VALIDATING_POLL,
         allowed_task_attempts=MAX_VALIDATION_POLL_ATTEMPTS,
     )
@@ -865,7 +896,6 @@ def validating_complete(uuid: str, build_id: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.VALIDATING,
         task=OrderedTask.VALIDATING_COMPLETE,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
@@ -890,13 +920,13 @@ def validating_complete(uuid: str, build_id: str) -> None:
     ):
         storage = get_storage()
         final_status = ValidationStatus.VALID
-        (_, findings_files) = storage.listdir(f"relocations/runs/{uuid}/findings")
+        (_, findings_files) = storage.listdir(f"runs/{uuid}/findings")
         for file in sorted(findings_files, reverse=True):
             # Ignore files prefixed with `artifacts-`, as these are generated by CloudBuild.
             if file.startswith("artifacts-"):
                 continue
 
-            findings_file = storage.open(f"relocations/runs/{uuid}/findings/{file}")
+            findings_file = storage.open(f"runs/{uuid}/findings/{file}")
             with findings_file:
                 findings = json.load(findings_file)
                 if len(findings) > 0:
@@ -931,7 +961,6 @@ def importing(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.IMPORTING,
         task=OrderedTask.IMPORTING,
         allowed_task_attempts=1,
     )
@@ -944,21 +973,6 @@ def importing(uuid: str) -> None:
         attempts_left,
         ERR_IMPORTING_INTERNAL,
     ):
-        # A custom logger that roughly matches the parts of the `click.echo` interface that the
-        # `import_*` methods rely on.
-        def printer(text: str, *, err: bool = False, **kwargs) -> None:
-            nonlocal uuid
-            if err:
-                logger.error(
-                    "Import failed",
-                    extra={"uuid": uuid, "task": OrderedTask.IMPORTING.name},
-                )
-            else:
-                logger.info(
-                    "Import info",
-                    extra={"uuid": uuid, "task": OrderedTask.IMPORTING.name},
-                )
-
         # The `uploading_complete` task above should have verified that this is ready for use.
         raw_relocation_file = (
             RelocationFile.objects.filter(
@@ -980,7 +994,7 @@ def importing(uuid: str) -> None:
                     merge_users=False, overwrite_configs=False, import_uuid=str(uuid)
                 ),
                 org_filter=set(relocation.want_org_slugs),
-                printer=printer,
+                printer=LoggingPrinter(uuid),
             )
 
         postprocessing.delay(uuid)
@@ -1004,7 +1018,6 @@ def postprocessing(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.POSTPROCESSING,
         task=OrderedTask.POSTPROCESSING,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
@@ -1076,7 +1089,6 @@ def notifying_users(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.NOTIFYING,
         task=OrderedTask.NOTIFYING_USERS,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
@@ -1116,6 +1128,9 @@ def notifying_users(uuid: str) -> None:
             hash = lost_password_hash_service.get_or_create(user_id=user.id).hash
             LostPasswordHash.send_relocate_account_email(user, hash, relocation.want_org_slugs)
 
+        relocation.latest_unclaimed_emails_sent_at = datetime.now()
+        relocation.save()
+
         notifying_owner.delay(uuid)
 
 
@@ -1137,7 +1152,6 @@ def notifying_owner(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.NOTIFYING,
         task=OrderedTask.NOTIFYING_OWNER,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
@@ -1152,7 +1166,7 @@ def notifying_owner(uuid: str) -> None:
     ):
         send_relocation_update_email(
             relocation,
-            EmailKind.SUCCEEDED,
+            Relocation.EmailKind.SUCCEEDED,
             {
                 "uuid": str(relocation.uuid),
                 "orgs": relocation.want_org_slugs,
@@ -1179,7 +1193,6 @@ def completed(uuid: str) -> None:
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
-        step=Relocation.Step.COMPLETED,
         task=OrderedTask.COMPLETED,
         allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
     )
@@ -1194,3 +1207,37 @@ def completed(uuid: str) -> None:
     ):
         relocation.status = Relocation.Status.SUCCESS.value
         relocation.save()
+
+
+TASK_MAP: dict[OrderedTask, Task] = {
+    OrderedTask.NONE: Task(),
+    OrderedTask.UPLOADING_COMPLETE: uploading_complete,
+    OrderedTask.PREPROCESSING_SCAN: preprocessing_scan,
+    OrderedTask.PREPROCESSING_TRANSFER: preprocessing_transfer,
+    OrderedTask.PREPROCESSING_BASELINE_CONFIG: preprocessing_baseline_config,
+    OrderedTask.PREPROCESSING_COLLIDING_USERS: preprocessing_colliding_users,
+    OrderedTask.PREPROCESSING_COMPLETE: preprocessing_complete,
+    OrderedTask.VALIDATING_START: validating_start,
+    OrderedTask.VALIDATING_POLL: validating_poll,
+    OrderedTask.VALIDATING_COMPLETE: validating_complete,
+    OrderedTask.IMPORTING: importing,
+    OrderedTask.POSTPROCESSING: postprocessing,
+    OrderedTask.NOTIFYING_USERS: notifying_users,
+    OrderedTask.NOTIFYING_OWNER: notifying_owner,
+    OrderedTask.COMPLETED: completed,
+}
+
+assert list(OrderedTask._member_map_.keys()) == [k.name for k in TASK_MAP.keys()]
+
+
+def get_first_task_for_step(target_step: Relocation.Step) -> Task | None:
+    min_task: OrderedTask | None = None
+    for ordered_task, step in TASK_TO_STEP.items():
+        if step == target_step:
+            if min_task is None or ordered_task.value < min_task.value:
+                min_task = ordered_task
+
+    if min_task is None or min_task == OrderedTask.NONE:
+        return None
+
+    return TASK_MAP.get(min_task, None)

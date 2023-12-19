@@ -651,23 +651,6 @@ def dev_consumer(consumer_names):
             processor._run_once()
 
 
-@run.command("ingest-replay-recordings")
-@log_options()
-@configuration
-@kafka_options("ingest-replay-recordings")
-@click.option(
-    "--topic", default="ingest-replay-recordings", help="Topic to get replay recording data from"
-)
-def replays_recordings_consumer(**options):
-    from sentry.consumers import print_deprecation_warning
-
-    print_deprecation_warning("ingest-replay-recordings", options["group_id"])
-    from sentry.replays.consumers import get_replays_recordings_consumer
-
-    consumer = get_replays_recordings_consumer(**options)
-    run_processor_with_signals(consumer)
-
-
 @run.command("ingest-monitors")
 @log_options()
 @click.option("--topic", default="ingest-monitors", help="Topic to get monitor check-in data from.")

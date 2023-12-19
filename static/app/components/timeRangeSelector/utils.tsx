@@ -29,7 +29,7 @@ export type RelativeUnitsMapping = {
 
 const DATE_TIME_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 
-const STATS_PERIOD_REGEX = /^(\d+)([smhdw]{1})$/;
+const STATS_PERIOD_REGEX = /^(\d+)([mhdw]{1})$/;
 
 const SUPPORTED_RELATIVE_PERIOD_UNITS: RelativeUnitsMapping = {
   m: {

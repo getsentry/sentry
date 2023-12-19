@@ -190,7 +190,7 @@ def test_control_processing(task_runner):
 
 def setup_deletion_test():
     user = Factories.create_user()
-    organization = Factories.create_organization(region="eu", owner=user)
+    organization = Factories.create_organization(owner=user)
     project = Factories.create_project(organization=organization)
     integration = Factories.create_integration(organization=organization, external_id="123")
     group = Factories.create_group(project=project)

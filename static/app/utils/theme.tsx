@@ -946,6 +946,7 @@ export const lightTheme = {
   },
   sidebarGradient: `linear-gradient(294.17deg,${sidebarBackground.light} 35.57%,#452650 92.42%,#452650 92.42%)`,
   sidebarBorder: 'transparent',
+  superuserSidebar: '#880808',
 };
 
 export const darkTheme: Theme = {
@@ -973,6 +974,7 @@ export const darkTheme: Theme = {
   },
   sidebarGradient: `linear-gradient(180deg, ${sidebarBackground.dark} 0%, #1B1825 100%)`,
   sidebarBorder: darkAliases.border,
+  superuserSidebar: '#620808',
 };
 
 type Theme = typeof lightTheme;

@@ -265,7 +265,6 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
                       transformedReleaseSeries[YAXIS_COLUMNS[yAxes[0]]]
                     )}
                     loading={isSeriesLoading}
-                    utc={false}
                     grid={{
                       left: '0',
                       right: '0',
@@ -334,7 +333,6 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
                       transformedReleaseSeries[YAXIS_COLUMNS[yAxes[1]]]
                     )}
                     loading={isSeriesLoading}
-                    utc={false}
                     grid={{
                       left: '0',
                       right: '0',
@@ -377,7 +375,6 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
                 data={Object.values(transformedReleaseSeries[YAXIS_COLUMNS[yAxes[2]]])}
                 height={245}
                 loading={isSeriesLoading}
-                utc={false}
                 grid={{
                   left: '0',
                   right: '0',

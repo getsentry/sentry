@@ -1,4 +1,6 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -7,9 +9,9 @@ import ProjectPluginRow from 'sentry/views/settings/projectPlugins/projectPlugin
 describe('ProjectPluginRow', function () {
   const plugin = TestStubs.Plugin();
   const org = Organization({access: ['project:write']});
-  const project = TestStubs.Project();
+  const project = ProjectFixture();
   const params = {orgId: org.slug, projectId: project.slug};
-  const routerContext = TestStubs.routerContext([{organization: org, project}]);
+  const routerContext = RouterContextFixture([{organization: org, project}]);
 
   it('renders', function () {
     render(<ProjectPluginRow {...params} {...plugin} project={project} />, {

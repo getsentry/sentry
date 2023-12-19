@@ -6,17 +6,10 @@ from datetime import datetime
 from functools import wraps
 from typing import Any, Callable, Iterable
 
-# XXX(mdtro): backwards compatible imports for celery 4.4.7, remove after upgrade to 5.2.7
-import celery
-
-from sentry.silo.base import SiloLimit, SiloMode
-
-if celery.version_info >= (5, 2):
-    from celery import current_task
-else:
-    from celery.task import current as current_task
+from celery import current_task
 
 from sentry.celery import app
+from sentry.silo.base import SiloLimit, SiloMode
 from sentry.utils import metrics
 from sentry.utils.sdk import capture_exception, configure_scope
 

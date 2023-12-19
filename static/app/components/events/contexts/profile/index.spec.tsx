@@ -1,4 +1,6 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -15,8 +17,8 @@ const profileContext = {
   profile_id: profileId,
 };
 
-const event = TestStubs.Event();
-const project = TestStubs.Project();
+const event = EventFixture();
+const project = ProjectFixture();
 
 describe('profile event context', function () {
   beforeEach(function () {

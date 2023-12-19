@@ -4,6 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tsdb
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import StatsMixin, region_silo_endpoint
 from sentry.api.bases import RegionSentryAppBaseEndpoint, SentryAppStatsPermission
@@ -22,6 +23,7 @@ def get_component_interaction_key(sentry_app, component_type):
 
 @region_silo_endpoint
 class SentryAppInteractionEndpoint(RegionSentryAppBaseEndpoint, StatsMixin):
+    owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,

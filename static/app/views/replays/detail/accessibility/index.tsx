@@ -1,5 +1,6 @@
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualized';
+import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
 import JumpButtons from 'sentry/components/replays/jumpButtons';
@@ -18,6 +19,7 @@ import AccessibilityFilters from 'sentry/views/replays/detail/accessibility/acce
 import AccessibilityHeaderCell, {
   COLUMN_COUNT,
 } from 'sentry/views/replays/detail/accessibility/accessibilityHeaderCell';
+import AccessibilityRefetchBanner from 'sentry/views/replays/detail/accessibility/accessibilityRefetchBanner';
 import AccessibilityTableCell from 'sentry/views/replays/detail/accessibility/accessibilityTableCell';
 import AccessibilityDetails from 'sentry/views/replays/detail/accessibility/details';
 import useAccessibilityFilters from 'sentry/views/replays/detail/accessibility/useAccessibilityFilters';
@@ -43,7 +45,13 @@ function AccessibilityList() {
   const {currentTime, currentHoverTime} = useReplayContext();
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
-  const {data: accessibilityData, isLoading} = useA11yData();
+  const {
+    dataOffsetMs,
+    data: accessibilityData,
+    isLoading,
+    isRefetching,
+    refetch,
+  } = useA11yData();
 
   const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
 
@@ -91,6 +99,12 @@ function AccessibilityList() {
       [items, organization]
     ),
   });
+
+  useEffect(() => {
+    if (isRefetching) {
+      onCloseDetailsSplit();
+    }
+  }, [isRefetching, onCloseDetailsSplit]);
 
   const {
     handleClick: onClickToJump,
@@ -147,16 +161,17 @@ function AccessibilityList() {
 
   return (
     <FluidHeight>
-      <FilterLoadingIndicator isLoading={isLoading}>
+      <FilterLoadingIndicator isLoading={isLoading || isRefetching}>
         <AccessibilityFilters accessibilityData={accessibilityData} {...filterProps} />
       </FilterLoadingIndicator>
-      <GridTable ref={containerRef} data-test-id="replay-details-accessibility-tab">
+      <AccessibilityRefetchBanner initialOffsetMs={dataOffsetMs} refetch={refetch} />
+      <StyledGridTable ref={containerRef} data-test-id="replay-details-accessibility-tab">
         <SplitPanel
           style={{
             gridTemplateRows: splitSize !== undefined ? `1fr auto ${splitSize}px` : '1fr',
           }}
         >
-          {accessibilityData ? (
+          {accessibilityData && !isRefetching ? (
             <OverflowHidden>
               <AutoSizer onResize={onWrapperResize}>
                 {({height, width}) => (
@@ -211,9 +226,14 @@ function AccessibilityList() {
             onClose={onCloseDetailsSplit}
           />
         </SplitPanel>
-      </GridTable>
+      </StyledGridTable>
     </FluidHeight>
   );
 }
+
+const StyledGridTable = styled(GridTable)`
+  border-radius: ${p => p.theme.borderRadiusBottom};
+  border-top: none;
+`;
 
 export default AccessibilityList;

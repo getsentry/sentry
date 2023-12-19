@@ -265,7 +265,8 @@ export function isItemActive(
     (item?.label === 'Settings' && location.pathname.startsWith('/settings/')) ||
     (item?.label === 'Alerts' &&
       location.pathname.includes('/alerts/') &&
-      !location.pathname.startsWith('/settings/'))
+      !location.pathname.startsWith('/settings/')) ||
+    (item?.label === 'Releases' && location.pathname.includes('/release-thresholds/'))
   );
 }
 

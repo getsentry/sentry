@@ -2,6 +2,8 @@ import selectEvent from 'react-select-event';
 import {Incident} from 'sentry-fixture/incident';
 import {IncidentStats} from 'sentry-fixture/incidentStats';
 import {MetricRule} from 'sentry-fixture/metricRule';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {Team} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -67,10 +69,10 @@ describe('IncidentsList', () => {
     });
 
     const projects = [
-      TestStubs.Project({slug: 'a', platform: 'javascript'}),
-      TestStubs.Project({slug: 'b'}),
-      TestStubs.Project({slug: 'c'}),
-      TestStubs.Project({slug: 'd'}),
+      ProjectFixture({slug: 'a', platform: 'javascript'}),
+      ProjectFixture({slug: 'b'}),
+      ProjectFixture({slug: 'c'}),
+      ProjectFixture({slug: 'd'}),
     ];
 
     act(() => ProjectsStore.loadInitialData(projects));
@@ -223,7 +225,7 @@ describe('IncidentsList', () => {
   });
 
   it('displays owner from alert rule', async () => {
-    const team = TestStubs.Team();
+    const team = Team();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [

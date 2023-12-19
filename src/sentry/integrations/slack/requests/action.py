@@ -36,7 +36,27 @@ class SlackActionRequest(SlackRequest):
             - orig_response_url: URL from the original message we received
             - is_message: did the original message have a 'message' type
         """
-        return json.loads(self.data["callback_id"])
+        if self.data.get("callback_id"):
+            return json.loads(self.data["callback_id"])
+
+        # XXX(CEO): can't really feature flag this but the block kit data is very different
+
+        # slack sends us a response when a modal is opened and when an option is selected
+        # we don't do anything with it until the user hits "Submit" but we need to handle it anyway
+        if self.data["type"] == "block_actions":
+            if self.data.get("view"):
+                return json.loads(self.data["view"]["private_metadata"])
+            return json.loads(self.data["message"]["blocks"][0]["block_id"])
+
+        if self.data["type"] == "view_submission":
+            return json.loads(self.data["view"]["private_metadata"])
+
+        for data in self.data["message"]["blocks"]:
+            if data["type"] == "section" and len(data["block_id"]) > 5:
+                return json.loads(data["block_id"])
+                # a bit hacky, you can only provide a block ID per block (not per entire message),
+                # and if not provided slack generates a 5 char long one. our provided block_id is at least '{issue: <issue_id>}'
+                # so we know it's longer than 5 chars
 
     def _validate_data(self) -> None:
         """

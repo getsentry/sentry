@@ -1,3 +1,8 @@
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {Team} from 'sentry-fixture/team';
+import {User} from 'sentry-fixture/user';
+
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
@@ -24,17 +29,17 @@ describe('AssigneeSelector', () => {
   let GROUP_2;
 
   beforeEach(() => {
-    USER_1 = TestStubs.User({
+    USER_1 = User({
       id: '1',
       name: 'Jane Bloggs',
       email: 'janebloggs@example.com',
     });
-    USER_2 = TestStubs.User({
+    USER_2 = User({
       id: '2',
       name: 'John Smith',
       email: 'johnsmith@example.com',
     });
-    USER_3 = TestStubs.User({
+    USER_3 = User({
       id: '3',
       name: 'J J',
       email: 'jj@example.com',
@@ -46,13 +51,13 @@ describe('AssigneeSelector', () => {
       team_slug: 'cool-team2',
     });
 
-    TEAM_1 = TestStubs.Team({
+    TEAM_1 = Team({
       id: '3',
       name: 'COOL TEAM',
       slug: 'cool-team',
     });
 
-    PROJECT_1 = TestStubs.Project({
+    PROJECT_1 = ProjectFixture({
       teams: [TEAM_1],
     });
 
@@ -149,7 +154,7 @@ describe('AssigneeSelector', () => {
     it("should return the same member list if the session user isn't present", () => {
       render(<AssigneeSelectorComponent id={GROUP_1.id} />);
       jest.spyOn(ConfigStore, 'get').mockImplementation(() =>
-        TestStubs.User({
+        User({
           id: '555',
           name: 'Here Comes a New Challenger',
           email: 'guile@mail.us.af.mil',
@@ -284,7 +289,7 @@ describe('AssigneeSelector', () => {
   it('shows invite member button', async () => {
     MemberListStore.loadInitialData([USER_1, USER_2]);
     render(<AssigneeSelectorComponent id={GROUP_1.id} />, {
-      context: TestStubs.routerContext(),
+      context: RouterContextFixture(),
     });
     jest.spyOn(ConfigStore, 'get').mockImplementation(() => true);
 

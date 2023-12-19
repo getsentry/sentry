@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {SessionStatusCountByProjectInPeriod} from 'sentry-fixture/sessions';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -16,7 +17,7 @@ describe('TeamStability', () => {
   });
 
   it('should compare selected past crash rate with current week', async () => {
-    const project = TestStubs.Project({hasSessions: true, id: 123});
+    const project = ProjectFixture({hasSessions: true, id: '123'});
     render(
       <TeamStability projects={[project]} organization={Organization()} period="2w" />
     );
@@ -28,7 +29,7 @@ describe('TeamStability', () => {
   });
 
   it('should render no sessions', async () => {
-    const noSessionProject = TestStubs.Project({hasSessions: false, id: 321});
+    const noSessionProject = ProjectFixture({hasSessions: false, id: '321'});
     render(
       <TeamStability
         projects={[noSessionProject]}

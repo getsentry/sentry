@@ -1,3 +1,4 @@
+import logging
 from fnmatch import fnmatch
 
 import sentry_sdk
@@ -14,6 +15,9 @@ from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils.http import is_using_customer_domain, query_string
 from sentry.web.frontend.base import BaseView, ControlSiloOrganizationView
 from sentry.web.helpers import render_to_response
+
+logger = logging.getLogger(__name__)
+
 
 # url names that should only be accessible from a non-customer domain hostname.
 NON_CUSTOMER_DOMAIN_URL_NAMES = [
@@ -69,6 +73,10 @@ class ReactMixin:
             redirect_url = options.get("system.url-prefix")
             qs = query_string(request)
             redirect_url = f"{redirect_url}{request.path}{qs}"
+            logger.info(
+                "react_page.redirect.to_sentry_url",
+                extra={"path": request.path, "location": redirect_url},
+            )
             return HttpResponseRedirect(redirect_url)
 
         if request.subdomain is None and not url_is_non_customer_domain:
@@ -79,6 +87,10 @@ class ReactMixin:
                     request=request, org_slug=org_slug, user_id=None
                 )
                 if redirect_url:
+                    logger.info(
+                        "react_page.redirect.orgdomain",
+                        extra={"path": request.path, "location": redirect_url},
+                    )
                     return HttpResponseRedirect(redirect_url)
             else:
                 user = getattr(request, "user", None) or None
@@ -90,6 +102,10 @@ class ReactMixin:
                             request=request, org_slug=last_active_org, user_id=user.id
                         )
                         if redirect_url:
+                            logger.info(
+                                "react_page.redirect.activeorg",
+                                extra={"path": request.path, "location": redirect_url},
+                            )
                             return HttpResponseRedirect(redirect_url)
 
         response = render_to_response("sentry/base-react.html", context=context, request=request)

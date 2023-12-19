@@ -297,7 +297,7 @@ describe('spanChart', () => {
     );
 
     const chart = new SpanChart(tree);
-    expect(chart.spanTrees.length).toBe(1);
+    expect(chart.spanTrees.length).toBe(2);
   });
 
   it('creates a new tree from orphaned spans', () => {

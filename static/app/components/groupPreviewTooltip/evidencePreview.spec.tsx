@@ -1,3 +1,5 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as useApi from 'sentry/utils/useApi';
@@ -39,7 +41,7 @@ describe('EvidencePreview', () => {
   });
 
   it('renders the span evidence correctly when request succeeds', async () => {
-    const event = TestStubs.Event({
+    const event = EventFixture({
       occurrence: {
         evidenceDisplay: [
           {name: 'Transaction', value: '/api/0/transaction-test-endpoint/'},

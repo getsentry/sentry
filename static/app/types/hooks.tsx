@@ -3,15 +3,15 @@ import type {Route, RouteComponentProps, RouteContextInterface} from 'react-rout
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
 import type {ButtonProps} from 'sentry/components/button';
-import {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
+import type {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
-import {SVGIconProps} from 'sentry/icons/svgIcon';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import type {Group} from 'sentry/types';
-import {UseExperiment} from 'sentry/utils/useExperiment';
-import {OrganizationStatsProps} from 'sentry/views/organizationStats/index';
-import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
+import type {UseExperiment} from 'sentry/utils/useExperiment';
+import type {OrganizationStatsProps} from 'sentry/views/organizationStats/index';
+import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
 import type {ExperimentKey} from './experiments';
@@ -175,6 +175,7 @@ export type ComponentHooks = {
   'component:replay-list-page-header': () => React.ComponentType<ReplayListPageHeaderProps> | null;
   'component:replay-onboarding-alert': () => React.ComponentType<ReplayOnboardingAlertProps>;
   'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;
+  'component:replay-onboarding-cta-button': () => React.ComponentType<{}> | null;
   'component:sentry-logo': () => React.ComponentType<SentryLogoProps>;
   'component:superuser-access-category': React.ComponentType<any>;
 };

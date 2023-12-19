@@ -2,7 +2,8 @@ import logging
 
 from django.conf import settings
 from django.core.signing import SignatureExpired
-from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
+from django.http import HttpRequest, HttpResponseRedirect
+from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.http import urlencode
 
@@ -35,7 +36,7 @@ class ExternalIntegrationPipeline(IntegrationPipeline):
 class IntegrationExtensionConfigurationView(BaseView):
     auth_required = False
 
-    def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+    def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
         if not request.user.is_authenticated:
             configure_uri = "/extensions/{}/configure/?{}".format(
                 self.provider,

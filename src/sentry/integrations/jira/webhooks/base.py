@@ -47,7 +47,7 @@ class JiraWebhookBase(Endpoint, abc.ABC):
         scope = scope or Scope()
 
         if isinstance(exc, (AtlassianConnectValidationError, JiraTokenError)):
-            return self.respond(status=status.HTTP_400_BAD_REQUEST)
+            return self.respond(status=status.HTTP_409_CONFLICT)
 
         # Atlassian has an automated tool which tests to make sure integrations with Jira
         # (like ours) pass certain security requirements, which leads them to probe certain
@@ -97,13 +97,13 @@ class JiraWebhookBase(Endpoint, abc.ABC):
                     exc.text = f"Gateway timeout when connecting to {jira_api_endpoint}"
                 else:  # generic ApiError
                     exc.text = f"Unknown error when requesting {jira_api_endpoint}"
-                    logger.exception("Unclear JIRA exception")
+                    logger.error("Unclear JIRA exception")
 
         # OperationalErrors are errors talking to our postgres DB
         elif isinstance(exc, OperationalError):
             pass  # No processing needed and these are known errors
         else:
-            logger.exception("Unclear JIRA exception")
+            logger.error("Unclear JIRA exception")
 
         # This will log the error locally, capture the exception and send it to Sentry, and create a
         # generic 500/Internal Error response

@@ -1,7 +1,7 @@
 import dataclasses
 import logging
 import random
-from typing import Any, Mapping
+from typing import Any, Mapping, Optional
 
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -15,7 +15,7 @@ from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import Replay
 from sentry_sdk.tracing import Span
 
 from sentry.replays.usecases.ingest import ingest_recording
-from sentry.utils.arroyo import RunTaskWithMultiprocessing
+from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
 
 logger = logging.getLogger(__name__)
 
@@ -42,11 +42,11 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
 
     def __init__(
         self,
-        input_block_size: int,
+        input_block_size: Optional[int],
         max_batch_size: int,
         max_batch_time: int,
         num_processes: int,
-        output_block_size: int,
+        output_block_size: Optional[int],
         num_threads: int = 4,  # Defaults to 4 for self-hosted.
         force_synchronous: bool = False,  # Force synchronous runner (only used in test suite).
     ) -> None:
@@ -60,6 +60,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         self.output_block_size = output_block_size
         self.use_processes = self.num_processes > 1
         self.force_synchronous = force_synchronous
+        self.pool = MultiprocessingPool(num_processes) if self.use_processes else None
 
     def create_with_partitions(
         self,
@@ -72,12 +73,13 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
                 next_step=CommitOffsets(commit),
             )
         elif self.use_processes:
+            assert self.pool is not None
             return RunTaskWithMultiprocessing(
                 function=process_message,
                 next_step=CommitOffsets(commit),
-                num_processes=self.num_processes,
                 max_batch_size=self.max_batch_size,
                 max_batch_time=self.max_batch_time,
+                pool=self.pool,
                 input_block_size=self.input_block_size,
                 output_block_size=self.output_block_size,
             )
@@ -92,6 +94,10 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
                     next_step=CommitOffsets(commit),
                 ),
             )
+
+    def shutdown(self) -> None:
+        if self.pool:
+            self.pool.close()
 
 
 def initialize_threaded_context(message: Message[KafkaPayload]) -> MessageContext:

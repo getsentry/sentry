@@ -1,10 +1,13 @@
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {User} from 'sentry-fixture/user';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import MemberBadge from 'sentry/components/idBadge/memberBadge';
 
 describe('MemberBadge', function () {
   let member;
-  const routerContext = TestStubs.routerContext();
+  const routerContext = RouterContextFixture();
   beforeEach(() => {
     member = TestStubs.Member();
   });
@@ -46,9 +49,9 @@ describe('MemberBadge', function () {
   });
 
   it('can coalesce using username', function () {
-    member.user = TestStubs.User({
-      name: null,
-      email: null,
+    member.user = User({
+      name: undefined,
+      email: undefined,
       username: 'the-batman',
     });
 
@@ -58,10 +61,10 @@ describe('MemberBadge', function () {
   });
 
   it('can coalesce using ipaddress', function () {
-    member.user = TestStubs.User({
-      name: null,
-      email: null,
-      username: null,
+    member.user = User({
+      name: undefined,
+      email: undefined,
+      username: undefined,
       ipAddress: '127.0.0.1',
     });
     render(<MemberBadge member={member} />);

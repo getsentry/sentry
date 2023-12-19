@@ -7,7 +7,7 @@ from sentry.statistical_detectors.algorithm import (
     MovingAverageRelativeChangeDetector,
     MovingAverageRelativeChangeDetectorConfig,
 )
-from sentry.statistical_detectors.detector import DetectorPayload, TrendType
+from sentry.statistical_detectors.base import DetectorPayload, TrendType
 from sentry.utils.math import ExponentialMovingAverage
 
 
@@ -187,6 +187,53 @@ def test_moving_average_detector_state_from_redis_dict_error(data, error):
 
 
 @pytest.mark.parametrize(
+    ["baseline", "avg", "rel_threshold", "auto_resolve"],
+    [
+        pytest.param(100, 100, 0.1, True, id="equal"),
+        pytest.param(100, 105, 0.1, True, id="within threshold above"),
+        pytest.param(100, 95, 0.1, True, id="within threshold below"),
+        pytest.param(100, 115, 0.1, False, id="exceed threshold above"),
+        pytest.param(100, 85, 0.1, True, id="exceed threshold below"),
+    ],
+)
+def test_moving_average_detector_state_should_auto_resolve(
+    baseline, avg, rel_threshold, auto_resolve
+):
+    state = MovingAverageDetectorState(
+        timestamp=datetime(2023, 8, 31, 11, 28, 52),
+        count=10,
+        moving_avg_short=avg,
+        moving_avg_long=avg,
+    )
+    assert state.should_auto_resolve(baseline, rel_threshold) == auto_resolve
+
+
+@pytest.mark.parametrize(
+    ["baseline", "regressed", "avg", "min_change", "rel_threshold", "escalate"],
+    [
+        pytest.param(50, 100, 100, 10, 0.1, False, id="equal"),
+        pytest.param(50, 100, 105, 10, 0.1, False, id="within threshold above"),
+        pytest.param(50, 100, 95, 10, 0.1, False, id="within threshold below"),
+        pytest.param(50, 100, 115, 10, 0.1, True, id="exceed threshold above"),
+        pytest.param(50, 100, 85, 10, 0.1, False, id="exceed threshold below"),
+        pytest.param(
+            50, 100, 115, 20, 0.1, False, id="exceed threshold above but below min_change"
+        ),
+    ],
+)
+def test_moving_average_detector_state_should_escalate(
+    baseline, regressed, avg, min_change, rel_threshold, escalate
+):
+    state = MovingAverageDetectorState(
+        timestamp=datetime(2023, 8, 31, 11, 28, 52),
+        count=10,
+        moving_avg_short=avg,
+        moving_avg_long=avg,
+    )
+    assert state.should_escalate(baseline, regressed, min_change, rel_threshold) == escalate
+
+
+@pytest.mark.parametrize(
     ["min_data_points", "short_moving_avg_factory", "long_moving_avg_factory", "threshold"],
     [
         pytest.param(
@@ -244,7 +291,7 @@ def test_moving_average_relative_change_detector(
         DetectorPayload(
             project_id=1,
             group=0,
-            fingerprint=0,
+            fingerprint="0",
             count=i + 1,
             value=value,
             timestamp=now + timedelta(hours=i + 1),

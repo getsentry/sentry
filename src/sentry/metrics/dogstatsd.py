@@ -1,6 +1,7 @@
 from typing import Any, Optional, Union
 
-from datadog import initialize, statsd
+from datadog import initialize
+from datadog.dogstatsd.base import statsd
 
 from .base import MetricsBackend, Tags
 
@@ -12,6 +13,7 @@ class DogStatsdMetricsBackend(MetricsBackend):
         # TODO(dcramer): it'd be nice if the initialize call wasn't a global
         self.tags = kwargs.pop("tags", None)
         initialize(**kwargs)
+        statsd.disable_telemetry()
         super().__init__(prefix=prefix)
 
     def incr(

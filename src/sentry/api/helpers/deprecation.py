@@ -54,20 +54,20 @@ def _should_be_blocked(deprecation_date: datetime, now: datetime, key: str):
         try:
             brownout_cron = options.get(cron_key)
         except UnknownOption:
-            logger.error(f"Unrecognized deprecation key {key}")
+            logger.exception("Unrecognized deprecation key %s", key)
             brownout_cron = options.get("api.deprecation.brownout-cron")
 
         try:
             brownout_duration = options.get(duration_key)
         except UnknownOption:
-            logger.error(f"Unrecognized deprecation duration {key}")
+            logger.exception("Unrecognized deprecation duration %s", key)
             brownout_duration = options.get("api.deprecation.brownout-duration")
 
         # Validate the formats, allow requests to pass through if validation failed
         try:
             brownout_duration = isodate.parse_duration(brownout_duration)
         except ISO8601Error:
-            logger.error("Invalid ISO8601 format for blackout duration")
+            logger.exception("Invalid ISO8601 format for blackout duration")
             return False
 
         if not croniter.is_valid(brownout_cron):
@@ -114,7 +114,6 @@ def deprecated(
     def decorator(func):
         @functools.wraps(func)
         def endpoint_method(self, request: Request, *args, **kwargs):
-
             # Don't do anything for deprecated endpoints on self hosted
             if is_self_hosted():
                 return func(self, request, *args, **kwargs)

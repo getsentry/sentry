@@ -207,6 +207,7 @@ export function FlamegraphPreview({
       hoveredNode ? (
         <FlamegraphTooltip
           frame={hoveredNode}
+          flamegraph={flamegraph}
           configSpaceCursor={configSpaceCursor}
           flamegraphCanvas={flamegraphCanvas}
           flamegraphRenderer={flamegraphRenderer}

@@ -2,6 +2,9 @@ import {browserHistory, InjectedRouter} from 'react-router';
 import {Location} from 'history';
 import {Commit} from 'sentry-fixture/commit';
 import {CommitAuthor} from 'sentry-fixture/commitAuthor';
+import {Event as EventFixture} from 'sentry-fixture/event';
+import LocationFixture from 'sentry-fixture/locationFixture';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 import {SentryApp} from 'sentry-fixture/sentryApp';
 import {SentryAppComponent} from 'sentry-fixture/sentryAppComponent';
 
@@ -36,13 +39,13 @@ const makeDefaultMockData = (
     project: project ?? initializeOrg().project,
     group: TestStubs.Group(),
     router: TestStubs.router({
-      location: TestStubs.location({
+      location: LocationFixture({
         query: {
           environment: environments,
         },
       }),
     }),
-    event: TestStubs.Event({
+    event: EventFixture({
       size: 1,
       dateCreated: '2019-03-20T00:00:00.000Z',
       errors: [],
@@ -73,7 +76,6 @@ function TestComponent(
   );
 
   const mergedProps: GroupEventDetailsProps = {
-    api: new MockApiClient(),
     group,
     event,
     project,
@@ -260,8 +262,9 @@ const mockGroupApis = (
   });
 
   MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/sentry-app-components/?projectId=${project.id}`,
+    url: `/organizations/${organization.slug}/sentry-app-components/`,
     body: [],
+    match: [MockApiClient.matchQuery({projectId: project.id})],
   });
 
   MockApiClient.addMockResponse({
@@ -335,7 +338,7 @@ describe('groupEventDetails', () => {
       props.organization,
       props.project,
       props.group,
-      TestStubs.Event({
+      EventFixture({
         size: 1,
         dateCreated: '2019-03-20T00:00:00.000Z',
         errors: [],
@@ -361,7 +364,7 @@ describe('groupEventDetails', () => {
       issueCategory: IssueCategory.PERFORMANCE,
       issueType: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     });
-    const transaction = TestStubs.Event({
+    const transaction = EventFixture({
       entries: [{type: EntryType.SPANS, data: []}],
     });
 
@@ -369,7 +372,7 @@ describe('groupEventDetails', () => {
       props.organization,
       props.project,
       props.group,
-      TestStubs.Event({
+      EventFixture({
         size: 1,
         dateCreated: '2019-03-20T00:00:00.000Z',
         errors: [],
@@ -380,7 +383,7 @@ describe('groupEventDetails', () => {
       })
     );
 
-    const routerContext = TestStubs.routerContext();
+    const routerContext = RouterContextFixture();
     render(<TestComponent group={group} event={transaction} />, {
       organization: props.organization,
       context: routerContext,
@@ -404,7 +407,7 @@ describe('groupEventDetails', () => {
       issueCategory: IssueCategory.PERFORMANCE,
       issueType: IssueType.PROFILE_FILE_IO_MAIN_THREAD,
     });
-    const transaction = TestStubs.Event({
+    const transaction = EventFixture({
       entries: [],
       occurrence: {
         evidenceDisplay: [],
@@ -419,7 +422,7 @@ describe('groupEventDetails', () => {
       props.organization,
       props.project,
       props.group,
-      TestStubs.Event({
+      EventFixture({
         size: 1,
         dateCreated: '2019-03-20T00:00:00.000Z',
         errors: [],
@@ -430,7 +433,7 @@ describe('groupEventDetails', () => {
       })
     );
 
-    const routerContext = TestStubs.routerContext();
+    const routerContext = RouterContextFixture();
     render(<TestComponent group={group} event={transaction} />, {
       organization: props.organization,
       context: routerContext,
@@ -462,14 +465,14 @@ describe('EventCause', () => {
   it('renders suspect commit', async function () {
     const props = makeDefaultMockData(
       undefined,
-      TestStubs.Project({firstEvent: TestStubs.Event()})
+      TestStubs.Project({firstEvent: EventFixture()})
     );
 
     mockGroupApis(
       props.organization,
       props.project,
       props.group,
-      TestStubs.Event({
+      EventFixture({
         size: 1,
         dateCreated: '2019-03-20T00:00:00.000Z',
         errors: [],
@@ -529,7 +532,7 @@ describe('Platform Integrations', () => {
       props.organization,
       props.project,
       props.group,
-      TestStubs.Event({
+      EventFixture({
         size: 1,
         dateCreated: '2019-03-20T00:00:00.000Z',
         errors: [],
@@ -554,8 +557,9 @@ describe('Platform Integrations', () => {
     });
 
     componentsRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/sentry-app-components/?projectId=${props.project.id}`,
+      url: `/organizations/${props.organization.slug}/sentry-app-components/`,
       body: [component],
+      match: [MockApiClient.matchQuery({projectId: props.project.id})],
     });
 
     render(<TestComponent />, {organization: props.organization});
@@ -581,7 +585,7 @@ describe('Platform Integrations', () => {
         props.event,
         mockedTrace(props.project)
       );
-      const routerContext = TestStubs.routerContext();
+      const routerContext = RouterContextFixture();
 
       render(<TestComponent group={props.group} event={props.event} />, {
         organization: props.organization,
@@ -607,7 +611,7 @@ describe('Platform Integrations', () => {
         ...trace,
         performance_issues: [],
       });
-      const routerContext = TestStubs.routerContext();
+      const routerContext = RouterContextFixture();
 
       render(<TestComponent group={props.group} event={props.event} />, {
         organization: props.organization,

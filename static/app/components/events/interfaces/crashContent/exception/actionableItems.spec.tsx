@@ -1,4 +1,6 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -7,13 +9,13 @@ import {EntryType} from 'sentry/types';
 
 describe('Actionable Items', () => {
   const organization = Organization({});
-  const project = TestStubs.Project();
+  const project = ProjectFixture();
 
   const url = `/projects/${organization.slug}/${project.slug}/events/1/actionable-items/`;
 
   const defaultProps = {
-    project: TestStubs.Project(),
-    event: TestStubs.Event(),
+    project: ProjectFixture(),
+    event: EventFixture(),
     isShare: false,
   };
 
@@ -61,7 +63,7 @@ describe('Actionable Items', () => {
       method: 'GET',
     });
 
-    const eventWithErrors = TestStubs.Event({
+    const eventWithErrors = EventFixture({
       errors: eventErrors,
     });
 
@@ -97,7 +99,7 @@ describe('Actionable Items', () => {
       method: 'GET',
     });
 
-    const eventWithErrors = TestStubs.Event({
+    const eventWithErrors = EventFixture({
       errors: eventErrors,
       sdk: {
         name: 'sentry.cocoa',
@@ -121,7 +123,7 @@ describe('Actionable Items', () => {
         data: {mapping_uuid: 'a59c8fcc-2f27-49f8-af9e-02661fc3e8d7'},
       },
     ];
-    const eventWithDebugMeta = TestStubs.Event({
+    const eventWithDebugMeta = EventFixture({
       platform: 'java',
       entries: [
         {

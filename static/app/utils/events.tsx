@@ -433,6 +433,7 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
   return {
     event_id: event?.eventID || '-1',
     num_commits: event?.release?.commitCount || 0,
+    num_event_tags: event?.tags?.length ?? 0,
     num_stack_frames: event ? getNumberOfStackFrames(event) : 0,
     num_in_app_stack_frames: event ? getNumberOfInAppStackFrames(event) : 0,
     num_threads_with_names: event ? getNumberOfThreadsWithNames(event) : 0,

@@ -1,4 +1,6 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {Team} from 'sentry-fixture/team';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -47,7 +49,7 @@ describe('NoProjectMessage', function () {
   it('shows "Create Project" button when user has team-level access', function () {
     ProjectsStore.loadInitialData([]);
     TeamStore.loadInitialData([
-      {...TestStubs.Team(), access: ['team:admin', 'team:write', 'team:read']},
+      {...Team(), access: ['team:admin', 'team:write', 'team:read']},
     ]);
 
     // No org-level access
@@ -70,7 +72,7 @@ describe('NoProjectMessage', function () {
   });
 
   it('has a "Join a Team" button when no projects but org has projects', function () {
-    ProjectsStore.loadInitialData([TestStubs.Project({hasAccess: false})]);
+    ProjectsStore.loadInitialData([ProjectFixture({hasAccess: false})]);
 
     render(<NoProjectMessage organization={org} />);
 
@@ -78,7 +80,7 @@ describe('NoProjectMessage', function () {
   });
 
   it('has a disabled "Join a Team" button if no access to `team:read`', function () {
-    ProjectsStore.loadInitialData([TestStubs.Project({hasAccess: false})]);
+    ProjectsStore.loadInitialData([ProjectFixture({hasAccess: false})]);
 
     render(<NoProjectMessage organization={{...org, access: []}} />);
 
@@ -86,9 +88,7 @@ describe('NoProjectMessage', function () {
   });
 
   it('shows empty message to superusers that are not members', function () {
-    ProjectsStore.loadInitialData([
-      TestStubs.Project({hasAccess: true, isMember: false}),
-    ]);
+    ProjectsStore.loadInitialData([ProjectFixture({hasAccess: true, isMember: false})]);
 
     ConfigStore.set('user', {...ConfigStore.get('user'), isSuperuser: true});
 

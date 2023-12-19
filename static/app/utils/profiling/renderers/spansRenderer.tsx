@@ -99,7 +99,7 @@ export class SpanChartRenderer2D {
       return this.pattern;
     }
     return (
-      this.colors.get(span.node.span.span_id) ?? this.theme.COLORS.FRAME_GRAYSCALE_COLOR
+      this.colors.get(span.node.span.span_id) ?? this.theme.COLORS.FRAME_FALLBACK_COLOR
     );
   }
 
@@ -208,7 +208,7 @@ export class SpanChartRenderer2D {
 
         this.context.fillStyle =
           this.isSearching && !this.searchResults.has(span.node.span.span_id)
-            ? colorComponentsToRgba(this.theme.COLORS.FRAME_GRAYSCALE_COLOR)
+            ? colorComponentsToRgba(this.theme.COLORS.FRAME_FALLBACK_COLOR)
             : colorComponentsToRgba(color);
 
         this.context.fillRect(

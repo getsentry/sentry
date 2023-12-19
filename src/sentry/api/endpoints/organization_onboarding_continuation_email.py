@@ -44,7 +44,7 @@ def get_request_builder_args(user: User, organization: Organization, platforms: 
 @region_silo_endpoint
 class OrganizationOnboardingContinuationEmail(OrganizationEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     # let anyone in the org use this endpoint

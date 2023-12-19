@@ -1,4 +1,5 @@
 import {GroupStats} from 'sentry-fixture/groupStats';
+import LocationFixture from 'sentry-fixture/locationFixture';
 import {Search} from 'sentry-fixture/search';
 import {Tags} from 'sentry-fixture/tags';
 
@@ -55,7 +56,7 @@ describe('IssueList -> Polling', function () {
   const group2 = TestStubs.Group({project, id: 2});
 
   const defaultProps = {
-    location: TestStubs.location({
+    location: LocationFixture({
       query: {query: 'is:unresolved'},
       search: 'query=is:unresolved',
     }),

@@ -30,6 +30,7 @@ export type BaseEventAnalyticsParams = {
   has_trace: boolean;
   is_symbolicated: boolean;
   num_commits: number;
+  num_event_tags: number;
   num_in_app_stack_frames: number;
   num_stack_frames: number;
   num_threads_with_names: number;
@@ -110,6 +111,10 @@ export type TeamInsightsEventParameters = {
     group_id: string;
     total_unmerged: number;
   };
+  'issue_details.resources_link_clicked': {
+    group_id: string | undefined;
+    resource: string;
+  };
   'issue_details.suspect_commits.commit_clicked': IssueDetailsWithAlert & {
     has_pull_request: boolean;
     suspect_commit_calculation: string;
@@ -178,6 +183,7 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
     'Issue Details: Screenshot downloaded from modal',
   'issue_details.issue_tab.screenshot_modal_opened':
     'Issue Details: Screenshot modal opened',
+  'issue_details.resources_link_clicked': 'Issue Details: Resources Link Clicked',
   'issue_details.suspect_commits.commit_clicked': 'Issue Details: Suspect Commit Clicked',
   'issue_details.suspect_commits.pull_request_clicked':
     'Issue Details: Suspect Pull Request Clicked',

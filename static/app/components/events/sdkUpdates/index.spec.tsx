@@ -1,3 +1,5 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
 
@@ -7,7 +9,7 @@ describe('EventSdkUpdates', function () {
   const {routerContext} = initializeOrg();
 
   it('renders a suggestion to update the sdk and then enable an integration', function () {
-    const event = TestStubs.Event({
+    const event = EventFixture({
       id: '123',
       sdk: {
         name: 'sentry.python',

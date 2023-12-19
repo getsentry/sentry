@@ -98,7 +98,7 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
     )
 
     category = serializers.ChoiceField(
-        ("error", "transaction", "attachment", "replays", "profiles"),
+        ("error", "transaction", "attachment", "replay", "profile", "monitor"),
         required=False,
         help_text=(
             "If filtering by attachments, you cannot filter by any other category due to quantity values becoming nonsensical (combining bytes and event counts).\n\n"

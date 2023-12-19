@@ -197,7 +197,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
                 version=self.cache_version,
             )
         except Exception as e:
-            logger.error(e, exc_info=True)
+            logger.exception(str(e))
         instance._state.db = db
 
         # Kill off any keys which are no longer valid
@@ -281,7 +281,10 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
 
             if settings.DEBUG:
                 raise ValueError("Unexpected value type returned from cache")
-            logger.error("Cache response returned invalid value", extra={"instance": inst})
+            logger.error(
+                "Cache response returned invalid value",
+                extra={"instance": inst, "key": key, "model": str(self.model)},
+            )
             if local_cache is not None and cache_key in local_cache:
                 del local_cache[cache_key]
             cache.delete(cache_key, version=self.cache_version)
@@ -507,7 +510,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
             del self._triggers[key]
 
     def _execute_triggers(self, condition: ModelManagerTriggerCondition) -> None:
-        for (next_condition, next_action) in self._triggers.values():
+        for next_condition, next_action in self._triggers.values():
             if condition == next_condition:
                 next_action(self.model)
 

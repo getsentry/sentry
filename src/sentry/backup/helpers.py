@@ -27,10 +27,37 @@ EXCLUDED_APPS = frozenset(("auth", "contenttypes", "fixtures"))
 UTC_0 = timezone(timedelta(hours=0))
 
 
+class Printer:
+    """
+    A simplified interface for a terminal CLI input-output interface. The default implementation is
+    a no-op.
+    """
+
+    def echo(
+        self,
+        text: str,
+        *,
+        err: bool = False,
+        color: bool | None = None,
+    ) -> None:
+        pass
+
+    def confirm(
+        self,
+        text: str,
+        *,
+        default: bool | None = None,
+        err: bool = False,
+    ) -> bool:
+        return True
+
+
 class DatetimeSafeDjangoJSONEncoder(DjangoJSONEncoder):
-    """A wrapper around the default `DjangoJSONEncoder` that always retains milliseconds, even when
+    """
+    A wrapper around the default `DjangoJSONEncoder` that always retains milliseconds, even when
     their implicit value is `.000`. This is necessary because the ECMA-262 compatible
-    `DjangoJSONEncoder` drops these by default."""
+    `DjangoJSONEncoder` drops these by default.
+    """
 
     def default(self, obj):
         if isinstance(obj, datetime):

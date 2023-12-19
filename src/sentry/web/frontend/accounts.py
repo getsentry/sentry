@@ -23,6 +23,15 @@ from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger("sentry.accounts")
 
+ERR_CONFIRMING_EMAIL = _(
+    "There was an error confirming your email. Please try again or "
+    "visit your Account Settings to resend the verification email."
+)
+
+
+class InvalidRequest(Exception):
+    pass
+
 
 def get_template(mode, name):
     return f"sentry/account/{mode}/{name}.html"
@@ -50,7 +59,7 @@ def recover(request):
         "user_agent": request.META.get("HTTP_USER_AGENT"),
     }
 
-    if request.method == "POST" and ratelimiter.is_limited(
+    if request.method == "POST" and ratelimiter.backend.is_limited(
         "accounts:recover:{}".format(extra["ip_address"]),
         limit=5,
         window=60,  # 5 per minute should be enough for anyone
@@ -85,7 +94,7 @@ def recover(request):
 
         return render_to_response(get_template("recover", "sent"), context, request)
 
-    if form._errors:
+    if form.errors:
         logger.warning("recover.error", extra=extra)
 
     context = {"form": form}
@@ -105,9 +114,9 @@ def recover_confirm(request, user_id, hash, mode="recover"):
         return render_to_response(get_template(mode, "failure"), {}, request)
 
     # TODO(getsentry/team-ospo#190): Clean up ternary logic and only show relocation form if user is unclaimed
-    form = RelocationForm if mode == "relocate" else ChangePasswordRecoverForm
+    form_cls = RelocationForm if mode == "relocate" else ChangePasswordRecoverForm
     if request.method == "POST":
-        form = form(request.POST, user=user)
+        form = form_cls(request.POST, user=user)
         if form.is_valid():
             with transaction.atomic(router.db_for_write(User)):
                 if mode == "relocate":
@@ -137,7 +146,7 @@ def recover_confirm(request, user_id, hash, mode="recover"):
 
             return login_redirect(request)
     else:
-        form = form(user=user)
+        form = form_cls(user=user)
 
     return render_to_response(get_template(mode, "confirm"), {"form": form}, request)
 
@@ -157,7 +166,7 @@ relocate_confirm = update_wrapper(relocate_confirm, recover)
 def start_confirm_email(request):
     from sentry import ratelimits as ratelimiter
 
-    if ratelimiter.is_limited(
+    if ratelimiter.backend.is_limited(
         f"auth:confirm-email:{request.user.id}",
         limit=10,
         window=60,  # 10 per minute should be enough for anyone
@@ -205,16 +214,18 @@ def confirm_email(request, user_id, hash):
     msg = _("Thanks for confirming your email")
     level = messages.SUCCESS
     try:
+        if request.user.id != int(user_id):
+            raise InvalidRequest
         email = UserEmail.objects.get(user=user_id, validation_hash=hash)
         if not email.hash_is_valid():
             raise UserEmail.DoesNotExist
     except UserEmail.DoesNotExist:
         if request.user.is_anonymous or request.user.has_unverified_emails():
-            msg = _(
-                "There was an error confirming your email. Please try again or "
-                "visit your Account Settings to resend the verification email."
-            )
+            msg = ERR_CONFIRMING_EMAIL
             level = messages.ERROR
+    except InvalidRequest:
+        msg = ERR_CONFIRMING_EMAIL
+        level = messages.ERROR
     else:
         email.is_verified = True
         email.validation_hash = ""

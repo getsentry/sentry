@@ -1,4 +1,6 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
 import {Organization} from 'sentry-fixture/organization';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -6,12 +8,11 @@ import EventMetas from './eventMetas';
 
 describe('EventMetas', () => {
   it('Displays event created and received dates when hovering', async () => {
-    const event = {
-      ...TestStubs.Event(),
+    const event = EventFixture({
       dateReceived: '2017-05-21T18:01:48.762Z',
       dateCreated: '2017-05-21T18:02:48.762Z',
-    };
-    const routerContext = TestStubs.routerContext([]);
+    });
+    const routerContext = RouterContextFixture([]);
     const organization = Organization({});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',

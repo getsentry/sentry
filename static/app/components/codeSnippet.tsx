@@ -11,7 +11,6 @@ import {loadPrismLanguage} from 'sentry/utils/prism';
 
 interface CodeSnippetProps {
   children: string;
-  language: string;
   className?: string;
   dark?: boolean;
   ['data-render-inline']?: boolean;
@@ -23,10 +22,12 @@ interface CodeSnippetProps {
   disableUserSelection?: boolean;
   filename?: string;
   hideCopyButton?: boolean;
+  icon?: React.ReactNode;
   /**
    * Controls whether the snippet wrapper has rounded corners.
    */
   isRounded?: boolean;
+  language?: string;
   /**
    * Fires after the code snippet is highlighted and all DOM nodes are available
    * @param element The root element of the code snippet
@@ -54,6 +55,7 @@ export function CodeSnippet({
   filename,
   hideCopyButton,
   language,
+  icon,
   isRounded = true,
   onAfterHighlight,
   onCopy,
@@ -67,6 +69,10 @@ export function CodeSnippet({
   useEffect(() => {
     const element = ref.current;
     if (!element) {
+      return;
+    }
+
+    if (!language) {
       return;
     }
 
@@ -129,6 +135,7 @@ export function CodeSnippet({
             <FlexSpacer />
           </Fragment>
         )}
+        {icon}
         {filename && <FileName>{filename}</FileName>}
         {!hasTabs && <FlexSpacer />}
         {!hideCopyButton && (

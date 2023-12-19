@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from enum import IntEnum, unique
-from typing import TYPE_CHECKING, Any, Optional, Tuple
+from typing import TYPE_CHECKING, Any, List, Literal, Optional, Tuple
 
 from django.conf import settings
 from django.core.cache import cache
@@ -24,6 +25,24 @@ class QuotaScope(IntEnum):
 
     def api_name(self):
         return self.name.lower()
+
+
+@dataclass
+class AbuseQuota:
+    # Quota Id.
+    id: str
+    # Org an Sentry option name.
+    option: str
+    # Quota categories.
+    categories: List[DataCategory]
+    # Quota Scope.
+    scope: Literal[QuotaScope.ORGANIZATION, QuotaScope.PROJECT]
+    # Old org option name still used for compatibility reasons,
+    # takes precedence over `option` and `compat_option_sentry`.
+    compat_option_org: Optional[str] = None
+    # Old Sentry option name still used for compatibility reasons,
+    # takes precedence over `option`.
+    compat_option_sentry: Optional[str] = None
 
 
 class QuotaConfig:
@@ -179,6 +198,18 @@ def _limit_from_settings(x: Any) -> int | None:
     return int(x or 0) or None
 
 
+@dataclass
+class SeatAssignmentResult:
+    assignable: bool
+    """
+    Can the seat assignment be made?
+    """
+    reason: Optional[str] = None
+    """
+    The human readable reason the assignment can be made or not.
+    """
+
+
 def index_data_category(event_type: Optional[str], organization) -> DataCategory:
     if event_type == "transaction" and features.has(
         "organizations:transaction-metrics-extraction", organization
@@ -208,7 +239,7 @@ class Quota(Service):
 
     __all__ = (
         "get_maximum_quota",
-        "get_project_abuse_quotas",
+        "get_abuse_quotas",
         "get_project_quota",
         "get_organization_quota",
         "is_rate_limited",
@@ -334,58 +365,73 @@ class Quota(Service):
         limit, window = key.rate_limit
         return _limit_from_settings(limit), window
 
-    def get_project_abuse_quotas(self, org):
+    def get_abuse_quotas(self, org):
         # Per-project abuse quotas for errors, transactions, attachments, sessions.
         global_abuse_window = options.get("project-abuse-quota.window")
 
-        for option, compat_options, id, categories in (
-            (
-                "project-abuse-quota.error-limit",
-                (
-                    "sentry:project-error-limit",
-                    "getsentry.rate-limit.project-errors",
-                ),
-                "pae",
-                DataCategory.error_categories(),
+        abuse_quotas = [
+            AbuseQuota(
+                id="pae",
+                option="project-abuse-quota.error-limit",
+                compat_option_org="sentry:project-error-limit",
+                compat_option_sentry="getsentry.rate-limit.project-errors",
+                categories=DataCategory.error_categories(),
+                scope=QuotaScope.PROJECT,
             ),
-            (
-                "project-abuse-quota.transaction-limit",
-                (
-                    "sentry:project-transaction-limit",
-                    "getsentry.rate-limit.project-transactions",
-                ),
-                "pati",  # project abuse transaction indexed limit
-                (index_data_category("transaction", org),),
+            AbuseQuota(
+                id="pati",
+                option="project-abuse-quota.transaction-limit",
+                compat_option_org="sentry:project-transaction-limit",
+                compat_option_sentry="getsentry.rate-limit.project-transactions",
+                categories=[index_data_category("transaction", org)],
+                scope=QuotaScope.PROJECT,
             ),
-            (
-                "project-abuse-quota.attachment-limit",
-                (),
-                "paa",
-                (DataCategory.ATTACHMENT,),
+            AbuseQuota(
+                id="paa",
+                option="project-abuse-quota.attachment-limit",
+                categories=[DataCategory.ATTACHMENT],
+                scope=QuotaScope.PROJECT,
             ),
-            (
-                "project-abuse-quota.session-limit",
-                (),
-                "pas",
-                (DataCategory.SESSION,),
+            AbuseQuota(
+                id="pas",
+                option="project-abuse-quota.session-limit",
+                categories=[DataCategory.SESSION],
+                scope=QuotaScope.PROJECT,
             ),
-        ):
+            AbuseQuota(
+                id="oam",
+                option="organization-abuse-quota.metric-bucket-limit",
+                categories=[DataCategory.METRIC_BUCKET],
+                scope=QuotaScope.ORGANIZATION,
+            ),
+        ]
+
+        # XXX: These reason codes are hardcoded in getsentry:
+        #      as `RateLimitReasonLabel.PROJECT_ABUSE_LIMIT` and `RateLimitReasonLabel.ORG_ABUSE_LIMIT`.
+        #      Don't change it here. If it's changed in getsentry, it needs to be synced here.
+        reason_codes = {
+            QuotaScope.ORGANIZATION: "org_abuse_limit",
+            QuotaScope.PROJECT: "project_abuse_limit",
+        }
+
+        for quota in abuse_quotas:
             limit: int | None = 0
             abuse_window = global_abuse_window
-            # compat_options were previously present in getsentry
+
+            # compat options were previously present in getsentry
             # for errors and transactions. The first one is the org
-            # option for overriding the global option, the second one.
+            # option for overriding the second one (global option).
             # For now, these deprecated ones take precedence over the new
             # to preserve existing behavior.
-            if compat_options:
-                limit = org.get_option(compat_options[0])
-                if not limit:
-                    limit = options.get(compat_options[1])
+            if quota.compat_option_org:
+                limit = org.get_option(quota.compat_option_org)
+            if not limit and quota.compat_option_sentry:
+                limit = options.get(quota.compat_option_sentry)
 
             if not limit:
-                limit = org.get_option(option)
-                if not limit:
-                    limit = options.get(option)
+                limit = org.get_option(quota.option)
+            if not limit:
+                limit = options.get(quota.option)
 
             limit = _limit_from_settings(limit)
             if limit is None:
@@ -395,23 +441,20 @@ class Quota(Service):
             # Negative limits in config mean a reject-all quota.
             if limit < 0:
                 yield QuotaConfig(
-                    scope=QuotaScope.PROJECT,
-                    categories=categories,
+                    scope=quota.scope,
+                    categories=quota.categories,
                     limit=0,
                     reason_code="disabled",
                 )
 
             else:
                 yield QuotaConfig(
-                    id=id,
+                    id=quota.id,
                     limit=limit * abuse_window,
-                    scope=QuotaScope.PROJECT,
-                    categories=categories,
+                    scope=quota.scope,
+                    categories=quota.categories,
                     window=abuse_window,
-                    # XXX: This reason code is hardcoded RateLimitReasonLabel.PROJECT_ABUSE_LIMIT
-                    #      from getsentry. Don't change it here.
-                    #      If it's changed in getsentry, it needs to be synced here.
-                    reason_code="project_abuse_limit",
+                    reason_code=reason_codes[quota.scope],
                 )
 
     def get_project_quota(self, project):
@@ -497,16 +540,28 @@ class Quota(Service):
         :param volume: The volume of transaction of the given project.
         """
 
-    def assign_monitor_seat(
-        self,
-        monitor: Monitor,
-    ) -> int:
+    def check_assign_monitor_seat(self, monitor: Monitor) -> SeatAssignmentResult:
         """
-        Determines if a monitor seat assignment is accepted or rate limited.
+        Determines if a monitor can be assigned a seat. If it is not possible
+        to assign a monitor a seat, a reason will be included in the response
+        """
+        return SeatAssignmentResult(assignable=True)
+
+    def assign_monitor_seat(self, monitor: Monitor) -> int:
+        """
+        Assigns a monitor a seat if possible, resulting in a Outcome.ACCEPTED.
+        If the monitor cannot be assigned a seat it will be
+        Outcome.RATE_LIMITED.
         """
         from sentry.utils.outcomes import Outcome
 
         return Outcome.ACCEPTED
+
+    def disable_monitor_seat(self, monitor: Monitor) -> None:
+        """
+        Removes a monitor from it's assigned seat.
+        """
+        pass
 
     def check_accept_monitor_checkin(self, project_id: int, monitor_slug: str):
         """

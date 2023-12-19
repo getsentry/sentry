@@ -159,9 +159,9 @@ def test_relays_dyamic_sampling(
             "configs",
             str(default_projectkey.public_key),
             "config",
-            "dynamicSampling",
+            "sampling",
         )
-        assert dynamic_sampling == {"rules": [], "rulesV2": []}
+        assert dynamic_sampling == {"version": 2, "rules": []}
 
 
 @django_db_all

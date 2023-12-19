@@ -150,7 +150,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
 @region_silo_endpoint
 class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
 
     def post(self, request: Request, organization, dashboard) -> Response:

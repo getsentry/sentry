@@ -135,13 +135,13 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         return query
 
     def validate_aggregate(self, aggregate):
-        try:
-            allow_mri = features.has(
-                "organizations:ddm-experimental",
-                self.context["organization"],
-                actor=self.context.get("user", None),
-            )
+        allow_mri = features.has(
+            "organizations:ddm-experimental",
+            self.context["organization"],
+            actor=self.context.get("user", None),
+        )
 
+        try:
             if not check_aggregate_column_support(
                 aggregate,
                 allow_mri=allow_mri,
@@ -151,7 +151,8 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 )
         except InvalidSearchQuery as e:
             raise serializers.ValidationError(f"Invalid Metric: {e}")
-        return translate_aggregate_field(aggregate)
+
+        return translate_aggregate_field(aggregate, allow_mri=allow_mri)
 
     def validate_query_type(self, query_type):
         try:
@@ -259,7 +260,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             self.context["organization"],
             actor=self.context.get("user", None),
         ):
-            column = get_column_from_aggregate(data["aggregate"])
+            column = get_column_from_aggregate(data["aggregate"], allow_mri=True)
             if is_mri(column) and dataset != Dataset.PerformanceMetrics:
                 raise serializers.ValidationError(
                     "You can use an MRI only on alerts on performance metrics"

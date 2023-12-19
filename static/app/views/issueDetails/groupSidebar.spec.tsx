@@ -1,4 +1,7 @@
+import {Actor} from 'sentry-fixture/actor';
+import {Event as EventFixture} from 'sentry-fixture/event';
 import {Tags} from 'sentry-fixture/tags';
+import {Team} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -92,7 +95,7 @@ describe('GroupSidebar', function () {
           group={group}
           project={project}
           organization={organization}
-          event={TestStubs.Event()}
+          event={EventFixture()}
           environments={[environment]}
         />
       );
@@ -109,7 +112,7 @@ describe('GroupSidebar', function () {
           group={group}
           project={project}
           organization={organization}
-          event={TestStubs.Event()}
+          event={EventFixture()}
           environments={[environment]}
         />
       );
@@ -129,7 +132,7 @@ describe('GroupSidebar', function () {
           group={group}
           project={project}
           organization={organization}
-          event={TestStubs.Event()}
+          event={EventFixture()}
           environments={[environment]}
         />
       );
@@ -140,7 +143,7 @@ describe('GroupSidebar', function () {
           group={group}
           project={project}
           organization={organization}
-          event={TestStubs.Event()}
+          event={EventFixture()}
           environments={[stagingEnv]}
         />
       );
@@ -177,7 +180,7 @@ describe('GroupSidebar', function () {
           group={group}
           project={project}
           organization={organization}
-          event={TestStubs.Event()}
+          event={EventFixture()}
           environments={[environment]}
         />
       );
@@ -191,15 +194,15 @@ describe('GroupSidebar', function () {
     const org = {
       ...organization,
     };
-    const teams = [{...TestStubs.Team(), type: 'team'}];
+    const teams = [{...Team(), type: 'team'}];
     const users = [
-      TestStubs.User({
+      Actor({
         id: '2',
         name: 'John Smith',
         email: 'johnsmith@example.com',
         type: 'user',
       }),
-      TestStubs.User({
+      Actor({
         id: '3',
         name: 'Sohn Jmith',
         email: 'sohnjmith@example.com',
@@ -215,7 +218,7 @@ describe('GroupSidebar', function () {
         }}
         project={project}
         organization={org}
-        event={TestStubs.Event()}
+        event={EventFixture()}
         environments={[]}
       />,
       {
@@ -254,7 +257,7 @@ describe('GroupSidebar', function () {
             ...organization,
             features: [...organization.features, 'issue-details-tag-improvements'],
           }}
-          event={TestStubs.Event()}
+          event={EventFixture()}
           environments={[environment]}
         />
       );
@@ -273,7 +276,7 @@ describe('GroupSidebar', function () {
             ...organization,
             features: [...organization.features, 'issue-details-tag-improvements'],
           }}
-          event={TestStubs.Event()}
+          event={EventFixture()}
           environments={[environment]}
         />
       );

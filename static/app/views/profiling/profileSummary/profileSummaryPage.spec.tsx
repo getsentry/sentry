@@ -1,6 +1,8 @@
 import {Location} from 'history';
 import {GlobalSelection} from 'sentry-fixture/globalSelection';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -44,13 +46,13 @@ describe('ProfileSummaryPage', () => {
   it('renders new page', async () => {
     const organization = Organization({
       features: [],
-      projects: [TestStubs.Project()],
+      projects: [ProjectFixture()],
     });
     OrganizationStore.onUpdate(organization);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
-      body: [TestStubs.Project()],
+      body: [ProjectFixture()],
     });
 
     MockApiClient.addMockResponse({
@@ -95,7 +97,7 @@ describe('ProfileSummaryPage', () => {
         organization: Organization({
           features: ['profiling-summary-redesign'],
         }),
-        context: TestStubs.routerContext(),
+        context: RouterContextFixture(),
       }
     );
 

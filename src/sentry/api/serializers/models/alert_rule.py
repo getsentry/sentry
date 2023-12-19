@@ -8,6 +8,7 @@ from django.db.models import Max, Q, prefetch_related_objects
 from drf_spectacular.utils import extend_schema_serializer
 from typing_extensions import TypedDict
 
+from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.rule import RuleSerializer
 from sentry.incidents.models import (
@@ -206,8 +207,15 @@ class AlertRuleSerializer(Serializer):
         from sentry.incidents.logic import translate_aggregate_field
 
         env = obj.snuba_query.environment
+        allow_mri = features.has(
+            "organizations:ddm-experimental",
+            obj.organization,
+            actor=user,
+        )
         # Temporary: Translate aggregate back here from `tags[sentry:user]` to `user` for the frontend.
-        aggregate = translate_aggregate_field(obj.snuba_query.aggregate, reverse=True)
+        aggregate = translate_aggregate_field(
+            obj.snuba_query.aggregate, reverse=True, allow_mri=allow_mri
+        )
         data: AlertRuleSerializerResponse = {
             "id": str(obj.id),
             "name": obj.name,

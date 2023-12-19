@@ -54,7 +54,7 @@ def get_email_addresses(
 
     if pending:
         logger.warning(
-            f"Could not resolve email addresses for user IDs in {pending}, discarding..."
+            "Could not resolve email addresses for user IDs in %s, discarding...", pending
         )
 
     return results

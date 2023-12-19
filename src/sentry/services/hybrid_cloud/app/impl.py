@@ -67,6 +67,27 @@ class DatabaseBackedAppService(AppService):
             return None
         return serialize_sentry_app(sentry_app)
 
+    def get_installation_by_id(self, *, id: int) -> Optional[RpcSentryAppInstallation]:
+        try:
+            install = SentryAppInstallation.objects.select_related("sentry_app").get(
+                id=id, status=SentryAppInstallationStatus.INSTALLED
+            )
+            return serialize_sentry_app_installation(install)
+        except SentryAppInstallation.DoesNotExist:
+            return None
+
+    def get_installation(
+        self, *, sentry_app_id: int, organization_id: int
+    ) -> Optional[RpcSentryAppInstallation]:
+        try:
+            install = SentryAppInstallation.objects.get(
+                organization_id=organization_id,
+                sentry_app_id=sentry_app_id,
+            )
+            return serialize_sentry_app_installation(install)
+        except SentryAppInstallation.DoesNotExist:
+            return None
+
     def get_sentry_app_by_slug(self, *, slug: str) -> Optional[RpcSentryApp]:
         try:
             sentry_app = SentryApp.objects.get(slug=slug)
@@ -271,3 +292,10 @@ class DatabaseBackedAppService(AppService):
         installation = SentryAppInstallation.objects.get(id=installation_id)
         component = prepare_sentry_app_components(installation, component_type, project_slug)
         return serialize_sentry_app_component(component) if component else None
+
+    def disable_sentryapp(self, *, id: int) -> None:
+        try:
+            sentryapp = SentryApp.objects.get(id=id)
+        except SentryApp.DoesNotExist:
+            return
+        sentryapp._disable()

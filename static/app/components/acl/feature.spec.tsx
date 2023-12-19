@@ -1,4 +1,6 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -10,10 +12,10 @@ describe('Feature', function () {
   const organization = Organization({
     features: ['org-foo', 'org-bar', 'bar'],
   });
-  const project = TestStubs.Project({
+  const project = ProjectFixture({
     features: ['project-foo', 'project-bar'],
   });
-  const routerContext = TestStubs.routerContext([
+  const routerContext = RouterContextFixture([
     {
       organization,
       project,
@@ -113,7 +115,7 @@ describe('Feature', function () {
     });
 
     it('can specify project from props', function () {
-      const customProject = TestStubs.Project({features: ['project-baz']});
+      const customProject = ProjectFixture({features: ['project-baz']});
       render(
         <Feature project={customProject} features="project-baz">
           {childrenMock}

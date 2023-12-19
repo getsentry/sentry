@@ -3,15 +3,13 @@ from __future__ import annotations
 import io
 from typing import BinaryIO
 
-import click
-
 from sentry.backup.dependencies import (
     PrimaryKeyMap,
     dependencies,
     get_model_name,
     sorted_dependencies,
 )
-from sentry.backup.helpers import Encryptor, Filter, create_encrypted_export_tarball
+from sentry.backup.helpers import Encryptor, Filter, Printer, create_encrypted_export_tarball
 from sentry.backup.scopes import ExportScope
 from sentry.services.hybrid_cloud.import_export.model import (
     RpcExportError,
@@ -47,7 +45,7 @@ def _export(
     encryptor: Encryptor | None = None,
     indent: int = 2,
     filter_by: Filter | None = None,
-    printer=click.echo,
+    printer: Printer,
 ):
     """
     Exports core data for the Sentry installation.
@@ -64,7 +62,7 @@ def _export(
 
     if SiloMode.get_current_mode() == SiloMode.CONTROL:
         errText = "Exports must be run in REGION or MONOLITH instances only"
-        printer(errText, err=True)
+        printer.echo(errText, err=True)
         raise RuntimeError(errText)
 
     json_export = []
@@ -123,7 +121,7 @@ def _export(
         )
 
         if isinstance(result, RpcExportError):
-            printer(result.pretty(), err=True)
+            printer.echo(result.pretty(), err=True)
             raise ExportingError(result)
 
         pk_map.extend(result.mapped_pks.from_rpc())
@@ -151,7 +149,7 @@ def export_in_user_scope(
     encryptor: Encryptor | None = None,
     user_filter: set[str] | None = None,
     indent: int = 2,
-    printer=click.echo,
+    printer: Printer,
 ):
     """
     Perform an export in the `User` scope, meaning that only models with `RelocationScope.User` will
@@ -177,7 +175,7 @@ def export_in_organization_scope(
     encryptor: Encryptor | None = None,
     org_filter: set[str] | None = None,
     indent: int = 2,
-    printer=click.echo,
+    printer: Printer,
 ):
     """
     Perform an export in the `Organization` scope, meaning that only models with
@@ -203,7 +201,7 @@ def export_in_config_scope(
     *,
     encryptor: Encryptor | None = None,
     indent: int = 2,
-    printer=click.echo,
+    printer: Printer,
 ):
     """
     Perform an export in the `Config` scope, meaning that only models directly related to the global
@@ -228,7 +226,7 @@ def export_in_global_scope(
     *,
     encryptor: Encryptor | None = None,
     indent: int = 2,
-    printer=click.echo,
+    printer: Printer,
 ):
     """
     Perform an export in the `Global` scope, meaning that all models will be exported from the

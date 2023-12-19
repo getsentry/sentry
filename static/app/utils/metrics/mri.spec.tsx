@@ -24,13 +24,27 @@ describe('parseMRI', () => {
     }
   );
 
-  it.each(['sessions', 'transactions', 'custom'])(
+  it.each(['transactions', 'custom'])(
     'should correctly parse a valid MRI string - use case %s',
     useCase => {
       const mri: MRI = `c:${useCase as UseCase}/xyz@test`;
       const parsedMRI = {
         type: 'c',
-        name: 'xyz',
+        name: `xyz`,
+        unit: 'test',
+        useCase,
+      };
+      expect(parseMRI(mri)).toEqual(parsedMRI);
+    }
+  );
+
+  it.each(['sessions', 'spans'])(
+    'should correctly parse a valid MRI string - use case %s',
+    useCase => {
+      const mri: MRI = `c:${useCase as UseCase}/xyz@test`;
+      const parsedMRI = {
+        type: 'c',
+        name: `${useCase}.xyz`,
         unit: 'test',
         useCase,
       };

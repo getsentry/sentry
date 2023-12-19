@@ -22,11 +22,7 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import RepositoryMixin
-from sentry.integrations.mixins.commit_context import (
-    CommitContextMixin,
-    FileBlameInfo,
-    SourceLineInfo,
-)
+from sentry.integrations.mixins.commit_context import CommitContextMixin
 from sentry.integrations.utils.code_mapping import RepoTree
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
@@ -149,7 +145,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             id=self.org_integration.organization_id, user_id=None
         )
         if not organization_context:
-            logger.exception(
+            logger.error(
                 "No organization information was found. Continuing execution.", extra=extra
             )
         else:
@@ -177,16 +173,6 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             ]
 
         full_query = build_repository_query(self.model.metadata, self.model.name, query)
-        logger.info(
-            "github.search_repositories",
-            extra={
-                "metadata": self.model.metadata,
-                "model_name": self.model.name,
-                "query": query,
-                "full_query": full_query,
-                "organization_id": self.org_integration.organization_id,
-            },
-        )
         response = self.get_client().search_repositories(full_query)
         return [
             {
@@ -261,11 +247,6 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         except ApiError:
             return False
         return True
-
-    def get_commit_context_all_frames(
-        self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
-    ) -> Sequence[FileBlameInfo]:
-        return self.get_blame_for_files(files, extra)
 
     def get_commit_context(
         self, repo: Repository, filepath: str, ref: str, event_frame: Mapping[str, Any]

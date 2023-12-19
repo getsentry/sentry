@@ -94,7 +94,6 @@ function BaseGroupRow({
 }: Props) {
   const organization = useOrganization();
   const issueTypeConfig = getConfigForIssueType(group);
-
   const selectedGroups = useLegacyStore(SelectedGroupStore);
   const isSelected = selectedGroups[id];
 

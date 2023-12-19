@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.metadata
 import inspect
 import os.path
 import re
@@ -34,7 +35,6 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import resolve, reverse
 from django.utils import timezone as django_timezone
 from django.utils.functional import cached_property
-from pkg_resources import iter_entry_points
 from requests.utils import CaseInsensitiveDict, get_encoding_from_headers
 from rest_framework import status
 from rest_framework.test import APITestCase as BaseAPITestCase
@@ -870,6 +870,7 @@ class RuleTestCase(TestCase):
         kwargs.setdefault("is_regression", True)
         kwargs.setdefault("is_new_group_environment", True)
         kwargs.setdefault("has_reappeared", True)
+        kwargs.setdefault("has_escalated", False)
         return EventState(**kwargs)
 
     def get_condition_activity(self, **kwargs) -> ConditionActivity:
@@ -1007,29 +1008,21 @@ class PluginTestCase(TestCase):
             self.addCleanup(plugins.unregister, self.plugin)
 
     def assertAppInstalled(self, name, path):
-        for ep in iter_entry_points("sentry.apps"):
-            if ep.name == name:
-                ep_path = ep.module_name
-                if ep_path == path:
-                    return
-                self.fail(
-                    "Found app in entry_points, but wrong class. Got %r, expected %r"
-                    % (ep_path, path)
-                )
-        self.fail(f"Missing app from entry_points: {name!r}")
+        for ep in importlib.metadata.distribution("sentry").entry_points:
+            if ep.group == "sentry.apps" and ep.name == name:
+                assert ep.value == path
+                return
+        else:
+            self.fail(f"Missing app from entry_points: {name!r}")
 
     def assertPluginInstalled(self, name, plugin):
         path = type(plugin).__module__ + ":" + type(plugin).__name__
-        for ep in iter_entry_points("sentry.plugins"):
-            if ep.name == name:
-                ep_path = ep.module_name + ":" + ".".join(ep.attrs)
-                if ep_path == path:
-                    return
-                self.fail(
-                    "Found plugin in entry_points, but wrong class. Got %r, expected %r"
-                    % (ep_path, path)
-                )
-        self.fail(f"Missing plugin from entry_points: {name!r}")
+        for ep in importlib.metadata.distribution("sentry").entry_points:
+            if ep.group == "sentry.plugins" and ep.name == name:
+                assert ep.value == path
+                return
+        else:
+            self.fail(f"Missing plugin from entry_points: {name!r}")
 
 
 class CliTestCase(TestCase):
@@ -1278,6 +1271,22 @@ class SnubaTestCase(BaseTestCase):
         assert (
             requests.post(
                 settings.SENTRY_SNUBA + "/tests/entities/outcomes/insert", data=json.dumps(data)
+            ).status_code
+            == 200
+        )
+
+    def store_span(self, span):
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/entities/spans/insert", data=json.dumps([span])
+            ).status_code
+            == 200
+        )
+
+    def store_spans(self, spans):
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/entities/spans/insert", data=json.dumps(spans)
             ).status_code
             == 200
         )
@@ -1813,6 +1822,8 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "measurements.score.weight.fid": "metrics_distributions",
         "measurements.score.weight.cls": "metrics_distributions",
         "measurements.score.weight.ttfb": "metrics_distributions",
+        "measurements.app_start_cold": "metrics_distributions",
+        "measurements.app_start_warm": "metrics_distributions",
         "spans.http": "metrics_distributions",
         "user": "metrics_sets",
     }
@@ -1866,7 +1877,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         project: Optional[int] = None,
         use_case_id: UseCaseID = UseCaseID.TRANSACTIONS,
         aggregation_option: Optional[AggregationOption] = None,
-    ):
+    ) -> None:
         internal_metric = METRICS_MAP[metric] if internal_metric is None else internal_metric
         entity = self.ENTITY_MAP[metric] if entity is None else entity
         org_id = self.organization.id
@@ -1899,16 +1910,17 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def store_on_demand_metric(
         self,
-        value: list[Any] | Any,
+        value: int | float,
         spec: OnDemandMetricSpec,
         additional_tags: Optional[Dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
-    ):
-        metric_spec = spec.to_metric_spec(self.project)
-        metric_spec_tags = metric_spec["tags"] or [] if metric_spec else []
+    ) -> None:
+        """Convert on-demand metric and store it"""
+        relay_metric_spec = spec.to_metric_spec(self.project)
+        metric_spec_tags = relay_metric_spec["tags"] or [] if relay_metric_spec else []
         tags = {i["key"]: i.get("value") or i.get("field") for i in metric_spec_tags}
 
-        metric_type = spec._metric_type
+        metric_type = spec.metric_type
         if additional_tags:
             # Additional tags might be needed to override field values from the spec.
             tags.update(additional_tags)
@@ -1921,8 +1933,6 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
             tags=tags,
             timestamp=timestamp,
         )
-
-        return spec
 
     def store_span_metric(
         self,
@@ -2413,7 +2423,7 @@ class TestMigrations(TransactionTestCase):
     """
     From https://www.caktusgroup.com/blog/2016/02/02/writing-unit-tests-django-migrations/
 
-    Note that when running these tests locally you will need to set the `MIGRATIONS_TEST_MIGRATE=1`
+    Note that when running these tests locally you will need to set the `--migrations`
     environmental variable for these to pass.
     """
 
@@ -2447,8 +2457,7 @@ class TestMigrations(TransactionTestCase):
         matching_migrations = [m for m in executor.loader.applied_migrations if m[0] == self.app]
         if not matching_migrations:
             raise AssertionError(
-                "no migrations detected!\n\n"
-                "try running this test with `MIGRATIONS_TEST_MIGRATE=1 pytest ...`"
+                "no migrations detected!\n\ntry running this test with `pytest --migrations ...`"
             )
         self.current_migration = [max(matching_migrations)]
         old_apps = executor.loader.project_state(migrate_from).apps
@@ -2626,6 +2635,29 @@ class SlackActivityNotificationTest(ActivityTestCase):
             == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
+    def assert_performance_issue_blocks(
+        self,
+        blocks,
+        org_slug,
+        project_slug,
+        group,
+        referrer,
+        alert_type="workflow",
+        issue_link_extra_params=None,
+    ):
+        notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
+        issue_link = f"http://testserver/organizations/{org_slug}/issues/{group.id}/?referrer={referrer}&notification_uuid={notification_uuid}"
+        if issue_link_extra_params is not None:
+            issue_link += issue_link_extra_params
+        assert (
+            blocks[1]["text"]["text"]
+            == f"<{issue_link}|*N+1 Query*>  \ndb - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+        )
+        assert (
+            blocks[2]["elements"][0]["text"]
+            == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}|Notification Settings>"
+        )
+
     def assert_generic_issue_attachments(
         self, attachment, project_slug, referrer, alert_type="workflow"
     ):
@@ -2635,6 +2667,29 @@ class SlackActivityNotificationTest(ActivityTestCase):
         assert (
             attachment["footer"]
             == f"{project_slug} | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}&notification_uuid={notification_uuid}|Notification Settings>"
+        )
+
+    def assert_generic_issue_blocks(
+        self,
+        blocks,
+        org_slug,
+        project_slug,
+        group,
+        referrer,
+        alert_type="workflow",
+        issue_link_extra_params=None,
+    ):
+        notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
+        issue_link = f"http://testserver/organizations/{org_slug}/issues/{group.id}/?referrer={referrer}&notification_uuid={notification_uuid}"
+        if issue_link_extra_params is not None:
+            issue_link += issue_link_extra_params
+        assert (
+            blocks[1]["text"]["text"]
+            == f"<{issue_link}|*{TEST_ISSUE_OCCURRENCE.issue_title}*>  \n{TEST_ISSUE_OCCURRENCE.evidence_display[0].value}"
+        )
+        assert (
+            blocks[2]["elements"][0]["text"]
+            == f"{project_slug} | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
 
@@ -2797,8 +2852,12 @@ class MonitorTestCase(APITestCase):
 
     def _create_alert_rule(self, monitor):
         conditions = [
-            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
-            {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"},
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+            },
+            {
+                "id": "sentry.rules.conditions.regression_event.RegressionEventCondition",
+            },
             {
                 "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
                 "key": "monitor.slug",
@@ -2806,14 +2865,21 @@ class MonitorTestCase(APITestCase):
                 "value": monitor.slug,
             },
         ]
+        actions = [
+            {
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": self.user.id,
+                "targetType": "Member",
+            },
+        ]
         rule = Creator(
             name="New Cool Rule",
             owner=None,
             project=self.project,
-            action_match="any",
-            filter_match="all",
             conditions=conditions,
-            actions=[],
+            filterMatch="all",
+            action_match="any",
+            actions=actions,
             frequency=5,
             environment=self.environment.id,
         ).call()
@@ -2858,7 +2924,7 @@ class MonitorIngestTestCase(MonitorTestCase):
         app = self.create_sentry_app_installation(
             slug=sentry_app.slug, organization=self.organization
         )
-        self.token = self.create_internal_integration_token(app, user=self.user)
+        self.token = self.create_internal_integration_token(install=app, user=self.user)
 
     def _get_path_functions(self):
         # Monitor paths are supported both with an org slug and without.  We test both as long as we support both.

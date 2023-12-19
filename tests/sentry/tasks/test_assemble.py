@@ -665,12 +665,32 @@ class AssembleArtifactsTest(BaseAssembleTest):
             upload_as_artifact_bundle=True,
         )
 
+        # Since the threshold is not surpassed we expect the system to not perform indexing.
+        index_artifact_bundles_for_release.assert_not_called()
+
+        bundle_file_3 = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_duplicated_debug_ids", project=self.project.id
+        )
+        blob1_3 = FileBlob.from_file(ContentFile(bundle_file_3))
+        total_checksum_3 = sha1(bundle_file_3).hexdigest()
+
+        # We try to upload the first bundle.
+        assemble_artifacts(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            version=release,
+            dist=dist,
+            checksum=total_checksum_3,
+            chunks=[blob1_3.checksum],
+            upload_as_artifact_bundle=True,
+        )
+
         bundles = ArtifactBundle.objects.all()
 
         # Since the threshold is now passed, we expect the system to perform indexing.
         index_artifact_bundles_for_release.assert_called_with(
             organization_id=self.organization.id,
-            artifact_bundles=[(bundles[0], None), (bundles[1], mock.ANY)],
+            artifact_bundles=[(bundles[2], mock.ANY)],
         )
 
     def test_bundle_flat_file_indexing(self):
@@ -889,7 +909,9 @@ class ArtifactBundleIndexingTest(TestCase):
             project_ids=[],
         ) as post_assembler:
             post_assembler._index_bundle_if_needed(
-                artifact_bundle=None, release=release, dist=dist, date_snapshot=datetime.now()
+                artifact_bundle=None,
+                release=release,
+                dist=dist,
             )
 
         index_artifact_bundles_for_release.assert_not_called()
@@ -917,7 +939,9 @@ class ArtifactBundleIndexingTest(TestCase):
             project_ids=[],
         ) as post_assembler:
             post_assembler._index_bundle_if_needed(
-                artifact_bundle=None, release=release, dist=dist, date_snapshot=datetime.now()
+                artifact_bundle=None,
+                release=release,
+                dist=dist,
             )
 
         index_artifact_bundles_for_release.assert_not_called()
@@ -929,7 +953,7 @@ class ArtifactBundleIndexingTest(TestCase):
         release = "1.0"
         dist = "android"
 
-        artifact_bundle_1 = self._create_bundle_and_bind_to_release(
+        self._create_bundle_and_bind_to_release(
             release=release,
             dist=dist,
             bundle_id="2c5b367b-4fef-4db8-849d-b9e79607d630",
@@ -937,7 +961,15 @@ class ArtifactBundleIndexingTest(TestCase):
             date=datetime.now() - timedelta(hours=2),
         )
 
-        artifact_bundle_2 = self._create_bundle_and_bind_to_release(
+        self._create_bundle_and_bind_to_release(
+            release=release,
+            dist=dist,
+            bundle_id="0cf678f2-0771-4e2f-8ace-d6cea8493f0c",
+            indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
+            date=datetime.now() - timedelta(hours=1),
+        )
+
+        artifact_bundle_3 = self._create_bundle_and_bind_to_release(
             release=release,
             dist=dist,
             bundle_id="0cf678f2-0771-4e2f-8ace-d6cea8493f0d",
@@ -953,15 +985,14 @@ class ArtifactBundleIndexingTest(TestCase):
             project_ids=[],
         ) as post_assembler:
             post_assembler._index_bundle_if_needed(
-                artifact_bundle=artifact_bundle_2,
+                artifact_bundle=artifact_bundle_3,
                 release=release,
                 dist=dist,
-                date_snapshot=datetime.now(),
             )
 
         index_artifact_bundles_for_release.assert_called_with(
             organization_id=self.organization.id,
-            artifact_bundles=[(artifact_bundle_1, None), (artifact_bundle_2, mock.ANY)],
+            artifact_bundles=[(artifact_bundle_3, mock.ANY)],
         )
 
     @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
@@ -992,9 +1023,7 @@ class ArtifactBundleIndexingTest(TestCase):
             dist=dist,
             project_ids=[],
         ) as post_assembler:
-            post_assembler._index_bundle_if_needed(
-                artifact_bundle=None, release=release, dist=dist, date_snapshot=datetime.now()
-            )
+            post_assembler._index_bundle_if_needed(artifact_bundle=None, release=release, dist=dist)
 
         index_artifact_bundles_for_release.assert_not_called()
 
@@ -1013,7 +1042,7 @@ class ArtifactBundleIndexingTest(TestCase):
             date=datetime.now() - timedelta(hours=1),
         )
 
-        artifact_bundle_2 = self._create_bundle_and_bind_to_release(
+        self._create_bundle_and_bind_to_release(
             release=release,
             dist=dist,
             bundle_id="2c5b367b-4fef-4db8-849d-b9e79607d630",
@@ -1042,10 +1071,9 @@ class ArtifactBundleIndexingTest(TestCase):
                 artifact_bundle=artifact_bundle_1,
                 release=release,
                 dist=dist,
-                date_snapshot=datetime.now(),
             )
 
         index_artifact_bundles_for_release.assert_called_with(
             organization_id=self.organization.id,
-            artifact_bundles=[(artifact_bundle_1, mock.ANY), (artifact_bundle_2, None)],
+            artifact_bundles=[(artifact_bundle_1, mock.ANY)],
         )

@@ -1,4 +1,5 @@
 import {GitHubIntegrationProvider} from 'sentry-fixture/githubIntegrationProvider';
+import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -81,7 +82,7 @@ describe('IntegrationDetailedView', function () {
       <IntegrationDetailedView
         {...TestStubs.routeComponentProps()}
         params={{integrationSlug: 'bitbucket'}}
-        location={TestStubs.location({query: {}})}
+        location={LocationFixture({query: {}})}
       />
     );
     expect(screen.getByText('Bitbucket')).toBeInTheDocument();
@@ -94,7 +95,7 @@ describe('IntegrationDetailedView', function () {
       <IntegrationDetailedView
         {...TestStubs.routeComponentProps()}
         params={{integrationSlug: 'bitbucket'}}
-        location={TestStubs.location({query: {tab: 'configurations'}})}
+        location={LocationFixture({query: {tab: 'configurations'}})}
       />
     );
 
@@ -109,7 +110,7 @@ describe('IntegrationDetailedView', function () {
       <IntegrationDetailedView
         {...TestStubs.routeComponentProps()}
         params={{integrationSlug: 'bitbucket'}}
-        location={TestStubs.location({query: {tab: 'configurations'}})}
+        location={LocationFixture({query: {tab: 'configurations'}})}
       />,
       {organization: Organization({access: ['org:read']})}
     );
@@ -153,7 +154,7 @@ describe('IntegrationDetailedView', function () {
       <IntegrationDetailedView
         {...TestStubs.routeComponentProps()}
         params={{integrationSlug: 'github'}}
-        location={TestStubs.location({query: {tab: 'configurations'}})}
+        location={LocationFixture({query: {tab: 'configurations'}})}
       />,
       {organization: Organization({access: ['org:read']})}
     );
@@ -198,7 +199,7 @@ describe('IntegrationDetailedView', function () {
         {...TestStubs.routeComponentProps()}
         params={{integrationSlug: 'github'}}
         organization={org}
-        location={TestStubs.location({query: {}})}
+        location={LocationFixture({query: {}})}
       />
     );
     expect(screen.getByText('features')).toBeInTheDocument();
@@ -222,7 +223,7 @@ describe('IntegrationDetailedView', function () {
         {...TestStubs.routeComponentProps()}
         params={{integrationSlug: 'github'}}
         organization={org}
-        location={TestStubs.location({query: {}})}
+        location={LocationFixture({query: {}})}
       />
     );
 
@@ -257,7 +258,7 @@ describe('IntegrationDetailedView', function () {
         {...TestStubs.routeComponentProps()}
         params={{integrationSlug: 'github'}}
         organization={org}
-        location={TestStubs.location({query: {}})}
+        location={LocationFixture({query: {}})}
       />
     );
     await userEvent.click(screen.getByText('features'));

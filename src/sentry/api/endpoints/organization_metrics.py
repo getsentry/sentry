@@ -9,7 +9,11 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams, get_date_range_from_params
-from sentry.sentry_metrics.querying.api import run_metrics_query
+from sentry.sentry_metrics.querying.api import (
+    InvalidMetricsQueryError,
+    MetricsQueryExecutionError,
+    run_metrics_query,
+)
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import string_to_use_case_id
 from sentry.snuba.metrics import (
@@ -46,9 +50,9 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
-    """Get the metadata of all the stored metrics including metric name, available operations and metric unit"""
-
     owner = ApiOwner.TELEMETRY_EXPERIENCE
+
+    """Get the metadata of all the stored metrics including metric name, available operations and metric unit"""
 
     def get(self, request: Request, organization) -> Response:
         projects = self.get_projects(request, organization)
@@ -63,9 +67,9 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
-    """Get metric name, available operations, metric unit and available tags"""
-
     owner = ApiOwner.TELEMETRY_EXPERIENCE
+
+    """Get metric name, available operations, metric unit and available tags"""
 
     def get(self, request: Request, organization, metric_name) -> Response:
         projects = self.get_projects(request, organization)
@@ -89,6 +93,8 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
+
     """Get list of tag names for this project
 
     If the ``metric`` query param is provided, only tags for a certain metric
@@ -97,8 +103,6 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
     If the ``metric`` query param is provided more than once, the *intersection*
     of available tags is used.
     """
-
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     def get(self, request: Request, organization) -> Response:
         metric_names = request.GET.getlist("metric") or []
@@ -121,9 +125,9 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
-    """Get all existing tag values for a metric"""
-
     owner = ApiOwner.TELEMETRY_EXPERIENCE
+
+    """Get all existing tag values for a metric"""
 
     def get(self, request: Request, organization, tag_name) -> Response:
         metric_names = request.GET.getlist("metric") or None
@@ -147,13 +151,14 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
+
     """Get the time series data for one or more metrics.
 
     The data can be filtered and grouped by tags.
     Based on `OrganizationSessionsEndpoint`.
     """
 
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
     default_per_page = 50
 
     def _new_get(self, request: Request, organization) -> Response:
@@ -162,21 +167,26 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
         interval = int(3600 if interval is None else interval.total_seconds())
         start, end = get_date_range_from_params(request.GET)
 
-        # We then run the query and inject directly the field, query and groupBy, since they will be parsed
-        # internally.
-        results = run_metrics_query(
-            fields=request.GET.getlist("field", []),
-            query=request.GET.get("query"),
-            group_bys=request.GET.getlist("groupBy"),
-            interval=interval,
-            start=start,
-            end=end,
-            organization=organization,
-            projects=self.get_projects(request, organization),
-            environments=self.get_environments(request, organization),
-            # TODO: move referrers into a centralized place.
-            referrer="metrics.data.api",
-        )
+        try:
+            # We then run the query and inject directly the field, query and groupBy, since they will be parsed
+            # internally.
+            results = run_metrics_query(
+                fields=request.GET.getlist("field", []),
+                query=request.GET.get("query"),
+                group_bys=request.GET.getlist("groupBy"),
+                interval=interval,
+                start=start,
+                end=end,
+                organization=organization,
+                projects=self.get_projects(request, organization),
+                environments=self.get_environments(request, organization),
+                # TODO: move referrers into a centralized place.
+                referrer="metrics.data.api",
+            )
+        except InvalidMetricsQueryError as e:
+            return Response(status=400, data={"detail": str(e)})
+        except MetricsQueryExecutionError as e:
+            return Response(status=500, data={"detail": str(e)})
 
         return Response(status=200, data=results)
 

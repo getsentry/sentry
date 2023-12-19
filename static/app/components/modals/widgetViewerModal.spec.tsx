@@ -1,5 +1,6 @@
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 import {MetricsTotalCountByReleaseIn24h} from 'sentry-fixture/metrics';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -95,7 +96,7 @@ describe('Modals -> WidgetViewerModal', function () {
       router: {
         location: {query: {}},
       },
-      projects: [TestStubs.Project()],
+      projects: [ProjectFixture()],
     });
 
     initialDataWithFlag = {
@@ -241,7 +242,7 @@ describe('Modals -> WidgetViewerModal', function () {
             query: expect.objectContaining({
               query:
                 // The release was injected into the discover query
-                'title:/organizations/:orgId/performance/summary/ release:project-release@1.2.0 ',
+                'title:/organizations/:orgId/performance/summary/ release:"project-release@1.2.0" ',
             }),
           })
         );

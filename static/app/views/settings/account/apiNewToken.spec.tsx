@@ -1,4 +1,5 @@
 import selectEvent from 'react-select-event';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -7,13 +8,13 @@ import ApiNewToken from 'sentry/views/settings/account/apiNewToken';
 describe('ApiNewToken', function () {
   it('renders', function () {
     render(<ApiNewToken />, {
-      context: TestStubs.routerContext(),
+      context: RouterContextFixture(),
     });
   });
 
   it('renders with disabled "Create Token" button', async function () {
     render(<ApiNewToken />, {
-      context: TestStubs.routerContext(),
+      context: RouterContextFixture(),
     });
 
     expect(await screen.getByRole('button', {name: 'Create Token'})).toBeDisabled();
@@ -27,7 +28,7 @@ describe('ApiNewToken', function () {
     });
 
     render(<ApiNewToken />, {
-      context: TestStubs.routerContext(),
+      context: RouterContextFixture(),
     });
     const createButton = await screen.getByRole('button', {name: 'Create Token'});
 

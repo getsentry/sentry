@@ -1,28 +1,22 @@
 from unittest import mock
 from unittest.mock import MagicMock
 
-from django.test import RequestFactory, override_settings
+from django.test import RequestFactory
 from django.urls import reverse
 
 from sentry.middleware.integrations.parsers.plugin import PluginRequestParser
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
-from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import assert_webhook_outboxes
-from sentry.testutils.region import override_regions
-from sentry.testutils.silo import control_silo_test
-from sentry.types.region import Region, RegionCategory
+from sentry.testutils.silo import control_silo_test, create_test_regions
 
 
-@control_silo_test
+@control_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
 class PluginRequestParserTest(TestCase):
     get_response = MagicMock()
     factory = RequestFactory()
-    region = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
 
-    @override_regions(regions=(region,))
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_routing_webhooks_no_region(self):
         routes = [
             reverse("sentry-plugins-github-webhook", args=[self.organization.id]),
@@ -41,8 +35,6 @@ class PluginRequestParserTest(TestCase):
                 parser.get_response()
                 assert get_response_from_control_silo.called
 
-    @override_regions(regions=(region,))
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_routing_webhooks_with_region(self):
         routes = [
             reverse("sentry-plugins-github-webhook", args=[self.organization.id]),
@@ -58,7 +50,7 @@ class PluginRequestParserTest(TestCase):
             assert_webhook_outboxes(
                 factory_request=request,
                 webhook_identifier=WebhookProviderIdentifier.LEGACY_PLUGIN,
-                region_names=[self.region.name],
+                region_names=["us"],
             )
             # Purge outboxes after checking each route
             ControlOutbox.objects.all().delete()

@@ -1,3 +1,7 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import {RouteContext} from 'sentry/views/routeContext';
@@ -14,20 +18,20 @@ describe('SharedGroupDetails', function () {
       url: '/organizations/org-slug/shared/issues/a/',
       body: TestStubs.Group({
         title: 'ZeroDivisionError',
-        latestEvent: TestStubs.Event({
+        latestEvent: EventFixture({
           entries: [eventEntry, exception],
         }),
-        project: TestStubs.Project({organization: {slug: 'test-org'}}),
+        project: ProjectFixture({organization: Organization({slug: 'test-org'})}),
       }),
     });
     MockApiClient.addMockResponse({
       url: '/shared/issues/a/',
       body: TestStubs.Group({
         title: 'ZeroDivisionError',
-        latestEvent: TestStubs.Event({
+        latestEvent: EventFixture({
           entries: [eventEntry, exception],
         }),
-        project: TestStubs.Project({organization: {slug: 'test-org'}}),
+        project: ProjectFixture({organization: Organization({slug: 'test-org'})}),
       }),
     });
   });

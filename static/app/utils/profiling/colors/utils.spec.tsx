@@ -65,7 +65,6 @@ describe('makeStackToColor', () => {
     const fallback = [1, 0, 0, 1] as [number, number, number, number];
 
     const makeFn = makeStackToColor(fallback);
-
     const frames = [f(0, 'a')];
 
     const {colorBuffer} = makeFn(
