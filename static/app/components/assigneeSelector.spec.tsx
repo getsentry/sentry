@@ -1,3 +1,4 @@
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 import {Team} from 'sentry-fixture/team';
@@ -61,7 +62,7 @@ describe('AssigneeSelector', () => {
       teams: [TEAM_1],
     });
 
-    GROUP_1 = TestStubs.Group({
+    GROUP_1 = GroupFixture({
       id: '1337',
       project: {
         id: PROJECT_1.id,
@@ -69,7 +70,7 @@ describe('AssigneeSelector', () => {
       },
     });
 
-    GROUP_2 = TestStubs.Group({
+    GROUP_2 = GroupFixture({
       id: '1338',
       project: {
         id: PROJECT_1.id,

@@ -1,5 +1,6 @@
 import {Location} from 'history';
 import {Event as EventFixture} from 'sentry-fixture/event';
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Organization} from 'sentry-fixture/organization';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
@@ -47,7 +48,7 @@ describe('useReplaysForRegressionIssue', () => {
   };
 
   it('should fetch a list of replay ids', async () => {
-    const MOCK_GROUP = TestStubs.Group({issueCategory: IssueCategory.PERFORMANCE});
+    const MOCK_GROUP = GroupFixture({issueCategory: IssueCategory.PERFORMANCE});
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replay-count/`,
@@ -87,7 +88,7 @@ describe('useReplaysForRegressionIssue', () => {
   });
 
   it('should return an empty EventView when there are no replay_ids returned from the count endpoint', async () => {
-    const MOCK_GROUP = TestStubs.Group({issueCategory: IssueCategory.PERFORMANCE});
+    const MOCK_GROUP = GroupFixture({issueCategory: IssueCategory.PERFORMANCE});
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replay-count/`,
@@ -125,7 +126,7 @@ describe('useReplaysForRegressionIssue', () => {
   });
 
   it('queries using start and end date strings if passed in', async () => {
-    const MOCK_GROUP = TestStubs.Group({issueCategory: IssueCategory.PERFORMANCE});
+    const MOCK_GROUP = GroupFixture({issueCategory: IssueCategory.PERFORMANCE});
     const replayCountRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replay-count/`,
       method: 'GET',
@@ -159,7 +160,7 @@ describe('useReplaysForRegressionIssue', () => {
   });
 
   it('queries the transaction name with event type and duration filters', async () => {
-    const MOCK_GROUP = TestStubs.Group({issueCategory: IssueCategory.PERFORMANCE});
+    const MOCK_GROUP = GroupFixture({issueCategory: IssueCategory.PERFORMANCE});
     const replayCountRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replay-count/`,
       method: 'GET',

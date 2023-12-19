@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import {Event as EventFixture} from 'sentry-fixture/event';
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Organization} from 'sentry-fixture/organization';
 import {User} from 'sentry-fixture/user';
 
@@ -25,7 +26,7 @@ describe('GroupEventCarousel', () => {
 
   const defaultProps = {
     event: testEvent,
-    group: TestStubs.Group({id: 'group-id'}),
+    group: GroupFixture({id: 'group-id'}),
     projectSlug: 'project-slug',
   };
 

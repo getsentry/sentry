@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import merge from 'lodash/merge';
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import {GroupStats} from 'sentry-fixture/groupStats';
 import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
@@ -64,7 +65,7 @@ describe('IssueList', function () {
   let props;
 
   const tags = Tags();
-  const group = TestStubs.Group({project});
+  const group = GroupFixture({project});
   const groupStats = GroupStats();
   const savedSearch = Search({
     id: '789',

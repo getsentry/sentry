@@ -1,3 +1,4 @@
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Repository} from 'sentry-fixture/repository';
@@ -46,7 +47,7 @@ describe('GroupActivity', function () {
     activity?: Group['activity'];
     organization?: TOrganization;
   } = {}) {
-    const group = TestStubs.Group({
+    const group = GroupFixture({
       id: '1337',
       activity: activity ?? [
         {type: 'note', id: 'note-1', data: {text: 'Test Note'}, user: User()},

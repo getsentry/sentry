@@ -1,4 +1,5 @@
 import {Event as EventFixture} from 'sentry-fixture/event';
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import LocationFixture from 'sentry-fixture/locationFixture';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Team} from 'sentry-fixture/team';
@@ -21,7 +22,7 @@ const SAMPLE_EVENT_ALERT_TEXT =
   'You are viewing a sample error. Configure Sentry to start viewing real errors.';
 
 describe('groupDetails', () => {
-  const group = TestStubs.Group({issueCategory: IssueCategory.ERROR});
+  const group = GroupFixture({issueCategory: IssueCategory.ERROR});
   const event = EventFixture();
   const project = ProjectFixture({teams: [Team()]});
 

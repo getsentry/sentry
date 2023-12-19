@@ -1,3 +1,4 @@
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 
@@ -8,7 +9,7 @@ import GroupReleaseStats from 'sentry/components/group/releaseStats';
 describe('GroupReleaseStats', function () {
   const organization = Organization();
   const project = ProjectFixture();
-  const group = TestStubs.Group();
+  const group = GroupFixture();
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
@@ -25,7 +26,7 @@ describe('GroupReleaseStats', function () {
         group={group}
         project={project}
         organization={organization}
-        allEnvironments={TestStubs.Group()}
+        allEnvironments={GroupFixture()}
         environments={[]}
         {...props}
       />

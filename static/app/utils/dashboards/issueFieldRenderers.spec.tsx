@@ -1,3 +1,4 @@
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {User} from 'sentry-fixture/user';
 
@@ -84,7 +85,7 @@ describe('getIssueFieldRenderer', function () {
         }),
       ]);
 
-      const group = TestStubs.Group({project});
+      const group = GroupFixture({project});
       GroupStore.add([
         {
           ...group,

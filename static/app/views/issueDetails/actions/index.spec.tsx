@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 
@@ -24,7 +25,7 @@ const project = ProjectFixture({
   slug: 'project',
 });
 
-const group = TestStubs.Group({
+const group = GroupFixture({
   id: '1337',
   pluginActions: [],
   pluginIssues: [],
@@ -69,7 +70,7 @@ describe('GroupActions', function () {
       issuesApi = MockApiClient.addMockResponse({
         url: '/projects/org/project/issues/',
         method: 'PUT',
-        body: TestStubs.Group({isSubscribed: false}),
+        body: GroupFixture({isSubscribed: false}),
       });
     });
 
@@ -100,7 +101,7 @@ describe('GroupActions', function () {
       issuesApi = MockApiClient.addMockResponse({
         url: '/projects/org/project/issues/',
         method: 'PUT',
-        body: TestStubs.Group({isBookmarked: false}),
+        body: GroupFixture({isBookmarked: false}),
       });
     });
 

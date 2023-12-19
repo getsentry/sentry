@@ -1,3 +1,4 @@
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import {SentryAppInstallation} from 'sentry-fixture/sentryAppInstallation';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -8,7 +9,7 @@ import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 
 describe('OpenInContextLine', function () {
   const filename = '/sentry/app.py';
-  const group = TestStubs.Group();
+  const group = GroupFixture();
   const install = SentryAppInstallation();
   const components: SentryAppComponent<SentryAppSchemaStacktraceLink>[] = [
     {

@@ -1,3 +1,4 @@
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 
@@ -171,7 +172,7 @@ describe('ReleaseIssues', function () {
   it('includes release context when linking to issue', async function () {
     newIssuesEndpoint = MockApiClient.addMockResponse({
       url: `/organizations/${props.organization.slug}/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&limit=10&query=first-release%3A1.0.0%20is%3Aunresolved&sort=freq&start=2020-03-23T01%3A02%3A00Z`,
-      body: [TestStubs.Group({id: '123'})],
+      body: [GroupFixture({id: '123'})],
     });
 
     const {routerContext} = initializeOrg();
