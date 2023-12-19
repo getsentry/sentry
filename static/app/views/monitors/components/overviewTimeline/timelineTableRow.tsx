@@ -6,12 +6,14 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import Tag from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
+import {StatusToggleButton} from 'sentry/views/monitors/components/statusToggleButton';
 import {Monitor, MonitorStatus} from 'sentry/views/monitors/types';
 import {scheduleAsText} from 'sentry/views/monitors/utils';
 import {statusIconColorMap} from 'sentry/views/monitors/utils/constants';
@@ -24,6 +26,7 @@ interface Props extends Omit<CheckInTimelineProps, 'bucketedData' | 'environment
   monitor: Monitor;
   bucketedData?: MonitorBucket[];
   onDeleteEnvironment?: (env: string) => void;
+  onToggleStatus?: (monitor: Monitor) => void;
   /**
    * Whether only one monitor is being rendered in a larger view with this component
    * turns off things like zebra striping, hover effect, and showing monitor name
@@ -38,6 +41,7 @@ export function TimelineTableRow({
   bucketedData,
   singleMonitorView,
   onDeleteEnvironment,
+  onToggleStatus,
   ...timelineProps
 }: Props) {
   const organization = useOrganization();
@@ -50,15 +54,42 @@ export function TimelineTableRow({
     ? monitor.environments
     : monitor.environments.slice(0, MAX_SHOWN_ENVIRONMENTS);
 
+  const isDisabled = monitor.status === 'disabled';
+
+  const monitorDetails = singleMonitorView ? null : (
+    <DetailsArea>
+      <DetailsLink to={`/organizations/${organization.slug}/crons/${monitor.slug}/`}>
+        <DetailsHeadline>
+          <Name>{monitor.name}</Name>
+          {isDisabled && <Tag>{t('Disabled')}</Tag>}
+        </DetailsHeadline>
+        <Schedule>{scheduleAsText(monitor.config)}</Schedule>
+      </DetailsLink>
+      <DetailsActions>
+        {onToggleStatus && (
+          <StatusToggleButton
+            monitor={monitor}
+            size="xs"
+            onClick={() => onToggleStatus(monitor)}
+          />
+        )}
+      </DetailsActions>
+    </DetailsArea>
+  );
+
   return (
-    <TimelineRow key={monitor.id} singleMonitorView={singleMonitorView}>
-      {!singleMonitorView && <MonitorDetails monitor={monitor} />}
+    <TimelineRow
+      key={monitor.id}
+      isDisabled={isDisabled}
+      singleMonitorView={singleMonitorView}
+    >
+      {monitorDetails}
       <MonitorEnvContainer>
         {environments.map(({name, status}) => {
           const envStatus = monitor.isMuted ? MonitorStatus.DISABLED : status;
           const {label, icon} = statusIconColorMap[envStatus];
           return (
-            <EnvWithStatus key={name}>
+            <EnvRow key={name}>
               {onDeleteEnvironment && (
                 <DropdownMenu
                   size="sm"
@@ -95,11 +126,13 @@ export function TimelineTableRow({
                   ]}
                 />
               )}
-              <MonitorEnvLabel status={envStatus}>{name}</MonitorEnvLabel>
-              <Tooltip title={label} skipWrapper>
-                {icon}
-              </Tooltip>
-            </EnvWithStatus>
+              <EnvWithStatus>
+                <MonitorEnvLabel status={envStatus}>{name}</MonitorEnvLabel>
+                <Tooltip title={label} skipWrapper>
+                  {icon}
+                </Tooltip>
+              </EnvWithStatus>
+            </EnvRow>
           );
         })}
         {!isExpanded && (
@@ -134,21 +167,55 @@ export function TimelineTableRow({
   );
 }
 
-function MonitorDetails({monitor}: {monitor: Monitor}) {
-  const organization = useOrganization();
-  const schedule = scheduleAsText(monitor.config);
+const DetailsLink = styled(Link)`
+  display: block;
+  padding: ${space(3)};
+  color: ${p => p.theme.textColor};
+`;
 
-  const monitorDetailUrl = `/organizations/${organization.slug}/crons/${monitor.slug}/`;
+const DetailsArea = styled('div')`
+  border-right: 1px solid ${p => p.theme.border};
+  border-radius: 0;
+  position: relative;
+`;
 
-  return (
-    <DetailsContainer to={monitorDetailUrl}>
-      <Name>{monitor.name}</Name>
-      <Schedule>{schedule}</Schedule>
-    </DetailsContainer>
-  );
+const DetailsActions = styled('div')`
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: none;
+  align-items: center;
+
+  /* Align to the center of the heading text */
+  height: calc(${p => p.theme.fontSizeLarge} * ${p => p.theme.text.lineHeightHeading});
+  margin: ${space(3)};
+`;
+
+const DetailsHeadline = styled('div')`
+  display: grid;
+  gap: ${space(1)};
+
+  /* We always leave at least enough room for the status toggle button */
+  grid-template-columns: 1fr minmax(30px, max-content);
+`;
+
+const Name = styled('h3')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  margin-bottom: ${space(0.25)};
+  word-break: break-word;
+`;
+
+const Schedule = styled('small')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+interface TimelineRowProps {
+  isDisabled?: boolean;
+  singleMonitorView?: boolean;
 }
 
-const TimelineRow = styled('div')<{singleMonitorView?: boolean}>`
+const TimelineRow = styled('div')<TimelineRowProps>`
   display: contents;
 
   ${p =>
@@ -162,6 +229,19 @@ const TimelineRow = styled('div')<{singleMonitorView?: boolean}>`
       }
     `}
 
+  /* Show detail actions on hover */
+  &:hover ${DetailsActions} {
+    display: flex;
+  }
+
+  /* Hide trailing items on hover */
+  &:hover ${DetailsHeadline} ${Tag} {
+    visibility: hidden;
+  }
+
+  /* Disabled monitors become more opqaue */
+  --disabled-opacity: ${p => (p.isDisabled ? '0.6' : 'unset')};
+
   &:last-child > *:first-child {
     border-bottom-left-radius: ${p => p.theme.borderRadius};
   }
@@ -173,23 +253,6 @@ const TimelineRow = styled('div')<{singleMonitorView?: boolean}>`
   > * {
     transition: background 50ms ease-in-out;
   }
-`;
-
-const DetailsContainer = styled(Link)`
-  color: ${p => p.theme.textColor};
-  padding: ${space(3)};
-  border-right: 1px solid ${p => p.theme.border};
-  border-radius: 0;
-`;
-
-const Name = styled('h3')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  margin-bottom: ${space(0.25)};
-`;
-
-const Schedule = styled('small')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const MonitorEnvContainer = styled('div')`
@@ -206,24 +269,34 @@ const EnvActionButton = styled(Button)`
   display: none;
 `;
 
-const EnvWithStatus = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
-  align-items: center;
-  height: calc(${p => p.theme.fontSizeLarge} * ${p => p.theme.text.lineHeightHeading});
-
+const EnvRow = styled('div')`
   &:hover ${EnvActionButton} {
     display: block;
   }
+
+  display: flex;
+  gap: ${space(0.5)};
+  justify-content: space-between;
+  align-items: center;
+  height: calc(${p => p.theme.fontSizeLarge} * ${p => p.theme.text.lineHeightHeading});
+`;
+
+const EnvWithStatus = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  gap: ${space(0.5)};
+  align-items: center;
+  opacity: var(--disabled-opacity);
 `;
 
 const MonitorEnvLabel = styled('div')<{status: MonitorStatus}>`
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
-  flex: 1;
+  min-width: 0;
 
   color: ${p => p.theme[statusIconColorMap[p.status].color]};
+  opacity: var(--disabled-opacity);
 `;
 
 const TimelineContainer = styled('div')`
@@ -237,6 +310,7 @@ const TimelineContainer = styled('div')`
 const TimelineEnvOuterContainer = styled('div')`
   position: relative;
   height: calc(${p => p.theme.fontSizeLarge} * ${p => p.theme.text.lineHeightHeading});
+  opacity: var(--disabled-opacity);
 `;
 
 const TimelineEnvContainer = styled('div')`
