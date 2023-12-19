@@ -37,7 +37,6 @@ from sentry.tasks.integrations.github.pr_comment import (
 from sentry.templatetags.sentry_helpers import small_count
 from sentry.types.referrer_ids import GITHUB_OPEN_PR_BOT_REFERRER
 from sentry.utils import metrics
-from sentry.utils.json import JSONData
 from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
@@ -194,7 +193,7 @@ def safe_for_comment(
     return safe_to_comment, filtered_pr_files
 
 
-def get_pr_filenames_and_patches(pr_files: JSONData) -> Tuple[List[str], List[str]]:
+def get_pr_filenames_and_patches(pr_files: List[Dict[str, str]]) -> Tuple[List[str], List[str]]:
     # new files will not have sentry issues associated with them
     # only fetch Python files
     pr_filenames: List[str] = [file["filename"] for file in pr_files]
@@ -251,7 +250,7 @@ def get_projects_and_filenames_from_source_file(
 
 def get_top_5_issues_by_count_for_file(
     projects: List[Project], sentry_filenames: List[str]
-) -> list[dict[str, Any]]:
+) -> List[Dict[str, Any]]:
     """Given a list of issue group ids, return a sublist of the top 5 ordered by event count"""
     group_ids = list(
         Group.objects.filter(
