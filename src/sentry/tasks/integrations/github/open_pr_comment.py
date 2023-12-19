@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import itertools
 import logging
+import re
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Set, Tuple
 
@@ -36,7 +37,6 @@ from sentry.tasks.integrations.github.pr_comment import (
 from sentry.templatetags.sentry_helpers import small_count
 from sentry.types.referrer_ids import GITHUB_OPEN_PR_BOT_REFERRER
 from sentry.utils import metrics
-from sentry.utils.json import JSONData
 from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
@@ -135,7 +135,7 @@ def get_issue_table_contents(issue_list: List[Dict[str, int]]) -> List[PullReque
 # TODO(cathy): Change the client typing to allow for multiple SCM Integrations
 def safe_for_comment(
     gh_client: GitHubAppsClient, repository: Repository, pull_request: PullRequest
-) -> Tuple[bool, JSONData]:
+) -> Tuple[bool, List[Dict[str, str]]]:
     logger.info("github.open_pr_comment.check_safe_for_comment")
     try:
         pr_files = gh_client.get_pullrequest_files(
@@ -193,13 +193,36 @@ def safe_for_comment(
     return safe_to_comment, filtered_pr_files
 
 
-def get_pr_filenames(pr_files: JSONData) -> List[str]:
+def get_pr_filenames_and_patches(pr_files: List[Dict[str, str]]) -> Tuple[List[str], List[str]]:
     # new files will not have sentry issues associated with them
     # only fetch Python files
     pr_filenames: List[str] = [file["filename"] for file in pr_files]
+    patches: List[str] = [file["patch"] for file in pr_files]
 
     logger.info("github.open_pr_comment.pr_filenames", extra={"count": len(pr_filenames)})
-    return pr_filenames
+
+    return pr_filenames, patches
+
+
+# currently Python only
+def get_file_functions(patch: str) -> Set[str]:
+    r"""
+    Function header regex pattern
+    ^           - Asserts the start of a line.
+    @@.*@@      - Matches a string that starts with two "@" characters, followed by any characters
+                (except newline), and ends with two "@" characters.
+    \s+         - Matches one or more whitespace characters (spaces, tabs, etc.).
+    def         - Matches the literal characters "def".
+    \\s+         - Matches one or more whitespace characters.
+    (?P<fnc>.*) - This is a named capturing group that captures any characters (except newline)
+                and assigns them to the named group "fnc".
+    \(          - Matches an opening parenthesis "(".
+    .*          - Matches any characters (except newline).
+    $           - Asserts the end of a line.
+    """
+
+    python_function_regex = r"^@@.*@@\s+def\s+(?P<fnc>.*)\(.*$"
+    return set(re.findall(python_function_regex, patch, flags=re.M))
 
 
 def get_projects_and_filenames_from_source_file(
@@ -227,7 +250,7 @@ def get_projects_and_filenames_from_source_file(
 
 def get_top_5_issues_by_count_for_file(
     projects: List[Project], sentry_filenames: List[str]
-) -> list[dict[str, Any]]:
+) -> List[Dict[str, Any]]:
     """Given a list of issue group ids, return a sublist of the top 5 ordered by event count"""
     group_ids = list(
         Group.objects.filter(
@@ -327,7 +350,6 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     client = installation.get_client()
 
     # CREATING THE COMMENT
-    logger.info("github.open_pr_comment.check_safe_for_comment")
 
     # fetch the files in the PR and determine if it is safe to comment
     safe_to_comment, pr_files = safe_for_comment(
@@ -342,12 +364,14 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         )
         return
 
-    pr_filenames = get_pr_filenames(pr_files)
+    # TODO(cathy): return patches
+    pr_filenames, _ = get_pr_filenames_and_patches(pr_files)
 
     issue_table_contents = {}
     top_issues_per_file = []
 
     # fetch issues related to the files
+    # TODO(cathy): include fetching function names
     for pr_filename in pr_filenames:
         projects, sentry_filenames = get_projects_and_filenames_from_source_file(
             org_id, pr_filename
