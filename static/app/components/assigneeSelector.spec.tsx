@@ -1,3 +1,4 @@
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 import {Team} from 'sentry-fixture/team';
 import {User} from 'sentry-fixture/user';
@@ -56,7 +57,7 @@ describe('AssigneeSelector', () => {
       slug: 'cool-team',
     });
 
-    PROJECT_1 = TestStubs.Project({
+    PROJECT_1 = ProjectFixture({
       teams: [TEAM_1],
     });
 
