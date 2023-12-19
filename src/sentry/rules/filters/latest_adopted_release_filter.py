@@ -31,7 +31,7 @@ from sentry.utils.cache import cache
 class LatestAdoptedReleaseForm(forms.Form):
     oldest_or_newest = forms.ChoiceField(choices=list(model_age_choices))
     older_or_newer = forms.ChoiceField(choices=list(age_comparison_choices))
-    environment = forms.CharField(required=False)
+    environment = forms.CharField()
 
     def __init__(self, project, *args, **kwargs):
         super().__init__(*args, **kwargs)
