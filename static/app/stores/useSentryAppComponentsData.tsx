@@ -18,17 +18,21 @@ export default function useSentryAppComponentsData({projectId}: Props) {
     [`/organizations/${organization.slug}/sentry-app-installations/`],
     {staleTime: Infinity}
   );
-  if (installs) {
-    SentryAppInstallationStore.load(installs);
-  }
+  useEffect(() => {
+    if (installs) {
+      SentryAppInstallationStore.load(installs);
+    }
+  }, [installs]);
 
   const {data: components} = useApiQuery<SentryAppComponent[]>(
     [`/organizations/${organization.slug}/sentry-app-components/`, {query: {projectId}}],
     {enabled: Boolean(projectId), staleTime: Infinity}
   );
-  if (components) {
-    SentryAppComponentsStore.loadComponents(components);
-  }
+  useEffect(() => {
+    if (components) {
+      SentryAppComponentsStore.loadComponents(components);
+    }
+  }, [components]);
 
   useEffect(() => {
     if (!projectId) {
