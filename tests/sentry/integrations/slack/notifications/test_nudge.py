@@ -63,4 +63,4 @@ class SlackNudgeNotificationTest(SlackActivityNotificationTest):
 
         # Slack requires callback_id to handle enablement
         request_data = parse_qs(responses.calls[0].request.body)
-        assert request_data["callback_id"]
+        assert json.loads(request_data["callback_id"][0]) == {"enable_notifications": True}

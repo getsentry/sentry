@@ -98,9 +98,13 @@ def _notify_recipient(
                 "text": text if text else "",
                 "blocks": json.dumps(blocks),
             }
-            if local_attachments.get("callback_id"):
+            callback_id = local_attachments.get("callback_id")
+            if callback_id:
                 # callback_id is now at the same level as blocks, rather than within attachments
-                payload["callback_id"] = local_attachments.get("callback_id")
+                if isinstance(callback_id, str):
+                    payload["callback_id"] = callback_id
+                else:
+                    payload["callback_id"] = json.dumps(local_attachments.get("callback_id"))
         else:
             # Add optional billing related attachment.
             additional_attachment = get_additional_attachment(
