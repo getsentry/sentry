@@ -76,7 +76,7 @@ describe('ProjectsDashboard', function () {
     });
 
     it('renders with 1 project, with no first event', function () {
-      const projects = [ProjectFixture({teams, firstEvent: false})];
+      const projects = [ProjectFixture({teams, firstEvent: null})];
       ProjectsStore.loadInitialData(projects);
 
       const teamsWithOneProject = [Team({projects})];
@@ -111,14 +111,14 @@ describe('ProjectsDashboard', function () {
           id: '1',
           slug: 'project1',
           teams: [teamA],
-          firstEvent: true,
+          firstEvent: new Date().toISOString(),
         }),
         ProjectFixture({
           id: '2',
           slug: 'project2',
           teams: [teamA],
           isBookmarked: true,
-          firstEvent: true,
+          firstEvent: new Date().toISOString(),
         }),
       ];
 
@@ -179,7 +179,7 @@ describe('ProjectsDashboard', function () {
           id: '1',
           slug: 'project1',
           teams: [teamC],
-          firstEvent: true,
+          firstEvent: new Date().toISOString(),
           stats: [],
         }),
         ProjectFixture({
@@ -187,14 +187,14 @@ describe('ProjectsDashboard', function () {
           slug: 'project2',
           teams: [teamC],
           isBookmarked: true,
-          firstEvent: true,
+          firstEvent: new Date().toISOString(),
           stats: [],
         }),
         ProjectFixture({
           id: '3',
           slug: 'project3',
           teams: [teamD],
-          firstEvent: true,
+          firstEvent: new Date().toISOString(),
           stats: [],
         }),
       ];
@@ -241,14 +241,14 @@ describe('ProjectsDashboard', function () {
           id: '1',
           slug: 'project1',
           teams: [teamA],
-          firstEvent: true,
+          firstEvent: new Date().toISOString(),
         }),
         ProjectFixture({
           id: '2',
           slug: 'project2',
           teams: [teamA],
           isBookmarked: true,
-          firstEvent: true,
+          firstEvent: new Date().toISOString(),
         }),
       ];
 

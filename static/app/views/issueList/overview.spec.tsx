@@ -37,7 +37,7 @@ const project = ProjectFixture({
   id: '3559',
   name: 'Foo Project',
   slug: 'project-slug',
-  firstEvent: true,
+  firstEvent: new Date().toISOString(),
 });
 
 const {organization, router, routerContext} = initializeOrg({
@@ -1169,19 +1169,19 @@ describe('IssueList', function () {
           id: '1',
           slug: 'foo',
           isMember: true,
-          firstEvent: false,
+          firstEvent: null,
         }),
         ProjectFixture({
           id: '2',
           slug: 'bar',
           isMember: true,
-          firstEvent: false,
+          firstEvent: null,
         }),
         ProjectFixture({
           id: '3',
           slug: 'baz',
           isMember: true,
-          firstEvent: false,
+          firstEvent: null,
         }),
       ];
       MockApiClient.addMockResponse({
@@ -1215,19 +1215,19 @@ describe('IssueList', function () {
           id: '1',
           slug: 'foo',
           isMember: true,
-          firstEvent: false,
+          firstEvent: null,
         }),
         ProjectFixture({
           id: '2',
           slug: 'bar',
           isMember: true,
-          firstEvent: true,
+          firstEvent: new Date().toISOString(),
         }),
         ProjectFixture({
           id: '3',
           slug: 'baz',
           isMember: true,
-          firstEvent: false,
+          firstEvent: null,
         }),
       ];
       MockApiClient.addMockResponse({
@@ -1256,19 +1256,19 @@ describe('IssueList', function () {
           id: '1',
           slug: 'foo',
           isMember: true,
-          firstEvent: false,
+          firstEvent: null,
         }),
         ProjectFixture({
           id: '2',
           slug: 'bar',
           isMember: true,
-          firstEvent: false,
+          firstEvent: null,
         }),
         ProjectFixture({
           id: '3',
           slug: 'baz',
           isMember: true,
-          firstEvent: false,
+          firstEvent: null,
         }),
       ];
       MockApiClient.addMockResponse({
@@ -1307,19 +1307,19 @@ describe('IssueList', function () {
           id: '1',
           slug: 'foo',
           isMember: true,
-          firstEvent: false,
+          firstEvent: null,
         }),
         ProjectFixture({
           id: '2',
           slug: 'bar',
           isMember: true,
-          firstEvent: true,
+          firstEvent: new Date().toISOString(),
         }),
         ProjectFixture({
           id: '3',
           slug: 'baz',
           isMember: true,
-          firstEvent: true,
+          firstEvent: new Date().toISOString(),
         }),
       ];
       MockApiClient.addMockResponse({

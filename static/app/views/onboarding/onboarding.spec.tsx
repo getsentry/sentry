@@ -163,7 +163,7 @@ describe('Onboarding', function () {
       id: '2',
       slug: 'javascript-react-slug',
       firstTransactionEvent: false,
-      firstEvent: false,
+      firstEvent: null,
       hasReplays: false,
       hasSessions: false,
     });
