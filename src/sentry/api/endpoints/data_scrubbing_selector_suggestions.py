@@ -15,9 +15,9 @@ from sentry.eventstore.models import Event
 @region_silo_endpoint
 class DataScrubbingSelectorSuggestionsEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.OWNERS_INGEST
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     def get(self, request: Request, organization) -> Response:
         """
