@@ -1,4 +1,4 @@
-from django.http import HttpResponse
+from django.http.response import HttpResponseBase
 from django.urls import reverse
 from rest_framework.request import Request
 
@@ -46,7 +46,7 @@ class SAML2ConfigureView(ConfigureView):
 
 
 class SelectIdP(AuthView):
-    def handle(self, request: Request, helper) -> HttpResponse:
+    def handle(self, request: Request, helper) -> HttpResponseBase:
         op = "url"
 
         forms = {"url": URLMetadataForm(), "xml": XMLMetadataForm(), "idp": SAMLForm()}
@@ -65,7 +65,7 @@ class SelectIdP(AuthView):
 
 
 class MapAttributes(AuthView):
-    def handle(self, request: Request, helper) -> HttpResponse:
+    def handle(self, request: Request, helper) -> HttpResponseBase:
         if "save_mappings" not in request.POST:
             form = AttributeMappingForm()
         else:

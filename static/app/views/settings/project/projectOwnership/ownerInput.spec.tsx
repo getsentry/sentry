@@ -1,5 +1,6 @@
 import selectEvent from 'react-select-event';
 import {Members} from 'sentry-fixture/members';
+import {User} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -23,9 +24,7 @@ describe('Project Ownership Input', function () {
       body: {raw: 'url:src @dummy@example.com'},
     });
     MemberListStore.init();
-    MemberListStore.loadInitialData([
-      TestStubs.User({id: '1', email: 'bob@example.com'}),
-    ]);
+    MemberListStore.loadInitialData([User({id: '1', email: 'bob@example.com'})]);
   });
 
   it('renders', async function () {

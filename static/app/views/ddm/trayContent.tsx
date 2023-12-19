@@ -5,9 +5,12 @@ import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {SplitPanelContext} from 'sentry/components/splitPanel';
 import {TabList, Tabs} from 'sentry/components/tabs';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {isCustomMetric, MetricWidgetQueryParams} from 'sentry/utils/metrics';
+import {formatMRI} from 'sentry/utils/metrics/mri';
 import {CodeLocations} from 'sentry/views/ddm/codeLocations';
 import {useDDMContext} from 'sentry/views/ddm/context';
 import {TraceTable} from 'sentry/views/ddm/traceTable';
@@ -19,28 +22,53 @@ enum Tab {
 
 export function TrayContent() {
   const {selectedWidgetIndex, widgets} = useDDMContext();
-  const [selectedTab, setSelectedTab] = useState(Tab.SAMPLES);
+  const [selectedTab, setSelectedTab] = useState(Tab.CODE_LOCATIONS);
   const {isMaximized, maximiseSize, resetSize} = useContext(SplitPanelContext);
   // the tray is minimized when the main content is maximized
   const trayIsMinimized = isMaximized;
-  const selectedWidget = widgets[selectedWidgetIndex];
+  const selectedWidget = widgets[selectedWidgetIndex] as
+    | MetricWidgetQueryParams
+    | undefined;
+  const isCodeLocationsDisabled =
+    selectedWidget?.mri && !isCustomMetric({mri: selectedWidget.mri});
+
+  if (isCodeLocationsDisabled && selectedTab === Tab.CODE_LOCATIONS) {
+    setSelectedTab(Tab.SAMPLES);
+  }
 
   return (
     <TrayWrapper>
       <Header>
-        <Title>{selectedWidget?.mri || t('Choose a metric to display data')}</Title>
+        <Title>
+          {selectedWidget?.mri
+            ? formatMRI(selectedWidget.mri)
+            : t('Choose a metric to display data')}
+        </Title>
         <ToggleButton
           size="xs"
           isMinimized={trayIsMinimized}
-          icon={<IconChevron size="xs" />}
+          icon={<IconChevron />}
           onClick={trayIsMinimized ? resetSize : maximiseSize}
           aria-label={trayIsMinimized ? t('show') : t('hide')}
         />
       </Header>
       <Tabs value={selectedTab} onChange={setSelectedTab}>
         <StyledTabList>
+          <TabList.Item
+            textValue={t('Code Location')}
+            key={Tab.CODE_LOCATIONS}
+            disabled={isCodeLocationsDisabled}
+          >
+            <Tooltip
+              title={t(
+                'This metric is automatically collected by Sentry. It is not bound to a specific line of your code.'
+              )}
+              disabled={!isCodeLocationsDisabled}
+            >
+              <span style={{pointerEvents: 'all'}}>{t('Code Location')}</span>
+            </Tooltip>
+          </TabList.Item>
           <TabList.Item key={Tab.SAMPLES}>{t('Samples')}</TabList.Item>
-          <TabList.Item key={Tab.CODE_LOCATIONS}>{t('Code Location')}</TabList.Item>
         </StyledTabList>
       </Tabs>
       <ContentWrapper>

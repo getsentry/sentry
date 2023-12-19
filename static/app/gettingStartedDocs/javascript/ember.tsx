@@ -4,7 +4,10 @@ import {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {
+  getReplayConfigureDescription,
+  getUploadSourceMapsStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -56,6 +59,16 @@ export default class App extends Application {
 }
 `;
 
+const getInstallConfig = () => [
+  {
+    language: 'bash',
+    code: `
+# Using ember-cli
+ember install @sentry/ember
+    `,
+  },
+];
+
 const getVerifyEmberSnippet = () => `
 myUndefinedFunction();`;
 
@@ -66,15 +79,7 @@ const onboarding: OnboardingConfig = {
       description: t(
         'Sentry captures data by using an SDK within your application’s runtime.'
       ),
-      configurations: [
-        {
-          language: 'bash',
-          code: `
-# Using ember-cli
-ember install @sentry/ember
-          `,
-        },
-      ],
+      configurations: getInstallConfig(),
     },
   ],
   configure: (params: Params) => [
@@ -144,8 +149,46 @@ ember install @sentry/ember
   ],
 };
 
+const replayOnboarding: OnboardingConfig = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'You need a minimum version 7.27.0 of [code:@sentry/ember] in order to use Session Replay. You do not need to install any additional packages.',
+        {
+          code: <code />,
+        }
+      ),
+      configurations: getInstallConfig(),
+    },
+  ],
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: getReplayConfigureDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/ember/session-replay/',
+      }),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getSdkSetupSnippet({...params, isReplaySelected: true}),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  replayOnboardingNpm: replayOnboarding,
 };
 
 export default docs;

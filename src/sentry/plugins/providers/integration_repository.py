@@ -155,8 +155,9 @@ class IntegrationRepositoryProvider:
 
             # Try to delete webhook we just created
             try:
-                repo = Repository(organization_id=organization.id, **repo_update_params)
-                self.on_delete_repository(repo)
+                self.on_delete_repository(
+                    Repository(organization_id=organization.id, **repo_update_params)
+                )
             except IntegrationError:
                 pass
 
@@ -214,24 +215,22 @@ class IntegrationRepositoryProvider:
         )
 
     def handle_api_error(self, e):
-        context = {"error_type": "unknown"}
-
         if isinstance(e, IntegrationError):
             if "503" in str(e):
-                context.update({"error_type": "service unavailable", "errors": {"__all__": str(e)}})
-                status = 503
+                return Response(
+                    {"error_type": "service unavailable", "errors": {"__all__": str(e)}}, status=503
+                )
             else:
                 # TODO(dcramer): we should have a proper validation error
-                context.update({"error_type": "validation", "errors": {"__all__": str(e)}})
-                status = 400
+                return Response(
+                    {"error_type": "validation", "errors": {"__all__": str(e)}}, status=400
+                )
         elif isinstance(e, Integration.DoesNotExist):
-            context.update({"error_type": "not found", "errors": {"__all__": str(e)}})
-            status = 404
+            return Response({"error_type": "not found", "errors": {"__all__": str(e)}}, status=404)
         else:
             if self.logger:
                 self.logger.exception(str(e))
-            status = 500
-        return Response(context, status=status)
+            return Response({"error_type": "unknown"}, status=500)
 
     def get_config(self, organization):
         raise NotImplementedError

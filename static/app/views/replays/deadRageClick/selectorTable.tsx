@@ -249,6 +249,8 @@ const MessageContainer = styled('div')`
   grid-auto-flow: row;
   gap: ${space(1)};
   justify-items: center;
+  text-align: center;
+  padding: ${space(4)};
 `;
 
 const WidgetProjectContainer = styled('div')`

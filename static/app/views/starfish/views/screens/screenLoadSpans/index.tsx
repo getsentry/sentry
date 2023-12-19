@@ -4,7 +4,7 @@ import omit from 'lodash/omit';
 
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
+import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -22,6 +22,10 @@ import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releas
 import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+import {
+  MobileCursors,
+  MobileSortKeys,
+} from 'sentry/views/starfish/views/screens/constants';
 import {
   ScreenCharts,
   YAxis,
@@ -88,7 +92,7 @@ function ScreenLoadSpans() {
             </Layout.HeaderContent>
           </Layout.Header>
           <Layout.Body>
-            <FeedbackWidget />
+            <FloatingFeedbackWidget />
             <Layout.Main fullWidth>
               <PageErrorAlert />
               <StarfishPageFiltersContainer>
@@ -114,8 +118,8 @@ function ScreenLoadSpans() {
                   <SampleContainerItem>
                     <ScreenLoadEventSamples
                       release={primaryRelease}
-                      sortKey="release1Samples"
-                      cursorName="release1Cursor"
+                      sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
+                      cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
                       transaction={transactionName}
                       showDeviceClassSelector
                     />
@@ -123,8 +127,8 @@ function ScreenLoadSpans() {
                   <SampleContainerItem>
                     <ScreenLoadEventSamples
                       release={secondaryRelease}
-                      sortKey="release2Samples"
-                      cursorName="release2Cursor"
+                      sortKey={MobileSortKeys.RELEASE_2_EVENT_SAMPLE_TABLE}
+                      cursorName={MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE}
                       transaction={transactionName}
                     />
                   </SampleContainerItem>

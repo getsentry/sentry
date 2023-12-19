@@ -3,6 +3,8 @@ import {Location} from 'history';
 import {Commit} from 'sentry-fixture/commit';
 import {CommitAuthor} from 'sentry-fixture/commitAuthor';
 import {Event as EventFixture} from 'sentry-fixture/event';
+import LocationFixture from 'sentry-fixture/locationFixture';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 import {SentryApp} from 'sentry-fixture/sentryApp';
 import {SentryAppComponent} from 'sentry-fixture/sentryAppComponent';
 
@@ -37,7 +39,7 @@ const makeDefaultMockData = (
     project: project ?? initializeOrg().project,
     group: TestStubs.Group(),
     router: TestStubs.router({
-      location: TestStubs.location({
+      location: LocationFixture({
         query: {
           environment: environments,
         },
@@ -381,7 +383,7 @@ describe('groupEventDetails', () => {
       })
     );
 
-    const routerContext = TestStubs.routerContext();
+    const routerContext = RouterContextFixture();
     render(<TestComponent group={group} event={transaction} />, {
       organization: props.organization,
       context: routerContext,
@@ -431,7 +433,7 @@ describe('groupEventDetails', () => {
       })
     );
 
-    const routerContext = TestStubs.routerContext();
+    const routerContext = RouterContextFixture();
     render(<TestComponent group={group} event={transaction} />, {
       organization: props.organization,
       context: routerContext,
@@ -582,7 +584,7 @@ describe('Platform Integrations', () => {
         props.event,
         mockedTrace(props.project)
       );
-      const routerContext = TestStubs.routerContext();
+      const routerContext = RouterContextFixture();
 
       render(<TestComponent group={props.group} event={props.event} />, {
         organization: props.organization,
@@ -608,7 +610,7 @@ describe('Platform Integrations', () => {
         ...trace,
         performance_issues: [],
       });
-      const routerContext = TestStubs.routerContext();
+      const routerContext = RouterContextFixture();
 
       render(<TestComponent group={props.group} event={props.event} />, {
         organization: props.organization,

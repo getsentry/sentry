@@ -2,7 +2,6 @@
 import {browserHistory, createRoutes, match} from 'react-router';
 import {ExtraErrorData} from '@sentry/integrations';
 import * as Sentry from '@sentry/react';
-import * as Spotlight from '@spotlightjs/spotlight';
 import {BrowserTracing} from '@sentry/react';
 import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
 import {Event} from '@sentry/types';
@@ -51,6 +50,9 @@ function getSentryIntegrations(routes?: Function) {
       // 6 is arbitrary, seems like a nice number
       depth: 6,
     }),
+
+    new Sentry.metrics.MetricsAggregator(),
+
     new BrowserTracing({
       ...(typeof routes === 'function'
         ? {
@@ -172,7 +174,9 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
 
   if (process.env.NODE_ENV !== 'production') {
     if (sentryConfig.environment === 'development') {
-      /* #__PURE__ */ Spotlight.init();
+      import('@spotlightjs/spotlight').then(Spotlight => {
+        /* #__PURE__ */ Spotlight.init();
+      });
     }
   }
 

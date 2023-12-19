@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
+import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -19,9 +19,7 @@ import {ModulePageProviders} from 'sentry/views/performance/database/modulePageP
 import {ThroughputChart} from 'sentry/views/performance/database/throughputChart';
 import {useSelectedDurationAggregate} from 'sentry/views/performance/database/useSelectedDurationAggregate';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
-import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
-import {useFullSpanFromTrace} from 'sentry/views/starfish/queries/useFullSpanFromTrace';
-import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
+import {DatabaseSpanDescription} from 'sentry/views/starfish/components/spanDescription';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {
@@ -62,14 +60,6 @@ function SpanSummaryPage({params}: Props) {
     'span.group': groupId,
   };
 
-  const {data: indexedSpans} = useIndexedSpans(
-    {'span.group': groupId},
-    [INDEXED_SPAN_SORT],
-    1
-  );
-
-  const indexedSpan = indexedSpans?.[0];
-
   if (endpoint) {
     filters.transaction = endpoint;
     filters['transaction.method'] = endpointMethod;
@@ -77,9 +67,7 @@ function SpanSummaryPage({params}: Props) {
 
   const sort = useModuleSort(QueryParameterNames.ENDPOINTS_SORT, DEFAULT_SORT);
 
-  const {data: fullSpan} = useFullSpanFromTrace(groupId, [INDEXED_SPAN_SORT]);
-
-  const {data: spanMetrics} = useSpanMetrics(
+  const {data} = useSpanMetrics(
     filters,
     [
       SpanMetricsField.SPAN_OP,
@@ -93,8 +81,13 @@ function SpanSummaryPage({params}: Props) {
       `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
       `${SpanFunction.HTTP_ERROR_COUNT}()`,
     ],
+    undefined,
+    undefined,
+    undefined,
     'api.starfish.span-summary-page-metrics'
   );
+
+  const spanMetrics = data[0] ?? {};
 
   const span = {
     ...spanMetrics,
@@ -151,7 +144,7 @@ function SpanSummaryPage({params}: Props) {
       </Layout.Header>
 
       <Layout.Body>
-        <FeedbackWidget />
+        <FloatingFeedbackWidget />
         <Layout.Main fullWidth>
           <HeaderContainer>
             <PaddedContainer>
@@ -164,17 +157,11 @@ function SpanSummaryPage({params}: Props) {
             <SpanMetricsRibbon spanMetrics={span} />
           </HeaderContainer>
 
-          {span?.[SpanMetricsField.SPAN_DESCRIPTION] && (
+          {groupId && (
             <DescriptionContainer>
-              <SpanDescription
-                span={{
-                  ...span,
-                  ...indexedSpan,
-                  ...fullSpan,
-                  [SpanMetricsField.SPAN_DESCRIPTION]:
-                    fullSpan?.description ??
-                    spanMetrics?.[SpanMetricsField.SPAN_DESCRIPTION],
-                }}
+              <DatabaseSpanDescription
+                groupId={groupId}
+                preliminaryDescription={spanMetrics?.['span.description']}
               />
             </DescriptionContainer>
           )}
@@ -220,11 +207,6 @@ function SpanSummaryPage({params}: Props) {
 const DEFAULT_SORT: Sort = {
   kind: 'desc',
   field: 'time_spent_percentage()',
-};
-
-const INDEXED_SPAN_SORT = {
-  field: 'span.self_time',
-  kind: 'desc' as const,
 };
 
 const PaddedContainer = styled('div')`

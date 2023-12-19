@@ -49,7 +49,6 @@ logger = logging.getLogger(__name__)
 def assigned_to_filter(
     actors: Sequence[User | Team | None], projects: Sequence[Project], field_filter: str = "id"
 ) -> Q:
-
     include_none = False
     types_to_actors = defaultdict(list)
     for actor in actors:
@@ -392,9 +391,7 @@ def _group_attributes_side_query(
             aggregate_kwargs,
         )
     except Exception:
-        logger.exception(
-            "failed to submit group-attributes search side-query to pool", exc_info=True
-        )
+        logger.exception("failed to submit group-attributes search side-query to pool")
 
 
 class Condition:
@@ -483,7 +480,6 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         actor: Optional[Any] = None,
         aggregate_kwargs: Optional[PrioritySortWeights] = None,
     ) -> CursorResult[Group]:
-
         search_filters = search_filters if search_filters is not None else []
         # ensure projects are from same org
         if len({p.organization_id for p in projects}) != 1:

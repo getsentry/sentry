@@ -11,12 +11,14 @@ import {space} from 'sentry/styles/space';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getDuration} from 'sentry/utils/formatters';
 import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/performance/browser/webVitals/utils/performanceScoreColors';
-import {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {
   scoreToStatus,
   STATUS_TEXT,
 } from 'sentry/views/performance/browser/webVitals/utils/scoreToStatus';
-import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
+import {
+  ProjectScore,
+  WebVitals,
+} from 'sentry/views/performance/browser/webVitals/utils/types';
 
 type Props = {
   onClick?: (webVital: WebVitals) => void;
@@ -65,10 +67,10 @@ export default function WebVitalMeters({
     <Container>
       <Flex>
         {webVitals.map(webVital => {
-          const webVitalExists = projectScore[`${webVital}Score`] !== null;
+          const webVitalExists = projectScore[`${webVital}Score`] !== undefined;
           const formattedMeterValueText = webVitalExists ? (
             WEB_VITALS_METERS_CONFIG[webVital].formatter(
-              projectData?.data?.[0]?.[`avg(measurements.${webVital})`] as number
+              projectData?.data?.[0]?.[`p75(measurements.${webVital})`] as number
             )
           ) : (
             <NoValue />
@@ -84,7 +86,7 @@ export default function WebVitalMeters({
                     title={
                       <span>
                         {tct(
-                          `The average [webVital] value and aggregate [webVital] score of your selected project(s).
+                          `The p75 [webVital] value and aggregate [webVital] score of your selected project(s).
                           Scores and values may share some (but not perfect) correlation.`,
                           {
                             webVital: toUpper(webVital),
@@ -177,8 +179,8 @@ const MeterValueText = styled('div')`
   text-align: center;
 `;
 
-function MeterBarFooter({score}: {score: number | null}) {
-  if (score === null) {
+function MeterBarFooter({score}: {score: number | undefined}) {
+  if (score === undefined) {
     return (
       <MeterBarFooterContainer status="none">{t('No Data')}</MeterBarFooterContainer>
     );

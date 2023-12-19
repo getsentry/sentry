@@ -19,6 +19,7 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins.issues import MAX_CHAR, IssueSyncMixin, ResolveSyncAction
+from sentry.issues.grouptype import GroupCategory
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration_external_project import IntegrationExternalProject
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -288,6 +289,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     def sync_metadata(self):
         client = self.get_client()
 
+        server_info = {}
+        projects = []
         try:
             server_info = client.get_server_info()
             projects = client.get_projects_list()
@@ -300,7 +303,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         # possible to query that with the API). So instead we just use the first
         # project Icon.
         if len(projects) > 0:
-            avatar = (projects[0]["avatarUrls"]["48x48"],)
+            avatar = projects[0]["avatarUrls"]["48x48"]
             self.model.metadata.update({"icon": avatar})
 
         self.model.save()
@@ -327,6 +330,24 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_persisted_ignored_fields(self):
         return self.org_integration.config.get(self.issues_ignored_fields_key, [])
 
+    def get_feedback_issue_body(self, event):
+        messages = [
+            evidence for evidence in event.occurrence.evidence_display if evidence.name == "message"
+        ]
+        others = [
+            evidence for evidence in event.occurrence.evidence_display if evidence.name != "message"
+        ]
+
+        body = ""
+        for message in messages:
+            body += message.value
+            body += "\n\n"
+
+        for evidence in sorted(others, key=attrgetter("important"), reverse=True):
+            body += f"| *{evidence.name}* | {evidence.value} |\n"
+
+        return body.rstrip("\n")  # remove the last new line
+
     def get_generic_issue_body(self, event):
         body = ""
         important = event.occurrence.important_evidence_display
@@ -338,15 +359,28 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         return body[:-2]  # chop off final newline
 
     def get_group_description(self, group, event, **kwargs):
-        output = [
-            "Sentry Issue: [{}|{}]".format(
-                group.qualified_short_id,
-                group.get_absolute_url(params={"referrer": "jira_integration"}),
-            )
-        ]
+        output = []
+        if group.issue_category == GroupCategory.FEEDBACK:
+            output = [
+                "Sentry Feedback: [{}|{}]\n".format(
+                    group.qualified_short_id,
+                    group.get_absolute_url(params={"referrer": "jira_integration"}),
+                )
+            ]
+        else:
+            output = [
+                "Sentry Issue: [{}|{}]".format(
+                    group.qualified_short_id,
+                    group.get_absolute_url(params={"referrer": "jira_integration"}),
+                )
+            ]
 
         if isinstance(event, GroupEvent) and event.occurrence is not None:
-            body = self.get_generic_issue_body(event)
+            body = ""
+            if group.issue_category == GroupCategory.FEEDBACK:
+                body = self.get_feedback_issue_body(event)
+            else:
+                body = self.get_generic_issue_body(event)
             output.extend([body])
         else:
             body = self.get_group_body(group, event)

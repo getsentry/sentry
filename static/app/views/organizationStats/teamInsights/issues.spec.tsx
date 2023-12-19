@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 import {Team} from 'sentry-fixture/team';
 import {TeamIssuesBreakdown} from 'sentry-fixture/teamIssuesBreakdown';
 import {TeamResolutionTime} from 'sentry-fixture/teamResolutionTime';
@@ -141,7 +142,7 @@ describe('TeamStatsIssues', () => {
       teams,
       projects,
     });
-    const context = TestStubs.routerContext([{organization}]);
+    const context = RouterContextFixture([{organization}]);
     TeamStore.loadInitialData(teams, false, null);
 
     return render(<TeamStatsIssues {...routerProps} />, {

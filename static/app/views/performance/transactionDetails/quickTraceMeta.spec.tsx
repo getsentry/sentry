@@ -1,4 +1,5 @@
 import {Event as EventFixture} from 'sentry-fixture/event';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
@@ -10,7 +11,7 @@ import {
 import QuickTraceMeta from 'sentry/views/performance/transactionDetails/quickTraceMeta';
 
 describe('QuickTraceMeta', function () {
-  const routerContext = TestStubs.routerContext();
+  const routerContext = RouterContextFixture();
   const location = routerContext.context.location;
   const project = TestStubs.Project({platform: 'javascript'});
   const event = EventFixture({contexts: {trace: {trace_id: 'a'.repeat(32)}}});

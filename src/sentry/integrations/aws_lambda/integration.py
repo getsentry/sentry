@@ -4,7 +4,9 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
+import sentry_sdk
 from botocore.exceptions import ClientError
+from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -26,9 +28,10 @@ from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, or
 from sentry.services.hybrid_cloud.project import project_service
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.silo import SiloMode
 from sentry.utils.sdk import capture_exception
 
-from .client import AwsLambdaProxyClient, ConfigurationError, gen_aws_client
+from .client import ConfigurationError, gen_aws_client
 from .utils import (
     ALL_AWS_REGIONS,
     disable_single_lambda,
@@ -86,15 +89,15 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
             region = self.metadata["region"]
             account_number = self.metadata["account_number"]
             aws_external_id = self.metadata["aws_external_id"]
-            self._client = AwsLambdaProxyClient(
-                org_integration_id=self.org_integration.id,
+            self._client = gen_aws_client(
                 account_number=account_number,
                 region=region,
                 aws_external_id=aws_external_id,
             )
+
         return self._client
 
-    def get_client(self) -> AwsLambdaProxyClient:
+    def get_client(self) -> Any:
         return self.client
 
     def get_one_lambda_function(self, name):
@@ -256,7 +259,7 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
 
 
 class AwsLambdaProjectSelectPipelineView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponseBase:
         # if we have the projectId, go to the next step
         if "projectId" in request.GET:
             pipeline.bind_state("project_id", request.GET["projectId"])
@@ -323,7 +326,9 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
             # now validate the arn works
             try:
                 gen_aws_client(account_number, region, aws_external_id)
-            except ClientError:
+            except ClientError as e:
+                if SiloMode.get_current_mode() != SiloMode.MONOLITH:
+                    sentry_sdk.capture_exception(e)
                 return render_response(
                     _("Please validate the Cloudformation stack was created successfully")
                 )
@@ -331,6 +336,8 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
                 # if we have a configuration error, we should blow up the pipeline
                 raise
             except Exception as e:
+                if SiloMode.get_current_mode() != SiloMode.MONOLITH:
+                    sentry_sdk.capture_exception(e)
                 logger.exception(
                     "AwsLambdaCloudFormationPipelineView.unexpected_error",
                     extra={"error": str(e)},
@@ -344,7 +351,7 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
 
 
 class AwsLambdaListFunctionsPipelineView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponseBase:
         if request.method == "POST":
             raw_data = request.POST
             data = {}
@@ -372,7 +379,7 @@ class AwsLambdaListFunctionsPipelineView(PipelineView):
 
 
 class AwsLambdaSetupLayerPipelineView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponseBase:
         if "finish_pipeline" in request.GET:
             return pipeline.finish_pipeline()
 

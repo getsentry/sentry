@@ -611,13 +611,16 @@ if (
       },
     };
     appConfig.output!.publicPath = '/_static/dist/sentry/';
-
-    appConfig.plugins?.push(
-      new WebpackHookPlugin({
-        onBuildStart: ['yarn run spotlight-sidecar'],
-      })
-    );
   }
+}
+
+// We want Spotlight only in Dev mode - Local and UI only
+if (DEV_MODE) {
+  appConfig.plugins?.push(
+    new WebpackHookPlugin({
+      onBuildStart: ['yarn run spotlight-sidecar'],
+    })
+  );
 }
 
 // XXX(epurkhiser): Sentry (development) can be run in an experimental

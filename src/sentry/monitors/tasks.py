@@ -12,6 +12,7 @@ from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_confi
 from confluent_kafka.admin import AdminClient, PartitionMetadata
 from django.conf import settings
 
+from sentry.constants import ObjectStatus
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.schedule import get_prev_schedule
 from sentry.monitors.types import ClockPulseMessage
@@ -25,14 +26,7 @@ from sentry.utils.kafka_config import (
     get_topic_definition,
 )
 
-from .models import (
-    CheckInStatus,
-    MonitorCheckIn,
-    MonitorEnvironment,
-    MonitorObjectStatus,
-    MonitorStatus,
-    MonitorType,
-)
+from .models import CheckInStatus, MonitorCheckIn, MonitorEnvironment, MonitorStatus, MonitorType
 
 logger = logging.getLogger("sentry")
 
@@ -146,7 +140,7 @@ def try_monitor_tasks_trigger(ts: datetime, partition: int):
     # The scenario where the slowest_part_ts is older may happen when our
     # MONITOR_TASKS_PARTITION_CLOCKS set did not know about every partition the
     # topic is responsible for. Older check-ins may be processed after newer
-    # ones in diferent topics. This should only happen if redis loses state.
+    # ones in different topics. This should only happen if redis loses state.
     if precheck_last_ts is not None and precheck_last_ts >= slowest_part_ts:
         return
 
@@ -244,10 +238,13 @@ def check_missing(current_datetime: datetime):
         )
         .exclude(
             monitor__status__in=[
-                MonitorObjectStatus.DISABLED,
-                MonitorObjectStatus.PENDING_DELETION,
-                MonitorObjectStatus.DELETION_IN_PROGRESS,
-            ]
+                ObjectStatus.DISABLED,
+                ObjectStatus.PENDING_DELETION,
+                ObjectStatus.DELETION_IN_PROGRESS,
+            ],
+        )
+        .exclude(
+            monitor__is_muted=True,  # Temporary test until we can move out of celery or reduce load
         )[:MONITOR_LIMIT]
     )
 
@@ -292,7 +289,7 @@ def mark_environment_missing(monitor_environment_id: int, ts: datetime):
     # happen. This takes advantage of the fact that the current reference time
     # will always be at least a minute after the last expected check-in.
     #
-    # Typically `expected_time` and this calculate time should be the same, but
+    # Typically `expected_time` and this calculated time should be the same, but
     # there are cases where it may not be:
     #
     #  1. We are guarding against a task having not run for every minute.

@@ -22,7 +22,6 @@ from .doc_integration_avatar import *  # noqa: F401,F403
 from .environment import *  # noqa: F401,F403
 from .event import *  # noqa: F401,F403
 from .eventattachment import *  # noqa: F401,F403
-from .eventuser import *  # noqa: F401,F403
 from .exporteddata import *  # noqa: F401,F403
 from .external_actor import *  # noqa: F401,F403
 from .filechange import *  # noqa: F401,F403
@@ -66,6 +65,7 @@ from .relayusage import *  # noqa: F401,F403
 from .release import *  # noqa: F401,F403
 from .release_file import *  # noqa: F401,F403
 from .release_threshold import *  # noqa: F401,F403
+from .relocation import *  # noqa: F401,F403
 from .repository import *  # noqa: F401,F403
 from .repository_project_path_config import *  # noqa: F401,F403
 from .role import *  # noqa: F401,F403

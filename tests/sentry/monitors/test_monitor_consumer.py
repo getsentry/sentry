@@ -10,6 +10,7 @@ from django.conf import settings
 from django.test.utils import override_settings
 
 from sentry import killswitches
+from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.monitors.constants import TIMEOUT
 from sentry.monitors.consumers.monitor_consumer import StoreMonitorCheckInStrategyFactory
@@ -18,7 +19,6 @@ from sentry.monitors.models import (
     Monitor,
     MonitorCheckIn,
     MonitorEnvironment,
-    MonitorObjectStatus,
     MonitorStatus,
     MonitorType,
     ScheduleType,
@@ -178,8 +178,8 @@ class MonitorConsumerTest(TestCase):
             checkin.date_added
         )
 
-    def test_disabled(self):
-        monitor = self._create_monitor(status=MonitorObjectStatus.DISABLED)
+    def test_muted(self):
+        monitor = self._create_monitor(is_muted=True)
         self.send_checkin(monitor.slug, status="error")
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
@@ -187,8 +187,8 @@ class MonitorConsumerTest(TestCase):
 
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
 
-        # The created monitor environment is in line with the check-in, but the parent monitor
-        # is disabled
+        # The created monitor environment is in line with the check-in, but the
+        # parent monitor is muted
         assert monitor_environment.status == MonitorStatus.ERROR
         assert monitor_environment.last_checkin == checkin.date_added
         assert monitor_environment.next_checkin == monitor.get_next_expected_checkin(
@@ -564,6 +564,13 @@ class MonitorConsumerTest(TestCase):
 
         monitor_environments = MonitorEnvironment.objects.filter(monitor=monitor)
         assert len(monitor_environments) == 0
+
+    def test_monitor_disabled(self):
+        monitor = self._create_monitor(status=ObjectStatus.DISABLED, slug="my-monitor")
+        self.send_checkin("my-monitor")
+
+        checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
+        assert len(checkins) == 0
 
     def test_organization_killswitch(self):
         monitor = self._create_monitor(slug="my-monitor")

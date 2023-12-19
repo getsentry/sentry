@@ -62,7 +62,7 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
                         f"Regions list is empty for {self.provider}.request_parser."
                     )
                 )
-            logger.info(f"{self.provider}.no_regions", extra={"path": self.request.path})
+            logger.info("%s.no_regions", self.provider, extra={"path": self.request.path})
             return self.get_response_from_control_silo()
 
         return self.get_response_from_outbox_creation(regions=regions)

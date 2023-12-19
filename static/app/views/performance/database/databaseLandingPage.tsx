@@ -1,10 +1,11 @@
 import React, {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import pickBy from 'lodash/pickBy';
 
 import Alert from 'sentry/components/alert';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
+import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -13,6 +14,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {fromSorts} from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -21,18 +23,17 @@ import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/u
 import {DurationChart} from 'sentry/views/performance/database/durationChart';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 import {NoDataMessage} from 'sentry/views/performance/database/noDataMessage';
+import {isAValidSort, QueriesTable} from 'sentry/views/performance/database/queriesTable';
 import {ThroughputChart} from 'sentry/views/performance/database/throughputChart';
 import {useSelectedDurationAggregate} from 'sentry/views/performance/database/useSelectedDurationAggregate';
 import Onboarding from 'sentry/views/performance/onboarding';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {ActionSelector} from 'sentry/views/starfish/views/spans/selectors/actionSelector';
 import {DomainSelector} from 'sentry/views/starfish/views/spans/selectors/domainSelector';
-import SpansTable from 'sentry/views/starfish/views/spans/spansTable';
-import {useModuleFilters} from 'sentry/views/starfish/views/spans/useModuleFilters';
-import {useModuleSort} from 'sentry/views/starfish/views/spans/useModuleSort';
 
 export function DatabaseLandingPage() {
   const organization = useOrganization();
@@ -42,8 +43,15 @@ export function DatabaseLandingPage() {
 
   const [selectedAggregate] = useSelectedDurationAggregate();
   const spanDescription = decodeScalar(location.query?.['span.description'], '');
-  const moduleFilters = useModuleFilters();
-  const sort = useModuleSort(QueryParameterNames.SPANS_SORT);
+  const spanAction = decodeScalar(location.query?.['span.action']);
+  const spanDomain = decodeScalar(location.query?.['span.domain']);
+
+  const sortField = decodeScalar(location.query?.[QueryParameterNames.SPANS_SORT]);
+
+  let sort = fromSorts(sortField).filter(isAValidSort)[0];
+  if (!sort) {
+    sort = DEFAULT_SORT;
+  }
 
   const handleSearch = (newQuery: string) => {
     browserHistory.push({
@@ -56,21 +64,58 @@ export function DatabaseLandingPage() {
     });
   };
 
-  const filters = {
+  const chartFilters = {
     'span.module': ModuleName.DB,
   };
 
+  const tableFilters = {
+    'span.module': ModuleName.DB,
+    'span.action': spanAction,
+    'span.domain': spanDomain,
+    'span.description': spanDescription ? `*${spanDescription}*` : undefined,
+    has: 'span.description',
+  };
+
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
+
+  const queryListResponse = useSpanMetrics(
+    pickBy(tableFilters, value => value !== undefined),
+    [
+      'project.id',
+      'span.group',
+      'span.description',
+      'spm()',
+      'avg(span.self_time)',
+      'sum(span.self_time)',
+      'time_spent_percentage()',
+    ],
+    [sort],
+    LIMIT,
+    cursor,
+    'api.starfish.use-span-list'
+  );
+
   const {isLoading: isThroughputDataLoading, data: throughputData} = useSpanMetricsSeries(
-    filters,
+    chartFilters,
     ['spm()'],
     'api.starfish.span-landing-page-metrics-chart'
   );
 
   const {isLoading: isDurationDataLoading, data: durationData} = useSpanMetricsSeries(
-    filters,
+    chartFilters,
     [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
     'api.starfish.span-landing-page-metrics-chart'
   );
+
+  const isCriticalDataLoading =
+    isThroughputDataLoading || isDurationDataLoading || queryListResponse.isLoading;
+
+  const isAnyCriticalDataAvailable =
+    (queryListResponse.data ?? []).length > 0 ||
+    durationData[`${selectedAggregate}(span.self_time)`].data?.some(
+      ({value}) => value > 0
+    ) ||
+    throughputData['spm()'].data?.some(({value}) => value > 0);
 
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
 
@@ -97,8 +142,13 @@ export function DatabaseLandingPage() {
 
       <Layout.Body>
         <Layout.Main fullWidth>
-          {!onboardingProject && <NoDataMessage Wrapper={AlertBanner} />}
-          <FeedbackWidget />
+          {!onboardingProject && !isCriticalDataLoading && (
+            <NoDataMessage
+              Wrapper={AlertBanner}
+              isDataAvailable={isAnyCriticalDataAvailable}
+            />
+          )}
+          <FloatingFeedbackWidget />
           <PaddedContainer>
             <PageFilterBar condensed>
               <ProjectPageFilter />
@@ -123,15 +173,9 @@ export function DatabaseLandingPage() {
                 />
               </ChartContainer>
               <FilterOptionsContainer>
-                <ActionSelector
-                  moduleName={moduleName}
-                  value={moduleFilters[SpanMetricsField.SPAN_ACTION] || ''}
-                />
+                <ActionSelector moduleName={moduleName} value={spanAction ?? ''} />
 
-                <DomainSelector
-                  moduleName={moduleName}
-                  value={moduleFilters[SpanMetricsField.SPAN_DOMAIN] || ''}
-                />
+                <DomainSelector moduleName={moduleName} value={spanDomain ?? ''} />
               </FilterOptionsContainer>
               <SearchBarContainer>
                 <SearchBar
@@ -140,7 +184,8 @@ export function DatabaseLandingPage() {
                   onSearch={handleSearch}
                 />
               </SearchBarContainer>
-              <SpansTable moduleName={moduleName} sort={sort} limit={LIMIT} />
+
+              <QueriesTable response={queryListResponse} sort={sort} />
             </Fragment>
           )}
         </Layout.Main>
@@ -148,6 +193,11 @@ export function DatabaseLandingPage() {
     </React.Fragment>
   );
 }
+
+const DEFAULT_SORT = {
+  field: 'time_spent_percentage()' as const,
+  kind: 'desc' as const,
+};
 
 const PaddedContainer = styled('div')`
   margin-bottom: ${space(2)};

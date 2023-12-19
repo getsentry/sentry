@@ -40,6 +40,8 @@ export function TimelineTableRow({
   onDeleteEnvironment,
   ...timelineProps
 }: Props) {
+  const organization = useOrganization();
+
   const [isExpanded, setExpanded] = useState(
     monitor.environments.length <= MAX_SHOWN_ENVIRONMENTS
   );
@@ -53,8 +55,7 @@ export function TimelineTableRow({
       {!singleMonitorView && <MonitorDetails monitor={monitor} />}
       <MonitorEnvContainer>
         {environments.map(({name, status}) => {
-          const envStatus =
-            monitor.status === MonitorStatus.DISABLED ? MonitorStatus.DISABLED : status;
+          const envStatus = monitor.isMuted ? MonitorStatus.DISABLED : status;
           const {label, icon} = statusIconColorMap[envStatus];
           return (
             <EnvWithStatus key={name}>
@@ -65,11 +66,16 @@ export function TimelineTableRow({
                     <EnvActionButton
                       {...triggerProps}
                       aria-label={t('Monitor environment actions')}
-                      size="zero"
-                      icon={<IconEllipsis size="sm" />}
+                      size="xs"
+                      icon={<IconEllipsis />}
                     />
                   )}
                   items={[
+                    {
+                      label: t('View Environment'),
+                      key: 'view',
+                      to: `/organizations/${organization.slug}/crons/${monitor.slug}/?environment=${name}`,
+                    },
                     {
                       label: t('Delete Environment'),
                       key: 'delete',

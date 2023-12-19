@@ -1,5 +1,7 @@
 import {Organization} from 'sentry-fixture/organization';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 import {Team} from 'sentry-fixture/team';
+import {User} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -10,7 +12,7 @@ describe('Access', function () {
   const organization = Organization({
     access: ['project:write', 'project:read'],
   });
-  const routerContext = TestStubs.routerContext([{organization}]);
+  const routerContext = RouterContextFixture([{organization}]);
 
   describe('as render prop', function () {
     const childrenMock = jest.fn().mockReturnValue(null);
@@ -45,7 +47,7 @@ describe('Access', function () {
 
     it('read access from team', function () {
       const org = Organization({access: []});
-      const nextRouterContext = TestStubs.routerContext([{organization: org}]);
+      const nextRouterContext = RouterContextFixture([{organization: org}]);
 
       const team1 = Team({access: []});
       render(
@@ -82,7 +84,7 @@ describe('Access', function () {
 
     it('read access from project', function () {
       const org = Organization({access: []});
-      const nextRouterContext = TestStubs.routerContext([{organization: org}]);
+      const nextRouterContext = RouterContextFixture([{organization: org}]);
 
       const proj1 = TestStubs.Project({access: []});
       render(
@@ -145,7 +147,7 @@ describe('Access', function () {
 
     it('is superuser', function () {
       ConfigStore.config = TestStubs.Config({
-        user: TestStubs.User({isSuperuser: true}),
+        user: User({isSuperuser: true}),
       });
 
       render(<Access isSuperuser>{childrenMock}</Access>, {
@@ -161,7 +163,7 @@ describe('Access', function () {
 
     it('is not superuser', function () {
       ConfigStore.config = TestStubs.Config({
-        user: TestStubs.User({isSuperuser: false}),
+        user: User({isSuperuser: false}),
       });
 
       render(<Access isSuperuser>{childrenMock}</Access>, {
@@ -201,7 +203,7 @@ describe('Access', function () {
 
     it('has superuser', function () {
       ConfigStore.config = TestStubs.Config({
-        user: TestStubs.User({isSuperuser: true}),
+        user: User({isSuperuser: true}),
       });
 
       render(
@@ -216,7 +218,7 @@ describe('Access', function () {
 
     it('has no superuser', function () {
       ConfigStore.config = TestStubs.Config({
-        user: TestStubs.User({isSuperuser: false}),
+        user: User({isSuperuser: false}),
       });
 
       render(

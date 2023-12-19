@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
-import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {GithubFeedbackButton} from 'sentry/components/githubFeedbackButton';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -16,21 +16,20 @@ import SplitPanel, {BaseSplitDivider, DividerProps} from 'sentry/components/spli
 import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import useOrganization from 'sentry/utils/useOrganization';
 import {MetricScratchpad} from 'sentry/views/ddm/scratchpad';
 import {ScratchpadSelector} from 'sentry/views/ddm/scratchpadSelector';
-import {TraceTable} from 'sentry/views/ddm/traceTable';
 import {TrayContent} from 'sentry/views/ddm/trayContent';
 
-function MainContent({showTraceTable}: {showTraceTable?: boolean}) {
+const SIZE_LOCAL_STORAGE_KEY = 'ddm-split-size';
+
+function MainContent() {
   return (
     <Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
           <Layout.Title>
-            {t('DDM')}
+            {t('Metrics')}
             <PageHeadingQuestionTooltip
               docsUrl="https://develop.sentry.dev/delightful-developer-metrics/"
               title={t('Delightful Developer Metrics.')}
@@ -40,6 +39,7 @@ function MainContent({showTraceTable}: {showTraceTable?: boolean}) {
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
+            <FeedbackWidgetButton />
             <GithubFeedbackButton
               href="https://github.com/getsentry/sentry/discussions/58584"
               label={t('Discussion')}
@@ -49,7 +49,6 @@ function MainContent({showTraceTable}: {showTraceTable?: boolean}) {
         </Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>
-        <FeedbackWidget />
         <Layout.Main fullWidth>
           <PaddedContainer>
             <PageFilterBar condensed>
@@ -61,27 +60,15 @@ function MainContent({showTraceTable}: {showTraceTable?: boolean}) {
           </PaddedContainer>
           <MetricScratchpad />
         </Layout.Main>
-        {showTraceTable && <TraceTable />}
       </Layout.Body>
     </Fragment>
   );
 }
 
 export const DDMLayout = memo(() => {
-  const organization = useOrganization();
-  const hasNewLayout = hasDDMExperimentalFeature(organization);
-
   const measureRef = useRef<HTMLDivElement>(null);
   const {height} = useDimensions({elementRef: measureRef});
   const hasSize = height > 0;
-
-  if (!hasNewLayout) {
-    return (
-      <Layout.Page>
-        <MainContent showTraceTable />
-      </Layout.Page>
-    );
-  }
 
   return (
     <FullViewport ref={measureRef}>
@@ -95,6 +82,7 @@ export const DDMLayout = memo(() => {
         <SplitPanel
           availableSize={height}
           SplitDivider={SplitDivider}
+          sizeStorageKey={SIZE_LOCAL_STORAGE_KEY}
           top={{
             content: (
               <ScrollingPage>
@@ -125,10 +113,8 @@ const ScrollingPage = styled(Layout.Page)`
 
 const PaddedContainer = styled('div')`
   margin-bottom: ${space(2)};
-  display: grid;
-  grid-template: 1fr / 1fr max-content;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
   gap: ${space(1)};
-  @media (max-width: ${props => props.theme.breakpoints.small}) {
-    grid-template: 1fr 1fr / 1fr;
-  }
 `;

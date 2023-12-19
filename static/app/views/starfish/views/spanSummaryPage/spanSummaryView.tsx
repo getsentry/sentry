@@ -10,7 +10,6 @@ import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/char
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
 import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
-import {useFullSpanFromTrace} from 'sentry/views/starfish/queries/useFullSpanFromTrace';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {
@@ -42,8 +41,6 @@ export function SpanSummaryView({groupId}: Props) {
   const location = useLocation<Query>();
   const {endpoint, endpointMethod} = location.query;
 
-  const {data: fullSpan} = useFullSpanFromTrace(groupId);
-
   const filters: SpanMetricsQueryFilters = {
     'span.group': groupId,
   };
@@ -53,7 +50,7 @@ export function SpanSummaryView({groupId}: Props) {
     filters['transaction.method'] = endpointMethod;
   }
 
-  const {data: spanMetrics} = useSpanMetrics(
+  const {data} = useSpanMetrics(
     filters,
     [
       SpanMetricsField.SPAN_OP,
@@ -67,8 +64,13 @@ export function SpanSummaryView({groupId}: Props) {
       `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
       `${SpanFunction.HTTP_ERROR_COUNT}()`,
     ],
+    undefined,
+    undefined,
+    undefined,
     'api.starfish.span-summary-page-metrics'
   );
+
+  const spanMetrics = data[0] ?? {};
 
   const seriesQueryFilter: SpanMetricsQueryFilters = endpoint
     ? {
@@ -117,11 +119,9 @@ export function SpanSummaryView({groupId}: Props) {
       {span?.[SpanMetricsField.SPAN_DESCRIPTION] && (
         <DescriptionContainer>
           <SpanDescription
-            span={{
-              ...span,
-              [SpanMetricsField.SPAN_DESCRIPTION]:
-                fullSpan?.description ?? spanMetrics?.[SpanMetricsField.SPAN_DESCRIPTION],
-            }}
+            groupId={groupId}
+            op={spanMetrics[SpanMetricsField.SPAN_OP]}
+            preliminaryDescription={spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]}
           />
         </DescriptionContainer>
       )}
@@ -133,7 +133,6 @@ export function SpanSummaryView({groupId}: Props) {
               height={CHART_HEIGHT}
               data={[spanMetricsThroughputSeries]}
               loading={areSpanMetricsSeriesLoading}
-              utc={false}
               chartColors={[THROUGHPUT_COLOR]}
               isLineChart
               definedAxisTicks={4}
@@ -152,7 +151,6 @@ export function SpanSummaryView({groupId}: Props) {
               height={CHART_HEIGHT}
               data={[spanMetricsSeriesData?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]]}
               loading={areSpanMetricsSeriesLoading}
-              utc={false}
               chartColors={[AVG_COLOR]}
               isLineChart
               definedAxisTicks={4}
@@ -167,7 +165,6 @@ export function SpanSummaryView({groupId}: Props) {
                 height={CHART_HEIGHT}
                 data={[spanMetricsSeriesData?.[`http_error_count()`]]}
                 loading={areSpanMetricsSeriesLoading}
-                utc={false}
                 chartColors={[ERRORS_COLOR]}
                 isLineChart
                 definedAxisTicks={4}

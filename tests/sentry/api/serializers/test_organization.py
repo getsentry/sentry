@@ -75,7 +75,6 @@ class OrganizationSerializerTest(TestCase):
             "discover-query",
             "derive-code-mappings",
             "event-attachments",
-            "eventuser-from-snuba",
             "integrations-alert-rule",
             "integrations-chat-unfurl",
             "integrations-deployment",

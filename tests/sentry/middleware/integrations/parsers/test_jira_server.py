@@ -9,7 +9,6 @@ from django.urls import reverse
 from sentry.middleware.integrations.parsers.jira_server import JiraServerRequestParser
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.outbox import WebhookProviderIdentifier
-from sentry.services.hybrid_cloud.organization_mapping.service import organization_mapping_service
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import assert_webhook_outboxes
@@ -33,7 +32,6 @@ class JiraServerRequestParserTest(TestCase):
         self.integration = self.create_integration(
             organization=self.organization, external_id="jira_server:1", provider="jira_server"
         )
-        organization_mapping_service
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_routing_endpoint_no_integration(self):

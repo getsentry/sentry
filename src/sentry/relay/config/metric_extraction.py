@@ -144,7 +144,9 @@ def _get_alert_metric_specs(
                 tags={"prefilling": prefilling, "dataset": alert_snuba_query.dataset},
             )
 
-            if result := _convert_snuba_query_to_metric(project, alert_snuba_query, prefilling):
+            if result := _convert_snuba_query_to_metric(
+                project, alert_snuba_query, prefilling, use_updated_env_logic=True
+            ):
                 _log_on_demand_metric_spec(
                     project_id=project.id,
                     spec_for="alert",
@@ -159,6 +161,28 @@ def _get_alert_metric_specs(
                     tags={"prefilling": prefilling},
                 )
                 specs.append(result)
+
+            # In case the query has an environment, we want to extract with the old environment logic, since we found
+            # a bug in the old logic and this requires us to extract the same metric in parallel but with a different
+            # query hash.
+            if alert_snuba_query.environment_id is not None:
+                if result := _convert_snuba_query_to_metric(
+                    project, alert_snuba_query, prefilling, use_updated_env_logic=False
+                ):
+                    _log_on_demand_metric_spec(
+                        project_id=project.id,
+                        spec_for="alert",
+                        spec=result,
+                        id=alert.id,
+                        field=alert_snuba_query.aggregate,
+                        query=alert_snuba_query.query,
+                        prefilling=prefilling,
+                    )
+                    metrics.incr(
+                        "on_demand_metrics.on_demand_spec.for_alert",
+                        tags={"prefilling": prefilling},
+                    )
+                    specs.append(result)
 
     max_alert_specs = options.get("on_demand.max_alert_specs") or _MAX_ON_DEMAND_ALERTS
     if len(specs) > max_alert_specs:
@@ -187,17 +211,29 @@ def _get_widget_metric_specs(
     widget_queries = DashboardWidgetQuery.objects.filter(
         widget__dashboard__organization=project.organization,
         widget__widget_type=DashboardWidgetTypes.DISCOVER,
-    )
+    ).prefetch_related("dashboardwidgetqueryondemand_set")
 
     metrics.incr(
         "on_demand_metrics.widgets_to_process", amount=len(widget_queries), sample_rate=1.0
     )
 
-    specs = []
+    specs: List[HashedMetricSpec] = []
     with metrics.timer("on_demand_metrics.widget_spec_convert"):
         for widget in widget_queries:
-            for result in _convert_widget_query_to_metric(project, widget, prefilling):
-                specs.append(result)
+            widget_specs = convert_widget_query_to_metric(project, widget, prefilling)
+            specs.extend(widget_specs)
+
+            can_widget_use_stateful_extraction = _can_widget_use_stateful_extraction(
+                widget, widget_specs
+            )
+            if options.get("on_demand_metrics.widgets.use_stateful_extraction"):
+                if not can_widget_use_stateful_extraction:
+                    return []
+
+            # TODO: Remove this cardinality check after above option is enabled permanently.
+            if widget_specs and not _is_widget_query_low_cardinality(widget, project):
+                # High cardinality widgets don't have metrics specs created
+                return []
 
     max_widget_specs = options.get("on_demand.max_widget_specs") or _MAX_ON_DEMAND_WIDGETS
     if len(specs) > max_widget_specs:
@@ -232,7 +268,7 @@ def _merge_metric_specs(
 
 
 def _convert_snuba_query_to_metric(
-    project: Project, snuba_query: SnubaQuery, prefilling: bool
+    project: Project, snuba_query: SnubaQuery, prefilling: bool, use_updated_env_logic: bool
 ) -> Optional[HashedMetricSpec]:
     """
     If the passed snuba_query is a valid query for on-demand metric extraction,
@@ -246,10 +282,11 @@ def _convert_snuba_query_to_metric(
         snuba_query.query,
         environment,
         prefilling,
+        use_updated_env_logic=use_updated_env_logic,
     )
 
 
-def _convert_widget_query_to_metric(
+def convert_widget_query_to_metric(
     project: Project, widget_query: DashboardWidgetQuery, prefilling: bool
 ) -> Sequence[HashedMetricSpec]:
     """
@@ -261,9 +298,9 @@ def _convert_widget_query_to_metric(
     if not widget_query.aggregates:
         return metrics_specs
 
-    if not _is_widget_query_low_cardinality(widget_query, project):
-        # High cardinality widgets don't have metrics specs created
-        return metrics_specs
+    if "event.type:error" in widget_query.conditions:
+        # Error widgets don't get on-demand extracted.
+        return []
 
     for aggregate in widget_query.aggregates:
         metrics.incr(
@@ -298,6 +335,37 @@ def _convert_widget_query_to_metric(
             metrics_specs.append(result)
 
     return metrics_specs
+
+
+def _can_widget_use_stateful_extraction(
+    widget_query: DashboardWidgetQuery, metrics_specs: Sequence[HashedMetricSpec]
+):
+    if not metrics_specs:
+        return False
+    spec_hashes = [hashed_spec[0] for hashed_spec in metrics_specs]
+    on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.all()
+
+    if len(on_demand_entries) != 1:
+        # There should only be one on demand entry
+        sentry_sdk.capture_message(
+            f"Wrong number of relations ({len(on_demand_entries)}) for widget_query: {widget_query.id}"
+        )
+        metrics.incr("on_demand_metrics.on_demand_spec.failed_on_demand_relations", sample_rate=1.0)
+        return False
+
+    on_demand_entry = on_demand_entries[0]
+    on_demand_hashes = on_demand_entry.spec_hashes
+
+    if set(spec_hashes) != set(on_demand_hashes):
+        # Spec hashes should match. TODO:This can be removed after the existing cardinality check in this task is removed.
+        with sentry_sdk.push_scope() as scope:
+            scope.set_extra("spec_hashes", spec_hashes)
+            scope.set_extra("on_demand_hashes", on_demand_hashes)
+            sentry_sdk.capture_message(f"Hashes don't match for widget_query: {widget_query.id}")
+        metrics.incr("on_demand_metrics.on_demand_spec.failed_on_demand_hashes", sample_rate=1.0)
+        return False
+
+    return True
 
 
 def _get_widget_cardinality_query_ttl():
@@ -340,7 +408,6 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
 
     # No columns or only errors means no high-cardinality tags.
     if not widget_query.columns or "event.type:error" in widget_query.conditions:
-
         metrics.incr("on_demand_metrics.cardinality_check.not_applicable")
         return True
 
@@ -430,6 +497,7 @@ def _convert_aggregate_and_query_to_metric(
     prefilling: bool,
     spec_type: MetricSpecType = MetricSpecType.SIMPLE_QUERY,
     groupbys: Optional[Sequence[str]] = None,
+    use_updated_env_logic: bool = False,
 ) -> Optional[HashedMetricSpec]:
     """
     Converts an aggregate and a query to a metric spec with its hash value.
@@ -447,6 +515,7 @@ def _convert_aggregate_and_query_to_metric(
             environment=environment,
             groupbys=groupbys,
             spec_type=spec_type,
+            use_updated_env_logic=use_updated_env_logic,
         )
 
         metric_spec = on_demand_spec.to_metric_spec(project)
@@ -466,9 +535,8 @@ def _convert_aggregate_and_query_to_metric(
             "on_demand_metrics.invalid_metric_spec",
             tags={"prefilling": prefilling},
         )
-        logger.error(
+        logger.exception(
             "Invalid on-demand metric spec",
-            exc_info=True,
             extra={
                 "dataset": dataset,
                 "aggregate": aggregate,
@@ -482,7 +550,7 @@ def _convert_aggregate_and_query_to_metric(
         # Since prefilling might include several non-ondemand-compatible alerts, we want to not trigger errors in the
         # Sentry console.
         if not prefilling:
-            logger.error(e, exc_info=True)
+            logger.exception(str(e))
 
         return None
 

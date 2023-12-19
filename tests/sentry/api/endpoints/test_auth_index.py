@@ -2,8 +2,6 @@ from datetime import datetime, timedelta, timezone
 from unittest import mock
 from urllib.parse import urlencode
 
-from django.test import override_settings
-
 from sentry.models.authenticator import Authenticator
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
@@ -212,9 +210,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
             AuthIdentity.objects.create(user=user, auth_provider=org_provider)
 
-            with mock.patch.object(Superuser, "org_id", self.organization.id), override_settings(
-                SUPERUSER_ORG_ID=self.organization.id
-            ):
+            with mock.patch.object(Superuser, "org_id", self.organization.id):
                 with self.settings(SENTRY_SELF_HOSTED=False):
                     self.login_as(user, organization_id=self.organization.id)
                     response = self.client.put(
@@ -251,9 +247,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
             AuthIdentity.objects.create(user=user, auth_provider=org_provider)
 
-            with mock.patch.object(Superuser, "org_id", self.organization.id), override_settings(
-                SUPERUSER_ORG_ID=self.organization.id
-            ):
+            with mock.patch.object(Superuser, "org_id", self.organization.id):
                 with self.settings(SENTRY_SELF_HOSTED=False):
                     self.login_as(user, organization_id=self.organization.id)
 
@@ -309,9 +303,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
             AuthIdentity.objects.create(user=user, auth_provider=org_provider)
 
-            with mock.patch.object(Superuser, "org_id", self.organization.id), override_settings(
-                SUPERUSER_ORG_ID=self.organization.id
-            ):
+            with mock.patch.object(Superuser, "org_id", self.organization.id):
                 with self.settings(SENTRY_SELF_HOSTED=False):
                     self.login_as(user, organization_id=self.organization.id)
 
@@ -365,9 +357,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
             AuthIdentity.objects.create(user=user, auth_provider=org_provider)
 
-            with mock.patch.object(Superuser, "org_id", self.organization.id), override_settings(
-                SUPERUSER_ORG_ID=self.organization.id
-            ):
+            with mock.patch.object(Superuser, "org_id", self.organization.id):
                 with self.settings(SENTRY_SELF_HOSTED=False):
                     self.login_as(user, organization_id=self.organization.id)
                     response = self.client.put(
@@ -398,9 +388,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
             AuthIdentity.objects.create(user=user, auth_provider=org_provider)
 
-            with mock.patch.object(Superuser, "org_id", self.organization.id), override_settings(
-                SUPERUSER_ORG_ID=self.organization.id
-            ):
+            with mock.patch.object(Superuser, "org_id", self.organization.id):
                 with self.settings(SENTRY_SELF_HOSTED=False):
                     self.login_as(user, organization_id=self.organization.id)
                     response = self.client.put(
@@ -431,9 +419,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
             self.get_auth(user)
 
-            with mock.patch.object(Superuser, "org_id", self.organization.id), override_settings(
-                SUPERUSER_ORG_ID=self.organization.id
-            ):
+            with mock.patch.object(Superuser, "org_id", self.organization.id):
                 self.login_as(user)
                 response = self.client.put(
                     self.path,
@@ -454,7 +440,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
         user = self.create_user("foo@example.com", is_superuser=True)
 
-        with mock.patch.object(Superuser, "org_id", None), override_settings(SUPERUSER_ORG_ID=None):
+        with mock.patch.object(Superuser, "org_id", None):
             with self.settings(SENTRY_SELF_HOSTED=True):
                 self.login_as(user)
                 response = self.client.put(
@@ -474,7 +460,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
         user = self.create_user("foo@example.com", is_superuser=True)
 
-        with mock.patch.object(Superuser, "org_id", None), override_settings(SUPERUSER_ORG_ID=None):
+        with mock.patch.object(Superuser, "org_id", None):
             with self.settings(SENTRY_SELF_HOSTED=True):
                 self.login_as(user)
                 response = self.client.put(
@@ -494,9 +480,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
             user = self.create_user("foo@example.com", is_superuser=True)
 
-            with mock.patch.object(Superuser, "org_id", None), override_settings(
-                SUPERUSER_ORG_ID=None
-            ):
+            with mock.patch.object(Superuser, "org_id", None):
                 with self.settings(SENTRY_SELF_HOSTED=True):
                     self.login_as(user)
                     response = self.client.put(
@@ -517,9 +501,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
             user = self.create_user("foo@example.com", is_superuser=True)
 
-            with mock.patch.object(Superuser, "org_id", self.organization.id), override_settings(
-                SUPERUSER_ORG_ID=self.organization.id
-            ):
+            with mock.patch.object(Superuser, "org_id", self.organization.id):
                 self.login_as(user)
                 response = self.client.put(
                     self.path,
@@ -540,9 +522,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
             user = self.create_user("foo@example.com", is_superuser=True)
 
-            with mock.patch.object(Superuser, "org_id", None), override_settings(
-                SUPERUSER_ORG_ID=None
-            ):
+            with mock.patch.object(Superuser, "org_id", None):
                 with self.settings(SENTRY_SELF_HOSTED=True):
                     self.login_as(user)
                     response = self.client.put(
@@ -565,9 +545,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
             user = self.create_user("foo@example.com", is_superuser=True)
 
-            with mock.patch.object(Superuser, "org_id", None), override_settings(
-                SUPERUSER_ORG_ID=None
-            ):
+            with mock.patch.object(Superuser, "org_id", None):
                 self.login_as(user)
                 response = self.client.put(
                     self.path,
@@ -583,9 +561,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
         user = self.create_user("foo@example.com", is_superuser=True)
 
-        with mock.patch.object(Superuser, "org_id", self.organization.id), override_settings(
-            SUPERUSER_ORG_ID=self.organization.id
-        ):
+        with mock.patch.object(Superuser, "org_id", self.organization.id):
             self.login_as(user)
             response = self.client.put(
                 self.path,
@@ -606,9 +582,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
         user = self.create_user("foo@example.com", is_superuser=True)
 
-        with mock.patch.object(Superuser, "org_id", self.organization.id), override_settings(
-            SUPERUSER_ORG_ID=self.organization.id
-        ):
+        with mock.patch.object(Superuser, "org_id", self.organization.id):
             self.login_as(user)
             response = self.client.put(
                 self.path,

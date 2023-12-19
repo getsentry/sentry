@@ -1,5 +1,6 @@
 import {AuthProviders} from 'sentry-fixture/authProviders';
 import {Organization} from 'sentry-fixture/organization';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -11,7 +12,7 @@ describe('ProviderItem', function () {
   const org = Organization({
     features: [descopeFeatureName(provider.requiredFeature)],
   });
-  const routerContext = TestStubs.routerContext([{organization: org}]);
+  const routerContext = RouterContextFixture([{organization: org}]);
 
   it('renders', function () {
     render(<ProviderItem active={false} provider={provider} onConfigure={() => {}} />, {
@@ -34,7 +35,7 @@ describe('ProviderItem', function () {
   });
 
   it('renders a disabled Tag when disabled', function () {
-    const noFeatureRouterContext = TestStubs.routerContext();
+    const noFeatureRouterContext = RouterContextFixture();
     render(<ProviderItem active={false} provider={provider} onConfigure={() => {}} />, {
       context: noFeatureRouterContext,
     });

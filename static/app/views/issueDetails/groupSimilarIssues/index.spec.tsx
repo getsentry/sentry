@@ -1,4 +1,5 @@
 import {Groups} from 'sentry-fixture/groups';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {
   render,
@@ -22,7 +23,7 @@ describe('Issues Similar View', function () {
     features: ['similarity-view'],
   });
 
-  const routerContext = TestStubs.routerContext([
+  const routerContext = RouterContextFixture([
     {
       router: {
         ...TestStubs.router(),

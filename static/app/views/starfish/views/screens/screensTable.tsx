@@ -5,7 +5,7 @@ import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import Pagination from 'sentry/components/pagination';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {
@@ -25,28 +25,33 @@ import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator
 import {TableColumn} from 'sentry/views/discover/table/types';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {TOP_SCREENS} from 'sentry/views/starfish/views/screens';
 
+const MAX_TABLE_RELEASE_CHARS = 15;
+
 type Props = {
-  columnNameMap: Record<string, string>;
   data: TableData | undefined;
   eventView: EventView;
   isLoading: boolean;
   pageLinks: string | undefined;
+  onCursor?: CursorHandler;
 };
 
-export function ScreensTable({
-  data,
-  eventView,
-  isLoading,
-  pageLinks,
-  columnNameMap,
-}: Props) {
+export function ScreensTable({data, eventView, isLoading, pageLinks, onCursor}: Props) {
   const location = useLocation();
   const {selection} = usePageFilters();
   const {projects} = useProjects();
   const organization = useOrganization();
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
+  const truncatedPrimary = formatVersionAndCenterTruncate(
+    primaryRelease ?? '',
+    MAX_TABLE_RELEASE_CHARS
+  );
+  const truncatedSecondary = formatVersionAndCenterTruncate(
+    secondaryRelease ?? '',
+    MAX_TABLE_RELEASE_CHARS
+  );
 
   const project = useMemo(() => {
     if (selection.projects.length !== 1) {
@@ -56,6 +61,27 @@ export function ScreensTable({
   }, [projects, selection.projects]);
 
   const eventViewColumns = eventView.getColumns();
+
+  const columnNameMap = {
+    transaction: t('Screen'),
+    [`avg_if(measurements.time_to_initial_display,release,${primaryRelease})`]: t(
+      'TTID (%s)',
+      truncatedPrimary
+    ),
+    [`avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`]: t(
+      'TTID (%s)',
+      truncatedSecondary
+    ),
+    [`avg_if(measurements.time_to_full_display,release,${primaryRelease})`]: t(
+      'TTFD (%s)',
+      truncatedPrimary
+    ),
+    [`avg_if(measurements.time_to_full_display,release,${secondaryRelease})`]: t(
+      'TTFD (%s)',
+      truncatedSecondary
+    ),
+    'count()': t('Total Count'),
+  };
 
   function renderBodyCell(column, row): React.ReactNode {
     if (!data?.meta || !data?.meta.fields) {
@@ -194,7 +220,7 @@ export function ScreensTable({
           renderBodyCell,
         }}
       />
-      <Pagination pageLinks={pageLinks} />
+      <Pagination pageLinks={pageLinks} onCursor={onCursor} />
     </Fragment>
   );
 }

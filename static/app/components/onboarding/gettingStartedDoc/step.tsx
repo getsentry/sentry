@@ -2,20 +2,20 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
+import {Button} from 'sentry/components/button';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 export enum StepType {
   INSTALL = 'install',
-  REGISTER = 'register',
   CONFIGURE = 'configure',
   VERIFY = 'verify',
 }
 
 export const StepTitle = {
   [StepType.INSTALL]: t('Install'),
-  [StepType.REGISTER]: t('Register'),
   [StepType.CONFIGURE]: t('Configure SDK'),
   [StepType.VERIFY]: t('Verify'),
 };
@@ -97,10 +97,6 @@ type ConfigurationType = {
    */
   description?: React.ReactNode;
   /**
-   * Header to be placed above the configuration
-   */
-  header?: React.ReactNode;
-  /**
    * The language of the code to be rendered (python, javascript, etc)
    */
   language?: string;
@@ -129,6 +125,10 @@ interface BaseStepProps {
    * A brief description of the step
    */
   description?: React.ReactNode | React.ReactNode[];
+  /**
+   * Whether the step is optional
+   */
+  isOptional?: boolean;
 }
 interface StepPropsWithTitle extends BaseStepProps {
   title: string;
@@ -146,7 +146,6 @@ function getConfiguration({
   description,
   code,
   language,
-  header,
   additionalInfo,
   onCopy,
   onSelectAndCopy,
@@ -155,7 +154,6 @@ function getConfiguration({
   return (
     <Configuration>
       {description && <Description>{description}</Description>}
-      {header && <Header>{header}</Header>}
       {Array.isArray(code) ? (
         <TabbedCodeSnippet
           tabs={code}
@@ -195,10 +193,12 @@ export function Step({
   configurations,
   additionalInfo,
   description,
+  isOptional = false,
 }: StepProps) {
-  return (
-    <div>
-      <h4>{title ?? StepTitle[type]}</h4>
+  const [showOptionalConfig, setShowOptionalConfig] = useState(false);
+
+  const config = (
+    <Fragment>
       {description && <Description>{description}</Description>}
       {!!configurations?.length && (
         <Configurations>
@@ -222,6 +222,32 @@ export function Step({
         </Configurations>
       )}
       {additionalInfo && <GeneralAdditionalInfo>{additionalInfo}</GeneralAdditionalInfo>}
+    </Fragment>
+  );
+
+  return isOptional ? (
+    <div>
+      <OptionalConfigWrapper>
+        <ToggleButton
+          priority="link"
+          borderless
+          size="zero"
+          icon={<IconChevron direction={showOptionalConfig ? 'down' : 'right'} />}
+          aria-label={t('Toggle optional configuration')}
+          onClick={() => setShowOptionalConfig(!showOptionalConfig)}
+        >
+          <h4 style={{marginBottom: 0}}>
+            {title ?? StepTitle[type]}
+            {t(' (Optional)')}
+          </h4>
+        </ToggleButton>
+      </OptionalConfigWrapper>
+      {showOptionalConfig ? config : null}
+    </div>
+  ) : (
+    <div>
+      <h4>{title ?? StepTitle[type]}</h4>
+      {config}
     </div>
   );
 }
@@ -242,10 +268,21 @@ const Description = styled('div')`
   }
 `;
 
-const Header = styled(Description)``;
-
 const AdditionalInfo = styled(Description)``;
 
 const GeneralAdditionalInfo = styled(Description)`
   margin-top: ${space(2)};
+`;
+
+const OptionalConfigWrapper = styled('div')`
+  display: flex;
+  cursor: pointer;
+  margin-bottom: 0.5em;
+`;
+
+const ToggleButton = styled(Button)`
+  &,
+  :hover {
+    color: ${p => p.theme.gray500};
+  }
 `;

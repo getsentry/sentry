@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import logging
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Callable, Mapping, MutableMapping, Optional, Tuple
 
-from sentry.statistical_detectors.detector import (
-    DetectorAlgorithm,
+from sentry.statistical_detectors.base import (
     DetectorConfig,
     DetectorPayload,
     DetectorState,
@@ -16,6 +16,27 @@ from sentry.utils import metrics
 from sentry.utils.math import MovingAverage
 
 logger = logging.getLogger("sentry.tasks.statistical_detectors.algorithm")
+
+
+class DetectorAlgorithm(ABC):
+    @abstractmethod
+    def __init__(
+        self,
+        source: str,
+        kind: str,
+        state: DetectorState,
+        config: DetectorConfig,
+    ):
+        ...
+
+    @abstractmethod
+    def update(self, payload: DetectorPayload) -> Tuple[Optional[TrendType], float]:
+        ...
+
+    @property
+    @abstractmethod
+    def state(self) -> DetectorState:
+        ...
 
 
 @dataclass(frozen=True)
@@ -55,6 +76,15 @@ class MovingAverageDetectorState(DetectorState):
             moving_avg_short=moving_avg_short,
             moving_avg_long=moving_avg_long,
         )
+
+    def should_auto_resolve(self, target: float, rel_threshold: float) -> bool:
+        value = self.moving_avg_long
+
+        rel_change = (value - target) / target
+        if rel_change < rel_threshold:
+            return True
+
+        return False
 
     @classmethod
     def empty(cls) -> MovingAverageDetectorState:

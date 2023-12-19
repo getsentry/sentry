@@ -54,7 +54,7 @@ def pytest_configure(config: pytest.Config) -> None:
         category=UnsupportedBackend,
     )
 
-    config.addinivalue_line("markers", "migrations: requires MIGRATIONS_TEST_MIGRATE=1")
+    config.addinivalue_line("markers", "migrations: requires --migrations")
 
     if sys.platform == "darwin" and shutil.which("colima"):
         # This is the only way other than pytest --basetemp to change
@@ -208,7 +208,7 @@ def pytest_configure(config: pytest.Config) -> None:
     )
     settings.SENTRY_OPTIONS_COMPLAIN_ON_ERRORS = True
     settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = False
-    settings.SENTRY_REGION = "us"
+    settings.SENTRY_REGION = None
 
     # ID controls
     settings.SENTRY_USE_BIG_INTS = True
@@ -249,13 +249,6 @@ def pytest_configure(config: pytest.Config) -> None:
     # networking isn't stable
     patcher = mock.patch("socket.getfqdn", return_value="localhost")
     patcher.start()
-
-    if not settings.MIGRATIONS_TEST_MIGRATE:
-        # Migrations for the "sentry" app take a long time to run, which makes test startup time slow in dev.
-        # This is a hack to force django to sync the database state from the models rather than use migrations.
-        settings.MIGRATION_MODULES["sentry"] = None  # type: ignore[assignment]
-        settings.MIGRATION_MODULES["hybridcloud"] = None  # type: ignore[assignment]
-        settings.MIGRATION_MODULES["feedback"] = None  # type: ignore[assignment]
 
     asset_version_patcher = mock.patch(
         "sentry.runner.initializer.get_asset_version", return_value="{version}"
@@ -308,10 +301,10 @@ def register_extensions() -> None:
 
 
 def pytest_runtest_setup(item: pytest.Item) -> None:
-    if not settings.MIGRATIONS_TEST_MIGRATE and any(
+    if item.config.getvalue("nomigrations") and any(
         mark for mark in item.iter_markers(name="migrations")
     ):
-        pytest.skip("migrations are not enabled, run with MIGRATIONS_TEST_MIGRATE=1 pytest ...")
+        pytest.skip("migrations are not enabled, run with `pytest --migrations ...`")
 
 
 def pytest_runtest_teardown(item: pytest.Item) -> None:
