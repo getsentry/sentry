@@ -89,7 +89,9 @@ describe('getIssueFieldRenderer', function () {
       GroupStore.add([
         {
           ...group,
-          owners: [{owner: 'user:1', type: 'suspectCommit'}],
+          owners: [
+            {owner: 'user:1', type: 'suspectCommit', date_added: '2020-01-01T00:00:00'},
+          ],
           assignedTo: {
             email: 'test@sentry.io',
             type: 'user',
