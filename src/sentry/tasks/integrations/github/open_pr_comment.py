@@ -57,7 +57,7 @@ OPEN_PR_MAX_FILES_CHANGED = 7
 OPEN_PR_MAX_LINES_CHANGED = 500
 
 COMMENT_BODY_TEMPLATE = """## 🔍 Existing Sentry Issues - For Review
-Your pull request files have the following pre-existing issues:
+Your pull request is modifying functions with the following pre-existing issues:
 
 {issue_tables}
 ---
@@ -66,19 +66,19 @@ Your pull request files have the following pre-existing issues:
 
 ISSUE_TABLE_TEMPLATE = """📄 **{filename}**
 
-| Issue  |
-| :--------- |
+| Function | Issue  |
+| :------- | :----- |
 {issue_rows}"""
 
 ISSUE_TABLE_TOGGLE_TEMPLATE = """<details>
 <summary><b>📄 {filename} (Click to Expand)</b></summary>
 
-| Issue  |
-| :--------- |
+| Function | Issue  |
+| :------- | :----- |
 {issue_rows}
 </details>"""
 
-ISSUE_ROW_TEMPLATE = "| [**{title}**]({url}) {subtitle} <br> `Handled:` **{is_handled}** `Event Count:` **{event_count}** `Users:` **{affected_users}** |"
+ISSUE_ROW_TEMPLATE = "| `{function_name}` | [**{title}**]({url}) {subtitle} <br> `Handled:` **{is_handled}** `Event Count:` **{event_count}** `Users:` **{affected_users}** |"
 
 ISSUE_DESCRIPTION_LENGTH = 52
 
@@ -104,6 +104,7 @@ def format_issue_table(diff_filename: str, issues: List[PullRequestIssue], toggl
                 is_handled=str(issue.is_handled),
                 event_count=small_count(issue.event_count),
                 affected_users=small_count(issue.affected_users),
+                function_name=issue.function_name,
             )
             for issue in issues
         ]
@@ -132,6 +133,7 @@ def get_issue_table_contents(issue_list: List[Dict[str, int]]) -> List[PullReque
             affected_users=issue.count_users_seen(),
             event_count=group_id_to_info[issue.id]["event_count"],
             is_handled=bool(group_id_to_info[issue.id]["is_handled"]),
+            function_name=group_id_to_info[issue.id]["function_name"],
         )
         for issue in issues
     ]
