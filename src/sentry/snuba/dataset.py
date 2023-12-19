@@ -70,3 +70,4 @@ class EntityKey(Enum):
     GenericOrgMetricsCounters = "generic_org_metrics_counters"
     IssuePlatform = "search_issues"
     Functions = "functions"
+    MetricsSummaries = "metrics_summaries"
