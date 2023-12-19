@@ -351,3 +351,19 @@ class OrganizationExamples:
             response_only=True,
         )
     ]
+
+    LIST_RELAYS = [
+        OpenApiExample(
+            "List an organization's trusted relays",
+            value=[
+                {
+                    "relayId": "0123abcd-4567-efgh-ij89-012aaa456bbb",
+                    "version": "23.11.2",
+                    "firstSeen": "2023-12-10T00:00:00.000000Z",
+                    "lastSeen": "2023-12-20T22:22:22.222222Z",
+                    "publicKey": "asdfa54g9987ga9dfha0f8adfhkj324-dafd78321-I",
+                }
+            ],
+            status_codes=["200"],
+        ),
+    ]
