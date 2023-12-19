@@ -8,6 +8,7 @@ import {
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Placeholder from 'sentry/components/placeholder';
 import JumpButtons from 'sentry/components/replays/jumpButtons';
@@ -139,7 +140,15 @@ function Breadcrumbs() {
         <StyledAlert
           type="info"
           showIcon
-          trailingItems={<StyledCloseButton onClick={dismiss} />}
+          trailingItems={
+            <Button
+              aria-label={t('Dismiss banner')}
+              icon={<IconClose />}
+              onClick={dismiss}
+              size="zero"
+              borderless
+            />
+          }
         >
           {tct('Learn how to unmask text (****) and unblock media [link:here].', {
             link: (
@@ -193,10 +202,6 @@ function Breadcrumbs() {
     </FluidHeight>
   );
 }
-
-const StyledCloseButton = styled(IconClose)`
-  cursor: pointer;
-`;
 
 const StyledAlert = styled(Alert)`
   margin-bottom: ${space(1)};
