@@ -5,8 +5,8 @@ from sentry.models.relay import Relay
 
 
 class OrganizationRelayResponse(TypedDict):
-    id: str
     relayId: str
+    version: str
     publicKey: str
     firstSeen: str
     lastSeen: str
@@ -16,8 +16,8 @@ class OrganizationRelayResponse(TypedDict):
 class RelaySerializer(Serializer):
     def serialize(self, obj, attrs, user) -> OrganizationRelayResponse:
         return {
-            "id": str(obj.id),
             "relayId": str(obj.relay_id),
+            "version": str(obj.version),
             "publicKey": obj.public_key,
             "firstSeen": obj.first_seen,
             "lastSeen": obj.last_seen,

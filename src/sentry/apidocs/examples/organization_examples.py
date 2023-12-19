@@ -365,5 +365,6 @@ class OrganizationExamples:
                 }
             ],
             status_codes=["200"],
+            response_only=True,
         ),
     ]
