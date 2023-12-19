@@ -1,4 +1,4 @@
-import {createContext, Fragment, useContext, useState} from 'react';
+import React, {createContext, Fragment, useContext, useState} from 'react';
 import {Theme} from '@emotion/react';
 
 import {Alert} from 'sentry/components/alert';
@@ -27,22 +27,22 @@ const pageErrorContext = createContext<{
 export function PageAlertProvider({children}: {children: React.ReactNode}) {
   const [pageAlert, setPageAlert] = useState<PageAlertOptions | undefined>();
 
-  const setPageInfo = (message: string | undefined) => {
+  const setPageInfo = (message: React.ReactNode | undefined) => {
     setPageAlert({message, type: 'info'});
   };
-  const setPageMuted = (message: string | undefined) => {
+  const setPageMuted = (message: React.ReactNode | undefined) => {
     setPageAlert({message, type: 'muted'});
   };
 
-  const setPageSuccess = (message: string | undefined) => {
+  const setPageSuccess = (message: React.ReactNode | undefined) => {
     setPageAlert({message, type: 'success'});
   };
 
-  const setPageWarning = (message: string | undefined) => {
+  const setPageWarning = (message: React.ReactNode | undefined) => {
     setPageAlert({message, type: 'warning'});
   };
 
-  const setPageError = (message: string | undefined) => {
+  const setPageError = (message: React.ReactNode | undefined) => {
     setPageAlert({message, type: 'error'});
   };
 
