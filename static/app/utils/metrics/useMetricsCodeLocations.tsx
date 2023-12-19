@@ -40,10 +40,11 @@ export function useMetricsCodeLocations(mri: string | undefined) {
 }
 
 const mapToNewResponseShape = (data: ApiResponse) => {
+  // If the response is already in the new shape, do nothing
   if (data.metrics) {
     return;
   }
-  // @ts-expect-error
+  // @ts-expect-error codeLocations is defined in the old response shape
   data.metrics = (data.codeLocations ?? [])?.map(codeLocation => {
     return {
       mri: codeLocation.mri,
