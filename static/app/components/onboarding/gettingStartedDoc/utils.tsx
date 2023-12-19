@@ -1,6 +1,7 @@
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import type {Organization, PlatformKey} from 'sentry/types';
+import {PlatformIntegration} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 export function getUploadSourceMapsStep({
@@ -110,3 +111,97 @@ export const getReplaySDKSetupSnippet = ({
 
     integrations: [new Sentry.Replay()],
   });`;
+
+export const replayJsFrameworkOptions: PlatformIntegration[] = [
+  {
+    id: 'javascript',
+    name: 'Browser JavaScript',
+    type: 'language',
+    language: 'javascript',
+    link: 'https://docs.sentry.io/platforms/javascript/',
+  },
+  {
+    id: 'capacitor',
+    name: 'Capacitor',
+    type: 'framework',
+    language: 'capacitor',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/',
+  },
+  {
+    id: 'electron',
+    name: 'Electron',
+    type: 'language',
+    language: 'electron',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/electron/',
+  },
+  {
+    id: 'javascript-angular',
+    name: 'Angular',
+    type: 'framework',
+    language: 'javascript',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/angular/',
+  },
+  {
+    id: 'javascript-astro',
+    name: 'Astro',
+    type: 'framework',
+    language: 'javascript',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/astro/',
+  },
+  {
+    id: 'javascript-ember',
+    name: 'Ember',
+    type: 'framework',
+    language: 'javascript',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/ember/',
+  },
+  {
+    id: 'javascript-gatsby',
+    name: 'Gatsby',
+    type: 'framework',
+    language: 'javascript',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/gatsby/',
+  },
+  {
+    id: 'javascript-nextjs',
+    name: 'Next.js',
+    type: 'framework',
+    language: 'javascript',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/',
+  },
+  {
+    id: 'javascript-react',
+    name: 'React',
+    type: 'framework',
+    language: 'javascript',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/react/',
+  },
+  {
+    id: 'javascript-remix',
+    name: 'Remix',
+    type: 'framework',
+    language: 'javascript',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/remix/',
+  },
+  {
+    id: 'javascript-svelte',
+    name: 'Svelte',
+    type: 'framework',
+    language: 'javascript',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/svelte/',
+  },
+  {
+    id: 'javascript-sveltekit',
+    name: 'SvelteKit',
+    type: 'framework',
+    language: 'javascript',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/sveltekit/',
+  },
+  {
+    id: 'javascript-vue',
+    name: 'Vue',
+    type: 'framework',
+    language: 'javascript',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/vue/',
+  },
+];
