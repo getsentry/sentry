@@ -9,9 +9,11 @@ from sentry.auth.staff import Staff, logger
 
 class StaffMiddleware:
     def __init__(self, get_response: Callable[[HttpRequest], HttpResponseBase]):
+        print("hit staff __init__")
         self.get_response = get_response
 
     def process_request(self, request: HttpRequest) -> None:
+        print("processing request")
         # This avoids touching user session, which means we avoid
         # setting `Vary: Cookie` as a response header which will
         # break HTTP caching entirely.
@@ -38,6 +40,7 @@ class StaffMiddleware:
     def process_response(
         self, request: HttpRequest, response: HttpResponseBase
     ) -> HttpResponseBase:
+        print("processing response")
         try:
             if self.__skip_caching:
                 return response
@@ -49,6 +52,8 @@ class StaffMiddleware:
         return response
 
     def __call__(self, request: HttpRequest) -> HttpResponseBase:
+        print("hit __call__")
         self.process_request(request)
         response = self.get_response(request)
-        return self.process_response(request, response)
+        self.process_response(request, response)
+        return response
