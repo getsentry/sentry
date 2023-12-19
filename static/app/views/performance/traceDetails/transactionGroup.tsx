@@ -5,6 +5,7 @@ import {
   ScrollbarManagerChildrenProps,
   withScrollbarManager,
 } from 'sentry/components/events/interfaces/spans/scrollbarManager';
+import {SpanDetailProps} from 'sentry/components/events/interfaces/spans/spanDetail';
 import {
   SpanBoundsType,
   SpanGeneratedBoundsType,
@@ -36,7 +37,7 @@ type Props = ScrollbarManagerChildrenProps & {
   isOrphanError?: boolean;
   measurements?: Map<number, VerticalMark>;
   numOfOrphanErrors?: number;
-  onRowClick?: (detailKey: EventDetail | undefined) => void;
+  onRowClick?: (detailKey: EventDetail | SpanDetailProps | undefined) => void;
   onlyOrphanErrors?: boolean;
 };
 

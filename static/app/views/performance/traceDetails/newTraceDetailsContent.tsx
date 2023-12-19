@@ -8,6 +8,7 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ButtonBar from 'sentry/components/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
 import EventVitals from 'sentry/components/events/eventVitals';
+import {SpanDetailProps} from 'sentry/components/events/interfaces/spans/spanDetail';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
@@ -70,7 +71,9 @@ export type EventDetail = {
 
 function NewTraceDetailsContent(props: Props) {
   const router = useRouter();
-  const [detail, setDetail] = useState<EventDetail | undefined>(undefined);
+  const [detail, setDetail] = useState<EventDetail | SpanDetailProps | undefined>(
+    undefined
+  );
   const traceInfo = useMemo(
     () => getTraceInfo(props.traces ?? [], props.orphanErrors),
     [props.traces, props.orphanErrors]
@@ -357,7 +360,7 @@ function NewTraceDetailsContent(props: Props) {
           onClose={() => {
             router.replace({
               pathname: location.pathname,
-              query: omit(router.location.query, 'detail'),
+              query: omit(router.location.query, 'detail', 'span'),
             });
             setDetail(undefined);
           }}

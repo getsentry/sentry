@@ -20,7 +20,15 @@ import {EventExtraData} from 'sentry/components/events/eventExtraData';
 import {EventSdk} from 'sentry/components/events/eventSdk';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {Breadcrumbs} from 'sentry/components/events/interfaces/breadcrumbs';
-import {getFormattedTimeRangeWithLeadingAndTrailingZero} from 'sentry/components/events/interfaces/spans/utils';
+import SpanDetail, {
+  SpanDetailContainer,
+  SpanDetailProps,
+  SpanDetails,
+} from 'sentry/components/events/interfaces/spans/spanDetail';
+import {
+  getFormattedTimeRangeWithLeadingAndTrailingZero,
+  getSpanOperation,
+} from 'sentry/components/events/interfaces/spans/utils';
 import {generateStats} from 'sentry/components/events/opsBreakdown';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {DataSection} from 'sentry/components/events/styles';
@@ -35,6 +43,7 @@ import {
   ErrorMessageTitle,
   ErrorTitle,
 } from 'sentry/components/performance/waterfall/rowDetails';
+import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -52,6 +61,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
+import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
+import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
@@ -60,7 +71,7 @@ import {EventDetail} from './newTraceDetailsContent';
 import {Row, Tags} from './styles';
 
 type DetailPanelProps = {
-  detail: EventDetail | undefined;
+  detail: EventDetail | SpanDetailProps | undefined;
   onClose: () => void;
 };
 
@@ -433,15 +444,83 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
   );
 }
 
+function SpanDetailsBody({
+  detail,
+  organization,
+}: {
+  detail: SpanDetailProps;
+  organization: Organization;
+}) {
+  const {projects} = useProjects();
+  const project = projects.find(proj => proj.slug === detail.event?.projectSlug);
+  const profileId = detail?.event?.contexts?.profile?.profile_id ?? null;
+
+  return (
+    <Wrapper>
+      <Title>
+        <Tooltip title={detail.event.projectSlug}>
+          <ProjectBadge
+            project={project ? project : {slug: detail.event.projectSlug || ''}}
+            avatarSize={50}
+            hideName
+          />
+        </Tooltip>
+        <div>
+          <div>{t('Span')}</div>
+          <TransactionOp> {getSpanOperation(detail.span)}</TransactionOp>
+        </div>
+      </Title>
+      {detail.event.projectSlug && (
+        <ProfilesProvider
+          orgSlug={organization.slug}
+          projectSlug={detail.event.projectSlug}
+          profileId={profileId || ''}
+        >
+          <ProfileContext.Consumer>
+            {profiles => (
+              <ProfileGroupProvider
+                type="flamechart"
+                input={profiles?.type === 'resolved' ? profiles.data : null}
+                traceID={profileId || ''}
+              >
+                <TransactionProfileIdProvider
+                  projectId={detail.event.projectID}
+                  transactionId={detail.event.id}
+                  timestamp={detail.event.dateReceived}
+                >
+                  <SpanDetail {...detail} />
+                </TransactionProfileIdProvider>
+              </ProfileGroupProvider>
+            )}
+          </ProfileContext.Consumer>
+        </ProfilesProvider>
+      )}
+    </Wrapper>
+  );
+}
+
+export function isEventDetail(
+  detail: EventDetail | SpanDetailProps
+): detail is EventDetail {
+  return !('span' in detail);
+}
+
 function TraceViewDetailPanel({detail, onClose}: DetailPanelProps) {
   const organization = useOrganization();
   const location = useLocation();
   return (
     <PageErrorProvider>
       <DetailPanel detailKey={detail ? 'open' : undefined} onClose={onClose}>
-        {detail && (
-          <EventDetails location={location} organization={organization} detail={detail} />
-        )}
+        {detail &&
+          (isEventDetail(detail) ? (
+            <EventDetails
+              location={location}
+              organization={organization}
+              detail={detail}
+            />
+          ) : (
+            <SpanDetailsBody organization={organization} detail={detail} />
+          ))}
       </DetailPanel>
     </PageErrorProvider>
   );
@@ -454,6 +533,14 @@ const Wrapper = styled('div')`
 
   ${DataSection} {
     padding: 0;
+  }
+
+  ${SpanDetails} {
+    padding: 0;
+  }
+
+  ${SpanDetailContainer} {
+    border-bottom: none;
   }
 `;
 

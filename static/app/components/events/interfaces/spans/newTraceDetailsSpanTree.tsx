@@ -10,6 +10,7 @@ import {
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
+import {Location} from 'history';
 import differenceWith from 'lodash/differenceWith';
 import isEqual from 'lodash/isEqual';
 import throttle from 'lodash/throttle';
@@ -20,6 +21,7 @@ import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {QuickTraceContextChildrenProps} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import {setGroupedEntityTag} from 'sentry/utils/performanceForSentry';
 import {TraceInfo} from 'sentry/views/performance/traceDetails/types';
 
@@ -28,6 +30,7 @@ import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarMa
 import {ProfiledSpanBar} from './spanBar';
 import * as SpanContext from './spanContext';
 import {SpanDescendantGroupBar} from './spanDescendantGroupBar';
+import {SpanDetailProps} from './spanDetail';
 import SpanSiblingGroupBar from './spanSiblingGroupBar';
 import {
   EnhancedProcessedSpanType,
@@ -45,11 +48,13 @@ import WaterfallModel from './waterfallModel';
 
 type PropType = ScrollbarManagerChildrenProps & {
   filterSpans: FilterSpans | undefined;
+  location: Location;
   operationNameFilters: ActiveOperationFilter;
   organization: Organization;
   parentGeneration: number;
   parentHasContinuingDepths: boolean;
   parentIsLast: boolean;
+  quickTrace: QuickTraceContextChildrenProps;
   spanContextProps: SpanContext.SpanContextProps;
   spans: EnhancedProcessedSpanType[];
   traceHasMultipleRoots: boolean;
@@ -58,6 +63,7 @@ type PropType = ScrollbarManagerChildrenProps & {
   traceViewRef: React.RefObject<HTMLDivElement>;
   waterfallModel: WaterfallModel;
   focusedSpanIds?: Set<string>;
+  onRowClick?: (detailKey: SpanDetailProps | undefined) => void;
 };
 
 type StateType = {
@@ -611,6 +617,7 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
           props: {
             ...this.props,
             organization,
+            location: this.props.location,
             event: waterfallModel.event,
             spanBarColor,
             spanBarType,
@@ -673,6 +680,9 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
     return (
       <SpanRow
         {...props}
+        quickTrace={this.props.quickTrace}
+        location={this.props.location}
+        onRowClick={this.props.onRowClick}
         spanTree={spanTree}
         spanContextProps={this.props.spanContextProps}
         cache={this.cache}
@@ -812,9 +822,12 @@ type SpanRowProps = ListRowProps & {
     treeDepth: number
   ) => void;
   cache: CellMeasurerCache;
+  location: Location;
+  quickTrace: QuickTraceContextChildrenProps;
   removeSpanRowFromState: (spanId: string) => void;
   spanContextProps: SpanContext.SpanContextProps;
   spanTree: SpanTreeNode[];
+  onRowClick?: (detailKey: SpanDetailProps | undefined) => void;
 };
 
 function SpanRow(props: SpanRowProps) {
@@ -828,6 +841,8 @@ function SpanRow(props: SpanRowProps) {
     spanContextProps,
     addSpanRowToState,
     removeSpanRowFromState,
+    onRowClick,
+    quickTrace,
   } = props;
 
   const rowRef = useRef<HTMLDivElement>(null);
@@ -861,9 +876,11 @@ function SpanRow(props: SpanRowProps) {
         return (
           <ProfiledSpanBar
             fromTraceView
+            onRowClick={onRowClick}
             key={getSpanID(node.props.span, `span-${node.props.spanNumber}`)}
             {...node.props}
             {...extraProps}
+            quickTrace={quickTrace}
           />
         );
       case SpanTreeNodeType.DESCENDANT_GROUP:
