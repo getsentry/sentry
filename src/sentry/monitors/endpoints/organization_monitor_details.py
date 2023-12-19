@@ -88,6 +88,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         parameters=[
             GlobalParams.ORG_SLUG,
             MonitorParams.MONITOR_SLUG,
+            GlobalParams.ENVIRONMENT,
         ],
         request=MonitorValidator,
         responses={
@@ -102,6 +103,16 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         """
         Update a monitor.
         """
+
+        environment_names = request.query_params.getlist("environment")
+        with transaction.atomic(router.db_for_write(MonitorEnvironment)):
+            if environment_names:
+                if request.data["status"] == MonitorStatus.DISABLED:
+                    MonitorEnvironment.objects.filter(
+                        environment__name__in=environment_names, monitor__id=monitor.id
+                    ).update(status=MonitorStatus.DISABLED)
+                return self.respond(serialize(monitor, request.user))
+
         # set existing values as validator will overwrite
         existing_config = monitor.config
         existing_margin = existing_config.get("checkin_margin")
