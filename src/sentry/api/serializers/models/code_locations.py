@@ -9,7 +9,7 @@ class CodeLocationsSerializer(Serializer):
         return {
             "mri": item.query.metric_mri,
             "timestamp": item.query.timestamp,
-            "frames": [location.__dict__ for location in item.frames],
+            "codeLocations": [location.__dict__ for location in item.code_locations],
         }
 
     def get_attrs(self, item_list, user):
@@ -31,7 +31,8 @@ class CodeLocationsSerializer(Serializer):
         return {
             "mri": attrs["mri"],
             "timestamp": attrs["timestamp"],
-            "frames": [
-                self._serialize_code_location_payload(location) for location in attrs["frames"]
+            "codeLocations": [
+                self._serialize_code_location_payload(location)
+                for location in attrs["codeLocations"]
             ],
         }
