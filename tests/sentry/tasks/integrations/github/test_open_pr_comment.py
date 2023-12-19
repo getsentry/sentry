@@ -576,7 +576,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         mock_pr_filenames,
     ):
         # two filenames, the second one has a toggle table
-        mock_pr_filenames.return_value = ["foo.py", "bar.py"]
+        mock_pr_filenames.return_value = (["foo.py", "bar.py"], [])
         mock_reverse_codemappings.return_value = ([self.project], ["foo.py"])
 
         mock_issues.return_value = self.groups
@@ -620,7 +620,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         mock_pr_filenames,
     ):
         # two filenames, the second one has a toggle table
-        mock_pr_filenames.return_value = ["foo.py", "bar.py"]
+        mock_pr_filenames.return_value = (["foo.py", "bar.py"], [])
         mock_reverse_codemappings.return_value = ([self.project], ["foo.py"])
 
         mock_issues.return_value = self.groups
@@ -670,7 +670,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         mock_reverse_codemappings,
         mock_pr_filenames,
     ):
-        mock_pr_filenames.return_value = ["foo.py"]
+        mock_pr_filenames.return_value = (["foo.py"], [])
         # no codemappings
         mock_reverse_codemappings.return_value = ([], [])
         mock_issues.return_value = []
@@ -708,7 +708,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         mock_reverse_codemappings,
         mock_pr_filenames,
     ):
-        mock_pr_filenames.return_value = ["foo.py"]
+        mock_pr_filenames.return_value = (["foo.py"], [])
         mock_reverse_codemappings.return_value = ([self.project], ["foo.py"])
 
         mock_issues.return_value = self.groups
