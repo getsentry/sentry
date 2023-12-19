@@ -1,11 +1,33 @@
+import datetime
 import logging
 import signal
+import time
 from typing import Optional
 
 from sentry import options
-from sentry.runner.commands.run import delay_kafka_rebalance
 
 logger = logging.getLogger(__name__)
+
+
+def delay_kafka_rebalance(configured_delay: int) -> None:
+    """
+    get current time.
+    get the seconds part of the current time.
+
+    get the seconds delay to sleep from an option.
+
+    and then continue to sleep for 0.5 seconds until you get to the exact second when you want to start/stop the app.
+    """
+    now = float(datetime.now().strftime("%S.%f"))
+
+    next_tick, remainder = divmod(now, configured_delay)
+    if remainder > 0:
+        next_tick += 1
+
+    seconds_sleep = (configured_delay * next_tick) - now
+    while seconds_sleep >= 0.5:
+        time.sleep(0.5)
+        seconds_sleep -= 0.5
 
 
 def run_processor_with_signals(processor, consumer_name: Optional[str]):

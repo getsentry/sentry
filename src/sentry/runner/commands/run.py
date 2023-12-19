@@ -4,8 +4,6 @@ import logging
 import os
 import signal
 import sys
-import time
-from datetime import datetime
 from multiprocessing import cpu_count
 from typing import Optional
 
@@ -15,7 +13,7 @@ from sentry import options as sentry_options
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.ingest.types import ConsumerType
 from sentry.runner.decorators import configuration, log_options
-from sentry.utils.kafka import run_processor_with_signals
+from sentry.utils.kafka import delay_kafka_rebalance, run_processor_with_signals
 
 DEFAULT_BLOCK_SIZE = int(32 * 1e6)
 
@@ -506,27 +504,6 @@ def occurrences_ingest_consumer(**options):
     with metrics.global_tags(ingest_consumer_types=consumer_type, _all_threads=True):
         consumer = get_occurrences_ingest_consumer(consumer_type, **options)
         run_processor_with_signals(consumer)
-
-
-def delay_kafka_rebalance(configured_delay: int) -> None:
-    """
-    get current time.
-    get the seconds part of the current time.
-
-    get the seconds delay to sleep from an option.
-
-    and then continue to sleep for 0.5 seconds until you get to the exact second when you want to start/stop the app.
-    """
-    now = float(datetime.now().strftime("%S.%f"))
-
-    next_tick, remainder = divmod(now, configured_delay)
-    if remainder > 0:
-        next_tick += 1
-
-    seconds_sleep = (configured_delay * next_tick) - now
-    while seconds_sleep >= 0.5:
-        time.sleep(0.5)
-        seconds_sleep -= 0.5
 
 
 @run.command("consumer")
