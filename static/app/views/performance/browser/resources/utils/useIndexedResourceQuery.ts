@@ -64,7 +64,6 @@ export const useIndexedResourcesQuery = ({
       project: row.project as string,
       'transaction.id': row['transaction.id'] as string,
       [SPAN_DESCRIPTION]: row[SPAN_DESCRIPTION]?.toString(),
-      // TODO - parseFloat here is temporary, we should be parsing from the backend
       'measurements.http.response_content_length': row[
         `measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`
       ] as number,
