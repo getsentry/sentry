@@ -117,7 +117,7 @@ def format_issue_table(diff_filename: str, issues: List[PullRequestIssue], toggl
 
 
 # for a single file, get the contents
-def get_issue_table_contents(issue_list: List[Dict[str, int]]) -> List[PullRequestIssue]:
+def get_issue_table_contents(issue_list: List[Dict[str, Any]]) -> List[PullRequestIssue]:
     group_id_to_info = {}
     for issue in issue_list:
         group_id = issue["group_id"]
