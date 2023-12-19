@@ -15,7 +15,7 @@ import {
 import GlobalModal from 'sentry/components/globalModal';
 import ConfigStore from 'sentry/stores/configStore';
 import ModalStore from 'sentry/stores/modalStore';
-import {IssueCategory} from 'sentry/types';
+import {GroupStatus, IssueCategory} from 'sentry/types';
 import * as analytics from 'sentry/utils/analytics';
 import GroupActions from 'sentry/views/issueDetails/actions';
 
@@ -288,7 +288,7 @@ describe('GroupActions', function () {
 
     rerender(
       <GroupActions
-        group={{...group, status: 'resolved'}}
+        group={{...group, status: GroupStatus.RESOLVED, statusDetails: {}}}
         project={project}
         organization={organization}
         disabled={false}
