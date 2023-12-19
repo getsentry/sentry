@@ -1,7 +1,7 @@
 import {Fragment, memo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import emptyStateImg from 'sentry-images/spot/replays-empty-state.svg';
+import emptyStateImg from 'sentry-images/spot/custom-metrics-empty-state.svg';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -78,11 +78,11 @@ function MainContent() {
           ) : hasMetrics ? (
             <MetricScratchpad />
           ) : (
-            <OnboardingPanel image={<img src={emptyStateImg} />}>
+            <OnboardingPanel image={<EmptyStateImage src={emptyStateImg} />}>
               <h3>{t('Get started with custom metrics')}</h3>
               <p>
                 {t(
-                  'See a video-like reproduction of your user sessions so you can see what happened before, during, and after an error or latency issue occurred.'
+                  "Send your own metrics to Sentry to track your system's behaviour and profit from the same powerful features as you do with errors, like alerting and dashboards."
                 )}
               </p>
               <Button priority="primary" onClick={activateSidebar}>
@@ -148,4 +148,28 @@ const PaddedContainer = styled('div')`
   justify-content: space-between;
   flex-wrap: wrap;
   gap: ${space(1)};
+`;
+
+const EmptyStateImage = styled('img')`
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    user-select: none;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 220px;
+    margin-top: auto;
+    margin-bottom: auto;
+    transform: translateX(-50%);
+    left: 50%;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    transform: translateX(-60%);
+    width: 280px;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    transform: translateX(-75%);
+    width: 320px;
+  }
 `;
