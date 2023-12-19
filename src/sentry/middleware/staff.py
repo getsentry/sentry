@@ -1,13 +1,17 @@
+from typing import Callable
+
 from django.conf import settings
-from django.utils.deprecation import MiddlewareMixin
-from rest_framework.request import Request
-from rest_framework.response import Response
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 
 from sentry.auth.staff import Staff, logger
 
 
-class StaffMiddleware(MiddlewareMixin):
-    def process_request(self, request: Request):
+class StaffMiddleware:
+    def __init__(self, get_response: Callable[[HttpRequest], HttpResponseBase]):
+        self.get_response = get_response
+
+    def process_request(self, request: HttpRequest) -> None:
         # This avoids touching user session, which means we avoid
         # setting `Vary: Cookie` as a response header which will
         # break HTTP caching entirely.
@@ -16,11 +20,11 @@ class StaffMiddleware(MiddlewareMixin):
         if self.__skip_caching:
             return
 
-        stf = Staff(request)
+        staff = Staff(request)
 
-        request.staff = stf  # type: ignore[attr-defined]
+        request.staff = staff  # type: ignore[attr-defined]
 
-        if stf.is_active:
+        if staff.is_active:
             logger.info(
                 "staff.request",
                 extra={
@@ -31,13 +35,20 @@ class StaffMiddleware(MiddlewareMixin):
                 },
             )
 
-    def process_response(self, request: Request, response: Response) -> Response:
+    def process_response(
+        self, request: HttpRequest, response: HttpResponseBase
+    ) -> HttpResponseBase:
         try:
             if self.__skip_caching:
                 return response
         except AttributeError:
             pass
-        stf = getattr(request, "staff", None)
-        if stf:
-            stf.on_response(response)
+        staff = getattr(request, "staff", None)
+        if staff:
+            staff.on_response(response)
         return response
+
+    def __call__(self, request: HttpRequest) -> HttpResponseBase:
+        self.process_request(request)
+        response = self.get_response(request)
+        return self.process_response(request, response)
