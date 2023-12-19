@@ -17,7 +17,7 @@ describe('TeamStability', () => {
   });
 
   it('should compare selected past crash rate with current week', async () => {
-    const project = ProjectFixture({hasSessions: true, id: 123});
+    const project = ProjectFixture({hasSessions: true, id: '123'});
     render(
       <TeamStability projects={[project]} organization={Organization()} period="2w" />
     );
@@ -29,7 +29,7 @@ describe('TeamStability', () => {
   });
 
   it('should render no sessions', async () => {
-    const noSessionProject = ProjectFixture({hasSessions: false, id: 321});
+    const noSessionProject = ProjectFixture({hasSessions: false, id: '321'});
     render(
       <TeamStability
         projects={[noSessionProject]}
