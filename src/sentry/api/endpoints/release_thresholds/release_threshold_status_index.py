@@ -169,7 +169,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         release_query = Q(organization=organization, date_added__gte=start, date_added__lte=end)
         if environments_list:
             release_query &= Q(
-                rpe_set__environment__name__in=environments_list,
+                releaseprojectenvironment__environment__name__in=environments_list,
             )
         if project_slug_list:
             release_query &= Q(
@@ -190,7 +190,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         )
         # prefetching the release_thresholds via the projects model
         queryset.prefetch_related("projects__release_thresholds__environment")
-        queryset.prefetch_related("rpe_set")
+        queryset.prefetch_related("releaseprojectenvironment")
         queryset.prefetch_related("deploy_set")
 
         logger.info(
@@ -246,7 +246,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                         # NOTE: if a threshold has no environment set, we monitor from start of the release creation
                         # If a deploy does not exist for the thresholds environment, we monitor from start of release creation
                         # ReleaseProjectEnvironment model
-                        rpe_query = release.rpe_set.filter(
+                        rpe_query = release.releaseprojectenvironment.filter(
                             environment=threshold.environment, project=threshold.project
                         )
                         if rpe_query.exists():

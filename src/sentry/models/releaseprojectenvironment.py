@@ -26,8 +26,8 @@ class ReleaseStages(str, Enum):
 class ReleaseProjectEnvironment(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    release = FlexibleForeignKey("sentry.Release", related_name="rpe_set")
-    project = FlexibleForeignKey("sentry.Project", related_name="rpe_set")
+    release = FlexibleForeignKey("sentry.Release")
+    project = FlexibleForeignKey("sentry.Project")
     environment = FlexibleForeignKey("sentry.Environment")
     new_issues_count = BoundedPositiveIntegerField(default=0)
     first_seen = models.DateTimeField(default=timezone.now)
