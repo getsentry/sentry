@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {User} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -357,7 +358,7 @@ describe('PageFiltersContainer', function () {
       organization: {
         features: ['global-views'],
       },
-      projects: [TestStubs.Project({id: 1}), TestStubs.Project({id: 2})],
+      projects: [ProjectFixture({id: '1'}), ProjectFixture({id: '2'})],
       router: {
         // we need this to be set to make sure org in context is same as
         // current org in URL
@@ -513,7 +514,7 @@ describe('PageFiltersContainer', function () {
         ...organization,
         slug: 'org-slug',
         features: [],
-        projects: [TestStubs.Project({id: '123', slug: 'org-slug-project1'})],
+        projects: [ProjectFixture({id: '123', slug: 'org-slug-project1'})],
       };
 
       MockApiClient.addMockResponse({
@@ -567,7 +568,7 @@ describe('PageFiltersContainer', function () {
           user: User({isSuperuser: true}),
         })
       );
-      const project = TestStubs.Project({id: '3', isMember: false});
+      const project = ProjectFixture({id: '3', isMember: false});
       const org = Organization({projects: [project]});
 
       ProjectsStore.loadInitialData(org.projects);
@@ -594,7 +595,7 @@ describe('PageFiltersContainer', function () {
     });
 
     it('selects first project if none (i.e. all) is requested', function () {
-      const project = TestStubs.Project({id: '3'});
+      const project = ProjectFixture({id: '3'});
       const org = Organization({projects: [project]});
 
       ProjectsStore.loadInitialData(org.projects);

@@ -105,14 +105,14 @@ function ReplaySide({expectedTime, selector, onLoad}) {
 
   useEffect(() => {
     if (currentTime === expectedTime) {
+      // Wait for the replay iframe to load before selecting the body
       setTimeout(() => {
-        const iframe = document.querySelector(selector) as HTMLIFrameElement;
+        const iframe = document.querySelector<HTMLIFrameElement>(selector)!;
         const body = iframe.contentWindow?.document.body;
         if (body) {
           onLoad(
             beautify.html(body.innerHTML, {
               indent_size: 2,
-              wrap_line_length: 80,
             })
           );
         }
