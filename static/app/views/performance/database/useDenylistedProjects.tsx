@@ -21,7 +21,7 @@ export function useDenylistedProjects(options: Options = {}) {
 
   const projectsToCheck = shouldCheckAllProjects
     ? projects
-    : projects.filter(project => options?.projectId?.includes(project.id.toString()));
+    : projects.filter(project => projectId.includes(project.id.toString()));
 
   const denylistedProjects = projectsToCheck
     .filter(project => {
