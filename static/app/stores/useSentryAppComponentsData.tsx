@@ -1,5 +1,4 @@
 import {useEffect} from 'react';
-import * as Sentry from '@sentry/react';
 
 import SentryAppComponentsStore from 'sentry/stores/sentryAppComponentsStore';
 import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
@@ -33,14 +32,4 @@ export default function useSentryAppComponentsData({projectId}: Props) {
       SentryAppComponentsStore.loadComponents(components);
     }
   }, [components]);
-
-  useEffect(() => {
-    if (!projectId) {
-      Sentry.withScope(scope => {
-        scope.setExtra('orgSlug', organization.slug);
-        scope.setExtra('projectId', projectId);
-        Sentry.captureMessage('Project ID was not set');
-      });
-    }
-  }, [organization.slug, projectId]);
 }
