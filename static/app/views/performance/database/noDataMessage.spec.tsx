@@ -20,7 +20,13 @@ describe('NoDataMessage', () => {
     MockApiClient.clearMockResponses();
     usePageFilters.mockClear();
 
-    ProjectsStore.loadInitialData([Project({name: 'Awesome API', slug: 'awesome-api'})]);
+    ProjectsStore.loadInitialData([
+      Project({
+        name: 'Awesome API',
+        slug: 'awesome-api',
+        features: ['span-metrics-extraction'],
+      }),
+    ]);
 
     usePageFilters.mockImplementation(() => ({
       selection: PageFilters({projects: [2]}),
@@ -31,47 +37,17 @@ describe('NoDataMessage', () => {
     }));
   });
 
-  it('does not show anything while data is loading', async function () {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/sdk-updates/',
-      body: [],
-    });
-
-    const eventsMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: {
-        data: [],
-      },
-    });
-
-    render(<NoDataMessage />);
-
-    await waitFor(() => expect(eventsMock).toHaveBeenCalled());
-
-    expect(
-      screen.queryByText(textWithMarkupMatcher('No queries found.'))
-    ).not.toBeInTheDocument();
-
-    await tick();
+  afterEach(() => {
+    ProjectsStore.reset();
   });
 
-  it('does not show anything if there is recent data', async function () {
+  it('does not show anything if there is recent data', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
     });
 
-    const eventsMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: {
-        data: [{'project.id': 2, 'count()': 1}],
-      },
-    });
-
-    render(<NoDataMessage />);
-
-    await waitFor(() => expect(eventsMock).toHaveBeenCalled());
-    await tick(); // There is no visual indicator, this awaits the promise resolve
+    render(<NoDataMessage isDataAvailable />);
 
     expect(
       screen.queryByText(textWithMarkupMatcher('No queries found.'))
@@ -79,21 +55,13 @@ describe('NoDataMessage', () => {
   });
 
   it('shows a no data message if there is no recent data', async function () {
-    MockApiClient.addMockResponse({
+    const sdkMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
     });
 
-    const eventsMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: {
-        data: [],
-      },
-    });
-
-    render(<NoDataMessage />);
-
-    await waitFor(() => expect(eventsMock).toHaveBeenCalled());
+    render(<NoDataMessage isDataAvailable={false} />);
+    await waitFor(() => expect(sdkMock).toHaveBeenCalled());
     await tick(); // There is no visual indicator, this awaits the promise resolve
 
     expect(
@@ -101,7 +69,7 @@ describe('NoDataMessage', () => {
     ).toBeInTheDocument();
     expect(
       screen.queryByText(
-        textWithMarkupMatcher('You may also be missing data due to outdated SDKs')
+        textWithMarkupMatcher('You may be missing data due to outdated SDKs')
       )
     ).not.toBeInTheDocument();
   });
@@ -112,16 +80,8 @@ describe('NoDataMessage', () => {
       body: [ProjectSdkUpdates({projectId: '2'})],
     });
 
-    const eventsMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: {
-        data: [],
-      },
-    });
+    render(<NoDataMessage isDataAvailable={false} />);
 
-    render(<NoDataMessage />);
-
-    await waitFor(() => expect(eventsMock).toHaveBeenCalled());
     await waitFor(() => expect(sdkMock).toHaveBeenCalled());
     await tick(); // There is no visual indicator, this awaits the promise resolve
 
@@ -130,13 +90,40 @@ describe('NoDataMessage', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        textWithMarkupMatcher('You may also be missing data due to outdated SDKs')
+        textWithMarkupMatcher('You may be missing data due to outdated SDKs')
       )
     ).toBeInTheDocument();
 
     expect(screen.getAllByRole('link')[1]).toHaveAttribute(
       'href',
       '/organizations/org-slug/projects/awesome-api/'
+    );
+  });
+
+  it('shows a list of denylisted projects if any are are set even if data is available', async function () {
+    ProjectsStore.loadInitialData([
+      Project({
+        name: 'Awful API',
+        slug: 'awful-api',
+        features: [],
+      }),
+    ]);
+
+    render(<NoDataMessage isDataAvailable />);
+
+    await tick(); // There is no visual indicator, this awaits the promise resolve
+
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          'Some of your projects have been omitted from query performance analysis'
+        )
+      )
+    ).toBeInTheDocument();
+
+    expect(screen.getAllByRole('link')[0]).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/projects/awful-api/'
     );
   });
 });
