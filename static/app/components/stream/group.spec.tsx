@@ -1,3 +1,5 @@
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -28,7 +30,7 @@ describe('StreamGroup', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
-      body: [TestStubs.Project({slug: 'foo-project'})],
+      body: [ProjectFixture({slug: 'foo-project'})],
     });
     GroupStore.loadInitialData([group1]);
   });

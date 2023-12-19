@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 import {Team} from 'sentry-fixture/team';
 import {TeamAlertsTriggered} from 'sentry-fixture/teamAlertsTriggered';
@@ -20,8 +21,8 @@ jest.mock('sentry/utils/isActiveSuperuser', () => ({
 }));
 
 describe('TeamStatsHealth', () => {
-  const project1 = TestStubs.Project({id: '2', name: 'js', slug: 'js'});
-  const project2 = TestStubs.Project({id: '3', name: 'py', slug: 'py'});
+  const project1 = ProjectFixture({id: '2', name: 'js', slug: 'js'});
+  const project2 = ProjectFixture({id: '3', name: 'py', slug: 'py'});
   const team1 = Team({
     id: '2',
     slug: 'frontend',

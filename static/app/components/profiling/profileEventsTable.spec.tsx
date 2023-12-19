@@ -1,3 +1,5 @@
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -12,7 +14,7 @@ function customEncodeURIComponent(str) {
   });
 }
 
-const project = TestStubs.Project({
+const project = ProjectFixture({
   id: '1',
   slug: 'foo',
 });

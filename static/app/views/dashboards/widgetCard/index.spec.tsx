@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -25,7 +26,7 @@ describe('Dashboards > WidgetCard', function () {
   const {router, organization, routerContext} = initializeOrg({
     organization: Organization({
       features: ['dashboards-edit', 'discover-basic'],
-      projects: [TestStubs.Project()],
+      projects: [ProjectFixture()],
     }),
     router: {orgId: 'orgId'},
   } as Parameters<typeof initializeOrg>[0]);

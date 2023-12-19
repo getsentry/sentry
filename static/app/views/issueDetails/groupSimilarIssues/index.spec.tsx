@@ -1,4 +1,5 @@
 import {Groups} from 'sentry-fixture/groups';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {
@@ -19,7 +20,7 @@ jest.mock('sentry/utils/useNavigate', () => ({
 describe('Issues Similar View', function () {
   let mock;
 
-  const project = TestStubs.Project({
+  const project = ProjectFixture({
     features: ['similarity-view'],
   });
 

@@ -1,5 +1,6 @@
 import {Event as EventFixture} from 'sentry-fixture/event';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {RRWebInitFrameEvents} from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
@@ -35,7 +36,7 @@ jest.mocked(useReplayReader).mockImplementation(() => {
     fetchError: undefined,
     fetching: false,
     onRetry: jest.fn(),
-    projectSlug: TestStubs.Project().slug,
+    projectSlug: ProjectFixture().slug,
     replay: mockReplay,
     replayId: ReplayRecordFixture({}).id,
     replayRecord: ReplayRecordFixture(),
@@ -65,7 +66,7 @@ describe('EventReplay', function () {
   };
 
   beforeEach(function () {
-    const project = TestStubs.Project({platform: 'javascript'});
+    const project = ProjectFixture({platform: 'javascript'});
 
     jest.mocked(useProjects).mockReturnValue({
       fetchError: null,

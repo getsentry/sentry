@@ -1,5 +1,6 @@
 import {GlobalSelection} from 'sentry-fixture/globalSelection';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {GroupStatus} from 'sentry/types';
 import {transformIssuesResponseToTable} from 'sentry/views/dashboards/datasetConfig/issues';
@@ -12,7 +13,7 @@ describe('transformIssuesResponseToTable', function () {
           TestStubs.Group({
             id: '1',
             title: 'Error: Failed',
-            project: TestStubs.Project({
+            project: ProjectFixture({
               id: '3',
             }),
             status: GroupStatus.UNRESOLVED,

@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -194,7 +195,7 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('can remove organization when org admin', async function () {
-    act(() => ProjectsStore.loadInitialData([TestStubs.Project({slug: 'project'})]));
+    act(() => ProjectsStore.loadInitialData([ProjectFixture({slug: 'project'})]));
 
     render(
       <OrganizationGeneralSettings

@@ -1,5 +1,6 @@
 import {Members} from 'sentry-fixture/members';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 import {Team} from 'sentry-fixture/team';
 
@@ -32,7 +33,7 @@ describe('SettingsSearch', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
-      body: [TestStubs.Project({slug: 'foo-project'})],
+      body: [ProjectFixture({slug: 'foo-project'})],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/teams/',

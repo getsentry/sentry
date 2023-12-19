@@ -1,5 +1,6 @@
 import range from 'lodash/range';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -15,7 +16,7 @@ describe('TeamMisery', () => {
   const {routerProps} = initializeOrg();
 
   it('should render misery from projects and expand hidden items', async () => {
-    const project = TestStubs.Project();
+    const project = ProjectFixture();
     const meta = {
       fields: {
         transaction: 'string',
@@ -134,7 +135,7 @@ describe('TeamMisery', () => {
     render(
       <TeamMisery
         organization={Organization()}
-        projects={[TestStubs.Project()]}
+        projects={[ProjectFixture()]}
         period="8w"
         teamId="0"
         {...routerProps}

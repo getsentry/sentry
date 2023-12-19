@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Team} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -44,7 +45,7 @@ describe('OrganizationDetails', function () {
     });
     getProjectsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
-      body: [TestStubs.Project()],
+      body: [ProjectFixture()],
     });
   });
 

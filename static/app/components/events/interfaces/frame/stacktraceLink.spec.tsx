@@ -1,6 +1,7 @@
 import {Commit} from 'sentry-fixture/commit';
 import {Event as EventFixture} from 'sentry-fixture/event';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Repository} from 'sentry-fixture/repository';
 import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
@@ -17,7 +18,7 @@ import {StacktraceLink} from './stacktraceLink';
 describe('StacktraceLink', function () {
   const org = Organization();
   const platform = 'python';
-  const project = TestStubs.Project({});
+  const project = ProjectFixture({});
   const event = EventFixture({
     projectID: project.id,
     release: TestStubs.Release({lastCommit: Commit()}),

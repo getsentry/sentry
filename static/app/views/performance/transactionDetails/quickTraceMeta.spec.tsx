@@ -1,4 +1,5 @@
 import {Event as EventFixture} from 'sentry-fixture/event';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -13,7 +14,7 @@ import QuickTraceMeta from 'sentry/views/performance/transactionDetails/quickTra
 describe('QuickTraceMeta', function () {
   const routerContext = RouterContextFixture();
   const location = routerContext.context.location;
-  const project = TestStubs.Project({platform: 'javascript'});
+  const project = ProjectFixture({platform: 'javascript'});
   const event = EventFixture({contexts: {trace: {trace_id: 'a'.repeat(32)}}});
   const emptyQuickTrace: QuickTraceQueryChildrenProps = {
     isLoading: false,
@@ -186,7 +187,7 @@ describe('QuickTraceMeta', function () {
   });
 
   it('does not render when platform does not support tracing', function () {
-    const newProject = TestStubs.Project();
+    const newProject = ProjectFixture();
     const newEvent = EventFixture();
     const result = render(
       <QuickTraceMeta

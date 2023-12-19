@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
 import moment from 'moment';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {ProjectAlertRule} from 'sentry-fixture/projectAlertRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -13,7 +14,7 @@ import AlertRuleDetails from './ruleDetails';
 describe('AlertRuleDetails', () => {
   const context = initializeOrg();
   const organization = context.organization;
-  const project = TestStubs.Project();
+  const project = ProjectFixture();
   const rule = ProjectAlertRule({
     lastTriggered: moment().subtract(2, 'day').format(),
   });

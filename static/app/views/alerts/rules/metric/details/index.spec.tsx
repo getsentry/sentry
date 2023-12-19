@@ -1,5 +1,6 @@
 import {EventsStats} from 'sentry-fixture/events';
 import {Incident} from 'sentry-fixture/incident';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -12,7 +13,7 @@ import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 jest.mock('sentry/utils/analytics');
 
 describe('MetricAlertDetails', () => {
-  const project = TestStubs.Project({slug: 'earth', platform: 'javascript'});
+  const project = ProjectFixture({slug: 'earth', platform: 'javascript'});
   beforeEach(() => {
     act(() => ProjectsStore.loadInitialData([project]));
     MockApiClient.addMockResponse({

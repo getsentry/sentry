@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {ReplayErrorFixture} from 'sentry-fixture/replayError';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
@@ -19,17 +20,17 @@ describe('ErrorCounts', () => {
     jest.mocked(useProjects).mockReturnValue({
       fetching: false,
       projects: [
-        TestStubs.Project({
+        ProjectFixture({
           id: replayRecord.project_id,
           slug: 'my-js-app',
           platform: 'javascript',
         }),
-        TestStubs.Project({
+        ProjectFixture({
           id: '123123123',
           slug: 'my-py-backend',
           platform: 'python',
         }),
-        TestStubs.Project({
+        ProjectFixture({
           id: '234234234',
           slug: 'my-node-service',
           platform: 'node',

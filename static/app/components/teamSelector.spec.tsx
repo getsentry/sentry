@@ -1,5 +1,6 @@
 import selectEvent from 'react-select-event';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Team} from 'sentry-fixture/team';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -35,7 +36,7 @@ const teamData = [
   },
 ];
 const teams = teamData.map(data => Team(data));
-const project = TestStubs.Project({teams: [teams[0]]});
+const project = ProjectFixture({teams: [teams[0]]});
 const organization = Organization({access: ['project:write']});
 act(() => OrganizationStore.onUpdate(organization, {replace: true}));
 

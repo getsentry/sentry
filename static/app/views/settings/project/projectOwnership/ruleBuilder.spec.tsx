@@ -1,4 +1,5 @@
 import selectEvent from 'react-select-event';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Team} from 'sentry-fixture/team';
 import {User} from 'sentry-fixture/user';
 
@@ -52,7 +53,7 @@ describe('RuleBuilder', function () {
 
     handleAdd = jest.fn();
 
-    project = TestStubs.Project({
+    project = ProjectFixture({
       // Teams in project
       teams: [TEAM_1],
     });

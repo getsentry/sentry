@@ -2,6 +2,7 @@ import {Commit} from 'sentry-fixture/commit';
 import {CommitAuthor} from 'sentry-fixture/commitAuthor';
 import {Event as EventFixture} from 'sentry-fixture/event';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Team} from 'sentry-fixture/team';
 import {User} from 'sentry-fixture/user';
 
@@ -29,7 +30,7 @@ describe('Group > AssignedTo', () => {
   let GROUP_1!: Group;
   let event!: Event;
   let organization!: TOrganization;
-  const project = TestStubs.Project();
+  const project = ProjectFixture();
 
   beforeEach(() => {
     organization = Organization();
@@ -50,7 +51,7 @@ describe('Group > AssignedTo', () => {
       slug: 'cool-team',
     });
 
-    PROJECT_1 = TestStubs.Project({
+    PROJECT_1 = ProjectFixture({
       teams: [TEAM_1],
     });
 

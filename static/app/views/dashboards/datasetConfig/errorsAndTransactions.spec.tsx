@@ -1,3 +1,4 @@
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {User} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -55,7 +56,7 @@ describe('getCustomFieldRenderer', function () {
   });
 
   it('links event ids to event details', async function () {
-    const project = TestStubs.Project();
+    const project = ProjectFixture();
     const customFieldRenderer = getCustomEventsFieldRenderer('id', {});
     render(
       customFieldRenderer(
@@ -66,7 +67,7 @@ describe('getCustomFieldRenderer', function () {
           eventView: new EventView({
             ...baseEventViewOptions,
             fields: [{field: 'id'}],
-            project: [project.id],
+            project: [parseInt(project.id, 10)],
           }),
         }
       ) as React.ReactElement<any, any>,
@@ -83,7 +84,7 @@ describe('getCustomFieldRenderer', function () {
         id: undefined,
         interval: undefined,
         name: undefined,
-        project: [project.id],
+        project: [parseInt(project.id, 10)],
         query: '',
         sort: [],
         topEvents: undefined,
@@ -97,7 +98,7 @@ describe('getCustomFieldRenderer', function () {
   });
 
   it('links << unparameterized >> title/transaction columns to event details', async function () {
-    const project = TestStubs.Project();
+    const project = ProjectFixture();
     const customFieldRenderer = getCustomEventsFieldRenderer('title', {});
     render(
       customFieldRenderer(
@@ -108,7 +109,7 @@ describe('getCustomFieldRenderer', function () {
           eventView: new EventView({
             ...baseEventViewOptions,
             fields: [{field: 'id'}],
-            project: [project.id],
+            project: [parseInt(project.id, 10)],
           }),
         }
       ) as React.ReactElement<any, any>,

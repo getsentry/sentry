@@ -1,3 +1,4 @@
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Team} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -12,7 +13,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     render(
       <ProjectTeamAccess
         organization={organization}
-        project={TestStubs.Project({teams: [Team()]})}
+        project={ProjectFixture({teams: [Team()]})}
       />,
       {context: routerContext}
     );
@@ -25,7 +26,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     render(
       <ProjectTeamAccess
         organization={organization}
-        project={TestStubs.Project({teams: [Team()]})}
+        project={ProjectFixture({teams: [Team()]})}
       />,
       {context: routerContext}
     );
@@ -37,10 +38,9 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
   });
 
   it('display the right empty state with access', function () {
-    render(
-      <ProjectTeamAccess organization={organization} project={TestStubs.Project()} />,
-      {context: routerContext}
-    );
+    render(<ProjectTeamAccess organization={organization} project={ProjectFixture()} />, {
+      context: routerContext,
+    });
 
     expect(screen.getByRole('button', {name: 'Assign Team'})).toHaveAttribute(
       'href',
@@ -52,7 +52,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     render(
       <ProjectTeamAccess
         organization={{...organization, access: []}}
-        project={TestStubs.Project({teams: []})}
+        project={ProjectFixture({teams: []})}
       />,
       {context: routerContext}
     );
@@ -63,7 +63,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     render(
       <ProjectTeamAccess
         organization={organization}
-        project={TestStubs.Project({
+        project={ProjectFixture({
           teams: [
             Team({slug: 'team1'}),
             Team({slug: 'team2'}),
@@ -91,7 +91,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     render(
       <ProjectTeamAccess
         organization={organization}
-        project={TestStubs.Project({
+        project={ProjectFixture({
           teams: [Team({slug: 'c'}), Team({slug: 'z'}), Team({slug: 'a'})],
         })}
       />,

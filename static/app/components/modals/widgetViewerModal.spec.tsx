@@ -1,5 +1,6 @@
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 import {MetricsTotalCountByReleaseIn24h} from 'sentry-fixture/metrics';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -95,7 +96,7 @@ describe('Modals -> WidgetViewerModal', function () {
       router: {
         location: {query: {}},
       },
-      projects: [TestStubs.Project()],
+      projects: [ProjectFixture()],
     });
 
     initialDataWithFlag = {

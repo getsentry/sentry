@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
@@ -9,7 +10,7 @@ import useProjects from 'sentry/utils/useProjects';
 describe('useProjects', function () {
   const org = Organization();
 
-  const mockProjects = [TestStubs.Project()];
+  const mockProjects = [ProjectFixture()];
 
   it('provides projects from the team store', function () {
     reactHooks.act(() => void ProjectsStore.loadInitialData(mockProjects));
@@ -24,8 +25,8 @@ describe('useProjects', function () {
     reactHooks.act(() => void ProjectsStore.loadInitialData(mockProjects));
     reactHooks.act(() => void OrganizationStore.onUpdate(org, {replace: true}));
 
-    const newProject3 = TestStubs.Project({id: '3', slug: 'test-project3'});
-    const newProject4 = TestStubs.Project({id: '4', slug: 'test-project4'});
+    const newProject3 = ProjectFixture({id: '3', slug: 'test-project3'});
+    const newProject4 = ProjectFixture({id: '4', slug: 'test-project4'});
 
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/projects/`,
@@ -62,7 +63,7 @@ describe('useProjects', function () {
     reactHooks.act(() => void ProjectsStore.loadInitialData(mockProjects));
     reactHooks.act(() => void OrganizationStore.onUpdate(org, {replace: true}));
 
-    const projectFoo = TestStubs.Project({id: 3, slug: 'foo'});
+    const projectFoo = ProjectFixture({id: '3', slug: 'foo'});
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/projects/`,
       method: 'GET',

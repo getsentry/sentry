@@ -1,3 +1,4 @@
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {User} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -15,8 +16,8 @@ describe('getIssueFieldRenderer', function () {
     context = initializeOrg({
       organization,
       router: {},
-      project: TestStubs.Project(),
-      projects: [TestStubs.Project()],
+      project: ProjectFixture(),
+      projects: [ProjectFixture()],
     });
     organization = context.organization;
     project = context.project;

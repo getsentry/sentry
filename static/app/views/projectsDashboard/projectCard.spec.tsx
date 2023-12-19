@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
@@ -12,7 +13,7 @@ describe('ProjectCard', function () {
     render(
       <ProjectCard
         organization={Organization()}
-        project={TestStubs.Project({
+        project={ProjectFixture({
           stats: [
             [1525042800, 1],
             [1525046400, 2],
@@ -55,7 +56,7 @@ describe('ProjectCard', function () {
     render(
       <ProjectCard
         organization={Organization()}
-        project={TestStubs.Project({
+        project={ProjectFixture({
           stats: [
             [1525042800, 1],
             [1525046400, 2],
@@ -91,7 +92,7 @@ describe('ProjectCard', function () {
     render(
       <ProjectCard
         organization={Organization()}
-        project={TestStubs.Project({
+        project={ProjectFixture({
           stats: [
             [1525042800, 3],
             [1525046400, 3],
@@ -114,7 +115,7 @@ describe('ProjectCard', function () {
     render(
       <ProjectCard
         organization={Organization({features: ['performance-view']})}
-        project={TestStubs.Project({
+        project={ProjectFixture({
           stats: [
             [1525042800, 3],
             [1525046400, 3],
@@ -139,7 +140,7 @@ describe('ProjectCard', function () {
     render(
       <ProjectCard
         organization={Organization()}
-        project={TestStubs.Project()}
+        project={ProjectFixture()}
         hasProjectAccess={false}
         api={new MockApiClient()}
       />

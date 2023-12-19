@@ -1,5 +1,6 @@
 import {Event as EventFixture} from 'sentry-fixture/event';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -8,12 +9,12 @@ import {EntryType} from 'sentry/types';
 
 describe('Actionable Items', () => {
   const organization = Organization({});
-  const project = TestStubs.Project();
+  const project = ProjectFixture();
 
   const url = `/projects/${organization.slug}/${project.slug}/events/1/actionable-items/`;
 
   const defaultProps = {
-    project: TestStubs.Project(),
+    project: ProjectFixture(),
     event: EventFixture(),
     isShare: false,
   };

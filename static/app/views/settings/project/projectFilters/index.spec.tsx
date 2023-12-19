@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {ProjectFilters as ProjectFiltersFixture} from 'sentry-fixture/projectFilters';
 import {Tombstones} from 'sentry-fixture/tombstones';
 
@@ -299,7 +300,7 @@ describe('ProjectFilters', function () {
   });
 
   it('disables undiscard tombstone for users without project:write', async () => {
-    const discardProject = TestStubs.Project({
+    const discardProject = ProjectFixture({
       ...project,
       features: ['discard-groups'],
     });

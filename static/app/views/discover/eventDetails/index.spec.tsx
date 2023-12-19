@@ -1,5 +1,6 @@
 import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
@@ -16,7 +17,7 @@ describe('Discover > EventDetails', function () {
   );
 
   beforeEach(function () {
-    act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
+    act(() => ProjectsStore.loadInitialData([ProjectFixture()]));
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',

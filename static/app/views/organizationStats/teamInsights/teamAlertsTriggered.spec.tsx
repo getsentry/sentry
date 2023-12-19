@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Team} from 'sentry-fixture/team';
 import {TeamAlertsTriggered as TeamAlertsTriggeredFixture} from 'sentry-fixture/teamAlertsTriggered';
 
@@ -10,7 +11,7 @@ describe('TeamAlertsTriggered', () => {
   it('should render graph of alerts triggered', () => {
     const team = Team();
     const organization = Organization();
-    const project = TestStubs.Project();
+    const project = ProjectFixture();
 
     const alertsTriggeredApi = MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${team.slug}/alerts-triggered/`,

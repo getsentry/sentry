@@ -1,5 +1,6 @@
 import selectEvent from 'react-select-event';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {User} from 'sentry-fixture/user';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -23,14 +24,14 @@ describe('ContextPickerModal', function () {
     ProjectsStore.reset();
     MockApiClient.clearMockResponses();
 
-    project = TestStubs.Project();
+    project = ProjectFixture();
     org = Organization({projects: [project]});
-    project2 = TestStubs.Project({slug: 'project2'});
+    project2 = ProjectFixture({slug: 'project2'});
     org2 = Organization({
       slug: 'org2',
       id: '21',
     });
-    project4 = TestStubs.Project({slug: 'project4', isMember: false});
+    project4 = ProjectFixture({slug: 'project4', isMember: false});
 
     OrganizationsStore.load([]);
     OrganizationStore.reset();
@@ -151,7 +152,7 @@ describe('ContextPickerModal', function () {
       },
       {
         ...org2,
-        projects: [project2, TestStubs.Project({slug: 'project3'})],
+        projects: [project2, ProjectFixture({slug: 'project3'})],
       },
     ];
     const fetchProjectsForOrg = MockApiClient.addMockResponse({

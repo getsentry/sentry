@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -14,13 +15,13 @@ describe('Discover > ChartFooter', function () {
     {label: 'count()', value: 'count()'},
     {label: 'failure_count()', value: 'failure_count()'},
   ];
-  const project = TestStubs.Project();
+  const project = ProjectFixture();
   const eventView = EventView.fromSavedQuery({
     id: '',
     name: 'test query',
     version: 2,
     fields: ['transaction', 'count()'],
-    projects: [project.id],
+    projects: [parseInt(project.id, 10)],
   });
 
   afterEach(function () {});

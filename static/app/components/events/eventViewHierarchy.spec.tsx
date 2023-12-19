@@ -1,6 +1,7 @@
 import {Event as EventFixture} from 'sentry-fixture/event';
 import {EventAttachment} from 'sentry-fixture/eventAttachment';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -56,7 +57,7 @@ describe('Event View Hierarchy', function () {
   let mockProject;
   beforeEach(function () {
     mockAttachment = EventAttachment({type: 'event.view_hierarchy'});
-    mockProject = TestStubs.Project();
+    mockProject = ProjectFixture();
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${mockProject.slug}/events/${event.id}/attachments/`,
       body: [mockAttachment],

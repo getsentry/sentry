@@ -1,4 +1,5 @@
 import {Event as EventFixture} from 'sentry-fixture/event';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -28,7 +29,7 @@ describe('EventEvidence', () => {
   const defaultProps = {
     event,
     group: TestStubs.Group(),
-    project: TestStubs.Project({slug: 'project-slug'}),
+    project: ProjectFixture({slug: 'project-slug'}),
   };
 
   it('renders nothing when evidence display is empty', () => {

@@ -1,3 +1,5 @@
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -23,7 +25,7 @@ const REPLAY_ID_1 = '346789a703f6454384f1de473b8b9fcc';
 const REPLAY_ID_2 = 'b05dae9b6be54d21a4d5ad9f8f02b780';
 
 function init({organizationProps = {features: ['session-replay']}}: InitializeOrgProps) {
-  const mockProject = TestStubs.Project();
+  const mockProject = ProjectFixture();
   const {router, organization, routerContext} = initializeOrg({
     organization: {
       ...organizationProps,

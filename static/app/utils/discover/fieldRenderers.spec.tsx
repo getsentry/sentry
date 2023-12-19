@@ -1,3 +1,4 @@
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {User} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -14,7 +15,7 @@ describe('getFieldRenderer', function () {
 
   beforeEach(function () {
     context = initializeOrg({
-      project: TestStubs.Project(),
+      project: ProjectFixture(),
     });
     organization = context.organization;
     project = context.project;

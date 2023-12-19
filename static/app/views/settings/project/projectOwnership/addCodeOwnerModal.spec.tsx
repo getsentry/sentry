@@ -1,5 +1,6 @@
 import selectEvent from 'react-select-event';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Repository} from 'sentry-fixture/repository';
 import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
 
@@ -15,7 +16,7 @@ import {AddCodeOwnerModal} from 'sentry/views/settings/project/projectOwnership/
 
 describe('AddCodeOwnerModal', function () {
   const org = Organization({features: ['integrations-codeowners']});
-  const project = TestStubs.Project();
+  const project = ProjectFixture();
   const integration = TestStubs.GitHubIntegration();
   const repo = Repository({
     integrationId: integration.id,

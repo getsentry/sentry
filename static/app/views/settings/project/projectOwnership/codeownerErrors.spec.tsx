@@ -1,11 +1,12 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {CodeOwnerErrors} from './codeownerErrors';
 
 describe('CodeownerErrors', () => {
-  const project = TestStubs.Project();
+  const project = ProjectFixture();
   const org = Organization();
 
   it('should render errors', async () => {

@@ -1,4 +1,5 @@
 import {Plugins} from 'sentry-fixture/plugins';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -96,7 +97,7 @@ describe('ProjectReleaseTracking', function () {
   });
 
   it('fetches new plugins when project changes', function () {
-    const newProject = TestStubs.Project({slug: 'new-project'});
+    const newProject = ProjectFixture({slug: 'new-project'});
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${newProject.slug}/releases/token/`,
       method: 'GET',

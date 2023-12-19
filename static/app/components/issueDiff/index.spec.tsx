@@ -1,4 +1,5 @@
 import {Entries123Base, Entries123Target} from 'sentry-fixture/entries';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -10,7 +11,7 @@ describe('IssueDiff', function () {
   const entries123Target = Entries123Target();
   const entries123Base = Entries123Base();
   const api = new MockApiClient();
-  const project = TestStubs.Project();
+  const project = ProjectFixture();
 
   beforeEach(function () {
     MockApiClient.addMockResponse({

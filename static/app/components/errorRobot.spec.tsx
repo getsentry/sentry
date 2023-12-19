@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -25,7 +26,7 @@ describe('ErrorRobot', function () {
 
   describe('with a project', function () {
     function createWrapper() {
-      return render(<ErrorRobot org={Organization()} project={TestStubs.Project()} />, {
+      return render(<ErrorRobot org={Organization()} project={ProjectFixture()} />, {
         context: routerContext,
       });
     }
