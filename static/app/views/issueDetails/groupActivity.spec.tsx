@@ -50,7 +50,14 @@ describe('GroupActivity', function () {
     const group = GroupFixture({
       id: '1337',
       activity: activity ?? [
-        {type: 'note', id: 'note-1', data: {text: 'Test Note'}, user: User()},
+        {
+          type: GroupActivityType.NOTE,
+          id: 'note-1',
+          data: {text: 'Test Note'},
+          dateCreated: '2020-01-01T00:00:00',
+          user: User(),
+          project,
+        },
       ],
       project,
     });
