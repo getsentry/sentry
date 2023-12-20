@@ -5,10 +5,13 @@ import {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
+
+const getInstallSnippet = () => `pip install --upgrade sentry-sdk[django]`;
 
 const getSdkSetupSnippet = (params: Params) => `
 # settings.py
@@ -62,7 +65,7 @@ const onboarding: OnboardingConfig = {
               )}
             </p>
           ),
-          code: 'pip install --upgrade sentry-sdk[django]',
+          code: getInstallSnippet(),
         },
       ],
     },
@@ -137,6 +140,9 @@ urlpatterns = [
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
+  customMetricsOnboarding: getPythonMetricsOnboarding({
+    installSnippet: getInstallSnippet(),
+  }),
 };
 
 export default docs;

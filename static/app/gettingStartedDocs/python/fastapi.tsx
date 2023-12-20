@@ -5,10 +5,13 @@ import {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
+
+const getInstallSnippet = () => `pip install --upgrade sentry-sdk[fastapi]`;
 
 const getSdkSetupSnippet = (params: Params) => `
 from fastapi import FastAPI
@@ -52,7 +55,7 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'bash',
-          code: "pip install --upgrade 'sentry-sdk[fastapi]'",
+          code: getInstallSnippet(),
         },
       ],
     },
@@ -129,6 +132,9 @@ async def trigger_error():
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
+  customMetricsOnboarding: getPythonMetricsOnboarding({
+    installSnippet: getInstallSnippet(),
+  }),
 };
 
 export default docs;
