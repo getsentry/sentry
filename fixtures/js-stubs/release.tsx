@@ -1,8 +1,8 @@
 import {Health, ReleaseStatus, ReleaseWithHealth} from 'sentry/types';
 
 export function Release(
-  params?: Partial<ReleaseWithHealth>,
-  healthParams?: Health
+  params: Partial<ReleaseWithHealth>,
+  healthParams: Health
 ): ReleaseWithHealth {
   return {
     newGroups: 0,
