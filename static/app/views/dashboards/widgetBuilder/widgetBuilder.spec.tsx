@@ -1,6 +1,7 @@
 import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
 import {MetricsField} from 'sentry-fixture/metrics';
+import {Release as ReleaseFixture} from 'sentry-fixture/release';
 import {SessionsField} from 'sentry-fixture/sessions';
 import {Tags} from 'sentry-fixture/tags';
 
@@ -1060,7 +1061,7 @@ describe('WidgetBuilder', function () {
   it('renders page filters in the filter step', async () => {
     const mockReleases = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
-      body: [TestStubs.Release()],
+      body: [ReleaseFixture()],
     });
 
     renderTestComponent({
@@ -1080,7 +1081,7 @@ describe('WidgetBuilder', function () {
   it('appends dashboard filters to widget builder fetch data request', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
-      body: [TestStubs.Release()],
+      body: [ReleaseFixture()],
     });
 
     const mock = MockApiClient.addMockResponse({

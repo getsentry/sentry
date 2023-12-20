@@ -1,3 +1,4 @@
+import {CodeOwner as CodeOwnerFixture} from 'sentry-fixture/codeOwner';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 
@@ -8,7 +9,7 @@ import {CodeOwnerFileTable} from './codeOwnerFileTable';
 describe('CodeOwnerFileTable', () => {
   const organization = Organization();
   const project = ProjectFixture();
-  const codeowner = TestStubs.CodeOwner();
+  const codeowner = CodeOwnerFixture();
 
   it('renders empty', () => {
     const {container} = render(

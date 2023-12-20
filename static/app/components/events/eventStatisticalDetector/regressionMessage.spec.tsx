@@ -1,4 +1,5 @@
 import {Event as MockEvent} from 'sentry-fixture/event';
+import {Group as GroupFixture} from 'sentry-fixture/group';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -44,7 +45,7 @@ describe('Regression message', () => {
       },
     });
 
-    const mockGroup = TestStubs.Group({
+    const mockGroup = GroupFixture({
       issueType: IssueType.PERFORMANCE_DURATION_REGRESSION,
     });
 
@@ -78,7 +79,7 @@ describe('Regression message', () => {
       },
     });
 
-    const mockGroup = TestStubs.Group({
+    const mockGroup = GroupFixture({
       issueType: IssueType.PERFORMANCE_DURATION_REGRESSION,
     });
 

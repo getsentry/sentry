@@ -1,4 +1,5 @@
 import selectEvent from 'react-select-event';
+import {Release as ReleaseFixture} from 'sentry-fixture/release';
 
 import {
   render,
@@ -140,7 +141,7 @@ describe('ResolveActions', function () {
     const onUpdate = jest.fn();
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/releases/',
-      body: [TestStubs.Release()],
+      body: [ReleaseFixture()],
     });
     render(<ResolveActions hasRelease projectSlug="project-slug" onUpdate={onUpdate} />);
     renderGlobalModal();

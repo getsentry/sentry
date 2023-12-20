@@ -1,3 +1,4 @@
+import {Member as MemberFixture} from 'sentry-fixture/member';
 import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -15,7 +16,7 @@ jest.mock('sentry/actionCreators/modal', () => ({
 describe('OrganizationMembersWrapper', function () {
   const {routerProps} = initializeOrg();
 
-  const member = TestStubs.Member();
+  const member = MemberFixture();
   const organization = Organization({
     features: ['invite-members'],
     access: ['member:admin', 'org:admin', 'member:write'],

@@ -1,3 +1,4 @@
+import {Member as MemberFixture} from 'sentry-fixture/member';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 import {User} from 'sentry-fixture/user';
 
@@ -9,7 +10,7 @@ describe('MemberBadge', function () {
   let member;
   const routerContext = RouterContextFixture();
   beforeEach(() => {
-    member = TestStubs.Member();
+    member = MemberFixture();
   });
 
   it('renders with link when member and orgId are supplied', function () {

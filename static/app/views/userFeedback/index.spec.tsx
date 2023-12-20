@@ -1,3 +1,4 @@
+import {Environments as EnvironmentsFixture} from 'sentry-fixture/environments';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {UserFeedback as UserFeedbackFixture} from 'sentry-fixture/userFeedback';
@@ -35,7 +36,7 @@ describe('UserFeedback', function () {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/environments/',
-      body: TestStubs.Environments(),
+      body: EnvironmentsFixture(),
     });
   });
 

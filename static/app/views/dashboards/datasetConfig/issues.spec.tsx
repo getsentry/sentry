@@ -1,4 +1,5 @@
 import {GlobalSelection} from 'sentry-fixture/globalSelection';
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 
@@ -10,7 +11,7 @@ describe('transformIssuesResponseToTable', function () {
     expect(
       transformIssuesResponseToTable(
         [
-          TestStubs.Group({
+          GroupFixture({
             id: '1',
             title: 'Error: Failed',
             project: ProjectFixture({

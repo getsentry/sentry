@@ -1,8 +1,13 @@
 import {browserHistory} from 'react-router';
 import moment from 'moment';
+import {Group as GroupFixture} from 'sentry-fixture/group';
+import {Member as MemberFixture} from 'sentry-fixture/member';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {ProjectAlertRule} from 'sentry-fixture/projectAlertRule';
+import {
+  ProjectAlertRule,
+  ProjectAlertRule as ProjectAlertRuleFixture,
+} from 'sentry-fixture/projectAlertRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -18,7 +23,7 @@ describe('AlertRuleDetails', () => {
   const rule = ProjectAlertRule({
     lastTriggered: moment().subtract(2, 'day').format(),
   });
-  const member = TestStubs.Member();
+  const member = MemberFixture();
 
   const createWrapper = (props: any = {}, newContext?: any, org = organization) => {
     const router = newContext ? newContext.router : context.router;
@@ -56,7 +61,7 @@ describe('AlertRuleDetails', () => {
       body: [
         {
           count: 1,
-          group: TestStubs.Group(),
+          group: GroupFixture(),
           lastTriggered: moment('Apr 11, 2019 1:08:59 AM UTC').format(),
           eventId: 'eventId',
         },
@@ -97,7 +102,7 @@ describe('AlertRuleDetails', () => {
       expect.stringMatching(
         RegExp(
           `/organizations/${organization.slug}/issues/${
-            TestStubs.Group().id
+            GroupFixture().id
           }/events/eventId.*`
         )
       )
@@ -161,7 +166,7 @@ describe('AlertRuleDetails', () => {
   });
 
   it('renders incompatible rule filter', async () => {
-    const incompatibleRule = TestStubs.ProjectAlertRule({
+    const incompatibleRule = ProjectAlertRuleFixture({
       conditions: [
         {id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition'},
         {id: 'sentry.rules.conditions.regression_event.RegressionEventCondition'},
@@ -347,7 +352,7 @@ describe('AlertRuleDetails', () => {
 
   it('inserts user email into rule notify action', async () => {
     // Alert rule with "send a notification to member" action
-    const sendNotificationRule = TestStubs.ProjectAlertRule({
+    const sendNotificationRule = ProjectAlertRuleFixture({
       actions: [
         {
           id: 'sentry.mail.actions.NotifyEmailAction',

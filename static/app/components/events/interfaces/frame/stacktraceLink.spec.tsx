@@ -1,7 +1,9 @@
 import {Commit} from 'sentry-fixture/commit';
 import {Event as EventFixture} from 'sentry-fixture/event';
+import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {Release as ReleaseFixture} from 'sentry-fixture/release';
 import {Repository} from 'sentry-fixture/repository';
 import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
@@ -21,10 +23,10 @@ describe('StacktraceLink', function () {
   const project = ProjectFixture({});
   const event = EventFixture({
     projectID: project.id,
-    release: TestStubs.Release({lastCommit: Commit()}),
+    release: ReleaseFixture({lastCommit: Commit()}),
     platform,
   });
-  const integration = TestStubs.GitHubIntegration();
+  const integration = GitHubIntegrationFixture();
   const repo = Repository({integrationId: integration.id});
 
   const frame = {filename: '/sentry/app.py', lineNo: 233} as Frame;

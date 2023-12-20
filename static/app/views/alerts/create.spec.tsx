@@ -1,4 +1,5 @@
 import selectEvent from 'react-select-event';
+import {Environments as EnvironmentsFixture} from 'sentry-fixture/environments';
 import {Groups} from 'sentry-fixture/groups';
 import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
@@ -52,7 +53,7 @@ describe('ProjectAlertsCreate', function () {
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/environments/',
-      body: TestStubs.Environments(),
+      body: EnvironmentsFixture(),
     });
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/project-slug/?expand=hasAlertIntegration`,

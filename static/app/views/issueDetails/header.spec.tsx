@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Team} from 'sentry-fixture/team';
@@ -20,7 +21,7 @@ describe('groupDetails', () => {
     const defaultProps = {
       organization,
       baseUrl,
-      group: TestStubs.Group({issueCategory: IssueCategory.ERROR}),
+      group: GroupFixture({issueCategory: IssueCategory.ERROR}),
       groupReprocessingStatus: ReprocessingStatus.NO_STATUS,
       project,
     };
@@ -34,7 +35,7 @@ describe('groupDetails', () => {
         platform: 'javascript',
       });
 
-      const MOCK_GROUP = TestStubs.Group();
+      const MOCK_GROUP = GroupFixture();
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/replay-count/`,
@@ -88,7 +89,7 @@ describe('groupDetails', () => {
     const defaultProps = {
       organization,
       baseUrl,
-      group: TestStubs.Group({issueCategory: IssueCategory.ERROR}),
+      group: GroupFixture({issueCategory: IssueCategory.ERROR}),
       groupReprocessingStatus: ReprocessingStatus.NO_STATUS,
       project,
     };
@@ -102,7 +103,7 @@ describe('groupDetails', () => {
         platform: 'apple-ios',
       });
 
-      const MOCK_GROUP = TestStubs.Group();
+      const MOCK_GROUP = GroupFixture();
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/replay-count/`,
@@ -132,7 +133,7 @@ describe('groupDetails', () => {
     const defaultProps = {
       organization,
       baseUrl,
-      group: TestStubs.Group({issueCategory: IssueCategory.PERFORMANCE}),
+      group: GroupFixture({issueCategory: IssueCategory.PERFORMANCE}),
       groupReprocessingStatus: ReprocessingStatus.NO_STATUS,
       project,
     };
@@ -146,7 +147,7 @@ describe('groupDetails', () => {
         features: ['similarity-view'],
       });
 
-      const MOCK_GROUP = TestStubs.Group({issueCategory: IssueCategory.PERFORMANCE});
+      const MOCK_GROUP = GroupFixture({issueCategory: IssueCategory.PERFORMANCE});
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/replay-count/`,

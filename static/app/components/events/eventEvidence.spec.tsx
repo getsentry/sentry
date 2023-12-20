@@ -1,4 +1,5 @@
 import {Event as EventFixture} from 'sentry-fixture/event';
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -28,7 +29,7 @@ describe('EventEvidence', () => {
 
   const defaultProps = {
     event,
-    group: TestStubs.Group(),
+    group: GroupFixture(),
     project: ProjectFixture({slug: 'project-slug'}),
   };
 

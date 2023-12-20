@@ -1,3 +1,4 @@
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Organization} from 'sentry-fixture/organization';
 import {Team} from 'sentry-fixture/team';
 
@@ -25,7 +26,7 @@ describe('TeamIssuesAge', () => {
     });
     const issuesApi = MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${team.slug}/issues/old/`,
-      body: [TestStubs.Group()],
+      body: [GroupFixture()],
     });
     render(<TeamIssuesAge organization={organization} teamSlug={team.slug} />);
 

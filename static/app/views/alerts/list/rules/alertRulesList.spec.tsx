@@ -3,7 +3,10 @@ import LocationFixture from 'sentry-fixture/locationFixture';
 import {MetricRule} from 'sentry-fixture/metricRule';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {ProjectAlertRule} from 'sentry-fixture/projectAlertRule';
+import {
+  ProjectAlertRule,
+  ProjectAlertRule as ProjectAlertRuleFixture,
+} from 'sentry-fixture/projectAlertRule';
 import {Team} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -176,7 +179,7 @@ describe('AlertRulesList', () => {
       url: '/organizations/org-slug/combined-rules/',
       headers: {Link: pageLinks},
       body: [
-        TestStubs.ProjectAlertRule({
+        ProjectAlertRuleFixture({
           id: '123',
           name: deletedRuleName,
           projects: ['earth'],

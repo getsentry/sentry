@@ -1,4 +1,5 @@
 import {Event as EventFixture} from 'sentry-fixture/event';
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 
@@ -10,7 +11,7 @@ describe('IssueQuickTrace', () => {
   const defaultProps = {
     organization: Organization({features: ['performance-view']}),
     event: EventFixture({contexts: {trace: {trace_id: 100}}}),
-    group: TestStubs.Group(),
+    group: GroupFixture(),
     location: LocationFixture(),
   };
 

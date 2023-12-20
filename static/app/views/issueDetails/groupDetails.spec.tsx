@@ -1,4 +1,7 @@
+import {Config as ConfigFixture} from 'sentry-fixture/config';
+import {Environments as EnvironmentsFixture} from 'sentry-fixture/environments';
 import {Event as EventFixture} from 'sentry-fixture/event';
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import LocationFixture from 'sentry-fixture/locationFixture';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Team} from 'sentry-fixture/team';
@@ -21,7 +24,7 @@ const SAMPLE_EVENT_ALERT_TEXT =
   'You are viewing a sample error. Configure Sentry to start viewing real errors.';
 
 describe('groupDetails', () => {
-  const group = TestStubs.Group({issueCategory: IssueCategory.ERROR});
+  const group = GroupFixture({issueCategory: IssueCategory.ERROR});
   const event = EventFixture();
   const project = ProjectFixture({teams: [Team()]});
 
@@ -144,7 +147,7 @@ describe('groupDetails', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/environments/`,
-      body: TestStubs.Environments(),
+      body: EnvironmentsFixture(),
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/tags/`,
@@ -319,7 +322,7 @@ describe('groupDetails', () => {
   });
 
   it('uses /latest endpoint when default is set to latest', async function () {
-    ConfigStore.loadInitialData(TestStubs.Config({user: latestUser}));
+    ConfigStore.loadInitialData(ConfigFixture({user: latestUser}));
     const latestMock = MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/latest/`,
       statusCode: 200,
@@ -332,7 +335,7 @@ describe('groupDetails', () => {
   });
 
   it('uses /oldest endpoint when default is set to oldest', async function () {
-    ConfigStore.loadInitialData(TestStubs.Config({user: oldestUser}));
+    ConfigStore.loadInitialData(ConfigFixture({user: oldestUser}));
     const oldestMock = MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/oldest/`,
       statusCode: 200,
@@ -345,7 +348,7 @@ describe('groupDetails', () => {
   });
 
   it('uses /recommended endpoint when default is set to recommended', async function () {
-    ConfigStore.loadInitialData(TestStubs.Config({user: recommendedUser}));
+    ConfigStore.loadInitialData(ConfigFixture({user: recommendedUser}));
     const recommendedMock = MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/recommended/`,
       statusCode: 200,

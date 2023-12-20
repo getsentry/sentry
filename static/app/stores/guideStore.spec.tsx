@@ -1,3 +1,4 @@
+import {Config as ConfigFixture} from 'sentry-fixture/config';
 import {User} from 'sentry-fixture/user';
 
 import ConfigStore from 'sentry/stores/configStore';
@@ -12,7 +13,7 @@ describe('GuideStore', function () {
 
   beforeEach(function () {
     jest.clearAllMocks();
-    ConfigStore.config = TestStubs.Config({
+    ConfigStore.config = ConfigFixture({
       user: User({
         id: '5',
         isSuperuser: false,

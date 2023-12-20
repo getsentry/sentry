@@ -1,3 +1,4 @@
+import {Config as ConfigFixture} from 'sentry-fixture/config';
 import {User} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -15,7 +16,7 @@ describe('DateTime', () => {
   });
 
   beforeAll(() => {
-    ConfigStore.loadInitialData(TestStubs.Config({user}));
+    ConfigStore.loadInitialData(ConfigFixture({user}));
   });
 
   it('renders a date', () => {

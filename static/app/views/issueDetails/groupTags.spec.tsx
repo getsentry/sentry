@@ -1,3 +1,4 @@
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Tags} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -8,7 +9,7 @@ import GroupTags from 'sentry/views/issueDetails/groupTags';
 
 describe('GroupTags', function () {
   const {routerProps, routerContext, router, organization} = initializeOrg();
-  const group = TestStubs.Group();
+  const group = GroupFixture();
   let tagsMock;
   beforeEach(function () {
     tagsMock = MockApiClient.addMockResponse({

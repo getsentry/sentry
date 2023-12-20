@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {Member as MemberFixture} from 'sentry-fixture/member';
 import {Organization} from 'sentry-fixture/organization';
 import {Team} from 'sentry-fixture/team';
 
@@ -14,7 +15,7 @@ describe('TeamAccessRequestModal', function () {
 
   const closeModal = jest.fn();
   const orgId = Organization().slug;
-  const memberId = TestStubs.Member().id;
+  const memberId = MemberFixture().id;
   const teamId = Team().slug;
 
   const styledWrapper = styled(c => c.children);

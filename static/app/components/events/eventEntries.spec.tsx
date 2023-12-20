@@ -1,4 +1,6 @@
 import {Event as EventFixture} from 'sentry-fixture/event';
+import {EventEntry as EventEntryFixture} from 'sentry-fixture/eventEntry';
+import {EventEntryDebugMeta as EventEntryDebugMetaFixture} from 'sentry-fixture/eventEntryDebugMeta';
 import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
@@ -36,7 +38,7 @@ describe('EventEntries', function () {
       <EventEntries
         {...defaultProps}
         event={EventFixture({
-          entries: [TestStubs.EventEntry(), TestStubs.EventEntryDebugMeta()],
+          entries: [EventEntryFixture(), EventEntryDebugMetaFixture()],
           contexts: {
             replay_id: 1,
           },
