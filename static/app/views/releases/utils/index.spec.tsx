@@ -29,7 +29,7 @@ describe('releases/utils', () => {
     });
 
     it('there is no last session/event, it fallbacks to now', () => {
-      expect(getReleaseBounds(ReleaseFixture({lastEvent: null}))).toEqual({
+      expect(getReleaseBounds(ReleaseFixture({lastEvent: undefined}))).toEqual({
         releaseStart: '2020-03-23T01:02:00Z',
         releaseEnd: '2017-10-17T02:41:59Z',
         type: 'normal',
@@ -86,7 +86,7 @@ describe('releases/utils', () => {
         getReleaseBounds(
           ReleaseFixture({
             dateCreated: '2010-05-17T02:41:20Z',
-            lastEvent: null,
+            lastEvent: undefined,
           })
         )
       ).toEqual({
