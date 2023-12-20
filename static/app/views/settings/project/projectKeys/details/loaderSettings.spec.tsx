@@ -1,5 +1,5 @@
 import selectEvent from 'react-select-event';
-import {ProjectKeys, ProjectKeys as ProjectKeysFixture} from 'sentry-fixture/projectKeys';
+import {ProjectKeys} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -51,7 +51,7 @@ describe('Loader Script Settings', function () {
     });
 
     const data = {
-      ...ProjectKeysFixture()[0],
+      ...TestStubs.ProjectKeys()[0],
       dynamicSdkLoaderOptions,
     } as ProjectKey;
 
@@ -102,7 +102,7 @@ describe('Loader Script Settings', function () {
     };
 
     const data = {
-      ...(ProjectKeysFixture()[0] as ProjectKey),
+      ...(TestStubs.ProjectKeys()[0] as ProjectKey),
       dynamicSdkLoaderOptions,
     } as ProjectKey;
 
@@ -168,7 +168,7 @@ describe('Loader Script Settings', function () {
     };
 
     const data = {
-      ...(ProjectKeysFixture()[0] as ProjectKey),
+      ...(TestStubs.ProjectKeys()[0] as ProjectKey),
       dynamicSdkLoaderOptions: fullDynamicSdkLoaderOptions,
     } as ProjectKey;
 
@@ -216,7 +216,7 @@ describe('Loader Script Settings', function () {
     };
 
     const data = {
-      ...(ProjectKeysFixture()[0] as ProjectKey),
+      ...(TestStubs.ProjectKeys()[0] as ProjectKey),
       dynamicSdkLoaderOptions: {
         hasPerformance: false,
         hasReplay: false,
@@ -263,7 +263,7 @@ describe('Loader Script Settings', function () {
     };
 
     const data = {
-      ...(ProjectKeysFixture()[0] as ProjectKey),
+      ...(TestStubs.ProjectKeys()[0] as ProjectKey),
       dynamicSdkLoaderOptions: fullDynamicSdkLoaderOptions,
     } as ProjectKey;
 
