@@ -10,7 +10,6 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
-import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import {TabList} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -20,6 +19,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import HasMeasurementsQuery from 'sentry/utils/performance/vitals/hasMeasurementsQuery';
 import {isProfilingSupportedOrProjectHasProfiles} from 'sentry/utils/profiling/platforms';
+import useReplayCountForTransactions from 'sentry/utils/replayCount/useReplayCountForTransactions';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
@@ -110,10 +110,8 @@ function TransactionHeader({
     [hasWebVitals, location, projects, eventView]
   );
 
-  const replaysCount = useReplaysCount({
-    transactionNames: transactionName,
-    organization,
-  })[transactionName];
+  const {getReplayCountForTransaction} = useReplayCountForTransactions();
+  const replaysCount = getReplayCountForTransaction(transactionName);
 
   return (
     <Layout.Header>

@@ -9,7 +9,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
-import IssuesReplayCountProvider from 'sentry/components/replays/issuesReplayCountProvider';
 import {t} from 'sentry/locale';
 import GroupingStore, {SimilarItem} from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
@@ -134,8 +133,6 @@ function SimilarStackTrace({params, location, project}: Props) {
   const hasSimilarItems =
     hasSimilarityFeature && (items.similar.length > 0 || items.filtered.length > 0);
 
-  const groupsIds = items.similar.concat(items.filtered).map(({issue}) => issue.id);
-
   return (
     <Layout.Body>
       <Layout.Main fullWidth>
@@ -162,17 +159,15 @@ function SimilarStackTrace({params, location, project}: Props) {
           </Panel>
         )}
         {status === 'ready' && hasSimilarItems && (
-          <IssuesReplayCountProvider groupIds={groupsIds}>
-            <List
-              items={items.similar}
-              filteredItems={items.filtered}
-              onMerge={handleMerge}
-              orgId={orgId}
-              project={project}
-              groupId={groupId}
-              pageLinks={items.pageLinks}
-            />
-          </IssuesReplayCountProvider>
+          <List
+            items={items.similar}
+            filteredItems={items.filtered}
+            onMerge={handleMerge}
+            orgId={orgId}
+            project={project}
+            groupId={groupId}
+            pageLinks={items.pageLinks}
+          />
         )}
       </Layout.Main>
     </Layout.Body>

@@ -11,7 +11,6 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
-import ReplayIdCountProvider from 'sentry/components/replays/replayIdCountProvider';
 import {Tooltip} from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import {IconStack} from 'sentry/icons';
@@ -596,7 +595,7 @@ function TableView(props: TableViewProps) {
     );
   }
 
-  const {error, eventView, isLoading, location, organization, tableData} = props;
+  const {error, eventView, isLoading, location, tableData} = props;
 
   const columnOrder = eventView.getColumns();
   const columnSortBy = eventView.getSorts();
@@ -607,28 +606,24 @@ function TableView(props: TableViewProps) {
     ? []
     : [`minmax(${COL_WIDTH_MINIMUM}px, max-content)`];
 
-  const replayIds = tableData?.data?.map(row => String(row.replayId)).filter(Boolean);
-
   return (
-    <ReplayIdCountProvider organization={organization} replayIds={replayIds}>
-      <GridEditable
-        isLoading={isLoading}
-        error={error}
-        data={tableData ? tableData.data : []}
-        columnOrder={columnOrder}
-        columnSortBy={columnSortBy}
-        title={t('Results')}
-        grid={{
-          renderHeadCell: _renderGridHeaderCell as any,
-          renderBodyCell: _renderGridBodyCell as any,
-          onResizeColumn: _resizeColumn as any,
-          renderPrependColumns: _renderPrependColumns as any,
-          prependColumnWidths,
-        }}
-        headerButtons={renderHeaderButtons}
-        location={location}
-      />
-    </ReplayIdCountProvider>
+    <GridEditable
+      isLoading={isLoading}
+      error={error}
+      data={tableData ? tableData.data : []}
+      columnOrder={columnOrder}
+      columnSortBy={columnSortBy}
+      title={t('Results')}
+      grid={{
+        renderHeadCell: _renderGridHeaderCell as any,
+        renderBodyCell: _renderGridBodyCell as any,
+        onResizeColumn: _resizeColumn as any,
+        renderPrependColumns: _renderPrependColumns as any,
+        prependColumnWidths,
+      }}
+      headerButtons={renderHeaderButtons}
+      location={location}
+    />
   );
 }
 

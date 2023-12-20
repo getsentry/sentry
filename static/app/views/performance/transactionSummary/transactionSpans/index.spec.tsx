@@ -63,6 +63,10 @@ describe('Performance > Transaction Spans', function () {
       url: '/organizations/org-slug/events-span-ops/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replay-count/',
+      body: {},
+    });
   });
 
   afterEach(function () {

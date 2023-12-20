@@ -303,6 +303,11 @@ describe('Performance GridEditable Table', function () {
   });
 
   it('renders replay id', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replay-count/',
+      body: {},
+    });
+
     const initialData = initializeData();
 
     fields = [...fields, 'replayId'];

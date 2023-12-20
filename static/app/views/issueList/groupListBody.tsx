@@ -2,7 +2,6 @@ import {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelBody from 'sentry/components/panels/panelBody';
-import IssuesReplayCountProvider from 'sentry/components/replays/issuesReplayCountProvider';
 import StreamGroup from 'sentry/components/stream/group';
 import GroupStore from 'sentry/stores/groupStore';
 import {Group} from 'sentry/types';
@@ -73,16 +72,14 @@ function GroupListBody({
   }
 
   return (
-    <IssuesReplayCountProvider groupIds={groupIds}>
-      <GroupList
-        groupIds={groupIds}
-        memberList={memberList}
-        query={query}
-        sort={sort}
-        displayReprocessingLayout={displayReprocessingLayout}
-        groupStatsPeriod={groupStatsPeriod}
-      />
-    </IssuesReplayCountProvider>
+    <GroupList
+      groupIds={groupIds}
+      memberList={memberList}
+      query={query}
+      sort={sort}
+      displayReprocessingLayout={displayReprocessingLayout}
+      groupStatsPeriod={groupStatsPeriod}
+    />
   );
 }
 

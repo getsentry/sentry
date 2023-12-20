@@ -7,7 +7,6 @@ import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelTable from 'sentry/components/panels/panelTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import ReplayIdCountProvider from 'sentry/components/replays/replayIdCountProvider';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -221,35 +220,32 @@ class TransactionsTable extends PureComponent<Props> {
   }
 
   render() {
-    const {isLoading, organization, tableData} = this.props;
+    const {isLoading, tableData} = this.props;
 
     const hasResults =
       tableData && tableData.data && tableData.meta && tableData.data.length > 0;
-    const replayIds = tableData?.data?.map(row => row.replayId);
 
     // Custom set the height so we don't have layout shift when results are loaded.
     const loader = <LoadingIndicator style={{margin: '70px auto'}} />;
 
     return (
-      <ReplayIdCountProvider organization={organization} replayIds={replayIds}>
-        <VisuallyCompleteWithData
-          id="TransactionsTable"
-          hasData={hasResults}
+      <VisuallyCompleteWithData
+        id="TransactionsTable"
+        hasData={hasResults}
+        isLoading={isLoading}
+      >
+        <PanelTable
+          data-test-id="transactions-table"
+          isEmpty={!hasResults}
+          emptyMessage={t('No transactions found')}
+          headers={this.renderHeader()}
           isLoading={isLoading}
+          disablePadding
+          loader={loader}
         >
-          <PanelTable
-            data-test-id="transactions-table"
-            isEmpty={!hasResults}
-            emptyMessage={t('No transactions found')}
-            headers={this.renderHeader()}
-            isLoading={isLoading}
-            disablePadding
-            loader={loader}
-          >
-            {this.renderResults()}
-          </PanelTable>
-        </VisuallyCompleteWithData>
-      </ReplayIdCountProvider>
+          {this.renderResults()}
+        </PanelTable>
+      </VisuallyCompleteWithData>
     );
   }
 }

@@ -120,6 +120,10 @@ const setupMockApiResponeses = () => {
         options.query?.query.includes('transaction.duration:<=500'), // 500 refers to p50 value
     ],
   });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/replay-count/',
+    body: {},
+  });
 };
 
 const initializeData = (settings?: InitializeDataSettings) => {

@@ -134,6 +134,10 @@ describe('Performance > Transaction Tags', function () {
       url: '/prompts-activity/',
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replay-count/',
+      body: {},
+    });
   });
 
   afterEach(function () {
