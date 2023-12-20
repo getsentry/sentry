@@ -397,6 +397,7 @@ const customMetricBackendPlatforms: readonly PlatformKey[] = [
   'python-tryton',
   'python-wsgi',
   'python-serverless',
+  'rust',
 ];
 
 const customMetricFrontendPlatforms: readonly PlatformKey[] = [

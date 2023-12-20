@@ -1,7 +1,7 @@
 import {useEffect, useMemo, useState} from 'react';
 import first from 'lodash/first';
+import partition from 'lodash/partition';
 
-import {splitProjectsByReplaySupport} from 'sentry/components/replaysOnboarding/utils';
 import {
   customMetricOnboardingPlatforms,
   customMetricPlatforms,
@@ -16,18 +16,17 @@ export function useCurrentProjectState({isActive}: {isActive: boolean}) {
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const {selection, isReady} = useLegacyStore(PageFiltersStore);
 
-  const projectsWithCustomMetricSupport = useMemo(
-    () => projects.filter(p => p.platform && customMetricPlatforms.has(p.platform)),
-    [projects]
-  );
+  const [supportedProjects, unsupportedProjects] = useMemo(() => {
+    return partition(projects, p => p.platform && customMetricPlatforms.has(p.platform));
+  }, [projects]);
 
   // Projects where we have the onboarding instructions ready:
   const projectsWithOnboarding = useMemo(
     () =>
-      projectsWithCustomMetricSupport.filter(
+      supportedProjects.filter(
         p => p.platform && customMetricOnboardingPlatforms.has(p.platform)
       ),
-    [projectsWithCustomMetricSupport]
+    [supportedProjects]
   );
 
   useEffect(() => {
@@ -41,7 +40,7 @@ export function useCurrentProjectState({isActive}: {isActive: boolean}) {
       return;
     }
 
-    if (!projectsWithCustomMetricSupport) {
+    if (!supportedProjects) {
       return;
     }
 
@@ -57,7 +56,7 @@ export function useCurrentProjectState({isActive}: {isActive: boolean}) {
       }
 
       // If we selected something that supports custom metrics pick that
-      const projectSupportsMetrics = projectsWithCustomMetricSupport.find(p =>
+      const projectSupportsMetrics = supportedProjects.find(p =>
         selectedProjectIds.includes(p.id)
       );
       if (projectSupportsMetrics) {
@@ -68,9 +67,7 @@ export function useCurrentProjectState({isActive}: {isActive: boolean}) {
       const firstSelectedProject = projects.find(p => selectedProjectIds.includes(p.id));
       setCurrentProject(firstSelectedProject);
     } else {
-      setCurrentProject(
-        first(projectsWithOnboarding) || first(projectsWithCustomMetricSupport)
-      );
+      setCurrentProject(first(projectsWithOnboarding) || first(supportedProjects));
     }
   }, [
     currentProject,
@@ -80,21 +77,17 @@ export function useCurrentProjectState({isActive}: {isActive: boolean}) {
     isActive,
     selection.projects,
     projectsWithOnboarding,
-    projectsWithCustomMetricSupport,
+    supportedProjects,
   ]);
 
-  const {supported, unsupported} = useMemo(() => {
-    return splitProjectsByReplaySupport(projects);
-  }, [projects]);
-
   return {
-    projects: projectsWithCustomMetricSupport,
+    projects: supportedProjects,
     hasDocs:
       !!currentProject?.platform &&
       customMetricOnboardingPlatforms.has(currentProject.platform),
     allProjects: projects,
-    supportedProjects: supported,
-    unsupportedProjects: unsupported,
+    supportedProjects,
+    unsupportedProjects,
     currentProject,
     setCurrentProject,
   };
