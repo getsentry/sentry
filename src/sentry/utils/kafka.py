@@ -11,12 +11,14 @@ logger = logging.getLogger(__name__)
 
 def delay_kafka_rebalance(configured_delay: int) -> None:
     """
-    get current time.
-    get the seconds part of the current time.
-
-    get the seconds delay to sleep from an option.
-
-    and then continue to sleep for 0.5 seconds until you get to the exact second when you want to start/stop the app.
+    Introduces a configurable delay to the consumer topic
+    subscription and consumer shutdown steps (handled by the
+    StreamProcessor). The idea behind is that by forcing
+    these steps to occur at certain time "ticks" (for example, at
+    every 15 second tick in a minute), we can reduce the number of
+    rebalances that are triggered during a deploy. This means
+    fewer "stop the world rebalancing" occurrences and more time
+    for the consumer group to stabilize and make progress.
     """
     now = float(datetime.now().strftime("%S.%f"))
 
