@@ -26,7 +26,6 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.json import JSONData
-from src.sentry.tasks.integrations.github.open_pr_comment import PullRequestFile
 from tests.sentry.tasks.integrations.github.test_pr_comment import GithubCommentTestCase
 
 pytestmark = [requires_snuba]
