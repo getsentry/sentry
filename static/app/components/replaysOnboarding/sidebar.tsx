@@ -243,6 +243,11 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     isPlatformSupported: isPlatformSupported(currentPlatform),
   });
 
+  const defaultTab =
+    currentProject && currentProject.platform && backend.includes(currentProject.platform)
+      ? 'jsLoader'
+      : 'npm';
+
   if (isLoading) {
     return <LoadingIndicator />;
   }
@@ -330,9 +335,9 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           projectId={currentProject.id}
           activeProductSelection={[]}
           configType={
-            setupMode() === 'jsLoader'
-              ? 'replayOnboardingJsLoader'
-              : 'replayOnboardingNpm'
+            setupMode() === 'npm' || defaultTab === 'npm'
+              ? 'replayOnboardingNpm'
+              : 'replayOnboardingJsLoader'
           }
         />
       ) : (
