@@ -1853,10 +1853,20 @@ register(
 )
 
 # org IDs for which we want to avoid using the unsampled profiles for function metrics.
-# This will let us selectively disable the behaviour for orgs that may have an extremely
-# high volume increase
+# This will let us selectively disable the behaviour for entire orgs that may have an
+# extremely high volume increase
 register(
     "profiling.profile_metrics.unsampled_profiles.excluded_org_ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# project IDs for which we want to avoid using the unsampled profiles for function metrics.
+# This will let us selectively disable the behaviour for project that may have an extremely
+# high volume increase
+register(
+    "profiling.profile_metrics.unsampled_profiles.excluded_project_ids",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
