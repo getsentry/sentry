@@ -199,7 +199,7 @@ def safe_for_comment(
     return filtered_pr_files
 
 
-def get_pr_filenames_and_patches(pr_files: List[Dict[str, str]]) -> List[PullRequestFile]:
+def get_pr_files(pr_files: List[Dict[str, str]]) -> List[PullRequestFile]:
     # new files will not have sentry issues associated with them
     # only fetch Python files
     pullrequest_files = [
@@ -385,7 +385,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         )
         return
 
-    pullrequest_files = get_pr_filenames_and_patches(pr_files)
+    pullrequest_files = get_pr_files(pr_files)
 
     issue_table_contents = {}
     top_issues_per_file = []
