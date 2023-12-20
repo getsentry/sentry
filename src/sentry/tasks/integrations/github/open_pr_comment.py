@@ -3,6 +3,7 @@ from __future__ import annotations
 import itertools
 import logging
 import re
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Set, Tuple
 
@@ -42,6 +43,13 @@ from sentry.utils.snuba import raw_snql_query
 logger = logging.getLogger(__name__)
 
 OPEN_PR_METRICS_BASE = "github_open_pr_comment.{key}"
+
+
+@dataclass
+class PullRequestFile:
+    filename: str
+    patch: str
+
 
 # Caps the number of files that can be modified in a PR to leave a comment
 OPEN_PR_MAX_FILES_CHANGED = 7
@@ -191,15 +199,16 @@ def safe_for_comment(
     return filtered_pr_files
 
 
-def get_pr_filenames_and_patches(pr_files: List[Dict[str, str]]) -> Tuple[List[str], List[str]]:
+def get_pr_filenames_and_patches(pr_files: List[Dict[str, str]]) -> List[PullRequestFile]:
     # new files will not have sentry issues associated with them
     # only fetch Python files
-    pr_filenames: List[str] = [file["filename"] for file in pr_files]
-    patches: List[str] = [file["patch"] for file in pr_files]
+    pullrequest_files = [
+        PullRequestFile(filename=file["filename"], patch=file["patch"]) for file in pr_files
+    ]
 
-    logger.info("github.open_pr_comment.pr_filenames", extra={"count": len(pr_filenames)})
+    logger.info("github.open_pr_comment.pr_filenames", extra={"count": len(pullrequest_files)})
 
-    return pr_filenames, patches
+    return pullrequest_files
 
 
 # currently Python only
@@ -376,20 +385,20 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         )
         return
 
-    pr_filenames, patches = get_pr_filenames_and_patches(pr_files)
+    pullrequest_files = get_pr_filenames_and_patches(pr_files)
 
     issue_table_contents = {}
     top_issues_per_file = []
 
     # fetch issues related to the files
-    for i, pr_filename in enumerate(pr_filenames):
+    for file in pullrequest_files:
         projects, sentry_filenames = get_projects_and_filenames_from_source_file(
-            org_id, pr_filename
+            org_id, file.filename
         )
         if not len(projects) or not len(sentry_filenames):
             continue
 
-        function_names = get_file_functions(patches[i])
+        function_names = get_file_functions(file.patch)
 
         if not len(function_names):
             continue
@@ -402,7 +411,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
 
         top_issues_per_file.append(top_issues)
 
-        issue_table_contents[pr_filename] = get_issue_table_contents(top_issues)
+        issue_table_contents[file.filename] = get_issue_table_contents(top_issues)
 
     if not len(issue_table_contents):
         logger.info("github.open_pr_comment.no_issues")
@@ -414,7 +423,8 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     # format issues per file into comment
     issue_tables = []
     first_table = True
-    for pr_filename in pr_filenames:
+    for file in pullrequest_files:
+        pr_filename = file.filename
         issue_table_content = issue_table_contents.get(pr_filename, None)
 
         if issue_table_content is None:

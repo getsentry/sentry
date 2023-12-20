@@ -25,6 +25,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.json import JSONData
+from src.sentry.tasks.integrations.github.open_pr_comment import PullRequestFile
 from tests.sentry.tasks.integrations.github.test_pr_comment import GithubCommentTestCase
 
 pytestmark = [requires_snuba]
@@ -243,9 +244,11 @@ class TestGetFilenames(GithubCommentTestCase):
             {"filename": "baz.py", "status": "deleted", "patch": "c"},
         ]
 
-        pr_filenames, patches = get_pr_filenames_and_patches(data)
-        assert pr_filenames == ["bar.py", "baz.py"]
-        assert patches == ["b", "c"]
+        pr_files = get_pr_filenames_and_patches(data)
+        for i, pr_file in enumerate(pr_files):
+            file = data[i]
+            assert pr_file.filename == file["filename"]
+            assert pr_file.patch == file["patch"]
 
     def test_get_projects_and_filenames_from_source_file(self):
         projects = [self.create_project() for _ in range(4)]
@@ -632,7 +635,10 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         mock_pr_filenames,
     ):
         # two filenames, the second one has a toggle table
-        mock_pr_filenames.return_value = (["foo.py", "bar.py"], ["a", "b"])
+        mock_pr_filenames.return_value = [
+            PullRequestFile(filename="foo.py", patch="a"),
+            PullRequestFile(filename="bar.py", patch="b"),
+        ]
         mock_reverse_codemappings.return_value = ([self.project], ["foo.py"])
         mock_function_names.return_value = ["world", "planet"]
 
@@ -680,7 +686,10 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         mock_pr_filenames,
     ):
         # two filenames, the second one has a toggle table
-        mock_pr_filenames.return_value = (["foo.py", "bar.py"], ["a", "b"])
+        mock_pr_filenames.return_value = [
+            PullRequestFile(filename="foo.py", patch="a"),
+            PullRequestFile(filename="bar.py", patch="b"),
+        ]
         mock_reverse_codemappings.return_value = ([self.project], ["foo.py"])
         mock_function_names.return_value = ["world", "planet"]
 
@@ -740,7 +749,9 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         )
 
         mock_safe_for_comment.return_value = [{}]
-        mock_pr_filenames.return_value = (["foo.py"], ["a"])
+        mock_pr_filenames.return_value = [
+            PullRequestFile(filename="foo.py", patch="a"),
+        ]
         # no codemappings
         mock_reverse_codemappings.return_value = ([], [])
 
@@ -789,7 +800,9 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         mock_reverse_codemappings,
         mock_pr_filenames,
     ):
-        mock_pr_filenames.return_value = (["foo.py"], ["a"])
+        mock_pr_filenames.return_value = [
+            PullRequestFile(filename="foo.py", patch="a"),
+        ]
         mock_reverse_codemappings.return_value = ([self.project], ["foo.py"])
         mock_function_names.return_value = ["world"]
 
