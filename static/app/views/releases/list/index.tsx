@@ -129,7 +129,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
       if (selection.projects.length) {
         thresholdQuery.project = selection.projects;
       } else {
-        thresholdQuery.project = [-1];
+        thresholdQuery.project = [ALL_ACCESS_PROJECTS];
       }
       if (selection.environments.length) {
         thresholdQuery.environment = selection.environments;
@@ -287,8 +287,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
     return thresholds.filter(
       threshold =>
         projectSlugs.includes(threshold.project.slug) &&
-        (lastDeploy && lastDeploy.environment) ===
-          (threshold.environment && threshold.environment.name)
+        lastDeploy?.environment === threshold.environment?.name
     );
   }
 
