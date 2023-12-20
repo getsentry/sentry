@@ -574,18 +574,18 @@ Your pull request is modifying functions with the following pre-existing issues:
 
 | Function | Issue  |
 | :------- | :----- |
-| `function_0` | [**file1 0**](http://testserver/organizations/baz/issues/0/?referrer=github-open-pr-bot) subtitle0 <br> `Handled:` **True** `Event Count:` **5k** `Users:` **5k** |
-| `function_1` | [**file1 1**](http://testserver/organizations/baz/issues/1/?referrer=github-open-pr-bot) subtitle1 <br> `Handled:` **True** `Event Count:` **4k** `Users:` **4k** |
-| `function_2` | [**file1 2**](http://testserver/organizations/baz/issues/2/?referrer=github-open-pr-bot) subtitle2 <br> `Handled:` **True** `Event Count:` **3k** `Users:` **3k** |
-| `function_3` | [**file1 3**](http://testserver/organizations/baz/issues/3/?referrer=github-open-pr-bot) subtitle3 <br> `Handled:` **True** `Event Count:` **2k** `Users:` **2k** |
-| `function_4` | [**file1 4**](http://testserver/organizations/baz/issues/4/?referrer=github-open-pr-bot) subtitle4 <br> `Handled:` **True** `Event Count:` **1k** `Users:` **1k** |
+| **`function_0`** | [**file1 0**](http://testserver/organizations/baz/issues/0/?referrer=github-open-pr-bot) subtitle0 <br> `Handled:` **True** `Event Count:` **5k** |
+| **`function_1`** | [**file1 1**](http://testserver/organizations/baz/issues/1/?referrer=github-open-pr-bot) subtitle1 <br> `Handled:` **True** `Event Count:` **4k** |
+| **`function_2`** | [**file1 2**](http://testserver/organizations/baz/issues/2/?referrer=github-open-pr-bot) subtitle2 <br> `Handled:` **True** `Event Count:` **3k** |
+| **`function_3`** | [**file1 3**](http://testserver/organizations/baz/issues/3/?referrer=github-open-pr-bot) subtitle3 <br> `Handled:` **True** `Event Count:` **2k** |
+| **`function_4`** | [**file1 4**](http://testserver/organizations/baz/issues/4/?referrer=github-open-pr-bot) subtitle4 <br> `Handled:` **True** `Event Count:` **1k** |
 <details>
 <summary><b>📄 File: tests/sentry/tasks/integrations/github/test_pr_comment.py (Click to Expand)</b></summary>
 
 | Function | Issue  |
 | :------- | :----- |
-| `function_0` | [**SoftTimeLimitExceeded 0**](http://testserver/organizations/baz/issues/5/?referrer=github-open-pr-bot) sentry.tasks.low_priority... <br> `Handled:` **False** `Event Count:` **20k** `Users:` **20k** |
-| `function_1` | [**SoftTimeLimitExceeded 1**](http://testserver/organizations/baz/issues/6/?referrer=github-open-pr-bot) sentry.tasks.low_priority... <br> `Handled:` **False** `Event Count:` **10k** `Users:` **10k** |
+| **`function_0`** | [**SoftTimeLimitExceeded 0**](http://testserver/organizations/baz/issues/5/?referrer=github-open-pr-bot) sentry.tasks.low_priority... <br> `Handled:` **False** `Event Count:` **20k** |
+| **`function_1`** | [**SoftTimeLimitExceeded 1**](http://testserver/organizations/baz/issues/6/?referrer=github-open-pr-bot) sentry.tasks.low_priority... <br> `Handled:` **False** `Event Count:` **10k** |
 </details>
 ---
 
@@ -678,7 +678,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
         assert (
             responses.calls[0].request.body
-            == f'{{"body": "## \\ud83d\\udd0d Existing Sentry Issues - For Review\\nYour pull request is modifying functions with the following pre-existing issues:\\n\\n\\ud83d\\udcc4 File: **foo.py**\\n\\n| Function | Issue  |\\n| :------- | :----- |\\n| `function_1` | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_2}/?referrer=github-open-pr-bot) issue2 <br> `Handled:` **False** `Event Count:` **2k** `Users:` **6** |\\n| `function_0` | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_1}/?referrer=github-open-pr-bot) issue1 <br> `Handled:` **False** `Event Count:` **1k** `Users:` **5** |\\n<details>\\n<summary><b>\\ud83d\\udcc4 File: bar.py (Click to Expand)</b></summary>\\n\\n| Function | Issue  |\\n| :------- | :----- |\\n| `function_1` | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_2}/?referrer=github-open-pr-bot) issue2 <br> `Handled:` **False** `Event Count:` **2k** `Users:` **6** |\\n| `function_0` | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_1}/?referrer=github-open-pr-bot) issue1 <br> `Handled:` **False** `Event Count:` **1k** `Users:` **5** |\\n</details>\\n---\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e or let us know in #proj-github-pr-comments</sub>"}}'.encode()
+            == f'{{"body": "## \\ud83d\\udd0d Existing Sentry Issues - For Review\\nYour pull request is modifying functions with the following pre-existing issues:\\n\\n\\ud83d\\udcc4 File: **foo.py**\\n\\n| Function | Issue  |\\n| :------- | :----- |\\n| **`function_1`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_2}/?referrer=github-open-pr-bot) issue2 <br> `Handled:` **False** `Event Count:` **2k** |\\n| **`function_0`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_1}/?referrer=github-open-pr-bot) issue1 <br> `Handled:` **False** `Event Count:` **1k** |\\n<details>\\n<summary><b>\\ud83d\\udcc4 File: bar.py (Click to Expand)</b></summary>\\n\\n| Function | Issue  |\\n| :------- | :----- |\\n| **`function_1`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_2}/?referrer=github-open-pr-bot) issue2 <br> `Handled:` **False** `Event Count:` **2k** |\\n| **`function_0`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_1}/?referrer=github-open-pr-bot) issue1 <br> `Handled:` **False** `Event Count:` **1k** |\\n</details>\\n---\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e or let us know in #proj-github-pr-comments</sub>"}}'.encode()
         )
 
         pull_request_comment_query = PullRequestComment.objects.all()
