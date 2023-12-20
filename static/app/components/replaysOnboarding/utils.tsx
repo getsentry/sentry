@@ -1,6 +1,7 @@
 import partition from 'lodash/partition';
 
-import {replayPlatforms} from 'sentry/data/platformCategories';
+import {replayFrontendPlatforms, replayPlatforms} from 'sentry/data/platformCategories';
+import platforms from 'sentry/data/platforms';
 import {PlatformIntegration, PlatformKey, Project} from 'sentry/types';
 
 export function generateDocKeys(platform: PlatformKey): string[] {
@@ -25,3 +26,7 @@ export function splitProjectsByReplaySupport(projects: Project[]) {
     unsupported,
   };
 }
+
+export const replayJsFrameworkOptions: PlatformIntegration[] = platforms.filter(p =>
+  replayFrontendPlatforms.includes(p.id)
+);
