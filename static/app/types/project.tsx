@@ -46,22 +46,27 @@ export type Project = {
   relayPiiConfig: string;
   resolveAge: number;
   safeFields: string[];
+  scrapeJavaScript: boolean;
+  scrubIPAddresses: boolean;
   sensitiveFields: string[];
-  subjectPrefix: string;
   subjectTemplate: string;
   team: Team;
   teams: Team[];
+  verifySSL: boolean;
   builtinSymbolSources?: string[];
   hasUserReports?: boolean;
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   latestRelease?: {version: string} | null;
   options?: Record<string, boolean | string>;
+  securityToken?: string;
+  securityTokenHeader?: string;
   sessionStats?: {
     currentCrashFreeRate: number | null;
     hasHealthData: boolean;
     previousCrashFreeRate: number | null;
   };
   stats?: TimeseriesValue[];
+  subjectPrefix?: string;
   symbolSources?: string;
   transactionStats?: TimeseriesValue[];
 } & AvatarProject;

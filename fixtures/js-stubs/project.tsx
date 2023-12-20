@@ -40,10 +40,12 @@ export function Project(params: Partial<TProject> = {}): TProject {
     processingIssues: 0,
     relayPiiConfig: '',
     resolveAge: 0,
-    subjectTemplate: '',
-    subjectPrefix: '',
-    sensitiveFields: [],
     safeFields: [],
+    scrapeJavaScript: true,
+    scrubIPAddresses: false,
+    sensitiveFields: [],
+    subjectTemplate: '',
+    verifySSL: false,
     ...params,
   };
 }
