@@ -1,10 +1,12 @@
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+
 import {PlatformIntegration} from 'sentry/types';
 
 import {generateDocKeys, isPlatformSupported} from './utils';
 
 describe('performanceOnboarding/utils/generateDocKeys()', () => {
   it('should generate the correct onboarding keys for a React project', () => {
-    const project = TestStubs.Project({
+    const project = ProjectFixture({
       platform: 'javascript-react',
       firstTransactionEvent: false,
     });
@@ -19,7 +21,7 @@ describe('performanceOnboarding/utils/generateDocKeys()', () => {
   });
 
   it('should generate the correct onboarding keys for an Angular project', () => {
-    const project = TestStubs.Project({
+    const project = ProjectFixture({
       platform: 'javascript-angular',
       firstTransactionEvent: false,
     });
@@ -34,7 +36,7 @@ describe('performanceOnboarding/utils/generateDocKeys()', () => {
   });
 
   it('should generate the correct onboarding keys for an Elixir project', () => {
-    const project = TestStubs.Project({
+    const project = ProjectFixture({
       platform: 'elixir',
       firstTransactionEvent: false,
     });

@@ -1,5 +1,6 @@
 import {Actor} from 'sentry-fixture/actor';
 import {Event as EventFixture} from 'sentry-fixture/event';
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Tags} from 'sentry-fixture/tags';
 import {Team} from 'sentry-fixture/team';
 
@@ -17,7 +18,7 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import GroupSidebar from './groupSidebar';
 
 describe('GroupSidebar', function () {
-  let group = TestStubs.Group({tags: Tags()});
+  let group = GroupFixture({tags: Tags()});
   const {organization, project} = initializeOrg();
   const environment = 'production';
   let tagsMock: jest.Mock;
@@ -162,7 +163,7 @@ describe('GroupSidebar', function () {
 
   describe('renders without tags', function () {
     beforeEach(function () {
-      group = TestStubs.Group();
+      group = GroupFixture();
 
       MockApiClient.addMockResponse({
         url: '/organization/org-slug/issues/1/',
@@ -240,7 +241,7 @@ describe('GroupSidebar', function () {
 
   describe('displays mobile tags when issue platform is mobile', function () {
     beforeEach(function () {
-      group = TestStubs.Group();
+      group = GroupFixture();
 
       MockApiClient.addMockResponse({
         url: '/issues/1/',
