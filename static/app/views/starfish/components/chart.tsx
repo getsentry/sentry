@@ -407,7 +407,9 @@ function Chart({
                 tooltip={areaChartProps.tooltip}
                 colors={colors}
                 grid={grid}
-                legend={showLegend ? {top: 0, right: 10} : undefined}
+                legend={
+                  showLegend ? {top: 0, right: 10, formatter: legendFormatter} : undefined
+                }
                 onClick={onClick}
                 onMouseOut={onMouseOut}
                 onMouseOver={onMouseOver}

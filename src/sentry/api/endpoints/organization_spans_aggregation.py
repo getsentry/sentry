@@ -28,7 +28,6 @@ EventSpan = namedtuple(
         "is_segment",
         "parent_span_id",
         "group",
-        "group_raw",
         "description",
         "op",
         "start_timestamp",
@@ -238,7 +237,6 @@ class AggregateNodestoreSpans(BaseAggregateSpans):
                 "is_segment": True,
                 "parent_span_id": None,
                 "group": event["contexts"]["trace"]["hash"],
-                "group_raw": event["contexts"]["trace"]["hash"],
                 "description": event["transaction"],
                 "op": event["contexts"]["trace"]["op"],
                 "start_timestamp_ms": event["start_timestamp"]
@@ -261,7 +259,6 @@ class AggregateNodestoreSpans(BaseAggregateSpans):
                         "parent_span_id": span["parent_span_id"],
                         "group": span.get("sentry_tags", {}).get("group")
                         or span.get("data", {}).get("span.group", NULL_GROUP),
-                        "group_raw": span["hash"],
                         "description": span.get("sentry_tags", {}).get("description", ""),
                         "op": span.get("op", ""),
                         "start_timestamp_ms": span["start_timestamp"]
@@ -348,7 +345,6 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
                                 Column("is_segment"),
                                 Column("parent_span_id"),
                                 Column("group"),
-                                Column("group_raw"),
                                 Column("description"),
                                 Column("op"),
                                 Column("start_timestamp"),

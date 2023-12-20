@@ -1,3 +1,5 @@
+import {AvailableNotificationActions as AvailableNotificationActionsFixture} from 'sentry-fixture/availableNotificationActions';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -12,7 +14,7 @@ import type {NotificationAction} from 'sentry/types';
 
 describe('Adds, deletes, and updates notification actions', function () {
   const {project, organization} = initializeOrg();
-  const availableActions = TestStubs.AvailableNotificationActions().actions;
+  const availableActions = AvailableNotificationActionsFixture().actions;
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/notifications/available-actions/`,
     body: availableActions,
