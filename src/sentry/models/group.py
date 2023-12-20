@@ -342,7 +342,8 @@ class GroupManager(BaseManager["Group"]):
         return groups
 
     def from_kwargs(self, project, **kwargs):
-        from sentry.event_manager import EventManager, HashDiscarded
+        from sentry.event_manager import EventManager
+        from sentry.exceptions import HashDiscarded
 
         manager = EventManager(kwargs)
         manager.normalize()

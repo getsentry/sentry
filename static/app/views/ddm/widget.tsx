@@ -82,6 +82,7 @@ export const MetricWidget = memo(
               powerUserMode={widget.powerUserMode}
             />
             <MetricWidgetContextMenu
+              widgetIndex={index}
               metricsQuery={metricsQuery}
               displayType={widget.displayType}
             />

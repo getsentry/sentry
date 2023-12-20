@@ -96,7 +96,7 @@ export function TimeSpentInDatabaseWidgetEmptyStateWarning() {
     <StyledEmptyStateWarning>
       <PrimaryMessage>{t('No results found')}</PrimaryMessage>
       <SecondaryMessage>
-        <NoDataMessage Wrapper={Fragment} />
+        <NoDataMessage Wrapper={Fragment} isDataAvailable={false} />
       </SecondaryMessage>
     </StyledEmptyStateWarning>
   );

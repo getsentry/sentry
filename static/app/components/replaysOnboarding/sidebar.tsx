@@ -1,5 +1,6 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, ReactNode, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {PlatformIcon} from 'platformicons';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
@@ -13,13 +14,16 @@ import useCurrentProjectState from 'sentry/components/replaysOnboarding/useCurre
 import {
   generateDocKeys,
   isPlatformSupported,
+  replayJsFrameworkOptions,
 } from 'sentry/components/replaysOnboarding/utils';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {DocumentationWrapper} from 'sentry/components/sidebar/onboardingStep';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import {CommonSidebarProps, SidebarPanelKey} from 'sentry/components/sidebar/types';
+import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {
+  backend,
   replayJsLoaderInstructionsPlatformList,
   replayPlatforms,
 } from 'sentry/data/platformCategories';
@@ -27,7 +31,7 @@ import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
-import {Project, SelectValue} from 'sentry/types';
+import {PlatformKey, Project, SelectValue} from 'sentry/types';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -98,20 +102,25 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
     ];
   }, [supportedProjects, unsupportedProjects]);
 
+  const showLoaderInstructions =
+    currentProject &&
+    currentProject.platform &&
+    replayJsLoaderInstructionsPlatformList.includes(currentProject.platform);
+
+  const defaultTab =
+    currentProject && currentProject.platform && backend.includes(currentProject.platform)
+      ? 'jsLoader'
+      : 'npm';
+
   const {getParamValue: setupMode, setParamValue: setSetupMode} = useUrlParams(
     'mode',
-    'npm' // this default  needs to be changed later. for backend platforms, should default to jsLoader
+    defaultTab
   );
 
   const selectedProject = currentProject ?? projects[0] ?? allProjects[0];
   if (!isActive || !hasProjectAccess || !selectedProject) {
     return null;
   }
-
-  const showLoaderInstructions =
-    currentProject &&
-    currentProject.platform &&
-    replayJsLoaderInstructionsPlatformList.includes(currentProject.platform);
 
   return (
     <TaskSidebarPanel
@@ -182,11 +191,37 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
 }
 
 function OnboardingContent({currentProject}: {currentProject: Project}) {
+  const jsFrameworkSelectOptions = replayJsFrameworkOptions.map(platform => {
+    return {
+      value: platform.id,
+      textValue: platform.name,
+      label: (
+        <PlatformLabel>
+          <PlatformIcon platform={platform.id} size={16} />
+          <TextOverflow>{platform.name}</TextOverflow>
+        </PlatformLabel>
+      ),
+    };
+  });
+
   const api = useApi();
   const organization = useOrganization();
   const previousProject = usePrevious(currentProject);
   const [received, setReceived] = useState<boolean>(false);
   const {getParamValue: setupMode} = useUrlParams('mode');
+  const [jsFramework, setJsFramework] = useState<{
+    value: PlatformKey;
+    label?: ReactNode;
+    textValue?: string;
+  }>(jsFrameworkSelectOptions[0]);
+
+  const newOnboarding = organization.features.includes('session-replay-new-zero-state');
+  const showJsFrameworkInstructions =
+    newOnboarding &&
+    currentProject &&
+    currentProject.platform &&
+    backend.includes(currentProject.platform) &&
+    setupMode() === 'npm';
 
   useEffect(() => {
     if (previousProject.id !== currentProject.id) {
@@ -199,8 +234,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     : undefined;
 
   const docKeys = useMemo(() => {
-    return currentPlatform ? generateDocKeys(currentPlatform.id) : [];
-  }, [currentPlatform]);
+    return currentPlatform && !newOnboarding ? generateDocKeys(currentPlatform.id) : [];
+  }, [currentPlatform, newOnboarding]);
 
   const {docContents, isLoading, hasOnboardingContents} = useOnboardingDocs({
     project: currentProject,
@@ -238,7 +273,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     );
   }
 
-  if (!currentPlatform || !hasOnboardingContents) {
+  if (!currentPlatform || (!hasOnboardingContents && !newOnboarding)) {
     return (
       <Fragment>
         <div>
@@ -260,8 +295,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     );
   }
 
-  const newOnboarding = organization.features.includes('session-replay-new-zero-state');
-
   return (
     <Fragment>
       <IntroText>
@@ -269,10 +302,29 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           `Adding Session Replay to your [platform] project is simple. Make sure you've got these basics down.`,
           {platform: currentPlatform?.name || currentProject.slug}
         )}
+        {showJsFrameworkInstructions ? (
+          <PlatformSelect>
+            {t('Select your JS Framework: ')}
+            <CompactSelect
+              triggerLabel={jsFramework.label}
+              value={jsFramework.value}
+              onChange={v => {
+                setJsFramework(v);
+              }}
+              options={jsFrameworkSelectOptions}
+              position="bottom-end"
+            />
+          </PlatformSelect>
+        ) : null}
       </IntroText>
       {newOnboarding ? (
         <SdkDocumentation
-          platform={currentPlatform}
+          platform={
+            showJsFrameworkInstructions
+              ? replayJsFrameworkOptions.find(p => p.id === jsFramework.value) ??
+                replayJsFrameworkOptions[0]
+              : currentPlatform
+          }
           organization={organization}
           projectSlug={currentProject.slug}
           projectId={currentProject.id}
@@ -337,6 +389,8 @@ function OnboardingStepV2({step, content}: OnboardingStepV2Props) {
 
 const IntroText = styled('div')`
   padding-top: ${space(3)};
+  display: grid;
+  gap: ${space(1)};
 `;
 
 const OnboardingStepContainer = styled('div')`
@@ -435,6 +489,19 @@ const HeaderActions = styled('div')`
 
 const StyledTooltip = styled(Tooltip)`
   ${p => p.theme.overflowEllipsis};
+`;
+
+const PlatformLabel = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+`;
+
+const PlatformSelect = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+  padding-bottom: ${space(1)};
 `;
 
 export default ReplaysOnboardingSidebar;

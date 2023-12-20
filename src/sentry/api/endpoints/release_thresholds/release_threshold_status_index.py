@@ -29,9 +29,11 @@ from sentry.utils import metrics
 logger = logging.getLogger("sentry.release_threshold_status")
 
 if TYPE_CHECKING:
+    from sentry.models.deploy import Deploy
     from sentry.models.organization import Organization
     from sentry.models.project import Project
     from sentry.models.release_threshold.release_threshold import ReleaseThreshold
+    from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 
 
 class SerializedThreshold(TypedDict):
@@ -114,11 +116,12 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                     project_slug,
                     environment,
                     ...,
-                    key: {release}-{proj}-{env},
+                    key: {release}-{proj},
                     release_version: '',
                     is_healthy: True/False,
                     start: datetime,
                     end: datetime,
+                    metric_value: int,
                 },
                 {...},
                 {...}
@@ -138,7 +141,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         # STEP 1: Validate request data
         #
         # NOTE: start/end parameters determine window to query for releases
-        # This is NOT the window to query for event data - nor the individual threshold windows
+        # This is NOT the window to query snuba for event data - nor the individual threshold windows
         # ========================================================================
         data = request.data if len(request.GET) == 0 and hasattr(request, "data") else request.GET
         start: datetime
@@ -165,8 +168,6 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
 
         # ========================================================================
         # Step 2: Fetch releases, prefetch projects & release_thresholds
-        # NOTE: we're only filtering on date ADDED
-        # This is not synonymous with a deploy... which may be what we actually want.
         # ========================================================================
         release_query = Q(organization=organization, date_added__gte=start, date_added__lte=end)
         if environments_list:
@@ -190,9 +191,10 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
             .order_by("-date")
             .distinct()
         )
-        queryset.prefetch_related(
-            "projects__release_thresholds"
-        )  # maybe prefetch "deploy_set" as well?
+        # prefetching the release_thresholds via the projects model
+        queryset.prefetch_related("projects__release_thresholds__environment")
+        queryset.prefetch_related("releaseprojectenvironment_set")
+        queryset.prefetch_related("deploy_set")
 
         logger.info(
             "Fetched releases",
@@ -213,18 +215,23 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
             # TODO:
             # We should update release model to preserve threshold states.
             # if release.failed_thresholds/passed_thresholds exists - then skip calculating and just return thresholds
-            if project_slug_list:
-                project_list = release.projects.filter(slug__in=project_slug_list)
-            else:
-                project_list = release.projects.all()
+            project_list = [
+                p
+                for p in release.projects.all()
+                if (project_slug_list and p.slug in project_slug_list) or (not project_slug_list)
+            ]
 
             for project in project_list:
-                if environments_list:
-                    thresholds_list: List[ReleaseThreshold] = project.release_thresholds.filter(
-                        environment__name__in=environments_list
+                thresholds_list: List[ReleaseThreshold] = [
+                    t
+                    for t in project.release_thresholds.all()
+                    if (
+                        environments_list
+                        and t.environment
+                        and t.environment.name in environments_list
                     )
-                else:
-                    thresholds_list = project.release_thresholds.all()
+                    or (not environments_list)
+                ]
 
                 for threshold in thresholds_list:
                     if threshold.threshold_type not in thresholds_by_type:
@@ -240,12 +247,43 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                             "start": datetime.now(tz=timezone.utc),
                             "end": datetime.now(tz=timezone.utc),
                         }
+
+                    latest_deploy: Deploy | None = None
+                    if threshold.environment:
+                        # NOTE: if a threshold has no environment set, we monitor from start of the release creation
+                        # If a deploy does not exist for the thresholds environment, we monitor from start of release creation
+                        # ReleaseProjectEnvironment model
+                        rpe_entry: ReleaseProjectEnvironment | None = next(
+                            (
+                                rpe
+                                for rpe in release.releaseprojectenvironment_set.all()
+                                if rpe.environment == threshold.environment
+                                and rpe.project == project
+                            ),
+                            None,
+                        )
+                        if rpe_entry:
+                            last_deploy_id = rpe_entry.last_deploy_id
+                            latest_deploy = next(
+                                (
+                                    deploy
+                                    for deploy in release.deploy_set.all()
+                                    if deploy.id == last_deploy_id
+                                ),
+                                None,
+                            )
+
                     # NOTE: query window starts at the earliest release up until the latest threshold window
+                    if latest_deploy:
+                        threshold_start = latest_deploy.date_finished
+                    else:
+                        threshold_start = release.date
+
                     query_windows_by_type[threshold.threshold_type]["start"] = min(
-                        release.date, query_windows_by_type[threshold.threshold_type]["start"]
+                        threshold_start, query_windows_by_type[threshold.threshold_type]["start"]
                     )
                     query_windows_by_type[threshold.threshold_type]["end"] = max(
-                        release.date + timedelta(seconds=threshold.window_in_seconds),
+                        threshold_start + timedelta(seconds=threshold.window_in_seconds),
                         query_windows_by_type[threshold.threshold_type]["end"],
                     )
                     # NOTE: enriched threshold is SERIALIZED
@@ -255,8 +293,8 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                     enriched_threshold.update(
                         {
                             "key": self.construct_threshold_key(release=release, project=project),
-                            "start": release.date,  # deploy.date_finished _would_ be more accurate, but is not keyed on project so cannot be used
-                            "end": release.date
+                            "start": threshold_start,
+                            "end": threshold_start
                             + timedelta(
                                 seconds=threshold.window_in_seconds
                             ),  # start + threshold.window
@@ -285,7 +323,9 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                 Iterate through timeseries given threshold window and determine health status
 
                 NOTE: Timeseries query start & end are determined by API param window (_not_ threshold window)
+                    derived from fetched releases (earliest start & latest end)
                     IF the param window doesn't cover the full threshold window, results will be inaccurate
+
                 TODO: If too many results, then throw an error and request user to narrow their search window
                 """
                 query_window = query_windows_by_type[threshold_type]

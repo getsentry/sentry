@@ -272,13 +272,13 @@ export default class RequestLog extends DeprecatedAsyncComponent<Props, State> {
 
         <PaginationButtons>
           <Button
-            icon={<IconChevron direction="left" size="sm" />}
+            icon={<IconChevron direction="left" />}
             onClick={this.handlePrevPage}
             disabled={!this.hasPrevPage}
             aria-label={t('Previous page')}
           />
           <Button
-            icon={<IconChevron direction="right" size="sm" />}
+            icon={<IconChevron direction="right" />}
             onClick={this.handleNextPage}
             disabled={!this.hasNextPage}
             aria-label={t('Next page')}

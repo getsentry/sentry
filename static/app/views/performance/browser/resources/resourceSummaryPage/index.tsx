@@ -15,7 +15,9 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import ResourceInfo from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceInfo';
 import ResourceSummaryCharts from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceSummaryCharts';
 import ResourceSummaryTable from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceSummaryTable';
+import SampleImages from 'sentry/views/performance/browser/resources/resourceSummaryPage/sampleImages';
 import {FilterOptionsContainer} from 'sentry/views/performance/browser/resources/resourceView';
+import {IMAGE_FILE_EXTENSIONS} from 'sentry/views/performance/browser/resources/shared/constants';
 import RenderBlockingSelector from 'sentry/views/performance/browser/resources/shared/renderBlockingSelector';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
@@ -39,7 +41,7 @@ function ResourceSummary() {
   const {
     query: {transaction},
   } = useLocation();
-  const {data: spanMetrics} = useSpanMetrics(
+  const {data} = useSpanMetrics(
     {
       'span.group': groupId,
     },
@@ -53,6 +55,11 @@ function ResourceSummary() {
       SPAN_DESCRIPTION,
       'time_spent_percentage()',
     ]
+  );
+  const spanMetrics = data[0] ?? {};
+
+  const isImage = IMAGE_FILE_EXTENSIONS.includes(
+    spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]?.split('.').pop() || ''
   );
 
   return (
@@ -111,6 +118,7 @@ function ResourceSummary() {
               timeSpentPercentage={spanMetrics[`time_spent_percentage()`]}
             />
           </HeaderContainer>
+          {isImage && <SampleImages groupId={groupId} />}
           <ResourceSummaryCharts groupId={groupId} />
           <ResourceSummaryTable />
           <SampleList

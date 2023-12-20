@@ -100,6 +100,7 @@ import {
   renderDiscoverGridHeaderCell,
   renderGridBodyCell,
   renderIssueGridHeaderCell,
+  renderMetricGridHeaderCell,
   renderReleaseGridHeaderCell,
 } from './widgetViewerModal/widgetViewerTableCell';
 
@@ -691,6 +692,47 @@ function WidgetViewerModal(props: Props) {
     );
   };
 
+  const renderMetricsTable: MetricWidgetQueries['props']['children'] = ({
+    tableResults,
+    loading,
+    pageLinks,
+  }) => {
+    const links = parseLinkHeader(pageLinks ?? null);
+    const isFirstPage = links.previous?.results === false;
+    const data = tableResults?.[0]?.data ?? [];
+
+    // For now we only support one aggregate in metric widgets, once we support multiple aggregates we will need to do the sorting on the backend
+    const mainField = props.widget.queries[0].aggregates[0];
+    const sortedData = [...data].sort(
+      (a, b) => Number(b[mainField]) - Number(a[mainField])
+    );
+
+    return (
+      <Fragment>
+        <GridEditable
+          isLoading={loading}
+          data={sortedData}
+          columnOrder={columnOrder}
+          columnSortBy={columnSortBy}
+          grid={{
+            renderHeadCell: renderMetricGridHeaderCell() as (
+              column: GridColumnOrder,
+              columnIndex: number
+            ) => React.ReactNode,
+            renderBodyCell: renderGridBodyCell({
+              ...props,
+              location,
+              tableData: tableResults?.[0],
+              isFirstPage,
+            }),
+            onResizeColumn,
+          }}
+          location={location}
+        />
+      </Fragment>
+    );
+  };
+
   const onZoom: AugmentedEChartDataZoomHandler = (evt, chart) => {
     // @ts-expect-error getModel() is private but we need this to retrieve datetime values of zoomed in region
     const model = chart.getModel();
@@ -794,7 +836,7 @@ function WidgetViewerModal(props: Props) {
         );
       case WidgetType.METRICS:
         if (tableData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
-          return renderReleaseTable({
+          return renderMetricsTable({
             tableResults: tableData,
             loading: false,
             pageLinks: defaultPageLinks,
@@ -814,8 +856,7 @@ function WidgetViewerModal(props: Props) {
             cursor={cursor}
             dashboardFilters={dashboardFilters}
           >
-            {/* TODO(ddm): Check if we need to use a diffrent implementation, for now we fallback to release table */}
-            {renderReleaseTable}
+            {renderMetricsTable}
           </MetricWidgetQueries>
         );
       case WidgetType.DISCOVER:

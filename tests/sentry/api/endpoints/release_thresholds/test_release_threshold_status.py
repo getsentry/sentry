@@ -5,6 +5,7 @@ from sentry.api.endpoints.release_thresholds.release_threshold_status_index impo
     is_error_count_healthy,
 )
 from sentry.api.serializers import serialize
+from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
 from sentry.models.release import Release
 from sentry.models.release_threshold.constants import ReleaseThresholdType, TriggerType
@@ -48,9 +49,8 @@ class ReleaseThresholdStatusTest(APITestCase):
         self.release3 = Release.objects.create(version="v3", organization=self.organization)
         self.release3.add_project(self.project3)
 
-        # Not sure what Release Environments are for...
+        # Attaches the release to a particular environment
         # project superfluous/deprecated in ReleaseEnvironment
-        # probably attaches the release to a particular environment?
         # release1 canary
         ReleaseEnvironment.objects.create(
             organization_id=self.organization.id,
@@ -224,6 +224,73 @@ class ReleaseThresholdStatusTest(APITestCase):
         """
         now = str(datetime.now())
         yesterday = str(datetime.now() - timedelta(hours=24))
+        response = self.get_success_response(
+            self.organization.slug, start=yesterday, end=now, environment=["canary"]
+        )
+
+        assert len(response.data.keys()) == 2
+        data = response.data
+        # release1
+        r1_keys = [k for k, v in data.items() if k.split("-")[1] == self.release1.version]
+        assert len(r1_keys) == 2  # 2 keys produced in release 1 (p1-canary, p2-canary)
+
+        temp_key = f"{self.project1.slug}-{self.release1.version}"
+        assert temp_key in r1_keys
+        assert len(data[temp_key]) == 2
+        assert data[temp_key][0].get("environment", {}).get("name") == "canary"
+
+        temp_key = f"{self.project2.slug}-{self.release1.version}"
+        assert temp_key in r1_keys
+        assert len(data[temp_key]) == 1
+        assert data[temp_key][0].get("environment", {}).get("name") == "canary"
+
+    def test_get_success_environment_with_deploy(self):
+        """
+        Tests fetching thresholds within the past 24hrs for a release+env with a related deploys
+        API should utilize deploy finished_at, rather than release created_at timestamp
+
+        Set up creates
+        - 2 releases
+            - release1 - canary # env only matters for how we filter releases
+                - r1-proj1-canary
+                - r1-proj2-canary
+            - release2 - prod # env only matters for how we filter releases
+                - r2-proj1-prod
+        - 4 thresholds
+            - project1 canary error_counts
+            - project1 canary new_issues
+            - project1 prod error_counts
+            - project2 canary error_counts
+        - 1 deploy
+            - r1 + canary
+        - 1 ReleaseProjectEnvironment
+            - deploy + r1 + p1 + canary
+
+        We'll filter for _only_ canary releases, so the response should look like
+        {
+            {p1.slug}-{release1.version}: [threshold1, threshold2]
+            {p2.slug}-{release1.version}: [threshold]
+        }
+        """
+        now = str(datetime.now())
+        yesterday = str(datetime.now() - timedelta(hours=24))
+
+        # Creates a deploy for a particular Release in a particular Environment
+        r1_canary_deploy = Deploy.objects.create(
+            environment_id=self.canary_environment.id,
+            organization_id=self.organization.id,
+            release=self.release1,
+            date_finished=now,
+        )
+        rpe = ReleaseProjectEnvironment.objects.get(
+            release_id=self.release1.id,
+            project_id=self.project1.id,
+            environment_id=self.canary_environment.id,
+        )
+        rpe.update(
+            last_deploy_id=r1_canary_deploy.id,
+        )
+
         response = self.get_success_response(
             self.organization.slug, start=yesterday, end=now, environment=["canary"]
         )

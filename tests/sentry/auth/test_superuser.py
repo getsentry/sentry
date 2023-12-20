@@ -153,7 +153,11 @@ class SuperuserTestCase(TestCase):
 
     @freeze_time(BASETIME + EXPIRE_TIME)
     def test_expired(self):
-        request = self.build_request(expires=self.current_datetime)
+        # Set idle time to the current time so we fail on checking expire time
+        # and not idle time.
+        request = self.build_request(
+            idle_expires=BASETIME + EXPIRE_TIME, expires=self.current_datetime
+        )
         superuser = Superuser(request, allowed_ips=())
         assert superuser.is_active is False
 
@@ -396,7 +400,7 @@ class SuperuserTestCase(TestCase):
         assert is_active_superuser(request)
 
     @mock.patch("sentry.auth.superuser.logger")
-    def test_superuser_session_doesnt_needs_validatation_superuser_prompts(self, logger):
+    def test_superuser_session_doesnt_need_validation_superuser_prompts(self, logger):
         user = User(is_superuser=True)
         request = self.make_request(user=user, method="PUT")
         superuser = Superuser(request, org_id=None)

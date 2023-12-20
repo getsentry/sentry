@@ -4,6 +4,7 @@ from unittest.mock import patch
 import responses
 
 from sentry.integrations.pagerduty.actions.notification import PagerDutyNotifyServiceAction
+from sentry.integrations.pagerduty.utils import add_service
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo import SiloMode
@@ -43,9 +44,11 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             )
             self.integration.add_organization(self.organization, self.user)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.service = OrganizationIntegration.objects.get(
+            org_integration = OrganizationIntegration.objects.get(
                 integration_id=self.integration.id, organization_id=self.organization.id
-            ).add_pagerduty_service(
+            )
+            self.service = add_service(
+                org_integration,
                 service_name=SERVICES[0]["service_name"],
                 integration_key=SERVICES[0]["integration_key"],
             )
@@ -203,7 +206,8 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.add_organization(new_org, self.user)
             oi = OrganizationIntegration.objects.get(organization_id=new_org.id)
-            new_service = oi.add_pagerduty_service(
+            new_service = add_service(
+                oi,
                 service_name="New Service",
                 integration_key="new_service_key",
             )
@@ -239,9 +243,11 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
                 metadata={"services": [service_info]},
             )
             integration.add_organization(self.organization, self.user)
-            service = OrganizationIntegration.objects.get(
+            org_integration = OrganizationIntegration.objects.get(
                 integration_id=integration.id, organization_id=self.organization.id
-            ).add_pagerduty_service(
+            )
+            service = add_service(
+                org_integration,
                 service_name=service_info["service_name"],
                 integration_key=service_info["integration_key"],
             )
@@ -285,7 +291,9 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
                 metadata={"services": [service_info]},
             )
             integration.add_organization(self.organization, self.user)
-            service = integration.organizationintegration_set.first().add_pagerduty_service(
+            org_integration = integration.organizationintegration_set.first()
+            service = add_service(
+                org_integration,
                 service_name=service_info["service_name"],
                 integration_key=service_info["integration_key"],
             )

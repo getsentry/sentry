@@ -442,7 +442,9 @@ class MonitorTaskCheckMissingTest(TestCase):
         assert missed_checkin.date_added == ts + timedelta(minutes=1)
 
     @mock.patch("sentry.monitors.tasks.mark_environment_missing")
-    def assert_state_does_not_change_for_status(self, state, mark_environment_missing_mock):
+    def assert_state_does_not_change_for_status(
+        self, state, mark_environment_missing_mock, is_muted=False
+    ):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
@@ -459,6 +461,7 @@ class MonitorTaskCheckMissingTest(TestCase):
                 "max_runtime": None,
             },
             status=state,
+            is_muted=is_muted,
         )
         # Expected checkin was a full minute ago, if this monitor wasn't in the
         # `state` the monitor would usually end up marked as timed out
@@ -483,6 +486,10 @@ class MonitorTaskCheckMissingTest(TestCase):
 
     def test_missing_checkin_but_deletion_in_progress(self):
         self.assert_state_does_not_change_for_status(ObjectStatus.DELETION_IN_PROGRESS)
+
+    # Temporary test until we can move out of celery or reduce load
+    def test_missing_checkin_but_muted(self):
+        self.assert_state_does_not_change_for_status(ObjectStatus.ACTIVE, is_muted=True)
 
     @mock.patch("sentry.monitors.tasks.mark_environment_missing")
     def test_not_missing_checkin(self, mark_environment_missing_mock):

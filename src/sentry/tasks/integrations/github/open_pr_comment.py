@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import itertools
 import logging
+import re
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Set, Tuple
 
@@ -47,8 +48,8 @@ OPEN_PR_MAX_FILES_CHANGED = 7
 # Caps the number of lines that can be modified in a PR to leave a comment
 OPEN_PR_MAX_LINES_CHANGED = 500
 
-COMMENT_BODY_TEMPLATE = """## 🚀 Sentry Issue Report
-You modified these files in this pull request and we noticed these issues associated with them.
+COMMENT_BODY_TEMPLATE = """## 🔍 Existing Sentry Issues - For Review
+Your pull request files have the following pre-existing issues:
 
 {issue_tables}
 ---
@@ -57,19 +58,19 @@ You modified these files in this pull request and we noticed these issues associ
 
 ISSUE_TABLE_TEMPLATE = """📄 **{filename}**
 
-| Issue  | Additional Info |
-| :--------- | :-------- |
+| Issue  |
+| :--------- |
 {issue_rows}"""
 
 ISSUE_TABLE_TOGGLE_TEMPLATE = """<details>
 <summary><b>📄 {filename} (Click to Expand)</b></summary>
 
-| Issue  | Additional Info |
-| :--------- | :-------- |
+| Issue  |
+| :--------- |
 {issue_rows}
 </details>"""
 
-ISSUE_ROW_TEMPLATE = "| ‼️ [**{title}**]({url}) {subtitle} | `Handled:` **{is_handled}** `Event Count:` **{event_count}** `Users:` **{affected_users}** |"
+ISSUE_ROW_TEMPLATE = "| [**{title}**]({url}) {subtitle} <br> `Handled:` **{is_handled}** `Event Count:` **{event_count}** `Users:` **{affected_users}** |"
 
 ISSUE_DESCRIPTION_LENGTH = 52
 
@@ -134,10 +135,10 @@ def get_issue_table_contents(issue_list: List[Dict[str, int]]) -> List[PullReque
 # TODO(cathy): Change the client typing to allow for multiple SCM Integrations
 def safe_for_comment(
     gh_client: GitHubAppsClient, repository: Repository, pull_request: PullRequest
-) -> bool:
+) -> Tuple[bool, List[Dict[str, str]]]:
     logger.info("github.open_pr_comment.check_safe_for_comment")
     try:
-        pullrequest_resp = gh_client.get_pullrequest(
+        pr_files = gh_client.get_pullrequest_files(
             repo=repository.name, pull_number=pull_request.key
         )
     except ApiError as e:
@@ -158,37 +159,70 @@ def safe_for_comment(
                 tags={"type": GithubAPIErrorType.UNKNOWN.value, "code": e.code},
             )
             logger.exception("github.open_pr_comment.unknown_api_error", extra={"error": str(e)})
-        return False
+        return False, []
 
     safe_to_comment = True
-    if pullrequest_resp["state"] != "open":
-        metrics.incr(
-            OPEN_PR_METRICS_BASE.format(key="rejected_comment"), tags={"reason": "incorrect_state"}
-        )
-        safe_to_comment = False
-    if pullrequest_resp["changed_files"] > OPEN_PR_MAX_FILES_CHANGED:
-        metrics.incr(
-            OPEN_PR_METRICS_BASE.format(key="rejected_comment"), tags={"reason": "too_many_files"}
-        )
-        safe_to_comment = False
-    if pullrequest_resp["additions"] + pullrequest_resp["deletions"] > OPEN_PR_MAX_LINES_CHANGED:
-        metrics.incr(
-            OPEN_PR_METRICS_BASE.format(key="rejected_comment"), tags={"reason": "too_many_lines"}
-        )
-        safe_to_comment = False
-    return safe_to_comment
+
+    changed_file_count = 0
+    changed_lines_count = 0
+    filtered_pr_files = []
+
+    for file in pr_files:
+        filename = file["filename"]
+        # don't count the file if it was added or is not a Python file
+        if file["status"] == "added" or not filename.endswith(".py"):
+            continue
+
+        changed_file_count += 1
+        changed_lines_count += file["changes"]
+        filtered_pr_files.append(file)
+
+        if changed_file_count > OPEN_PR_MAX_FILES_CHANGED:
+            metrics.incr(
+                OPEN_PR_METRICS_BASE.format(key="rejected_comment"),
+                tags={"reason": "too_many_files"},
+            )
+            return False, []
+        if changed_lines_count > OPEN_PR_MAX_LINES_CHANGED:
+            metrics.incr(
+                OPEN_PR_METRICS_BASE.format(key="rejected_comment"),
+                tags={"reason": "too_many_lines"},
+            )
+            return False, []
+
+    return safe_to_comment, filtered_pr_files
 
 
-def get_pr_filenames(
-    gh_client: GitHubAppsClient, repository: Repository, pull_request: PullRequest
-) -> List[str]:
-    pr_files = gh_client.get_pullrequest_files(repo=repository.name, pull_number=pull_request.key)
-
+def get_pr_filenames_and_patches(pr_files: List[Dict[str, str]]) -> Tuple[List[str], List[str]]:
     # new files will not have sentry issues associated with them
-    pr_filenames: List[str] = [file["filename"] for file in pr_files if file["status"] != "added"]
+    # only fetch Python files
+    pr_filenames: List[str] = [file["filename"] for file in pr_files]
+    patches: List[str] = [file["patch"] for file in pr_files]
 
     logger.info("github.open_pr_comment.pr_filenames", extra={"count": len(pr_filenames)})
-    return pr_filenames
+
+    return pr_filenames, patches
+
+
+# currently Python only
+def get_file_functions(patch: str) -> Set[str]:
+    r"""
+    Function header regex pattern
+    ^           - Asserts the start of a line.
+    @@.*@@      - Matches a string that starts with two "@" characters, followed by any characters
+                (except newline), and ends with two "@" characters.
+    \s+         - Matches one or more whitespace characters (spaces, tabs, etc.).
+    def         - Matches the literal characters "def".
+    \\s+         - Matches one or more whitespace characters.
+    (?P<fnc>.*) - This is a named capturing group that captures any characters (except newline)
+                and assigns them to the named group "fnc".
+    \(          - Matches an opening parenthesis "(".
+    .*          - Matches any characters (except newline).
+    $           - Asserts the end of a line.
+    """
+
+    python_function_regex = r"^@@.*@@\s+def\s+(?P<fnc>.*)\(.*$"
+    return set(re.findall(python_function_regex, patch, flags=re.M))
 
 
 def get_projects_and_filenames_from_source_file(
@@ -216,10 +250,11 @@ def get_projects_and_filenames_from_source_file(
 
 def get_top_5_issues_by_count_for_file(
     projects: List[Project], sentry_filenames: List[str]
-) -> list[dict[str, Any]]:
+) -> List[Dict[str, Any]]:
     """Given a list of issue group ids, return a sublist of the top 5 ordered by event count"""
     group_ids = list(
         Group.objects.filter(
+            first_seen__gte=datetime.now() - timedelta(days=90),
             last_seen__gte=datetime.now() - timedelta(days=14),
             status=GroupStatus.UNRESOLVED,
             project__in=projects,
@@ -253,6 +288,7 @@ def get_top_5_issues_by_count_for_file(
                         Op.IN,
                         sentry_filenames,
                     ),
+                    Condition(Function("notHandled", []), Op.EQ, 1),
                 ]
             )
             .set_orderby([OrderBy(Column("event_count"), Direction.DESC)])
@@ -314,7 +350,13 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     client = installation.get_client()
 
     # CREATING THE COMMENT
-    if not safe_for_comment(gh_client=client, repository=repo, pull_request=pull_request):
+
+    # fetch the files in the PR and determine if it is safe to comment
+    safe_to_comment, pr_files = safe_for_comment(
+        gh_client=client, repository=repo, pull_request=pull_request
+    )
+
+    if not safe_to_comment:
         logger.info("github.open_pr_comment.not_safe_for_comment")
         metrics.incr(
             OPEN_PR_METRICS_BASE.format(key="error"),
@@ -322,12 +364,14 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         )
         return
 
-    pr_filenames = get_pr_filenames(gh_client=client, repository=repo, pull_request=pull_request)
+    # TODO(cathy): return patches
+    pr_filenames, _ = get_pr_filenames_and_patches(pr_files)
 
     issue_table_contents = {}
     top_issues_per_file = []
 
     # fetch issues related to the files
+    # TODO(cathy): include fetching function names
     for pr_filename in pr_filenames:
         projects, sentry_filenames = get_projects_and_filenames_from_source_file(
             org_id, pr_filename

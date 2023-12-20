@@ -13,6 +13,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
+import {MobileCursors} from 'sentry/views/starfish/views/screens/constants';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 
 type Props = {
@@ -79,6 +80,7 @@ export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: 
           query: {
             ...location.query,
             [SpanMetricsField.SPAN_OP]: newValue.value,
+            [MobileCursors.SPANS_TABLE]: undefined,
           },
         });
       }}

@@ -494,7 +494,7 @@ class Dashboard extends Component<Props, State> {
             className={DRAG_RESIZE_CLASS}
             size="xs"
             borderless
-            icon={<IconResize size="xs" />}
+            icon={<IconResize />}
           />
         }
         useCSSTransforms={false}
