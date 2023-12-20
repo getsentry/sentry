@@ -5,6 +5,7 @@ import sentry_sdk
 
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.datasource.redis import get_redis_client
+from sentry.ingest.transaction_clusterer.rule_validator import RuleValidator
 from sentry.models.project import Project
 from sentry.utils import metrics
 
@@ -132,8 +133,12 @@ class CompositeRuleStore:
     def merge(self, project: Project) -> None:
         """Read rules from all stores, merge and write them back so they all are up-to-date."""
         merged_rules = self.read(project)
+        merged_rules = self._clean_rules(merged_rules)
         trimmed_rules = self._trim_rules(merged_rules)
         self.write(project, trimmed_rules)
+
+    def _clean_rules(self, rules: RuleSet) -> RuleSet:
+        return {rule: seen for rule, seen in rules.items() if RuleValidator(rule).is_valid()}
 
     def _trim_rules(self, rules: RuleSet) -> RuleSet:
         sorted_rules = sorted(rules.items(), key=lambda p: p[1], reverse=True)
@@ -200,7 +205,7 @@ def get_sorted_rules(
 def update_rules(
     namespace: ClustererNamespace, project: Project, new_rules: Sequence[ReplacementRule]
 ) -> int:
-    """Write newly discovered rules to projection option and redis, and update last_used.
+    """Write newly discovered rules to project option and redis, and update last_used.
 
     Return the number of _new_ rules (that were not already present in project option).
     """
