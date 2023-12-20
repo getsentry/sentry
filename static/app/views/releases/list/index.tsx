@@ -278,6 +278,9 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
   }
 
   getThresholdsForRelease(release: Release): Threshold[] {
+    if (!this.hasV2ReleaseUIEnabled) {
+      return [];
+    }
     const {thresholds} = this.state;
     const lastDeploy = release.lastDeploy;
     const projectSlugs = release.projects.map(p => p.slug);
