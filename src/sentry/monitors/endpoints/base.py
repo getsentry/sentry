@@ -83,7 +83,6 @@ class MonitorEndpoint(Endpoint):
                 monitor_environment = MonitorEnvironment.objects.get(
                     monitor_id=monitor.id, environment_id=environment_object.id
                 )
-                kwargs["environment"] = environment_object
                 kwargs["monitor_environment"] = monitor_environment
             except (Environment.DoesNotExist, MonitorEnvironment.DoesNotExist):
                 raise ResourceDoesNotExist

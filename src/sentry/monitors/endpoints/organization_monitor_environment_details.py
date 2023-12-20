@@ -17,11 +17,12 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
+from sentry.constants import ObjectStatus
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.monitors.endpoints.base import MonitorEndpoint
-from sentry.monitors.models import MonitorStatus
+from sentry.monitors.models import MonitorEnvironment, MonitorStatus
 from sentry.monitors.serializers import MonitorSerializer
-from sentry.monitors.validators import MonitorValidator
+from sentry.monitors.validators import MONITOR_STATUSES, MonitorValidator
 
 
 @region_silo_endpoint
@@ -38,6 +39,7 @@ class OrganizationMonitorEnvironmentDetailsEndpoint(MonitorEndpoint):
         parameters=[
             GlobalParams.ORG_SLUG,
             MonitorParams.MONITOR_SLUG,
+            MonitorParams.ENVIRONMENT,
         ],
         request=MonitorValidator,
         responses={
@@ -55,9 +57,9 @@ class OrganizationMonitorEnvironmentDetailsEndpoint(MonitorEndpoint):
         Update a monitor environment.
         """
         # Only support enabling/disabling monitor environments
-        new_status = request.data.get("status")
-        if new_status in [MonitorStatus.ACTIVE, MonitorStatus.DISABLED]:
-            monitor_environment.update(status=new_status)
+        status = MONITOR_STATUSES.get(request.data.get("status"))
+        if status in [MonitorStatus.ACTIVE, MonitorStatus.DISABLED]:
+            monitor_environment.update(status=status)
 
         self.create_audit_entry(
             request=request,
@@ -70,10 +72,11 @@ class OrganizationMonitorEnvironmentDetailsEndpoint(MonitorEndpoint):
         return self.respond(serialize(monitor, request.user))
 
     @extend_schema(
-        operation_id="Delete a Monitor or Monitor Environments",
+        operation_id="Delete a Monitor Environments",
         parameters=[
             GlobalParams.ORG_SLUG,
             MonitorParams.MONITOR_SLUG,
+            MonitorParams.ENVIRONMENT,
         ],
         request=MonitorValidator,
         responses={
@@ -89,14 +92,37 @@ class OrganizationMonitorEnvironmentDetailsEndpoint(MonitorEndpoint):
         """
         Delete a monitor environment.
         """
+        active_monitor_environment = (
+            MonitorEnvironment.objects.filter(id=monitor_environment.id)
+            .exclude(
+                monitor__status__in=[
+                    ObjectStatus.PENDING_DELETION,
+                    ObjectStatus.DELETION_IN_PROGRESS,
+                ]
+            )
+            .exclude(
+                status__in=[
+                    MonitorStatus.PENDING_DELETION,
+                    MonitorStatus.DELETION_IN_PROGRESS,
+                ]
+            )
+            .first()
+        )
 
-        schedule = RegionScheduledDeletion.schedule(monitor_environment, days=0, actor=request.user)
+        if not active_monitor_environment or not active_monitor_environment.update(
+            status=MonitorStatus.PENDING_DELETION
+        ):
+            return self.respond(status=404)
+
+        schedule = RegionScheduledDeletion.schedule(
+            active_monitor_environment, days=0, actor=request.user
+        )
         self.create_audit_entry(
             request=request,
             organization=project.organization,
-            target_object=monitor_environment.id,
+            target_object=active_monitor_environment.id,
             event=audit_log.get_event_id("MONITOR_ENVIRONMENT_EDIT"),
-            data=monitor_environment.get_audit_log_data(),
+            data=active_monitor_environment.get_audit_log_data(),
             transaction_id=schedule.guid,
         )
 
