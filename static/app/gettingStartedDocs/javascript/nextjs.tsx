@@ -14,6 +14,7 @@ import {
   getReplayConfigureDescription,
   getReplaySDKSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -158,6 +159,7 @@ const replayOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   replayOnboardingNpm: replayOnboarding,
+  customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
 };
 
 export default docs;

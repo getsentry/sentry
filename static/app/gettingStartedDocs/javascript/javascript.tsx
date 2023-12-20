@@ -8,6 +8,7 @@ import {
   getReplayConfigureDescription,
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 
@@ -49,14 +50,6 @@ Sentry.init({
 });
 `;
 
-const getMetricsInstallSnippet = (params: Params) => `
-Sentry.init({
-  dsn: "${params.dsn}",
-  integrations: [
-    new Sentry.metrics.MetricsAggregator(),
-  ],
-});`;
-
 const getVerifyJSSnippet = () => `
 myUndefinedFunction();`;
 
@@ -79,10 +72,6 @@ const getInstallConfig = () => [
     ],
   },
 ];
-
-const getMetricsVerifySnippet = () => `
-// Add 4 to a counter named 'hits'
-Sentry.metrics.increment('hits', 4);`;
 
 const onboarding: OnboardingConfig = {
   install: () => [
@@ -194,83 +183,11 @@ const replayOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
-const customMetricsOnboarding: OnboardingConfig = {
-  install: () => [
-    {
-      type: StepType.INSTALL,
-      description: tct(
-        'You need a minimum version [codeVersion:7.88.0] of the Sentry browser SDK package, or an equivalent framework SDK (e.g. [codePackage:@sentry/react]) installed.',
-        {
-          codeVersion: <code />,
-          codePackage: <code />,
-        }
-      ),
-      configurations: getInstallConfig(),
-    },
-  ],
-  configure: (params: Params) => [
-    {
-      type: StepType.CONFIGURE,
-      description: tct(
-        'To enable capturing metrics, you first need to add the [codeIntegration:MetricsAggregator] integration under the [codeNamespace:Sentry.metrics] namespace.',
-        {
-          codeIntegration: <code />,
-          codeNamespace: <code />,
-        }
-      ),
-      configurations: [
-        {
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: getMetricsInstallSnippet(params),
-            },
-          ],
-        },
-      ],
-    },
-  ],
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics] namespace. Try out this example:",
-        {
-          codeCounters: <code />,
-          codeSets: <code />,
-          codeDistribution: <code />,
-          codeGauge: <code />,
-          codeNamespace: <code />,
-        }
-      ),
-      configurations: [
-        {
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: getMetricsVerifySnippet(),
-            },
-          ],
-        },
-        {
-          description: t(
-            'With a bit of delay you can see the data appear in the Sentry UI'
-          ),
-        },
-      ],
-    },
-  ],
-};
-
 const docs: Docs = {
   onboarding,
   replayOnboardingNpm: replayOnboarding,
   replayOnboardingJsLoader,
-  customMetricsOnboarding,
+  customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
 };
 
 export default docs;
