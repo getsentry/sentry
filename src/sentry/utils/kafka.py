@@ -1,7 +1,7 @@
-import datetime
 import logging
 import signal
 import time
+from datetime import datetime
 from typing import Optional
 
 from sentry import options
@@ -25,9 +25,8 @@ def delay_kafka_rebalance(configured_delay: int) -> None:
         next_tick += 1
 
     seconds_sleep = (configured_delay * next_tick) - now
-    while seconds_sleep >= 0.5:
-        time.sleep(0.5)
-        seconds_sleep -= 0.5
+
+    time.sleep(seconds_sleep)
 
 
 def run_processor_with_signals(processor, consumer_name: Optional[str]):
