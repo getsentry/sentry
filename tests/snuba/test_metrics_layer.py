@@ -30,14 +30,14 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 # TODO: This is only needed while we support SnQL and MQL. Once SnQL is removed, this can be removed.
-LayerQuery: Callable[[Request], Mapping[str, Any]]
+LayerQuery = Callable[[Request], Mapping[str, Any]]
 
 
 class MQLTest(TestCase, BaseMetricsTestCase):
     @property
     def run_query(self) -> LayerQuery:
         def mql_query_fn(request: Request) -> Mapping[str, Any]:
-            with self.options({"snuba.use_mql_endpoint": 1.0}):
+            with self.options({"snuba.use-mql-endpoint": 1.0}):
                 return layer_run_query(request)
 
         return mql_query_fn
@@ -547,7 +547,7 @@ class SnQLTest(MQLTest):
     @property
     def run_query(self) -> LayerQuery:
         def snql_query_fn(request: Request) -> Mapping[str, Any]:
-            with self.options({"snuba.use_mql_endpoint": 0}):
+            with self.options({"snuba.use-mql-endpoint": 0}):
                 return layer_run_query(request)
 
         return snql_query_fn
