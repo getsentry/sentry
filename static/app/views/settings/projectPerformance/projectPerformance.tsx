@@ -846,7 +846,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
           <JsonForm
             fields={[
               {
-                name: 'enable-images',
+                name: 'enable_images',
                 type: 'boolean',
                 label: t('Images'),
                 help: t('Enables images from real data to be displayed'),

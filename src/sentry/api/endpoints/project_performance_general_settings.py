@@ -8,6 +8,8 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.api.permissions import SuperuserPermission
+from sentry.models.options.project_option import ProjectOption
+from sentry.projectoptions.defaults import DEFAULT_PROJECT_PERFORMANCE_GENERAL_SETTINGS
 
 SETTINGS_PROJECT_OPTION_KEY = "sentry:performance_general_settings"
 
@@ -38,13 +40,26 @@ class ProjectPerformanceGeneralSettingsEndpoint(ProjectEndpoint):
         if not self.has_feature(project, request):
             return self.respond(status=status.HTTP_404_NOT_FOUND)
 
-        data = {"enable-images": False}
-        return Response(data)
+        project_option_settings = (
+            ProjectOption.objects.get_value(
+                project,
+                "sentry:performance_general_settings",
+                DEFAULT_PROJECT_PERFORMANCE_GENERAL_SETTINGS,
+            )
+            if project
+            else DEFAULT_PROJECT_PERFORMANCE_GENERAL_SETTINGS
+        )
+        return Response(project_option_settings)
 
     def post(self, request: Request, project) -> Response:
         if not self.has_feature(project, request):
             return self.respond(status=status.HTTP_404_NOT_FOUND)
 
+        ProjectOption.objects.set_value(
+            project,
+            "sentry:performance_general_settings",
+            request.data,
+        )
         data = {}
         return Response(data)
 
