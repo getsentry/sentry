@@ -1,3 +1,4 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
 import {Span} from 'sentry-fixture/span';
 import {TraceError} from 'sentry-fixture/traceError';
 import {TracePerformanceIssue} from 'sentry-fixture/tracePerformanceIssue';
@@ -9,7 +10,7 @@ import {parseTrace} from 'sentry/components/events/interfaces/spans/utils';
 
 describe('TraceErrorList', () => {
   it('aggregates errors by span and level', () => {
-    const event = TestStubs.Event({
+    const event = EventFixture({
       entries: [
         {
           type: 'spans',
@@ -50,7 +51,7 @@ describe('TraceErrorList', () => {
   });
 
   it('groups span-less errors under the transaction', () => {
-    const event = TestStubs.Event({
+    const event = EventFixture({
       contexts: {
         trace: {
           op: '/path',
@@ -83,7 +84,7 @@ describe('TraceErrorList', () => {
   });
 
   it('groups performance issues separately', () => {
-    const event = TestStubs.Event({
+    const event = EventFixture({
       contexts: {
         trace: {
           op: '/path',
