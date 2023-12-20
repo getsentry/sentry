@@ -203,7 +203,8 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
     }
 
     fetchThresholdStatuses(organization, api, query).then(thresholdStatuses => {
-      this.setState({thresholdStatuses});
+      window.setTimeout(() => this.setState({thresholdStatuses}), 5000);
+      // this.setState({thresholdStatuses});
     });
   }
 

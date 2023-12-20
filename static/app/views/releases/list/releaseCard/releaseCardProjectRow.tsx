@@ -104,7 +104,7 @@ function ReleaseCardProjectRow({
     ReleasesDisplayOption.SESSIONS
   );
 
-  const thresholds = useMemo(() => {
+  const thresholdEnvStatuses = useMemo(() => {
     return (
       thresholdStatuses?.filter(status => {
         return status.environment?.name === lastDeploy?.environment;
@@ -112,11 +112,11 @@ function ReleaseCardProjectRow({
     );
   }, [thresholdStatuses, lastDeploy]);
 
-  const healthyThresholds = thresholds.filter(status => {
+  const healthyThresholdStatuses = thresholdEnvStatuses.filter(status => {
     return status.is_healthy;
   });
 
-  const pendingThresholds = thresholds.filter(status => {
+  const pendingThresholdStatuses = thresholdEnvStatuses.filter(status => {
     return new Date(status.end || '') > new Date();
   });
 
@@ -241,23 +241,24 @@ function ReleaseCardProjectRow({
         {hasThresholds && (
           <DisplaySmallCol>
             {/* TODO: link to release details page */}
-            {expectedThresholds && (
+            {expectedThresholds > 0 && (
               <Tooltip
                 title={
                   <div>
                     <div>
-                      {pendingThresholds.length !== thresholds.length &&
-                        `${healthyThresholds.length - pendingThresholds.length} / ${
-                          thresholds.length
-                        } ` + t('thresholds succeeded')}
+                      {pendingThresholdStatuses.length !== thresholdEnvStatuses.length &&
+                        `${
+                          healthyThresholdStatuses.length -
+                          pendingThresholdStatuses.length
+                        } / ${thresholdEnvStatuses.length} ` + t('thresholds succeeded')}
                     </div>
-                    {pendingThresholds.length > 0 && (
+                    {pendingThresholdStatuses.length > 0 && (
                       <div>
-                        {`${pendingThresholds.length} / ${thresholds.length} ` +
+                        {`${pendingThresholdStatuses.length} / ${thresholdEnvStatuses.length} ` +
                           t('still pending')}
                       </div>
                     )}
-                    {thresholds.length !== expectedThresholds && (
+                    {thresholdEnvStatuses.length !== expectedThresholds && (
                       <div>{`... / ${expectedThresholds}`}</div>
                     )}
                     {t('Open in Release Details')}
@@ -265,14 +266,18 @@ function ReleaseCardProjectRow({
                 }
               >
                 <ThresholdHealth
-                  allHealthy={healthyThresholds.length === expectedThresholds}
+                  loading={thresholdEnvStatuses.length !== expectedThresholds}
+                  allHealthy={
+                    thresholdEnvStatuses.length === expectedThresholds &&
+                    healthyThresholdStatuses.length === expectedThresholds
+                  }
                   allThresholdsFinished={
-                    pendingThresholds.length === 0 &&
-                    thresholds.length === expectedThresholds
+                    pendingThresholdStatuses.length === 0 &&
+                    thresholdEnvStatuses.length === expectedThresholds
                   }
                 >
-                  {thresholds.length === expectedThresholds
-                    ? healthyThresholds.length
+                  {thresholdEnvStatuses.length === expectedThresholds
+                    ? healthyThresholdStatuses.length
                     : '...'}{' '}
                   / {expectedThresholds}
                 </ThresholdHealth>
@@ -349,12 +354,13 @@ const ViewColumn = styled('div')`
 const ThresholdHealth = styled('div')<{
   allHealthy?: boolean;
   allThresholdsFinished?: boolean;
+  loading?: boolean;
 }>`
   color: ${p => {
-    if (!p.allHealthy) {
+    if (!p.loading && !p.allHealthy) {
       return p.theme.errorText;
     }
-    if (p.allThresholdsFinished) {
+    if (!p.loading && p.allThresholdsFinished) {
       return p.theme.successText;
     }
     return p.theme.activeText;

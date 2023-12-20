@@ -96,17 +96,6 @@ function ReleaseCard({
     );
   }, [projects, selection.projects]);
 
-  // const hasThresholds = useMemo(() => {
-  //   const project_slugs = projects.map(proj => proj.slug);
-  //   let has = false;
-  //   project_slugs.forEach(slug => {
-  //     if (`${slug}-${version}` in thresholdStatuses) {
-  //       has = thresholdStatuses[`${slug}-${version}`].length > 0;
-  //     }
-  //   });
-  //   return has;
-  // }, [thresholdStatuses, version, projects]);
-
   const hasThresholds = thresholds.length > 0;
 
   const getHiddenProjectsTooltip = () => {
@@ -198,6 +187,9 @@ function ReleaseCard({
           >
             {projectsToShow.map((project, index) => {
               const key = `${project.slug}-${version}`;
+              const projectThresholds = thresholds.filter(
+                threshold => threshold.project.slug === project.slug
+              );
               return (
                 <ReleaseCardProjectRow
                   key={`${key}-row`}
@@ -205,7 +197,7 @@ function ReleaseCard({
                   adoptionStages={adoptionStages}
                   getHealthData={getHealthData}
                   hasThresholds={hasThresholds}
-                  expectedThresholds={thresholds.length}
+                  expectedThresholds={projectThresholds.length}
                   index={index}
                   isTopRelease={isTopRelease}
                   location={location}
