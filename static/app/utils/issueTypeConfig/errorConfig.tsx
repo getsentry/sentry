@@ -55,6 +55,11 @@ const ErrorInfoChecks: Array<ErrorInfo> = [
     projectCheck: true,
     errorHelpType: ErrorHelpType.DYNAMIC_SERVER_USAGE,
   },
+  {
+    errorTitle: 'Hydration Error',
+    projectCheck: true,
+    errorHelpType: ErrorHelpType.HYDRATION_ERROR,
+  },
 ];
 
 const errorHelpTypeResourceMap: Record<
@@ -121,6 +126,21 @@ const errorHelpTypeResourceMap: Record<
         {
           text: t('Resolving "app/ Static to Dynamic Error" in Next.js'),
           link: 'https://nextjs.org/docs/messages/app-static-to-dynamic-error',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [ErrorHelpType.HYDRATION_ERROR]: {
+    resources: {
+      description: tct(
+        '[errorTypes] occur in React based applications when the server-rendered HTML does not match what is expected on the client. To learn more about how to fix these errors, check out these resources:',
+        {errorTypes: <b>Hydration Errors</b>}
+      ),
+      links: [
+        {
+          text: t('Resolving Hydration Errors'),
+          link: 'https://sentry.io/answers/hydration-error-nextjs/',
         },
       ],
       linksByPlatform: {},
