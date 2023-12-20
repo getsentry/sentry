@@ -1531,30 +1531,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:escalating-issues-msteams": False,
     # Enable archive/escalating issue workflow features in v2
     "organizations:escalating-issues-v2": False,
-    # Enable the new issue states and substates
-    "organizations:issue-states": False,
-    # Allows an org to have a larger set of project ownership rules per project
-    "organizations:higher-ownership-limit": False,
-    # Enable Monitors (Crons) view
-    "organizations:monitors": False,
-    # Enable Performance view
-    "organizations:performance-view": True,
-    # Enable profiling
-    "organizations:profiling": False,
-    # Enable ui frames in flamecharts
-    "organizations:profiling-ui-frames": False,
-    # Enable the transactions backed profiling views
-    "organizations:profiling-using-transactions": False,
-    # Enabled for those orgs who participated in the profiling Beta program
-    "organizations:profiling-beta": False,
-    # Enable stacktrace linking of multiple frames in profiles
-    "organizations:profiling-stacktrace-links": False,
-    # Enable global suspect functions in profiling
-    "organizations:profiling-global-suspect-functions": False,
-    # Enable profiling CPU chart
-    "organizations:profiling-cpu-chart": False,
-    # Enable profiling Memory chart
-    "organizations:profiling-memory-chart": False,
     # Enable ingesting non-sampled profiles
     "organizations:profiling-ingest-unsampled-profiles": False,
     # Enable emiting escalating data to the metrics backend
