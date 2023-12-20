@@ -3,6 +3,7 @@ from __future__ import annotations
 import ipaddress
 import logging
 from datetime import datetime, timedelta
+from typing import Tuple
 
 from django.conf import settings
 from django.core.signing import BadSignature
@@ -64,7 +65,7 @@ class Staff(ElevatedMode):
         self._populate(current_datetime=current_datetime)
 
     @property
-    def is_active(self):
+    def is_active(self) -> bool:
         # We have a wsgi request with no user.
         if not hasattr(self.request, "user"):
             return False
@@ -79,7 +80,7 @@ class Staff(ElevatedMode):
             return False
         return self._is_active
 
-    def is_privileged_request(self):
+    def is_privileged_request(self) -> Tuple[bool, str | None]:
         """
         Returns ``(bool is_privileged, str reason)``
         """
@@ -88,6 +89,7 @@ class Staff(ElevatedMode):
         # _admin should have always completed SSO to gain status.
         # We expect ORG_ID to always be set in production.
         if ORG_ID and not has_completed_sso(self.request, ORG_ID):
+            # Allow staff session on dev env for non sso flow
             if not DISABLE_SSO_CHECK_FOR_LOCAL_DEV:
                 return False, "incomplete-sso"
 

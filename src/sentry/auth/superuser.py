@@ -14,6 +14,7 @@ from __future__ import annotations
 import ipaddress
 import logging
 from datetime import datetime, timedelta
+from typing import Tuple
 
 from django.conf import settings
 from django.core.signing import BadSignature
@@ -127,7 +128,7 @@ class Superuser(ElevatedMode):
         return settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON
 
     @property
-    def is_active(self):
+    def is_active(self) -> bool:
         org = getattr(self.request, "organization", None)
         if org and org.id != self.org_id:
             return self._check_expired_on_org_change()
@@ -145,7 +146,7 @@ class Superuser(ElevatedMode):
             return False
         return self._is_active
 
-    def is_privileged_request(self):
+    def is_privileged_request(self) -> Tuple[bool, str | None]:
         """
         Returns ``(bool is_privileged, str reason)``
         """
@@ -153,6 +154,7 @@ class Superuser(ElevatedMode):
         # if we've bound superuser to an organization they must
         # have completed SSO to gain status
         if self.org_id and not has_completed_sso(self.request, self.org_id):
+            # Allow superuser session on dev env for non sso flow
             if not DISABLE_SSO_CHECK_FOR_LOCAL_DEV:
                 return False, "incomplete-sso"
         # if there's no IPs configured, we allow assume its the same as *
