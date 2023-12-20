@@ -73,6 +73,7 @@ from sentry.grouping.api import (
     get_grouping_config_dict_for_project,
     load_grouping_config,
 )
+from sentry.grouping.ingest import update_grouping_config_if_needed
 from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.issues.grouptype import GroupCategory
@@ -80,7 +81,6 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
-from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.event import EventDict
@@ -105,7 +105,6 @@ from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.userreport import UserReport
 from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
-from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 from sentry.quotas.base import index_data_category
 from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -728,8 +727,7 @@ class EventManager:
 
         # Check if the project is configured for auto upgrading and we need to upgrade
         # to the latest grouping config.
-        if _project_should_update_grouping(project):
-            _auto_update_grouping(project)
+        update_grouping_config_if_needed(project)
 
         return job["event"]
 
@@ -766,56 +764,6 @@ def _calculate_secondary_hash(project: Project, job: Job) -> None | CalculatedHa
         sentry_sdk.capture_exception()
 
     return secondary_hashes
-
-
-def _project_should_update_grouping(project: Project) -> bool:
-    should_update_org = (
-        project.organization_id % 1000 < float(settings.SENTRY_GROUPING_AUTO_UPDATE_ENABLED) * 1000
-    )
-    return bool(project.get_option("sentry:grouping_auto_update")) and should_update_org
-
-
-def _auto_update_grouping(project: Project) -> None:
-    old_grouping = project.get_option("sentry:grouping_config")
-    new_grouping = DEFAULT_GROUPING_CONFIG
-
-    # update to latest grouping config but not if a user is already on
-    # beta.
-    if old_grouping == new_grouping or old_grouping == BETA_GROUPING_CONFIG:
-        return
-
-    # Because the way the auto grouping upgrading happening is racy, we want to
-    # try to write the audit log entry only and project option change just once.
-    # For this a cache key is used.  That's not perfect, but should reduce the
-    # risk significantly.
-    cache_key = f"grouping-config-update:{project.id}:{old_grouping}"
-    lock = f"grouping-update-lock:{project.id}"
-    if cache.get(cache_key) is not None:
-        return
-
-    with locks.get(lock, duration=60, name="grouping-update-lock").acquire():
-        if cache.get(cache_key) is None:
-            cache.set(cache_key, "1", 60 * 5)
-        else:
-            return
-
-        from sentry import audit_log
-        from sentry.utils.audit import create_system_audit_entry
-
-        expiry = int(time.time()) + settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
-        changes = {
-            "sentry:secondary_grouping_config": old_grouping,
-            "sentry:secondary_grouping_expiry": expiry,
-            "sentry:grouping_config": new_grouping,
-        }
-        for key, value in changes.items():
-            project.update_option(key, value)
-        create_system_audit_entry(
-            organization=project.organization,
-            target_object=project.id,
-            event=audit_log.get_event_id("PROJECT_EDIT"),
-            data={**changes, **project.get_audit_log_data()},
-        )
 
 
 def _calculate_background_grouping(
