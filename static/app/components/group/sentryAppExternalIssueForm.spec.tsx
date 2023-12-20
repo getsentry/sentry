@@ -1,8 +1,6 @@
 import selectEvent from 'react-select-event';
 import {Event as EventFixture} from 'sentry-fixture/event';
-import {Group as GroupFixture} from 'sentry-fixture/group';
 import {SentryApp} from 'sentry-fixture/sentryApp';
-import {SentryAppComponent as SentryAppComponentFixture} from 'sentry-fixture/sentryAppComponent';
 import {SentryAppInstallation} from 'sentry-fixture/sentryAppInstallation';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -11,12 +9,12 @@ import SentryAppExternalIssueForm from 'sentry/components/group/sentryAppExterna
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 
 describe('SentryAppExternalIssueForm', () => {
-  const group = GroupFixture({
+  const group = TestStubs.Group({
     title: 'ApiError: Broken',
     shortId: 'SEN123',
     permalink: 'https://sentry.io/organizations/sentry/issues/123/?project=1',
   });
-  const component = SentryAppComponentFixture();
+  const component = TestStubs.SentryAppComponent();
   const sentryApp = SentryApp();
   const sentryAppInstallation = SentryAppInstallation({});
   const submitUrl = `/sentry-app-installations/${sentryAppInstallation.uuid}/external-issue-actions/`;
@@ -150,8 +148,8 @@ describe('SentryAppExternalIssueForm', () => {
 });
 
 describe('SentryAppExternalIssueForm Async Field', () => {
-  const component = SentryAppComponentAsyncFixture();
-  const group = GroupFixture({
+  const component = TestStubs.SentryAppComponentAsync();
+  const group = TestStubs.Group({
     title: 'ApiError: Broken',
     shortId: 'SEN123',
     permalink: 'https://sentry.io/organizations/sentry/issues/123/?project=1',
@@ -197,14 +195,14 @@ describe('SentryAppExternalIssueForm Async Field', () => {
 });
 
 describe('SentryAppExternalIssueForm Dependent fields', () => {
-  const group = GroupFixture({
+  const group = TestStubs.Group({
     title: 'ApiError: Broken',
     shortId: 'SEN123',
     permalink: 'https://sentry.io/organizations/sentry/issues/123/?project=1',
   });
   const sentryApp = SentryApp();
   const sentryAppInstallation = SentryAppInstallation({});
-  const component = SentryAppComponentDependentFixture();
+  const component = TestStubs.SentryAppComponentDependent();
 
   afterEach(() => {
     MockApiClient.clearMockResponses();

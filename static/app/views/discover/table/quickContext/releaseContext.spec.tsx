@@ -1,5 +1,4 @@
 import {Organization} from 'sentry-fixture/organization';
-import {Release as ReleaseFixture} from 'sentry-fixture/release';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
@@ -10,7 +9,7 @@ import {QueryClientProvider} from 'sentry/utils/queryClient';
 import ReleaseContext from './releaseContext';
 import {defaultRow, mockedCommit, mockedUser1, mockedUser2} from './testUtils';
 
-export const mockedReleaseWithHealth = ReleaseFixture({
+export const mockedReleaseWithHealth = TestStubs.Release({
   id: '1',
   shortVersion: 'sentry-android-shop@1.2.0',
   version: 'sentry-android-shop@1.2.0',

@@ -1,4 +1,3 @@
-import {SentryApp as SentryAppFixture} from 'sentry-fixture/sentryApp';
 import {SentryAppWebhookRequest} from 'sentry-fixture/sentryAppWebhookRequest';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
@@ -22,7 +21,7 @@ describe('Sentry Application Dashboard', function () {
 
   describe('Viewing the Sentry App Dashboard for a published integration', () => {
     beforeEach(() => {
-      sentryApp = SentryAppFixture({
+      sentryApp = TestStubs.SentryApp({
         status: 'published',
         schema: {
           elements: [
@@ -129,7 +128,7 @@ describe('Sentry Application Dashboard', function () {
 
   describe('Viewing the Sentry App Dashboard for an internal integration', () => {
     beforeEach(() => {
-      sentryApp = SentryAppFixture({
+      sentryApp = TestStubs.SentryApp({
         status: 'internal',
         schema: {
           elements: [{type: 'stacktrace-link', uri: '/test'}],

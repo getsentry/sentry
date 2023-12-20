@@ -1,5 +1,4 @@
 import selectEvent from 'react-select-event';
-import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {User} from 'sentry-fixture/user';
@@ -198,7 +197,7 @@ describe('ContextPickerModal', function () {
 
     const provider = {slug: 'github'};
     const configUrl = `/api/0/organizations/${org.slug}/integrations/?provider_key=${provider.slug}&includeConfig=0`;
-    const integration = GitHubIntegrationFixture();
+    const integration = TestStubs.GitHubIntegration();
     const fetchGithubConfigs = MockApiClient.addMockResponse({
       url: configUrl,
       body: [integration],
@@ -241,7 +240,7 @@ describe('ContextPickerModal', function () {
 
     const fetchGithubConfigs = MockApiClient.addMockResponse({
       url: configUrl,
-      body: [GitHubIntegrationFixture()],
+      body: [TestStubs.GitHubIntegration()],
     });
 
     MockApiClient.addMockResponse({

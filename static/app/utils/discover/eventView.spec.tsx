@@ -1,7 +1,7 @@
 import shuffle from 'lodash/shuffle';
 import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
-import {PageFilters, PageFilters as PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {PageFilters} from 'sentry-fixture/pageFilters';
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {NewQuery, SavedQuery} from 'sentry/types';
@@ -538,7 +538,7 @@ describe('EventView.fromNewQueryWithPageFilters()', function () {
   });
 
   it('merges page filter values', function () {
-    const pageFilters = PageFiltersFixture({
+    const pageFilters = TestStubs.PageFilters({
       datetime: {
         period: '3d',
       },

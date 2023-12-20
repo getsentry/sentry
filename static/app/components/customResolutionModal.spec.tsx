@@ -1,7 +1,6 @@
 import selectEvent from 'react-select-event';
 import styled from '@emotion/styled';
 import {Organization} from 'sentry-fixture/organization';
-import {Release as ReleaseFixture} from 'sentry-fixture/release';
 import {User} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -17,7 +16,7 @@ describe('CustomResolutionModal', () => {
     ConfigStore.init();
     releasesMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/releases/',
-      body: [ReleaseFixture({authors: [User()]})],
+      body: [TestStubs.Release({authors: [User()]})],
     });
   });
 
@@ -79,12 +78,12 @@ describe('CustomResolutionModal', () => {
       url: '/projects/org-slug/project-slug/releases/',
       body: [
         // Timestamp release
-        ReleaseFixture({
+        TestStubs.Release({
           version: 'frontend@abcdef',
           versionInfo: {version: {raw: 'abcdef'}},
         }),
         // Semver release
-        ReleaseFixture({
+        TestStubs.Release({
           version: 'frontend@1.2.3',
           versionInfo: {
             version: {

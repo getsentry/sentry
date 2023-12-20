@@ -1,4 +1,3 @@
-import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -16,7 +15,7 @@ describe('StreamGroup', function () {
   let group1;
 
   beforeEach(function () {
-    group1 = GroupFixture({
+    group1 = TestStubs.Group({
       id: '1337',
       project: {
         id: '13',

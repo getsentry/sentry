@@ -1,6 +1,3 @@
-import {EventStacktraceException as EventStacktraceExceptionFixture} from 'sentry-fixture/eventStacktraceException';
-import {Frame as FrameFixture} from 'sentry-fixture/frame';
-
 import displayRawContent, {
   getJavaFrame,
   getJavaPreamble,
@@ -12,7 +9,7 @@ describe('RawStacktraceContent', function () {
     it('should render java frames', function () {
       expect(
         getJavaFrame(
-          FrameFixture({
+          TestStubs.Frame({
             module: 'org.mortbay.thread.QueuedThreadPool$PoolThread',
             function: 'run',
             filename: 'QueuedThreadPool.java',
@@ -26,7 +23,7 @@ describe('RawStacktraceContent', function () {
       // without line number
       expect(
         getJavaFrame(
-          FrameFixture({
+          TestStubs.Frame({
             module: 'org.mortbay.thread.QueuedThreadPool$PoolThread',
             function: 'run',
             filename: 'QueuedThreadPool.java',
@@ -39,7 +36,7 @@ describe('RawStacktraceContent', function () {
       // without line number and filename
       expect(
         getJavaFrame(
-          FrameFixture({
+          TestStubs.Frame({
             module: 'org.mortbay.thread.QueuedThreadPool$PoolThread',
             function: 'run',
             filename: 'QueuedThreadPool.java',
@@ -55,7 +52,7 @@ describe('RawStacktraceContent', function () {
     it('takes a type and value', () => {
       expect(
         getJavaPreamble(
-          FrameFixture({
+          TestStubs.Frame({
             type: 'Baz',
             value: 'message',
             module: undefined,
@@ -67,7 +64,7 @@ describe('RawStacktraceContent', function () {
     it('takes a module name', () => {
       expect(
         getJavaPreamble(
-          FrameFixture({
+          TestStubs.Frame({
             module: 'foo.bar',
             type: 'Baz',
             value: 'message',
@@ -78,7 +75,7 @@ describe('RawStacktraceContent', function () {
   });
 
   describe('render()', function () {
-    const exception = EventStacktraceExceptionFixture({
+    const exception = TestStubs.EventStacktraceException({
       module: 'example.application',
       type: 'Error',
       value: 'an error occurred',
@@ -89,14 +86,14 @@ describe('RawStacktraceContent', function () {
       framesOmitted: null,
       registers: {},
       frames: [
-        FrameFixture({
+        TestStubs.Frame({
           function: 'main',
           module: 'example.application',
           lineNo: 1,
           filename: 'application',
           platform: undefined,
         }),
-        FrameFixture({
+        TestStubs.Frame({
           function: 'doThing',
           module: 'example.application',
           lineNo: 2,

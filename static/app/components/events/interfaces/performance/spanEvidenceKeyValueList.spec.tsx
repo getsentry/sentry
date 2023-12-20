@@ -1,5 +1,3 @@
-import {EventEntry as EventEntryFixture} from 'sentry-fixture/eventEntry';
-
 import {
   MockSpan,
   ProblemSpan,
@@ -405,7 +403,7 @@ describe('SpanEvidenceKeyValueList', () => {
     builder.addSpan(parentSpan);
 
     builder.addEntry(
-      EventEntryFixture({
+      TestStubs.EventEntry({
         type: EntryType.REQUEST,
         data: {
           url: 'http://some.service.io',

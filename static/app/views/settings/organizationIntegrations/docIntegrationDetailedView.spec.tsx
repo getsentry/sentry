@@ -1,5 +1,3 @@
-import {DocIntegration as DocIntegrationFixture} from 'sentry-fixture/docIntegration';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -7,7 +5,7 @@ import DocIntegrationDetailedView from 'sentry/views/settings/organizationIntegr
 
 describe('DocIntegrationDetailedView', function () {
   const {routerProps, organization} = initializeOrg();
-  const doc = DocIntegrationFixture();
+  const doc = TestStubs.DocIntegration();
 
   beforeEach(function () {});
 

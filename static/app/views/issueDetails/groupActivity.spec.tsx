@@ -1,7 +1,5 @@
-import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {Release as ReleaseFixture} from 'sentry-fixture/release';
 import {Repository} from 'sentry-fixture/repository';
 import {Team} from 'sentry-fixture/team';
 import {User} from 'sentry-fixture/user';
@@ -48,7 +46,7 @@ describe('GroupActivity', function () {
     activity?: Group['activity'];
     organization?: TOrganization;
   } = {}) {
-    const group = GroupFixture({
+    const group = TestStubs.Group({
       id: '1337',
       activity: activity ?? [
         {type: 'note', id: 'note-1', data: {text: 'Test Note'}, user: User()},
@@ -238,7 +236,7 @@ describe('GroupActivity', function () {
               message: '',
               repository: Repository(),
               releases: [
-                ReleaseFixture({
+                TestStubs.Release({
                   dateCreated: '2022-05-01',
                   dateReleased: '2022-05-02',
                   version: 'random',
@@ -270,22 +268,22 @@ describe('GroupActivity', function () {
               message: '',
               repository: Repository(),
               releases: [
-                ReleaseFixture({
+                TestStubs.Release({
                   dateCreated: '2022-05-01',
                   dateReleased: '2022-05-02',
                   version: 'random',
                 }),
-                ReleaseFixture({
+                TestStubs.Release({
                   dateCreated: '2022-06-01',
                   dateReleased: '2022-06-02',
                   version: 'newest',
                 }),
-                ReleaseFixture({
+                TestStubs.Release({
                   dateCreated: '2021-08-03',
                   dateReleased: '2021-08-03',
                   version: 'oldest-release',
                 }),
-                ReleaseFixture({
+                TestStubs.Release({
                   dateCreated: '2022-04-21',
                   dateReleased: '2022-04-21',
                   version: 'randomTwo',

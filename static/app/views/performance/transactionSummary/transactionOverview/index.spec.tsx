@@ -1,6 +1,5 @@
 import {browserHistory, InjectedRouter} from 'react-router';
 import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Team} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -44,7 +43,7 @@ function initializeData({
   query?: Record<string, any>;
 } = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
-  const project = prj ?? ProjectFixture({teams});
+  const project = prj ?? TestStubs.Project({teams});
   const organization = Organization({
     features,
     projects: projects ? projects : [project],
@@ -542,7 +541,7 @@ describe('Performance > TransactionSummary', function () {
 
     it('renders Web Vitals widget', async function () {
       const {organization, router, routerContext} = initializeData({
-        project: ProjectFixture({teams, platform: 'javascript'}),
+        project: TestStubs.Project({teams, platform: 'javascript'}),
         query: {
           query:
             'transaction.duration:<15m transaction.op:pageload event.type:transaction transaction:/organizations/:orgId/issues/',
@@ -633,12 +632,12 @@ describe('Performance > TransactionSummary', function () {
       });
 
       const projects = [
-        ProjectFixture({
+        TestStubs.Project({
           slug: 'proj-slug-1',
           id: '1',
           name: 'Project Name 1',
         }),
-        ProjectFixture({
+        TestStubs.Project({
           slug: 'proj-slug-2',
           id: '2',
           name: 'Project Name 2',

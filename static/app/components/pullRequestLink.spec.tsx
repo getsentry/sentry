@@ -1,5 +1,4 @@
 import {PullRequest} from 'sentry-fixture/pullRequest';
-import {Repository as RepositoryFixture} from 'sentry-fixture/repository';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -7,7 +6,7 @@ import PullRequestLink from 'sentry/components/pullRequestLink';
 
 describe('PullRequestLink', () => {
   it('renders no url on missing externalUrl', () => {
-    const repository = RepositoryFixture({provider: null});
+    const repository = TestStubs.Repository({provider: null});
     const pullRequest = PullRequest({
       repository,
       externalUrl: undefined,
@@ -19,7 +18,7 @@ describe('PullRequestLink', () => {
   });
 
   it('renders github links for integrations:github repositories', () => {
-    const repository = RepositoryFixture({
+    const repository = TestStubs.Repository({
       provider: {
         id: 'integrations:github',
       },
@@ -35,7 +34,7 @@ describe('PullRequestLink', () => {
   });
 
   it('renders github links for github repositories', () => {
-    const repository = RepositoryFixture({
+    const repository = TestStubs.Repository({
       provider: {
         id: 'github',
       },
@@ -50,7 +49,7 @@ describe('PullRequestLink', () => {
   });
 
   it('renders gitlab links for integrations:gitlab repositories', () => {
-    const repository = RepositoryFixture({
+    const repository = TestStubs.Repository({
       provider: {
         id: 'integrations:gitlab',
       },
@@ -65,7 +64,7 @@ describe('PullRequestLink', () => {
   });
 
   it('renders github links for gitlab repositories', () => {
-    const repository = RepositoryFixture({
+    const repository = TestStubs.Repository({
       provider: {
         id: 'gitlab',
       },

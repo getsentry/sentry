@@ -1,6 +1,5 @@
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
-import {Group as GroupFixture} from 'sentry-fixture/group';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -24,7 +23,7 @@ describe('groupEvents', () => {
     router: {} as any,
     routes: [],
     location: {},
-    group: GroupFixture() as Group,
+    group: TestStubs.Group() as Group,
   });
 
   let organization: Organization;
@@ -185,7 +184,7 @@ describe('groupEvents', () => {
   });
 
   it('renders events table for performance issue', () => {
-    const group = GroupFixture();
+    const group = TestStubs.Group();
     group.issueCategory = 'performance';
 
     render(
@@ -209,7 +208,7 @@ describe('groupEvents', () => {
   });
 
   it('renders event and trace link correctly', async () => {
-    const group = GroupFixture();
+    const group = TestStubs.Group();
     group.issueCategory = 'performance';
 
     render(
@@ -377,7 +376,7 @@ describe('groupEvents', () => {
   });
 
   it('only request for a single projectId', () => {
-    const group = GroupFixture();
+    const group = TestStubs.Group();
 
     render(
       <GroupEvents
@@ -426,7 +425,7 @@ describe('groupEvents', () => {
   });
 
   it('requests for backend columns if backend project', async () => {
-    const group = GroupFixture();
+    const group = TestStubs.Group();
     group.project.platform = 'node-express';
     render(
       <GroupEvents

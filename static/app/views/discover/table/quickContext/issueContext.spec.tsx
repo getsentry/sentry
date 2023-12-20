@@ -1,4 +1,3 @@
-import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Organization} from 'sentry-fixture/organization';
 import {Repository} from 'sentry-fixture/repository';
 
@@ -11,7 +10,7 @@ import {QueryClientProvider} from 'sentry/utils/queryClient';
 import IssueContext from './issueContext';
 import {defaultRow} from './testUtils';
 
-let mockedGroup = GroupFixture({
+let mockedGroup = TestStubs.Group({
   id: '3512441874',
   project: {
     id: '1',

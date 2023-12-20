@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 import {SentryApp} from 'sentry-fixture/sentryApp';
-import {SentryAppInstallation as SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -22,7 +21,7 @@ describe('SentryAppRuleModal', function () {
 
   beforeEach(function () {
     sentryApp = SentryApp();
-    sentryAppInstallation = SentryAppInstallationFixture({sentryApp});
+    sentryAppInstallation = TestStubs.SentryAppInstallation({sentryApp});
   });
 
   const _submit = async () => {

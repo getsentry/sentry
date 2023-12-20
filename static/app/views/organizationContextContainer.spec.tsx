@@ -1,5 +1,3 @@
-import {Config as ConfigFixture} from 'sentry-fixture/config';
-import {Environments as EnvironmentsFixture} from 'sentry-fixture/environments';
 import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import {Team} from 'sentry-fixture/team';
@@ -160,7 +158,7 @@ describe('OrganizationContextContainer', function () {
     const openSudoSpy = jest.spyOn(openSudo, 'openSudo');
     jest
       .mocked(ConfigStore.get)
-      .mockImplementation(() => ConfigFixture({isSuperuser: true}));
+      .mockImplementation(() => TestStubs.Config({isSuperuser: true}));
     getOrgMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
       statusCode: 403,
@@ -198,7 +196,7 @@ describe('OrganizationContextContainer', function () {
   it('uses last organization from `organizations` prop', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/foo/environments/',
-      body: EnvironmentsFixture(),
+      body: TestStubs.Environments(),
     });
     getOrgMock = MockApiClient.addMockResponse({
       url: '/organizations/foo/',

@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import {Event as EventFixture} from 'sentry-fixture/event';
-import {EventEntryDebugMeta as EventEntryDebugMetaFixture} from 'sentry-fixture/eventEntryDebugMeta';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -11,7 +10,7 @@ import GlobalModal from 'sentry/components/globalModal';
 
 describe('DebugMeta', function () {
   it('opens details modal', async function () {
-    const eventEntryDebugMeta = EventEntryDebugMetaFixture();
+    const eventEntryDebugMeta = TestStubs.EventEntryDebugMeta();
     const event = EventFixture({entries: [eventEntryDebugMeta]});
     const {organization, project, router} = initializeOrg();
     const routerProps = {router, location: router.location};

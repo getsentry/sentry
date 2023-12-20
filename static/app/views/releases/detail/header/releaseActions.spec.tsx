@@ -2,7 +2,6 @@ import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
-import {Release as ReleaseFixture} from 'sentry-fixture/release';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {
@@ -17,7 +16,7 @@ import ReleaseActions from 'sentry/views/releases/detail/header/releaseActions';
 
 describe('ReleaseActions', function () {
   const organization = Organization();
-  const release = ReleaseFixture({projects: [{slug: 'project1'}, {slug: 'project2'}]});
+  const release = TestStubs.Release({projects: [{slug: 'project1'}, {slug: 'project2'}]});
   const location: Location = {
     ...LocationFixture(),
     pathname: `/organizations/sentry/releases/${release.version}/`,
@@ -47,7 +46,7 @@ describe('ReleaseActions', function () {
         projectSlug={release.projects[0].slug}
         release={release}
         refetchData={jest.fn()}
-        releaseMeta={{...ReleaseFixture(), projects: release.projects}}
+        releaseMeta={{...TestStubs.Release(), projects: release.projects}}
         location={location}
       />
     );
@@ -96,7 +95,7 @@ describe('ReleaseActions', function () {
         projectSlug={release.projects[0].slug}
         release={{...release, status: 'archived'}}
         refetchData={refetchDataMock}
-        releaseMeta={{...ReleaseFixture(), projects: release.projects}}
+        releaseMeta={{...TestStubs.Release(), projects: release.projects}}
         location={location}
       />
     );
@@ -140,7 +139,7 @@ describe('ReleaseActions', function () {
         projectSlug={release.projects[0].slug}
         release={release}
         refetchData={jest.fn()}
-        releaseMeta={{...ReleaseFixture(), projects: release.projects}}
+        releaseMeta={{...TestStubs.Release(), projects: release.projects}}
         location={location}
       />,
       {context: routerContext}
@@ -169,7 +168,7 @@ describe('ReleaseActions', function () {
         projectSlug={release.projects[0].slug}
         release={release}
         refetchData={jest.fn()}
-        releaseMeta={{...ReleaseFixture(), projects: release.projects}}
+        releaseMeta={{...TestStubs.Release(), projects: release.projects}}
         location={{
           ...location,
           pathname: `/organizations/sentry/releases/${release.version}/files-changed/`,

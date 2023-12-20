@@ -1,8 +1,6 @@
-import {Dashboard as DashboardFixture} from 'sentry-fixture/dashboard';
 import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {Widget as WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -33,12 +31,15 @@ describe('Dashboards - DashboardList', function () {
       body: [],
     });
     widgets = [
-      WidgetFixture([{name: '', conditions: 'event.type:error', fields: ['count()']}], {
-        title: 'Errors',
-        interval: '1d',
-        id: '1',
-      }),
-      WidgetFixture(
+      TestStubs.Widget(
+        [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+        {
+          title: 'Errors',
+          interval: '1d',
+          id: '1',
+        }
+      ),
+      TestStubs.Widget(
         [{name: '', conditions: 'event.type:transaction', fields: ['count()']}],
         {
           title: 'Transactions',
@@ -46,7 +47,7 @@ describe('Dashboards - DashboardList', function () {
           id: '2',
         }
       ),
-      WidgetFixture(
+      TestStubs.Widget(
         [
           {
             name: '',
@@ -62,14 +63,14 @@ describe('Dashboards - DashboardList', function () {
       ),
     ];
     dashboards = [
-      DashboardFixture([], {
+      TestStubs.Dashboard([], {
         id: '1',
         title: 'Dashboard 1',
         dateCreated: '2021-04-19T13:13:23.962105Z',
         createdBy: {id: '1'},
         widgetPreview: [],
       }),
-      DashboardFixture(widgets, {
+      TestStubs.Dashboard(widgets, {
         id: '2',
         title: 'Dashboard 2',
         dateCreated: '2021-04-19T13:13:23.962105Z',
@@ -227,7 +228,7 @@ describe('Dashboards - DashboardList', function () {
 
   it('cannot delete last dashboard', async function () {
     const singleDashboard = [
-      DashboardFixture([], {
+      TestStubs.Dashboard([], {
         id: '1',
         title: 'Dashboard 1',
         dateCreated: '2021-04-19T13:13:23.962105Z',

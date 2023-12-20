@@ -1,5 +1,3 @@
-import {Group as GroupFixture} from 'sentry-fixture/group';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -31,7 +29,7 @@ describe('FirstEventIndicator', function () {
           organization={organization}
           project={project}
           eventType="error"
-          firstIssue={GroupFixture({id: 1})}
+          firstIssue={TestStubs.Group({id: 1})}
         />
       );
 
