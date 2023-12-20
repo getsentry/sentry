@@ -1,9 +1,6 @@
 import ExternalLink from 'sentry/components/links/externalLink';
-import {replayFrontendPlatforms} from 'sentry/data/platformCategories';
-import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import type {Organization, PlatformKey} from 'sentry/types';
-import {PlatformIntegration} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 export function getUploadSourceMapsStep({
@@ -111,7 +108,3 @@ export const getReplaySDKSetupSnippet = ({
     replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
     replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.
   });`;
-
-export const replayJsFrameworkOptions: PlatformIntegration[] = platforms.filter(p =>
-  replayFrontendPlatforms.includes(p.id)
-);

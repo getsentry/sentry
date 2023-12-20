@@ -9,12 +9,12 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
-import {replayJsFrameworkOptions} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import useOnboardingDocs from 'sentry/components/onboardingWizard/useOnboardingDocs';
 import useCurrentProjectState from 'sentry/components/replaysOnboarding/useCurrentProjectState';
 import {
   generateDocKeys,
   isPlatformSupported,
+  replayJsFrameworkOptions,
 } from 'sentry/components/replaysOnboarding/utils';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {DocumentationWrapper} from 'sentry/components/sidebar/onboardingStep';
