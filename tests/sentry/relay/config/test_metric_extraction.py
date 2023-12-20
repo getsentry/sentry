@@ -59,7 +59,7 @@ def create_widget(
     aggregates: Sequence[str],
     query: str,
     project: Project,
-    title="Dashboard",
+    title: Optional[str] = "Dashboard",
     columns: Optional[Sequence[str]] = None,
 ) -> DashboardWidgetQuery:
     columns = columns or []
@@ -241,7 +241,7 @@ def test_get_metric_extraction_config_multiple_alerts_duplicated(default_project
 @django_db_all
 def test_get_metric_extraction_config_environment(
     default_project: Project, default_environment: Environment
-):
+) -> None:
     with Feature(ON_DEMAND_METRICS):
         create_alert("count()", "transaction.duration:>0", default_project)
         create_alert("count()", "transaction.duration:>0", default_project, environment=None)
@@ -889,7 +889,7 @@ def test_get_metric_extraction_config_with_no_tag_spec(
     ],
 )
 def test_get_metrics_extraction_config_features_combinations(
-    enabled_features, number_of_metrics, default_project
+    enabled_features: str, number_of_metrics: int, default_project: Project
 ) -> None:
     create_alert("count()", "transaction.duration:>=10", default_project)
     create_widget(["count()"], "transaction.duration:>=20", default_project)
