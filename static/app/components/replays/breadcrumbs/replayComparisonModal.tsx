@@ -202,5 +202,5 @@ const DiffHeader = styled('div')`
 `;
 
 const StyledParagraph = styled('p')`
-  margin-top: ${space(1)};
+  padding-top: ${space(1)};
 `;
