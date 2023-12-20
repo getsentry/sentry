@@ -118,3 +118,45 @@ class OrganizationMetricsMetaTest(OrganizationMetricMetaIntegrationTestCase):
         )
 
         assert response.status_code == 400
+
+    def test_metrics_meta_no_projects(self):
+        response = self.get_success_response(
+            self.organization.slug, project=[], useCase=["transactions"]
+        )
+
+        assert isinstance(response.data, list)
+
+    def test_metrics_meta_for_custom_metrics(self):
+        project_1 = self.create_project()
+        project_2 = self.create_project()
+
+        metrics = (
+            ("s:custom/user@none", "set", project_1),
+            ("s:custom/user@none", "set", project_2),
+            ("c:custom/clicks@none", "counter", project_1),
+            ("d:custom/page_load@millisecond", "distribution", project_2),
+        )
+        for mri, entity, project in metrics:
+            self.store_metric(
+                project.organization.id,
+                project.id,
+                entity,  # type:ignore
+                mri,
+                {"transaction": "/hello"},
+                int(self.now.timestamp()),
+                10,
+                UseCaseID.CUSTOM,
+            )
+
+        response = self.get_success_response(
+            self.organization.slug, project=[project_1.id, project_2.id], useCase=["custom"]
+        )
+        assert len(response.data) == 3
+
+        data = sorted(response.data, key=lambda d: d["mri"])
+        assert data[0]["mri"] == "c:custom/clicks@none"
+        assert data[0]["project_ids"] == [project_1.id]
+        assert data[1]["mri"] == "d:custom/page_load@millisecond"
+        assert data[1]["project_ids"] == [project_2.id]
+        assert data[2]["mri"] == "s:custom/user@none"
+        assert sorted(data[2]["project_ids"]) == sorted([project_1.id, project_2.id])

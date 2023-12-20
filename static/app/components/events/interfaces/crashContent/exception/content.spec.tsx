@@ -1,7 +1,7 @@
 import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
 import {Event as EventFixture} from 'sentry-fixture/event';
 import {EventStacktraceFrame} from 'sentry-fixture/eventStacktraceFrame';
-import {Project} from 'sentry-fixture/project';
+import {Project, Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -200,7 +200,7 @@ describe('Exception Content', function () {
 
   describe('exception groups', function () {
     const event = EventFixture({entries: [TestStubs.EventEntryExceptionGroup()]});
-    const project = TestStubs.Project();
+    const project = ProjectFixture();
     beforeEach(() => {
       const promptResponse = {
         dismissed_ts: undefined,

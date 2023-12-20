@@ -1,3 +1,5 @@
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, cleanup, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -22,7 +24,7 @@ describe('OrganizationStats', function () {
       utc: false,
     },
   };
-  const projects = ['1', '2', '3'].map(id => TestStubs.Project({id, slug: `proj-${id}`}));
+  const projects = ['1', '2', '3'].map(id => ProjectFixture({id, slug: `proj-${id}`}));
   const {organization, router, routerContext} = initializeOrg({
     organization: {features: ['global-views', 'team-insights']},
     projects,

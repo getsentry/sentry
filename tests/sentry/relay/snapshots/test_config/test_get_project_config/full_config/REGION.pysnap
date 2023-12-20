@@ -1,5 +1,5 @@
 ---
-created: '2023-10-31T14:18:43.516229Z'
+created: '2023-12-19T08:38:08.254426Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -84,6 +84,7 @@ config:
       patterns:
       - '*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*'
       - 'ChunkLoadError: Loading chunk *'
+      - 'Uncaught *: ChunkLoadError: Loading chunk *'
     ignoreTransactions:
       isEnabled: true
       patterns:

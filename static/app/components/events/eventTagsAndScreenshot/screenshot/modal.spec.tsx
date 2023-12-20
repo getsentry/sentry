@@ -1,5 +1,6 @@
 import {EventAttachment} from 'sentry-fixture/eventAttachment';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -70,7 +71,7 @@ describe('Modals -> ScreenshotModal', function () {
         location: {query: {types: 'event.screenshot'}},
       },
     } as Parameters<typeof initializeOrg>[0]);
-    project = TestStubs.Project();
+    project = ProjectFixture();
     ProjectsStore.loadInitialData([project]);
     GroupStore.init();
 

@@ -35,7 +35,7 @@ export default function PageBanner({
       {onDismiss && (
         <CloseButton
           onClick={onDismiss}
-          icon={<IconClose size="xs" />}
+          icon={<IconClose />}
           aria-label={t('Hide')}
           size="xs"
         />

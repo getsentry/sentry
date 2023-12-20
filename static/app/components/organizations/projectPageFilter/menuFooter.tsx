@@ -51,7 +51,7 @@ function ProjectPageFilterMenuFooter({
         size="xs"
         aria-label={t('Add Project')}
         to={`/organizations/${organization.slug}/projects/new/`}
-        icon={<IconAdd size="xs" isCircled />}
+        icon={<IconAdd isCircled />}
       >
         {t('Project')}
       </Button>

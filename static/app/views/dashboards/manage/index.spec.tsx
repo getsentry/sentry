@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -23,7 +24,7 @@ describe('Dashboards > Detail', function () {
     features: FEATURES,
   });
   beforeEach(function () {
-    act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
+    act(() => ProjectsStore.loadInitialData([ProjectFixture()]));
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',

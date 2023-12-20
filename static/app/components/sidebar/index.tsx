@@ -434,7 +434,7 @@ function Sidebar({organization}: Props) {
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconGraph />}
-        label={t('DDM')}
+        label={t('Metrics')}
         to={`/organizations/${organization.slug}/ddm/`}
         id="ddm"
         isAlpha
@@ -743,9 +743,21 @@ const SidebarSection = styled(SidebarSectionGroup)<{
 const DropdownSidebarSection = styled(SidebarSection)<{
   isSuperuser?: boolean;
 }>`
+  position: relative;
   margin: 0;
   padding: ${space(1)} ${space(2)};
-  background: ${p => (p.isSuperuser ? p.theme.superuserSidebar : 'none')};
+
+  ${p =>
+    p.isSuperuser &&
+    css`
+      &:before {
+        content: '';
+        position: absolute;
+        inset: 0 ${space(1)};
+        border-radius: ${p.theme.borderRadius};
+        background: ${p.theme.superuserSidebar};
+      }
+    `}
 `;
 
 const SidebarCollapseItem = styled(SidebarItem)`

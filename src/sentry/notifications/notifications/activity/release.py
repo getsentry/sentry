@@ -5,6 +5,7 @@ from urllib.parse import urlencode
 
 from sentry_relay.processing import parse_release
 
+from sentry import features
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
@@ -158,6 +159,9 @@ class ReleaseActivityNotification(ActivityNotification):
                 return [
                     MessageAction(
                         name=project.slug,
+                        label=project.slug
+                        if features.has("organizations:slack-block-kit", self.project.organization)
+                        else None,
                         url=self.organization.absolute_url(
                             f"/organizations/{project.organization.slug}/releases/{release.version}/",
                             query=f"project={project.id}&unselectedSeries=Healthy&referrer={self.metrics_key}&notification_uuid={self.notification_uuid}",

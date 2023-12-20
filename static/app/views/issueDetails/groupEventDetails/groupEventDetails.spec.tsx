@@ -3,6 +3,7 @@ import {Location} from 'history';
 import {Commit} from 'sentry-fixture/commit';
 import {CommitAuthor} from 'sentry-fixture/commitAuthor';
 import {Event as EventFixture} from 'sentry-fixture/event';
+import LocationFixture from 'sentry-fixture/locationFixture';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 import {SentryApp} from 'sentry-fixture/sentryApp';
 import {SentryAppComponent} from 'sentry-fixture/sentryAppComponent';
@@ -38,7 +39,7 @@ const makeDefaultMockData = (
     project: project ?? initializeOrg().project,
     group: TestStubs.Group(),
     router: TestStubs.router({
-      location: TestStubs.location({
+      location: LocationFixture({
         query: {
           environment: environments,
         },
@@ -75,7 +76,6 @@ function TestComponent(
   );
 
   const mergedProps: GroupEventDetailsProps = {
-    api: new MockApiClient(),
     group,
     event,
     project,
@@ -262,8 +262,9 @@ const mockGroupApis = (
   });
 
   MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/sentry-app-components/?projectId=${project.id}`,
+    url: `/organizations/${organization.slug}/sentry-app-components/`,
     body: [],
+    match: [MockApiClient.matchQuery({projectId: project.id})],
   });
 
   MockApiClient.addMockResponse({
@@ -556,8 +557,9 @@ describe('Platform Integrations', () => {
     });
 
     componentsRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/sentry-app-components/?projectId=${props.project.id}`,
+      url: `/organizations/${props.organization.slug}/sentry-app-components/`,
       body: [component],
+      match: [MockApiClient.matchQuery({projectId: props.project.id})],
     });
 
     render(<TestComponent />, {organization: props.organization});

@@ -63,9 +63,9 @@ export const errorFieldConfig: OptionConfig = {
 
 const commonAggregations = [
   AggregationKey.AVG,
-  AggregationKey.PERCENTILE,
   AggregationKey.P50,
   AggregationKey.P75,
+  AggregationKey.P90,
   AggregationKey.P95,
   AggregationKey.P99,
   AggregationKey.P100,

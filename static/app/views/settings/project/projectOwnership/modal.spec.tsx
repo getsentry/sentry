@@ -2,6 +2,8 @@ import {Event as EventFixture} from 'sentry-fixture/event';
 import {EventEntryStacktrace} from 'sentry-fixture/eventEntryStacktrace';
 import {Members} from 'sentry-fixture/members';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {User} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -11,13 +13,13 @@ import ProjectOwnershipModal from './modal';
 
 describe('Project Ownership', () => {
   const org = Organization();
-  const project = TestStubs.Project();
+  const project = ProjectFixture();
   const issueId = '1234';
   const stacktrace = EventEntryStacktrace();
   const event = EventFixture({
     entries: [stacktrace],
   });
-  const user = TestStubs.User();
+  const user = User();
 
   beforeEach(() => {
     ConfigStore.set('user', user);

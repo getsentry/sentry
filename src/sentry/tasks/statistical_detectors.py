@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import heapq
 import logging
-from collections import defaultdict
-from datetime import datetime, timedelta, timezone
-from typing import Any, DefaultDict, Dict, Generator, Iterable, List, Optional, Tuple
+from datetime import datetime, timedelta
+from typing import Any, Dict, Generator, Iterable, List, Tuple
 
 from django.utils import timezone as django_timezone
 from snuba_sdk import (
@@ -30,14 +28,9 @@ from snuba_sdk import (
 from sentry import features, options, projectoptions
 from sentry.api.endpoints.project_performance_issue_settings import InternalProjectOptions
 from sentry.constants import ObjectStatus
-from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
-from sentry.models.statistical_detectors import (
-    RegressionGroup,
-    RegressionType,
-    get_regression_groups,
-)
+from sentry.models.statistical_detectors import RegressionType
 from sentry.profiles.utils import get_from_profiling_service
 from sentry.seer.utils import BreakpointData
 from sentry.sentry_metrics import indexer
@@ -52,17 +45,14 @@ from sentry.statistical_detectors.algorithm import (
     MovingAverageRelativeChangeDetector,
     MovingAverageRelativeChangeDetectorConfig,
 )
-from sentry.statistical_detectors.detector import (
-    DetectorPayload,
-    DetectorState,
-    RegressionDetector,
-    TrendType,
-)
+from sentry.statistical_detectors.base import DetectorPayload
+from sentry.statistical_detectors.detector import RegressionDetector
 from sentry.statistical_detectors.issue_platform_adapter import (
     fingerprint_regression,
     send_regression_to_platform,
 )
-from sentry.statistical_detectors.redis import DetectorType, RedisDetectorStore
+from sentry.statistical_detectors.redis import RedisDetectorStore
+from sentry.statistical_detectors.store import DetectorStore
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
@@ -178,26 +168,15 @@ class EndpointRegressionDetector(RegressionDetector):
         long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
         threshold=0.2,
     )
-    store = RedisDetectorStore(detector_type=DetectorType.ENDPOINT)  # e for endpoint
     state_cls = MovingAverageDetectorState
     detector_cls = MovingAverageRelativeChangeDetector
     min_change = 200  # 200ms in ms
     resolution_rel_threshold = 0.1
+    escalation_rel_threshold = 0.3
 
     @classmethod
-    def make_status_change_message(
-        cls,
-        payload: DetectorPayload,
-        status: int,
-        substatus: Optional[int] = None,
-    ) -> StatusChangeMessage:
-        return StatusChangeMessage(
-            # To align with the issue, we need to use the full fingerprint here
-            fingerprint=[fingerprint_regression(payload.group, full=True)],
-            project_id=payload.project_id,
-            new_status=status,
-            new_substatus=substatus,
-        )
+    def make_detector_store(cls) -> DetectorStore:
+        return RedisDetectorStore(regression_type=RegressionType.ENDPOINT)
 
     @classmethod
     def query_payloads(
@@ -227,28 +206,15 @@ class FunctionRegressionDetector(RegressionDetector):
         long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
         threshold=0.2,
     )
-    store = RedisDetectorStore(detector_type=DetectorType.FUNCTION)
     state_cls = MovingAverageDetectorState
     detector_cls = MovingAverageRelativeChangeDetector
     min_change = 100_000_000  # 100ms in ns
     resolution_rel_threshold = 0.1
+    escalation_rel_threshold = 0.3
 
     @classmethod
-    def make_status_change_message(
-        cls,
-        payload: DetectorPayload,
-        status: int,
-        substatus: Optional[int] = None,
-    ) -> StatusChangeMessage:
-        return StatusChangeMessage(
-            # This needs to match the implementation in vroom where the issue
-            # fingerprint is generated.
-            # See https://github.com/getsentry/vroom/blob/711cb69765f8192a4bbc029a23801dd2bc4012a0/internal/occurrence/occurrence.go#L285
-            fingerprint=[f"{payload.group:x}"],
-            project_id=payload.project_id,
-            new_status=status,
-            new_substatus=substatus,
-        )
+    def make_detector_store(cls) -> DetectorStore:
+        return RedisDetectorStore(regression_type=RegressionType.FUNCTION)
 
     @classmethod
     def query_payloads(
@@ -286,18 +252,18 @@ def detect_transaction_trends(
     )
 
     trends = EndpointRegressionDetector.detect_trends(projects, start)
+    trends = EndpointRegressionDetector.get_regression_groups(trends)
     trends = EndpointRegressionDetector.redirect_resolutions(trends, start)
-
-    ratelimit = options.get("statistical_detectors.ratelimit.ema")
-    regressions = limit_regressions_by_project(trends, ratelimit)
+    trends = EndpointRegressionDetector.redirect_escalations(trends, start)
+    trends = EndpointRegressionDetector.limit_regressions_by_project(trends)
 
     delay = 12  # hours
     delayed_start = start + timedelta(hours=delay)
 
-    for regression_chunk in chunked(regressions, TRANSACTIONS_PER_BATCH):
+    for regression_chunk in chunked(trends, TRANSACTIONS_PER_BATCH):
         detect_transaction_change_points.apply_async(
             args=[
-                [(payload.project_id, payload.group) for payload in regression_chunk],
+                [(bundle.payload.project_id, bundle.payload.group) for bundle in regression_chunk],
                 delayed_start,
             ],
             # delay the check by delay hours because we want to make sure there
@@ -333,10 +299,7 @@ def detect_transaction_change_points(
     regressions = EndpointRegressionDetector.detect_regressions(
         transaction_pairs, start, "p95(transaction.duration)", TIMESERIES_PER_BATCH
     )
-
-    versioned_regressions = redirect_escalations(regressions, RegressionType.ENDPOINT)
-
-    regressions = save_versioned_regressions(versioned_regressions, RegressionType.ENDPOINT)
+    regressions = EndpointRegressionDetector.save_regressions_with_versions(regressions)
 
     breakpoint_count = 0
 
@@ -367,18 +330,18 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
     )
 
     trends = FunctionRegressionDetector.detect_trends(projects, start)
+    trends = FunctionRegressionDetector.get_regression_groups(trends)
     trends = FunctionRegressionDetector.redirect_resolutions(trends, start)
-
-    ratelimit = options.get("statistical_detectors.ratelimit.ema")
-    regressions = limit_regressions_by_project(trends, ratelimit)
+    trends = FunctionRegressionDetector.redirect_escalations(trends, start)
+    trends = FunctionRegressionDetector.limit_regressions_by_project(trends)
 
     delay = 12  # hours
     delayed_start = start + timedelta(hours=delay)
 
-    for regression_chunk in chunked(regressions, FUNCTIONS_PER_BATCH):
+    for regression_chunk in chunked(trends, FUNCTIONS_PER_BATCH):
         detect_function_change_points.apply_async(
             args=[
-                [(payload.project_id, payload.group) for payload in regression_chunk],
+                [(bundle.payload.project_id, bundle.payload.group) for bundle in regression_chunk],
                 delayed_start,
             ],
             # delay the check by delay hours because we want to make sure there
@@ -414,10 +377,7 @@ def detect_function_change_points(
     regressions = FunctionRegressionDetector.detect_regressions(
         function_pairs, start, "p95()", TIMESERIES_PER_BATCH
     )
-
-    versioned_regressions = redirect_escalations(regressions, RegressionType.FUNCTION)
-
-    regressions = save_versioned_regressions(versioned_regressions, RegressionType.FUNCTION)
+    regressions = FunctionRegressionDetector.save_regressions_with_versions(regressions)
 
     breakpoint_count = 0
     emitted_count = 0
@@ -937,100 +897,3 @@ def get_detector_enabled_projects(
         projects = [project for project in projects if settings[project][project_option.value]]
 
     return projects
-
-
-def limit_regressions_by_project(
-    trends: Generator[
-        Tuple[Optional[TrendType], float, DetectorPayload, DetectorState], None, None
-    ],
-    ratelimit: int,
-) -> Generator[DetectorPayload, None, None]:
-    regressions_by_project: DefaultDict[int, List[Tuple[float, DetectorPayload]]] = defaultdict(
-        list
-    )
-
-    for trend_type, score, payload, state in trends:
-        if trend_type != TrendType.Regressed:
-            continue
-        heapq.heappush(regressions_by_project[payload.project_id], (score, payload))
-
-        while ratelimit >= 0 and len(regressions_by_project[payload.project_id]) > ratelimit:
-            heapq.heappop(regressions_by_project[payload.project_id])
-
-    for regressions in regressions_by_project.values():
-        for _, regression in regressions:
-            yield regression
-
-
-def redirect_escalations(
-    regressions: Generator[BreakpointData, None, None],
-    regression_type: RegressionType,
-    batch_size=1_000,
-) -> Generator[Tuple[int, BreakpointData], None, None]:
-    for regression_chunk in chunked(regressions, batch_size):
-        existing_regression_groups = {
-            (group.project_id, group.fingerprint): group
-            for group in get_regression_groups(
-                regression_type,
-                [
-                    (
-                        int(regression["project"]),
-                        fingerprint_regression(regression["transaction"]),
-                    )
-                    for regression in regression_chunk
-                ],
-            )
-        }
-
-        for regression in regression_chunk:
-            project_id = int(regression["project"])
-            fingerprint = fingerprint_regression(regression["transaction"])
-            group = existing_regression_groups.get((project_id, fingerprint))
-
-            if group is None:
-                yield 1, regression
-            elif not group.active:
-                yield group.version + 1, regression
-            else:
-                # TODO:
-                # If there is an active regression group, we should check
-                # - if the issue group is still unresolved
-                # - if the issue escalted
-                # then emit an status change message if necessary.
-                pass
-
-
-def save_versioned_regressions(
-    versioned_regressions: Generator[Tuple[int, BreakpointData], None, None],
-    regression_type: RegressionType,
-    batch_size=100,
-) -> Generator[BreakpointData, None, None]:
-    def generate_fingerprint(regression) -> str:
-        if regression_type == RegressionType.ENDPOINT:
-            return fingerprint_regression(regression["transaction"])
-        elif regression_type == RegressionType.FUNCTION:
-            return f"{int(regression['transaction']):x}"
-        else:
-            raise ValueError(f"Unsupported RegressionType: {regression_type}")
-
-    for regression_chunk in chunked(versioned_regressions, batch_size):
-        RegressionGroup.objects.bulk_create(
-            [
-                RegressionGroup(
-                    type=regression_type.value,
-                    date_regressed=datetime.utcfromtimestamp(regression["breakpoint"]).replace(
-                        tzinfo=timezone.utc
-                    ),
-                    version=version,
-                    active=True,
-                    project_id=int(regression["project"]),
-                    fingerprint=generate_fingerprint(regression),
-                    baseline=regression["aggregate_range_1"],
-                    regressed=regression["aggregate_range_2"],
-                )
-                for version, regression in regression_chunk
-            ]
-        )
-
-        for _, regression in regression_chunk:
-            yield regression

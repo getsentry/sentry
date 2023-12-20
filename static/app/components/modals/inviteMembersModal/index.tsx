@@ -391,7 +391,7 @@ class InviteMembersModal extends DeprecatedAsyncComponent<
           size="sm"
           borderless
           onClick={this.addInviteRow}
-          icon={<IconAdd size="xs" isCircled />}
+          icon={<IconAdd isCircled />}
         >
           {t('Add another')}
         </AddButton>
