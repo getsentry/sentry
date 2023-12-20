@@ -28,8 +28,9 @@ describe('IssueReplayCount', function () {
 
     await waitFor(() => {
       expect(container).toBeEmptyDOMElement();
-      expect(mockGetReplayCountForIssue).toHaveBeenCalledWith(groupId);
     });
+
+    expect(mockGetReplayCountForIssue).toHaveBeenCalledWith(groupId);
   });
 
   it('does not render when a group has a count of zero', async function () {
@@ -39,8 +40,9 @@ describe('IssueReplayCount', function () {
 
     await waitFor(() => {
       expect(container).toBeEmptyDOMElement();
-      expect(mockGetReplayCountForIssue).toHaveBeenCalledWith(groupId);
     });
+
+    expect(mockGetReplayCountForIssue).toHaveBeenCalledWith(groupId);
   });
 
   it('renders the correct replay count', async function () {
@@ -52,13 +54,14 @@ describe('IssueReplayCount', function () {
 
     await waitFor(() => {
       expect(container).not.toBeEmptyDOMElement();
-      const replayCount = screen.getByLabelText('replay-count');
-      expect(replayCount).toHaveTextContent('2');
-      expect(replayCount).toHaveAttribute(
-        'href',
-        `/organizations/${organization.slug}/issues/${groupId}/replays/`
-      );
-      expect(mockGetReplayCountForIssue).toHaveBeenCalledWith(groupId);
     });
+
+    const replayCount = screen.getByLabelText('replay-count');
+    expect(replayCount).toHaveTextContent('2');
+    expect(replayCount).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/issues/${groupId}/replays/`
+    );
+    expect(mockGetReplayCountForIssue).toHaveBeenCalledWith(groupId);
   });
 });
