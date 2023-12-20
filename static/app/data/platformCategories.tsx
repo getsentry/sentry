@@ -379,24 +379,28 @@ const customMetricBackendPlatforms: readonly PlatformKey[] = [
   'php-monolog',
   'php-symfony',
   'python',
-  'python-django',
-  'python-flask',
-  'python-fastapi',
-  'python-starlette',
-  'python-sanic',
-  'python-celery',
+  'python-aiohttp',
+  'python-asgi',
+  'python-awslambda',
   'python-bottle',
+  'python-celery',
+  'python-chalice',
+  'python-django',
+  'python-falcon',
+  'python-fastapi',
+  'python-flask',
+  'python-gcpfunctions',
+  'python-pymongo',
   'python-pylons',
   'python-pyramid',
-  'python-tornado',
-  'python-rq',
-  'python-aiohttp',
-  'python-chalice',
-  'python-falcon',
   'python-quart',
+  'python-rq',
+  'python-sanic',
+  'python-serverless',
+  'python-starlette',
+  'python-tornado',
   'python-tryton',
   'python-wsgi',
-  'python-serverless',
   'rust',
 ];
 
@@ -432,11 +436,14 @@ export const customMetricOnboardingPlatforms = new Set(
   [...customMetricPlatforms].filter(
     p =>
       // Legacy platforms that do not have in-product docs
-      !['javascript-backbone', 'javascript-capacitor', 'javascript-electron'].includes(
-        p
-      ) &&
+      ![
+        'javascript-backbone',
+        'javascript-capacitor',
+        'javascript-electron',
+        'python-pylons',
+        'python-tryton',
+      ].includes(p) &&
       // TODO: Remove this once we have onboarding instructions for these platforms
-      !p.includes('php') &&
-      !p.includes('python')
+      !p.includes('php')
   )
 );

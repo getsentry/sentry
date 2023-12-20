@@ -6,7 +6,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
-const getJSInstallSnippet = (params: DocsParams) => `
+const getJSConfigureSnippet = (params: DocsParams) => `
 Sentry.init({
   dsn: "${params.dsn}",
   integrations: [
@@ -53,7 +53,7 @@ export const getJSMetricsOnboarding = ({
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              code: getJSInstallSnippet(params),
+              code: getJSConfigureSnippet(params),
             },
           ],
         },
@@ -81,6 +81,110 @@ export const getJSMetricsOnboarding = ({
               value: 'javascript',
               language: 'javascript',
               code: getJSVerifySnippet(),
+            },
+          ],
+        },
+        {
+          description: t(
+            'With a bit of delay you can see the data appear in the Sentry UI.'
+          ),
+        },
+        {
+          description: tct(
+            'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
+            {
+              docsLink: (
+                <ExternalLink href="https://develop.sentry.dev/delightful-developer-metrics/sending-metrics-sdk/" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+});
+
+const getPythonConfigureSnippet = () => `
+import sentry_sdk
+
+sentry_sdk.init(
+    ...
+    _experiments={
+        # Turns on the metrics module (required)
+        "enable_metrics": True,
+        # Enables sending of code locations for metrics (recommended)
+        "metric_code_locations": True,
+    },
+)`;
+
+const getPythonVerifySnippet = () => `
+# Increment a metric to see how it works
+metrics.incr("drank-drinks", 1, tags={"kind": "coffee"})`;
+
+export const getPythonMetricsOnboarding = ({
+  installSnippet,
+}: {
+  installSnippet: string;
+}): OnboardingConfig => ({
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        "You need a minimum version [codeVersion:1.38.0] of the [codePackage:sentry-python] SDK and add that as your dependency. You don't need to install any additional packages",
+        {
+          codeVersion: <code />,
+          codePackage: <code />,
+        }
+      ),
+      configurations: [
+        {
+          language: 'bash',
+          code: installSnippet,
+        },
+      ],
+    },
+  ],
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: t(
+        'Once the SDK is installed or updated you have to add experimental flag into your SDK init:'
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getPythonConfigureSnippet(),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: tct(
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. Try out this example:",
+        {
+          codeCounters: <code />,
+          codeSets: <code />,
+          codeDistribution: <code />,
+          codeGauge: <code />,
+          codeNamespace: <code />,
+        }
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getPythonVerifySnippet(),
             },
           ],
         },
