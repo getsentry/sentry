@@ -1,0 +1,14 @@
+---
+created: '2023-12-20T19:21:23.754251Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "3b544b7297810e16a7e6701fd2b03b26"
+  component:
+    app*
+      exception*
+        type*
+          "InFailedSqlTransaction"
+        value* (stripped event-specific values)
+          "InFailedSqlTransaction('current transaction is aborted, commands ignored until end of transaction block\\n')\nSQL: RELEASE SAVEPOINT <quoted_identifier>"

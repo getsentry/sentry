@@ -1,0 +1,24 @@
+---
+created: '2023-12-20T19:23:20.061832Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        type*
+          "InFailedSqlTransaction"
+        value*
+          "InFailedSqlTransaction('current transaction is aborted, commands ignored until end of transaction block\\n')\nSQL: RELEASE SAVEPOINT \"s140078941939520_x761\""
+--------------------------------------------------------------------------
+system:
+  hash: "d5cbe52354e9865c0de7d87ee21dc75f"
+  component:
+    system*
+      exception*
+        type*
+          "InFailedSqlTransaction"
+        value*
+          "InFailedSqlTransaction('current transaction is aborted, commands ignored until end of transaction block\\n')\nSQL: RELEASE SAVEPOINT \"s140078941939520_x761\""

@@ -1,0 +1,12 @@
+---
+created: '2023-12-20T19:23:35.271112Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "6574b37fdbcfb92d79fab43fb1c20f6b"
+  component:
+    app*
+      exception*
+        type*
+          "InFailedSqlTransaction"

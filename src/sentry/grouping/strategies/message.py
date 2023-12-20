@@ -103,6 +103,9 @@ _parameterization_regex = re.compile(
         ='([^']+)' |
         ="([^"]+)"
     ) |
+    (?P<quoted_identifier>
+        "([a-z0-9_])+"
+    ) |
     (?P<bool>
         # The `=` here guarantees we'll only match the value half of key-value pairs,
         # rather than all instances of the words 'true' and 'false'.

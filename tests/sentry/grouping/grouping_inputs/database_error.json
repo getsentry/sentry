@@ -1,0 +1,20 @@
+{
+  "issue_id": "4721800324",
+  "project": 1,
+  "platform": "python",
+  "exception": {
+    "values": [
+      {
+        "type": "InFailedSqlTransaction",
+        "NOTE": "This event only tests the regex substitution for the value, thus, no frames are included",
+        "value": "InFailedSqlTransaction('current transaction is aborted, commands ignored until end of transaction block\\n')\nSQL: RELEASE SAVEPOINT \"s140078941939520_x761\"",
+        "stacktrace": {
+          "frames": []
+        },
+        "mechanism": {"type": "generic", "handled": true}
+      }
+    ]
+  },
+  "title": "DatabaseError: ((<class 'psycopg2.errors.InFailedSqlTransaction'>, InFailedSqlTransaction('InFailedSqlTransactio...",
+  "type": "error"
+}
