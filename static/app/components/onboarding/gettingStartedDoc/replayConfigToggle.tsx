@@ -17,29 +17,19 @@ function ReplayConfigToggle({
 }) {
   return (
     <SwitchWrapper>
-      <SwitchItem>
+      <SwitchItem htmlFor="mask">
         {t('Mask All Text')}
-        <Switch
-          id={t('Mask All Text')}
-          toggle={onMaskToggle}
-          size="lg"
-          isActive={maskToggle}
-        />
+        <Switch id="mask" toggle={onMaskToggle} size="lg" isActive={maskToggle} />
       </SwitchItem>
-      <SwitchItem>
+      <SwitchItem htmlFor="block">
         {t('Block All Media')}
-        <Switch
-          id={t('Block All Media')}
-          toggle={onBlockToggle}
-          size="lg"
-          isActive={blockToggle}
-        />
+        <Switch id="block" toggle={onBlockToggle} size="lg" isActive={blockToggle} />
       </SwitchItem>
     </SwitchWrapper>
   );
 }
 
-const SwitchItem = styled('div')`
+const SwitchItem = styled('label')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
