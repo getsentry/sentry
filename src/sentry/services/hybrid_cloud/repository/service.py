@@ -83,6 +83,17 @@ class RepositoryService(RpcService):
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
+    def disable_repositories_for_integration(
+        self, *, organization_id: int, integration_id: int, provider: str
+    ) -> None:
+        """
+        Disables all repositories associated with the given integration by marking them as disabled.
+        Code owners and code mappings will not be changed.
+        """
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
     def disassociate_organization_integration(
         self,
         *,
@@ -91,7 +102,8 @@ class RepositoryService(RpcService):
         integration_id: int,
     ) -> None:
         """
-        Disassociates all repositories, code owners, and code mapping associated with the given organization integration.
+        Disassociates all repositories for an organization integration.
+        This will also delete code owners, and code mapping associated with matching repositories.
         """
         pass
 

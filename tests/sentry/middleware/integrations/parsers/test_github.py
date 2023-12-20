@@ -122,3 +122,19 @@ class GithubRequestParserTest(TestCase):
             parser.get_response()
             assert get_response_from_control_silo.called
             assert not get_response_from_outbox_creation.called
+
+    def test_installation_deleted_routing(self):
+        request = self.factory.post(
+            reverse("sentry-integration-github-webhook"),
+            data={"installation": {"id": "github:1"}, "action": "deleted"},
+            content_type="application/json",
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+        with mock.patch.object(
+            parser, "get_response_from_outbox_creation"
+        ) as get_response_from_outbox_creation, mock.patch.object(
+            parser, "get_response_from_control_silo"
+        ) as get_response_from_control_silo:
+            parser.get_response()
+            assert get_response_from_control_silo.called
+            assert not get_response_from_outbox_creation.called
