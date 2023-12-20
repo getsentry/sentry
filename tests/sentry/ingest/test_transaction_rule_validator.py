@@ -32,3 +32,7 @@ def test_schema_all_stars_invalid():
     assert RuleValidator(
         ReplacementRule("http://user:password@www.example.com:80/*/*/*/**")
     ).is_valid()
+    assert RuleValidator(ReplacementRule("ftp:///ftp.example.com/rfcs/*/**")).is_valid()
+    assert not RuleValidator(ReplacementRule("ftp://*/*/*/**")).is_valid()
+    assert RuleValidator(ReplacementRule("file:///example.txt")).is_valid()
+    assert not RuleValidator(ReplacementRule("file:///*/*/**")).is_valid()
