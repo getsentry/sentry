@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {
   render,
@@ -17,7 +18,7 @@ import {IssueCategory} from 'sentry/types';
 import * as analytics from 'sentry/utils/analytics';
 import GroupActions from 'sentry/views/issueDetails/actions';
 
-const project = TestStubs.Project({
+const project = ProjectFixture({
   id: '2448',
   name: 'project name',
   slug: 'project',

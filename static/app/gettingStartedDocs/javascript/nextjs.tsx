@@ -14,6 +14,7 @@ import {
   getReplayConfigureDescription,
   getReplaySDKSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -33,6 +34,26 @@ const getInstallConfig = () => [
     ),
     language: 'bash',
     code: `npx @sentry/wizard@latest -i nextjs`,
+  },
+];
+
+const getManualInstallConfig = () => [
+  {
+    language: 'bash',
+    code: [
+      {
+        label: 'npm',
+        value: 'npm',
+        language: 'bash',
+        code: 'npm install --save @sentry/nextjs',
+      },
+      {
+        label: 'yarn',
+        value: 'yarn',
+        language: 'bash',
+        code: 'yarn add @sentry/nextjs',
+      },
+    ],
   },
 ];
 
@@ -158,6 +179,9 @@ const replayOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   replayOnboardingNpm: replayOnboarding,
+  customMetricsOnboarding: getJSMetricsOnboarding({
+    getInstallConfig: getManualInstallConfig,
+  }),
 };
 
 export default docs;

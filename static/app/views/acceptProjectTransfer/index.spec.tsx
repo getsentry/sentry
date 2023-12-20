@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Team} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -20,7 +21,7 @@ describe('AcceptProjectTransfer', function () {
       url: '/accept-transfer/',
       method: 'GET',
       body: {
-        project: TestStubs.Project(),
+        project: ProjectFixture(),
         organizations: [Organization({teams: [Team()]})],
       },
     });
@@ -51,7 +52,7 @@ describe('AcceptProjectTransfer', function () {
       url: '/accept-transfer/',
       method: 'GET',
       body: {
-        project: TestStubs.Project(),
+        project: ProjectFixture(),
         organizations: [Organization({teams: [Team()]})],
       },
       match: [(_url, options) => options.host === 'http://us.sentry.io'],

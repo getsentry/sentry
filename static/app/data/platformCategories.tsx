@@ -372,3 +372,71 @@ export const replayJsLoaderInstructionsPlatformList: readonly PlatformKey[] = [
   'javascript',
   ...replayBackendPlatforms,
 ];
+
+const customMetricBackendPlatforms: readonly PlatformKey[] = [
+  'php',
+  'php-laravel',
+  'php-monolog',
+  'php-symfony',
+  'python',
+  'python-django',
+  'python-flask',
+  'python-fastapi',
+  'python-starlette',
+  'python-sanic',
+  'python-celery',
+  'python-bottle',
+  'python-pylons',
+  'python-pyramid',
+  'python-tornado',
+  'python-rq',
+  'python-aiohttp',
+  'python-chalice',
+  'python-falcon',
+  'python-quart',
+  'python-tryton',
+  'python-wsgi',
+  'python-serverless',
+  'rust',
+];
+
+const customMetricFrontendPlatforms: readonly PlatformKey[] = [
+  'electron',
+  'javascript-angular',
+  'javascript-astro',
+  'javascript-backbone',
+  'javascript-capacitor',
+  'javascript-electron',
+  'javascript-ember',
+  'javascript-gatsby',
+  'javascript-nextjs',
+  'javascript-react',
+  'javascript-remix',
+  'javascript-svelte',
+  'javascript-sveltekit',
+  'javascript-vue',
+  'javascript',
+];
+
+// These are all the platforms that can set up custom metrics.
+export const customMetricPlatforms: Set<PlatformKey> = new Set([
+  ...customMetricFrontendPlatforms,
+  ...customMetricBackendPlatforms,
+]);
+
+/**
+ * The list of platforms for which we have created onboarding instructions.
+ * Should be a subset of the list of `customMetricPlatforms`.
+ */
+export const customMetricOnboardingPlatforms = new Set(
+  [...customMetricPlatforms].filter(
+    p =>
+      // Legacy platforms that do not have in-product docs
+      !['javascript-backbone', 'javascript-capacitor', 'javascript-electron'].includes(
+        p
+      ) &&
+      // TODO: Remove this once we have onboarding instructions for these platforms
+      !p.includes('php') &&
+      !p.includes('python')
+  )
+);

@@ -1,5 +1,6 @@
 import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
@@ -22,7 +23,7 @@ describe('Discover > MiniGraph', function () {
   beforeEach(() => {
     organization = Organization({
       features,
-      projects: [TestStubs.Project()],
+      projects: [ProjectFixture()],
     });
     initialData = initializeOrg({
       organization,
