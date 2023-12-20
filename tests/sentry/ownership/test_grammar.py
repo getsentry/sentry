@@ -901,6 +901,19 @@ def test_parse_code_owners_with_line_of_spaces():
 
 def test_get_source_code_path_from_stacktrace_path():
     code_mapping = type("", (), {})()
+    code_mapping.stack_root = ""
+    code_mapping.source_root = "src/"
+    assert (
+        get_source_code_path_from_stacktrace_path(
+            "foo.py",
+            code_mapping,
+        )
+        == "src/foo.py"
+    )
+
+
+def test_get_source_code_path_from_stacktrace_path_flatten_slashes():
+    code_mapping = type("", (), {})()
     code_mapping.stack_root = "webpack://docs"
     code_mapping.source_root = "docs"
     assert (
