@@ -195,6 +195,10 @@ const DiffHeader = styled('div')`
   flex: 1;
   font-weight: 600;
   line-height: 1.2;
+
+  div:last-child {
+    padding-left: ${space(2)};
+  }
 `;
 
 const StyledParagraph = styled('p')`
