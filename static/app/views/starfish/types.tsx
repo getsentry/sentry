@@ -103,7 +103,6 @@ export enum SpanIndexedField {
   HTTP_RESPONSE_CONTENT_LENGTH = 'http.response_content_length',
   SPAN_SELF_TIME = 'span.self_time',
   SPAN_GROUP = 'span.group', // Span group computed from the normalized description. Matches the group in the metrics data set
-  SPAN_GROUP_RAW = 'span.group_raw', // Span group computed from non-normalized description. Matches the group in the event payload
   SPAN_MODULE = 'span.module',
   SPAN_DESCRIPTION = 'span.description',
   SPAN_OP = 'span.op',
@@ -123,7 +122,6 @@ export enum SpanIndexedField {
 export type SpanIndexedFieldTypes = {
   [SpanIndexedField.SPAN_SELF_TIME]: number;
   [SpanIndexedField.SPAN_GROUP]: string;
-  [SpanIndexedField.SPAN_GROUP_RAW]: string;
   [SpanIndexedField.SPAN_MODULE]: string;
   [SpanIndexedField.SPAN_DESCRIPTION]: string;
   [SpanIndexedField.SPAN_OP]: string;
