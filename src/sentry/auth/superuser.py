@@ -97,7 +97,7 @@ class Superuser(ElevatedMode):
     allowed_ips = frozenset(ipaddress.ip_network(str(v), strict=False) for v in ALLOWED_IPS)
     org_id = ORG_ID
 
-    def _check_expired_on_org_change(self):
+    def _check_expired_on_org_change(self) -> bool:
         if self.expires is not None:
             session_start_time = self.expires - MAX_AGE
             current_datetime = timezone.now()

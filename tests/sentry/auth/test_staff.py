@@ -182,7 +182,8 @@ class StaffTestCase(TestCase):
         request.user = user
         assert staff.is_active
 
-        data = request.session.get(SESSION_KEY)
+        # See mypy issue: https://github.com/python/mypy/issues/9457
+        data = request.session.get(SESSION_KEY)  # type:ignore[unreachable]
         assert data
         assert data["exp"] == (self.current_datetime + MAX_AGE).strftime("%s")
         assert data["idl"] == (self.current_datetime + IDLE_MAX_AGE).strftime("%s")
@@ -207,7 +208,10 @@ class StaffTestCase(TestCase):
         assert not staff.is_active
 
         # a non-staff
-        request.user = self.create_user("baz@example.com", is_staff=False)
+        # See mypy issue: https://github.com/python/mypy/issues/9457
+        request.user = self.create_user(  # type:ignore[unreachable]
+            "baz@example.com", is_staff=False
+        )
         assert not staff.is_active
 
         # a staff
