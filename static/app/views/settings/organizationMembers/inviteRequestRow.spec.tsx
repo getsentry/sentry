@@ -1,5 +1,4 @@
 import selectEvent from 'react-select-event';
-import {Member as MemberFixture} from 'sentry-fixture/member';
 import {Organization} from 'sentry-fixture/organization';
 import {Team} from 'sentry-fixture/team';
 import {User} from 'sentry-fixture/user';
@@ -48,7 +47,7 @@ describe('InviteRequestRow', function () {
   });
   const inviteRequestBusy: Record<string, boolean> = {};
 
-  const inviteRequest = MemberFixture({
+  const inviteRequest = TestStubs.Member({
     user: null,
     inviterName: User().name,
     inviterId: User().id,
@@ -57,7 +56,7 @@ describe('InviteRequestRow', function () {
     teams: ['myteam'],
   });
 
-  const joinRequest = MemberFixture({
+  const joinRequest = TestStubs.Member({
     user: null,
     inviteStatus: 'requested_to_join',
     role: 'member',
@@ -166,7 +165,7 @@ describe('InviteRequestRow', function () {
   });
 
   it('admin can change role and teams', async function () {
-    const adminInviteRequest = MemberFixture({
+    const adminInviteRequest = TestStubs.Member({
       user: null,
       inviterName: User().name,
       inviterId: User().id,
@@ -205,7 +204,7 @@ describe('InviteRequestRow', function () {
   });
 
   it('cannot be approved when invitee role is not allowed', function () {
-    const ownerInviteRequest = MemberFixture({
+    const ownerInviteRequest = TestStubs.Member({
       user: null,
       inviterName: User().name,
       inviterId: User().id,
