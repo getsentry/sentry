@@ -62,6 +62,7 @@ function getCrashFreeIcon(crashFreePercent: number, iconSize: IconSize = 'sm') {
 
 type Props = {
   activeDisplay: ReleasesDisplayOption;
+  expectedThresholds: number;
   getHealthData: ReleasesRequestRenderProps['getHealthData'];
   hasThresholds: boolean;
   index: number;
@@ -80,6 +81,7 @@ type Props = {
 function ReleaseCardProjectRow({
   activeDisplay,
   adoptionStages,
+  expectedThresholds,
   getHealthData,
   hasThresholds,
   index,
@@ -239,7 +241,7 @@ function ReleaseCardProjectRow({
         {hasThresholds && (
           <DisplaySmallCol>
             {/* TODO: link to release details page */}
-            {thresholds && thresholds.length > 0 && (
+            {expectedThresholds && (
               <Tooltip
                 title={
                   <div>
@@ -255,15 +257,24 @@ function ReleaseCardProjectRow({
                           t('still pending')}
                       </div>
                     )}
+                    {thresholds.length !== expectedThresholds && (
+                      <div>{`... / ${expectedThresholds}`}</div>
+                    )}
                     {t('Open in Release Details')}
                   </div>
                 }
               >
                 <ThresholdHealth
-                  allHealthy={healthyThresholds.length === thresholds.length}
-                  allThresholdsFinished={pendingThresholds.length === 0}
+                  allHealthy={healthyThresholds.length === expectedThresholds}
+                  allThresholdsFinished={
+                    pendingThresholds.length === 0 &&
+                    thresholds.length === expectedThresholds
+                  }
                 >
-                  {healthyThresholds.length} / {thresholds && thresholds.length}
+                  {thresholds.length === expectedThresholds
+                    ? healthyThresholds.length
+                    : '...'}{' '}
+                  / {expectedThresholds}
                 </ThresholdHealth>
               </Tooltip>
             )}
