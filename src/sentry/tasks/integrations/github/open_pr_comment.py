@@ -78,7 +78,7 @@ ISSUE_TABLE_TOGGLE_TEMPLATE = """<details>
 {issue_rows}
 </details>"""
 
-ISSUE_ROW_TEMPLATE = "| `{function_name}` | [**{title}**]({url}) {subtitle} <br> `Handled:` **{is_handled}** `Event Count:` **{event_count}** `Users:` **{affected_users}** |"
+ISSUE_ROW_TEMPLATE = "| **`{function_name}`** | [**{title}**]({url}) {subtitle} <br> `Handled:` **{is_handled}** `Event Count:` **{event_count}** |"
 
 ISSUE_DESCRIPTION_LENGTH = 52
 
@@ -103,7 +103,6 @@ def format_issue_table(diff_filename: str, issues: List[PullRequestIssue], toggl
                 url=format_comment_url(issue.url, GITHUB_OPEN_PR_BOT_REFERRER),
                 is_handled=str(issue.is_handled),
                 event_count=small_count(issue.event_count),
-                affected_users=small_count(issue.affected_users),
                 function_name=issue.function_name,
             )
             for issue in issues

@@ -410,3 +410,11 @@ default_manager.add(
         template="removed team {team_slug} from project {project_slug}",
     )
 )
+default_manager.add(
+    AuditLogEvent(
+        event_id=181,
+        name="PROJECT_TEAM_ADD",
+        api_name="project-team.add",
+        template="added team {team_slug} to project {project_slug}",
+    )
+)

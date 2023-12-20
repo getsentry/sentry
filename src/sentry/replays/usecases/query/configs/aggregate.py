@@ -76,6 +76,7 @@ search_config: dict[str, FieldProtocol] = {
     "browser.version": string_field("browser_version"),
     "click.alt": click_field("click_alt"),
     "click.class": array_click_field("click_class"),
+    "click.component_name": click_field("click_component_name"),
     "click.id": click_field("click_id"),
     "click.label": click_field("click_aria_label"),
     "click.role": click_field("click_role"),
