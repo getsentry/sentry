@@ -185,7 +185,6 @@ export function Threads({
           projectSlug={projectSlug}
           newestFirst={recentFirst}
           event={event}
-          platform={platform}
           values={exception.values}
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}

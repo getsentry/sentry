@@ -1,5 +1,6 @@
 import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
 import {Event as EventFixture} from 'sentry-fixture/event';
+import {EventStacktraceFrame} from 'sentry-fixture/eventStacktraceFrame';
 import {Project, Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -12,6 +13,12 @@ import {EntryType} from 'sentry/types';
 import {StackType, StackView} from 'sentry/types/stacktrace';
 
 describe('Exception Content', function () {
+  beforeEach(function () {
+    MockApiClient.addMockResponse({
+      url: `/prompts-activity/`,
+    });
+  });
+
   it('display redacted values from exception entry', async function () {
     const project = Project({id: '0'});
     const projectDetails = Project({
@@ -113,7 +120,6 @@ describe('Exception Content', function () {
         groupingCurrentLevel={0}
         hasHierarchicalGrouping
         newestFirst
-        platform="python"
         stackView={StackView.APP}
         event={event}
         values={event.entries[0].data.values}
@@ -148,6 +154,48 @@ describe('Exception Content', function () {
       'href',
       '/settings/org-slug/projects/project-slug/security-and-privacy/'
     );
+  });
+
+  it('respects platform overrides in stacktrace frames', function () {
+    const event = EventFixture({
+      platform: 'python',
+      entries: [
+        {
+          type: EntryType.EXCEPTION,
+          data: {
+            values: [
+              {
+                stacktrace: {
+                  frames: [EventStacktraceFrame({platform: null})],
+                },
+              },
+              {
+                stacktrace: {
+                  frames: [EventStacktraceFrame({platform: 'cocoa'})],
+                },
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    render(
+      <Content
+        type={StackType.ORIGINAL}
+        hasHierarchicalGrouping={false}
+        stackView={StackView.APP}
+        event={event}
+        values={event.entries[0].data.values}
+        projectSlug="project-slug"
+      />
+    );
+
+    // Cocoa override should render a native stack trace component
+    expect(screen.getByTestId('native-stack-trace-content')).toBeInTheDocument();
+
+    // Other stacktrace should render the normal stack trace (python)
+    expect(screen.getByTestId('stack-trace-content')).toBeInTheDocument();
   });
 
   describe('exception groups', function () {

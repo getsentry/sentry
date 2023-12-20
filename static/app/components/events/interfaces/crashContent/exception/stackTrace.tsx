@@ -30,17 +30,6 @@ type Props = {
   threadId?: number;
 };
 
-// Render native stacktrace when:
-// 1. All frames have a native platform override in `frame.platform`, or
-// 2. The event platform is native
-function shouldRenderNativeContent({data, platform}: Pick<Props, 'data' | 'platform'>) {
-  const framePlatforms = new Set(data?.frames?.map(frame => frame.platform));
-  const stackTracePlatform =
-    (framePlatforms.size === 1 ? [...framePlatforms][0] : null) ?? platform;
-
-  return isNativePlatform(stackTracePlatform);
-}
-
 function StackTrace({
   stackView,
   stacktrace,
@@ -96,7 +85,7 @@ function StackTrace({
    * It is easier to fix the UI logic to show a non-empty stack trace for chained exceptions
    */
 
-  if (shouldRenderNativeContent({data, platform})) {
+  if (isNativePlatform(platform)) {
     return (
       <NativeContent
         data={data}

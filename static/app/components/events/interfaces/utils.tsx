@@ -395,6 +395,16 @@ export function getThreadById(event: Event, tid?: number) {
   return threads?.data.values?.find(thread => thread.id === tid);
 }
 
+export function getStacktracePlatform(
+  event: Event,
+  stacktrace?: StacktraceType | null
+): PlatformKey {
+  const overridePlatform = stacktrace?.frames?.find(frame => defined(frame.platform))
+    ?.platform;
+
+  return overridePlatform ?? event.platform ?? 'other';
+}
+
 export function inferPlatform(event: Event, thread?: Thread): PlatformKey {
   const exception = getThreadException(event, thread);
   let exceptionFramePlatform: Frame | undefined = undefined;

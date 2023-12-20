@@ -17,11 +17,11 @@ import rawStacktraceContent from '../stackTrace/rawContent';
 type Props = {
   api: Client;
   eventId: Event['id'];
-  platform: PlatformKey;
   projectSlug: Project['slug'];
   type: 'original' | 'minified';
   // XXX: Organization is NOT available for Shared Issues!
   organization?: Organization;
+  platform?: PlatformKey;
 } & Pick<ExceptionType, 'values'>;
 
 type State = {

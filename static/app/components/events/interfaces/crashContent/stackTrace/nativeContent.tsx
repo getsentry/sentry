@@ -269,7 +269,7 @@ export function NativeContent({
   }
 
   return (
-    <Wrapper className={wrapperClassName}>
+    <Wrapper className={wrapperClassName} data-test-id="native-stack-trace-content">
       {hideIcon ? null : (
         <StacktracePlatformIcon
           platform={stackTracePlatformIcon(platform, data.frames ?? [])}
