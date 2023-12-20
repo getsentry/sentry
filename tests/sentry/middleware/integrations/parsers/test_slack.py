@@ -1,8 +1,13 @@
+from __future__ import annotations
+
+import dataclasses
 from unittest.mock import MagicMock, patch, sentinel
+from urllib.parse import urlencode
 
 import pytest
 from django.test import RequestFactory
 from django.urls import reverse
+from rest_framework import status
 
 from sentry.integrations.slack.requests.command import SlackCommandRequest
 from sentry.middleware.integrations.parsers.base import RegionResult
@@ -12,6 +17,7 @@ from sentry.silo.client import SiloClientError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
+from sentry.utils import json
 from sentry.utils.signing import sign
 
 
@@ -35,21 +41,19 @@ class SlackRequestParserTest(TestCase):
             organization=self.organization, external_id="TXXXXXXX1", provider="slack"
         )
 
-    def get_parser(self, path: str):
-        self.request = self.factory.post(path)
-        return SlackRequestParser(self.request, self.get_response)
-
-    @pytest.mark.skip(reason="Will be implemented after frontend installation is setup")
-    def test_installation(self):
-        pass
-
     @patch.object(SlackCommandRequest, "integration")
     @patch.object(SlackCommandRequest, "validate_integration")
     @patch.object(SlackCommandRequest, "authorize")
     def test_webhook(self, mock_authorize, mock_validate_integration, mock_integration):
         # Retrieve the correct integration
         mock_integration.id = self.integration.id
-        parser = self.get_parser(reverse("sentry-integration-slack-commands"))
+        data = urlencode({"team_id": self.integration.external_id}).encode("utf-8")
+        request = self.factory.post(
+            path=reverse("sentry-integration-slack-commands"),
+            data=data,
+            content_type="application/x-www-form-urlencoded",
+        )
+        parser = SlackRequestParser(request, self.get_response)
         integration = parser.get_integration_from_request()
         assert mock_authorize.called
         assert mock_validate_integration.called
@@ -82,13 +86,15 @@ class SlackRequestParserTest(TestCase):
 
     def test_django_view(self):
         # Retrieve the correct integration
-        parser = self.get_parser(
-            reverse(
-                "sentry-integration-slack-link-identity",
-                kwargs={"signed_params": sign(integration_id=self.integration.id)},
-            )
+        path = reverse(
+            "sentry-integration-slack-link-identity",
+            kwargs={"signed_params": sign(integration_id=self.integration.id)},
         )
+        request = self.factory.post(path)
+        parser = SlackRequestParser(request, self.get_response)
         parser_integration = parser.get_integration_from_request()
+        if not parser_integration:
+            raise ValueError("Parser could not identify an integration")
         assert parser_integration.id == self.integration.id
 
         # Forwards to control silo
@@ -101,3 +107,25 @@ class SlackRequestParserTest(TestCase):
             assert mock_response_from_control.called
             assert not get_response_from_outbox_creation.called
             assert response == mock_response_from_control()
+
+    @patch("sentry.middleware.integrations.parsers.slack.convert_to_async_slack_response")
+    def test_triggers_async_response(self, mock_slack_task):
+        response_url = "https://hooks.slack.com/commands/TXXXXXXX1/1234567890123/something"
+        data = {
+            "payload": json.dumps(
+                {"team_id": self.integration.external_id, "response_url": response_url}
+            )
+        }
+        request = self.factory.post(reverse("sentry-integration-slack-action"), data=data)
+        parser = SlackRequestParser(request, self.get_response)
+        response = parser.get_response()
+        webhook_payload = ControlOutbox.get_webhook_payload_from_request(request=request)
+        payload = dataclasses.asdict(webhook_payload)
+        mock_slack_task.apply_async.assert_called_once_with(
+            kwargs={
+                "region_names": ["us"],
+                "payload": payload,
+                "response_url": response_url,
+            }
+        )
+        assert response.status_code == status.HTTP_202_ACCEPTED
