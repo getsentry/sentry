@@ -14,6 +14,7 @@ export type AvatarProject = {
 
 export type Project = {
   access: Scope[];
+  allowedDomains: string[];
   dateCreated: string;
   digestsMaxDelay: number;
   digestsMinDelay: number;

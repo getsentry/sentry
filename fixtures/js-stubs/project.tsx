@@ -10,6 +10,7 @@ export function Project(params: Partial<TProject> = {}): TProject {
     slug: 'project-slug',
     name: 'Project Name',
     access: ['project:read'],
+    allowedDomains: ['*'],
     hasAccess: true,
     isMember: true,
     isBookmarked: false,
