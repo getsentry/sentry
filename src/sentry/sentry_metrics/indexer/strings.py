@@ -201,6 +201,7 @@ SPAN_METRICS_NAMES = {
     "d:spans/http.decoded_response_content_length@byte": PREFIX + 410,
     "d:spans/http.response_transfer_size@byte": PREFIX + 411,
     "c:spans/count_per_op@none": PREFIX + 412,
+    "c:spans/count_per_segment@none": PREFIX + 413,
 }
 
 # 500-599
