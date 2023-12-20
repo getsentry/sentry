@@ -68,30 +68,30 @@ describe('OrganizationMemberDetail', function () {
 
   const member = MemberFixture({
     roles: OrgRoleList(),
-    dateCreated: new Date(),
+    dateCreated: new Date().toISOString(),
     ...teamAssignment,
   });
   const pendingMember = MemberFixture({
-    id: 2,
+    id: '2',
     roles: OrgRoleList(),
-    dateCreated: new Date(),
+    dateCreated: new Date().toISOString(),
     ...teamAssignment,
     invite_link: 'http://example.com/i/abc123',
     pending: true,
   });
   const expiredMember = MemberFixture({
-    id: 3,
+    id: '3',
     roles: OrgRoleList(),
-    dateCreated: new Date(),
+    dateCreated: new Date().toISOString(),
     ...teamAssignment,
     invite_link: 'http://example.com/i/abc123',
     pending: true,
     expired: true,
   });
   const idpTeamMember = MemberFixture({
-    id: 4,
+    id: '4',
     roles: OrgRoleList(),
-    dateCreated: new Date(),
+    dateCreated: new Date().toISOString(),
     teams: [idpTeam.slug],
     teamRoles: [
       {
@@ -101,9 +101,9 @@ describe('OrganizationMemberDetail', function () {
     ],
   });
   const managerTeamMember = MemberFixture({
-    id: 5,
+    id: '5',
     roles: OrgRoleList(),
-    dateCreated: new Date(),
+    dateCreated: new Date().toISOString(),
     teams: [otherManagerTeam.slug],
     teamRoles: [
       {
@@ -113,7 +113,7 @@ describe('OrganizationMemberDetail', function () {
     ],
   });
   const managerMember = MemberFixture({
-    id: 6,
+    id: '6',
     roles: OrgRoleList(),
     role: 'manager',
   });
@@ -515,7 +515,7 @@ describe('OrganizationMemberDetail', function () {
   describe('Reset member 2FA', function () {
     const fields = {
       roles: OrgRoleList(),
-      dateCreated: new Date(),
+      dateCreated: new Date().toISOString(),
       ...teamAssignment,
     };
 
@@ -646,9 +646,9 @@ describe('OrganizationMemberDetail', function () {
     it('can reset member 2FA', async function () {
       const {routerContext, routerProps} = initializeOrg({organization});
 
-      const deleteMocks = has2fa.user.authenticators.map(auth =>
+      const deleteMocks = (has2fa.user?.authenticators || []).map(auth =>
         MockApiClient.addMockResponse({
-          url: `/users/${has2fa.user.id}/authenticators/${auth.id}/`,
+          url: `/users/${has2fa.user?.id}/authenticators/${auth.id}/`,
           method: 'DELETE',
         })
       );
