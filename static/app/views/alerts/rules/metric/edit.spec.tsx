@@ -84,7 +84,7 @@ describe('MetricRulesEdit', function () {
         {...TestStubs.routeComponentProps()}
         params={{
           projectId: project.slug,
-          ruleId: rule.id,
+          ruleId: rule.id!,
         }}
         userTeamIds={[]}
         organization={organization}
@@ -179,7 +179,7 @@ describe('MetricRulesEdit', function () {
         {...TestStubs.routeComponentProps()}
         params={{
           projectId: project.slug,
-          ruleId: rule.id,
+          ruleId: rule.id!,
         }}
         userTeamIds={[]}
         organization={organization}
