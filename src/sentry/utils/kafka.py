@@ -29,7 +29,7 @@ def delay_kafka_rebalance(configured_delay: int) -> None:
     time.sleep(seconds_sleep)
 
 
-def run_processor_with_signals(processor, consumer_name: Optional[str]):
+def run_processor_with_signals(processor, consumer_name: Optional[str] = None):
     def handler(signum, frame):
         if consumer_name == "ingest-generic-metrics" and options.get(
             "sentry-metrics.synchronize-kafka-rebalances"
