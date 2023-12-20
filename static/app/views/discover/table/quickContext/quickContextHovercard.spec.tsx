@@ -1,5 +1,6 @@
 import {Event as EventFixture} from 'sentry-fixture/event';
 import {Organization} from 'sentry-fixture/organization';
+import {Release as ReleaseFixture} from 'sentry-fixture/release';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -131,7 +132,7 @@ describe('Quick Context', function () {
         url: `/organizations/org-slug/releases/${encodeURIComponent(
           'backend@22.10.0+aaf33944f93dc8fa4234ca046a8d88fb1dccfb76'
         )}/`,
-        body: TestStubs.Release({
+        body: ReleaseFixture({
           id: '1',
           shortVersion: 'sentry-android-shop@1.2.0',
           version: 'sentry-android-shop@1.2.0',

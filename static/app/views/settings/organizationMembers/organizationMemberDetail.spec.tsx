@@ -1,5 +1,6 @@
 import selectEvent from 'react-select-event';
 import {UserEnrolledAuthenticator} from 'sentry-fixture/authenticators';
+import {Member as MemberFixture} from 'sentry-fixture/member';
 import {Organization} from 'sentry-fixture/organization';
 import {OrgRoleList} from 'sentry-fixture/roleList';
 import {Team} from 'sentry-fixture/team';
@@ -65,12 +66,12 @@ describe('OrganizationMemberDetail', function () {
     ],
   };
 
-  const member = TestStubs.Member({
+  const member = MemberFixture({
     roles: OrgRoleList(),
     dateCreated: new Date(),
     ...teamAssignment,
   });
-  const pendingMember = TestStubs.Member({
+  const pendingMember = MemberFixture({
     id: 2,
     roles: OrgRoleList(),
     dateCreated: new Date(),
@@ -78,7 +79,7 @@ describe('OrganizationMemberDetail', function () {
     invite_link: 'http://example.com/i/abc123',
     pending: true,
   });
-  const expiredMember = TestStubs.Member({
+  const expiredMember = MemberFixture({
     id: 3,
     roles: OrgRoleList(),
     dateCreated: new Date(),
@@ -87,7 +88,7 @@ describe('OrganizationMemberDetail', function () {
     pending: true,
     expired: true,
   });
-  const idpTeamMember = TestStubs.Member({
+  const idpTeamMember = MemberFixture({
     id: 4,
     roles: OrgRoleList(),
     dateCreated: new Date(),
@@ -99,7 +100,7 @@ describe('OrganizationMemberDetail', function () {
       },
     ],
   });
-  const managerTeamMember = TestStubs.Member({
+  const managerTeamMember = MemberFixture({
     id: 5,
     roles: OrgRoleList(),
     dateCreated: new Date(),
@@ -111,7 +112,7 @@ describe('OrganizationMemberDetail', function () {
       },
     ],
   });
-  const managerMember = TestStubs.Member({
+  const managerMember = MemberFixture({
     id: 6,
     roles: OrgRoleList(),
     role: 'manager',
@@ -518,19 +519,19 @@ describe('OrganizationMemberDetail', function () {
       ...teamAssignment,
     };
 
-    const noAccess = TestStubs.Member({
+    const noAccess = MemberFixture({
       ...fields,
       id: '4',
       user: User({has2fa: false, authenticators: undefined}),
     });
 
-    const no2fa = TestStubs.Member({
+    const no2fa = MemberFixture({
       ...fields,
       id: '5',
       user: User({has2fa: false, authenticators: [], canReset2fa: true}),
     });
 
-    const has2fa = TestStubs.Member({
+    const has2fa = MemberFixture({
       ...fields,
       id: '6',
       user: User({
@@ -544,7 +545,7 @@ describe('OrganizationMemberDetail', function () {
       }),
     });
 
-    const multipleOrgs = TestStubs.Member({
+    const multipleOrgs = MemberFixture({
       ...fields,
       id: '7',
       user: User({
@@ -709,21 +710,21 @@ describe('OrganizationMemberDetail', function () {
 
   describe('Org Roles affect Team Roles', () => {
     // Org Admin will be deprecated
-    const admin = TestStubs.Member({
+    const admin = MemberFixture({
       id: '4',
       role: 'admin',
       roleName: 'Admin',
       orgRole: 'admin',
       ...teamAssignment,
     });
-    const manager = TestStubs.Member({
+    const manager = MemberFixture({
       id: '5',
       role: 'manager',
       roleName: 'Manager',
       orgRole: 'manager',
       ...teamAssignment,
     });
-    const owner = TestStubs.Member({
+    const owner = MemberFixture({
       id: '6',
       role: 'owner',
       roleName: 'Owner',

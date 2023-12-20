@@ -1,3 +1,6 @@
+import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {Group as GroupFixture} from 'sentry-fixture/group';
+
 import {
   render,
   renderGlobalModal,
@@ -8,14 +11,14 @@ import {
 import ExternalIssueActions from 'sentry/components/group/externalIssuesList/externalIssueActions';
 
 describe('ExternalIssueActions', function () {
-  const group = TestStubs.Group();
+  const group = GroupFixture();
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
   describe('with no external issues linked', function () {
-    const integration = TestStubs.GitHubIntegration({externalIssues: []});
+    const integration = GitHubIntegrationFixture({externalIssues: []});
     const configurations = [integration];
 
     it('renders', function () {
@@ -77,7 +80,7 @@ describe('ExternalIssueActions', function () {
         key: 'getsentry/sentry#2',
       },
     ];
-    const integration = TestStubs.GitHubIntegration({externalIssues});
+    const integration = GitHubIntegrationFixture({externalIssues});
     const configurations = [integration];
     it('renders', function () {
       render(

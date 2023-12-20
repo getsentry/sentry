@@ -1,4 +1,5 @@
 import {Event as EventFixture} from 'sentry-fixture/event';
+import {EventEntryDebugMeta as EventEntryDebugMetaFixture} from 'sentry-fixture/eventEntryDebugMeta';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
@@ -7,7 +8,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {DebugImageDetails} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails';
 
 describe('Debug Meta - Image Details', function () {
-  const eventEntryDebugMeta = TestStubs.EventEntryDebugMeta();
+  const eventEntryDebugMeta = EventEntryDebugMetaFixture();
   const event = EventFixture({entries: [eventEntryDebugMeta]});
   const {organization, project} = initializeOrg();
 

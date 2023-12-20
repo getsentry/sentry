@@ -1,4 +1,4 @@
-import {ProjectKeys} from 'sentry-fixture/projectKeys';
+import {ProjectKeys, ProjectKeys as ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -84,7 +84,7 @@ describe('LoaderScript', function () {
 
   it('renders multiple keys', async function () {
     const {organization, project} = initializeOrg();
-    const projectKeys = TestStubs.ProjectKeys([
+    const projectKeys = ProjectKeysFixture([
       {
         dsn: {
           secret:
@@ -219,7 +219,7 @@ describe('LoaderScript', function () {
 
   it('allows to update one of multiple keys', async function () {
     const {organization, project} = initializeOrg();
-    const projectKeys = TestStubs.ProjectKeys([
+    const projectKeys = ProjectKeysFixture([
       {
         dsn: {
           secret:
