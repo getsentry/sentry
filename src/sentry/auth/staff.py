@@ -307,8 +307,8 @@ class Staff(ElevatedMode):
                 COOKIE_NAME,
                 self.token,
                 salt=COOKIE_SALT,
-                # set max_staff_session_age to None, as we want this cookie to expire on browser close
-                max_staff_session_age=None,
+                # set max_age to None, as we want this cookie to expire on browser close
+                max_age=None,
                 secure=request.is_secure() if COOKIE_SECURE is None else COOKIE_SECURE,
                 httponly=COOKIE_HTTPONLY,
                 path=COOKIE_PATH,
