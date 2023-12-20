@@ -139,7 +139,7 @@ const errorHelpTypeResourceMap: Record<
       ),
       links: [
         {
-          text: t('Fixing Load Failed errors in Javascript'),
+          text: t('Fixing Load Failed errors in JavaScript'),
           link: 'https://sentry.io/answers/load-failed-javascript/',
         },
       ],
