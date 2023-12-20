@@ -8,8 +8,8 @@ import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {OnboardingLayout} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
 import useOnboardingDocs from 'sentry/components/onboardingWizard/useOnboardingDocs';
+import {ReplayOnboardingLayout} from 'sentry/components/replaysOnboarding/replayOnboardingLayout';
 import useCurrentProjectState from 'sentry/components/replaysOnboarding/useCurrentProjectState';
 import useLoadOnboardingDoc from 'sentry/components/replaysOnboarding/useLoadOnboardingDoc';
 import {
@@ -352,7 +352,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         ) : null}
       </IntroText>
       {newOnboarding && newDocs ? (
-        <OnboardingLayout
+        <ReplayOnboardingLayout
           docsConfig={newDocs}
           dsn={dsn}
           cdn={cdn}

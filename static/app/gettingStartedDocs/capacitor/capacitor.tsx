@@ -408,7 +408,6 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      isReplayConfigStep: true,
       configurations: [
         {
           description: getReplayConfigureDescription({
