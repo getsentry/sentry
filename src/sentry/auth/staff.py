@@ -202,7 +202,7 @@ class Staff(ElevatedMode):
 
         return data
 
-    def _populate(self):
+    def _populate(self) -> None:
         current_datetime = timezone.now()
 
         request = self.request

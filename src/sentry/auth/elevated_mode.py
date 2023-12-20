@@ -31,7 +31,7 @@ class ElevatedMode(ABC):
         pass
 
     @abstractmethod
-    def _populate(self, current_datetime=None):
+    def _populate(self) -> None:
         pass
 
     @abstractmethod

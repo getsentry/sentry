@@ -262,7 +262,7 @@ class Superuser(ElevatedMode):
 
         return data
 
-    def _populate(self, current_datetime=None):
+    def _populate(self, current_datetime=None) -> None:
         if current_datetime is None:
             current_datetime = timezone.now()
 
