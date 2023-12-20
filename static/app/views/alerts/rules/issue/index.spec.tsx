@@ -12,6 +12,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import {
@@ -118,6 +119,7 @@ const createWrapper = (props = {}) => {
 
 describe('IssueRuleEditor', function () {
   beforeEach(function () {
+    MockApiClient.clearMockResponses();
     browserHistory.replace = jest.fn();
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/configuration/',
@@ -152,7 +154,6 @@ describe('IssueRuleEditor', function () {
   });
 
   afterEach(function () {
-    MockApiClient.clearMockResponses();
     jest.clearAllMocks();
     ProjectsStore.reset();
   });
@@ -362,6 +363,25 @@ describe('IssueRuleEditor', function () {
         )
       );
     });
+
+    it('renders environment selector in adopted release filter', async function () {
+      createWrapper({project: ProjectFixture({environments: ['production', 'staging']})});
+
+      // Add the adopted release filter
+      await selectEvent.select(
+        screen.getByText('Add optional filter...'),
+        /The {oldest_or_newest} release associated/
+      );
+
+      const filtersContainer = screen.getByTestId('rule-filters');
+
+      // Production environment is preselected because it's the first option.
+      // staging should also be selectable.
+      selectEvent.select(
+        within(filtersContainer).getAllByText('production')[0],
+        'staging'
+      );
+    });
   });
 
   describe('Edit Rule: Slack Channel Look Up', function () {
@@ -373,7 +393,6 @@ describe('IssueRuleEditor', function () {
 
     afterEach(function () {
       jest.clearAllTimers();
-      MockApiClient.clearMockResponses();
     });
 
     it('success status updates the rule', async function () {
