@@ -28,5 +28,5 @@ class ElevatedMode(ABC):
         pass
 
     @abstractmethod
-    def on_response(cls, request, response) -> None:
+    def on_response(self, response) -> None:
         pass

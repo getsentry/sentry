@@ -331,7 +331,12 @@ class Superuser(ElevatedMode):
         self.is_valid = False
         self.request.session.pop(SESSION_KEY, None)
 
-    def set_logged_in(self, user, prefilled_su_modal=None, current_datetime=None) -> None:
+    def set_logged_in(
+        self,
+        user,
+        current_datetime=None,
+        prefilled_su_modal=None,
+    ) -> None:
         """
         Mark a session as superuser-enabled.
         """

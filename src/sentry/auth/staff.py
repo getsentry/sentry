@@ -301,7 +301,7 @@ class Staff(ElevatedMode):
             extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
         )
 
-    def on_response(self, response):
+    def on_response(self, response) -> None:
         request = self.request
 
         # always re-bind the cookie to update the idle expiration window
