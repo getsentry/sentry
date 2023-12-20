@@ -437,7 +437,6 @@ export const customMetricOnboardingPlatforms = new Set(
       ) &&
       // TODO: Remove this once we have onboarding instructions for these platforms
       !p.includes('php') &&
-      !p.includes('python') &&
-      p !== 'rust'
+      !p.includes('python')
   )
 );
