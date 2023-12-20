@@ -51,5 +51,4 @@ class StaffMiddleware:
     def __call__(self, request: HttpRequest) -> HttpResponseBase:
         self.process_request(request)
         response = self.get_response(request)
-        self.process_response(request, response)
-        return response
+        return self.process_response(request, response)

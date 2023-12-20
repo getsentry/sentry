@@ -48,8 +48,10 @@ class End2EndTest(APITestCase):
         self.middleware = provision_middleware()
 
     def test_simple(self):
-        self.create_organization(name="albertos-apples")
+        self.login_as(self.create_user(is_staff=True), staff=True)
 
-        response = self.get_success_response(status=200)
-        staff = getattr(response, "staff")
-        assert staff
+        with override_settings(MIDDLEWARE=tuple(self.middleware)):
+            response = self.get_success_response(status=200)
+            # cookie name defaults to staff because imported
+            # cookie name is not set when testing
+            assert "staff" in response.cookies
