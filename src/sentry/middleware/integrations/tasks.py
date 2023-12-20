@@ -4,6 +4,7 @@ from typing import Any, Dict, List, MutableMapping, cast
 import requests
 import sentry_sdk
 from requests import Response
+from rest_framework import status
 
 from sentry.models.outbox import ControlOutbox
 from sentry.silo.base import SiloMode
@@ -19,6 +20,8 @@ logger = logging.getLogger(__name__)
     name="sentry.middleware.integrations.tasks.convert_to_async_slack_response",
     queue="integrations.control",
     silo_mode=SiloMode.CONTROL,
+    max_retries=2,
+    default_retry_delay=5,
 )
 def convert_to_async_slack_response(
     region_names: List[str],
@@ -59,24 +62,26 @@ def convert_to_async_slack_response(
 
     try:
         payload = json.loads(result["response"].content.decode(encoding="utf-8"))
-        integration_response = requests.post(response_url, json=payload)
-        logger.info(
-            "slack.async_integration_response",
-            extra={
-                "path": webhook_payload.path,
-                "region": result["region"],
-                "region_status_code": result["response"].status_code,
-                "integration_status_code": integration_response.status_code,
-            },
-        )
     except Exception as e:
         sentry_sdk.capture_exception(e)
+    integration_response = requests.post(response_url, json=payload)
+    logger.info(
+        "slack.async_integration_response",
+        extra={
+            "path": webhook_payload.path,
+            "region": result["region"],
+            "region_status_code": result["response"].status_code,
+            "integration_status_code": integration_response.status_code,
+        },
+    )
 
 
 @instrumented_task(
     name="sentry.middleware.integrations.tasks.convert_to_async_discord_response",
     queue="integrations.control",
     silo_mode=SiloMode.CONTROL,
+    max_retries=2,
+    default_retry_delay=5,
 )
 def convert_to_async_discord_response(
     region_names: List[str],
@@ -128,15 +133,17 @@ def convert_to_async_discord_response(
         # that discord provides.
         # https://discord.com/developers/docs/interactions/receiving-and-responding#followup-messages
         payload = json.loads(result["response"].content.decode(encoding="utf-8")).get("data")
-        integration_response = requests.post(response_url, json=payload)
-        logger.info(
-            "discord.async_integration_response",
-            extra={
-                "path": webhook_payload.path,
-                "region": result["region"],
-                "region_status_code": result["response"].status_code,
-                "integration_status_code": integration_response.status_code,
-            },
-        )
     except Exception as e:
         sentry_sdk.capture_exception(e)
+    integration_response = requests.post(response_url, json=payload)
+    logger.info(
+        "discord.async_integration_response",
+        extra={
+            "path": webhook_payload.path,
+            "region": result["region"],
+            "region_status_code": result["response"].status_code,
+            "integration_status_code": integration_response.status_code,
+        },
+    )
+    if integration_response.status_code == status.HTTP_404_NOT_FOUND:
+        raise Exception("Discord hook is not ready.")
