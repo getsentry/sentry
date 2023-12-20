@@ -1,3 +1,4 @@
+import LocationFixture from 'sentry-fixture/locationFixture';
 import {MetricRule} from 'sentry-fixture/metricRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -134,7 +135,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
       <ProjectLatestAlerts
         organization={organization}
         projectSlug={project.slug}
-        location={TestStubs.location({
+        location={LocationFixture({
           query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},
         })}
         isProjectStabilized

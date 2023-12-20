@@ -1,6 +1,8 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Repository} from 'sentry-fixture/repository';
 import {Team} from 'sentry-fixture/team';
+import {User} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -25,10 +27,10 @@ describe('GroupActivity', function () {
   const dateCreated = '2021-10-01T15:31:38.950115Z';
 
   beforeEach(function () {
-    project = TestStubs.Project();
+    project = ProjectFixture();
     ProjectsStore.loadInitialData([project]);
     ConfigStore.init();
-    ConfigStore.set('user', TestStubs.User({id: '123'}));
+    ConfigStore.set('user', User({id: '123'}));
     GroupStore.init();
   });
 
@@ -47,7 +49,7 @@ describe('GroupActivity', function () {
     const group = TestStubs.Group({
       id: '1337',
       activity: activity ?? [
-        {type: 'note', id: 'note-1', data: {text: 'Test Note'}, user: TestStubs.User()},
+        {type: 'note', id: 'note-1', data: {text: 'Test Note'}, user: User()},
       ],
       project,
     });
@@ -75,14 +77,14 @@ describe('GroupActivity', function () {
   });
 
   it('renders a marked reviewed activity', function () {
-    const user = TestStubs.User({name: 'Samwise'});
+    const user = User({name: 'Samwise'});
     createWrapper({
       activity: [
         {
           type: GroupActivityType.MARK_REVIEWED,
           id: 'reviewed-1',
           dateCreated: '',
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           data: {},
           user,
         },
@@ -93,13 +95,13 @@ describe('GroupActivity', function () {
   });
 
   it('renders a pr activity', function () {
-    const user = TestStubs.User({name: 'Test User'});
+    const user = User({name: 'Test User'});
     const repository = Repository();
     createWrapper({
       activity: [
         {
           dateCreated: '',
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
           id: 'pr-1',
           data: {
@@ -120,7 +122,7 @@ describe('GroupActivity', function () {
   });
 
   it('renders a assigned to self activity', function () {
-    const user = TestStubs.User({id: '123', name: 'Mark'});
+    const user = User({id: '123', name: 'Mark'});
     createWrapper({
       activity: [
         {
@@ -133,7 +135,7 @@ describe('GroupActivity', function () {
           user,
           dateCreated: '2021-10-01T15:31:38.950115Z',
           id: '117',
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           type: GroupActivityType.ASSIGNED,
         },
       ],
@@ -153,9 +155,9 @@ describe('GroupActivity', function () {
             assigneeType: 'user',
             integration: 'codeowners',
             rule: 'path:something/*.py #workflow',
-            user: TestStubs.User(),
+            user: User(),
           },
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           dateCreated: '2021-10-01T15:31:38.950115Z',
           id: '117',
           type: GroupActivityType.ASSIGNED,
@@ -169,7 +171,7 @@ describe('GroupActivity', function () {
   });
 
   it('renders an assigned via slack activity', function () {
-    const user = TestStubs.User({id: '301', name: 'Mark'});
+    const user = User({id: '301', name: 'Mark'});
     createWrapper({
       activity: [
         {
@@ -178,9 +180,9 @@ describe('GroupActivity', function () {
             assigneeEmail: 'anotheruser@sentry.io',
             assigneeType: 'user',
             integration: 'slack',
-            user: TestStubs.User(),
+            user: User(),
           },
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           dateCreated: '2021-10-01T15:31:38.950115Z',
           id: '117',
           type: GroupActivityType.ASSIGNED,
@@ -199,7 +201,7 @@ describe('GroupActivity', function () {
         {
           type: GroupActivityType.SET_RESOLVED_IN_COMMIT,
           id: '123',
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           dateCreated: '',
           data: {
             commit: {
@@ -210,7 +212,7 @@ describe('GroupActivity', function () {
               releases: [],
             },
           },
-          user: TestStubs.User(),
+          user: User(),
         },
       ],
     });
@@ -225,7 +227,7 @@ describe('GroupActivity', function () {
         {
           type: GroupActivityType.SET_RESOLVED_IN_COMMIT,
           id: '123',
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           dateCreated: '',
           data: {
             commit: {
@@ -242,7 +244,7 @@ describe('GroupActivity', function () {
               ],
             },
           },
-          user: TestStubs.User(),
+          user: User(),
         },
       ],
     });
@@ -257,7 +259,7 @@ describe('GroupActivity', function () {
         {
           type: GroupActivityType.SET_RESOLVED_IN_COMMIT,
           id: '123',
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           dateCreated: '',
           data: {
             commit: {
@@ -289,7 +291,7 @@ describe('GroupActivity', function () {
               ],
             },
           },
-          user: TestStubs.User(),
+          user: User(),
         },
       ],
     });
@@ -310,11 +312,11 @@ describe('GroupActivity', function () {
           id: '123',
           user: null,
           type: GroupActivityType.ASSIGNED,
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           data: {
             assignee: team.id,
             assigneeType: 'team',
-            user: TestStubs.User(),
+            user: User(),
           },
           dateCreated: '2021-10-28T13:40:10.634821Z',
         },
@@ -338,7 +340,7 @@ describe('GroupActivity', function () {
         url: '/organizations/org-slug/issues/1337/comments/note-1/',
         method: 'DELETE',
       });
-      ConfigStore.set('user', TestStubs.User({id: '123', isSuperuser: true}));
+      ConfigStore.set('user', User({id: '123', isSuperuser: true}));
     });
 
     it('should do nothing if not present in GroupStore', async function () {
@@ -380,11 +382,11 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_IGNORED,
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           data: {
             ignoreUntilEscalating: true,
           },
-          user: TestStubs.User(),
+          user: User(),
           dateCreated,
         },
       ],
@@ -400,11 +402,11 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_IGNORED,
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           data: {
             ignoreUntilEscalating: true,
           },
-          user: TestStubs.User(),
+          user: User(),
           dateCreated,
         },
       ],
@@ -421,7 +423,7 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_UNRESOLVED,
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           data: {
             forecast: 200,
           },
@@ -431,7 +433,7 @@ describe('GroupActivity', function () {
         {
           id: '124',
           type: GroupActivityType.SET_ESCALATING,
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           data: {
             forecast: 400,
           },
@@ -455,7 +457,7 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_UNRESOLVED,
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           data: {
             forecast: 1,
           },
@@ -476,12 +478,12 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_IGNORED,
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           data: {
             ignoreCount: 400,
             ignoreWindow: 1,
           },
-          user: TestStubs.User(),
+          user: User(),
           dateCreated,
         },
       ],
@@ -497,7 +499,7 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_ESCALATING,
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           data: {
             expired_snooze: {
               count: 400,
@@ -522,7 +524,7 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_ESCALATING,
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           data: {
             expired_snooze: {
               user_count: 1,
@@ -548,7 +550,7 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_ESCALATING,
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           data: {
             expired_snooze: {
               until: date,
@@ -573,9 +575,9 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_IGNORED,
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           data: {},
-          user: TestStubs.User(),
+          user: User(),
           dateCreated,
         },
       ],
@@ -592,11 +594,11 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_RESOLVED_IN_RELEASE,
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           data: {
             version: 'frontend@1.0.0',
           },
-          user: TestStubs.User(),
+          user: User(),
           dateCreated,
         },
       ],
@@ -612,11 +614,11 @@ describe('GroupActivity', function () {
         {
           id: '123',
           type: GroupActivityType.SET_RESOLVED_IN_RELEASE,
-          project: TestStubs.Project(),
+          project: ProjectFixture(),
           data: {
             current_release_version: 'frontend@1.0.0',
           },
-          user: TestStubs.User(),
+          user: User(),
           dateCreated,
         },
       ],
@@ -633,7 +635,7 @@ describe('GroupActivity', function () {
           {
             id: '123',
             type: GroupActivityType.SET_REGRESSION,
-            project: TestStubs.Project(),
+            project: ProjectFixture(),
             data: {},
             dateCreated,
           },
@@ -649,7 +651,7 @@ describe('GroupActivity', function () {
           {
             id: '123',
             type: GroupActivityType.SET_REGRESSION,
-            project: TestStubs.Project(),
+            project: ProjectFixture(),
             data: {
               version: 'frontend@1.0.0',
             },
@@ -667,7 +669,7 @@ describe('GroupActivity', function () {
           {
             id: '123',
             type: GroupActivityType.SET_REGRESSION,
-            project: TestStubs.Project(),
+            project: ProjectFixture(),
             data: {
               version: 'frontend@2.0.0',
               resolved_in_version: 'frontend@1.0.0',
@@ -691,7 +693,7 @@ describe('GroupActivity', function () {
           {
             id: '123',
             type: GroupActivityType.SET_REGRESSION,
-            project: TestStubs.Project(),
+            project: ProjectFixture(),
             data: {
               version: 'frontend@abc1',
               resolved_in_version: 'frontend@abc2',

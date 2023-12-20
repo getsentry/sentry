@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import ipaddress
 import socket
+from hashlib import sha1
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, Set
 
 import sentry_sdk
 import urllib3
+from django.core.cache import cache
 from django.http import HttpResponse
 from django.http.request import HttpRequest
 from django.utils.encoding import force_str
@@ -29,6 +31,9 @@ from sentry.types.region import (
 
 if TYPE_CHECKING:
     from typing import FrozenSet
+
+REQUEST_ATTEMPTS_LIMIT = 10
+CACHE_TIMEOUT = 600  # 10 minutes = 600 seconds
 
 
 class SiloClientError(Exception):
@@ -185,3 +190,64 @@ class RegionSiloClient(BaseSiloClient):
         This injects a custom is_ipaddress_permitted function to allow only connections to Region Silo IP addresses.
         """
         return build_session(is_ipaddress_permitted=validate_region_ip_address)
+
+    def _get_hash_cache_key(self, hash: str) -> str:
+        return f"region_silo_client:request_attempts:{hash}"
+
+    def check_request_attempts(self, hash: str | None, method: str, path: str) -> None:
+        if hash is None:
+            return
+
+        cache_key = self._get_hash_cache_key(hash=hash)
+        request_attempts: int | None = cache.get(cache_key)
+
+        if not isinstance(request_attempts, int):
+            request_attempts = 0
+
+        if request_attempts < REQUEST_ATTEMPTS_LIMIT:
+            request_attempts += 1
+            cache.set(cache_key, request_attempts, timeout=CACHE_TIMEOUT)
+        else:
+            cache.delete(cache_key)
+            raise SiloClientError(f"Request attempts limit reached for: {method} {path}")
+
+    def cleanup_request_attempts(self, hash: str | None) -> None:
+        if hash is None:
+            return
+        cache_key = self._get_hash_cache_key(hash=hash)
+        cache.delete(cache_key)
+
+    def request(
+        self,
+        method: str,
+        path: str,
+        headers: Mapping[str, Any] | None = None,
+        data: Any | None = None,
+        params: Mapping[str, Any] | None = None,
+        json: bool = True,
+        raw_response: bool = False,
+        prefix_hash: str | None = None,
+    ) -> BaseApiResponseX:
+        """
+        Sends a request to the region silo.
+        If prefix_hash is provided, the request will be retries up to REQUEST_ATTEMPTS_LIMIT times.
+        """
+        hash = None
+        if prefix_hash is not None:
+            hash = sha1(f"{prefix_hash}{self.region.name}{method}{path}".encode()).hexdigest()
+
+        try:
+            response = super().request(
+                method=method,
+                path=path,
+                headers=headers,
+                data=data,
+                params=params,
+                json=json,
+                raw_response=raw_response,
+            )
+        except Exception as error:
+            self.check_request_attempts(hash=hash, method=method, path=path)
+            raise error
+        self.cleanup_request_attempts(hash=hash)
+        return response

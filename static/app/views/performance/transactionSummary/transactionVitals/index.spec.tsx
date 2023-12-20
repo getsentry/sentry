@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
 import {Location, Query} from 'history';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -37,7 +38,7 @@ function initialize({
   transaction?: string;
 } = {}) {
   features = features || ['performance-view'];
-  project = project || TestStubs.Project();
+  project = project || ProjectFixture();
   query = query || {};
   const data = initializeOrg({
     organization: Organization({

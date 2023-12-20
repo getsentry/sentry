@@ -1,6 +1,7 @@
 import {browserHistory, PlainRoute} from 'react-router';
 import selectEvent from 'react-select-event';
 import moment from 'moment';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {ProjectAlertRule} from 'sentry-fixture/projectAlertRule';
 import {ProjectAlertRuleConfiguration} from 'sentry-fixture/projectAlertRuleConfiguration';
 
@@ -147,7 +148,7 @@ describe('IssueRuleEditor', function () {
       method: 'POST',
       body: [],
     });
-    ProjectsStore.loadInitialData([TestStubs.Project()]);
+    ProjectsStore.loadInitialData([ProjectFixture()]);
   });
 
   afterEach(function () {
