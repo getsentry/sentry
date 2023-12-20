@@ -47,7 +47,7 @@ class End2EndTest(APITestCase):
         super().setUp()
         self.middleware = provision_middleware()
 
-    def test_simple(self):
+    def test_as_superuser(self):
         self.login_as(self.create_user(is_staff=True), staff=True)
 
         with override_settings(MIDDLEWARE=tuple(self.middleware)):
@@ -55,3 +55,12 @@ class End2EndTest(APITestCase):
             # cookie name defaults to staff because imported
             # cookie name is not set when testing
             assert "staff" in response.cookies
+
+    def test_not_superuser(self):
+        self.login_as(self.create_user(is_staff=False))
+
+        with override_settings(MIDDLEWARE=tuple(self.middleware)):
+            response = self.get_success_response(status=200)
+            # cookie name defaults to staff because imported
+            # cookie name is not set when testing
+            assert "staff" not in response.cookies
