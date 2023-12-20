@@ -347,12 +347,12 @@ export class DeprecatedLine extends Component<Props, State> {
     const activeLineNumber = data.lineNo;
     const contextLine = data.context.find(l => l[0] === activeLineNumber);
     const hasStacktraceLink = data.inApp && !!data.filename && (isHovering || isExpanded);
-    const hasStacktraceLinkFeatureFlag =
+    const hasStacktraceLinkInFrameFeatureFlag =
       organization?.features?.includes('issue-details-stacktrace-link-in-frame') ?? false;
-    const showStacktraceLink =
-      hasStacktraceLink && contextLine && hasStacktraceLinkFeatureFlag;
-    const showSentryAppStacktraceLink =
-      showStacktraceLink && this.props.components.length > 0;
+    const showStacktraceLinkInFrame =
+      hasStacktraceLink && contextLine && hasStacktraceLinkInFrameFeatureFlag;
+    const showSentryAppStacktraceLinkInFrame =
+      showStacktraceLinkInFrame && this.props.components.length > 0;
 
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
@@ -429,7 +429,7 @@ export class DeprecatedLine extends Component<Props, State> {
                 </SourceMapDebuggerModalButton>
               </Fragment>
             ) : null}
-            {showStacktraceLink && (
+            {showStacktraceLinkInFrame && (
               <ErrorBoundary>
                 <StacktraceLink
                   frame={data}
@@ -438,7 +438,7 @@ export class DeprecatedLine extends Component<Props, State> {
                 />
               </ErrorBoundary>
             )}
-            {showSentryAppStacktraceLink && (
+            {showSentryAppStacktraceLinkInFrame && (
               <ErrorBoundary mini>
                 <OpenInContextLine
                   lineNo={contextLine[0]}

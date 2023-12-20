@@ -88,12 +88,12 @@ function Context({
     organization?.features?.includes('issue-details-stacktrace-syntax-highlighting') ??
     false;
 
-  const hasStacktraceLinkFeatureFlag =
+  const hasStacktraceLinkInFrameFeatureFlag =
     organization?.features?.includes('issue-details-stacktrace-link-in-frame') ?? false;
 
   // This is the old design. Only show if the feature flag is not enabled for this organization.
   const hasStacktraceLink =
-    frame.inApp && !!frame.filename && isExpanded && !hasStacktraceLinkFeatureFlag;
+    frame.inApp && !!frame.filename && isExpanded && !hasStacktraceLinkInFrameFeatureFlag;
 
   const {projects} = useProjects();
   const project = useMemo(
