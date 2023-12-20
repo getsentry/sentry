@@ -44,7 +44,6 @@ export function Project(params: Partial<TProject> = {}): TProject {
     scrapeJavaScript: true,
     scrubIPAddresses: false,
     sensitiveFields: [],
-    subjectPrefix: '',
     subjectTemplate: '',
     verifySSL: false,
     ...params,
