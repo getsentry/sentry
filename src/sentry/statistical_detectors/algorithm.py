@@ -6,37 +6,13 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Callable, Mapping, MutableMapping, Optional, Tuple
 
-from sentry.statistical_detectors.base import (
-    DetectorConfig,
-    DetectorPayload,
-    DetectorState,
-    TrendType,
-)
+import sentry_sdk
+
+from sentry.statistical_detectors.base import DetectorPayload, DetectorState, TrendType
 from sentry.utils import metrics
 from sentry.utils.math import MovingAverage
 
 logger = logging.getLogger("sentry.tasks.statistical_detectors.algorithm")
-
-
-class DetectorAlgorithm(ABC):
-    @abstractmethod
-    def __init__(
-        self,
-        source: str,
-        kind: str,
-        state: DetectorState,
-        config: DetectorConfig,
-    ):
-        ...
-
-    @abstractmethod
-    def update(self, payload: DetectorPayload) -> Tuple[TrendType, float]:
-        ...
-
-    @property
-    @abstractmethod
-    def state(self) -> DetectorState:
-        ...
 
 
 @dataclass(frozen=True)
@@ -111,54 +87,49 @@ class MovingAverageDetectorState(DetectorState):
         )
 
 
-@dataclass(frozen=True)
-class MovingAverageDetectorConfig(DetectorConfig):
-    min_data_points: int
-    short_moving_avg_factory: Callable[[], MovingAverage]
-    long_moving_avg_factory: Callable[[], MovingAverage]
+class DetectorAlgorithm(ABC):
+    @abstractmethod
+    def update(
+        self,
+        raw: Mapping[str | bytes, bytes | float | int | str],
+        payload: DetectorPayload,
+    ) -> Tuple[TrendType, float, Optional[DetectorState]]:
+        ...
 
 
-class MovingAverageDetector(DetectorAlgorithm):
+class MovingAverageRelativeChangeDetector(DetectorAlgorithm):
     def __init__(
         self,
         source: str,
         kind: str,
-        state: MovingAverageDetectorState,
-        config: MovingAverageDetectorConfig,
+        min_data_points: int,
+        moving_avg_short_factory: Callable[[], MovingAverage],
+        moving_avg_long_factory: Callable[[], MovingAverage],
+        threshold: float,
     ):
         self.source = source
         self.kind = kind
+        self.min_data_points = min_data_points
+        self.moving_avg_short_factory = moving_avg_short_factory
+        self.moving_avg_long_factory = moving_avg_long_factory
+        self.threshold = threshold
 
-        self.moving_avg_short = config.short_moving_avg_factory()
-        self.moving_avg_short.set(state.moving_avg_short, state.count)
+    def update(
+        self,
+        raw_state: Mapping[str | bytes, bytes | float | int | str],
+        payload: DetectorPayload,
+    ) -> Tuple[TrendType, float, Optional[DetectorState]]:
+        try:
+            old = MovingAverageDetectorState.from_redis_dict(raw_state)
+        except Exception as e:
+            old = MovingAverageDetectorState.empty()
 
-        self.moving_avg_long = config.long_moving_avg_factory()
-        self.moving_avg_long.set(state.moving_avg_long, state.count)
+            if raw_state:
+                # empty raw state implies that there was no
+                # previous state so no need to capture an exception
+                sentry_sdk.capture_exception(e)
 
-        self.timestamp = state.timestamp
-        self.count = state.count
-        self.config = config
-
-    @property
-    def state(self) -> MovingAverageDetectorState:
-        return MovingAverageDetectorState(
-            timestamp=self.timestamp,
-            count=self.count,
-            moving_avg_short=self.moving_avg_short.value,
-            moving_avg_long=self.moving_avg_long.value,
-        )
-
-
-@dataclass(frozen=True)
-class MovingAverageRelativeChangeDetectorConfig(MovingAverageDetectorConfig):
-    threshold: float
-
-
-class MovingAverageRelativeChangeDetector(MovingAverageDetector):
-    config: MovingAverageRelativeChangeDetectorConfig
-
-    def update(self, payload: DetectorPayload) -> Tuple[TrendType, float]:
-        if self.timestamp is not None and self.timestamp > payload.timestamp:
+        if old.timestamp is not None and old.timestamp > payload.timestamp:
             # In the event that the timestamp is before the payload's timestamps,
             # we do not want to process this payload.
             #
@@ -166,30 +137,34 @@ class MovingAverageRelativeChangeDetector(MovingAverageDetector):
             logger.warning(
                 "Trend detection out of order. Processing %s, but last processed was %s",
                 payload.timestamp.isoformat(),
-                self.timestamp.isoformat(),
+                old.timestamp.isoformat(),
             )
-            return TrendType.Skipped, 0
+            return TrendType.Skipped, 0, None
 
-        old_moving_avg_short = self.moving_avg_short.value
-        old_moving_avg_long = self.moving_avg_long.value
+        moving_avg_short = self.moving_avg_short_factory()
+        moving_avg_long = self.moving_avg_long_factory()
 
-        self.moving_avg_short.update(payload.value)
-        self.moving_avg_long.update(payload.value)
-        self.timestamp = payload.timestamp
-        self.count += 1
+        new = MovingAverageDetectorState(
+            timestamp=payload.timestamp,
+            count=old.count + 1,
+            moving_avg_short=moving_avg_short.update(
+                old.count, old.moving_avg_short, payload.value
+            ),
+            moving_avg_long=moving_avg_long.update(old.count, old.moving_avg_long, payload.value),
+        )
 
         # The heuristic isn't stable initially, so ensure we have a minimum
         # number of data points before looking for a regression.
-        stablized = self.count > self.config.min_data_points
+        stablized = new.count > self.min_data_points
 
-        score = abs(self.moving_avg_short.value - self.moving_avg_long.value)
+        score = abs(new.moving_avg_short - new.moving_avg_long)
 
         try:
-            relative_change_old = (old_moving_avg_short - old_moving_avg_long) / abs(
-                old_moving_avg_long
+            relative_change_old = (old.moving_avg_short - old.moving_avg_long) / abs(
+                old.moving_avg_long
             )
-            relative_change_new = (self.moving_avg_short.value - self.moving_avg_long.value) / abs(
-                self.moving_avg_long.value
+            relative_change_new = (new.moving_avg_short - new.moving_avg_long) / abs(
+                new.moving_avg_long
             )
 
             metrics.distribution(
@@ -203,16 +178,16 @@ class MovingAverageRelativeChangeDetector(MovingAverageDetector):
 
         if (
             stablized
-            and relative_change_old < self.config.threshold
-            and relative_change_new > self.config.threshold
+            and relative_change_old < self.threshold
+            and relative_change_new > self.threshold
         ):
-            return TrendType.Regressed, score
+            return TrendType.Regressed, score, new
 
         elif (
             stablized
-            and relative_change_old > -self.config.threshold
-            and relative_change_new < -self.config.threshold
+            and relative_change_old > -self.threshold
+            and relative_change_new < -self.threshold
         ):
-            return TrendType.Improved, score
+            return TrendType.Improved, score, new
 
-        return TrendType.Unchanged, score
+        return TrendType.Unchanged, score, new

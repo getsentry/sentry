@@ -49,8 +49,3 @@ class DetectorState(ABC):
     @abstractmethod
     def empty(cls) -> DetectorState:
         ...
-
-
-@dataclass(frozen=True)
-class DetectorConfig(ABC):
-    ...

@@ -47,37 +47,18 @@ def nice_int(x):
 
 
 class MovingAverage(ABC):
-    def __init__(self):
-        self.value: float = 0
-        self.n: int = 0
-
-    def set(self, value: float, n: int) -> None:
-        self.value = value
-        self.n = n
-
-    def update(self, x: float) -> None:
-        if self.n == 0:
-            self.value = x
-        else:
-            weight = self.get_weight(self.n + 1)
-            self.value = x * weight + self.value * (1 - weight)
-        self.n += 1
-
     @abstractmethod
-    def get_weight(self, n: int) -> float:
+    def update(self, n: int, avg: float, value: float) -> float:
         raise NotImplementedError
-
-
-class SimpleMovingAverage(MovingAverage):
-    def get_weight(self, n: int) -> float:
-        return 1 / n
 
 
 class ExponentialMovingAverage(MovingAverage):
     def __init__(self, weight: float):
         super().__init__()
-        assert weight < 1
+        assert 0 < weight and weight < 1
         self.weight = weight
 
-    def get_weight(self, n: int) -> float:
-        return self.weight
+    def update(self, n: int, avg: float, value: float) -> float:
+        if n == 0:
+            return value
+        return value * self.weight + avg * (1 - self.weight)
