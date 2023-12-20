@@ -10,20 +10,20 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.code_locations import CodeLocationsSerializer
+from sentry.api.serializers.models.metrics_spans import MetricsSpansSerializer
 from sentry.api.utils import get_date_range_from_params
 from sentry.sentry_metrics.querying.metadata.code_locations import get_code_locations
-from sentry.sentry_metrics.querying.metadata.metric_spans import get_metric_spans
+from sentry.sentry_metrics.querying.metadata.metrics_spans import get_spans_of_metrics
 
 
 class MetaType(Enum):
     CODE_LOCATIONS = "codeLocations"
-    METRIC_SPANS = "metricSpans"
+    METRICS_SPANS = "metricsSpans"
 
 
 META_TYPE_SERIALIZER = {
     MetaType.CODE_LOCATIONS.value: CodeLocationsSerializer(),
-    # TODO: replace with new serializer for spans.
-    MetaType.METRIC_SPANS.value: CodeLocationsSerializer(),
+    MetaType.METRICS_SPANS.value: MetricsSpansSerializer(),
 }
 
 
@@ -34,8 +34,12 @@ class OrganizationDDMMetaEndpoint(OrganizationEndpoint):
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
-    """Get meta data for one or more metrics for a given set of projects in a time interval"""
-    # Returns only code locations for now
+    """
+    Get metadata for one or more metrics for a given set of projects in a time interval.
+    The current metadata supported for metrics is:
+    - Code locations -> these are the code location in which the metric was emitted.
+    - Spans -> these are the spans in which the metric was emitted.
+    """
 
     def _extract_meta_types(self, request: Request) -> Sequence[MetaType]:
         meta_types = []
@@ -65,11 +69,11 @@ class OrganizationDDMMetaEndpoint(OrganizationEndpoint):
                     organization=organization,
                     projects=projects,
                 )
-            elif meta_type == MetaType.METRIC_SPANS:
+            elif meta_type == MetaType.METRICS_SPANS:
                 min_value = request.GET.get("min")
                 max_value = request.GET.get("max")
 
-                response_data = get_metric_spans(
+                response_data = get_spans_of_metrics(
                     metric_mris=metric_mris,
                     start=start,
                     end=end,

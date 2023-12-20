@@ -4,23 +4,22 @@ from unittest.mock import patch
 
 import pytest
 from django.utils import timezone
-import requests
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.metadata.code_locations import get_cache_key_for_code_location
 from sentry.sentry_metrics.querying.utils import get_redis_client_for_metrics_meta
-from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.datetime import freeze_time, before_now
+from sentry.testutils.cases import APITestCase, BaseSpansTestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
-from django.conf import settings
+
 pytestmark = pytest.mark.sentry_metrics
 
 
 @region_silo_test
 @freeze_time("2023-11-21T10:30:30.000Z")
-class OrganizationDDMEndpointTest(APITestCase):
+class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
     endpoint = "sentry-api-0-organization-ddm-meta"
 
     def setUp(self):
@@ -180,8 +179,12 @@ class OrganizationDDMEndpointTest(APITestCase):
 
         assert len(codeLocations) == 0
 
-    @patch("sentry.sentry_metrics.querying.metadata.code_locations.CodeLocationsFetcher._get_code_locations")
-    @patch("sentry.sentry_metrics.querying.metadata.code_locations.CodeLocationsFetcher.BATCH_SIZE", 10)
+    @patch(
+        "sentry.sentry_metrics.querying.metadata.code_locations.CodeLocationsFetcher._get_code_locations"
+    )
+    @patch(
+        "sentry.sentry_metrics.querying.metadata.code_locations.CodeLocationsFetcher.BATCH_SIZE", 10
+    )
     def test_get_locations_batching(self, get_code_locations_mock):
         get_code_locations_mock.return_value = []
 
@@ -307,7 +310,10 @@ class OrganizationDDMEndpointTest(APITestCase):
         assert frame["preContext"] == []
         assert frame["postContext"] == []
 
-    @patch("sentry.sentry_metrics.querying.metadata.code_locations.CodeLocationsFetcher.MAXIMUM_KEYS", 50)
+    @patch(
+        "sentry.sentry_metrics.querying.metadata.code_locations.CodeLocationsFetcher.MAXIMUM_KEYS",
+        50,
+    )
     def test_get_locations_with_too_many_combinations(self):
         project = self.create_project(name="project_1")
         mri = "d:custom/sentry.process_profile.track_outcome@second"
@@ -321,41 +327,32 @@ class OrganizationDDMEndpointTest(APITestCase):
             codeLocations="true",
         )
 
-    def store_metric_summary(
-        self,
-        project_id,
-        span_id,
-        trace_id,
-        metric_mri,
-        min,
-        max,
-        sum,
-        count,
-        timestamp,
-        tags,
-    ):
-        if timestamp is None:
-            timestamp = before_now(minutes=10)
-
-        functions_payload = {
-            "project_id": project_id,
-            "span_id": span_id,
-            "trace_id": trace_id,
-            "metric_mri": metric_mri,
-            "min": min,
-            "max": max,
-            "sum": sum,
-            "count": count,
-            "end_timestamp": timestamp,
-            "tags": tags,
-            "retention_days": 90,
-            "deleted": 0,
-        }
-
-        response = requests.post(
-            settings.SENTRY_SNUBA + "/tests/entities/metrics_summaries/insert", json=[functions_payload]
-        )
-        assert response.status_code == 200
-
     def test_get_metric_spans(self):
-        pass
+        mri = "g:custom/page_load@millisecond"
+
+        self.store_span(
+            project_id=self.project.id,
+            timestamp=before_now(minutes=5),
+            metrics_summary={
+                mri: [
+                    {
+                        "min": 10.0,
+                        "max": 100.0,
+                        "sum": 110.0,
+                        "count": 2,
+                        "tags": {
+                            "transaction": "/hello",
+                        },
+                    }
+                ]
+            },
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=["g:custom/page_load@millisecond"],
+            project=[self.project.id],
+            statsPeriod="1d",
+            metricsSpans="true",
+        )
+        assert response.data == []

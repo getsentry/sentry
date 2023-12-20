@@ -477,6 +477,7 @@ def reset_snuba(call_snuba):
         "/tests/generic_metrics/drop",
         "/tests/search_issues/drop",
         "/tests/group_attributes/drop",
+        "/tests/spans/drop",
     ]
 
     assert all(

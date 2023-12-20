@@ -1344,6 +1344,45 @@ class SnubaTestCase(BaseTestCase):
         )
 
 
+class BaseSpansTestCase(SnubaTestCase):
+    def store_span(
+        self,
+        project_id: int,
+        span_id: str = "98230207e6e4a6ad",
+        trace_id: str = "b2565c0d-f13c-4c00-a654-d2209e06e4bd",
+        transaction_id: Optional[str] = None,
+        profile_id: Optional[str] = None,
+        metrics_summary: Optional[Mapping[str, Sequence[Mapping[str, Any]]]] = None,
+        timestamp: datetime = None,
+        tags: Mapping[str, Any] = None,
+    ):
+        payload = {
+            "start_timestamp_ms": int(timestamp.timestamp() * 1000),
+            "exclusive_time_ms": 5,
+            "duration_ms": 10,
+            "project_id": project_id,
+            "span_id": span_id,
+            "trace_id": trace_id,
+            "event_id": transaction_id,
+            "profile_id": profile_id,
+            "tags": tags,
+            "is_segment": 0,
+        }
+
+        if metrics_summary:
+            payload["_metrics_summary"] = metrics_summary
+
+        self._snuba_insert(payload, "spans")
+        if "_metrics_summary" in payload:
+            self._snuba_insert(payload, "metrics_summaries")
+
+    def _snuba_insert(self, payload, entity):
+        response = requests.post(
+            settings.SENTRY_SNUBA + f"/tests/entities/{entity}/insert", data=json.dumps([payload])
+        )
+        assert response.status_code == 200
+
+
 class BaseMetricsTestCase(SnubaTestCase):
     snuba_endpoint = "/tests/entities/{entity}/insert"
 
