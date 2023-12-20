@@ -1,7 +1,5 @@
-import cProfile
 import logging
 import random
-import time
 from collections import defaultdict
 from typing import (
     Any,
@@ -100,9 +98,7 @@ class IndexerBatch:
         self.filtered_msg_meta: Set[BrokerMeta] = set()
         self.parsed_payloads_by_meta: MutableMapping[BrokerMeta, ParsedMessage] = {}
 
-        with cProfile.Profile() as pr:
-            self._extract_messages()
-            pr.dump_stats(f"{int(time.time())}_{len(outer_message.payload)}_extract_messges.prof")
+        self._extract_messages()
 
     @metrics.wraps("process_messages.extract_messages")
     def _extract_messages(self) -> None:

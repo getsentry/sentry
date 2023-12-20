@@ -1,8 +1,11 @@
 import logging
+import random
+import statistics
 from collections.abc import MutableMapping
 from datetime import datetime, timezone
 from unittest.mock import patch
 
+import matplotlib.pyplot as plt
 import pytest
 import sentry_kafka_schemas
 from arroyo.backends.kafka import KafkaPayload
@@ -348,6 +351,59 @@ def test_extract_strings_with_multiple_use_case_ids():
             }
         },
     }
+
+
+@pytest.mark.django_db
+def test_graph_batch_perf():
+    make_dist_payload = lambda value_len: {
+        "name": "d:custom/duration@second",
+        "tags": {
+            "environment": "production",
+            "session.status": "healthy",
+            "metric_e2e_custom_dist_k_custom": "metric_e2e_dist_v",
+            "aaa": "aajdfklajflkdjaklfjli",
+            "bbb": "jfdlakjfoeijiojfa",
+            "fjdakljfkldjai": "fjdaljfkdla",
+        },
+        "timestamp": BROKER_TIMESTAMP,
+        "type": "d",
+        "value": [random.random() for _ in range(value_len)],
+        "org_id": 1,
+        "retention_days": 90,
+        "project_id": 3,
+    }
+    step = 1
+    hi = 16_000
+    lo = 10
+    reps = 4
+    x = []
+    y = []
+    print("\n**************** STARTING TEST ****************")  # noqa
+    for val_len in range(lo, hi, step):
+        print(f"Current value length: {val_len}", end="\r")  # noqa
+        raw = []
+        for _ in range(reps):
+            outer_message = _construct_outer_message(
+                [(make_dist_payload(val_len), [("namespace", b"custom")]) for _ in range(50)]
+            )
+            start = datetime.now()
+            IndexerBatch(
+                outer_message,
+                False,
+                False,
+                tags_validator=GenericMetricsTagsValidator().is_allowed,
+                schema_validator=MetricsSchemaValidator(
+                    INGEST_CODEC, GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME
+                ).validate,
+            )
+            end = datetime.now()
+            raw.append((end - start).total_seconds() * 1000)
+        x.append(val_len)
+        y.append(statistics.median(raw))
+
+    print("\r**************** DONE ****************\n")  # noqa
+    plt.scatter(x, y, marker=".", s=6)
+    plt.show()
 
 
 @pytest.mark.django_db
