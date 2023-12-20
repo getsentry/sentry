@@ -601,7 +601,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
                   isTopRelease={index === 0}
                   getHealthData={getHealthData}
                   showReleaseAdoptionStages={showReleaseAdoptionStages}
-                  thresholds={this.getThresholdsForRelease(release)} // TODO: filter by project, and environment
+                  thresholds={this.getThresholdsForRelease(release)}
                   thresholdStatuses={thresholdStatuses || {}}
                 />
               ))}
