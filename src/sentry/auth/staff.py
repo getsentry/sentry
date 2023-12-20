@@ -107,7 +107,6 @@ class Staff(ElevatedMode):
         Return the current session data, with native types coerced.
         """
         request = self.request
-        data = request.session.get(SESSION_KEY)
 
         try:
             cookie_token = request.get_signed_cookie(
@@ -123,6 +122,7 @@ class Staff(ElevatedMode):
             )
             return
 
+        data = request.session.get(SESSION_KEY)
         if not cookie_token:
             if data:
                 logger.warning(
@@ -262,7 +262,7 @@ class Staff(ElevatedMode):
             "uid": self.uid,
         }
 
-    def _set_logged_out(self):
+    def _set_logged_out(self) -> None:
         self.uid = None
         self.expires = None
         self.token = None
@@ -271,7 +271,7 @@ class Staff(ElevatedMode):
         self.is_valid = False
         self.request.session.pop(SESSION_KEY, None)
 
-    def set_logged_in(self, user, current_datetime=None):
+    def set_logged_in(self, user, current_datetime=None) -> None:
         """
         Mark a session as staff-enabled.
         """

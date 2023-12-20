@@ -170,7 +170,6 @@ class Superuser(ElevatedMode):
         Return the current session data, with native types coerced.
         """
         request = self.request
-        data = request.session.get(SESSION_KEY)
 
         try:
             cookie_token = request.get_signed_cookie(
@@ -183,6 +182,7 @@ class Superuser(ElevatedMode):
             )
             return
 
+        data = request.session.get(SESSION_KEY)
         if not cookie_token:
             if data:
                 logger.warning(
@@ -299,7 +299,7 @@ class Superuser(ElevatedMode):
                         },
                     )
 
-    def _set_logged_in(self, expires, token, user, current_datetime=None):
+    def _set_logged_in(self, expires, token, user, current_datetime=None) -> None:
         # we bind uid here, as if you change users in the same request
         # we wouldn't want to still support superuser auth (given
         # the superuser check happens right here)
@@ -322,7 +322,7 @@ class Superuser(ElevatedMode):
             "uid": self.uid,
         }
 
-    def _set_logged_out(self):
+    def _set_logged_out(self) -> None:
         self.uid = None
         self.expires = None
         self.token = None
@@ -331,7 +331,7 @@ class Superuser(ElevatedMode):
         self.is_valid = False
         self.request.session.pop(SESSION_KEY, None)
 
-    def set_logged_in(self, user, prefilled_su_modal=None, current_datetime=None):
+    def set_logged_in(self, user, prefilled_su_modal=None, current_datetime=None) -> None:
         """
         Mark a session as superuser-enabled.
         """
@@ -405,7 +405,7 @@ class Superuser(ElevatedMode):
             metrics.incr("superuser.failure", sample_rate=1.0, tags={"reason": "missing-user-info"})
             logger.exception("superuser.superuser_access.missing_user_info")
 
-    def set_logged_out(self):
+    def set_logged_out(self) -> None:
         """
         Mark a session as superuser-disabled.
         """
@@ -416,7 +416,7 @@ class Superuser(ElevatedMode):
             extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
         )
 
-    def on_response(self, response):
+    def on_response(self, response) -> None:
         request = self.request
 
         # always re-bind the cookie to update the idle expiration window
