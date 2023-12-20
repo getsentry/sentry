@@ -173,8 +173,8 @@ class StaffTestCase(TestCase):
     def test_login_saves_session(self):
         user = self.create_user("foo@example.com")
         request = self.make_request()
-        staff = Staff(request, allowed_ips=(), current_datetime=self.current_datetime)
-        staff.set_logged_in(user, current_datetime=self.current_datetime)
+        staff = Staff(request, allowed_ips=())
+        staff.set_logged_in(user)
 
         # request.user wasn't set
         assert not staff.is_active
@@ -192,7 +192,7 @@ class StaffTestCase(TestCase):
 
     def test_logout_clears_session(self):
         request = self.build_request()
-        staff = Staff(request, allowed_ips=(), current_datetime=self.current_datetime)
+        staff = Staff(request, allowed_ips=())
         staff.set_logged_out()
 
         assert not staff.is_active

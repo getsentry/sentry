@@ -56,14 +56,14 @@ def is_active_staff(request: Request) -> bool:
 class Staff(ElevatedMode):
     allowed_ips = frozenset(ipaddress.ip_network(str(v), strict=False) for v in ALLOWED_IPS)
 
-    def __init__(self, request, allowed_ips=UNSET, current_datetime=None):
+    def __init__(self, request, allowed_ips=UNSET):
         self.uid: str | None = None
         self.request = request
         if allowed_ips is not UNSET:
             self.allowed_ips = frozenset(
                 ipaddress.ip_network(str(v), strict=False) for v in allowed_ips or ()
             )
-        self._populate(current_datetime=current_datetime)
+        self._populate()
 
     @property
     def is_active(self) -> bool:
@@ -202,9 +202,8 @@ class Staff(ElevatedMode):
 
         return data
 
-    def _populate(self, current_datetime=None):
-        if current_datetime is None:
-            current_datetime = timezone.now()
+    def _populate(self):
+        current_datetime = timezone.now()
 
         request = self.request
         user = getattr(request, "user", None)
