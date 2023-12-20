@@ -54,6 +54,7 @@ export type Project = {
   teams: Team[];
   verifySSL: boolean;
   builtinSymbolSources?: string[];
+  defaultEnvironment?: string;
   hasUserReports?: boolean;
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   latestRelease?: {version: string} | null;
