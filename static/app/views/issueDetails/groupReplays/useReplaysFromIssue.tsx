@@ -59,7 +59,7 @@ export default function useReplaysFromIssue({
       name: '',
       version: 2,
       fields: REPLAY_LIST_FIELDS,
-      query: `id:[${String(replayIds)}]`,
+      query: replayIds.length ? `id:[${String(replayIds)}]` : `id:1`,
       range: '14d',
       projects: [],
       orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
@@ -76,6 +76,7 @@ export default function useReplaysFromIssue({
 
   return {
     eventView,
+    isFetching: replayIds === undefined,
     fetchError,
     pageLinks: null,
   };
