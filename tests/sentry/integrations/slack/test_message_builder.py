@@ -15,6 +15,7 @@ from sentry.integrations.slack.message_builder.issues import (
     SlackIssuesMessageBuilder,
     build_actions,
     get_option_groups,
+    get_option_groups_block_kit,
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.issues.grouptype import (
@@ -74,6 +75,54 @@ def build_test_message_blocks(
             {
                 "type": "context",
                 "elements": [{"type": "mrkdwn", "text": f"BAR-{group.short_id} | {event_date}"}],
+            },
+            {
+                "type": "actions",
+                "elements": [
+                    {
+                        "type": "button",
+                        "action_id": "resolve_dialog",
+                        "text": {"type": "plain_text", "text": "Resolve"},
+                        "value": "resolve_dialog",
+                    },
+                    {
+                        "type": "button",
+                        "action_id": "ignored:forever",
+                        "text": {"type": "plain_text", "text": "Ignore"},
+                        "value": "ignored:forever",
+                    },
+                    {
+                        "type": "static_select",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Select Assignee...",
+                            "emoji": True,
+                        },
+                        "option_groups": [
+                            {
+                                "label": {"type": "plain_text", "text": "Teams"},
+                                "options": [
+                                    {
+                                        "text": {"type": "plain_text", "text": f"#{team.slug}"},
+                                        "value": f"team:{team.id}",
+                                    }
+                                    for team in teams
+                                ],
+                            },
+                            {
+                                "label": {"type": "plain_text", "text": "People"},
+                                "options": [
+                                    {
+                                        "text": {"type": "plain_text", "text": f"{user.email}"},
+                                        "value": f"user:{user.id}",
+                                    }
+                                    for user in users
+                                ],
+                            },
+                        ],
+                        "action_id": "assign",
+                    },
+                ],
             },
         ],
         "text": f"[{project.slug}] {title}",
@@ -252,8 +301,8 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
     )
     def test_build_group_attachment_prune_duplicate_assignees(self, mock_get_option_groups):
         user2 = self.create_user()
-        team2 = self.create_team(organization=self.organization, members=[self.user])
-        self.create_member(user=user2, organization=self.organization, teams=[team2])
+        self.create_member(user=user2, organization=self.organization)
+        team2 = self.create_team(organization=self.organization, members=[self.user, user2])
         project2 = self.create_project(organization=self.organization, teams=[self.team, team2])
         group = self.create_group(project=project2)
 
@@ -261,6 +310,25 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert mock_get_option_groups.called
 
         team_option_groups, member_option_groups = mock_get_option_groups(group)
+        assert len(team_option_groups["options"]) == 2
+        assert len(member_option_groups["options"]) == 2
+
+    @with_feature("organizations:slack-block-kit")
+    @patch(
+        "sentry.integrations.slack.message_builder.issues.get_option_groups_block_kit",
+        wraps=get_option_groups_block_kit,
+    )
+    def test_build_group_block_prune_duplicate_assignees(self, mock_get_option_groups_block_kit):
+        user2 = self.create_user()
+        self.create_member(user=user2, organization=self.organization)
+        team2 = self.create_team(organization=self.organization, members=[self.user, user2])
+        project2 = self.create_project(organization=self.organization, teams=[self.team, team2])
+        group = self.create_group(project=project2)
+
+        SlackIssuesMessageBuilder(group).build()
+        assert mock_get_option_groups_block_kit.called
+
+        team_option_groups, member_option_groups = mock_get_option_groups_block_kit(group)
         assert len(team_option_groups["options"]) == 2
         assert len(member_option_groups["options"]) == 2
 
@@ -285,6 +353,21 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         ).build()
         assert isinstance(ret, dict)
         assert ret["actions"] != []
+
+    @with_feature("organizations:slack-block-kit")
+    def test_team_recipient_block_kit(self):
+        issue_alert_group = self.create_group(project=self.project)
+        ret = SlackIssuesMessageBuilder(
+            issue_alert_group, recipient=RpcActor.from_object(self.team)
+        ).build()
+        assert isinstance(ret, dict)
+        has_actions = False
+        for section in ret["blocks"]:
+            if section["type"] == "actions":
+                has_actions = True
+                break
+
+        assert has_actions
 
     # XXX(CEO): skipping replicating tests relating to color since there is no block kit equivalent
     def test_build_group_attachment_color_no_event_error_fallback(self):
