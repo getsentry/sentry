@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 
@@ -43,7 +44,7 @@ describe('OrganizationGeneralSettings', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/?provider_key=github`,
       method: 'GET',
-      body: [TestStubs.GitHubIntegration()],
+      body: [GitHubIntegrationFixture()],
     });
   });
 

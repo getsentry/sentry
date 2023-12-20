@@ -1,5 +1,6 @@
 import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
 import {Event as EventFixture} from 'sentry-fixture/event';
+import {EventEntryExceptionGroup as EventEntryExceptionGroupFixture} from 'sentry-fixture/eventEntryExceptionGroup';
 import {Project, Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -151,7 +152,7 @@ describe('Exception Content', function () {
   });
 
   describe('exception groups', function () {
-    const event = EventFixture({entries: [TestStubs.EventEntryExceptionGroup()]});
+    const event = EventFixture({entries: [EventEntryExceptionGroupFixture()]});
     const project = ProjectFixture();
     beforeEach(() => {
       const promptResponse = {
