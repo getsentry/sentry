@@ -50,7 +50,6 @@ describe('AssigneeSelector', () => {
       id: '4',
       name: 'Jane Doe',
       email: 'janedoe@example.com',
-      team_slug: 'cool-team2',
     });
 
     TEAM_1 = Team({
@@ -65,18 +64,12 @@ describe('AssigneeSelector', () => {
 
     GROUP_1 = GroupFixture({
       id: '1337',
-      project: {
-        id: PROJECT_1.id,
-        slug: PROJECT_1.slug,
-      },
+      project: PROJECT_1,
     });
 
     GROUP_2 = GroupFixture({
       id: '1338',
-      project: {
-        id: PROJECT_1.id,
-        slug: PROJECT_1.slug,
-      },
+      project: PROJECT_1,
       owners: [
         {
           type: 'suspectCommit',
