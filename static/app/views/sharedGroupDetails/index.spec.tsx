@@ -1,4 +1,7 @@
 import {Event as EventFixture} from 'sentry-fixture/event';
+import {EventEntry as EventEntryFixture} from 'sentry-fixture/eventEntry';
+import {EventStacktraceException as EventStacktraceExceptionFixture} from 'sentry-fixture/eventStacktraceException';
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 
@@ -8,15 +11,15 @@ import {RouteContext} from 'sentry/views/routeContext';
 import SharedGroupDetails from 'sentry/views/sharedGroupDetails';
 
 describe('SharedGroupDetails', function () {
-  const eventEntry = TestStubs.EventEntry();
-  const exception = TestStubs.EventStacktraceException().entries[0];
+  const eventEntry = EventEntryFixture();
+  const exception = EventStacktraceExceptionFixture().entries[0];
   const params = {shareId: 'a'};
   const router = TestStubs.router({params});
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/shared/issues/a/',
-      body: TestStubs.Group({
+      body: GroupFixture({
         title: 'ZeroDivisionError',
         latestEvent: EventFixture({
           entries: [eventEntry, exception],
@@ -26,7 +29,7 @@ describe('SharedGroupDetails', function () {
     });
     MockApiClient.addMockResponse({
       url: '/shared/issues/a/',
-      body: TestStubs.Group({
+      body: GroupFixture({
         title: 'ZeroDivisionError',
         latestEvent: EventFixture({
           entries: [eventEntry, exception],
