@@ -85,7 +85,7 @@ iniconfig==1.1.1
 isodate==0.6.1
 isort==5.10.1
 jmespath==0.10.0
-jsonschema==3.2.0
+jsonschema==4.17.3
 kombu==5.3.4
 lazy-object-proxy==1.7.1
 lxml==4.9.3
