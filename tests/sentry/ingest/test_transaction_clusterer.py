@@ -74,6 +74,18 @@ def test_deep_tree():
     clusterer.get_rules()
 
 
+def test_clusterer_doesnt_generate_invalid_rules():
+    clusterer = TreeClusterer(merge_threshold=1)
+    all_stars = ["/a/b", "/b/c", "/c/d"]
+    clusterer.add_input(all_stars)
+    assert clusterer.get_rules() == []
+
+    clusterer = TreeClusterer(merge_threshold=2)
+    scheme_stars = ["http://a", "http://b", "http://c"]
+    clusterer.add_input(scheme_stars)
+    assert clusterer.get_rules() == []
+
+
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 5)
 def test_collection():
     org = Organization(pk=666)
@@ -526,3 +538,22 @@ def test_bump_last_used():
         "foo": 1,
         "bar": 946688400,
     }
+
+
+@django_db_all
+def test_stored_invalid_rules_dropped_on_update(default_project):
+    """
+    Validate that invalid rules are removed from storage even if they already
+    exist there. Updates before and after the removal don't impact the outcome.
+    """
+    rule = ReplacementRule("http://*/*/**")
+
+    assert len(get_sorted_rules(ClustererNamespace.TRANSACTIONS, default_project)) == 0
+    RedisRuleStore(namespace=ClustererNamespace.TRANSACTIONS).write(default_project, {rule: 1})
+    assert get_redis_rules(ClustererNamespace.TRANSACTIONS, default_project) == {rule: 1}
+    with freeze_time("2000-01-01 01:00:00"):
+        update_rules(ClustererNamespace.TRANSACTIONS, default_project, [rule])
+    assert get_sorted_rules(ClustererNamespace.TRANSACTIONS, default_project) == []
+    with freeze_time("2000-01-01 01:00:00"):
+        update_rules(ClustererNamespace.TRANSACTIONS, default_project, [rule])
+    assert get_sorted_rules(ClustererNamespace.TRANSACTIONS, default_project) == []
