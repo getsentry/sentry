@@ -89,9 +89,12 @@ def in_local_region(region: Region):
     preferable to overriding the `SENTRY_REGION` setting value directly because the
     region mapping may already be cached.
     """
-    directory = get_test_env_directory()
     if SiloMode.get_current_mode() == SiloMode.REGION:
-        with directory.swap_state(local_region=region):
+        with get_test_env_directory().swap_state(local_region=region):
             yield
+    elif SiloMode.get_current_mode() == SiloMode.CONTROL:
+        raise Exception("Can't swap local region in control silo")
     else:
+        # In monolith mode, the `local_region` pointer is expected to be initialized
+        # to the SENTRY_MONOLITH_REGION value and stay there. So don't swap anything.
         yield
