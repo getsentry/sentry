@@ -71,6 +71,7 @@ varying_search_config["user.ip"] = varying_search_config["user.ip_address"]
 click_search_config: dict[str, FieldProtocol] = {
     "click.alt": string_field("click_alt"),
     "click.class": StringColumnField("click_class", parse_str, StringArray),
+    "click.component_name": string_field("click_component_name"),
     "click.id": string_field("click_id"),
     "click.label": string_field("click_aria_label"),
     "click.role": string_field("click_role"),

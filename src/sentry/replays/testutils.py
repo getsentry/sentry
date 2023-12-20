@@ -231,6 +231,7 @@ def mock_replay_click(
                                 "id": kwargs.pop("id", ""),
                                 "class": kwargs.pop("class_", []),
                                 "text": kwargs.pop("text", ""),
+                                "component_name": kwargs.pop("component_name", ""),
                                 "role": kwargs.pop("role", ""),
                                 "alt": kwargs.pop("alt", ""),
                                 "testid": kwargs.pop("testid", ""),

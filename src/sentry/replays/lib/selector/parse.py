@@ -14,6 +14,7 @@ class QueryType:
         self.aria_label: Optional[str] = None
         self.classes: List[str] = []
         self.id: Optional[str] = None
+        self.component_name: Optional[str] = None
         self.role: Optional[str] = None
         self.tag: Optional[str] = None
         self.testid: Optional[str] = None
@@ -79,6 +80,8 @@ def visit_attribute(query: QueryType, attribute: Attrib) -> None:
         query.alt = attribute.value
     elif attrib == "aria-label":
         query.aria_label = attribute.value
+    elif attrib == "data-sentry-component":
+        query.component_name = attribute.value
     elif attrib == "role":
         query.role = attribute.value
     elif attrib == "data-testid":
@@ -90,7 +93,7 @@ def visit_attribute(query: QueryType, attribute: Attrib) -> None:
     else:
         raise ParseError(
             "Invalid attribute specified. Only alt, aria-label, role, data-testid, data-test-id, "
-            "and title are supported."
+            "data-sentry-component, and title are supported."
         )
 
 

@@ -516,6 +516,7 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "click.testid": ["click.testid"],
     "click.textContent": ["click.text"],
     "click.title": ["click.title"],
+    "click.component_name": ["click.component_name"],
     "click.selector": [
         "click.alt",
         "click.aria_label",
@@ -537,6 +538,7 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
         "click.testid",
         "click.text",
         "click.title",
+        "click.component_name",
     ],
     "warning_id": ["warning_ids"],
     "info_id": ["info_ids"],
@@ -670,6 +672,9 @@ QUERY_ALIAS_COLUMN_MAP = {
     ),
     "click.text": Function("groupArray", parameters=[Column("click_text")], alias="click_text"),
     "click.title": Function("groupArray", parameters=[Column("click_title")], alias="click_title"),
+    "click.component_name": Function(
+        "groupArray", parameters=[Column("click_component_name")], alias="click_component_name"
+    ),
     "error_ids": _collect_new_errors(),
     "warning_ids": _collect_event_ids("warning_ids", ["warning_id"]),
     "info_ids": _collect_event_ids("info_ids", ["info_id", "debug_id"]),
