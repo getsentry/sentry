@@ -39,6 +39,7 @@ export function Project(params: Partial<TProject> = {}): TProject {
     processingIssues: 0,
     relayPiiConfig: '',
     subjectTemplate: '',
+    subjectPrefix: '',
     sensitiveFields: [],
     safeFields: [],
     ...params,

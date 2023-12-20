@@ -46,6 +46,7 @@ export type Project = {
 
   safeFields: string[];
   sensitiveFields: string[];
+  subjectPrefix: string;
   subjectTemplate: string;
   team: Team;
   teams: Team[];
