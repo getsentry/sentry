@@ -3,17 +3,21 @@ import {Theme} from '@emotion/react';
 
 import {Alert} from 'sentry/components/alert';
 
+type PageAlertType = keyof Theme['alert'];
+
 export type PageAlertOptions = {
   message: React.ReactNode | undefined;
-  type: keyof Theme['alert'];
+  type: PageAlertType;
 };
 
+type PageAlertSetter = (message: React.ReactNode | undefined) => void;
+
 const pageErrorContext = createContext<{
-  setPageError: (message: React.ReactNode | undefined) => void;
-  setPageInfo: (message: React.ReactNode | undefined) => void;
-  setPageMuted: (message: React.ReactNode | undefined) => void;
-  setPageSuccess: (message: React.ReactNode | undefined) => void;
-  setPageWarning: (message: React.ReactNode | undefined) => void;
+  setPageError: PageAlertSetter;
+  setPageInfo: PageAlertSetter;
+  setPageMuted: PageAlertSetter;
+  setPageSuccess: PageAlertSetter;
+  setPageWarning: PageAlertSetter;
   pageAlert?: PageAlertOptions;
 }>({
   pageAlert: undefined,
@@ -27,22 +31,22 @@ const pageErrorContext = createContext<{
 export function PageAlertProvider({children}: {children: React.ReactNode}) {
   const [pageAlert, setPageAlert] = useState<PageAlertOptions | undefined>();
 
-  const setPageInfo = (message: React.ReactNode | undefined) => {
+  const setPageInfo: PageAlertSetter = message => {
     setPageAlert({message, type: 'info'});
   };
-  const setPageMuted = (message: React.ReactNode | undefined) => {
+  const setPageMuted: PageAlertSetter = message => {
     setPageAlert({message, type: 'muted'});
   };
 
-  const setPageSuccess = (message: React.ReactNode | undefined) => {
+  const setPageSuccess: PageAlertSetter = message => {
     setPageAlert({message, type: 'success'});
   };
 
-  const setPageWarning = (message: React.ReactNode | undefined) => {
+  const setPageWarning: PageAlertSetter = message => {
     setPageAlert({message, type: 'warning'});
   };
 
-  const setPageError = (message: React.ReactNode | undefined) => {
+  const setPageError: PageAlertSetter = message => {
     setPageAlert({message, type: 'error'});
   };
 
