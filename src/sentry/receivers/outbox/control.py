@@ -99,7 +99,7 @@ def process_async_webhooks(
                 path=webhook_payload.path,
                 headers=webhook_payload.headers,
                 # We need to send the body as raw bytes to avoid interfering with webhook signatures
-                data=webhook_payload.body,
+                data=webhook_payload.body.encode("utf-8"),
                 json=False,
                 prefix_hash=sha1(f"{shard_identifier}{object_identifier}".encode()).hexdigest(),
             )
