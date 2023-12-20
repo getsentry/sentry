@@ -5,7 +5,7 @@ import inspect
 import os
 import re
 import sys
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
 from typing import (
     Any,
@@ -145,11 +145,8 @@ class _SiloModeTestModification:
 
     @contextmanager
     def test_config(self, silo_mode: SiloMode):
-        with assume_test_silo_mode(silo_mode, can_be_monolith=False):
-            if self.regions:
-                with override_regions(self.regions):
-                    yield
-            else:
+        with override_regions(self.regions) if self.regions else nullcontext():
+            with assume_test_silo_mode(silo_mode, can_be_monolith=False):
                 yield
 
     def _create_overriding_test_class(
