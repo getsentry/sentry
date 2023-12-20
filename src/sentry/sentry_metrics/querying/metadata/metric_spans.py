@@ -117,7 +117,7 @@ def _get_snuba_conditions_from_query(query: str) -> Optional[ConditionGroup]:
 
 def _get_metrics_summaries(
     metric_mri: str,
-    query: str,
+    query: Optional[str],
     start: datetime,
     end: datetime,
     min_value: Optional[float],
