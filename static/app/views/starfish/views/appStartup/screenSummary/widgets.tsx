@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
+import CountWidget from 'sentry/views/starfish/views/appStartup/screenSummary/countWidget';
 
 import AppStartBreakdownWidget from './appStartBreakdownWidget';
 
@@ -9,6 +10,9 @@ function SummaryWidgets({additionalFilters}) {
     <WidgetLayout>
       <div style={{gridArea: '1 / 1 / 1 / 1'}}>
         <AppStartBreakdownWidget additionalFilters={additionalFilters} />
+      </div>
+      <div style={{gridArea: '2 / 1 / 2 / 1'}}>
+        <CountWidget additionalFilters={additionalFilters} />
       </div>
     </WidgetLayout>
   );
