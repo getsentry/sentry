@@ -59,7 +59,9 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
             status=SentryAppStatus.PUBLISH_REQUEST_INPROGRESS_STR,
         ).run(user=request.user)
 
-        org_mapping = OrganizationMapping.objects.filter(organization_id=sentry_app.owner_id)
+        org_mapping = OrganizationMapping.objects.filter(
+            organization_id=sentry_app.owner_id
+        ).first()
         org_slug = "<unknown>" if org_mapping is None else org_mapping.slug
         message = f"User {request.user.email} of organization {org_slug} wants to publish {sentry_app.slug}\n"
 
