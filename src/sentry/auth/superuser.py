@@ -23,7 +23,7 @@ from django.utils.crypto import constant_time_compare, get_random_string
 from rest_framework import serializers, status
 
 from sentry.api.exceptions import SentryAPIException
-from sentry.auth.elevated_mode import ElevatedMode, RequestStatus
+from sentry.auth.elevated_mode import ElevatedMode, InactiveReason
 from sentry.auth.system import is_system_auth
 from sentry.utils import json, metrics
 from sentry.utils.auth import has_completed_sso
@@ -146,7 +146,7 @@ class Superuser(ElevatedMode):
             return False
         return self._is_active
 
-    def is_privileged_request(self) -> Tuple[bool, RequestStatus]:
+    def is_privileged_request(self) -> Tuple[bool, InactiveReason]:
         """
         Returns ``(bool is_privileged, RequestStatus reason)``
         """
@@ -156,14 +156,14 @@ class Superuser(ElevatedMode):
         if self.org_id and not has_completed_sso(self.request, self.org_id):
             # Allow superuser session on dev env for non sso flow
             if not DISABLE_SSO_CHECK_FOR_LOCAL_DEV:
-                return False, RequestStatus.INCOMPLETE_SSO
+                return False, InactiveReason.INCOMPLETE_SSO
         # if there's no IPs configured, we allow assume its the same as *
         if not allowed_ips:
-            return True, RequestStatus.NONE
+            return True, InactiveReason.NONE
         ip = ipaddress.ip_address(str(self.request.META["REMOTE_ADDR"]))
         if not any(ip in addr for addr in allowed_ips):
-            return False, RequestStatus.INVALID_IP
-        return True, RequestStatus.NONE
+            return False, InactiveReason.INVALID_IP
+        return True, InactiveReason.NONE
 
     def get_session_data(self, current_datetime=None):
         """
@@ -327,7 +327,7 @@ class Superuser(ElevatedMode):
         self.expires = None
         self.token = None
         self._is_active = False
-        self._inactive_reason = RequestStatus.NONE
+        self._inactive_reason = InactiveReason.NONE
         self.is_valid = False
         self.request.session.pop(SESSION_KEY, None)
 

@@ -3,10 +3,10 @@ from enum import Enum
 from typing import Tuple
 
 
-class RequestStatus(str, Enum):
+class InactiveReason(str, Enum):
     INVALID_IP = "invalid-ip"
     INCOMPLETE_SSO = "incomplete-sso"
-    # Indicates the request is privileged and should be allowed
+    # Indicates the request should be allowed
     NONE = None
 
     def __bool__(self):
@@ -23,7 +23,7 @@ class ElevatedMode(ABC):
         pass
 
     @abstractmethod
-    def is_privileged_request(self) -> Tuple[bool, RequestStatus]:
+    def is_privileged_request(self) -> Tuple[bool, InactiveReason]:
         pass
 
     @abstractmethod
