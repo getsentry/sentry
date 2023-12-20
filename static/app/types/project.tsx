@@ -43,7 +43,7 @@ export type Project = {
 
   processingIssues: number;
   relayPiiConfig: string;
-
+  resolveAge: number;
   safeFields: string[];
   sensitiveFields: string[];
   subjectPrefix: string;

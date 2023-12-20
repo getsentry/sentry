@@ -38,6 +38,7 @@ export function Project(params: Partial<TProject> = {}): TProject {
     plugins: [],
     processingIssues: 0,
     relayPiiConfig: '',
+    resolveAge: 0,
     subjectTemplate: '',
     subjectPrefix: '',
     sensitiveFields: [],
