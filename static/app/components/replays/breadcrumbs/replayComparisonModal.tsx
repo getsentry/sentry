@@ -48,7 +48,7 @@ export default function ReplayComparisonModal({
       <Header closeButton>
         <ModalHeader>
           <h4>
-            {t('Hydration Error')}
+            Hydration Error
             <FeatureBadge type="beta" />
           </h4>
           <GithubFeedbackButton
@@ -56,7 +56,7 @@ export default function ReplayComparisonModal({
             label={t('Discussion')}
             title={null}
             analyticsEventKey="replay.details-hydration-discussion-clicked"
-            analyticsEventName="Replay Details Hydration Discussion Opened"
+            analyticsEventName="Replay Details Hydration Discussion Clicked"
             priority="primary"
           />
         </ModalHeader>
