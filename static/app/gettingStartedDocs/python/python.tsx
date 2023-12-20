@@ -9,7 +9,6 @@ import {t, tct} from 'sentry/locale';
 type Params = DocsParams;
 
 const getSdkSetupSnippet = (params: Params) => `
-# settings.py
 import sentry_sdk
 
 sentry_sdk.init(
@@ -29,8 +28,7 @@ sentry_sdk.init(
     profiles_sample_rate=1.0,`
         : ''
     }
-)
-`;
+)`;
 
 const onboarding: OnboardingConfig = {
   install: () => [
