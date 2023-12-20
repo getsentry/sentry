@@ -401,6 +401,7 @@ const customMetricBackendPlatforms: readonly PlatformKey[] = [
 ];
 
 const customMetricFrontendPlatforms: readonly PlatformKey[] = [
+  'electron',
   'javascript-angular',
   'javascript-astro',
   'javascript-backbone',
@@ -427,4 +428,16 @@ export const customMetricPlatforms: Set<PlatformKey> = new Set([
  * The list of platforms for which we have created onboarding instructions.
  * Should be a subset of the list of `customMetricPlatforms`.
  */
-export const customMetricOnboardingPlatforms = new Set(['javascript']);
+export const customMetricOnboardingPlatforms = new Set(
+  [...customMetricPlatforms].filter(
+    p =>
+      // Legacy platforms that do not have in-product docs
+      !['javascript-backbone', 'javascript-capacitor', 'javascript-electron'].includes(
+        p
+      ) &&
+      // TODO: Remove this once we have onboarding instructions for these platforms
+      !p.includes('php') &&
+      !p.includes('python') &&
+      p !== 'rust'
+  )
+);

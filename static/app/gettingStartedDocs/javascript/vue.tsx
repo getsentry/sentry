@@ -9,6 +9,7 @@ import {
   getReplayConfigureDescription,
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
@@ -297,6 +298,7 @@ const docs: Docs<PlatformOptions> = {
   onboarding,
   platformOptions,
   replayOnboardingNpm: replayOnboarding,
+  customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
 };
 
 export default docs;
