@@ -439,6 +439,8 @@ const StacktraceLinkWrapper = withOrganization(styled('div')<{
     p.organization?.features?.includes('issue-details-stacktrace-link-in-frame')
       ? `
       padding: ${space(0)} ${space(1)};
+      flex-wrap: wrap;
+      gap: ${space(1)}
     `
       : `
       background-color: ${p.theme.background};
