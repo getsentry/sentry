@@ -22,9 +22,8 @@ from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.region import get_test_env_directory
+from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test, create_test_regions
-from sentry.types import region
 from sentry.utils.auth import login
 from sentry.web.client_config import get_client_config
 
@@ -167,7 +166,9 @@ def test_client_config_deleted_user():
 
 
 @django_db_all
-def test_client_config_default_region_data():
+@override_regions(regions=[])
+@override_settings(SILO_MODE=SiloMode.MONOLITH, SENTRY_REGION=settings.SENTRY_MONOLITH_REGION)
+def test_client_config_empty_region_data():
     request, user = make_user_request_from_org()
     request.user = user
     result = get_client_config(request)
@@ -176,25 +177,6 @@ def test_client_config_default_region_data():
     regions = result["regions"]
     assert regions[0]["name"] == settings.SENTRY_MONOLITH_REGION
     assert regions[0]["url"] == options.get("system.url-prefix")
-
-
-@django_db_all
-@override_settings(SILO_MODE=SiloMode.MONOLITH)
-def test_client_config_empty_region_data():
-    region_directory = region.load_from_config(())
-
-    # Usually, we would want to use other testutils functions rather than calling
-    # `swap_state` directly. We make an exception here in order to test the default
-    # region data that `load_from_config` fills in.
-    with get_test_env_directory().swap_state(tuple(region_directory.regions)):
-        request, user = make_user_request_from_org()
-        request.user = user
-        result = get_client_config(request)
-
-        assert len(result["regions"]) == 1
-        regions = result["regions"]
-        assert regions[0]["name"] == settings.SENTRY_MONOLITH_REGION
-        assert regions[0]["url"] == options.get("system.url-prefix")
 
 
 @django_db_all
@@ -262,7 +244,7 @@ def test_client_config_links_with_priority_org():
     request, user = make_user_request_from_org()
     request.user = user
 
-    org = Factories.create_organization(region="us")
+    org = Factories.create_organization()
     Factories.create_member(organization=org, user=user)
 
     org_context = organization_service.get_organization_by_slug(

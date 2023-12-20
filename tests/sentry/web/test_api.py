@@ -15,9 +15,7 @@ from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils.cases import TestCase
-from sentry.testutils.region import in_local_region
 from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
-from sentry.types.region import get_region_by_name
 from sentry.utils import json
 
 
@@ -303,7 +301,7 @@ class ClientConfigViewTest(TestCase):
         assert resp.status_code == 200
         assert resp["Content-Type"] == "application/json"
 
-        with in_local_region(get_region_by_name("eu")):
+        with override_settings(SENTRY_REGION="eu"):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
@@ -314,7 +312,7 @@ class ClientConfigViewTest(TestCase):
             assert data["lastOrganization"] == self.organization.slug
             assert data["links"] == {
                 "organizationUrl": f"http://{self.organization.slug}.testserver",
-                "regionUrl": generate_region_url(),
+                "regionUrl": "http://eu.testserver",
                 "sentryUrl": "http://testserver",
             }
 

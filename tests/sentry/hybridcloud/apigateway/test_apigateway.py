@@ -15,7 +15,6 @@ from sentry.utils import json
 
 
 @control_silo_test(regions=[ApiGatewayTestCase.REGION], include_monolith_run=True)
-@override_settings(SENTRY_MONOLITH_REGION=ApiGatewayTestCase.REGION.name)
 class ApiGatewayTest(ApiGatewayTestCase):
     @responses.activate
     def test_simple(self):
