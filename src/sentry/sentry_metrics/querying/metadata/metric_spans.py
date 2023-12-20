@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, Sequence, Set
 
-from snuba_sdk import Column, Condition, Entity, Op, Query, Request, Timeseries
+from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request, Timeseries
 from snuba_sdk.conditions import BooleanCondition, ConditionGroup
 from snuba_sdk.mql.mql import parse_mql
 
@@ -64,7 +64,6 @@ def _get_spans_by_ids(
             "end": end,
         },
         query=f"span_id:[{','.join(span_ids)}]",
-        limit=MAX_NUMBER_OF_SPANS,
         referrer=Referrer.API_DDM_METRICS_SUMMARIES.value,
     )["data"]
 
@@ -141,7 +140,7 @@ def _get_metrics_summaries(
 
     query = Query(
         match=Entity(EntityKey.MetricsSummaries.value),
-        select=[Column("span_id"), Column("metric_mri")],
+        select=[Column("span_id")],
         where=[
             Condition(Column("project_id"), Op.IN, project_ids),
             Condition(Column("end_timestamp"), Op.GTE, start),
@@ -149,6 +148,9 @@ def _get_metrics_summaries(
             Condition(Column("metric_mri"), Op.EQ, metric_mri),
         ]
         + where,
+        # We group by to deduplicate the span id and apply the limit.
+        groupby=[Column("span_id")],
+        limit=Limit(MAX_NUMBER_OF_SPANS),
     )
 
     request = Request(
