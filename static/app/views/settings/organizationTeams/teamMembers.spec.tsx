@@ -418,6 +418,11 @@ describe('TeamMembers', function () {
       role: 'owner',
       flags: {
         'idp:provisioned': true,
+        'idp:role-restricted': false,
+        'member-limit:restricted': false,
+        'partnership:restricted': false,
+        'sso:invalid': false,
+        'sso:linked': false,
       },
     });
 
