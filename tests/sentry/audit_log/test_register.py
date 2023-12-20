@@ -83,6 +83,7 @@ class AuditLogEventRegisterTest(TestCase):
             "team-and-project.created",
             "org-auth-token.create",
             "org-auth-token.remove",
+            "project-team.remove",
         ]
 
         assert set(audit_log.get_api_names()) == set(audit_log_api_name_list)
