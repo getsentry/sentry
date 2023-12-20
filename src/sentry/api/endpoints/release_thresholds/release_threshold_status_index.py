@@ -193,7 +193,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         )
         # prefetching the release_thresholds via the projects model
         queryset.prefetch_related("projects__release_thresholds__environment")
-        queryset.prefetch_related("releaseprojectenvironment_set")
+        queryset.prefetch_related("rpe_set")
         queryset.prefetch_related("deploy_set")
 
         logger.info(
@@ -256,7 +256,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                         rpe_entry: ReleaseProjectEnvironment | None = next(
                             (
                                 rpe
-                                for rpe in release.releaseprojectenvironment_set.all()
+                                for rpe in release.rpe_set.all()
                                 if rpe.environment == threshold.environment
                                 and rpe.project == project
                             ),
