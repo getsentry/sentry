@@ -6,13 +6,21 @@ import {MetricsApiResponse, Organization, PageFilters, TagCollection} from 'sent
 import {Series} from 'sentry/types/echarts';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {getMetricsApiRequestQuery, getSeriesName, groupByOp} from 'sentry/utils/metrics';
+import {EventData} from 'sentry/utils/discover/eventView';
+import {NumberContainer} from 'sentry/utils/discover/styles';
+import {
+  formatMetricUsingUnit,
+  getMetricsApiRequestQuery,
+  getSeriesName,
+  groupByOp,
+} from 'sentry/utils/metrics';
 import {
   formatMRI,
   formatMRIField,
   getMRI,
   getUseCaseFromMRI,
+  parseField,
+  parseMRI,
 } from 'sentry/utils/metrics/mri';
 import {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {MetricSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/metricSearchBar';
@@ -46,7 +54,8 @@ export const MetricsConfig: DatasetConfig<MetricsApiResponse, MetricsApiResponse
     limit?: number
   ) => getMetricRequest(api, query, organization, pageFilters, limit),
   getSeriesRequest: getMetricSeriesRequest,
-  getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
+  getCustomFieldRenderer: field => (data: EventData) =>
+    renderMetricField(field, data[field]),
   SearchBar: MetricSearchBar,
   handleOrderByReset: handleMetricTableOrderByReset,
   supportedDisplayTypes: [
@@ -69,6 +78,20 @@ export const MetricsConfig: DatasetConfig<MetricsApiResponse, MetricsApiResponse
   getGroupByFieldOptions: getTagsForMetric,
   getFieldHeaderMap: getFormattedMRIHeaders,
 };
+
+export function renderMetricField(field: string, value: any) {
+  const parsedField = parseField(field);
+  if (parsedField) {
+    const unit = parseMRI(parsedField.mri)?.unit ?? '';
+    return <NumberContainer>{formatMetricUsingUnit(value, unit)}</NumberContainer>;
+  }
+  return value;
+}
+
+export function formatMetricAxisValue(field: string, value: number) {
+  const unit = parseMRI(parseField(field)?.mri)?.unit ?? '';
+  return formatMetricUsingUnit(value, unit);
+}
 
 function getFormattedMRIHeaders(query?: WidgetQuery) {
   if (!query) {

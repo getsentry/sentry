@@ -778,7 +778,13 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 "organizations:use-metrics-layer-in-alerts",
             ]
         ):
-            for mri in ("apdex()", "failure_rate()"):
+            for mri in (
+                "count()",
+                "avg(transaction.duration)",
+                "apdex()",
+                "failure_rate()",
+                "p90(transaction.duration)",
+            ):
                 test_params = {
                     **self.alert_rule_dict,
                     "aggregate": mri,

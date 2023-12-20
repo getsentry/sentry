@@ -22,6 +22,7 @@ export function CopyToClipboardButton({
   onCopy,
   onError,
   text,
+  onClick: passedOnClick,
   ...props
 }: Props) {
   const {onClick, label} = useCopyToClipboard({
@@ -38,7 +39,7 @@ export function CopyToClipboardButton({
       translucentBorder
       onClick={e => {
         onClick();
-        props.onClick?.(e);
+        passedOnClick?.(e);
       }}
       {...props}
     >

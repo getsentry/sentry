@@ -1,9 +1,10 @@
-import {Project} from 'sentry-fixture/project';
+import {Actor} from 'sentry-fixture/actor';
+import {Project, Project as ProjectFixture} from 'sentry-fixture/project';
 
 import GroupStore from 'sentry/stores/groupStore';
 import {Group, GroupActivityType, GroupStats, TimeseriesValue} from 'sentry/types';
 
-const MOCK_PROJECT = TestStubs.Project();
+const MOCK_PROJECT = ProjectFixture();
 
 const g = (id: string, params?: Partial<Group>): Group => {
   return TestStubs.Group({id, project: MOCK_PROJECT, ...params});
@@ -221,7 +222,7 @@ describe('GroupStore', function () {
     describe('onAssignToSuccess()', function () {
       it("should treat undefined itemIds argument as 'all'", function () {
         GroupStore.items = [g('1')];
-        const assignedGroup = g('1', {assignedTo: TestStubs.User({type: 'user'})});
+        const assignedGroup = g('1', {assignedTo: Actor()});
         GroupStore.onAssignToSuccess('1337', '1', assignedGroup);
 
         expect(GroupStore.trigger).toHaveBeenCalledTimes(1);

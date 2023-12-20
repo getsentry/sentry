@@ -10,10 +10,12 @@ from sentry.eventstore.models import Event
 from sentry.incidents.models import IncidentActivityType
 from sentry.models.activity import Activity
 from sentry.models.actor import Actor, get_actor_id_for_user
+from sentry.models.grouprelease import GroupRelease
 from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
@@ -188,6 +190,11 @@ class Fixtures:
         if project is None:
             project = self.project
         return Factories.create_release(project=project, user=user, *args, **kwargs)
+
+    def create_group_release(self, project: Project = None, *args, **kwargs) -> GroupRelease:
+        if project is None:
+            project = self.project
+        return Factories.create_group_release(project, *args, **kwargs)
 
     def create_release_file(self, release_id=None, file=None, name=None, dist_id=None):
         if release_id is None:

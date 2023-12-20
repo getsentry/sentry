@@ -50,7 +50,7 @@ class EventsHasMeasurementsQuerySerializer(serializers.Serializer):
 @region_silo_endpoint
 class OrganizationEventsHasMeasurementsEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization) -> Response:

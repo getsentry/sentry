@@ -50,6 +50,9 @@ function getSentryIntegrations(routes?: Function) {
       // 6 is arbitrary, seems like a nice number
       depth: 6,
     }),
+
+    new Sentry.metrics.MetricsAggregator(),
+
     new BrowserTracing({
       ...(typeof routes === 'function'
         ? {

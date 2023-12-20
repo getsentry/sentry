@@ -57,7 +57,7 @@ export function EncryptBackup(props: StepProps) {
           <mark>{'/path/to/encrypted/backup/output/file.tar'}</mark>
           {t('file that will be uploaded in the next step')}
         </p>
-        <ContinueButton size="md" priority="primary" onClick={() => props.onComplete()}>
+        <ContinueButton priority="primary" onClick={() => props.onComplete()}>
           {t('Continue')}
         </ContinueButton>
       </motion.div>

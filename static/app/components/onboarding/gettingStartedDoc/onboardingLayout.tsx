@@ -122,7 +122,10 @@ export function OnboardingLayout({
               platform={platformKey}
             />
           )}
-          {platformOptions ? (
+          {platformOptions &&
+          !['replayOnboardingJsLoader', 'customMetricsOnboarding'].includes(
+            configType
+          ) ? (
             <PlatformOptionsControl platformOptions={platformOptions} />
           ) : null}
         </Header>

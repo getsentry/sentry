@@ -1,12 +1,17 @@
 import {Fragment, memo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import emptyStateImg from 'sentry-images/spot/custom-metrics-empty-state.svg';
+
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
-import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {GithubFeedbackButton} from 'sentry/components/githubFeedbackButton';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -17,6 +22,8 @@ import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import {useDDMContext} from 'sentry/views/ddm/context';
+import {useMetricsOnboardingSidebar} from 'sentry/views/ddm/ddmOnboarding/useMetricsOnboardingSidebar';
 import {MetricScratchpad} from 'sentry/views/ddm/scratchpad';
 import {ScratchpadSelector} from 'sentry/views/ddm/scratchpadSelector';
 import {TrayContent} from 'sentry/views/ddm/trayContent';
@@ -24,12 +31,15 @@ import {TrayContent} from 'sentry/views/ddm/trayContent';
 const SIZE_LOCAL_STORAGE_KEY = 'ddm-split-size';
 
 function MainContent() {
+  const {metricsMeta, hasCustomMetrics, isLoading} = useDDMContext();
+  const hasMetrics = !isLoading && metricsMeta.length > 0;
+  const {activateSidebar} = useMetricsOnboardingSidebar();
   return (
     <Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
           <Layout.Title>
-            {t('DDM')}
+            {t('Metrics')}
             <PageHeadingQuestionTooltip
               docsUrl="https://develop.sentry.dev/delightful-developer-metrics/"
               title={t('Delightful Developer Metrics.')}
@@ -39,6 +49,12 @@ function MainContent() {
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
+            {hasMetrics && !hasCustomMetrics && (
+              <Button priority="primary" onClick={activateSidebar} size="sm">
+                {t('Add Custom Metric')}
+              </Button>
+            )}
+            <FeedbackWidgetButton />
             <GithubFeedbackButton
               href="https://github.com/getsentry/sentry/discussions/58584"
               label={t('Discussion')}
@@ -48,7 +64,6 @@ function MainContent() {
         </Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>
-        <FloatingFeedbackWidget />
         <Layout.Main fullWidth>
           <PaddedContainer>
             <PageFilterBar condensed>
@@ -58,7 +73,23 @@ function MainContent() {
             </PageFilterBar>
             <ScratchpadSelector />
           </PaddedContainer>
-          <MetricScratchpad />
+          {isLoading ? (
+            <LoadingIndicator />
+          ) : hasMetrics ? (
+            <MetricScratchpad />
+          ) : (
+            <OnboardingPanel image={<EmptyStateImage src={emptyStateImg} />}>
+              <h3>{t('Get started with custom metrics')}</h3>
+              <p>
+                {t(
+                  "Send your own metrics to Sentry to track your system's behaviour and profit from the same powerful features as you do with errors, like alerting and dashboards."
+                )}
+              </p>
+              <Button priority="primary" onClick={activateSidebar}>
+                {t('Add Custom Metric')}
+              </Button>
+            </OnboardingPanel>
+          )}
         </Layout.Main>
       </Layout.Body>
     </Fragment>
@@ -113,10 +144,32 @@ const ScrollingPage = styled(Layout.Page)`
 
 const PaddedContainer = styled('div')`
   margin-bottom: ${space(2)};
-  display: grid;
-  grid-template: 1fr / 1fr max-content;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
   gap: ${space(1)};
-  @media (max-width: ${props => props.theme.breakpoints.small}) {
-    grid-template: 1fr 1fr / 1fr;
+`;
+
+const EmptyStateImage = styled('img')`
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    user-select: none;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 220px;
+    margin-top: auto;
+    margin-bottom: auto;
+    transform: translateX(-50%);
+    left: 50%;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    transform: translateX(-60%);
+    width: 280px;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    transform: translateX(-75%);
+    width: 320px;
   }
 `;

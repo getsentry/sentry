@@ -17,6 +17,10 @@ export type ReplayEventParameters = {
     started_at_delta: number; // Log the change (negative number==earlier date) in started_at
     total_errors: number;
   };
+  'replay.details-has-hydration-error': {
+    num_errors: number;
+    replay_id: string;
+  };
   'replay.details-layout-changed': {
     chosen_layout: LayoutKey;
     default_layout: LayoutKey;
@@ -106,6 +110,7 @@ export type ReplayEventKey = keyof ReplayEventParameters;
 export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.accessibility-issue-clicked': 'Clicked Replay Accessibility Issue',
   'replay.details-data-loaded': 'Replay Details Data Loaded',
+  'replay.details-has-hydration-error': 'Replay Details Has Hydration Error',
   'replay.details-layout-changed': 'Changed Replay Details Layout',
   'replay.details-network-panel-closed': 'Closed Replay Network Details Panel',
   'replay.details-network-panel-opened': 'Opened Replay Network Details Panel',

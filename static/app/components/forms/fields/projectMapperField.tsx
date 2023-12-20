@@ -257,7 +257,7 @@ export class RenderField extends Component<RenderProps, State> {
               <Button
                 size="sm"
                 priority="primary"
-                icon={<IconOpen size="xs" />}
+                icon={<IconOpen />}
                 disabled={!existingValues.length}
                 href={nextUrl}
                 title={DISABLED_TOOLTIP_TEXT}

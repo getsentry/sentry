@@ -107,7 +107,7 @@ class CommitContextMixin(GetClient):
         """
         Given a list of source files and line numbers,returns the commit info for the most recent commit.
         """
-        raise NotImplementedError
+        return self.get_blame_for_files(files, extra)
 
     def get_commit_context(
         self, repo: Repository, filepath: str, branch: str, event_frame: Mapping[str, Any]

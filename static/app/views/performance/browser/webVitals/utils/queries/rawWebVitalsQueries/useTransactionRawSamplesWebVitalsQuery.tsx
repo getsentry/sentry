@@ -71,7 +71,11 @@ export const useTransactionRawSamplesWebVitalsQuery = ({
         'project',
       ],
       name: 'Web Vitals',
-      query: `transaction.op:pageload transaction:"${transaction}" ${query ? query : ''}`,
+      query: [
+        'transaction.op:pageload',
+        `transaction:"${transaction}"`,
+        ...(query ? [query] : []),
+      ].join(' '),
       orderby: mapWebVitalToOrderBy(orderBy) ?? withProfiles ? '-profile.id' : undefined,
       version: 2,
     },
@@ -92,7 +96,7 @@ export const useTransactionRawSamplesWebVitalsQuery = ({
     referrer: 'api.performance.browser.web-vitals.transaction',
   });
 
-  const toNumber = (item: ReactText) => (item ? parseFloat(item.toString()) : null);
+  const toNumber = (item: ReactText) => (item ? parseFloat(item.toString()) : undefined);
   const tableData: TransactionSampleRowWithScore[] =
     !isLoading && data?.data.length
       ? data.data
@@ -122,7 +126,7 @@ export const useTransactionRawSamplesWebVitalsQuery = ({
               });
             return {
               ...row,
-              score: totalScore ?? 0,
+              totalScore: totalScore ?? 0,
               clsScore: clsScore ?? 0,
               fcpScore: fcpScore ?? 0,
               lcpScore: lcpScore ?? 0,

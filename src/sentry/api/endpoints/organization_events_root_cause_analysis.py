@@ -238,7 +238,7 @@ def fetch_geo_analysis_results(transaction_name, regression_breakpoint, params, 
 @region_silo_endpoint
 class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request, organization):
