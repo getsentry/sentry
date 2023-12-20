@@ -17,7 +17,7 @@ from django.utils import timezone as django_timezone
 
 from sentry import buffer, roles, tsdb
 from sentry.constants import ObjectStatus
-from sentry.event_manager import HashDiscarded
+from sentry.exceptions import HashDiscarded
 from sentry.incidents.logic import create_alert_rule, create_alert_rule_trigger, create_incident
 from sentry.incidents.models import AlertRuleThresholdType, IncidentType
 from sentry.models.activity import Activity

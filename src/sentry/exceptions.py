@@ -1,3 +1,5 @@
+from typing import Optional
+
 from django.core.exceptions import SuspiciousOperation
 
 
@@ -82,3 +84,12 @@ class UnsupportedQuerySubscription(Exception):
 
 class InvalidQuerySubscription(Exception):
     pass
+
+
+class HashDiscarded(Exception):
+    def __init__(
+        self, message: str = "", reason: Optional[str] = None, tombstone_id: Optional[int] = None
+    ):
+        super().__init__(message)
+        self.reason = reason
+        self.tombstone_id = tombstone_id

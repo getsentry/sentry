@@ -5,7 +5,8 @@ import pytest
 from django.test.utils import override_settings
 
 from sentry import quotas
-from sentry.event_manager import EventManager, HashDiscarded
+from sentry.event_manager import EventManager
+from sentry.exceptions import HashDiscarded
 from sentry.plugins.base.v2 import Plugin2
 from sentry.tasks.store import (
     preprocess_event,
