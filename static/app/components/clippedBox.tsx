@@ -16,6 +16,31 @@ function supportsResizeObserver(
   return typeof observerOrUndefined !== 'undefined';
 }
 
+/**
+ * The Wrapper component contains padding by default, which may be modified by consumers.
+ * Without adding this padding to the max-height of the child content, the reveal
+ * animation will be cut short.
+ */
+function calculateAddedHeight({
+  wrapperRef,
+}: {
+  wrapperRef: React.MutableRefObject<HTMLElement | null>;
+}): number {
+  if (wrapperRef.current === null) {
+    return 0;
+  }
+
+  try {
+    const {paddingTop, paddingBottom} = getComputedStyle(wrapperRef.current);
+
+    const addedHeight = parseInt(paddingTop, 10) + parseInt(paddingBottom, 10);
+
+    return isNaN(addedHeight) ? 0 : addedHeight;
+  } catch {
+    return 0;
+  }
+}
+
 function revealAndDisconnectObserver({
   contentRef,
   observerRef,
@@ -31,20 +56,23 @@ function revealAndDisconnectObserver({
     return;
   }
 
-  wrapperRef.current.style.maxHeight = contentRef.current?.clientHeight
-    ? `${contentRef.current.clientHeight}px`
-    : '9999px';
+  const clearMaxHeight = () => {
+    if (wrapperRef.current) {
+      wrapperRef.current.style.maxHeight = 'none';
+    }
+  };
+
+  wrapperRef.current.addEventListener('transitionend', clearMaxHeight, {once: true});
+
+  const revealedWrapperHeight =
+    (contentRef.current?.clientHeight || 9999) + calculateAddedHeight({wrapperRef});
+
+  wrapperRef.current.style.maxHeight = `${revealedWrapperHeight}px`;
   revealRef.current = true;
 
   if (observerRef.current) {
     observerRef.current.disconnect();
     observerRef.current = null;
-  }
-}
-
-function clearMaxHeight(wrapperRef: React.MutableRefObject<HTMLElement | null>) {
-  if (wrapperRef.current) {
-    wrapperRef.current.style.maxHeight = 'none';
   }
 }
 
@@ -209,11 +237,7 @@ function ClippedBox(props: ClippedBoxProps) {
   );
 
   return (
-    <Wrapper
-      ref={onWrapperRef}
-      className={props.className}
-      onTransitionEnd={() => clearMaxHeight(wrapperRef)}
-    >
+    <Wrapper ref={onWrapperRef} className={props.className}>
       <div ref={onContentRef}>
         {props.title ? <Title>{props.title}</Title> : null}
         {props.children}
