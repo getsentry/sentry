@@ -24,6 +24,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {
   backend,
+  replayFrontendPlatforms,
   replayJsLoaderInstructionsPlatformList,
   replayPlatforms,
 } from 'sentry/data/platformCategories';
@@ -243,6 +244,18 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     isPlatformSupported: isPlatformSupported(currentPlatform),
   });
 
+  const defaultTab =
+    currentProject && currentProject.platform && backend.includes(currentProject.platform)
+      ? 'jsLoader'
+      : 'npm';
+
+  const npmOnlyFramework =
+    currentProject &&
+    currentProject.platform &&
+    replayFrontendPlatforms
+      .filter(p => p !== 'javascript')
+      .includes(currentProject.platform);
+
   if (isLoading) {
     return <LoadingIndicator />;
   }
@@ -330,9 +343,11 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           projectId={currentProject.id}
           activeProductSelection={[]}
           configType={
-            setupMode() === 'jsLoader'
-              ? 'replayOnboardingJsLoader'
-              : 'replayOnboardingNpm'
+            setupMode() === 'npm' || // switched to NPM tab
+            (!setupMode() && defaultTab === 'npm') || // default value for FE frameworks when ?mode={...} in URL is not set yet
+            npmOnlyFramework // even if '?mode=jsLoader', only show npm instructions for FE frameworks
+              ? 'replayOnboardingNpm'
+              : 'replayOnboardingJsLoader'
           }
         />
       ) : (
