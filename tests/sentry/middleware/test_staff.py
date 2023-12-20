@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from django.conf import settings
 from django.test import override_settings
-from django.urls import re_path, reverse
+from django.urls import re_path
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
@@ -46,10 +46,6 @@ class End2EndTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.middleware = provision_middleware()
-        print(
-            "staff middleware in stack: ",
-            "sentry.middleware.staff.StaffMiddleware" in self.middleware,
-        )
 
     def test_simple(self):
         self.create_organization(name="albertos-apples")
