@@ -88,7 +88,6 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         parameters=[
             GlobalParams.ORG_SLUG,
             MonitorParams.MONITOR_SLUG,
-            GlobalParams.ENVIRONMENT,
         ],
         request=MonitorValidator,
         responses={
