@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Plugin as PluginFixture} from 'sentry-fixture/plugin';
 import {Plugins as PluginsFixture} from 'sentry-fixture/plugins';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 
@@ -24,13 +25,13 @@ describe('ProjectPluginsContainer', function () {
     org = Organization();
     project = ProjectFixture();
     plugins = PluginsFixture([
-      {
+      PluginFixture({
         enabled: true,
         id: 'disableable plugin',
         name: 'Disableable Plugin',
         slug: 'disableable plugin',
         canDisable: true,
-      },
+      }),
     ]);
     params = {
       projectId: project.slug,
