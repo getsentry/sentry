@@ -1,8 +1,7 @@
 import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
 import {AuthProvider} from 'sentry-fixture/authProvider';
-import {Member as MemberFixture} from 'sentry-fixture/member';
-import {Members, Members as MembersFixture} from 'sentry-fixture/members';
+import {Members} from 'sentry-fixture/members';
 import {Organization} from 'sentry-fixture/organization';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 import {Team} from 'sentry-fixture/team';
@@ -57,10 +56,10 @@ const roles = [
 // ];
 
 describe('OrganizationMembersList', function () {
-  const members = MembersFixture();
+  const members = TestStubs.Members();
 
   const ownerTeam = Team({slug: 'owner-team', orgRole: 'owner'});
-  const member = MemberFixture({
+  const member = TestStubs.Member({
     id: '5',
     email: 'member@sentry.io',
     teams: [ownerTeam.slug],
@@ -448,7 +447,7 @@ describe('OrganizationMembersList', function () {
   });
 
   describe('OrganizationInviteRequests', function () {
-    const inviteRequest = MemberFixture({
+    const inviteRequest = TestStubs.Member({
       id: '123',
       user: null,
       inviteStatus: 'requested_to_be_invited',
@@ -456,7 +455,7 @@ describe('OrganizationMembersList', function () {
       role: 'member',
       teams: [],
     });
-    const joinRequest = MemberFixture({
+    const joinRequest = TestStubs.Member({
       id: '456',
       user: null,
       email: 'test@gmail.com',
