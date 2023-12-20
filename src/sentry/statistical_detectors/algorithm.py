@@ -119,7 +119,15 @@ class MovingAverageRelativeChangeDetector(DetectorAlgorithm):
         raw_state: Mapping[str | bytes, bytes | float | int | str],
         payload: DetectorPayload,
     ) -> Tuple[TrendType, float, Optional[DetectorState]]:
-        old = self.state_from_raw(raw_state)
+        try:
+            old = MovingAverageDetectorState.from_redis_dict(raw_state)
+        except Exception as e:
+            old = MovingAverageDetectorState.empty()
+
+            if raw_state:
+                # empty raw state implies that there was no
+                # previous state so no need to capture an exception
+                sentry_sdk.capture_exception(e)
 
         if old.timestamp is not None and old.timestamp > payload.timestamp:
             # In the event that the timestamp is before the payload's timestamps,
@@ -183,18 +191,3 @@ class MovingAverageRelativeChangeDetector(DetectorAlgorithm):
             return TrendType.Improved, score, new
 
         return TrendType.Unchanged, score, new
-
-    def state_from_raw(
-        self,
-        raw_state: Mapping[str | bytes, bytes | float | int | str],
-    ) -> MovingAverageDetectorState:
-        try:
-            state = MovingAverageDetectorState.from_redis_dict(raw_state)
-        except Exception as e:
-            state = MovingAverageDetectorState.empty()
-
-            if raw_state:
-                # empty raw state implies that there was no
-                # previous state so no need to capture an exception
-                sentry_sdk.capture_exception(e)
-        return state
