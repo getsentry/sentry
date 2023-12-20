@@ -166,7 +166,7 @@ class EndpointRegressionDetector(RegressionDetector):
     escalation_rel_threshold = 0.3
 
     @classmethod
-    def make_detector_algorithm(cls) -> DetectorAlgorithm:
+    def detector_algorithm_factory(cls) -> DetectorAlgorithm:
         return MovingAverageRelativeChangeDetector(
             source=cls.source,
             kind=cls.kind,
@@ -177,7 +177,7 @@ class EndpointRegressionDetector(RegressionDetector):
         )
 
     @classmethod
-    def make_detector_store(cls) -> DetectorStore:
+    def detector_store_factory(cls) -> DetectorStore:
         return RedisDetectorStore(regression_type=RegressionType.ENDPOINT)
 
     @classmethod

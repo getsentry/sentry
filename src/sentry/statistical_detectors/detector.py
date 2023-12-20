@@ -51,12 +51,12 @@ class RegressionDetector(ABC):
 
     @classmethod
     @abstractmethod
-    def make_detector_algorithm(cls) -> DetectorAlgorithm:
+    def detector_algorithm_factory(cls) -> DetectorAlgorithm:
         ...
 
     @classmethod
     @abstractmethod
-    def make_detector_store(cls) -> DetectorStore:
+    def detector_store_factory(cls) -> DetectorStore:
         ...
 
     @classmethod
@@ -93,8 +93,8 @@ class RegressionDetector(ABC):
         regressed_count = 0
         improved_count = 0
 
-        algorithm = cls.make_detector_algorithm()
-        store = cls.make_detector_store()
+        algorithm = cls.detector_algorithm_factory()
+        store = cls.detector_store_factory()
 
         for payloads in chunked(cls.all_payloads(projects, start), 100):
             total_count += len(payloads)
