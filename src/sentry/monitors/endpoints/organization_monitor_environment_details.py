@@ -54,9 +54,10 @@ class OrganizationMonitorEnvironmentDetailsEndpoint(MonitorEndpoint):
         """
         Update a monitor environment.
         """
-
-        if request.data["status"] == MonitorStatus.DISABLED:
-            monitor_environment.update(status=MonitorStatus.DISABLED)
+        # Only support enabling/disabling monitor environments
+        new_status = request.data.get("status")
+        if new_status in [MonitorStatus.ACTIVE, MonitorStatus.DISABLED]:
+            monitor_environment.update(status=new_status)
 
         self.create_audit_entry(
             request=request,
