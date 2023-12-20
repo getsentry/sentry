@@ -606,7 +606,7 @@ def basic_consumer(consumer_name, consumer_args, topic, **options):
         delay_kafka_rebalance(configured_delay)
 
     processor = get_stream_processor(consumer_name, consumer_args, topic=topic, **options)
-    run_processor_with_signals(processor)
+    run_processor_with_signals(processor, consumer_name)
 
 
 @run.command("dev-consumer")
