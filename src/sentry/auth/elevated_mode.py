@@ -1,4 +1,18 @@
 from abc import ABC, abstractmethod
+from enum import Enum
+from typing import Tuple
+
+
+class RequestStatus(str, Enum):
+    INVALID_IP = "invalid-ip"
+    INCOMPLETE_SSO = "incomplete-sso"
+    NONE = None
+
+    def __bool__(self):
+        return self.value is not None
+
+    def __str__(self) -> str:
+        return self.value
 
 
 class ElevatedMode(ABC):
@@ -8,7 +22,7 @@ class ElevatedMode(ABC):
         pass
 
     @abstractmethod
-    def is_privileged_request(self):
+    def is_privileged_request(self) -> Tuple[bool, RequestStatus]:
         pass
 
     @abstractmethod
@@ -28,5 +42,5 @@ class ElevatedMode(ABC):
         pass
 
     @abstractmethod
-    def on_response(self, response) -> None:
+    def on_response(cls, response) -> None:
         pass

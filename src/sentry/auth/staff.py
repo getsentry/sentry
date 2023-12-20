@@ -11,7 +11,7 @@ from django.utils import timezone
 from django.utils.crypto import constant_time_compare, get_random_string
 from rest_framework.request import Request
 
-from sentry.auth.elevated_mode import ElevatedMode
+from sentry.auth.elevated_mode import ElevatedMode, RequestStatus
 from sentry.auth.system import is_system_auth
 from sentry.utils.auth import has_completed_sso
 
@@ -81,7 +81,7 @@ class Staff(ElevatedMode):
             return False
         return self._is_active
 
-    def is_privileged_request(self) -> Tuple[bool, str | None]:
+    def is_privileged_request(self) -> Tuple[bool, RequestStatus]:
         """
         Returns ``(bool is_privileged, str reason)``
         """
@@ -92,15 +92,15 @@ class Staff(ElevatedMode):
         if ORG_ID and not has_completed_sso(self.request, ORG_ID):
             # Allow staff session on dev env for non sso flow
             if not DISABLE_SSO_CHECK_FOR_LOCAL_DEV:
-                return False, "incomplete-sso"
+                return False, RequestStatus.INCOMPLETE_SSO
 
         # if there's no IPs configured, we allow assume its the same as *
         if not allowed_ips:
-            return True, None
+            return True, RequestStatus.NONE
         ip = ipaddress.ip_address(str(self.request.META["REMOTE_ADDR"]))
         if not any(ip in addr for addr in allowed_ips):
-            return False, "invalid-ip"
-        return True, None
+            return False, RequestStatus.INVALID_IP
+        return True, RequestStatus.NONE
 
     def get_session_data(self, current_datetime=None):
         """
@@ -267,7 +267,7 @@ class Staff(ElevatedMode):
         self.expires = None
         self.token = None
         self._is_active = False
-        self._inactive_reason = None
+        self._inactive_reason = RequestStatus.NONE
         self.is_valid = False
         self.request.session.pop(SESSION_KEY, None)
 
