@@ -2490,7 +2490,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/performance/configure/$",
         ProjectPerformanceGeneralSettingsEndpoint.as_view(),
-        name="sentry-api-0-project-performance-issue-settings",
+        name="sentry-api-0-project-performance-general-settings",
     ),
     # Load plugin project urls
     re_path(
