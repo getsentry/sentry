@@ -14,9 +14,9 @@ from rest_framework.request import Request
 from sentry.integrations.bitbucket.constants import BITBUCKET_IP_RANGES, BITBUCKET_IPS
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.plugins.providers import RepositoryProvider
+from sentry.services.hybrid_cloud.organization.service import organization_service
 from sentry.utils import json
 from sentry.utils.email import parse_email
 
@@ -30,12 +30,12 @@ class Webhook:
 
 class PushEventWebhook(Webhook):
     # https://confluence.atlassian.com/bitbucket/event-payloads-740262817.html#EventPayloads-Push
-    def __call__(self, organization, event):
+    def __call__(self, organization_id: int, event):
         authors = {}
 
         try:
             repo = Repository.objects.get(
-                organization_id=organization.id,
+                organization_id=organization_id,
                 provider="bitbucket",
                 external_id=str(event["repository"]["uuid"]),
             )
@@ -59,7 +59,7 @@ class PushEventWebhook(Webhook):
                     author = None
                 elif author_email not in authors:
                     authors[author_email] = author = CommitAuthor.objects.get_or_create(
-                        organization_id=organization.id,
+                        organization_id=organization_id,
                         email=author_email,
                         defaults={"name": commit["author"]["raw"].split("<")[0].strip()},
                     )[0]
@@ -69,7 +69,7 @@ class PushEventWebhook(Webhook):
                     with transaction.atomic(router.db_for_write(Commit)):
                         Commit.objects.create(
                             repository_id=repo.id,
-                            organization_id=organization.id,
+                            organization_id=organization_id,
                             key=commit["hash"],
                             message=commit["message"],
                             author=author,
@@ -93,11 +93,12 @@ class BitbucketPluginWebhookEndpoint(View):
 
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request: Request, organization_id):
-        try:
-            organization = Organization.objects.get_from_cache(id=organization_id)
-        except Organization.DoesNotExist:
-            logger.exception(
+    def post(self, request: Request, organization_id: int):
+        org_exists = organization_service.check_organization_by_id(
+            id=organization_id, only_visible=True
+        )
+        if not org_exists:
+            logger.error(
                 "bitbucket.webhook.invalid-organization", extra={"organization_id": organization_id}
             )
             return HttpResponse(status=400)
@@ -105,7 +106,7 @@ class BitbucketPluginWebhookEndpoint(View):
         body = bytes(request.body)
         if not body:
             logger.error(
-                "bitbucket.webhook.missing-body", extra={"organization_id": organization.id}
+                "bitbucket.webhook.missing-body", extra={"organization_id": organization_id}
             )
             return HttpResponse(status=400)
 
@@ -113,7 +114,7 @@ class BitbucketPluginWebhookEndpoint(View):
             handler = self.get_handler(request.META["HTTP_X_EVENT_KEY"])
         except KeyError:
             logger.exception(
-                "bitbucket.webhook.missing-event", extra={"organization_id": organization.id}
+                "bitbucket.webhook.missing-event", extra={"organization_id": organization_id}
             )
             return HttpResponse(status=400)
 
@@ -129,7 +130,7 @@ class BitbucketPluginWebhookEndpoint(View):
                 break
         if not valid_ip and address_string not in BITBUCKET_IPS:
             logger.error(
-                "bitbucket.webhook.invalid-ip-range", extra={"organization_id": organization.id}
+                "bitbucket.webhook.invalid-ip-range", extra={"organization_id": organization_id}
             )
             return HttpResponse(status=401)
 
@@ -138,9 +139,9 @@ class BitbucketPluginWebhookEndpoint(View):
         except json.JSONDecodeError:
             logger.exception(
                 "bitbucket.webhook.invalid-json",
-                extra={"organization_id": organization.id},
+                extra={"organization_id": organization_id},
             )
             return HttpResponse(status=400)
 
-        handler()(organization, event)
+        handler()(organization_id, event)
         return HttpResponse(status=204)

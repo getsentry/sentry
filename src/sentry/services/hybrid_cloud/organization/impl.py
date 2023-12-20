@@ -633,6 +633,15 @@ class ControlOrganizationCheckService(OrganizationCheckService):
 
         return None
 
+    def check_organization_by_id(self, *, id: int, only_visible: bool) -> bool:
+        # See RegionOrganizationCheckService below
+        org_mapping = OrganizationMapping.objects.filter(organization_id=id).first()
+        if org_mapping is None:
+            return False
+        if only_visible and org_mapping.status != OrganizationStatus.ACTIVE:
+            return False
+        return True
+
 
 class RegionOrganizationCheckService(OrganizationCheckService):
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
@@ -646,6 +655,18 @@ class RegionOrganizationCheckService(OrganizationCheckService):
             logger.info("Organization by slug [%s] not found", slug)
 
         return None
+
+    def check_organization_by_id(self, *, id: int, only_visible: bool) -> bool:
+        # See ControlOrganizationCheckService above
+        try:
+            org = Organization.objects.get_from_cache(id=id)
+            if only_visible and org.status != OrganizationStatus.ACTIVE:
+                raise Organization.DoesNotExist
+            return True
+        except Organization.DoesNotExist:
+            pass
+
+        return False
 
 
 class OutboxBackedOrganizationSignalService(OrganizationSignalService):
