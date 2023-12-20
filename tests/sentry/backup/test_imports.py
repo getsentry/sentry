@@ -6,7 +6,7 @@ import tarfile
 import tempfile
 from datetime import date, datetime
 from pathlib import Path
-from typing import Tuple
+from typing import Tuple, Type
 from unittest.mock import patch
 
 import pytest
@@ -16,6 +16,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 from django.db import connections, router
+from django.db.models import Model
 from django.utils import timezone
 
 from sentry.backup.dependencies import NormalizedModelName, dependencies, get_model, get_model_name
@@ -75,7 +76,11 @@ from sentry.testutils.helpers.backups import (
 from sentry.testutils.hybrid_cloud import use_split_dbs
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
-from tests.sentry.backup import get_matching_exportable_models, mark, targets
+from tests.sentry.backup import (
+    expect_models,
+    get_matching_exportable_models,
+    verify_models_in_output,
+)
 
 
 class ImportTestCase(BackupTestCase):
@@ -1325,8 +1330,8 @@ class CollisionTests(ImportTestCase):
     Ensure that collisions are properly handled in different flag modes.
     """
 
-    @targets(mark(COLLISION_TESTED, ApiToken))
-    def test_colliding_api_token(self):
+    @expect_models(COLLISION_TESTED, ApiToken)
+    def test_colliding_api_token(self, expected_models: list[Type[Model]]):
         owner = self.create_exhaustive_user("owner")
         expires_at = timezone.now() + DEFAULT_EXPIRATION
 
@@ -1440,10 +1445,10 @@ class CollisionTests(ImportTestCase):
                 )
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @targets(mark(COLLISION_TESTED, Monitor))
-    def test_colliding_monitor(self):
+    @expect_models(COLLISION_TESTED, Monitor)
+    def test_colliding_monitor(self, expected_models: list[Type[Model]]):
         owner = self.create_exhaustive_user("owner")
         invited = self.create_exhaustive_user("invited")
         self.create_exhaustive_organization("some-org", owner, invited)
@@ -1471,10 +1476,10 @@ class CollisionTests(ImportTestCase):
             assert Monitor.objects.filter(guid=colliding.guid).count() == 1
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @targets(mark(COLLISION_TESTED, OrgAuthToken))
-    def test_colliding_org_auth_token(self):
+    @expect_models(COLLISION_TESTED, OrgAuthToken)
+    def test_colliding_org_auth_token(self, expected_models: list[Type[Model]]):
         owner = self.create_exhaustive_user("owner")
         invited = self.create_exhaustive_user("invited")
         member = self.create_exhaustive_user("member")
@@ -1520,10 +1525,10 @@ class CollisionTests(ImportTestCase):
                 )
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @targets(mark(COLLISION_TESTED, ProjectKey))
-    def test_colliding_project_key(self):
+    @expect_models(COLLISION_TESTED, ProjectKey)
+    def test_colliding_project_key(self, expected_models: list[Type[Model]]):
         owner = self.create_exhaustive_user("owner")
         invited = self.create_exhaustive_user("invited")
         member = self.create_exhaustive_user("member")
@@ -1553,7 +1558,7 @@ class CollisionTests(ImportTestCase):
             assert ProjectKey.objects.filter(secret_key=colliding.secret_key).count() == 1
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
     @pytest.mark.xfail(
         not use_split_dbs(),
@@ -1561,8 +1566,8 @@ class CollisionTests(ImportTestCase):
         raises=urllib3.exceptions.MaxRetryError,
         strict=True,
     )
-    @targets(mark(COLLISION_TESTED, QuerySubscription))
-    def test_colliding_query_subscription(self):
+    @expect_models(COLLISION_TESTED, QuerySubscription)
+    def test_colliding_query_subscription(self, expected_models: list[Type[Model]]):
         # We need a celery task running to properly test the `subscription_id` assignment, otherwise
         # its value just defaults to `None`.
         with self.tasks():
@@ -1610,10 +1615,12 @@ class CollisionTests(ImportTestCase):
                 )
 
                 with open(tmp_path, "rb") as tmp_file:
-                    return json.load(tmp_file)
+                    verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @targets(mark(COLLISION_TESTED, ControlOption, Option, Relay, RelayUsage, UserRole))
-    def test_colliding_configs_overwrite_configs_enabled_in_config_scope(self):
+    @expect_models(COLLISION_TESTED, ControlOption, Option, Relay, RelayUsage, UserRole)
+    def test_colliding_configs_overwrite_configs_enabled_in_config_scope(
+        self, expected_models: list[Type[Model]]
+    ):
         owner = self.create_exhaustive_user("owner", is_admin=True)
         self.create_exhaustive_global_configs(owner)
 
@@ -1704,10 +1711,12 @@ class CollisionTests(ImportTestCase):
                     assert actual_permission == old_user_role_permissions[i]
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @targets(mark(COLLISION_TESTED, ControlOption, Option, Relay, RelayUsage, UserRole))
-    def test_colliding_configs_overwrite_configs_disabled_in_config_scope(self):
+    @expect_models(COLLISION_TESTED, ControlOption, Option, Relay, RelayUsage, UserRole)
+    def test_colliding_configs_overwrite_configs_disabled_in_config_scope(
+        self, expected_models: list[Type[Model]]
+    ):
         owner = self.create_exhaustive_user("owner", is_admin=True)
         self.create_exhaustive_global_configs(owner)
 
@@ -1794,10 +1803,12 @@ class CollisionTests(ImportTestCase):
                 assert actual_user_role.permissions[0] == "other.admin"
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @targets(mark(COLLISION_TESTED, Email, User, UserEmail, UserIP))
-    def test_colliding_user_with_merging_enabled_in_user_scope(self):
+    @expect_models(COLLISION_TESTED, Email, User, UserEmail, UserIP)
+    def test_colliding_user_with_merging_enabled_in_user_scope(
+        self, expected_models: list[Type[Model]]
+    ):
         self.create_exhaustive_user(username="owner", email="importing@example.com")
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -1838,10 +1849,12 @@ class CollisionTests(ImportTestCase):
                 assert not ControlImportChunk.objects.filter(model="sentry.userpermission").exists()
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @targets(mark(COLLISION_TESTED, Email, User, UserEmail, UserIP))
-    def test_colliding_user_with_merging_disabled_in_user_scope(self):
+    @expect_models(COLLISION_TESTED, Email, User, UserEmail, UserIP)
+    def test_colliding_user_with_merging_disabled_in_user_scope(
+        self, expected_models: list[Type[Model]]
+    ):
         self.create_exhaustive_user(username="owner", email="importing@example.com")
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -1882,12 +1895,14 @@ class CollisionTests(ImportTestCase):
                 assert UserEmail.objects.filter(email__icontains="importing@").exists()
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @targets(
-        mark(COLLISION_TESTED, Email, Organization, OrganizationMember, User, UserEmail, UserIP)
+    @expect_models(
+        COLLISION_TESTED, Email, Organization, OrganizationMember, User, UserEmail, UserIP
     )
-    def test_colliding_user_with_merging_enabled_in_organization_scope(self):
+    def test_colliding_user_with_merging_enabled_in_organization_scope(
+        self, expected_models: list[Type[Model]]
+    ):
         owner = self.create_exhaustive_user(username="owner", email="importing@example.com")
         self.create_organization("some-org", owner=owner)
 
@@ -1957,12 +1972,14 @@ class CollisionTests(ImportTestCase):
                 )
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @targets(
-        mark(COLLISION_TESTED, Email, Organization, OrganizationMember, User, UserEmail, UserIP)
+    @expect_models(
+        COLLISION_TESTED, Email, Organization, OrganizationMember, User, UserEmail, UserIP
     )
-    def test_colliding_user_with_merging_disabled_in_organization_scope(self):
+    def test_colliding_user_with_merging_disabled_in_organization_scope(
+        self, expected_models: list[Type[Model]]
+    ):
         owner = self.create_exhaustive_user(username="owner", email="importing@example.com")
         self.create_organization("some-org", owner=owner)
 
@@ -2036,10 +2053,12 @@ class CollisionTests(ImportTestCase):
                 )
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @targets(mark(COLLISION_TESTED, Email, User, UserEmail, UserIP, UserPermission))
-    def test_colliding_user_with_merging_enabled_in_config_scope(self):
+    @expect_models(COLLISION_TESTED, Email, User, UserEmail, UserIP, UserPermission)
+    def test_colliding_user_with_merging_enabled_in_config_scope(
+        self, expected_models: list[Type[Model]]
+    ):
         self.create_exhaustive_user(username="owner", email="importing@example.com", is_admin=True)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -2084,10 +2103,12 @@ class CollisionTests(ImportTestCase):
                 assert not ControlImportChunk.objects.filter(model="sentry.userpermission").exists()
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @targets(mark(COLLISION_TESTED, Email, User, UserEmail, UserIP, UserPermission))
-    def test_colliding_user_with_merging_disabled_in_config_scope(self):
+    @expect_models(COLLISION_TESTED, Email, User, UserEmail, UserIP, UserPermission)
+    def test_colliding_user_with_merging_disabled_in_config_scope(
+        self, expected_models: list[Type[Model]]
+    ):
         self.create_exhaustive_user(username="owner", email="importing@example.com", is_admin=True)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -2131,7 +2152,7 @@ class CollisionTests(ImportTestCase):
                 assert UserEmail.objects.filter(email__icontains="importing@").exists()
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
 
 @pytest.mark.skipif(reason="not legacy")
