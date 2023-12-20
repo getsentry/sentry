@@ -45,6 +45,7 @@ import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useProjects from 'sentry/utils/useProjects';
+import MetricsOnboardingSidebar from 'sentry/views/ddm/ddmOnboarding/sidebar';
 import {RELEASE_LEVEL as WEBVITALS_RELEASE_LEVEL} from 'sentry/views/performance/browser/webVitals/settings';
 import {SCREENS_RELEASE_LEVEL} from 'sentry/views/performance/mobile/settings';
 
@@ -562,7 +563,13 @@ function Sidebar({organization}: Props) {
           />
           <ProfilingOnboardingSidebar
             currentPanel={activePanel}
-            onShowPanel={() => togglePanel(SidebarPanelKey.REPLAYS_ONBOARDING)}
+            onShowPanel={() => togglePanel(SidebarPanelKey.PROFILING_ONBOARDING)}
+            hidePanel={hidePanel}
+            {...sidebarItemProps}
+          />
+          <MetricsOnboardingSidebar
+            currentPanel={activePanel}
+            onShowPanel={() => togglePanel(SidebarPanelKey.METRICS_ONBOARDING)}
             hidePanel={hidePanel}
             {...sidebarItemProps}
           />

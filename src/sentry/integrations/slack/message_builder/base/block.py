@@ -141,10 +141,11 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         color: Optional[str] = None,
         block_id: Optional[dict[str, int]] = None,
         callback_id: Optional[str] = None,
+        skip_fallback: bool = False,
     ) -> SlackBlock:
         blocks: dict[str, Any] = {"blocks": list(args)}
 
-        if fallback_text:
+        if fallback_text and not skip_fallback:
             blocks["text"] = fallback_text
 
         if color:

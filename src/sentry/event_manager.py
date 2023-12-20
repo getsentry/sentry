@@ -60,6 +60,7 @@ from sentry.dynamic_sampling import LatestReleaseBias, LatestReleaseParams
 from sentry.eventstore.processing import event_processing_store
 from sentry.eventtypes import EventType
 from sentry.eventtypes.transaction import TransactionEvent
+from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import (
     BackgroundGroupingConfigLoader,
     GroupingConfig,
@@ -278,15 +279,6 @@ def get_stored_crashreports(cache_key: Optional[str], event: Event, max_crashrep
     # the currently allowed maximum.
     query = EventAttachment.objects.filter(group_id=event.group_id, type__in=CRASH_REPORT_TYPES)
     return query[:max_crashreports].count()
-
-
-class HashDiscarded(Exception):
-    def __init__(
-        self, message: str = "", reason: Optional[str] = None, tombstone_id: Optional[int] = None
-    ):
-        super().__init__(message)
-        self.reason = reason
-        self.tombstone_id = tombstone_id
 
 
 class ScoreClause(Func):
