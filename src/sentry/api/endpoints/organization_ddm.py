@@ -10,20 +10,20 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.code_locations import CodeLocationsSerializer
-from sentry.api.serializers.models.metrics_spans import MetricsSpansSerializer
-from sentry.api.utils import get_date_range_from_params
+from sentry.api.serializers.models.metric_spans import MetricSpansSerializer
+from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.sentry_metrics.querying.metadata.code_locations import get_code_locations
-from sentry.sentry_metrics.querying.metadata.metrics_spans import get_spans_of_metrics
+from sentry.sentry_metrics.querying.metadata.metric_spans import get_spans_of_metric
 
 
 class MetaType(Enum):
     CODE_LOCATIONS = "codeLocations"
-    METRICS_SPANS = "metricsSpans"
+    METRIC_SPANS = "metricSpans"
 
 
 META_TYPE_SERIALIZER = {
     MetaType.CODE_LOCATIONS.value: CodeLocationsSerializer(),
-    MetaType.METRICS_SPANS.value: MetricsSpansSerializer(),
+    MetaType.METRIC_SPANS.value: MetricSpansSerializer(),
 }
 
 
@@ -62,6 +62,7 @@ class OrganizationDDMMetaEndpoint(OrganizationEndpoint):
             response_data: Any = {}
 
             if meta_type == MetaType.CODE_LOCATIONS:
+                # TODO: refactor code locations to also support a single mri.
                 response_data = get_code_locations(
                     metric_mris=metric_mris,
                     start=start,
@@ -69,12 +70,17 @@ class OrganizationDDMMetaEndpoint(OrganizationEndpoint):
                     organization=organization,
                     projects=projects,
                 )
-            elif meta_type == MetaType.METRICS_SPANS:
+            elif meta_type == MetaType.METRIC_SPANS:
+                if len(metric_mris) != 1:
+                    raise InvalidParams("You can query the spans of only a single metric")
+
                 min_value = request.GET.get("min")
                 max_value = request.GET.get("max")
+                query = request.GET.get("query")
 
-                response_data = get_spans_of_metrics(
-                    metric_mris=metric_mris,
+                response_data = get_spans_of_metric(
+                    metric_mri=metric_mris[0],
+                    query=query,
                     start=start,
                     end=end,
                     min_value=float(min_value) if min_value else None,

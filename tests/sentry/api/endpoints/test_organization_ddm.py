@@ -327,12 +327,17 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             codeLocations="true",
         )
 
+    # Tests:
+    # - simple, with filters, with multiple spans
+
     def test_get_metric_spans(self):
         mri = "g:custom/page_load@millisecond"
 
+        span_id_1 = "98230207e6e4a6ad"
         self.store_span(
             project_id=self.project.id,
             timestamp=before_now(minutes=5),
+            span_id=span_id_1,
             metrics_summary={
                 mri: [
                     {
@@ -353,6 +358,127 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             metric=["g:custom/page_load@millisecond"],
             project=[self.project.id],
             statsPeriod="1d",
-            metricsSpans="true",
+            metricSpans="true",
         )
-        assert response.data == []
+
+        metric_spans = response.data["metricSpans"]
+        assert len(metric_spans) == 1
+        assert metric_spans[0]["spanId"] == span_id_1
+
+    def test_get_metric_spans_with_query(self):
+        mri = "g:custom/page_load@millisecond"
+
+        span_id_1 = "98230207e6e4a6ad"
+        self.store_span(
+            project_id=self.project.id,
+            timestamp=before_now(minutes=5),
+            span_id=span_id_1,
+            metrics_summary={
+                mri: [
+                    {
+                        "min": 10.0,
+                        "max": 100.0,
+                        "sum": 110.0,
+                        "count": 2,
+                        "tags": {
+                            "transaction": "/hello",
+                        },
+                    }
+                ]
+            },
+        )
+
+        span_id_2 = "10220507e6f4e6ad"
+        self.store_span(
+            project_id=self.project.id,
+            timestamp=before_now(minutes=5),
+            span_id=span_id_2,
+            metrics_summary={
+                mri: [
+                    {
+                        "min": 10.0,
+                        "max": 100.0,
+                        "sum": 110.0,
+                        "count": 2,
+                        "tags": {
+                            "transaction": "/world",
+                        },
+                    }
+                ]
+            },
+        )
+
+        for query, expected_span_id in (
+            ("transaction:/hello", span_id_1),
+            ("transaction:/world", span_id_2),
+        ):
+            response = self.get_success_response(
+                self.organization.slug,
+                metric=["g:custom/page_load@millisecond"],
+                project=[self.project.id],
+                statsPeriod="1d",
+                metricSpans="true",
+                query=query,
+            )
+
+            metric_spans = response.data["metricSpans"]
+            assert len(metric_spans) == 1
+            assert metric_spans[0]["spanId"] == expected_span_id
+
+    def test_get_metric_spans_with_multiple_spans(self):
+        mri = "g:custom/page_load@millisecond"
+
+        span_id_1 = "98230207e6e4a6ad"
+        self.store_span(
+            project_id=self.project.id,
+            timestamp=before_now(minutes=5),
+            span_id=span_id_1,
+            metrics_summary={
+                mri: [
+                    {
+                        "min": 10.0,
+                        "max": 100.0,
+                        "sum": 110.0,
+                        "count": 2,
+                        "tags": {
+                            "transaction": "/hello",
+                        },
+                    }
+                ]
+            },
+        )
+
+        span_id_2 = "10220507e6f4e6ad"
+        self.store_span(
+            project_id=self.project.id,
+            # We mark the second span as "older".
+            timestamp=before_now(minutes=10),
+            span_id=span_id_2,
+            metrics_summary={
+                mri: [
+                    {
+                        "min": 10.0,
+                        "max": 100.0,
+                        "sum": 110.0,
+                        "count": 2,
+                        "tags": {
+                            "transaction": "/world",
+                        },
+                    }
+                ]
+            },
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=["g:custom/page_load@millisecond"],
+            project=[self.project.id],
+            statsPeriod="1d",
+            metricSpans="true",
+        )
+
+        metric_spans = response.data["metricSpans"]
+        assert len(metric_spans) == 2
+        # We expect the first span to be the newest.
+        assert metric_spans[0]["spanId"] == span_id_1
+        assert metric_spans[1]["spanId"] == span_id_2
