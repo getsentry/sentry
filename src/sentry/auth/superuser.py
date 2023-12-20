@@ -148,7 +148,7 @@ class Superuser(ElevatedMode):
 
     def is_privileged_request(self) -> Tuple[bool, RequestStatus]:
         """
-        Returns ``(bool is_privileged, str reason)``
+        Returns ``(bool is_privileged, RequestStatus reason)``
         """
         allowed_ips = self.allowed_ips
         # if we've bound superuser to an organization they must

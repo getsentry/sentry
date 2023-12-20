@@ -6,6 +6,7 @@ from typing import Tuple
 class RequestStatus(str, Enum):
     INVALID_IP = "invalid-ip"
     INCOMPLETE_SSO = "incomplete-sso"
+    # Indicates the request is privileged and should be allowed
     NONE = None
 
     def __bool__(self):
