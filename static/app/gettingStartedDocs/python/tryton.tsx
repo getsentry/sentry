@@ -1,58 +1,46 @@
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
-import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import type {
+  Docs,
+  DocsParams,
+  OnboardingConfig,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
-// Configuration Start
-const introduction = (
-  <p>
-    {tct('The Tryton integration adds support for the [link:Tryton Framework Server].', {
-      link: <ExternalLink href="https://www.tryton.org/" />,
-    })}
-  </p>
-);
+type Params = DocsParams;
 
-export const steps = ({
-  sentryInitContent,
-}: {
-  sentryInitContent: string;
-}): LayoutProps['steps'] => [
-  {
-    type: StepType.CONFIGURE,
-    description: (
-      <p>
-        {tct(
-          'To configure the SDK, initialize it with the integration in a custom [code:wsgi.py] script:',
-          {
-            code: <code />,
-          }
-        )}
-      </p>
-    ),
-    configurations: [
-      {
-        language: 'python',
-        code: `# wsgi.py
+const getSdkSetupSnippet = (params: Params) => `
+# wsgi.py
 import sentry_sdk
 from sentry_sdk.integrations.trytond import TrytondWSGIIntegration
 
 sentry_sdk.init(
-  ${sentryInitContent}
-  )
+    dsn="${params.dsn}",
+    integrations:[
+        sentry_sdk.integrations.trytond.TrytondWSGIIntegration(),
+    ],${
+      params.isPerformanceSelected
+        ? `
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    traces_sample_rate=1.0,`
+        : ''
+    }${
+      params.isProfilingSelected
+        ? `
+    # Set profiles_sample_rate to 1.0 to profile 100%
+    # of sampled transactions.
+    # We recommend adjusting this value in production.
+    profiles_sample_rate=1.0,`
+        : ''
+    }
+)
 
 from trytond.application import app as application
 
-# ...
-        `,
-      },
-      {
-        description: t(
-          'In Tryton>=5.4 an error handler can be registered to respond the client with a custom error message including the Sentry event id instead of a traceback.'
-        ),
-        language: 'python',
-        code: `
-# wsgi.py
+# ...`;
+
+const getErrorHandlerSnippet = () => `# wsgi.py
 # ...
 
 from trytond.exceptions import TrytonException
@@ -65,35 +53,43 @@ def _(app, request, e):
     else:
         event_id = sentry_sdk.last_event_id()
         data = UserError('Custom message', f'{event_id}{e}')
-        return app.make_response(request, data)
-        `,
-      },
-    ],
-  },
-];
-// Configuration End
+        return app.make_response(request, data)`;
 
-export function GettingStartedWithTryton({dsn, ...props}: ModuleProps) {
-  const otherConfigs: string[] = [];
+const onboarding: OnboardingConfig = {
+  introduction: () =>
+    tct('The Tryton integration adds support for the [link:Tryton Framework Server].', {
+      link: <ExternalLink href="https://www.tryton.org/" />,
+    }),
+  install: () => [],
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'To configure the SDK, initialize it with the integration in a custom [code:wsgi.py] script:',
+        {
+          code: <code />,
+        }
+      ),
+      configurations: [
+        {
+          language: 'python',
+          code: getSdkSetupSnippet(params),
+        },
+        {
+          description: t(
+            'In Tryton>=5.4 an error handler can be registered to respond the client with a custom error message including the Sentry event id instead of a traceback.'
+          ),
+          language: 'python',
+          code: getErrorHandlerSnippet(),
+        },
+      ],
+    },
+  ],
+  verify: () => [],
+};
 
-  let sentryInitContent: string[] = [
-    `    dsn="${dsn}",`,
-    `    integrations=[`,
-    `        sentry_sdk.integrations.trytond.TrytondWSGIIntegration(),`,
-    `    ],`,
-  ];
+const docs: Docs = {
+  onboarding,
+};
 
-  sentryInitContent = sentryInitContent.concat(otherConfigs);
-
-  return (
-    <Layout
-      introduction={introduction}
-      steps={steps({
-        sentryInitContent: sentryInitContent.join('\n'),
-      })}
-      {...props}
-    />
-  );
-}
-
-export default GettingStartedWithTryton;
+export default docs;
