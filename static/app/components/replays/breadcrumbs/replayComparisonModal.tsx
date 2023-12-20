@@ -64,16 +64,11 @@ export default function ReplayComparisonModal({
       <Body>
         <Alert showIcon>
           {tct(
-            'This modal helps with debugging Hydration errors by diffing the dom before and after the app hydrated. [boldBefore:Before Hydration] refers to the html rendered on the server. [boldAfter:After Hydration] refers to the html rendered on the client.',
+            'This modal helps with debugging hydration errors by diffing the dom before and after the app hydrated. [boldBefore:Before Hydration] refers to the html rendered on the server. [boldAfter:After Hydration] refers to the html rendered on the client. This feature is actively being developed; please share any questions or feedback to the discussion linked above.',
             {
               boldBefore: <strong />,
               boldAfter: <strong />,
             }
-          )}
-          <br />
-          <br />
-          {t(
-            'This feature is actively being developed; please share any questions or feedback to the discussion linked above.'
           )}
         </Alert>
         <Flex gap={space(1)} column>
