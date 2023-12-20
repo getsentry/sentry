@@ -11,7 +11,7 @@ import useApi from 'sentry/utils/useApi';
 import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import {REPLAY_LIST_FIELDS} from 'sentry/views/replays/types';
 
-function useReplayFromIssue({
+export default function useReplaysFromIssue({
   group,
   location,
   organization,
@@ -51,7 +51,7 @@ function useReplayFromIssue({
   }, [api, organization.slug, group.id, dataSource]);
 
   const eventView = useMemo(() => {
-    if (!replayIds) {
+    if (!replayIds || !replayIds.length) {
       return null;
     }
     return EventView.fromSavedQuery({
@@ -80,5 +80,3 @@ function useReplayFromIssue({
     pageLinks: null,
   };
 }
-
-export default useReplayFromIssue;

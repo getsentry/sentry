@@ -24,8 +24,8 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
+  queryReferrer: string;
   perPage?: number;
-  queryReferrer?: 'issueReplays';
 };
 
 async function fetchReplayList({
