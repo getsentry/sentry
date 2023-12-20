@@ -1,4 +1,4 @@
-import {keyframes} from '@emotion/react';
+import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -77,18 +77,18 @@ const OpenInContainer = withOrganization(styled('div')<{
   white-space: nowrap;
   ${p =>
     p.organization?.features?.includes('issue-details-stacktrace-link-in-frame')
-      ? `
-   color: ${p.theme.linkColor};
-   animation: ${fadeIn} 0.2s ease-in-out forwards;
-   padding: ${space(0)} ${space(0)};
-   `
-      : `
-  color: ${p.theme.subText};
-  background-color: ${p.theme.background};
-  border-bottom: 1px solid ${p.theme.border};
-  padding: ${space(0.25)} ${space(3)};
-  box-shadow: ${p.theme.dropShadowLight};
-   `}
+      ? css`
+          color: ${p.theme.linkColor};
+          animation: ${fadeIn} 0.2s ease-in-out forwards;
+          padding: ${space(0)} ${space(0)};
+        `
+      : css`
+          color: ${p.theme.subText};
+          background-color: ${p.theme.background};
+          border-bottom: 1px solid ${p.theme.border};
+          padding: ${space(0.25)} ${space(3)};
+          box-shadow: ${p.theme.dropShadowLight};
+        `}
 `);
 
 const OpenInLink = withOrganization(styled(ExternalLink)<{organization: Organization}>`

@@ -487,18 +487,18 @@ const OpenInLink = withOrganization(styled(ExternalLink)<{organization: Organiza
   ${LinkStyles}
   ${p =>
     p.organization?.features?.includes('issue-details-stacktrace-link-in-frame')
-      ? `
-      color: ${p.theme.linkColor};
-      animation: ${fadeIn} 0.2s ease-in-out forwards;
-      &:hover {
-        text-decoration: underline;
-        text-decoration-color: ${p.theme.linkUnderline};
-        text-underline-offset: ${space(0.5)};
-      }
-    `
-      : `
-      color: ${p.theme.gray300};
-      `}
+      ? css`
+          color: ${p.theme.linkColor};
+          animation: ${fadeIn} 0.2s ease-in-out forwards;
+          &:hover {
+            text-decoration: underline;
+            text-decoration-color: ${p.theme.linkUnderline};
+            text-underline-offset: ${space(0.5)};
+          }
+        `
+      : css`
+          color: ${p.theme.gray300};
+        `}
 `);
 
 const StyledLink = styled(Link)`
