@@ -637,7 +637,6 @@ class ControlOrganizationCheckService(OrganizationCheckService):
         # See RegionOrganizationCheckService below
         org_mapping = OrganizationMapping.objects.filter(organization_id=id).first()
         if org_mapping is None:
-            logger.info(f"Organization by id not found: {id}")
             return False
         if only_visible and org_mapping.status != OrganizationStatus.ACTIVE:
             return False
@@ -665,7 +664,7 @@ class RegionOrganizationCheckService(OrganizationCheckService):
                 raise Organization.DoesNotExist
             return True
         except Organization.DoesNotExist:
-            logger.info(f"Organization by id not found: {id}")
+            pass
 
         return False
 
