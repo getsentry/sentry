@@ -1,7 +1,6 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-import debounce from 'lodash/debounce';
 import scrollToElement from 'scroll-to-element';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -136,13 +135,13 @@ export class DeprecatedLine extends Component<Props, State> {
     isHovering: false,
   };
 
-  handleMouseEnter = debounce(() => {
+  handleMouseEnter = () => {
     this.setState({isHovering: true});
-  }, 100);
+  };
 
-  handleMouseLeave = debounce(() => {
+  handleMouseLeave = () => {
     this.setState({isHovering: false});
-  }, 100);
+  };
 
   toggleContext = evt => {
     evt && evt.preventDefault();

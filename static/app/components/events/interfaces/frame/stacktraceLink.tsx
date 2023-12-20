@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -26,7 +26,6 @@ import {
   Project,
   StacktraceLinkResult,
 } from 'sentry/types';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {getIntegrationIcon, getIntegrationSourceUrl} from 'sentry/utils/integrationUtil';
@@ -191,10 +190,14 @@ interface StacktraceLinkProps {
 export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   const organization = useOrganization();
   const {projects} = useProjects();
+  const hasStacktraceLinkFeatureFlag =
+    organization?.features?.includes('issue-details-stacktrace-link-in-frame') ?? false;
+  const [isQueryEnabled, setIsQueryEnabled] = useState(!hasStacktraceLinkFeatureFlag);
   const project = useMemo(
     () => projects.find(p => p.id === event.projectID),
     [projects, event]
   );
+
   const prompt = usePromptsCheck({
     feature: 'stacktrace_link',
     organizationId: organization.id,
@@ -208,6 +211,19 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
         })
       : false;
 
+  useEffect(() => {
+    let timer;
+    if (hasStacktraceLinkFeatureFlag) {
+      // Introduce a delay before enabling the query
+      timer = setTimeout(() => {
+        setIsQueryEnabled(true);
+      }, 100); // Delay of 100ms
+    } else {
+      setIsQueryEnabled(true);
+    }
+    return () => timer && clearTimeout(timer);
+  }, [hasStacktraceLinkFeatureFlag]); // Empty dependency array to run only on mount
+
   const {
     data: match,
     isLoading,
@@ -220,7 +236,8 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
       projectSlug: project?.slug,
     },
     {
-      enabled: defined(project),
+      staleTime: Infinity,
+      enabled: isQueryEnabled, // The query will not run until `isQueryEnabled` is true
     }
   );
 
@@ -238,9 +255,6 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
         }
       : {}
   );
-
-  const hasStacktraceLinkFeatureFlag =
-    organization?.features?.includes('issue-details-stacktrace-link-in-frame') ?? false;
 
   const onOpenLink = e => {
     e.stopPropagation();
