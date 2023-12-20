@@ -1,4 +1,3 @@
-import {Member as MemberFixture} from 'sentry-fixture/member';
 import {Organization} from 'sentry-fixture/organization';
 import {Team} from 'sentry-fixture/team';
 import {User} from 'sentry-fixture/user';
@@ -8,7 +7,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import OrganizationMemberRow from 'sentry/views/settings/organizationMembers/organizationMemberRow';
 
 describe('OrganizationMemberRow', function () {
-  const member = MemberFixture({
+  const member = TestStubs.Member({
     id: '1',
     email: '',
     name: '',
@@ -30,7 +29,7 @@ describe('OrganizationMemberRow', function () {
     orgRole: 'manager',
   });
 
-  const memberOnManagerTeam = MemberFixture({
+  const memberOnManagerTeam = TestStubs.Member({
     id: '2',
     orgRole: 'member',
     teams: [managerTeam.slug],
@@ -82,7 +81,7 @@ describe('OrganizationMemberRow', function () {
       render(
         <OrganizationMemberRow
           {...defaultProps}
-          member={MemberFixture({
+          member={TestStubs.Member({
             ...member,
             user: User({...member.user, has2fa: true}),
           })}
