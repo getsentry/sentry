@@ -10,10 +10,13 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 type Params = DocsParams;
+
+const getInstallSnippet = () => `pip install --upgrade sentry-sdk[celery]`;
 
 const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
@@ -54,7 +57,7 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'bash',
-          code: 'pip install --upgrade sentry-sdk[celery]',
+          code: getInstallSnippet(),
         },
       ],
     },
@@ -179,6 +182,9 @@ const onboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
+  customMetricsOnboarding: getPythonMetricsOnboarding({
+    installSnippet: getInstallSnippet(),
+  }),
 };
 
 export default docs;
