@@ -37,7 +37,7 @@ def convert_to_async_slack_response(
             method=webhook_payload.method,
             path=webhook_payload.path,
             headers=webhook_payload.headers,
-            data=webhook_payload.body,
+            data=webhook_payload.body.encode("utf-8"),
             json=False,
             raw_response=True,
         )
