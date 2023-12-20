@@ -61,7 +61,7 @@ export default function ReplayComparisonModal({
         </ModalHeader>
       </Header>
       <Body>
-        <p>
+        <StyledParagraph>
           {tct(
             'This modal helps with debugging hydration errors by diffing the dom before and after the app hydrated. [boldBefore:Before Hydration] refers to the html rendered on the server. [boldAfter:After Hydration] refers to the html rendered on the client. This feature is actively being developed; please share any questions or feedback to the discussion linked above.',
             {
@@ -69,7 +69,7 @@ export default function ReplayComparisonModal({
               boldAfter: <strong />,
             }
           )}
-        </p>
+        </StyledParagraph>
         <Flex gap={space(1)} column>
           <TabList
             selectedKey={activeTab}
@@ -195,4 +195,8 @@ const DiffHeader = styled('div')`
   flex: 1;
   font-weight: 600;
   line-height: 1.2;
+`;
+
+const StyledParagraph = styled('p')`
+  margin-top: ${space(1)};
 `;
