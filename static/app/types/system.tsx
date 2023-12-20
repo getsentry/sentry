@@ -119,7 +119,7 @@ declare global {
   }
 }
 
-interface Region {
+export interface Region {
   name: string;
   url: string;
 }
