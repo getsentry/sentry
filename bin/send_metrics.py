@@ -180,11 +180,7 @@ def main(use_cases, rand_str, host, dryrun, start_org_id, end_org_id, num_bad_ms
 
     messages = list(
         itertools.chain.from_iterable(
-            (
-                make_counter_payload(use_case, org, rand_str),
-                make_dist_payload(use_case, org, rand_str, value_len),
-                make_set_payload(use_case, org, rand_str, value_len),
-            )
+            (make_dist_payload(use_case, org, rand_str, value_len),)
             for use_case in use_cases
             for org in range(start_org_id, end_org_id + 1)
         )
