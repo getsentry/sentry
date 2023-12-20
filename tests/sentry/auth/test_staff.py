@@ -222,7 +222,7 @@ class StaffTestCase(TestCase):
             COOKIE_NAME,
             request.staff.token,
             salt=COOKIE_SALT,
-            max_staff_session_age=None,
+            max_age=None,
             secure=request.is_secure() if COOKIE_SECURE is None else COOKIE_SECURE,
             httponly=COOKIE_HTTPONLY,
             path=COOKIE_PATH,
