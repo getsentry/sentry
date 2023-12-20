@@ -63,8 +63,12 @@ def parse_and_emit_replay_actions(
     with metrics.timer("replays.usecases.ingest.dom_index.parse_and_emit_replay_actions"):
         message = parse_replay_actions(project_id, replay_id, retention_days, segment_data)
         if message is not None:
-            publisher = _initialize_publisher()
-            publisher.publish("ingest-replay-events", json.dumps(message))
+            emit_replay_actions(message)
+
+
+def emit_replay_actions(action: ReplayActionsEvent) -> None:
+    publisher = _initialize_publisher()
+    publisher.publish("ingest-replay-events", json.dumps(action))
 
 
 def parse_replay_actions(
