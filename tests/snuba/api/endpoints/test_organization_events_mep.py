@@ -3086,7 +3086,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         data = response.data["data"]
         meta = response.data["meta"]
 
-        assert data[0]["count()"] == 1
+        assert data[0]["transaction"] == "foo_transaction"
         assert meta["dataset"] == "metricsEnhanced"
 
 
