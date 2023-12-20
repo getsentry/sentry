@@ -393,6 +393,14 @@ default_manager.add(
         template="added org auth token {name}",
     )
 )
+default_manager.add(
+    AuditLogEvent(
+        event_id=177,
+        name="ORGAUTHTOKEN_REMOVE",
+        api_name="org-auth-token.remove",
+        template="removed org auth token {name}",
+    )
+)
 default_manager.add(events.ProjectOwnershipRuleEditAuditLogEvent())
 default_manager.add(
     AuditLogEvent(

@@ -82,6 +82,7 @@ class AuditLogEventRegisterTest(TestCase):
             "notification_action.remove",
             "team-and-project.created",
             "org-auth-token.create",
+            "org-auth-token.remove",
             "project-team.remove",
         ]
 
