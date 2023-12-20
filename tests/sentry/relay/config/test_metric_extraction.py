@@ -59,7 +59,7 @@ def create_widget(
     aggregates: Sequence[str],
     query: str,
     project: Project,
-    title="Dashboard",
+    title: Optional[str] = "Dashboard",
     columns: Optional[Sequence[str]] = None,
 ) -> DashboardWidgetQuery:
     columns = columns or []
@@ -92,20 +92,20 @@ def create_project_threshold(
 
 
 @django_db_all
-def test_get_metric_extraction_config_empty_no_alerts(default_project):
+def test_get_metric_extraction_config_empty_no_alerts(default_project: Project) -> None:
     with Feature(ON_DEMAND_METRICS):
         assert not get_metric_extraction_config(default_project)
 
 
 @django_db_all
-def test_get_metric_extraction_config_empty_feature_flag_off(default_project):
+def test_get_metric_extraction_config_empty_feature_flag_off(default_project: Project) -> None:
     create_alert("count()", "transaction.duration:>=1000", default_project)
 
     assert not get_metric_extraction_config(default_project)
 
 
 @django_db_all
-def test_get_metric_extraction_config_empty_standard_alerts(default_project):
+def test_get_metric_extraction_config_empty_standard_alerts(default_project: Project) -> None:
     with Feature(ON_DEMAND_METRICS):
         # standard alerts are not included in the config
         create_alert("count()", "", default_project)
@@ -114,7 +114,7 @@ def test_get_metric_extraction_config_empty_standard_alerts(default_project):
 
 
 @django_db_all
-def test_get_metric_extraction_config_single_alert(default_project):
+def test_get_metric_extraction_config_single_alert(default_project: Project) -> None:
     with Feature(ON_DEMAND_METRICS):
         create_alert("count()", "transaction.duration:>=1000", default_project)
 
@@ -133,8 +133,8 @@ def test_get_metric_extraction_config_single_alert(default_project):
 
 @django_db_all
 def test_get_metric_extraction_config_with_double_write_env_alert(
-    default_project, default_environment
-):
+    default_project: Project, default_environment: Environment
+) -> None:
     with Feature(ON_DEMAND_METRICS):
         create_alert(
             "count()",
@@ -192,7 +192,7 @@ def test_get_metric_extraction_config_with_double_write_env_alert(
 
 
 @django_db_all
-def test_get_metric_extraction_config_single_alert_with_mri(default_project):
+def test_get_metric_extraction_config_single_alert_with_mri(default_project: Project) -> None:
     with Feature(ON_DEMAND_METRICS):
         create_alert(
             "sum(c:custom/page_load@millisecond)", "transaction.duration:>=1000", default_project
@@ -209,7 +209,7 @@ def test_get_metric_extraction_config_single_alert_with_mri(default_project):
 
 
 @django_db_all
-def test_get_metric_extraction_config_multiple_alerts(default_project):
+def test_get_metric_extraction_config_multiple_alerts(default_project: Project) -> None:
     with Feature(ON_DEMAND_METRICS):
         create_alert("count()", "transaction.duration:>=1000", default_project)
         create_alert("count()", "transaction.duration:>=2000", default_project)
@@ -226,7 +226,7 @@ def test_get_metric_extraction_config_multiple_alerts(default_project):
 
 
 @django_db_all
-def test_get_metric_extraction_config_multiple_alerts_duplicated(default_project):
+def test_get_metric_extraction_config_multiple_alerts_duplicated(default_project: Project) -> None:
     # alerts with the same query should be deduplicated
     with Feature(ON_DEMAND_METRICS):
         create_alert("count()", "transaction.duration:>=1000", default_project)
@@ -239,7 +239,9 @@ def test_get_metric_extraction_config_multiple_alerts_duplicated(default_project
 
 
 @django_db_all
-def test_get_metric_extraction_config_environment(default_project, default_environment):
+def test_get_metric_extraction_config_environment(
+    default_project: Project, default_environment: Environment
+) -> None:
     with Feature(ON_DEMAND_METRICS):
         create_alert("count()", "transaction.duration:>0", default_project)
         create_alert("count()", "transaction.duration:>0", default_project, environment=None)
@@ -262,7 +264,7 @@ def test_get_metric_extraction_config_environment(default_project, default_envir
 
 
 @django_db_all
-def test_get_metric_extraction_config_single_standard_widget(default_project):
+def test_get_metric_extraction_config_single_standard_widget(default_project: Project) -> None:
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(["count()"], "", default_project)
 
@@ -270,7 +272,7 @@ def test_get_metric_extraction_config_single_standard_widget(default_project):
 
 
 @django_db_all
-def test_get_metric_extraction_config_single_widget(default_project):
+def test_get_metric_extraction_config_single_widget(default_project: Project) -> None:
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(["count()"], "transaction.duration:>=1000", default_project)
 
@@ -291,7 +293,9 @@ def test_get_metric_extraction_config_single_widget(default_project):
 
 
 @django_db_all
-def test_get_metric_extraction_config_single_widget_multiple_aggregates(default_project):
+def test_get_metric_extraction_config_single_widget_multiple_aggregates(
+    default_project: Project,
+) -> None:
     # widget with multiple fields should result in multiple metrics
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(
@@ -325,7 +329,9 @@ def test_get_metric_extraction_config_single_widget_multiple_aggregates(default_
 
 
 @django_db_all
-def test_get_metric_extraction_config_single_widget_multiple_count_if(default_project):
+def test_get_metric_extraction_config_single_widget_multiple_count_if(
+    default_project: Project,
+) -> None:
     # widget with multiple fields should result in multiple metrics
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         aggregates = [
@@ -384,7 +390,9 @@ def test_get_metric_extraction_config_single_widget_multiple_count_if(default_pr
 
 
 @django_db_all
-def test_get_metric_extraction_config_multiple_aggregates_single_field(default_project):
+def test_get_metric_extraction_config_multiple_aggregates_single_field(
+    default_project: Project,
+) -> None:
     # widget with multiple aggregates on the same field in a single metric
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(
@@ -410,7 +418,7 @@ def test_get_metric_extraction_config_multiple_aggregates_single_field(default_p
 
 
 @django_db_all
-def test_get_metric_extraction_config_multiple_widgets_duplicated(default_project):
+def test_get_metric_extraction_config_multiple_widgets_duplicated(default_project: Project) -> None:
     # metrics should be deduplicated across widgets
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(
@@ -445,7 +453,7 @@ def test_get_metric_extraction_config_multiple_widgets_duplicated(default_projec
 
 
 @django_db_all
-def test_get_metric_extraction_config_alerts_and_widgets_off(default_project):
+def test_get_metric_extraction_config_alerts_and_widgets_off(default_project: Project) -> None:
     # widgets should be skipped if the feature is off
     with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: False}):
         create_alert("count()", "transaction.duration:>=1000", default_project)
@@ -465,7 +473,7 @@ def test_get_metric_extraction_config_alerts_and_widgets_off(default_project):
 
 
 @django_db_all
-def test_get_metric_extraction_config_alerts_and_widgets(default_project):
+def test_get_metric_extraction_config_alerts_and_widgets(default_project: Project) -> None:
     # deduplication should work across alerts and widgets
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_alert("count()", "transaction.duration:>=1000", default_project)
@@ -500,7 +508,7 @@ def test_get_metric_extraction_config_alerts_and_widgets(default_project):
 
 
 @django_db_all
-def test_get_metric_extraction_config_with_failure_count(default_project):
+def test_get_metric_extraction_config_with_failure_count(default_project: Project) -> None:
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(["failure_count()"], "transaction.duration:>=1000", default_project)
 
@@ -533,7 +541,7 @@ def test_get_metric_extraction_config_with_failure_count(default_project):
 
 
 @django_db_all
-def test_get_metric_extraction_config_with_apdex(default_project):
+def test_get_metric_extraction_config_with_apdex(default_project: Project) -> None:
     with Feature({ON_DEMAND_METRICS: True}):
         threshold = 10
         create_alert(f"apdex({threshold})", "transaction.duration:>=1000", default_project)
@@ -704,7 +712,7 @@ def test_get_metric_extraction_config_with_count_web_vitals(
 
 
 @django_db_all
-def test_get_metric_extraction_config_with_user_misery(default_project):
+def test_get_metric_extraction_config_with_user_misery(default_project: Project) -> None:
     threshold = 100
     duration = 1000
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
@@ -738,7 +746,9 @@ def test_get_metric_extraction_config_with_user_misery(default_project):
 
 
 @django_db_all
-def test_get_metric_extraction_config_user_misery_with_tag_columns(default_project):
+def test_get_metric_extraction_config_user_misery_with_tag_columns(
+    default_project: Project,
+) -> None:
     threshold = 100
     duration = 1000
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
@@ -776,7 +786,7 @@ def test_get_metric_extraction_config_user_misery_with_tag_columns(default_proje
 
 
 @django_db_all
-def test_get_metric_extraction_config_epm_with_non_tag_columns(default_project):
+def test_get_metric_extraction_config_epm_with_non_tag_columns(default_project: Project) -> None:
     duration = 1000
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(
@@ -808,7 +818,7 @@ def test_get_metric_extraction_config_epm_with_non_tag_columns(default_project):
 
 @django_db_all
 @override_options({"on_demand.max_widget_cardinality.count": -1})
-def test_get_metric_extraction_config_with_high_cardinality(default_project):
+def test_get_metric_extraction_config_with_high_cardinality(default_project: Project) -> None:
     duration = 1000
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(
@@ -825,7 +835,7 @@ def test_get_metric_extraction_config_with_high_cardinality(default_project):
 
 @django_db_all
 @override_options({"on_demand.max_widget_cardinality.count": 1})
-def test_get_metric_extraction_config_with_low_cardinality(default_project):
+def test_get_metric_extraction_config_with_low_cardinality(default_project: Project) -> None:
     duration = 1000
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(
@@ -879,8 +889,8 @@ def test_get_metric_extraction_config_with_no_tag_spec(
     ],
 )
 def test_get_metrics_extraction_config_features_combinations(
-    enabled_features, number_of_metrics, default_project
-):
+    enabled_features: str, number_of_metrics: int, default_project: Project
+) -> None:
     create_alert("count()", "transaction.duration:>=10", default_project)
     create_widget(["count()"], "transaction.duration:>=20", default_project)
 
@@ -895,7 +905,7 @@ def test_get_metrics_extraction_config_features_combinations(
 
 
 @django_db_all
-def test_get_metric_extraction_config_with_transactions_dataset(default_project):
+def test_get_metric_extraction_config_with_transactions_dataset(default_project: Project) -> None:
     create_alert(
         "count()", "transaction.duration:>=10", default_project, dataset=Dataset.PerformanceMetrics
     )
@@ -940,7 +950,7 @@ def test_get_metric_extraction_config_with_transactions_dataset(default_project)
 
 
 @django_db_all
-def test_get_metric_extraction_config_with_no_spec(default_project):
+def test_get_metric_extraction_config_with_no_spec(default_project: Project) -> None:
     create_alert(
         "apdex(300)",
         "",
