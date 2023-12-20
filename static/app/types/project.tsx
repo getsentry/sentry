@@ -44,6 +44,8 @@ export type Project = {
   processingIssues: number;
   relayPiiConfig: string;
 
+  safeFields: string[];
+  sensitiveFields: string[];
   subjectTemplate: string;
   team: Team;
   teams: Team[];
