@@ -23,9 +23,24 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="monitorenvironment",
-            name="is_muted",
-            field=models.BooleanField(default=False),
-        ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    """
+                    ALTER TABLE "sentry_monitorenvironment" ADD COLUMN "is_muted" boolean NOT NULL DEFAULT FALSE;
+                    """,
+                    reverse_sql="""
+                    ALTER TABLE "sentry_monitorenvironment" DROP COLUMN "is_muted";
+                    """,
+                    hints={"tables": ["sentry_monitorenvironment"]},
+                ),
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name="monitorenvironment",
+                    name="is_muted",
+                    field=models.BooleanField(default=False),
+                ),
+            ],
+        )
     ]
