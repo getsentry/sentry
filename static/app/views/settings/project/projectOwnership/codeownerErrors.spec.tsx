@@ -1,3 +1,4 @@
+import {CodeOwner as CodeOwnerFixture} from 'sentry-fixture/codeOwner';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 
@@ -10,7 +11,7 @@ describe('CodeownerErrors', () => {
   const org = Organization();
 
   it('should render errors', async () => {
-    const codeowner = TestStubs.CodeOwner({
+    const codeowner = CodeOwnerFixture({
       errors: {
         missing_user_emails: ['santry@example.com'],
         missing_external_users: [],
@@ -39,7 +40,7 @@ describe('CodeownerErrors', () => {
   });
 
   it('should deduplicate errors', () => {
-    const codeowner = TestStubs.CodeOwner({
+    const codeowner = CodeOwnerFixture({
       errors: {
         missing_user_emails: ['santry@example.com'],
         missing_external_users: [],

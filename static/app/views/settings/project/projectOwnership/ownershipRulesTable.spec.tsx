@@ -1,3 +1,4 @@
+import {CodeOwner as CodeOwnerFixture} from 'sentry-fixture/codeOwner';
 import {User} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -55,7 +56,7 @@ describe('OwnershipRulesTable', () => {
     render(
       <OwnershipRulesTable
         projectRules={[]}
-        codeowners={[TestStubs.CodeOwner({schema: {rules}})]}
+        codeowners={[CodeOwnerFixture({schema: {rules, version: 1}})]}
       />
     );
 
