@@ -1,7 +1,5 @@
 from unittest import mock
 
-import pytest
-
 from sentry.models.options.project_option import ProjectOption
 from sentry.projectoptions import default_manager, defaults
 from sentry.projectoptions.manager import WellKnownProjectOption
@@ -51,11 +49,6 @@ def test_epoch_defaults():
     assert option.get_default(epoch=100) == "latest-value"
 
 
-@pytest.mark.xfail(
-    reason="`ProjectOption.isset` always returns True",
-    raises=AssertionError,
-    strict=True,
-)
 @django_db_all
 def test_isset_simple(default_project):
     default_manager.register("best_dogs", default="all dogs")
@@ -68,11 +61,6 @@ def test_isset_simple(default_project):
     assert default_manager.isset(default_project, "best_dogs") is True
 
 
-@pytest.mark.xfail(
-    reason="`ProjectOption.isset` always returns True",
-    raises=AssertionError,
-    strict=True,
-)
 @django_db_all
 def test_isset_differentiates_unset_from_set_to_default(default_project):
     default_manager.register("best_dogs", default="all dogs")
