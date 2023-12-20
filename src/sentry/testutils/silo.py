@@ -314,7 +314,7 @@ def assume_test_silo_mode(desired_silo: SiloMode, can_be_monolith: bool = True) 
     with override_settings(SILO_MODE=desired_silo):
         if desired_silo == SiloMode.REGION:
             region_dir = get_test_env_directory()
-            with region_dir.swap_to_arbitrary_region():  # TODO: Something better than this
+            with region_dir.swap_to_default_region():
                 yield
         else:
             yield

@@ -262,7 +262,7 @@ def test_client_config_links_with_priority_org():
     request, user = make_user_request_from_org()
     request.user = user
 
-    org = Factories.create_organization()
+    org = Factories.create_organization(region="us")
     Factories.create_member(organization=org, user=user)
 
     org_context = organization_service.get_organization_by_slug(
