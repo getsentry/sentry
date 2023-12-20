@@ -56,7 +56,7 @@ describe('OwnershipRulesTable', () => {
     render(
       <OwnershipRulesTable
         projectRules={[]}
-        codeowners={[CodeOwnerFixture({schema: {rules}})]}
+        codeowners={[CodeOwnerFixture({schema: {rules, version: 1}})]}
       />
     );
 
