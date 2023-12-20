@@ -53,7 +53,7 @@ const onboarding: OnboardingConfig = {
             </p>
           ),
           language: 'bash',
-          code: '$ pip install --upgrade aiocontextvars',
+          code: 'pip install --upgrade aiocontextvars',
         },
       ],
     },
