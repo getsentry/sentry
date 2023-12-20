@@ -1,4 +1,3 @@
-import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {Organization} from 'sentry-fixture/organization';
 import {Repository} from 'sentry-fixture/repository';
 
@@ -9,7 +8,7 @@ import IntegrationRepos from 'sentry/views/settings/organizationIntegrations/int
 
 describe('IntegrationRepos', function () {
   const org = Organization();
-  const integration = GitHubIntegrationFixture();
+  const integration = TestStubs.GitHubIntegration();
   let resetReposSpy;
 
   beforeEach(() => {
