@@ -61,7 +61,7 @@ describe('ProjectDetail > ProjectIssues', function () {
         api={new MockApiClient()}
         organization={organization}
         location={router.location}
-        projectId={project.id}
+        projectId={parseInt(project.id, 10)}
       />,
       {
         context: routerContext,
@@ -77,7 +77,7 @@ describe('ProjectDetail > ProjectIssues', function () {
       <ProjectIssues
         api={new MockApiClient()}
         organization={organization}
-        projectId={project.id}
+        projectId={parseInt(project.id, 10)}
         location={router.location}
       />,
       {
@@ -107,7 +107,7 @@ describe('ProjectDetail > ProjectIssues', function () {
         api={new MockApiClient()}
         organization={organization}
         location={router.location}
-        projectId={project.id}
+        projectId={parseInt(project.id, 10)}
       />,
       {
         context: routerContext,
@@ -137,7 +137,7 @@ describe('ProjectDetail > ProjectIssues', function () {
         api={new MockApiClient()}
         organization={organization}
         location={router.location}
-        projectId={project.id}
+        projectId={parseInt(project.id, 10)}
       />,
       {
         context: routerContext,
@@ -167,7 +167,7 @@ describe('ProjectDetail > ProjectIssues', function () {
       <ProjectIssues
         organization={organization}
         api={new MockApiClient()}
-        projectId={project.id}
+        projectId={parseInt(project.id, 10)}
         location={{
           ...router.location,
           query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},

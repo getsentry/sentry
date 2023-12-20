@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -14,8 +15,8 @@ const FEATURES = ['performance-view'];
 
 const initializeData = (settings = {}, features: string[] = []) => {
   const projects = [
-    TestStubs.Project({id: '1', slug: '1'}),
-    TestStubs.Project({id: '2', slug: '2'}),
+    ProjectFixture({id: '1', slug: '1'}),
+    ProjectFixture({id: '2', slug: '2'}),
   ];
   return _initializeData({
     features: [...FEATURES, ...features],
@@ -266,9 +267,9 @@ describe('Performance > Table', function () {
 
     it('shows unparameterized tooltip when project only recently sent events', async function () {
       const projects = [
-        TestStubs.Project({id: '1', slug: '1'}),
-        TestStubs.Project({id: '2', slug: '2'}),
-        TestStubs.Project({id: '3', slug: '3', firstEvent: new Date().toISOString()}),
+        ProjectFixture({id: '1', slug: '1'}),
+        ProjectFixture({id: '2', slug: '2'}),
+        ProjectFixture({id: '3', slug: '3', firstEvent: new Date().toISOString()}),
       ];
       const data = initializeData({
         query: 'event.type:transaction transaction:/api*',
@@ -293,9 +294,9 @@ describe('Performance > Table', function () {
 
     it('does not show unparameterized tooltip when project only recently sent events', async function () {
       const projects = [
-        TestStubs.Project({id: '1', slug: '1'}),
-        TestStubs.Project({id: '2', slug: '2'}),
-        TestStubs.Project({
+        ProjectFixture({id: '1', slug: '1'}),
+        ProjectFixture({id: '2', slug: '2'}),
+        ProjectFixture({
           id: '3',
           slug: '3',
           firstEvent: new Date(+new Date() - 25920e5).toISOString(),

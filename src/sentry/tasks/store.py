@@ -676,7 +676,8 @@ def _do_save_event(
 
     set_current_event_project(project_id)
 
-    from sentry.event_manager import EventManager, HashDiscarded
+    from sentry.event_manager import EventManager
+    from sentry.exceptions import HashDiscarded
 
     event_type = "none"
 

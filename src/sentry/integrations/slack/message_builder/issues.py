@@ -234,7 +234,16 @@ def build_actions(
             value="ignored:until_escalating" if has_escalating else "ignored:forever",
         )
 
-    def _resolve_button() -> MessageAction:
+    def _resolve_button(use_block_kit) -> MessageAction:
+        if use_block_kit:
+            # TODO(CEO): handle if the issue is resolved - render a button that unresolves
+            # TODO(CEO): handle if not project.flags.has_releases in block kit - render a resolve button instead of a modal
+            return MessageAction(
+                name="status",
+                label="Resolve",
+                value="resolve_dialog",
+            )
+
         if status == GroupStatus.RESOLVED:
             return MessageAction(
                 name="status",
@@ -269,7 +278,7 @@ def build_actions(
 
     action_list = [
         a
-        for a in [_resolve_button(), _ignore_button(), _assign_button(use_block_kit)]
+        for a in [_resolve_button(use_block_kit), _ignore_button(), _assign_button(use_block_kit)]
         if a is not None
     ]
 
@@ -292,6 +301,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         notification: ProjectNotification | None = None,
         recipient: RpcActor | None = None,
         is_unfurl: bool = False,
+        skip_fallback: bool = False,
     ) -> None:
         super().__init__()
         self.group = group
@@ -305,6 +315,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.notification = notification
         self.recipient = recipient
         self.is_unfurl = is_unfurl
+        self.skip_fallback = skip_fallback
 
     @property
     def escape_text(self) -> bool:
@@ -408,7 +419,15 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         # build actions
         actions = []
         for action in payload_actions:
-            if action.label in ("Archive", "Ignore", "Mark as Ongoing", "Stop Ignoring"):
+            if action.label in (
+                "Archive",
+                "Ignore",
+                "Mark as Ongoing",
+                "Stop Ignoring",
+                "Resolve",
+                "Unresolve",
+                "Resolve...",
+            ):
                 actions.append(self.get_button_action(action))
             elif action.name == "assign":
                 actions.append(self.get_static_action(action))
@@ -421,6 +440,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             *blocks,
             fallback_text=self.build_fallback_text(obj, project.slug),
             block_id=json.dumps({"issue": self.group.id}),
+            skip_fallback=self.skip_fallback,
         )
 
 

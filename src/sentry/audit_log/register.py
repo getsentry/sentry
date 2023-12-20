@@ -402,3 +402,11 @@ default_manager.add(
     )
 )
 default_manager.add(events.ProjectOwnershipRuleEditAuditLogEvent())
+default_manager.add(
+    AuditLogEvent(
+        event_id=180,
+        name="PROJECT_TEAM_REMOVE",
+        api_name="project-team.remove",
+        template="removed team {team_slug} from project {project_slug}",
+    )
+)
