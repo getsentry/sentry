@@ -564,6 +564,10 @@ class EventManager:
         ), metrics.timer("event_manager.calculate_event_grouping", tags=metric_tags):
             hashes = _calculate_event_grouping(project, job["event"], grouping_config)
 
+        # Track the total number of grouping calculations done overall, so we can divide by the
+        # count to get an average number of calculations per event
+        metrics.incr("grouping.hashes_calculated", amount=2 if secondary_hashes else 1)
+
         # Because this logic is not complex enough we want to special case the situation where we
         # migrate from a hierarchical hash to a non hierarchical hash.  The reason being that
         # `_save_aggregate` needs special logic to not create orphaned hashes in migration cases
@@ -1865,12 +1869,8 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
     # add sdk tag to metadata
     group_data.setdefault("metadata", {}).update(sdk_metadata_from_event(event))
 
-    # get severity score for use in alerting
-    if features.has("projects:first-event-severity-calculation", event.project):
-        severity = _get_severity_score(event)
-        if severity is not None:  # Severity can be 0
-            group_data.setdefault("metadata", {})
-            group_data["metadata"]["severity"] = severity
+    # add severity to metadata for alert filtering
+    group_data["metadata"].update(_get_severity_metadata_for_group(event))
 
     return Group.objects.create(
         project=project,
@@ -2087,17 +2087,39 @@ severity_connection_pool = connection_from_url(
 )
 
 
-def _get_severity_score(event: Event) -> float | None:
+def _get_severity_metadata_for_group(event: Event) -> Mapping[str, Any]:
+    """
+    Returns severity metadata for an event if the feature flag is enabled.
+    Returns {} on feature flag not enabled or exception.
+    """
+    if features.has("projects:first-event-severity-calculation", event.project):
+        try:
+            severity, reason = _get_severity_score(event)
+
+            return {
+                "severity": severity,
+                "severity_reason": reason,
+            }
+        except Exception as e:
+            logger.warning("Failed to calculate severity score for group", repr(e))
+
+            return {}
+
+    return {}
+
+
+def _get_severity_score(event: Event) -> Tuple[float, str]:
     # Short circuit the severity value if we know the event is fatal or info/debug
     level = str(event.data.get("level", "error"))
     if LOG_LEVELS_MAP[level] == logging.FATAL:
-        return 1.0
+        return 1.0, "log_level_fatal"
     if LOG_LEVELS_MAP[level] <= logging.INFO:
-        return 0.0
+        return 0.0, "log_level_info"
 
     op = "event_manager._get_severity_score"
     logger_data = {"event_id": event.data["event_id"], "op": op}
-    severity = None
+    severity = 1.0
+    reason = None
 
     event_type = get_event_type(event.data)
     metadata = event_type.get_metadata(event.data)
@@ -2131,7 +2153,7 @@ def _get_severity_score(event: Event) -> float | None:
             title,
             extra=logger_data,
         )
-        return None
+        return 0.0, "bad_title"
 
     payload = {
         "message": title,
@@ -2156,6 +2178,7 @@ def _get_severity_score(event: Event) -> float | None:
                     headers={"content-type": "application/json;charset=utf-8"},
                 )
                 severity = json.loads(response.data).get("severity")
+                reason = "ml"
             except MaxRetryError as e:
                 logger.warning(
                     "Unable to get severity score from microservice after %s retr%s. Got MaxRetryError caused by: %s.",
@@ -2164,12 +2187,14 @@ def _get_severity_score(event: Event) -> float | None:
                     repr(e.reason),
                     extra=logger_data,
                 )
+                reason = "microservice_max_retry"
             except Exception as e:
                 logger.warning(
                     "Unable to get severity score from microservice. Got: %s.",
                     repr(e),
                     extra=logger_data,
                 )
+                reason = "microservice_error"
             else:
                 logger.info(
                     "Got severity score of %s for event %s",
@@ -2178,7 +2203,7 @@ def _get_severity_score(event: Event) -> float | None:
                     extra=logger_data,
                 )
 
-    return severity
+    return severity, reason
 
 
 Attachment = CachedAttachment

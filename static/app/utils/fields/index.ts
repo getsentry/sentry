@@ -209,6 +209,7 @@ export enum AggregationKey {
   ANY = 'any',
   P50 = 'p50',
   P75 = 'p75',
+  P90 = 'p90',
   P95 = 'p95',
   P99 = 'p99',
   P100 = 'p100',
@@ -314,6 +315,11 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   },
   [AggregationKey.P75]: {
     desc: t('Returns the 75th percentile of the selected field'),
+    kind: FieldKind.FUNCTION,
+    valueType: null,
+  },
+  [AggregationKey.P90]: {
+    desc: t('Returns the 90th percentile of the selected field'),
     kind: FieldKind.FUNCTION,
     valueType: null,
   },

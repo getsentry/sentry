@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -6,7 +7,7 @@ import {CodeOwnerFileTable} from './codeOwnerFileTable';
 
 describe('CodeOwnerFileTable', () => {
   const organization = Organization();
-  const project = TestStubs.Project();
+  const project = ProjectFixture();
   const codeowner = TestStubs.CodeOwner();
 
   it('renders empty', () => {

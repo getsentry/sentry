@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -18,7 +19,7 @@ describe('Dashboards > Create', function () {
 
   describe('new dashboards', function () {
     let initialData;
-    const projects = [TestStubs.Project()];
+    const projects = [ProjectFixture()];
 
     beforeEach(function () {
       ProjectsStore.init();
@@ -37,7 +38,7 @@ describe('Dashboards > Create', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
-        body: [TestStubs.Project()],
+        body: [ProjectFixture()],
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/',

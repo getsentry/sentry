@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {getByRole, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -20,7 +21,7 @@ describe('ProjectPluginsContainer', function () {
 
   beforeEach(function () {
     org = Organization();
-    project = TestStubs.Project();
+    project = ProjectFixture();
     plugins = TestStubs.Plugins([
       {
         enabled: true,
