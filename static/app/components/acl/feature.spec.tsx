@@ -1,3 +1,4 @@
+import {Config as ConfigFixture} from 'sentry-fixture/config';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
@@ -176,7 +177,7 @@ describe('Feature', function () {
     });
 
     it('checks ConfigStore.config.features (e.g. `organizations:create`)', function () {
-      ConfigStore.config = TestStubs.Config({
+      ConfigStore.config = ConfigFixture({
         features: new Set(['organizations:create']),
       });
 

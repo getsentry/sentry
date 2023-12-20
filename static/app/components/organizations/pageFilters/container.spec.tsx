@@ -1,3 +1,4 @@
+import {Config as ConfigFixture} from 'sentry-fixture/config';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {User} from 'sentry-fixture/user';
@@ -564,7 +565,7 @@ describe('PageFiltersContainer', function () {
     it('selects a project if user is superuser and belongs to no projects', function () {
       ConfigStore.init();
       ConfigStore.loadInitialData(
-        TestStubs.Config({
+        ConfigFixture({
           user: User({isSuperuser: true}),
         })
       );
