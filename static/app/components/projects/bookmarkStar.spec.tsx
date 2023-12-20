@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -6,7 +7,7 @@ import BookmarkStar from 'sentry/components/projects/bookmarkStar';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
 describe('BookmarkStar', function () {
-  const project = TestStubs.Project();
+  const project = ProjectFixture();
 
   beforeEach(function () {
     ProjectsStore.loadInitialData([project]);
@@ -27,7 +28,7 @@ describe('BookmarkStar', function () {
     const projectMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
       method: 'PUT',
-      body: TestStubs.Project({isBookmarked: true, platform: 'javascript'}),
+      body: ProjectFixture({isBookmarked: true, platform: 'javascript'}),
     });
 
     expect(screen.getByRole('button', {pressed: false})).toBeInTheDocument();
@@ -48,14 +49,14 @@ describe('BookmarkStar', function () {
     render(
       <BookmarkStar
         organization={Organization()}
-        project={TestStubs.Project({isBookmarked: true})}
+        project={ProjectFixture({isBookmarked: true})}
       />
     );
 
     const projectMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
       method: 'PUT',
-      body: TestStubs.Project({isBookmarked: false, platform: 'javascript'}),
+      body: ProjectFixture({isBookmarked: false, platform: 'javascript'}),
     });
 
     expect(screen.getByRole('button', {pressed: true})).toBeInTheDocument();

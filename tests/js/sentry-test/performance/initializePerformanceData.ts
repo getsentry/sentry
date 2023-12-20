@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
@@ -21,7 +22,7 @@ export interface InitializeDataSettings {
 }
 
 export function initializeData(settings?: InitializeDataSettings) {
-  const _defaultProject = TestStubs.Project();
+  const _defaultProject = ProjectFixture();
   const _settings = {
     query: {},
     features: [],

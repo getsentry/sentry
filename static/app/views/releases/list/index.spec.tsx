@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -121,13 +122,13 @@ describe('ReleasesList', () => {
   it('displays the right empty state', async () => {
     let location;
 
-    const project = TestStubs.Project({
+    const project = ProjectFixture({
       id: '3',
       slug: 'test-slug',
       name: 'test-name',
       features: ['releases'],
     });
-    const projectWithouReleases = TestStubs.Project({
+    const projectWithouReleases = ProjectFixture({
       id: '4',
       slug: 'test-slug-2',
       name: 'test-name-2',

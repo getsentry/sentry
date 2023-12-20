@@ -1,4 +1,6 @@
 import {Event as EventFixture} from 'sentry-fixture/event';
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
@@ -19,7 +21,7 @@ describe('SharedGroupDetails', function () {
         latestEvent: EventFixture({
           entries: [eventEntry, exception],
         }),
-        project: TestStubs.Project({organization: {slug: 'test-org'}}),
+        project: ProjectFixture({organization: Organization({slug: 'test-org'})}),
       }),
     });
     MockApiClient.addMockResponse({
@@ -29,7 +31,7 @@ describe('SharedGroupDetails', function () {
         latestEvent: EventFixture({
           entries: [eventEntry, exception],
         }),
-        project: TestStubs.Project({organization: {slug: 'test-org'}}),
+        project: ProjectFixture({organization: Organization({slug: 'test-org'})}),
       }),
     });
   });

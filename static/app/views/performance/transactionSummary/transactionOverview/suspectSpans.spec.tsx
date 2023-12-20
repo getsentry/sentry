@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {generateSuspectSpansResponse} from 'sentry-test/performance/initializePerformanceData';
@@ -19,7 +20,7 @@ function initializeData({query} = {query: {}}) {
   const features = ['performance-view'];
   const organization = Organization({
     features,
-    projects: [TestStubs.Project()],
+    projects: [ProjectFixture()],
   });
   const initialData = initializeOrg({
     organization,

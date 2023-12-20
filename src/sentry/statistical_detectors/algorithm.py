@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import logging
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Callable, Mapping, MutableMapping, Optional, Tuple
 
-from sentry.statistical_detectors.detector import (
-    DetectorAlgorithm,
+from sentry.statistical_detectors.base import (
     DetectorConfig,
     DetectorPayload,
     DetectorState,
@@ -16,6 +16,27 @@ from sentry.utils import metrics
 from sentry.utils.math import MovingAverage
 
 logger = logging.getLogger("sentry.tasks.statistical_detectors.algorithm")
+
+
+class DetectorAlgorithm(ABC):
+    @abstractmethod
+    def __init__(
+        self,
+        source: str,
+        kind: str,
+        state: DetectorState,
+        config: DetectorConfig,
+    ):
+        ...
+
+    @abstractmethod
+    def update(self, payload: DetectorPayload) -> Tuple[TrendType, float]:
+        ...
+
+    @property
+    @abstractmethod
+    def state(self) -> DetectorState:
+        ...
 
 
 @dataclass(frozen=True)
@@ -61,6 +82,21 @@ class MovingAverageDetectorState(DetectorState):
 
         rel_change = (value - target) / target
         if rel_change < rel_threshold:
+            return True
+
+        return False
+
+    def should_escalate(
+        self, baseline: float, regressed: float, min_change: float, rel_threshold: float
+    ) -> bool:
+        value = self.moving_avg_long
+
+        change = value - regressed
+        if change < min_change:
+            return False
+
+        rel_change = change / baseline
+        if rel_change > rel_threshold:
             return True
 
         return False
@@ -121,7 +157,7 @@ class MovingAverageRelativeChangeDetectorConfig(MovingAverageDetectorConfig):
 class MovingAverageRelativeChangeDetector(MovingAverageDetector):
     config: MovingAverageRelativeChangeDetectorConfig
 
-    def update(self, payload: DetectorPayload) -> Tuple[Optional[TrendType], float]:
+    def update(self, payload: DetectorPayload) -> Tuple[TrendType, float]:
         if self.timestamp is not None and self.timestamp > payload.timestamp:
             # In the event that the timestamp is before the payload's timestamps,
             # we do not want to process this payload.
@@ -132,7 +168,7 @@ class MovingAverageRelativeChangeDetector(MovingAverageDetector):
                 payload.timestamp.isoformat(),
                 self.timestamp.isoformat(),
             )
-            return None, 0
+            return TrendType.Skipped, 0
 
         old_moving_avg_short = self.moving_avg_short.value
         old_moving_avg_long = self.moving_avg_long.value
