@@ -1,3 +1,4 @@
+import ExternalLink from 'sentry/components/links/externalLink';
 import {StepProps, StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   DocsParams,
@@ -85,7 +86,17 @@ export const getJSMetricsOnboarding = ({
         },
         {
           description: t(
-            'With a bit of delay you can see the data appear in the Sentry UI'
+            'With a bit of delay you can see the data appear in the Sentry UI.'
+          ),
+        },
+        {
+          description: tct(
+            'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
+            {
+              docsLink: (
+                <ExternalLink href="https://develop.sentry.dev/delightful-developer-metrics/sending-metrics-sdk/" />
+              ),
+            }
           ),
         },
       ],

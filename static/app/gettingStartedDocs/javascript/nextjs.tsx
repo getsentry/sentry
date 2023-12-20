@@ -37,6 +37,26 @@ const getInstallConfig = () => [
   },
 ];
 
+const getManualInstallConfig = () => [
+  {
+    language: 'bash',
+    code: [
+      {
+        label: 'npm',
+        value: 'npm',
+        language: 'bash',
+        code: 'npm install --save @sentry/nextjs',
+      },
+      {
+        label: 'yarn',
+        value: 'yarn',
+        language: 'bash',
+        code: 'yarn add @sentry/nextjs',
+      },
+    ],
+  },
+];
+
 const onboarding: OnboardingConfig = {
   install: (params: Params) => [
     {
@@ -159,7 +179,9 @@ const replayOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   replayOnboardingNpm: replayOnboarding,
-  customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
+  customMetricsOnboarding: getJSMetricsOnboarding({
+    getInstallConfig: getManualInstallConfig,
+  }),
 };
 
 export default docs;
