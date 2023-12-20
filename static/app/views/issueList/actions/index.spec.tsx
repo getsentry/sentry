@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {
   fireEvent,
@@ -60,7 +61,7 @@ describe('IssueListActions', function () {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
-      body: [TestStubs.Project({id: 1})],
+      body: [ProjectFixture({id: '1'})],
     });
   });
 
@@ -306,9 +307,9 @@ describe('IssueListActions', function () {
     jest.spyOn(GroupStore, 'get').mockImplementation(id => {
       switch (id) {
         case '1':
-          return TestStubs.Group({project: TestStubs.Project({slug: 'project-1'})});
+          return TestStubs.Group({project: ProjectFixture({slug: 'project-1'})});
         default:
-          return TestStubs.Group({project: TestStubs.Project({slug: 'project-2'})});
+          return TestStubs.Group({project: ProjectFixture({slug: 'project-2'})});
       }
     });
 
@@ -472,7 +473,7 @@ describe('IssueListActions', function () {
         jest
           .spyOn(GroupStore, 'get')
           .mockReturnValue(
-            TestStubs.Group({project: TestStubs.Project({slug: 'project-1'})})
+            TestStubs.Group({project: ProjectFixture({slug: 'project-1'})})
           );
 
         render(

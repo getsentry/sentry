@@ -59,7 +59,7 @@ function MonitorIssues({orgSlug, monitor, monitorEnvs}: Props) {
           trailingItems={
             <ButtonBar gap={1}>
               <LinkButton
-                size="sm"
+                size="xs"
                 to={{
                   pathname: `/organizations/${orgSlug}/crons/${monitor.slug}/edit/`,
                   query: {
@@ -91,7 +91,7 @@ function MonitorIssues({orgSlug, monitor, monitorEnvs}: Props) {
             .map(e => e.name)
             .join(',')}]`,
           project: monitor.project.id,
-          limit: 5,
+          limit: 20,
           ...timeProps,
         }}
         query=""

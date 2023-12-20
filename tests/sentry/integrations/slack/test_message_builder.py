@@ -81,6 +81,12 @@ def build_test_message_blocks(
                 "elements": [
                     {
                         "type": "button",
+                        "action_id": "resolve_dialog",
+                        "text": {"type": "plain_text", "text": "Resolve"},
+                        "value": "resolve_dialog",
+                    },
+                    {
+                        "type": "button",
                         "action_id": "ignored:forever",
                         "text": {"type": "plain_text", "text": "Ignore"},
                         "value": "ignored:forever",
