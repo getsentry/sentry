@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
@@ -92,12 +92,12 @@ export function ReplayOnboardingLayout({
         <Divider withBottomMargin />
         <Steps>
           {steps.map(step =>
-            step.isOptional && step.type === StepType.CONFIGURE ? (
+            step.type === StepType.CONFIGURE ? (
               <Step
                 key={step.title ?? step.type}
                 {...{
                   ...step,
-                  additionalInfo: (
+                  codeHeader: (
                     <ReplayConfigToggle
                       blockToggle={block}
                       maskToggle={mask}
@@ -108,17 +108,7 @@ export function ReplayOnboardingLayout({
                 }}
               />
             ) : (
-              <Fragment key={step.title ?? step.type}>
-                <Step key={step.title ?? step.type} {...step} />
-                {step.type === StepType.CONFIGURE ? (
-                  <ReplayConfigToggle
-                    blockToggle={block}
-                    maskToggle={mask}
-                    onBlockToggle={() => setBlock(!block)}
-                    onMaskToggle={() => setMask(!mask)}
-                  />
-                ) : null}
-              </Fragment>
+              <Step key={step.title ?? step.type} {...step} />
             )
           )}
         </Steps>

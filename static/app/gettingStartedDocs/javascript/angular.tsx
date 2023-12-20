@@ -274,11 +274,11 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
+      description: getReplayConfigureDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/angular/session-replay/',
+      }),
       configurations: [
         {
-          description: getReplayConfigureDescription({
-            link: 'https://docs.sentry.io/platforms/javascript/guides/angular/session-replay/',
-          }),
           code: [
             {
               label: 'JavaScript',
