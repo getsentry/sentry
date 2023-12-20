@@ -32,9 +32,10 @@ COOKIE_PATH = getattr(settings, "STAFF_COOKIE_PATH", settings.SESSION_COOKIE_PAT
 COOKIE_HTTPONLY = getattr(settings, "STAFF_COOKIE_HTTPONLY", True)
 
 # the maximum time the session can stay alive
-MAX_STAFF_SESSION_AGE = timedelta(hours=4)
+MAX_AGE = timedelta(hours=4)
 
-IDLE_MAX_STAFF_SESSION_AGE = timedelta(minutes=15)
+# the maximum time the session can stay alive without making another request
+IDLE_MAX_AGE = timedelta(minutes=15)
 
 ALLOWED_IPS = frozenset(getattr(settings, "STAFF_ALLOWED_IPS", settings.INTERNAL_IPS) or ())
 
@@ -113,7 +114,7 @@ class Staff(ElevatedMode):
                 key=COOKIE_NAME,
                 default=None,
                 salt=COOKIE_SALT,
-                max_age=MAX_STAFF_SESSION_AGE.total_seconds(),
+                max_age=MAX_AGE.total_seconds(),
             )
         except BadSignature:
             logger.exception(
@@ -255,7 +256,7 @@ class Staff(ElevatedMode):
         self._is_active, self._inactive_reason = self.is_privileged_request()
         self.request.session[SESSION_KEY] = {
             "exp": self.expires.strftime("%s"),
-            "idl": (current_datetime + IDLE_MAX_STAFF_SESSION_AGE).strftime("%s"),
+            "idl": (current_datetime + IDLE_MAX_AGE).strftime("%s"),
             "tok": self.token,
             # XXX(dcramer): do we really need the uid safety mechanism
             "uid": self.uid,
@@ -279,7 +280,7 @@ class Staff(ElevatedMode):
             current_datetime = timezone.now()
 
         self._set_logged_in(
-            expires=current_datetime + MAX_STAFF_SESSION_AGE,
+            expires=current_datetime + MAX_AGE,
             token=get_random_string(12),
             user=user,
             current_datetime=current_datetime,

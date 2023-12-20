@@ -10,8 +10,8 @@ from sentry.auth import staff
 from sentry.auth.staff import (
     COOKIE_NAME,
     COOKIE_SALT,
-    IDLE_MAX_STAFF_SESSION_AGE,
-    MAX_STAFF_SESSION_AGE,
+    IDLE_MAX_AGE,
+    MAX_AGE,
     SESSION_KEY,
     Staff,
     is_active_staff,
@@ -184,8 +184,8 @@ class StaffTestCase(TestCase):
 
         data = request.session.get(SESSION_KEY)
         assert data
-        assert data["exp"] == (self.current_datetime + MAX_STAFF_SESSION_AGE).strftime("%s")
-        assert data["idl"] == (self.current_datetime + IDLE_MAX_STAFF_SESSION_AGE).strftime("%s")
+        assert data["exp"] == (self.current_datetime + MAX_AGE).strftime("%s")
+        assert data["idl"] == (self.current_datetime + IDLE_MAX_AGE).strftime("%s")
         assert len(data["tok"]) == 12
         assert data["uid"] == str(user.id)
 
