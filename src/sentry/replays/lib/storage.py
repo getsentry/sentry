@@ -42,7 +42,7 @@ class Blob(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get(self, segment: RecordingSegmentStorageMeta) -> bytes:
+    def get(self, segment: RecordingSegmentStorageMeta) -> Optional[bytes]:
         """Return blob from remote storage."""
         raise NotImplementedError
 

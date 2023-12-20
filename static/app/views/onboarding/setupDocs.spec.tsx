@@ -1,3 +1,5 @@
+import {ProjectKeys} from 'sentry-fixture/projectKeys';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
@@ -7,7 +9,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project} from 'sentry/types';
 import SetupDocs from 'sentry/views/onboarding/setupDocs';
 
-const PROJECT_KEY = TestStubs.ProjectKeys()[0];
+const PROJECT_KEY = ProjectKeys()[0];
 
 function renderMockRequests({
   project,
@@ -29,6 +31,20 @@ function renderMockRequests({
   MockApiClient.addMockResponse({
     url: `/projects/${orgSlug}/${project.slug}/issues/`,
     body: [],
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/${orgSlug}/sdks/`,
+    body: {
+      'sentry.java.android.gradle-plugin': {
+        canonical: 'maven:io.sentry:sentry',
+        main_docs_url: 'https://docs.sentry.io/platforms/java',
+        name: 'io.sentry:sentry',
+        package_url: 'https://search.maven.org/artifact/io.sentry/sentry',
+        repo_url: 'https://github.com/getsentry/sentry-java',
+        version: '3.12.0',
+      },
+    },
   });
 
   if (project.slug !== 'javascript-react') {
@@ -88,6 +104,48 @@ describe('Onboarding Setup Docs', function () {
     ).not.toBeInTheDocument();
   });
 
+  it('renders SDK version from the sentry release registry', async function () {
+    const {router, route, routerContext, organization, project} = initializeOrg({
+      projects: [
+        {
+          ...initializeOrg().project,
+          slug: 'java',
+          platform: 'java',
+        },
+      ],
+    });
+
+    ProjectsStore.init();
+    ProjectsStore.loadInitialData([project]);
+
+    renderMockRequests({project, orgSlug: organization.slug});
+
+    render(
+      <OnboardingContextProvider>
+        <SetupDocs
+          active
+          onComplete={() => {}}
+          stepIndex={2}
+          router={router}
+          route={route}
+          location={router.location}
+          genSkipOnboardingLink={() => ''}
+          orgId={organization.slug}
+          search=""
+          recentCreatedProject={project}
+        />
+      </OnboardingContextProvider>,
+      {
+        context: routerContext,
+        organization,
+      }
+    );
+
+    expect(
+      await screen.findByText(/id "io.sentry.jvm.gradle" version "3.12.0"/)
+    ).toBeInTheDocument();
+  });
+
   describe('renders Product Selection', function () {
     it('all products checked', async function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
@@ -143,8 +201,9 @@ describe('Onboarding Setup Docs', function () {
         await screen.findByRole('heading', {name: 'Configure React SDK'})
       ).toBeInTheDocument();
 
-      expect(await screen.findByText('// Performance Monitoring')).toBeInTheDocument();
-      expect(screen.getByText('// Session Replay')).toBeInTheDocument();
+      const codeBlock = await screen.findByText(/import \* as Sentry/);
+      expect(codeBlock).toHaveTextContent(/Performance Monitoring/);
+      expect(codeBlock).toHaveTextContent(/Session Replay/);
     });
 
     it('only performance checked', async function () {
@@ -192,8 +251,9 @@ describe('Onboarding Setup Docs', function () {
         }
       );
 
-      expect(await screen.findByText('// Performance Monitoring')).toBeInTheDocument();
-      expect(screen.queryByText('// Session Replay')).not.toBeInTheDocument();
+      const codeBlock = await screen.findByText(/import \* as Sentry/);
+      expect(codeBlock).toHaveTextContent(/Performance Monitoring/);
+      expect(codeBlock).not.toHaveTextContent(/Session Replay/);
     });
 
     it('only session replay checked', async function () {
@@ -241,8 +301,9 @@ describe('Onboarding Setup Docs', function () {
         }
       );
 
-      expect(await screen.findByText('// Session Replay')).toBeInTheDocument();
-      expect(screen.queryByText('// Performance Monitoring')).not.toBeInTheDocument();
+      const codeBlock = await screen.findByText(/import \* as Sentry/);
+      expect(codeBlock).toHaveTextContent(/Session Replay/);
+      expect(codeBlock).not.toHaveTextContent(/Performance Monitoring/);
     });
 
     it('only error monitoring checked', async function () {
@@ -292,8 +353,9 @@ describe('Onboarding Setup Docs', function () {
 
       await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-      expect(screen.queryByText('// Session Replay')).not.toBeInTheDocument();
-      expect(screen.queryByText('// Performance Monitoring')).not.toBeInTheDocument();
+      const codeBlock = await screen.findByText(/import \* as Sentry/);
+      expect(codeBlock).not.toHaveTextContent(/Performance Monitoring/);
+      expect(codeBlock).not.toHaveTextContent(/Session Replay/);
     });
   });
 
@@ -355,7 +417,7 @@ describe('Onboarding Setup Docs', function () {
       );
 
       expect(
-        await screen.findByRole('heading', {name: 'Configure JavaScript SDK'})
+        await screen.findByRole('heading', {name: 'Configure Browser JavaScript SDK'})
       ).toBeInTheDocument();
 
       expect(updateLoaderMock).toHaveBeenCalledTimes(1);
@@ -412,6 +474,50 @@ describe('Onboarding Setup Docs', function () {
           success: expect.any(Function),
         }
       );
+    });
+  });
+
+  describe('special platforms', () => {
+    it('renders platform other', async function () {
+      const {router, route, routerContext, organization, project} = initializeOrg({
+        projects: [
+          {
+            ...initializeOrg().project,
+            slug: 'other',
+            platform: 'other',
+          },
+        ],
+      });
+
+      ProjectsStore.init();
+      ProjectsStore.loadInitialData([project]);
+
+      renderMockRequests({project, orgSlug: organization.slug});
+
+      render(
+        <OnboardingContextProvider>
+          <SetupDocs
+            active
+            onComplete={() => {}}
+            stepIndex={2}
+            router={router}
+            route={route}
+            location={router.location}
+            genSkipOnboardingLink={() => ''}
+            orgId={organization.slug}
+            search=""
+            recentCreatedProject={project}
+          />
+        </OnboardingContextProvider>,
+        {
+          context: routerContext,
+          organization,
+        }
+      );
+
+      expect(
+        await screen.findByRole('heading', {name: 'Configure Other SDK'})
+      ).toBeInTheDocument();
     });
   });
 });

@@ -1,21 +1,52 @@
 import {Frame} from 'sentry/utils/profiling/frame';
 
 describe('Frame', () => {
-  describe('web', () => {
-    it('sets anonymouse name if frame has no name', () => {
-      expect(new Frame({key: 0, name: '', line: 0, column: 0}, 'web').name).toBe(
-        '<anonymous>'
-      );
-    });
+  describe.each([['javascript'], ['node']])(
+    'renames unknown frame to <anonymous> for platform %s',
+    platform => {
+      it('sets anonymouse name if frame has no name', () => {
+        expect(new Frame({key: 0, name: '', line: 0, column: 0}, platform).name).toBe(
+          '<anonymous>'
+        );
+      });
 
-    it('appends [native code] to name if frame belongs to native code', () => {
+      it('appends [native code] to name if frame belongs to native code', () => {
+        expect(
+          new Frame(
+            {key: 0, name: 'foo', line: undefined, column: undefined},
+            platform
+          ).name.endsWith('[native code]')
+        ).toBe(true);
+      });
+    }
+  );
+  it('marks frame as extension', () => {
+    for (const prefix of ['@moz-extension://', 'chrome-extension://']) {
       expect(
         new Frame(
-          {key: 0, name: 'foo', line: undefined, column: undefined},
-          'web'
-        ).name.endsWith('[native code]')
+          {
+            key: 0,
+            name: 'foo',
+            line: undefined,
+            column: undefined,
+            file: `${prefix}foo/bar.js`,
+          },
+          'javascript'
+        ).is_browser_extension
       ).toBe(true);
-    });
+    }
+    expect(
+      new Frame(
+        {
+          key: 0,
+          name: 'foo',
+          line: undefined,
+          column: undefined,
+          file: `bar.js`,
+        },
+        'javascript'
+      ).is_browser_extension
+    ).toBe(false);
   });
   describe('pulls package from path for web|node platforms', () => {
     it('file in node modules', () => {

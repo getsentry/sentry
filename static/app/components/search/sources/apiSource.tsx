@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 
+import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {Client, ResponseMeta} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {
@@ -333,7 +334,7 @@ class ApiSource extends Component<Props, State> {
     const {organization} = this.props;
     const orgId = organization?.slug;
 
-    let searchUrls = ['/organizations/'];
+    let searchUrls: string[] = [];
     let directUrls: (string | null)[] = [];
 
     // Only run these queries when we have an org in context
@@ -354,21 +355,23 @@ class ApiSource extends Component<Props, State> {
         shouldSearchEventIds(query) ? `/organizations/${orgId}/eventids/${query}/` : null,
       ];
     }
-
-    const searchRequests = searchUrls.map(url =>
-      this.api
-        .requestPromise(url, {
-          query: {
-            query,
-          },
-        })
-        .then(
-          resp => resp,
-          err => {
-            this.handleRequestError(err, {orgId, url});
-            return null;
-          }
-        )
+    let searchRequests = [fetchOrganizations(this.api, {query})];
+    searchRequests = searchRequests.concat(
+      searchUrls.map(url =>
+        this.api
+          .requestPromise(url, {
+            query: {
+              query,
+            },
+          })
+          .then(
+            resp => resp,
+            err => {
+              this.handleRequestError(err, {orgId, url});
+              return null;
+            }
+          )
+      )
     );
 
     const directRequests = directUrls.map(url => {

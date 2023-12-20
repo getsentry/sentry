@@ -1,87 +1,121 @@
 import {useCallback, useRef} from 'react';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
-import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import {ReplayFrame} from 'sentry/utils/replays/types';
 
-function useCrumbHandlers(startTimestampMs: number = 0) {
+type RecordType = {
+  offsetMs: number;
+  data?:
+    | Record<string, any>
+    | {
+        nodeId: number;
+        label?: string;
+      }
+    | {
+        element: {
+          element: string;
+          target: string[];
+        };
+        label: string;
+      };
+};
+
+function getNodeIdAndLabel(record: RecordType) {
+  if (!record.data || typeof record.data !== 'object') {
+    return undefined;
+  }
+  const data = record.data;
+  if (
+    'element' in data &&
+    'target' in data.element &&
+    Array.isArray(data.element.target)
+  ) {
+    return {
+      selector: data.element.target.join(' '),
+      annotation: data.label,
+    };
+  }
+  if ('nodeId' in data) {
+    return {nodeId: data.nodeId, annotation: record.data.label};
+  }
+  return undefined;
+}
+
+function useCrumbHandlers() {
   const {
+    replay,
     clearAllHighlights,
-    highlight,
+    addHighlight,
     removeHighlight,
-    setCurrentHoverTime,
     setCurrentTime,
+    setCurrentHoverTime,
   } = useReplayContext();
-  const {setActiveTab} = useActiveReplayTab();
+  const startTimestampMs = replay?.getReplay()?.started_at?.getTime() || 0;
 
   const mouseEnterCallback = useRef<{
-    id: ReplayFrame | null;
+    id: RecordType | null;
     timeoutId: NodeJS.Timeout | null;
   }>({
     id: null,
     timeoutId: null,
   });
 
-  const handleMouseEnter = useCallback(
-    (frame: ReplayFrame) => {
-      // this debounces the mouseEnter callback in unison with mouseLeave
-      // we ensure the pointer remains over the target element before dispatching state events in order to minimize unnecessary renders
-      // this helps during scrolling or mouse move events which would otherwise fire in rapid succession slowing down our app
-      mouseEnterCallback.current.id = frame;
+  const onMouseEnter = useCallback(
+    (record: RecordType) => {
+      // This debounces the mouseEnter callback in unison with mouseLeave.
+      // We ensure the pointer remains over the target element before dispatching
+      // state events in order to minimize unnecessary renders. This helps during
+      // scrolling or mouse move events which would otherwise fire in rapid
+      // succession slowing down our app.
+      mouseEnterCallback.current.id = record;
       mouseEnterCallback.current.timeoutId = setTimeout(() => {
         if (startTimestampMs) {
-          setCurrentHoverTime(frame.offsetMs);
+          setCurrentHoverTime(record.offsetMs);
         }
 
-        if (frame.data && typeof frame.data === 'object' && 'nodeId' in frame.data) {
+        const metadata = getNodeIdAndLabel(record);
+        if (metadata) {
           // XXX: Kind of hacky, but mouseLeave does not fire if you move from a
           // crumb to a tooltip
           clearAllHighlights();
-          // @ts-expect-error: Property 'label' does not exist on type
-          highlight({nodeId: frame.data.nodeId, annotation: frame.data.label});
+          addHighlight(metadata);
         }
         mouseEnterCallback.current.id = null;
         mouseEnterCallback.current.timeoutId = null;
       }, 250);
     },
-    [setCurrentHoverTime, startTimestampMs, highlight, clearAllHighlights]
+    [setCurrentHoverTime, startTimestampMs, addHighlight, clearAllHighlights]
   );
 
-  const handleMouseLeave = useCallback(
-    (frame: ReplayFrame) => {
-      // if there is a mouseEnter callback queued and we're leaving it we can just cancel the timeout
-      if (mouseEnterCallback.current.id === frame) {
+  const onMouseLeave = useCallback(
+    (record: RecordType) => {
+      if (mouseEnterCallback.current.id === record) {
+        // If there is a mouseEnter callback queued and we're leaving the node
+        // just cancel the timeout.
         if (mouseEnterCallback.current.timeoutId) {
           clearTimeout(mouseEnterCallback.current.timeoutId);
         }
         mouseEnterCallback.current.id = null;
         mouseEnterCallback.current.timeoutId = null;
-        // since there is no more work to do we just return
-        return;
-      }
-
-      setCurrentHoverTime(undefined);
-
-      if (frame.data && typeof frame.data === 'object' && 'nodeId' in frame.data) {
-        removeHighlight({nodeId: frame.data.nodeId});
+      } else {
+        setCurrentHoverTime(undefined);
+        const metadata = getNodeIdAndLabel(record);
+        if (metadata) {
+          removeHighlight(metadata);
+        }
       }
     },
     [setCurrentHoverTime, removeHighlight]
   );
 
-  const handleClick = useCallback(
-    (frame: ReplayFrame) => {
-      setCurrentTime(frame.offsetMs);
-      setActiveTab(getFrameDetails(frame).tabKey);
-    },
-    [setCurrentTime, setActiveTab]
+  const onClickTimestamp = useCallback(
+    (record: RecordType) => setCurrentTime(record.offsetMs),
+    [setCurrentTime]
   );
 
   return {
-    handleMouseEnter,
-    handleMouseLeave,
-    handleClick,
+    onMouseEnter,
+    onMouseLeave,
+    onClickTimestamp,
   };
 }
 

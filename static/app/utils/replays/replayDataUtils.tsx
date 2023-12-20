@@ -24,6 +24,7 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
       ? {'device.model_id': [apiResponse.device.model_id]}
       : {}),
     ...(apiResponse.device?.name ? {'device.name': [apiResponse.device.name]} : {}),
+    ...(apiResponse.environment ? {environment: [apiResponse.environment]} : {}),
     ...(apiResponse.platform ? {platform: [apiResponse.platform]} : {}),
     ...(apiResponse.releases ? {releases: [...apiResponse.releases]} : {}),
     ...(apiResponse.replay_type ? {replayType: [apiResponse.replay_type]} : {}),
@@ -33,14 +34,6 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
     ...(apiResponse.sdk?.version ? {'sdk.version': [apiResponse.sdk.version]} : {}),
     ...user,
   };
-
-  // Sort the tags by key
-  const tags = Object.keys(unorderedTags)
-    .sort()
-    .reduce((acc, key) => {
-      acc[key] = unorderedTags[key];
-      return acc;
-    }, {});
 
   const startedAt = new Date(apiResponse.started_at);
   invariant(isValidDate(startedAt), 'replay.started_at is invalid');
@@ -53,7 +46,7 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
     ...(apiResponse.duration !== undefined
       ? {duration: duration(apiResponse.duration * 1000)}
       : {}),
-    tags,
+    tags: unorderedTags,
   };
 }
 
@@ -76,8 +69,12 @@ export function replayTimestamps(
   const rawSpanDataFiltered = rawSpanData.filter(
     ({op}) => op !== 'largest-contentful-paint'
   );
-  const spanStartTimestamps = rawSpanDataFiltered.map(span => span.startTimestamp);
-  const spanEndTimestamps = rawSpanDataFiltered.map(span => span.endTimestamp);
+  const spanStartTimestamps = rawSpanDataFiltered
+    .map(span => span.startTimestamp)
+    .filter(Boolean);
+  const spanEndTimestamps = rawSpanDataFiltered
+    .map(span => span.endTimestamp)
+    .filter(Boolean);
 
   // Calculate min/max of each array individually, to prevent extra allocations.
   // Also using `getMinMax()` so we can handle any huge arrays.

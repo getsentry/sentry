@@ -1,9 +1,14 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {GitHubIntegrationProvider} from 'sentry-fixture/githubIntegrationProvider';
+import LocationFixture from 'sentry-fixture/locationFixture';
+import {Organization} from 'sentry-fixture/organization';
+
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import IntegrationDetailedView from 'sentry/views/settings/organizationIntegrations/integrationDetailedView';
 
 describe('IntegrationDetailedView', function () {
-  const org = TestStubs.Organization({
+  const ENDPOINT = '/organizations/org-slug/';
+  const org = Organization({
     access: ['org:integrations', 'org:write'],
   });
 
@@ -77,7 +82,7 @@ describe('IntegrationDetailedView', function () {
       <IntegrationDetailedView
         {...TestStubs.routeComponentProps()}
         params={{integrationSlug: 'bitbucket'}}
-        location={TestStubs.location({query: {}})}
+        location={LocationFixture({query: {}})}
       />
     );
     expect(screen.getByText('Bitbucket')).toBeInTheDocument();
@@ -90,7 +95,7 @@ describe('IntegrationDetailedView', function () {
       <IntegrationDetailedView
         {...TestStubs.routeComponentProps()}
         params={{integrationSlug: 'bitbucket'}}
-        location={TestStubs.location({query: {tab: 'configurations'}})}
+        location={LocationFixture({query: {tab: 'configurations'}})}
       />
     );
 
@@ -105,9 +110,9 @@ describe('IntegrationDetailedView', function () {
       <IntegrationDetailedView
         {...TestStubs.routeComponentProps()}
         params={{integrationSlug: 'bitbucket'}}
-        location={TestStubs.location({query: {tab: 'configurations'}})}
+        location={LocationFixture({query: {tab: 'configurations'}})}
       />,
-      {organization: TestStubs.Organization({access: ['org:read']})}
+      {organization: Organization({access: ['org:read']})}
     );
 
     expect(screen.getByRole('button', {name: 'Configure'})).toBeDisabled();
@@ -117,7 +122,7 @@ describe('IntegrationDetailedView', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/?provider_key=github`,
       body: {
-        providers: [TestStubs.GitHubIntegrationProvider()],
+        providers: [GitHubIntegrationProvider()],
       },
     });
     MockApiClient.addMockResponse({
@@ -149,9 +154,9 @@ describe('IntegrationDetailedView', function () {
       <IntegrationDetailedView
         {...TestStubs.routeComponentProps()}
         params={{integrationSlug: 'github'}}
-        location={TestStubs.location({query: {tab: 'configurations'}})}
+        location={LocationFixture({query: {tab: 'configurations'}})}
       />,
-      {organization: TestStubs.Organization({access: ['org:read']})}
+      {organization: Organization({access: ['org:read']})}
     );
 
     expect(screen.getByRole('button', {name: 'Configure'})).toBeEnabled();
@@ -161,7 +166,7 @@ describe('IntegrationDetailedView', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/?provider_key=github`,
       body: {
-        providers: [TestStubs.GitHubIntegrationProvider()],
+        providers: [GitHubIntegrationProvider()],
       },
     });
     MockApiClient.addMockResponse({
@@ -194,17 +199,18 @@ describe('IntegrationDetailedView', function () {
         {...TestStubs.routeComponentProps()}
         params={{integrationSlug: 'github'}}
         organization={org}
-        location={TestStubs.location({query: {}})}
+        location={LocationFixture({query: {}})}
       />
     );
     expect(screen.getByText('features')).toBeInTheDocument();
   });
 
   it('cannot enable PR bot without GitHub integration', async function () {
+    org.features.push('integrations-open-pr-comment');
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/?provider_key=github`,
       body: {
-        providers: [TestStubs.GitHubIntegrationProvider()],
+        providers: [GitHubIntegrationProvider()],
       },
     });
     MockApiClient.addMockResponse({
@@ -217,14 +223,88 @@ describe('IntegrationDetailedView', function () {
         {...TestStubs.routeComponentProps()}
         params={{integrationSlug: 'github'}}
         organization={org}
-        location={TestStubs.location({query: {}})}
+        location={LocationFixture({query: {}})}
       />
     );
 
     await userEvent.click(screen.getByText('features'));
 
     expect(
-      screen.getByRole('checkbox', {name: /Enable Pull Request Bot/})
+      screen.getByRole('checkbox', {name: /Enable Comments on Suspect Pull Requests/})
     ).toBeDisabled();
+
+    expect(
+      screen.getByRole('checkbox', {name: /Enable Comments on Open Pull Requests/})
+    ).toBeDisabled();
+  });
+
+  it('can enable github features', async function () {
+    org.features.push('integrations-open-pr-comment');
+    org.features.push('integrations-gh-invite');
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/config/integrations/?provider_key=github`,
+      body: {
+        providers: [GitHubIntegrationProvider()],
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/integrations/?provider_key=github&includeConfig=0`,
+      body: [TestStubs.GitHubIntegration()],
+    });
+    render(
+      <IntegrationDetailedView
+        {...TestStubs.routeComponentProps()}
+        params={{integrationSlug: 'github'}}
+        organization={org}
+        location={LocationFixture({query: {}})}
+      />
+    );
+    await userEvent.click(screen.getByText('features'));
+
+    const mock = MockApiClient.addMockResponse({
+      url: ENDPOINT,
+      method: 'PUT',
+    });
+
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: /Enable Comments on Suspect Pull Requests/})
+    );
+
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledWith(
+        ENDPOINT,
+        expect.objectContaining({
+          data: {githubPRBot: true},
+        })
+      );
+    });
+
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: /Enable Comments on Open Pull Requests/})
+    );
+
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledWith(
+        ENDPOINT,
+        expect.objectContaining({
+          data: {githubOpenPRBot: true},
+        })
+      );
+    });
+
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: /Enable Missing Member Detection/})
+    );
+
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledWith(
+        ENDPOINT,
+        expect.objectContaining({
+          data: {githubNudgeInvite: true},
+        })
+      );
+    });
   });
 });

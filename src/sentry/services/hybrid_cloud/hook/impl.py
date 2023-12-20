@@ -5,7 +5,7 @@ from typing import List, Optional
 from django.db import router, transaction
 
 from sentry import deletions
-from sentry.models import ServiceHook
+from sentry.models.servicehook import ServiceHook
 from sentry.sentry_apps.apps import expand_events
 from sentry.services.hybrid_cloud.hook import HookService, RpcServiceHook
 from sentry.services.hybrid_cloud.hook.serial import serialize_service_hook
@@ -15,8 +15,9 @@ class DatabaseBackedHookService(HookService):
     def update_webhook_and_events(
         self,
         *,
-        application_id: Optional[int] = None,
-        webhook_url: Optional[str] = None,
+        organization_id: int,
+        application_id: Optional[int],
+        webhook_url: Optional[str],
         events: List[str],
     ) -> List[RpcServiceHook]:
         with transaction.atomic(router.db_for_write(ServiceHook)):

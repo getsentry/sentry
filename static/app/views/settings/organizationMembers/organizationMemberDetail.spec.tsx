@@ -1,4 +1,9 @@
 import selectEvent from 'react-select-event';
+import {UserEnrolledAuthenticator} from 'sentry-fixture/authenticators';
+import {Organization} from 'sentry-fixture/organization';
+import {OrgRoleList} from 'sentry-fixture/roleList';
+import {Team} from 'sentry-fixture/team';
+import {User} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -19,8 +24,8 @@ jest.mock('sentry/actionCreators/members', () => ({
 }));
 
 describe('OrganizationMemberDetail', function () {
-  const team = TestStubs.Team();
-  const idpTeam = TestStubs.Team({
+  const team = Team();
+  const idpTeam = Team({
     id: '3',
     slug: 'idp-member-team',
     name: 'Idp Member Team',
@@ -29,8 +34,8 @@ describe('OrganizationMemberDetail', function () {
       'idp:provisioned': true,
     },
   });
-  const managerTeam = TestStubs.Team({id: '5', orgRole: 'manager', slug: 'manager-team'});
-  const otherManagerTeam = TestStubs.Team({
+  const managerTeam = Team({id: '5', orgRole: 'manager', slug: 'manager-team'});
+  const otherManagerTeam = Team({
     id: '4',
     slug: 'org-role-team',
     name: 'Org Role Team',
@@ -39,7 +44,7 @@ describe('OrganizationMemberDetail', function () {
   });
   const teams = [
     team,
-    TestStubs.Team({
+    Team({
       id: '2',
       slug: 'new-team',
       name: 'New Team',
@@ -61,13 +66,13 @@ describe('OrganizationMemberDetail', function () {
   };
 
   const member = TestStubs.Member({
-    roles: TestStubs.OrgRoleList(),
+    roles: OrgRoleList(),
     dateCreated: new Date(),
     ...teamAssignment,
   });
   const pendingMember = TestStubs.Member({
     id: 2,
-    roles: TestStubs.OrgRoleList(),
+    roles: OrgRoleList(),
     dateCreated: new Date(),
     ...teamAssignment,
     invite_link: 'http://example.com/i/abc123',
@@ -75,7 +80,7 @@ describe('OrganizationMemberDetail', function () {
   });
   const expiredMember = TestStubs.Member({
     id: 3,
-    roles: TestStubs.OrgRoleList(),
+    roles: OrgRoleList(),
     dateCreated: new Date(),
     ...teamAssignment,
     invite_link: 'http://example.com/i/abc123',
@@ -84,7 +89,7 @@ describe('OrganizationMemberDetail', function () {
   });
   const idpTeamMember = TestStubs.Member({
     id: 4,
-    roles: TestStubs.OrgRoleList(),
+    roles: OrgRoleList(),
     dateCreated: new Date(),
     teams: [idpTeam.slug],
     teamRoles: [
@@ -96,7 +101,7 @@ describe('OrganizationMemberDetail', function () {
   });
   const managerTeamMember = TestStubs.Member({
     id: 5,
-    roles: TestStubs.OrgRoleList(),
+    roles: OrgRoleList(),
     dateCreated: new Date(),
     teams: [otherManagerTeam.slug],
     teamRoles: [
@@ -108,7 +113,7 @@ describe('OrganizationMemberDetail', function () {
   });
   const managerMember = TestStubs.Member({
     id: 6,
-    roles: TestStubs.OrgRoleList(),
+    roles: OrgRoleList(),
     role: 'manager',
   });
 
@@ -118,7 +123,7 @@ describe('OrganizationMemberDetail', function () {
   });
 
   describe('Can Edit', function () {
-    const organization = TestStubs.Organization({teams, features: ['team-roles']});
+    const organization = Organization({teams, features: ['team-roles']});
 
     beforeEach(function () {
       TeamStore.init();
@@ -232,7 +237,7 @@ describe('OrganizationMemberDetail', function () {
 
     it('cannot leave org role team if missing org:admin', function () {
       const {routerContext, routerProps} = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           teams,
           features: ['team-roles'],
           access: [],
@@ -254,7 +259,7 @@ describe('OrganizationMemberDetail', function () {
 
     it('cannot join org role team if missing org:admin', async function () {
       const {routerContext, routerProps} = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           teams,
           features: ['team-roles'],
           access: ['org:write'],
@@ -339,7 +344,7 @@ describe('OrganizationMemberDetail', function () {
   });
 
   describe('Cannot Edit', function () {
-    const organization = TestStubs.Organization({teams, access: ['org:read']});
+    const organization = Organization({teams, access: ['org:read']});
 
     beforeEach(function () {
       TeamStore.init();
@@ -385,7 +390,7 @@ describe('OrganizationMemberDetail', function () {
   });
 
   describe('Display status', function () {
-    const organization = TestStubs.Organization({teams, access: ['org:read']});
+    const organization = Organization({teams, access: ['org:read']});
 
     beforeEach(function () {
       TeamStore.init();
@@ -445,7 +450,7 @@ describe('OrganizationMemberDetail', function () {
   });
 
   describe('Show resend button', function () {
-    const organization = TestStubs.Organization({teams, access: ['org:read']});
+    const organization = Organization({teams, access: ['org:read']});
 
     beforeEach(function () {
       TeamStore.init();
@@ -508,7 +513,7 @@ describe('OrganizationMemberDetail', function () {
 
   describe('Reset member 2FA', function () {
     const fields = {
-      roles: TestStubs.OrgRoleList(),
+      roles: OrgRoleList(),
       dateCreated: new Date(),
       ...teamAssignment,
     };
@@ -516,24 +521,24 @@ describe('OrganizationMemberDetail', function () {
     const noAccess = TestStubs.Member({
       ...fields,
       id: '4',
-      user: TestStubs.User({has2fa: false, authenticators: undefined}),
+      user: User({has2fa: false, authenticators: undefined}),
     });
 
     const no2fa = TestStubs.Member({
       ...fields,
       id: '5',
-      user: TestStubs.User({has2fa: false, authenticators: [], canReset2fa: true}),
+      user: User({has2fa: false, authenticators: [], canReset2fa: true}),
     });
 
     const has2fa = TestStubs.Member({
       ...fields,
       id: '6',
-      user: TestStubs.User({
+      user: User({
         has2fa: true,
         authenticators: [
-          TestStubs.Authenticators().Totp(),
-          TestStubs.Authenticators().Sms(),
-          TestStubs.Authenticators().U2f(),
+          UserEnrolledAuthenticator({type: 'totp', id: 'totp'}),
+          UserEnrolledAuthenticator({type: 'sms', id: 'sms'}),
+          UserEnrolledAuthenticator({type: 'u2f', id: 'u2f'}),
         ],
         canReset2fa: true,
       }),
@@ -542,14 +547,14 @@ describe('OrganizationMemberDetail', function () {
     const multipleOrgs = TestStubs.Member({
       ...fields,
       id: '7',
-      user: TestStubs.User({
+      user: User({
         has2fa: true,
-        authenticators: [TestStubs.Authenticators().Totp()],
+        authenticators: [UserEnrolledAuthenticator({type: 'totp', id: 'totp'})],
         canReset2fa: false,
       }),
     });
 
-    const organization = TestStubs.Organization({teams});
+    const organization = Organization({teams});
 
     beforeEach(function () {
       MockApiClient.clearMockResponses();
@@ -726,7 +731,7 @@ describe('OrganizationMemberDetail', function () {
       ...teamAssignment,
     });
 
-    const organization = TestStubs.Organization({teams, features: ['team-roles']});
+    const organization = Organization({teams, features: ['team-roles']});
 
     beforeEach(() => {
       MockApiClient.clearMockResponses();

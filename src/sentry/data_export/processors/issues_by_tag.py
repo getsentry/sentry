@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from sentry import tagstore
-from sentry.models import EventUser, Group, Project, get_group_with_redirect
+from sentry.models.group import Group, get_group_with_redirect
+from sentry.models.project import Project
+from sentry.utils.eventuser import EventUser
 
 from ..base import ExportError
 
@@ -95,7 +97,7 @@ class IssuesByTagProcessor:
         }
         if key == "user":
             euser = item._eventuser
-            result["id"] = euser.ident if euser else ""
+            result["id"] = euser.user_ident if euser and isinstance(euser, EventUser) else ""
             result["email"] = euser.email if euser else ""
             result["username"] = euser.username if euser else ""
             result["ip_address"] = euser.ip_address if euser else ""

@@ -1,7 +1,10 @@
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+
 import {getByRole, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {disablePlugin, enablePlugin, fetchPlugins} from 'sentry/actionCreators/plugins';
-import type {Organization, Plugin, Project} from 'sentry/types';
+import type {Organization as TOrganization, Plugin, Project} from 'sentry/types';
 import {ProjectPluginsContainer} from 'sentry/views/settings/projectPlugins';
 
 jest.mock('sentry/actionCreators/plugins', () => ({
@@ -11,11 +14,14 @@ jest.mock('sentry/actionCreators/plugins', () => ({
 }));
 
 describe('ProjectPluginsContainer', function () {
-  let org: Organization, project: Project, plugins: Plugin[], params: {projectId: string};
+  let org: TOrganization,
+    project: Project,
+    plugins: Plugin[],
+    params: {projectId: string};
 
   beforeEach(function () {
-    org = TestStubs.Organization();
-    project = TestStubs.Project();
+    org = Organization();
+    project = ProjectFixture();
     plugins = TestStubs.Plugins([
       {
         enabled: true,

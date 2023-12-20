@@ -3,7 +3,9 @@ import logging
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 from sentry.api.utils import get_date_range_from_params
-from sentry.models import Environment, Group, Project
+from sentry.models.environment import Environment
+from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.search.events.fields import get_function_alias
 from sentry.snuba import discover
 

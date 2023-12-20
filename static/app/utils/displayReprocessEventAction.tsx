@@ -3,12 +3,12 @@ import {
   EntryType,
   Event,
   ExceptionValue,
-  PlatformType,
+  PlatformKey,
   StacktraceType,
   Thread,
 } from 'sentry/types';
 
-const NATIVE_PLATFORMS = ['cocoa', 'native'] as Array<PlatformType>;
+const NATIVE_PLATFORMS: PlatformKey[] = ['cocoa', 'native'];
 
 // Finds all frames in a given data blob and returns it's platforms
 function getPlatforms(exceptionValue: ExceptionValue | StacktraceType | null) {

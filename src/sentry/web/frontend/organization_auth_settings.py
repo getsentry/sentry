@@ -4,7 +4,8 @@ from django import forms
 from django.contrib import messages
 from django.db import router, transaction
 from django.db.models import F
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponseRedirect
+from django.http.response import HttpResponse, HttpResponseBadRequest, HttpResponseBase
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
@@ -12,21 +13,16 @@ from rest_framework.request import Request
 from sentry import audit_log, features, roles
 from sentry.auth import manager
 from sentry.auth.helper import AuthHelper
-from sentry.models import (
-    AuthProvider,
-    Organization,
-    OrganizationMember,
-    OutboxCategory,
-    OutboxScope,
-    RegionOutbox,
-    outbox_context,
-)
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.plugins.base import Response
 from sentry.services.hybrid_cloud.auth import RpcAuthProvider, auth_service
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.tasks.auth import email_missing_links, email_unlink_notifications
 from sentry.utils.http import absolute_uri
-from sentry.web.frontend.base import ControlSiloOrganizationView
+from sentry.web.frontend.base import OrganizationView, region_silo_view
 
 ERR_NO_SSO = _("The SSO feature is not enabled for this organization.")
 
@@ -83,7 +79,8 @@ def auth_provider_settings_form(provider, auth_provider, organization, request):
     return form
 
 
-class OrganizationAuthSettingsView(ControlSiloOrganizationView):
+@region_silo_view
+class OrganizationAuthSettingsView(OrganizationView):
     # We restrict auth settings to org:write as it allows a non-owner to
     # escalate members to own by disabling the default role.
     required_scope = "org:write"
@@ -212,20 +209,20 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
 
         return self.respond("sentry/organization-auth-provider-settings.html", context)
 
-    def handle(self, request: Request, organization: RpcOrganization) -> HttpResponse:
-        providers = auth_service.get_auth_providers(organization_id=organization.id)
-        if providers:
+    def handle(self, request: Request, organization: RpcOrganization) -> HttpResponseBase:  # type: ignore[override]
+        provider = auth_service.get_auth_provider(organization_id=organization.id)
+        if provider:
             # if the org has SSO set up already, allow them to modify the existing provider
             # regardless if the feature flag is set up. This allows orgs who might no longer
             # have the SSO feature to be able to turn it off
             return self.handle_existing_provider(
-                request=request, organization=organization, auth_provider=providers[0]
+                request=request, organization=organization, auth_provider=provider
             )
 
         if request.method == "POST":
             provider_key = request.POST.get("provider")
-            if not manager.exists(provider_key):
-                raise ValueError(f"Provider not found: {provider_key}")
+            if provider_key is None or not manager.exists(provider_key):
+                return HttpResponseBadRequest()
 
             helper = AuthHelper(
                 request=request,

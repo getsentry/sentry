@@ -1,3 +1,8 @@
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {Team} from 'sentry-fixture/team';
+import {TeamReleaseCounts} from 'sentry-fixture/teamReleaseCounts';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import TeamReleases from './teamReleases';
@@ -7,13 +12,13 @@ describe('TeamReleases', () => {
     MockApiClient.clearMockResponses();
   });
   it('should compare selected past release count with current week', async () => {
-    const team = TestStubs.Team();
-    const organization = TestStubs.Organization();
-    const project = TestStubs.Project({id: 123});
+    const team = Team();
+    const organization = Organization();
+    const project = ProjectFixture({id: '123'});
 
     const releaseCountApi = MockApiClient.addMockResponse({
       url: `/teams/org-slug/team-slug/release-count/`,
-      body: TestStubs.TeamReleaseCounts(),
+      body: TeamReleaseCounts(),
     });
 
     render(
@@ -35,11 +40,11 @@ describe('TeamReleases', () => {
   it('should render no release counts', async () => {
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/team-slug/release-count/`,
-      body: TestStubs.TeamReleaseCounts(),
+      body: TeamReleaseCounts(),
     });
-    const team = TestStubs.Team();
-    const organization = TestStubs.Organization();
-    const noReleaseProject = TestStubs.Project({id: 321});
+    const team = Team();
+    const organization = Organization();
+    const noReleaseProject = ProjectFixture({id: '321'});
 
     render(
       <TeamReleases
@@ -54,14 +59,14 @@ describe('TeamReleases', () => {
   });
 
   it('should render multiple projects', async () => {
-    const team = TestStubs.Team();
-    const organization = TestStubs.Organization();
-    const projectA = TestStubs.Project({id: 123});
-    const projectB = TestStubs.Project({id: 234, slug: 'other-project-slug'});
+    const team = Team();
+    const organization = Organization();
+    const projectA = ProjectFixture({id: '123'});
+    const projectB = ProjectFixture({id: '234', slug: 'other-project-slug'});
 
     const releaseCountApi = MockApiClient.addMockResponse({
       url: `/teams/org-slug/team-slug/release-count/`,
-      body: TestStubs.TeamReleaseCounts(),
+      body: TeamReleaseCounts(),
     });
 
     render(

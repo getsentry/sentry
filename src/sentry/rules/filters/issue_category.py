@@ -5,7 +5,7 @@ from django import forms
 
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import GroupCategory
-from sentry.models import Group
+from sentry.models.group import Group
 from sentry.rules import EventState
 from sentry.rules.filters import EventFilter
 from sentry.types.condition_activity import ConditionActivity

@@ -8,19 +8,25 @@ from rest_framework.request import Request
 
 from sentry.api.serializers.rest_framework.rule import RuleSerializer
 from sentry.db.models import BoundedPositiveIntegerField
-from sentry.mediators import project_rules
-from sentry.models import Group, Rule, RuleActivity, RuleActivityType, RuleSource, User
+from sentry.mediators.project_rules.creator import Creator
+from sentry.mediators.project_rules.updater import Updater
+from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.signals import first_cron_checkin_received, first_cron_monitor_created
-
-from .models import CheckInStatus, Monitor, MonitorCheckIn
-from .tasks import MAX_TIMEOUT, TIMEOUT
+from sentry.models.rule import Rule, RuleActivity, RuleActivityType, RuleSource
+from sentry.models.user import User
+from sentry.monitors.constants import DEFAULT_CHECKIN_MARGIN, MAX_TIMEOUT, TIMEOUT
+from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn
+from sentry.signals import (
+    cron_monitor_created,
+    first_cron_checkin_received,
+    first_cron_monitor_created,
+)
 
 
 def signal_first_checkin(project: Project, monitor: Monitor):
     if not project.flags.has_cron_checkins:
         # Backfill users that already have cron monitors
-        signal_first_monitor_created(project, None, False)
+        check_and_signal_first_monitor_created(project, None, False)
         transaction.on_commit(
             lambda: first_cron_checkin_received.send_robust(
                 project=project, monitor_id=str(monitor.guid), sender=Project
@@ -29,11 +35,27 @@ def signal_first_checkin(project: Project, monitor: Monitor):
         )
 
 
-def signal_first_monitor_created(project: Project, user, from_upsert: bool):
+def check_and_signal_first_monitor_created(project: Project, user, from_upsert: bool):
     if not project.flags.has_cron_monitors:
         first_cron_monitor_created.send_robust(
             project=project, user=user, from_upsert=from_upsert, sender=Project
         )
+
+
+def signal_monitor_created(project: Project, user, from_upsert: bool):
+    cron_monitor_created.send_robust(
+        project=project, user=user, from_upsert=from_upsert, sender=Project
+    )
+    check_and_signal_first_monitor_created(project, user, from_upsert)
+
+
+def get_max_runtime(max_runtime: Optional[int]) -> timedelta:
+    """
+    Computes a timedelta given a max_runtime. Limits the returned timedelta
+    to MAX_TIMEOUT. If an empty max_runtime is provided the default TIMEOUT
+    will be used.
+    """
+    return timedelta(minutes=min((max_runtime or TIMEOUT), MAX_TIMEOUT))
 
 
 # Generates a timeout_at value for new check-ins
@@ -41,8 +63,8 @@ def get_timeout_at(
     monitor_config: dict, status: CheckInStatus, date_added: Optional[datetime]
 ) -> Optional[datetime]:
     if status == CheckInStatus.IN_PROGRESS:
-        return date_added.replace(second=0, microsecond=0) + timedelta(
-            minutes=min(((monitor_config or {}).get("max_runtime") or TIMEOUT), MAX_TIMEOUT)
+        return date_added.replace(second=0, microsecond=0) + get_max_runtime(
+            (monitor_config or {}).get("max_runtime")
         )
 
     return None
@@ -62,6 +84,17 @@ def valid_duration(duration: Optional[int]) -> bool:
         return False
 
     return True
+
+
+def get_checkin_margin(checkin_margin: Optional[int]) -> timedelta:
+    """
+    Computes a timedelta given the checkin_margin (missed margin).
+    If an empty value is provided the DEFAULT_CHECKIN_MARGIN will be used.
+    """
+    # TODO(epurkhiser): We should probably just set this value as a
+    # `default` in the validator for the config instead of having the magic
+    # default number here
+    return timedelta(minutes=int(checkin_margin or DEFAULT_CHECKIN_MARGIN))
 
 
 def fetch_associated_groups(
@@ -205,7 +238,7 @@ def create_alert_rule(
         "user_id": request.user.id,
     }
 
-    rule = project_rules.Creator.run(request=request, **kwargs)
+    rule = Creator.run(request=request, **kwargs)
     rule.update(source=RuleSource.CRON_MONITOR)
     RuleActivity.objects.create(
         rule=rule, user_id=request.user.id, type=RuleActivityType.CREATED.value
@@ -228,11 +261,9 @@ def create_alert_rule_data(project: Project, user: User, monitor: Monitor, alert
         "conditions": [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-                "name": "A new issue is created",
             },
             {
                 "id": "sentry.rules.conditions.regression_event.RegressionEventCondition",
-                "name": "The issue changes state from resolved to unresolved",
             },
         ],
         "createdBy": {
@@ -248,9 +279,8 @@ def create_alert_rule_data(project: Project, user: User, monitor: Monitor, alert
                 "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
                 "key": "monitor.slug",
                 "match": "eq",
-                "name": f"The event's tags match monitor.slug contains {monitor.slug}",
                 "value": monitor.slug,
-            }
+            },
         ],
         "frequency": 1440,
         "name": f"Monitor Alert: {monitor.name}"[:64],
@@ -265,7 +295,6 @@ def create_alert_rule_data(project: Project, user: User, monitor: Monitor, alert
 
         action = {
             "id": "sentry.mail.actions.NotifyEmailAction",
-            "name": f"Send a notification to {target_type}",
             "targetIdentifier": target_identifier,
             "targetType": target_type,
         }
@@ -274,7 +303,9 @@ def create_alert_rule_data(project: Project, user: User, monitor: Monitor, alert
     return alert_rule_data
 
 
-def update_alert_rule(request: Request, project: Project, alert_rule: Rule, alert_rule_data: dict):
+def update_alert_rule(
+    request: Request, project: Project, monitor: Monitor, alert_rule: Rule, alert_rule_data: dict
+):
     actions = []
     for target in alert_rule_data.get("targets", []):
         target_identifier = target["target_identifier"]
@@ -282,7 +313,6 @@ def update_alert_rule(request: Request, project: Project, alert_rule: Rule, aler
 
         action = {
             "id": "sentry.mail.actions.NotifyEmailAction",
-            "name": f"Send a notification to {target_type}",
             "targetIdentifier": target_identifier,
             "targetType": target_type,
         }
@@ -300,13 +330,34 @@ def update_alert_rule(request: Request, project: Project, alert_rule: Rule, aler
     if serializer.is_valid():
         data = serializer.validated_data
 
+        # update only slug conditions
+        conditions = alert_rule.data.get("conditions", [])
+        updated = False
+        for condition in conditions:
+            if condition.get("key") == "monitor.slug":
+                condition["value"] = monitor.slug
+                updated = True
+
+        # slug condition not present, add slug to conditions
+        if not updated:
+            conditions = conditions.append[
+                {
+                    "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                    "key": "monitor.slug",
+                    "match": "eq",
+                    "value": monitor.slug,
+                }
+            ]
+
         kwargs = {
             "project": project,
             "actions": data.get("actions", []),
             "environment": data.get("environment", None),
+            "name": f"Monitor Alert: {monitor.name}"[:64],
+            "conditions": conditions,
         }
 
-        updated_rule = project_rules.Updater.run(rule=alert_rule, request=request, **kwargs)
+        updated_rule = Updater.run(rule=alert_rule, request=request, **kwargs)
 
         RuleActivity.objects.create(
             rule=updated_rule, user_id=request.user.id, type=RuleActivityType.UPDATED.value

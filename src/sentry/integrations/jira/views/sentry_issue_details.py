@@ -5,6 +5,7 @@ from functools import reduce
 from typing import Any, Mapping, Sequence
 from urllib.parse import quote
 
+from django.http.response import HttpResponseBase
 from jwt import ExpiredSignatureError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -12,11 +13,14 @@ from rest_framework.response import Response
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializer
 from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
-from sentry.models import ExternalIssue, Group, Organization
+from sentry.models.group import Group
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
 from sentry.utils.sdk import configure_scope
+from sentry.web.frontend.base import region_silo_view
 
 from ..utils import handle_jira_api_error, set_badge
 from . import UNABLE_TO_VERIFY_INSTALLATION, JiraSentryUIBaseView
@@ -84,6 +88,7 @@ def build_context(group: Group) -> Mapping[str, Any]:
     }
 
 
+@region_silo_view
 class JiraSentryIssueDetailsView(JiraSentryUIBaseView):
     """
     Handles requests (from the Sentry integration in Jira) for HTML to display when you
@@ -105,7 +110,7 @@ class JiraSentryIssueDetailsView(JiraSentryUIBaseView):
 
         return self.get_response(response_context)
 
-    def dispatch(self, request: Request, *args, **kwargs) -> Response:
+    def dispatch(self, request: Request, *args, **kwargs) -> HttpResponseBase:
         try:
             return super().dispatch(request, *args, **kwargs)
         except ApiError as exc:

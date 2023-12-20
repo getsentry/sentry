@@ -1,4 +1,7 @@
 import selectEvent from 'react-select-event';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {Team} from 'sentry-fixture/team';
+import {User} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -20,34 +23,24 @@ describe('RuleBuilder', function () {
   let project: Project;
   let handleAdd: jest.Mock;
 
-  const USER_1 = TestStubs.User({
+  const USER_1 = User({
     id: '1',
     name: 'Jane Bloggs',
     email: 'janebloggs@example.com',
-    user: {
-      id: '1',
-      name: 'Jane Bloggs',
-      email: 'janebloggs@example.com',
-    },
   });
-  const USER_2 = TestStubs.User({
+  const USER_2 = User({
     id: '2',
     name: 'John Smith',
     email: 'johnsmith@example.com',
-    user: {
-      id: '2',
-      name: 'John Smith',
-      email: 'johnsmith@example.com',
-    },
   });
 
-  const TEAM_1 = TestStubs.Team({
+  const TEAM_1 = Team({
     id: '3',
     slug: 'cool-team',
   });
 
   // This team is in project
-  const TEAM_2 = TestStubs.Team({
+  const TEAM_2 = Team({
     id: '4',
     slug: 'team-not-in-project',
   });
@@ -60,7 +53,7 @@ describe('RuleBuilder', function () {
 
     handleAdd = jest.fn();
 
-    project = TestStubs.Project({
+    project = ProjectFixture({
       // Teams in project
       teams: [TEAM_1],
     });
@@ -69,12 +62,15 @@ describe('RuleBuilder', function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      body: [USER_1, USER_2],
+      body: [
+        {...USER_1, user: USER_1},
+        {...USER_2, user: USER_2},
+      ],
     });
   });
 
   it('renders', async function () {
-    const {container} = render(
+    render(
       <RuleBuilder
         project={project}
         organization={organization}
@@ -105,12 +101,10 @@ describe('RuleBuilder', function () {
     expect(addButton).toBeEnabled();
     await userEvent.click(addButton);
     expect(handleAdd).toHaveBeenCalled();
-
-    expect(container).toSnapshot();
   });
 
   it('renders with suggestions', async function () {
-    const {container} = render(
+    render(
       <RuleBuilder
         project={project}
         organization={organization}
@@ -144,8 +138,6 @@ describe('RuleBuilder', function () {
 
     const addButton = screen.getByRole('button', {name: 'Add rule'});
     await waitFor(() => expect(addButton).toBeEnabled());
-
-    expect(container).toSnapshot();
 
     await userEvent.click(addButton);
     expect(handleAdd).toHaveBeenCalled();

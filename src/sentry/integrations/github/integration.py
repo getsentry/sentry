@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import datetime
+from datetime import timezone
 from typing import Any, Collection, Dict, Mapping, Sequence
 
 from django.http import HttpResponse
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
+from isodate import parse_datetime
 from rest_framework.request import Request
 
 from sentry import features, options
@@ -23,7 +24,9 @@ from sentry.integrations import (
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.mixins.commit_context import CommitContextMixin
 from sentry.integrations.utils.code_mapping import RepoTree
-from sentry.models import Integration, OrganizationIntegration, Repository
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.repository import Repository
 from sentry.pipeline import Pipeline, PipelineView
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, organization_service
 from sentry.services.hybrid_cloud.repository import RpcRepository, repository_service
@@ -77,6 +80,12 @@ FEATURES = [
         Import your GitHub [CODEOWNERS file](https://docs.sentry.io/product/integrations/source-code-mgmt/github/#code-owners) and use it alongside your ownership rules to assign Sentry issues.
         """,
         IntegrationFeatures.CODEOWNERS,
+    ),
+    FeatureDescription(
+        """
+        Automatically create GitHub issues based on Issue Alert conditions.
+        """,
+        IntegrationFeatures.TICKET_RULES,
     ),
 ]
 
@@ -136,7 +145,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             id=self.org_integration.organization_id, user_id=None
         )
         if not organization_context:
-            logger.exception(
+            logger.error(
                 "No organization information was found. Continuing execution.", extra=extra
             )
         else:
@@ -177,10 +186,23 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     def search_issues(self, query: str) -> Mapping[str, Sequence[Mapping[str, Any]]]:
         return self.get_client().search_issues(query)
 
+    def source_url_matches(self, url: str) -> bool:
+        return url.startswith("https://{}".format(self.model.metadata["domain_name"]))
+
     def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
         # Must format the url ourselves since `check_file` is a head request
         # "https://github.com/octokit/octokit.rb/blob/master/README.md"
         return f"https://github.com/{repo.name}/blob/{branch}/{filepath}"
+
+    def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
+        url = url.replace(f"{repo.url}/blob/", "")
+        branch, _, _ = url.partition("/")
+        return branch
+
+    def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
+        url = url.replace(f"{repo.url}/blob/", "")
+        _, _, source_path = url.partition("/")
+        return source_path
 
     def get_unmigratable_repositories(self) -> Collection[RpcRepository]:
         accessible_repos = self.get_repositories()
@@ -248,10 +270,9 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
                     blame
                     for blame in blame_range
                     if blame.get("startingLine", 0) <= lineno <= blame.get("endingLine", 0)
+                    and blame.get("commit", {}).get("committedDate")
                 ),
-                key=lambda blame: datetime.strptime(
-                    blame.get("commit", {}).get("committedDate"), "%Y-%m-%dT%H:%M:%SZ"
-                ),
+                key=lambda blame: parse_datetime(blame.get("commit", {}).get("committedDate")),
                 default={},
             )
             if not commit:
@@ -263,9 +284,13 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         if not commitInfo:
             return None
         else:
+            committed_date = parse_datetime(commitInfo.get("committedDate")).astimezone(
+                timezone.utc
+            )
+
             return {
                 "commitId": commitInfo.get("oid"),
-                "committedDate": commitInfo.get("committedDate"),
+                "committedDate": committed_date,
                 "commitMessage": commitInfo.get("message"),
                 "commitAuthorName": commitInfo.get("author", {}).get("name"),
                 "commitAuthorEmail": commitInfo.get("author", {}).get("email"),
@@ -356,6 +381,9 @@ class GitHubIntegrationProvider(IntegrationProvider):
             },
         }
 
+        if state.get("sender"):
+            integration["metadata"]["sender"] = state["sender"]
+
         if state.get("reinstall_id"):
             integration["reinstall_id"] = state["reinstall_id"]
 
@@ -442,5 +470,9 @@ class GitHubInstallationRedirect(PipelineView):
                     },
                     request=request,
                 )
+            else:
+                # OrganizationIntegration does not exist, but Integration does exist.
+                pipeline.bind_state("installation_id", request.GET["installation_id"])
+                return pipeline.next_step()
 
         return self.redirect(self.get_app_url())

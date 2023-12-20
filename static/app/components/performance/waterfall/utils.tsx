@@ -189,10 +189,6 @@ export const getHumanDuration = (duration: number): string => {
   })}ms`;
 };
 
-export const toPercent = (value: number) => `${(value * 100).toFixed(3)}%`;
-
-export const toRoundedPercent = (value: number) => `${Math.round(value * 100)}%`;
-
 type Rect = {
   height: number;
   width: number;
@@ -229,16 +225,6 @@ export const rectOfContent = (element: Element): Rect => {
     width: element.scrollWidth,
     height: element.scrollHeight,
   };
-};
-
-export const clamp = (value: number, min: number, max: number): number => {
-  if (value < min) {
-    return min;
-  }
-  if (value > max) {
-    return max;
-  }
-  return value;
 };
 
 const getLetterIndex = (letter: string): number => {

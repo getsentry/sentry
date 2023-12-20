@@ -23,6 +23,9 @@ export enum GenericPerformanceWidgetDataType {
   LINE_LIST = 'line_list',
   TRENDS = 'trends',
   STACKED_AREA = 'stacked_area',
+  PERFORMANCE_SCORE = 'performance_score',
+  SLOW_SCREENS_BY_TTID = 'slow_screens_by_ttid',
+  PERFORMANCE_SCORE_LIST = 'performance_score_list',
 }
 
 export type PerformanceWidgetProps = {
@@ -37,10 +40,11 @@ export type PerformanceWidgetProps = {
   organization: Organization;
   title: string;
   titleTooltip: string;
-
   InteractiveTitle?: React.ComponentType<{isLoading: boolean}> | null;
 
   chartColor?: string;
+
+  subTitle?: string;
 
   withStaticFilters?: boolean;
 };
@@ -78,7 +82,7 @@ export type QueryFC<T extends WidgetDataConstraint> = React.ComponentType<
 
 export type QueryDefinition<
   T extends WidgetDataConstraint,
-  S extends WidgetDataResult | undefined
+  S extends WidgetDataResult | undefined,
 > = {
   component: QueryFC<T>;
   fields: string | string[];
@@ -140,8 +144,8 @@ export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
   title: string;
   titleTooltip: string;
   EmptyComponent?: React.ComponentType<{height?: number}>;
-
   HeaderActions?: HeaderActions<T>;
+
   InteractiveTitle?: InteractiveTitle<T> | null;
   Subtitle?: Subtitle<T>;
 };

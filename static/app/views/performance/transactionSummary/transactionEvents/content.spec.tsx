@@ -1,3 +1,6 @@
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -16,9 +19,9 @@ import EventsPageContent from 'sentry/views/performance/transactionSummary/trans
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 
 function initializeData() {
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features: ['discover-basic', 'performance-view'],
-    projects: [TestStubs.Project()],
+    projects: [ProjectFixture()],
   });
   const initialData = initializeOrg({
     organization,
@@ -274,7 +277,7 @@ describe('Performance Transaction Events Content', function () {
           webVital={WebVital.LCP}
           setError={() => {}}
           projectId="1"
-          projects={[TestStubs.Project({id: 1, platform: 'python'})]}
+          projects={[ProjectFixture({id: '1', platform: 'python'})]}
         />
       </OrganizationContext.Provider>,
       {context: initialData.routerContext}

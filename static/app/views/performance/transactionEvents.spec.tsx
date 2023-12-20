@@ -1,3 +1,6 @@
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -16,9 +19,9 @@ type Data = {
 
 function initializeData({features: additionalFeatures = [], query = {}}: Data = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features,
-    projects: [TestStubs.Project()],
+    projects: [ProjectFixture()],
   });
   return initializeOrg({
     organization,
@@ -176,7 +179,7 @@ describe('Performance > TransactionSummary', function () {
     expect(screen.getByRole('table')).toBeInTheDocument();
 
     expect(screen.getByRole('tab', {name: 'Overview'})).toBeInTheDocument();
-    expect(screen.getByRole('tab', {name: 'All Events'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Sampled Events'})).toBeInTheDocument();
     expect(screen.getByRole('tab', {name: 'Tags'})).toBeInTheDocument();
 
     ProjectsStore.reset();

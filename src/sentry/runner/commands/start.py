@@ -6,7 +6,6 @@ from sentry.runner.decorators import configuration
 
 SERVICES = {
     "http": "sentry.services.http.SentryHTTPServer",
-    "smtp": "sentry.services.smtp.SentrySMTPServer",
 }
 
 

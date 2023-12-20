@@ -135,36 +135,36 @@ export const darkColors = {
 
 const prismLight = {
   '--prism-base': '#332B3B',
-  '--prism-selected': '#E9E0EB',
-  '--prism-inline-code': '#D25F7C',
-  '--prism-inline-code-background': '#F8F9FB',
+  '--prism-selected': '#F5F3F7',
+  '--prism-inline-code': '#332B3B',
+  '--prism-inline-code-background': '#F5F3F7',
   '--prism-highlight-background': '#5C78A31C',
   '--prism-highlight-accent': '#5C78A344',
-  '--prism-comment': '#72697C',
-  '--prism-punctuation': '#70697C',
-  '--prism-property': '#7A6229',
-  '--prism-selector': '#3C774A',
-  '--prism-operator': '#635D6F',
-  '--prism-variable': '#A8491A',
-  '--prism-function': '#106A9E',
-  '--prism-keyword': '#A7114A',
+  '--prism-comment': '#80708F',
+  '--prism-punctuation': '#332B3B',
+  '--prism-property': '#18408B',
+  '--prism-selector': '#177861',
+  '--prism-operator': '#235CC8',
+  '--prism-variable': '#332B3B',
+  '--prism-function': '#235CC8',
+  '--prism-keyword': '#BB3A3D',
 };
 
 const prismDark = {
-  '--prism-base': '#F2EDF6',
-  '--prism-selected': '#865891',
-  '--prism-inline-code': '#D25F7C',
-  '--prism-inline-code-background': '#F8F9FB',
+  '--prism-base': '#D6D0DC',
+  '--prism-selected': '#18121C',
+  '--prism-inline-code': '#D6D0DC',
+  '--prism-inline-code-background': '#18121C',
   '--prism-highlight-background': '#A8A2C31C',
   '--prism-highlight-accent': '#A8A2C344',
-  '--prism-comment': '#8B7A9E',
-  '--prism-punctuation': '#B3ACC1',
-  '--prism-property': '#EAB944',
-  '--prism-selector': '#7EBE8E',
-  '--prism-operator': '#A470A7',
-  '--prism-variable': '#E58759',
-  '--prism-function': '#6CC5F9',
-  '--prism-keyword': '#E386AA',
+  '--prism-comment': '#998DA5',
+  '--prism-punctuation': '#D6D0DC',
+  '--prism-property': '#70A2FF',
+  '--prism-selector': '#1DCDA4',
+  '--prism-operator': '#70A2FF',
+  '--prism-variable': '#D6D0DC',
+  '--prism-function': '#70A2FF',
+  '--prism-keyword': '#F8777C',
 };
 
 const lightShadows = {
@@ -378,6 +378,8 @@ const generateAliases = (colors: BaseColors) => ({
     validActive: color(colors.blue100).opaquer(1.0).string(),
     invalid: colors.red100,
     invalidActive: color(colors.red100).opaquer(0.8).string(),
+    warning: colors.yellow100,
+    warningActive: color(colors.yellow100).opaquer(0.8).string(),
   },
 
   /**
@@ -388,6 +390,8 @@ const generateAliases = (colors: BaseColors) => ({
     validActive: color(colors.blue200).opaquer(1).string(),
     invalid: colors.red200,
     invalidActive: color(colors.red200).opaquer(1).string(),
+    warning: colors.yellow200,
+    warningActive: color(colors.yellow200).opaquer(1).string(),
   },
 
   /**
@@ -906,6 +910,9 @@ const commonTheme = {
   // used as a gradient,
   businessIconColors: ['#EA5BC2', '#6148CE'],
 
+  barBreakdownColors: ['#EAE2F8', '#BBA6DF', '#9A81C4', '#694D99', '#402A65'],
+  barBreakdownFontColors: ['#564277', '#E8E2F1', '#E8E2F1', '#E8E2F1', '#E8E2F1'],
+
   demo: {
     headerSize: '70px',
   },
@@ -939,6 +946,7 @@ export const lightTheme = {
   },
   sidebarGradient: `linear-gradient(294.17deg,${sidebarBackground.light} 35.57%,#452650 92.42%,#452650 92.42%)`,
   sidebarBorder: 'transparent',
+  superuserSidebar: '#880808',
 };
 
 export const darkTheme: Theme = {
@@ -966,6 +974,7 @@ export const darkTheme: Theme = {
   },
   sidebarGradient: `linear-gradient(180deg, ${sidebarBackground.dark} 0%, #1B1825 100%)`,
   sidebarBorder: darkAliases.border,
+  superuserSidebar: '#620808',
 };
 
 type Theme = typeof lightTheme;

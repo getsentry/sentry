@@ -1,5 +1,11 @@
 import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
+import {AuthProvider} from 'sentry-fixture/authProvider';
+import {Members} from 'sentry-fixture/members';
+import {Organization} from 'sentry-fixture/organization';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {Team} from 'sentry-fixture/team';
+import {User} from 'sentry-fixture/user';
 
 import {
   render,
@@ -42,10 +48,17 @@ const roles = [
   },
 ];
 
+// const missingMembers = [
+//   {
+//     integration: 'github',
+//     users: TestStubs.MissingMembers(),
+//   },
+// ];
+
 describe('OrganizationMembersList', function () {
   const members = TestStubs.Members();
 
-  const ownerTeam = TestStubs.Team({slug: 'owner-team', orgRole: 'owner'});
+  const ownerTeam = Team({slug: 'owner-team', orgRole: 'owner'});
   const member = TestStubs.Member({
     id: '5',
     email: 'member@sentry.io',
@@ -68,10 +81,11 @@ describe('OrganizationMembersList', function () {
   });
 
   const currentUser = members[1];
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     access: ['member:admin', 'org:admin', 'member:write'],
     status: {
       id: 'active',
+      name: 'active',
     },
   });
   const router = TestStubs.router();
@@ -101,7 +115,7 @@ describe('OrganizationMembersList', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
       method: 'GET',
-      body: [...TestStubs.Members(), member],
+      body: [...Members(), member],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/members/${member.id}/`,
@@ -124,7 +138,7 @@ describe('OrganizationMembersList', function () {
               name: 'sentry@test.com',
             },
           },
-          team: TestStubs.Team(),
+          team: Team(),
         },
       ],
     });
@@ -132,19 +146,32 @@ describe('OrganizationMembersList', function () {
       url: '/organizations/org-slug/auth-provider/',
       method: 'GET',
       body: {
-        ...TestStubs.AuthProvider(),
+        ...AuthProvider(),
         require_link: true,
       },
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/teams/',
       method: 'GET',
-      body: [TestStubs.Team(), ownerTeam],
+      body: [Team(), ownerTeam],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/invite-requests/',
       method: 'GET',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/missing-members/',
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      method: 'GET',
+      body: {
+        dismissed_ts: undefined,
+        snoozed_ts: undefined,
+      },
     });
     (browserHistory.push as jest.Mock).mockReset();
     OrganizationsStore.load([organization]);
@@ -157,7 +184,7 @@ describe('OrganizationMembersList', function () {
     });
 
     render(<OrganizationMembersList {...defaultProps} />, {
-      context: TestStubs.routerContext([{organization}]),
+      context: RouterContextFixture([{organization}]),
     });
 
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
@@ -180,7 +207,7 @@ describe('OrganizationMembersList', function () {
     });
 
     render(<OrganizationMembersList {...defaultProps} />, {
-      context: TestStubs.routerContext([{organization}]),
+      context: RouterContextFixture([{organization}]),
     });
 
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
@@ -202,7 +229,7 @@ describe('OrganizationMembersList', function () {
     });
 
     render(<OrganizationMembersList {...defaultProps} />, {
-      context: TestStubs.routerContext([{organization}]),
+      context: RouterContextFixture([{organization}]),
     });
 
     await userEvent.click(screen.getAllByRole('button', {name: 'Leave'})[0]);
@@ -222,16 +249,17 @@ describe('OrganizationMembersList', function () {
       url: `/organizations/org-slug/members/${members[1].id}/`,
       method: 'DELETE',
     });
-    const secondOrg = TestStubs.Organization({
+    const secondOrg = Organization({
       slug: 'org-two',
       status: {
         id: 'active',
+        name: 'active',
       },
     });
     OrganizationsStore.addOrReplace(secondOrg);
 
     render(<OrganizationMembersList {...defaultProps} />, {
-      context: TestStubs.routerContext([{organization}]),
+      context: RouterContextFixture([{organization}]),
     });
 
     await userEvent.click(screen.getAllByRole('button', {name: 'Leave'})[0]);
@@ -257,7 +285,7 @@ describe('OrganizationMembersList', function () {
     });
 
     render(<OrganizationMembersList {...defaultProps} />, {
-      context: TestStubs.routerContext([{organization}]),
+      context: RouterContextFixture([{organization}]),
     });
 
     await userEvent.click(screen.getAllByRole('button', {name: 'Leave'})[0]);
@@ -282,7 +310,7 @@ describe('OrganizationMembersList', function () {
     });
 
     render(<OrganizationMembersList {...defaultProps} />, {
-      context: TestStubs.routerContext([{organization}]),
+      context: RouterContextFixture([{organization}]),
     });
 
     expect(inviteMock).not.toHaveBeenCalled();
@@ -301,7 +329,7 @@ describe('OrganizationMembersList', function () {
     });
 
     render(<OrganizationMembersList {...defaultProps} />, {
-      context: TestStubs.routerContext([{organization}]),
+      context: RouterContextFixture([{organization}]),
     });
 
     expect(inviteMock).not.toHaveBeenCalled();
@@ -316,7 +344,7 @@ describe('OrganizationMembersList', function () {
       body: [],
     });
 
-    const routerContext = TestStubs.routerContext();
+    const routerContext = RouterContextFixture();
 
     render(<OrganizationMembersList {...defaultProps} />, {
       context: routerContext,
@@ -344,7 +372,7 @@ describe('OrganizationMembersList', function () {
       url: '/organizations/org-slug/members/',
       body: [],
     });
-    const routerContext = TestStubs.routerContext();
+    const routerContext = RouterContextFixture();
     render(<OrganizationMembersList {...defaultProps} />, {
       context: routerContext,
     });
@@ -405,7 +433,7 @@ describe('OrganizationMembersList', function () {
   });
 
   it('can filter members with org roles from team membership', async function () {
-    const routerContext = TestStubs.routerContext();
+    const routerContext = RouterContextFixture();
     render(<OrganizationMembersList {...defaultProps} />, {
       context: routerContext,
     });
@@ -423,7 +451,7 @@ describe('OrganizationMembersList', function () {
       id: '123',
       user: null,
       inviteStatus: 'requested_to_be_invited',
-      inviter: TestStubs.User(),
+      inviter: User(),
       role: 'member',
       teams: [],
     });
@@ -437,9 +465,10 @@ describe('OrganizationMembersList', function () {
     });
 
     it('disable buttons for no access', function () {
-      const org = TestStubs.Organization({
+      const org = Organization({
         status: {
           id: 'active',
+          name: 'active',
         },
       });
       MockApiClient.addMockResponse({
@@ -453,7 +482,7 @@ describe('OrganizationMembersList', function () {
       });
 
       render(<OrganizationMembersList {...defaultProps} organization={org} />, {
-        context: TestStubs.routerContext([{organization: org}]),
+        context: RouterContextFixture([{organization: org}]),
       });
 
       expect(screen.getByText('Pending Members')).toBeInTheDocument();
@@ -461,10 +490,11 @@ describe('OrganizationMembersList', function () {
     });
 
     it('can approve invite request and update', async function () {
-      const org = TestStubs.Organization({
+      const org = Organization({
         access: ['member:admin', 'org:admin', 'member:write'],
         status: {
           id: 'active',
+          name: 'active',
         },
       });
       MockApiClient.addMockResponse({
@@ -478,7 +508,7 @@ describe('OrganizationMembersList', function () {
       });
 
       render(<OrganizationMembersList {...defaultProps} />, {
-        context: TestStubs.routerContext([{organization: org}]),
+        context: RouterContextFixture([{organization: org}]),
       });
 
       expect(screen.getByText('Pending Members')).toBeInTheDocument();
@@ -498,10 +528,11 @@ describe('OrganizationMembersList', function () {
     });
 
     it('can deny invite request and remove', async function () {
-      const org = TestStubs.Organization({
+      const org = Organization({
         access: ['member:admin', 'org:admin', 'member:write'],
         status: {
           id: 'active',
+          name: 'active',
         },
       });
       MockApiClient.addMockResponse({
@@ -515,7 +546,7 @@ describe('OrganizationMembersList', function () {
       });
 
       render(<OrganizationMembersList {...defaultProps} />, {
-        context: TestStubs.routerContext([{organization: org}]),
+        context: RouterContextFixture([{organization: org}]),
       });
 
       expect(screen.getByText('Pending Members')).toBeInTheDocument();
@@ -532,10 +563,11 @@ describe('OrganizationMembersList', function () {
     });
 
     it('can update invite requests', async function () {
-      const org = TestStubs.Organization({
+      const org = Organization({
         access: ['member:admin', 'org:admin', 'member:write'],
         status: {
           id: 'active',
+          name: 'active',
         },
       });
       MockApiClient.addMockResponse({
@@ -550,7 +582,7 @@ describe('OrganizationMembersList', function () {
       });
 
       render(<OrganizationMembersList {...defaultProps} />, {
-        context: TestStubs.routerContext([{organization: org}]),
+        context: RouterContextFixture([{organization: org}]),
       });
 
       await selectEvent.select(screen.getAllByRole('textbox')[1], ['Admin']);

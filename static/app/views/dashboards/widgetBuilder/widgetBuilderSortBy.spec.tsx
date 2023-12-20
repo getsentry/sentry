@@ -1,9 +1,13 @@
 import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
+import {MetricsField} from 'sentry-fixture/metrics';
+import {SessionsField} from 'sentry-fixture/sessions';
+import {Tags} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
 import {
   DashboardDetails,
@@ -59,6 +63,8 @@ function renderTestComponent({
       },
     },
   });
+
+  ProjectsStore.loadInitialData(organization.projects);
 
   render(
     <WidgetBuilder
@@ -185,23 +191,19 @@ describe('WidgetBuilder', function () {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/sessions/',
-      body: TestStubs.SessionsField({
-        field: `sum(session)`,
-      }),
+      body: SessionsField(`sum(session)`),
     });
 
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/metrics/data/',
-      body: TestStubs.MetricsField({
-        field: 'sum(sentry.sessions.session)',
-      }),
+      body: MetricsField('session.all'),
     });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
-      body: TestStubs.Tags(),
+      body: Tags(),
     });
 
     MockApiClient.addMockResponse({

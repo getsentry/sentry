@@ -31,7 +31,7 @@ type Props = {
   onCursor?: CursorHandler;
   pageLinks?: string | null;
   paginationAnalyticsEvent?: (direction: string) => void;
-  size?: 'zero' | 'xs' | 'sm';
+  size?: 'zero' | 'xs' | 'sm' | 'md';
   to?: string;
 };
 
@@ -67,7 +67,7 @@ function Pagination({
       {caption && <PaginationCaption>{caption}</PaginationCaption>}
       <ButtonBar merged>
         <Button
-          icon={<IconChevron direction="left" size="sm" />}
+          icon={<IconChevron direction="left" />}
           aria-label={t('Previous')}
           size={size}
           disabled={previousDisabled}
@@ -77,7 +77,7 @@ function Pagination({
           }}
         />
         <Button
-          icon={<IconChevron direction="right" size="sm" />}
+          icon={<IconChevron direction="right" />}
           aria-label={t('Next')}
           size={size}
           disabled={nextDisabled}

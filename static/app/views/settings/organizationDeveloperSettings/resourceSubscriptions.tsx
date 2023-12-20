@@ -79,7 +79,7 @@ export default class Subscriptions extends Component<Props> {
                 checked={events.includes(choice) && !disabledFromPermissions}
                 resource={choice}
                 onChange={this.onChange}
-                isNew={choice === 'comment'}
+                isNew={false}
               />
             </Fragment>
           );

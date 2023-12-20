@@ -5,6 +5,9 @@ import abc
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.mixins import OverwritableConfigMixin
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     Model,
     OptionManager,
@@ -18,7 +21,7 @@ from sentry.db.models.fields.picklefield import PickledObjectField
 from sentry.options.manager import UpdateChannel
 
 
-class BaseOption(Model):
+class BaseOption(OverwritableConfigMixin, Model):
     """
     Global options which apply in most situations as defaults,
     and generally can be overwritten by per-project options.
@@ -27,7 +30,9 @@ class BaseOption(Model):
     their key. e.g. key='myplugin:optname'
     """
 
-    __include_in_export__ = True
+    # Subclasses should overwrite the relocation scope as appropriate.
+    __relocation_scope__ = RelocationScope.Excluded
+    __relocation_custom_ordinal__ = ["key"]
 
     key = models.CharField(max_length=128, unique=True)
     last_updated = models.DateTimeField(default=timezone.now)
@@ -42,10 +47,15 @@ class BaseOption(Model):
 
     __repr__ = sane_repr("key", "value")
 
+    @classmethod
+    def query_for_relocation_export(cls, q: models.Q, pk_map: PrimaryKeyMap) -> models.Q:
+        # These ping options change too frequently to be useful in exports.
+        return q & ~models.Q(key__in={"sentry:last_worker_ping", "sentry:last_worker_version"})
+
 
 @region_silo_only_model
 class Option(BaseOption):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Config
 
     class Meta:
         app_label = "sentry"
@@ -56,7 +66,7 @@ class Option(BaseOption):
 
 @control_silo_only_model
 class ControlOption(BaseOption):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Config
 
     class Meta:
         app_label = "sentry"

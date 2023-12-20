@@ -5,12 +5,9 @@ from typing import Callable, Dict
 import sentry_sdk
 from dateutil.parser import parse as parse_date
 from sentry_kafka_schemas.codecs import Codec, ValidationError
-from sentry_kafka_schemas.schema_types.events_subscription_results_v1 import (
-    PayloadV3,
-    SubscriptionResult,
-)
+from sentry_kafka_schemas.schema_types.events_subscription_results_v1 import SubscriptionResult
 
-from sentry.incidents.utils.types import SubscriptionUpdate
+from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.query_subscriptions.constants import topic_to_dataset
@@ -18,7 +15,7 @@ from sentry.snuba.tasks import _delete_from_snuba
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
-TQuerySubscriptionCallable = Callable[[SubscriptionUpdate, QuerySubscription], None]
+TQuerySubscriptionCallable = Callable[[QuerySubscriptionUpdate, QuerySubscription], None]
 
 subscriber_registry: Dict[str, TQuerySubscriptionCallable] = {}
 
@@ -35,7 +32,9 @@ def register_subscriber(
     return inner
 
 
-def parse_message_value(value: bytes, jsoncodec: Codec[SubscriptionResult]) -> SubscriptionUpdate:
+def parse_message_value(
+    value: bytes, jsoncodec: Codec[SubscriptionResult]
+) -> QuerySubscriptionUpdate:
     """
     Parses the value received via the Kafka consumer and verifies that it
     matches the expected schema.
@@ -49,7 +48,7 @@ def parse_message_value(value: bytes, jsoncodec: Codec[SubscriptionResult]) -> S
             metrics.incr("snuba_query_subscriber.message_wrapper_invalid")
             raise InvalidSchemaError("Message wrapper does not match schema")
 
-    payload: PayloadV3 = wrapper["payload"]
+    payload = wrapper["payload"]
     # XXX: Since we just return the raw dict here, when the payload changes it'll
     # break things. This should convert the payload into a class rather than passing
     # the dict around, but until we get time to refactor we can keep things working
@@ -127,13 +126,13 @@ def handle_message(
                         EntityKey(contents["entity"]),
                     )
                 else:
-                    logger.error(
+                    logger.exception(
                         "Topic not registered with QuerySubscriptionConsumer, can't remove "
                         "non-existent subscription from Snuba",
                         extra={"topic": topic, "subscription_id": contents["subscription_id"]},
                     )
             except InvalidMessageError as e:
-                logger.exception(e)
+                logger.exception(str(e))
             except Exception:
                 logger.exception("Failed to delete unused subscription from snuba.")
             return

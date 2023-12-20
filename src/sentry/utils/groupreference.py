@@ -8,7 +8,7 @@ _short_id_re = re.compile(r"\b([A-Z0-9_-]+-[A-Z0-9]+)\b", re.I)
 
 
 def find_referenced_groups(text, org_id):
-    from sentry.models import Group
+    from sentry.models.group import Group
 
     if not text:
         return []

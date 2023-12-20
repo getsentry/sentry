@@ -1,5 +1,5 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {ExceptionType, Group, PlatformType, Project} from 'sentry/types';
+import {ExceptionType, Group, PlatformKey, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {StackType, StackView} from 'sentry/types/stacktrace';
 
@@ -10,7 +10,7 @@ type Props = {
   event: Event;
   hasHierarchicalGrouping: boolean;
   newestFirst: boolean;
-  platform: PlatformType;
+  platform: PlatformKey;
   projectSlug: Project['slug'];
   stackType: StackType;
   groupingCurrentLevel?: Group['metadata']['current_level'];

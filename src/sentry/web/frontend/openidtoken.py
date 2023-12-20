@@ -2,7 +2,8 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.models import ApiGrant, UserEmail
+from sentry.models.apigrant import ApiGrant
+from sentry.models.useremail import UserEmail
 from sentry.utils import jwt as jwt_utils
 
 DEFAULT_EXPIRATION = timedelta(minutes=10)

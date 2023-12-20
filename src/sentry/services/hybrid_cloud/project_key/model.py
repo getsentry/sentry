@@ -6,6 +6,7 @@
 from enum import Enum
 from typing import Any
 
+from sentry.models.projectkey import ProjectKeyStatus
 from sentry.services.hybrid_cloud import RpcModel
 
 
@@ -14,7 +15,7 @@ class ProjectKeyRole(Enum):
     api = "api"
 
     def as_orm_role(self) -> Any:
-        from sentry.models import ProjectKey
+        from sentry.models.projectkey import ProjectKey
 
         if self == ProjectKeyRole.store:
             return ProjectKey.roles.store
@@ -26,3 +27,9 @@ class ProjectKeyRole(Enum):
 
 class RpcProjectKey(RpcModel):
     dsn_public: str = ""
+    project_id: int = -1
+    status: int = ProjectKeyStatus.INACTIVE
+
+    @property
+    def is_active(self):
+        return self.status == ProjectKeyStatus.ACTIVE

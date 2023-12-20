@@ -6,7 +6,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestIntegrationRequestNotification(TestCase):
     def test_get_context(self):
         owner = self.create_user("owner@example.com")

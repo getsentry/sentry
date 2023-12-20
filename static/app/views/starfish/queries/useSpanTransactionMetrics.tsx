@@ -1,59 +1,69 @@
 import {Location} from 'history';
 
+import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {MetricsFilters, SpanMetricsField} from 'sentry/views/starfish/types';
 import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
-const {SPAN_SELF_TIME, SPAN_GROUP} = SpanMetricsFields;
+const {SPAN_SELF_TIME} = SpanMetricsField;
 
 export type SpanTransactionMetrics = {
+  'avg(http.response_content_length)': number;
   'avg(span.self_time)': number;
   'http_error_count()': number;
+  'resource.render_blocking_status': '' | 'non-blocking' | 'blocking';
   'spm()': number;
   'sum(span.self_time)': number;
-  'time_spent_percentage(local)': number;
+  'time_spent_percentage()': number;
   transaction: string;
   'transaction.method': string;
-  'transaction.op': string;
 };
 
 export const useSpanTransactionMetrics = (
-  group: string,
-  options: {sorts?: Sort[]; transactions?: string[]},
-  _referrer = 'api.starfish.span-transaction-metrics'
+  filters: MetricsFilters,
+  sorts?: Sort[],
+  cursor?: string,
+  extraFields?: string[],
+  enabled: boolean = true,
+  referrer = 'api.starfish.span-transaction-metrics'
 ) => {
   const location = useLocation();
 
-  const {transactions, sorts} = options;
-
-  const eventView = getEventView(group, location, transactions ?? [], sorts);
+  const eventView = getEventView(location, filters, sorts, extraFields);
 
   return useWrappedDiscoverQuery<SpanTransactionMetrics[]>({
     eventView,
     initialData: [],
-    enabled: Boolean(group),
+    enabled,
     limit: 25,
-    referrer: _referrer,
+    referrer,
+    cursor,
   });
 };
 
 function getEventView(
-  group: string,
   location: Location,
-  transactions: string[],
-  sorts?: Sort[]
+  filters: MetricsFilters = {},
+  sorts?: Sort[],
+  extraFields = [] as string[]
 ) {
   const search = new MutableSearch('');
-  search.addFilterValues(SPAN_GROUP, [group]);
-  search.addFilterValues('transaction.op', ['http.server']);
 
-  if (transactions.length > 0) {
-    search.addFilterValues('transaction', transactions);
-  }
+  Object.entries(filters).forEach(([key, value]) => {
+    if (!defined(value)) {
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      search.addFilterValues(key, value);
+    } else {
+      search.addFilterValue(key, value);
+    }
+  });
 
   const eventView = EventView.fromNewQueryWithLocation(
     {
@@ -65,11 +75,11 @@ function getEventView(
         'spm()',
         `sum(${SPAN_SELF_TIME})`,
         `avg(${SPAN_SELF_TIME})`,
-        'time_spent_percentage(local)',
-        'transaction.op',
+        'time_spent_percentage()',
         'http_error_count()',
+        ...extraFields,
       ],
-      orderby: '-time_spent_percentage_local',
+      orderby: '-time_spent_percentage',
       dataset: DiscoverDatasets.SPANS_METRICS,
       version: 2,
     },

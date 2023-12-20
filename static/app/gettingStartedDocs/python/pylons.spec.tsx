@@ -6,7 +6,7 @@ import {GettingStartedWithPylons, steps} from './pylons';
 
 describe('GettingStartedWithPylons', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithPylons dsn="test-dsn" />);
+    render(<GettingStartedWithPylons dsn="test-dsn" projectSlug="test-project" />);
 
     // Steps
     for (const step of steps()) {
@@ -14,7 +14,5 @@ describe('GettingStartedWithPylons', function () {
         screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
       ).toBeInTheDocument();
     }
-
-    expect(container).toSnapshot();
   });
 });

@@ -1,12 +1,16 @@
+from typing import List
+
 import sentry_sdk
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import APIException, ParseError
 from rest_framework.negotiation import BaseContentNegotiation
 from rest_framework.request import Request
+from typing_extensions import TypedDict
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.models import Organization
+from sentry.models.organization import Organization
 
 from ...services.hybrid_cloud.auth import auth_service
 from .constants import SCIM_400_INVALID_FILTER, SCIM_API_ERROR, SCIM_API_LIST
@@ -87,13 +91,13 @@ class SCIMQueryParamSerializer(serializers.Serializer):
 
 
 class OrganizationSCIMPermission(OrganizationPermission):
-    def has_object_permission(self, request: Request, view, organization: Organization):
+    def has_object_permission(self, request: Request, view, organization: Organization) -> bool:
         result = super().has_object_permission(request, view, organization)
         # The scim endpoints should only be used in conjunction with a SAML2 integration
         if not result:
             return result
-        providers = auth_service.get_auth_providers(organization_id=organization.id)
-        return any(p.flags.scim_enabled for p in providers)
+        provider = auth_service.get_auth_provider(organization_id=organization.id)
+        return provider is not None and provider.flags.scim_enabled
 
 
 class OrganizationSCIMMemberPermission(OrganizationSCIMPermission):
@@ -115,8 +119,16 @@ class OrganizationSCIMTeamPermission(OrganizationSCIMPermission):
     }
 
 
+class SCIMListBaseResponse(TypedDict):
+    schemas: List[str]
+    totalResults: int
+    startIndex: int
+    itemsPerPage: int
+
+
 @extend_schema(tags=["SCIM"])
 class SCIMEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.ENTERPRISE
     content_negotiation_class = SCIMClientNegotiation
     cursor_name = "startIndex"
 

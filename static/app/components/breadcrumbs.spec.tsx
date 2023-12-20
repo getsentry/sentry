@@ -1,9 +1,11 @@
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 
 describe('Breadcrumbs', () => {
-  const routerContext = TestStubs.routerContext();
+  const routerContext = RouterContextFixture();
 
   afterEach(() => {
     jest.resetAllMocks();
@@ -38,8 +40,7 @@ describe('Breadcrumbs', () => {
   });
 
   it('renders crumbs with icon', () => {
-    const wrapper = createWrapper();
-    expect(wrapper.container).toSnapshot();
+    createWrapper();
   });
 
   it('generates correct links', async () => {

@@ -1,30 +1,48 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectExpectCtReports from 'sentry/views/settings/projectSecurityHeaders/expectCt';
 
 describe('ProjectExpectCtReports', function () {
-  const {organization, project, routerProps} = initializeOrg();
-  const url = `/projects/${organization.slug}/${project.slug}/expect-ct/`;
+  const {organization, project} = initializeOrg();
+  const keysUrl = `/projects/${organization.slug}/${project.slug}/keys/`;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/keys/`,
+      url: keysUrl,
       method: 'GET',
       body: [],
     });
   });
 
-  it('renders', function () {
-    const {container} = render(
-      <ProjectExpectCtReports
-        {...routerProps}
-        location={TestStubs.location({pathname: url})}
-        organization={organization}
-      />
-    );
+  it('renders', async function () {
+    render(<ProjectExpectCtReports />, {
+      organization,
+    });
 
-    expect(container).toSnapshot();
+    // Renders the loading indication initially
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+
+    // Heading
+    expect(
+      await screen.findByText('Certificate Transparency', {selector: 'h4'})
+    ).toBeInTheDocument();
+  });
+
+  it('renders loading error', async function () {
+    MockApiClient.addMockResponse({
+      url: keysUrl,
+      method: 'GET',
+      statusCode: 400,
+      body: {},
+    });
+    render(<ProjectExpectCtReports />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByText('There was an error loading data.')
+    ).toBeInTheDocument();
   });
 });

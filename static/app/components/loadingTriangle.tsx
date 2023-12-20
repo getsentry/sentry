@@ -37,7 +37,7 @@ const CircleBackground = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.surface300};
   border-radius: 50%;
 `;
 

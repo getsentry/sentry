@@ -57,7 +57,11 @@ def send_beacon():
     See the documentation for more details.
     """
     from sentry import options
-    from sentry.models import Broadcast, Organization, Project, Team, User
+    from sentry.models.broadcast import Broadcast
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
+    from sentry.models.team import Team
+    from sentry.models.user import User
 
     install_id = get_install_id()
 
@@ -65,7 +69,7 @@ def send_beacon():
         return
 
     end = timezone.now()
-    events_24h = tsdb.get_sums(
+    events_24h = tsdb.backend.get_sums(
         model=TSDBModel.internal, keys=["events.total"], start=end - timedelta(hours=24), end=end
     )["events.total"]
 

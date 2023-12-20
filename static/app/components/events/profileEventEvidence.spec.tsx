@@ -1,3 +1,5 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProfileEventEvidence} from 'sentry/components/events/profileEventEvidence';
@@ -5,7 +7,7 @@ import {IssueCategory, IssueType} from 'sentry/types';
 
 describe('ProfileEventEvidence', function () {
   const defaultProps = {
-    event: TestStubs.Event({
+    event: EventFixture({
       id: 'event-id',
       occurrence: {
         evidenceDisplay: [{name: 'Evidence name', value: 'Evidence value'}],
@@ -43,7 +45,7 @@ describe('ProfileEventEvidence', function () {
 
     expect(screen.getByRole('button', {name: 'View Profile'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/profiling/profile/project-slug/profile-id/flamechart/?frameName=some_func&framePackage=something.dll&referrer=issue'
+      '/organizations/org-slug/profiling/profile/project-slug/profile-id/flamegraph/?frameName=some_func&framePackage=something.dll&referrer=issue'
     );
   });
 

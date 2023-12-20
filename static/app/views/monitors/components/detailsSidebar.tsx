@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
@@ -41,7 +41,7 @@ export default function DetailsSidebar({monitorEnv, monitor}: Props) {
   );
 
   return (
-    <React.Fragment>
+    <Fragment>
       <CheckIns>
         <SectionHeading>{t('Last Check-In')}</SectionHeading>
         <SectionHeading>{t('Next Check-In')}</SectionHeading>
@@ -57,7 +57,7 @@ export default function DetailsSidebar({monitorEnv, monitor}: Props) {
           )}
         </div>
         <div>
-          {monitorEnv?.nextCheckIn ? (
+          {monitor.status !== 'disabled' && monitorEnv?.nextCheckIn ? (
             <TimeSince
               unitStyle="regular"
               liveUpdateInterval="second"
@@ -75,7 +75,7 @@ export default function DetailsSidebar({monitorEnv, monitor}: Props) {
           <CrontabText>({schedule})</CrontabText>
         )}
       </Schedule>
-      <SectionHeading>{t('Thresholds')}</SectionHeading>
+      <SectionHeading>{t('Margins')}</SectionHeading>
       <Thresholds>
         <MonitorIcon status={MonitorStatus.MISSED_CHECKIN} size={12} />
         <Text>
@@ -107,7 +107,7 @@ export default function DetailsSidebar({monitorEnv, monitor}: Props) {
           value={getFormattedDate(monitor.dateCreated, 'MMM D, YYYY')}
         />
       </KeyValueTable>
-    </React.Fragment>
+    </Fragment>
   );
 }
 

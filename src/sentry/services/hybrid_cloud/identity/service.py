@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import Any, List, Optional, cast
+from typing import Any, List, Optional
 
 from sentry.services.hybrid_cloud.identity import RpcIdentity, RpcIdentityProvider
 from sentry.services.hybrid_cloud.identity.model import IdentityFilterArgs
@@ -91,4 +91,4 @@ class IdentityService(RpcService):
         pass
 
 
-identity_service: IdentityService = cast(IdentityService, IdentityService.create_delegation())
+identity_service = IdentityService.create_delegation()

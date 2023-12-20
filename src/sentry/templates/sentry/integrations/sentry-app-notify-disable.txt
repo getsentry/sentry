@@ -1,0 +1,13 @@
+Hi there,
+
+    We’ve received multiple <a href={{dashboard_link}}/>request errors</a> from your webhook: <a href={{webhook_url}}>{{webhook_url}}</a> for the custom {{ integration_name }} integration,
+    and have unsubscribed the webhook from receiving events.
+
+    To continue using your custom integration, please fix your webhook: <a href={{webhook_url}}>{{webhook_url}}</a> and re-enable the webhook subscriptions <a href={{integration_link}}>here</a>.
+
+If you need additional assistance, you can reach out to our support team at <a href=https://help.sentry.io/>help.sentry.io</a>.
+
+Happy fixing,
+Sentry
+
+You are receiving this email because you’re listed as an organization Owner.

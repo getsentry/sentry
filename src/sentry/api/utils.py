@@ -9,6 +9,7 @@ from datetime import timedelta
 from typing import Any, List, Literal, Mapping, Tuple, overload
 from urllib.parse import urlparse
 
+from django.conf import settings
 from django.http import HttpResponseNotAllowed
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
@@ -16,9 +17,6 @@ from rest_framework.request import Request
 from sentry_sdk import Scope
 
 from sentry import options
-
-# Unfortunately, this function is imported as an export of this module in several places, keep it.
-from sentry.auth.access import get_cached_organization_member  # noqa
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.apikey import is_api_key_auth
 from sentry.models.apitoken import is_api_token_auth
@@ -263,7 +261,7 @@ def generate_organization_url(org_slug: str) -> str:
 def generate_region_url(region_name: str | None = None) -> str:
     region_url_template: str | None = options.get("system.region-api-url-template")
     if region_name is None:
-        region_name = options.get("system.region") or None
+        region_name = settings.SENTRY_REGION
     if not region_url_template or not region_name:
         return options.get("system.url-prefix")
     return region_url_template.replace("{region}", region_name)
@@ -274,12 +272,15 @@ _path_patterns: List[Tuple[re.Pattern[str], str]] = [
     (re.compile(r"\/?organizations\/(?!new)[^\/]+\/(.*)"), r"/\1"),
     # For /settings/:orgId/ -> /settings/organization/
     (
-        re.compile(r"\/settings\/(?!account)(?!projects)(?!teams)[^\/]+\/?$"),
+        re.compile(r"\/settings\/(?!account)(?!billing)(?!projects)(?!teams)[^\/]+\/?$"),
         "/settings/organization/",
     ),
     # Move /settings/:orgId/:section -> /settings/:section
     # but not /settings/organization or /settings/projects which is a new URL
-    (re.compile(r"^\/?settings\/(?!account)(?!projects)(?!teams)[^\/]+\/(.*)"), r"/settings/\1"),
+    (
+        re.compile(r"^\/?settings\/(?!account)(?!billing)(?!projects)(?!teams)[^\/]+\/(.*)"),
+        r"/settings/\1",
+    ),
     (re.compile(r"^\/?join-request\/[^\/]+\/?.*"), r"/join-request/"),
     (re.compile(r"^\/?onboarding\/[^\/]+\/(.*)"), r"/onboarding/\1"),
     (

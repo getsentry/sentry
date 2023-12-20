@@ -1,5 +1,9 @@
+import logging
+
 from sentry.api.serializers import Serializer, register
 from sentry.incidents.models import AlertRuleTriggerAction
+
+logger = logging.getLogger(__name__)
 
 
 @register(AlertRuleTriggerAction)
@@ -22,6 +26,13 @@ class AlertRuleTriggerActionSerializer(Serializer):
             return "Send a notification via " + action.target_display
         elif action.type == action.Type.OPSGENIE.value:
             return "Send an Opsgenie notification to " + action.target_display
+        elif action.type == action.Type.DISCORD.value:
+            if not action.target_display:
+                logger.info(
+                    "discord.action.description.no.channel",
+                    extra={"target_identifier": action.target_identifier},
+                )
+            return f"Send a Discord notification to {action.target_display or ''}"
 
     def get_identifier_from_action(self, action):
         if action.type in [

@@ -1,12 +1,12 @@
 from django.urls import reverse
 
 from sentry.loader.browsersdkversion import get_default_sdk_version_for_project
-from sentry.models import ProjectKey, ProjectKeyStatus
+from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class UpdateProjectKeyTest(APITestCase):
     def test_simple(self):
         project = self.create_project()
@@ -270,7 +270,7 @@ class UpdateProjectKeyTest(APITestCase):
         }
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class DeleteProjectKeyTest(APITestCase):
     def test_simple(self):
         project = self.create_project()

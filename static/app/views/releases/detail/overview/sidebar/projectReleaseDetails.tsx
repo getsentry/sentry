@@ -38,12 +38,10 @@ function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
             keyName={t('Version')}
             value={<Version version={version} anchor={false} />}
           />
-          {organization.features.includes('issue-release-semver') ? (
-            <KeyValueTableRow
-              keyName={t('Semver')}
-              value={isVersionInfoSemver(versionInfo.version) ? t('Yes') : t('No')}
-            />
-          ) : null}
+          <KeyValueTableRow
+            keyName={t('Semver')}
+            value={isVersionInfoSemver(versionInfo.version) ? t('Yes') : t('No')}
+          />
           <KeyValueTableRow
             keyName={t('Package')}
             value={

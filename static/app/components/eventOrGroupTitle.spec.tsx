@@ -1,3 +1,7 @@
+import {Organization} from 'sentry-fixture/organization';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {User} from 'sentry-fixture/user';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
@@ -14,7 +18,7 @@ describe('EventOrGroupTitle', function () {
   };
 
   it('renders with subtitle when `type = error`', function () {
-    const wrapper = render(
+    render(
       <EventOrGroupTitle
         data={
           {
@@ -26,12 +30,10 @@ describe('EventOrGroupTitle', function () {
         }
       />
     );
-
-    expect(wrapper.container).toSnapshot();
   });
 
   it('renders with subtitle when `type = csp`', function () {
-    const wrapper = render(
+    render(
       <EventOrGroupTitle
         data={
           {
@@ -43,12 +45,10 @@ describe('EventOrGroupTitle', function () {
         }
       />
     );
-
-    expect(wrapper.container).toSnapshot();
   });
 
   it('renders with no subtitle when `type = default`', function () {
-    const wrapper = render(
+    render(
       <EventOrGroupTitle
         data={
           {
@@ -62,14 +62,10 @@ describe('EventOrGroupTitle', function () {
         }
       />
     );
-
-    expect(wrapper.container).toSnapshot();
   });
 
   it('renders with title override', function () {
-    const routerContext = TestStubs.routerContext([
-      {organization: TestStubs.Organization()},
-    ]);
+    const routerContext = RouterContextFixture([{organization: Organization()}]);
 
     render(
       <EventOrGroupTitle
@@ -123,7 +119,7 @@ describe('EventOrGroupTitle', function () {
             function: 'useOverflowTabs',
             display_title_with_tree_label: false,
           },
-          actor: TestStubs.User(),
+          actor: User(),
           isTombstone: true,
         }}
         withStackTracePreview
@@ -146,9 +142,7 @@ describe('EventOrGroupTitle', function () {
     } as BaseGroup;
 
     it('should correctly render title', () => {
-      const routerContext = TestStubs.routerContext([
-        {organization: TestStubs.Organization()},
-      ]);
+      const routerContext = RouterContextFixture([{organization: Organization()}]);
 
       render(<EventOrGroupTitle data={perfData} />, {context: routerContext});
 

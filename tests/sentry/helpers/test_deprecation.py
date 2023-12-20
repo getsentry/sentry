@@ -4,7 +4,6 @@ import isodate
 from croniter import croniter
 from django.http.request import HttpRequest
 from django.http.response import HttpResponse
-from freezegun import freeze_time
 from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK, HTTP_410_GONE
 
@@ -13,7 +12,8 @@ from sentry.api.base import Endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.options import register
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.silo import no_silo_test
 
 replacement_api = "replacement-api"
 test_date = datetime.fromisoformat("2020-01-01T00:00:00+00:00:00")
@@ -42,7 +42,7 @@ class DummyEndpoint(Endpoint):
 dummy_endpoint = DummyEndpoint.as_view()
 
 
-@control_silo_test
+@no_silo_test
 class TestDeprecationDecorator(APITestCase):
     def setUp(self) -> None:
         super().setUp()

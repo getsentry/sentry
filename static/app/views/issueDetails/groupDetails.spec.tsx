@@ -1,14 +1,19 @@
-import {browserHistory} from 'react-router';
+import {Event as EventFixture} from 'sentry-fixture/event';
+import LocationFixture from 'sentry-fixture/locationFixture';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {Team} from 'sentry-fixture/team';
+import {User} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Environment, Group, IssueCategory} from 'sentry/types';
-import GroupDetails from 'sentry/views/issueDetails';
+import GroupDetails from 'sentry/views/issueDetails/groupDetails';
 
 jest.unmock('sentry/utils/recreateRoute');
 
@@ -17,8 +22,8 @@ const SAMPLE_EVENT_ALERT_TEXT =
 
 describe('groupDetails', () => {
   const group = TestStubs.Group({issueCategory: IssueCategory.ERROR});
-  const event = TestStubs.Event();
-  const project = TestStubs.Project({teams: [TestStubs.Team()]});
+  const event = EventFixture();
+  const project = ProjectFixture({teams: [Team()]});
 
   const routes = [
     {path: '/', childRoutes: []},
@@ -46,6 +51,25 @@ describe('groupDetails', () => {
   const defaultInit = initializeOrg<{groupId: string}>({
     project,
     router: initRouter,
+  });
+
+  const recommendedUser = User({
+    options: {
+      ...User().options,
+      defaultIssueEvent: 'recommended',
+    },
+  });
+  const latestUser = User({
+    options: {
+      ...User().options,
+      defaultIssueEvent: 'latest',
+    },
+  });
+  const oldestUser = User({
+    options: {
+      ...User().options,
+      defaultIssueEvent: 'oldest',
+    },
   });
 
   function MockComponent({
@@ -82,11 +106,11 @@ describe('groupDetails', () => {
     act(() => ProjectsStore.loadInitialData(defaultInit.organization.projects));
 
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/`,
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
       body: {...group},
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/events/latest/`,
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/recommended/`,
       statusCode: 200,
       body: {
         ...event,
@@ -104,7 +128,7 @@ describe('groupDetails', () => {
       body: [project],
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/first-last-release/`,
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/first-last-release/`,
       method: 'GET',
     });
     MockApiClient.addMockResponse({
@@ -123,7 +147,7 @@ describe('groupDetails', () => {
       body: TestStubs.Environments(),
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/tags/`,
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/tags/`,
       body: [],
     });
   });
@@ -151,11 +175,11 @@ describe('groupDetails', () => {
 
   it('renders error when issue is not found', async function () {
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/`,
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
       statusCode: 404,
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/events/latest/`,
+      url: `/organization/${defaultInit.organization.slug}/issues/${group.id}/events/recommended/`,
       statusCode: 404,
     });
 
@@ -172,11 +196,11 @@ describe('groupDetails', () => {
 
   it('renders MissingProjectMembership when trying to access issue in project the user does not belong to', async function () {
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/`,
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
       statusCode: 403,
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/events/latest/`,
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/recommended/`,
       statusCode: 403,
     });
 
@@ -197,7 +221,7 @@ describe('groupDetails', () => {
     const init = initializeOrg({
       router: {
         ...initRouter,
-        location: TestStubs.location({
+        location: LocationFixture({
           ...initRouter.location,
           query: {environment: 'staging'},
         }),
@@ -212,27 +236,9 @@ describe('groupDetails', () => {
     expect(await screen.findByText('environment: staging')).toBeInTheDocument();
   });
 
-  /**
-   * This is legacy code that I'm not even sure still happens
-   */
-  it('redirects to new issue if params id !== id returned from API request', async function () {
-    MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/`,
-      body: {...group, id: 'new-id'},
-    });
-    createWrapper();
-    expect(screen.queryByText('Group Details Mock')).not.toBeInTheDocument();
-    await waitFor(() => {
-      expect(browserHistory.push).toHaveBeenCalledTimes(1);
-    });
-    expect(browserHistory.push).toHaveBeenCalledWith(
-      '/organizations/org-slug/issues/new-id/?foo=bar#hash'
-    );
-  });
-
   it('renders issue event error', async function () {
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/events/latest/`,
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/recommended/`,
       statusCode: 404,
     });
     createWrapper();
@@ -241,7 +247,7 @@ describe('groupDetails', () => {
 
   it('renders for review reason', async function () {
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/`,
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
       body: {
         ...group,
         inbox: {
@@ -257,7 +263,7 @@ describe('groupDetails', () => {
 
   it('renders substatus badge', async function () {
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/`,
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
       body: {
         ...group,
         inbox: null,
@@ -273,10 +279,8 @@ describe('groupDetails', () => {
   });
 
   it('renders alert for sample event', async function () {
-    const sampleGroup = TestStubs.Group({issueCategory: IssueCategory.ERROR});
-    sampleGroup.tags.push({key: 'sample_event'});
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/tags/`,
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/tags/`,
       body: [{key: 'sample_event'}],
     });
 
@@ -291,7 +295,7 @@ describe('groupDetails', () => {
       method: 'PUT',
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/`,
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
       body: {...group, project: {slug: 'other-project-slug'}},
     });
 
@@ -302,21 +306,54 @@ describe('groupDetails', () => {
     ).toBeInTheDocument();
   });
 
-  it('uses /helpful endpoint when feature flag is on and no event is provided', async function () {
-    const helpfulMock = MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/events/helpful/`,
+  it('uses /recommended endpoint when feature flag is on and no event is provided', async function () {
+    const recommendedMock = MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/recommended/`,
       statusCode: 200,
       body: event,
     });
 
-    createWrapper({
-      ...defaultInit,
-      organization: {
-        ...defaultInit.organization,
-        features: ['issue-details-most-helpful-event'],
-      },
+    createWrapper();
+
+    await waitFor(() => expect(recommendedMock).toHaveBeenCalledTimes(1));
+  });
+
+  it('uses /latest endpoint when default is set to latest', async function () {
+    ConfigStore.loadInitialData(TestStubs.Config({user: latestUser}));
+    const latestMock = MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/latest/`,
+      statusCode: 200,
+      body: event,
     });
 
-    await waitFor(() => expect(helpfulMock).toHaveBeenCalledTimes(1));
+    createWrapper();
+
+    await waitFor(() => expect(latestMock).toHaveBeenCalledTimes(1));
+  });
+
+  it('uses /oldest endpoint when default is set to oldest', async function () {
+    ConfigStore.loadInitialData(TestStubs.Config({user: oldestUser}));
+    const oldestMock = MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/oldest/`,
+      statusCode: 200,
+      body: event,
+    });
+
+    createWrapper();
+
+    await waitFor(() => expect(oldestMock).toHaveBeenCalledTimes(1));
+  });
+
+  it('uses /recommended endpoint when default is set to recommended', async function () {
+    ConfigStore.loadInitialData(TestStubs.Config({user: recommendedUser}));
+    const recommendedMock = MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/recommended/`,
+      statusCode: 200,
+      body: event,
+    });
+
+    createWrapper();
+
+    await waitFor(() => expect(recommendedMock).toHaveBeenCalledTimes(1));
   });
 });

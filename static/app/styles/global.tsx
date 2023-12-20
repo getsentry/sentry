@@ -1,6 +1,5 @@
 import {css, Global, Theme} from '@emotion/react';
 
-import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
 import {prismStyles} from 'sentry/styles/prism';
 
 const styles = (theme: Theme, isDark: boolean) => css`
@@ -66,15 +65,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
     }
   }
 
-  ${IS_ACCEPTANCE_TEST
-    ? css`
-        input,
-        select {
-          caret-color: transparent;
-        }
-      `
-    : ''}
-
   /* Override css in LESS files here as we want to manually control dark mode for now */
   ${isDark
     ? css`
@@ -108,6 +98,11 @@ const styles = (theme: Theme, isDark: boolean) => css`
         .loading .loading-indicator {
           border-color: ${theme.backgroundSecondary};
           border-left-color: ${theme.purple300};
+        }
+
+        .pattern-bg {
+          opacity: 1;
+          filter: invert(1) brightness(0.6);
         }
 
         .nav-tabs {

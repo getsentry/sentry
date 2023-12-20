@@ -48,6 +48,7 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
       ['slack', t('Slack')],
       ['msteams', t('Microsoft Teams')],
     ],
+    help: t('Where personal notifications will be sent.'),
     multiple: true,
     onChange: val => {
       // This is a little hack to prevent this field from being empty.
@@ -60,12 +61,12 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
   approval: {
     name: 'approval',
     type: 'select',
-    label: t('Approvals'),
+    label: t('Nudges'),
     choices: [
       ['always', t('On')],
       ['never', t('Off')],
     ],
-    help: t('Notifications from teammates that require review or approval.'),
+    help: t('Notifications that require review or approval.'),
   },
   quota: {
     name: 'quota',
@@ -78,10 +79,14 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
     help: t('Error, transaction, and attachment quota limits.'),
   },
   reports: {
-    name: 'weekly reports',
-    type: 'blank',
+    name: 'reports',
+    type: 'select',
     label: t('Weekly Reports'),
     help: t('A summary of the past week for an organization.'),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ],
   },
   email: {
     name: 'email routing',
@@ -99,6 +104,7 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
     ],
     help: t('Notifications about spikes on a per project basis.'),
   },
+  // legacy options
   personalActivityNotifications: {
     name: 'personalActivityNotifications',
     type: 'select',

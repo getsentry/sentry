@@ -13,12 +13,12 @@ import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
 type Props = {
   issueId: string;
-  orgId: string;
+  orgSlug: string;
   report: UserReport;
   className?: string;
 };
 
-export function EventUserFeedback({className, report, orgId, issueId}: Props) {
+export function EventUserFeedback({className, report, orgSlug, issueId}: Props) {
   const user = report.user || {
     name: report.name,
     email: report.email,
@@ -52,7 +52,7 @@ export function EventUserFeedback({className, report, orgId, issueId}: Props) {
 
             {report.eventID && (
               <ViewEventLink
-                to={`/organizations/${orgId}/issues/${issueId}/events/${report.eventID}/?referrer=user-feedback`}
+                to={`/organizations/${orgSlug}/issues/${issueId}/events/${report.eventID}/?referrer=user-feedback`}
               >
                 {t('View event')}
               </ViewEventLink>

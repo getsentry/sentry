@@ -15,13 +15,9 @@ from django.utils.translation import gettext as _
 
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.models import (
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    Integration,
-    OrganizationIntegration,
-)
+from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.pipeline import Pipeline, PipelineAnalyticsEntry
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
 from sentry.web.helpers import render_to_response
@@ -76,7 +72,7 @@ def is_violating_region_restriction(organization_id: int, integration_id: int):
     try:
         mapping = OrganizationMapping.objects.get(organization_id=organization_id)
     except OrganizationMapping.DoesNotExist:
-        logger.error("mapping_missing", extra=logger_extra)
+        logger.exception("mapping_missing", extra=logger_extra)
         return True
 
     return mapping.region_name not in region_names

@@ -1,10 +1,8 @@
-from typing import Any, Dict
-
-from sentry.models import Integration, OrganizationIntegration, PagerDutyService
+from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.integration_external_project import IntegrationExternalProject
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration import RpcIntegration, RpcOrganizationIntegration
 from sentry.services.hybrid_cloud.integration.model import RpcIntegrationExternalProject
-from sentry.types.integrations import ExternalProviders
 
 
 def serialize_integration(integration: Integration) -> RpcIntegration:
@@ -19,19 +17,12 @@ def serialize_integration(integration: Integration) -> RpcIntegration:
 
 
 def serialize_organization_integration(oi: OrganizationIntegration) -> RpcOrganizationIntegration:
-    config: Dict[str, Any] = dict(**oi.config)
-    if oi.integration.provider == ExternalProviders.PAGERDUTY.name:
-        config["pagerduty_services"] = [
-            pds.as_dict()
-            for pds in PagerDutyService.objects.filter(organization_integration_id=oi.id)
-        ]
-
     return RpcOrganizationIntegration(
         id=oi.id,
         default_auth_id=oi.default_auth_id,
         organization_id=oi.organization_id,
         integration_id=oi.integration_id,
-        config=config,
+        config=oi.config,
         status=oi.status,
         grace_period_end=oi.grace_period_end,
     )

@@ -3,7 +3,7 @@ from typing import List
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.utils import RESERVED_IDS, PolymorphicRule, RuleType
 from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import get_adjusted_factor
-from sentry.models import Project
+from sentry.models.project import Project
 
 
 class RecalibrationBias(Bias):

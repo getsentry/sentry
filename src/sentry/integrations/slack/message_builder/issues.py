@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, Sequence, Union
 
 from sentry import features, tagstore
 from sentry.eventstore.models import GroupEvent
@@ -10,16 +10,21 @@ from sentry.integrations.message_builder import (
     build_attachment_title,
     build_footer,
     format_actor_options,
+    get_color,
     get_timestamp,
     get_title_link,
 )
-from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SLACK_URL_FORMAT, SlackBody
-from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
+from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT, SlackAttachment, SlackBlock
+from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.issues.grouptype import GroupCategory
-from sentry.models import ActorTuple, Group, GroupStatus, Project, Rule, Team, User
-from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
-from sentry.notifications.notifications.rules import AlertRuleNotification
+from sentry.models.actor import ActorTuple
+from sentry.models.group import Group, GroupStatus
+from sentry.models.project import Project
+from sentry.models.rule import Rule
+from sentry.models.team import Team
+from sentry.models.user import User
+from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.utils.actions import MessageAction
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
@@ -99,6 +104,29 @@ def build_tag_fields(
     return fields
 
 
+def get_tags(
+    event_for_tags: Any,
+    tags: set[str] | None = None,
+) -> Sequence[Mapping[str, str | bool]]:
+    """Get tag keys and values for block kit"""
+    fields = []
+    if tags:
+        event_tags = event_for_tags.tags if event_for_tags else []
+        for key, value in event_tags:
+            std_key = tagstore.get_standardized_key(key)
+            if std_key not in tags:
+                continue
+
+            labeled_value = tagstore.get_tag_value_label(key, value)
+            fields.append(
+                {
+                    "title": std_key,
+                    "value": labeled_value,
+                }
+            )
+    return fields
+
+
 def get_option_groups(group: Group) -> Sequence[Mapping[str, Any]]:
     all_members = group.project.get_members_as_rpc_users()
     members = list({m.id: m for m in all_members}.values())
@@ -110,6 +138,45 @@ def get_option_groups(group: Group) -> Sequence[Mapping[str, Any]]:
 
     if members:
         option_groups.append({"text": "People", "options": format_actor_options(members)})
+
+    return option_groups
+
+
+def get_option_groups_block_kit(group: Group) -> Sequence[Mapping[str, Any]]:
+    all_members = group.project.get_members_as_rpc_users()
+    members = list({m.id: m for m in all_members}.values())
+    teams = group.project.teams.all()
+    use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
+
+    option_groups = []
+    if teams:
+        team_options = format_actor_options(teams, use_block_kit)
+        option_groups.append(
+            {"label": {"type": "plain_text", "text": "Teams"}, "options": team_options}
+        )
+
+    if members:
+        member_options = format_actor_options(members, use_block_kit)
+        option_groups.append(
+            {"label": {"type": "plain_text", "text": "People"}, "options": member_options}
+        )
+    return option_groups
+
+
+def get_group_assignees(group: Group) -> Sequence[Mapping[str, Any]]:
+    """Get teams and users that can be issue assignees for block kit"""
+    all_members = group.project.get_members_as_rpc_users()
+    members = list({m.id: m for m in all_members}.values())
+    teams = group.project.teams.all()
+
+    option_groups = []
+    if teams:
+        for team in teams:
+            option_groups.append({"label": team.slug, "value": f"team:{team.id}"})
+
+    if members:
+        for member in members:
+            option_groups.append({"label": member.email, "value": f"user:{member.id}"})
 
     return option_groups
 
@@ -142,84 +209,84 @@ def build_actions(
 ) -> tuple[Sequence[MessageAction], str, str]:
     """Having actions means a button will be shown on the Slack message e.g. ignore, resolve, assign."""
     has_escalating = features.has("organizations:escalating-issues", project.organization)
+    use_block_kit = features.has("organizations:slack-block-kit", project.organization)
 
     if actions and identity:
         text = get_action_text(text, actions, identity, has_escalating)
         return [], text, "_actioned_issue"
 
-    ignore_button = MessageAction(
-        name="status",
-        label="Archive" if has_escalating else "Ignore",
-        value="ignored:until_escalating" if has_escalating else "ignored:forever",
-    )
-
-    resolve_button = MessageAction(
-        name="resolve_dialog",
-        label="Resolve...",
-        value="resolve_dialog",
-    )
-
     status = group.get_status()
 
-    if not project.flags.has_releases:
-        resolve_button = MessageAction(
+    def _ignore_button() -> MessageAction:
+        if group.issue_category == GroupCategory.FEEDBACK:
+            return None
+
+        if status == GroupStatus.IGNORED:
+            return MessageAction(
+                name="status",
+                label="Mark as Ongoing" if has_escalating else "Stop Ignoring",
+                value="unresolved:ongoing",
+            )
+
+        return MessageAction(
             name="status",
-            label="Resolve",
-            value="resolved",
+            label="Archive" if has_escalating else "Ignore",
+            value="ignored:until_escalating" if has_escalating else "ignored:forever",
         )
 
-    if status == GroupStatus.RESOLVED:
-        resolve_button = MessageAction(
-            name="status",
-            label="Unresolve",
-            value="unresolved:ongoing",
+    def _resolve_button(use_block_kit) -> MessageAction:
+        if use_block_kit:
+            # TODO(CEO): handle if the issue is resolved - render a button that unresolves
+            # TODO(CEO): handle if not project.flags.has_releases in block kit - render a resolve button instead of a modal
+            return MessageAction(
+                name="status",
+                label="Resolve",
+                value="resolve_dialog",
+            )
+
+        if status == GroupStatus.RESOLVED:
+            return MessageAction(
+                name="status",
+                label="Unresolve",
+                value="unresolved:ongoing",
+            )
+
+        if not project.flags.has_releases:
+            return MessageAction(
+                name="status",
+                label="Resolve",
+                value="resolved",
+            )
+        return MessageAction(
+            name="resolve_dialog",
+            label="Resolve...",
+            value="resolve_dialog",
         )
 
-    if status == GroupStatus.IGNORED:
-        ignore_button = MessageAction(
-            name="status",
-            label="Mark as Ongoing" if has_escalating else "Stop Ignoring",
-            value="unresolved:ongoing",
+    def _assign_button(use_block_kit) -> MessageAction:
+        assignee = group.get_assignee()
+        assign_button = MessageAction(
+            name="assign",
+            label="Select Assignee...",
+            type="select",
+            selected_options=format_actor_options([assignee]) if assignee else [],
+            option_groups=get_option_groups(group)
+            if not use_block_kit
+            else get_option_groups_block_kit(group),
         )
+        return assign_button
 
-    assignee = group.get_assignee()
-    assign_button = MessageAction(
-        name="assign",
-        label="Select Assignee...",
-        type="select",
-        selected_options=format_actor_options([assignee]) if assignee else [],
-        option_groups=get_option_groups(group),
-    )
+    action_list = [
+        a
+        for a in [_resolve_button(use_block_kit), _ignore_button(), _assign_button(use_block_kit)]
+        if a is not None
+    ]
 
-    return [resolve_button, ignore_button, assign_button], text, color
+    return action_list, text, color
 
 
-def get_color(
-    event_for_tags: GroupEvent | None, notification: BaseNotification | None, group: Group
-) -> str:
-    if notification:
-        if not isinstance(notification, AlertRuleNotification):
-            return "info"
-    if event_for_tags:
-        color: str | None = event_for_tags.get_tag("level")
-        if (
-            hasattr(event_for_tags, "occurrence")
-            and event_for_tags.occurrence is not None
-            and event_for_tags.occurrence.level is not None
-        ):
-            color = event_for_tags.occurrence.level
-        if color and color in LEVEL_TO_COLOR.keys():
-            return color
-    if group.issue_category == GroupCategory.PERFORMANCE:
-        # XXX(CEO): this shouldn't be needed long term, but due to a race condition
-        # the group's latest event is not found and we end up with no event_for_tags here for perf issues
-        return "info"
-
-    return "error"
-
-
-class SlackIssuesMessageBuilder(SlackMessageBuilder):
-    """We're keeping around this awkward interface so that we can share logic with unfurling."""
+class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
+    """Build an issue alert notification for Slack"""
 
     def __init__(
         self,
@@ -234,6 +301,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         notification: ProjectNotification | None = None,
         recipient: RpcActor | None = None,
         is_unfurl: bool = False,
+        skip_fallback: bool = False,
     ) -> None:
         super().__init__()
         self.group = group
@@ -247,6 +315,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         self.notification = notification
         self.recipient = recipient
         self.is_unfurl = is_unfurl
+        self.skip_fallback = skip_fallback
 
     @property
     def escape_text(self) -> bool:
@@ -255,7 +324,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         """
         return True
 
-    def build(self) -> SlackBody:
+    def build(self, notification_uuid: str | None = None) -> Union[SlackBlock, SlackAttachment]:
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
 
@@ -294,25 +363,84 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         if self.rules:
             rule_id = self.rules[0].id
 
-        return self._build(
-            actions=payload_actions,
-            callback_id=json.dumps({"issue": self.group.id}),
-            color=color,
-            fallback=self.build_fallback_text(obj, project.slug),
-            fields=fields,
-            footer=footer,
-            text=text,
-            title=build_attachment_title(obj),
-            title_link=get_title_link(
-                self.group,
-                self.event,
-                self.link_to_event,
-                self.issue_details,
-                self.notification,
-                ExternalProviders.SLACK,
-                rule_id,
-            ),
-            ts=get_timestamp(self.group, self.event) if not self.issue_details else None,
+        if not features.has("organizations:slack-block-kit", self.group.project.organization):
+            return self._build(
+                actions=payload_actions,
+                callback_id=json.dumps({"issue": self.group.id}),
+                color=color,
+                fallback=self.build_fallback_text(obj, project.slug),
+                fields=fields,
+                footer=footer,
+                text=text,
+                title=build_attachment_title(obj),
+                title_link=get_title_link(
+                    self.group,
+                    self.event,
+                    self.link_to_event,
+                    self.issue_details,
+                    self.notification,
+                    ExternalProviders.SLACK,
+                    rule_id,
+                    notification_uuid=notification_uuid,
+                ),
+                ts=get_timestamp(self.group, self.event) if not self.issue_details else None,
+            )
+
+        # build up the blocks for newer issue alert formatting #
+
+        tags = get_tags(event_for_tags, self.tags)
+        # build title block
+        title_link = get_title_link(
+            self.group,
+            self.event,
+            self.link_to_event,
+            self.issue_details,
+            self.notification,
+            ExternalProviders.SLACK,
+            rule_id,
+            notification_uuid=notification_uuid,
+        )
+        blocks = [
+            self.get_markdown_block(
+                text=f"<{title_link}|*{escape_slack_text(build_attachment_title(obj))}*>  \n{text}",
+            )
+        ]
+        # build tags block
+        if tags:
+            blocks.append(self.get_tags_block(tags))
+
+        # build footer block
+        timestamp = None
+        if not self.issue_details:
+            ts = self.group.last_seen
+            timestamp = max(ts, self.event.datetime) if self.event else ts
+        blocks.append(self.get_context_block(text=footer, timestamp=timestamp))
+
+        # build actions
+        actions = []
+        for action in payload_actions:
+            if action.label in (
+                "Archive",
+                "Ignore",
+                "Mark as Ongoing",
+                "Stop Ignoring",
+                "Resolve",
+                "Unresolve",
+                "Resolve...",
+            ):
+                actions.append(self.get_button_action(action))
+            elif action.name == "assign":
+                actions.append(self.get_static_action(action))
+
+        if actions:
+            action_block = {"type": "actions", "elements": [action for action in actions]}
+            blocks.append(action_block)
+
+        return self._build_blocks(
+            *blocks,
+            fallback_text=self.build_fallback_text(obj, project.slug),
+            block_id=json.dumps({"issue": self.group.id}),
+            skip_fallback=self.skip_fallback,
         )
 
 
@@ -326,8 +454,9 @@ def build_group_attachment(
     link_to_event: bool = False,
     issue_details: bool = False,
     is_unfurl: bool = False,
-) -> SlackBody:
-    """@deprecated"""
+    notification_uuid: str | None = None,
+) -> Union[SlackBlock, SlackAttachment]:
+
     return SlackIssuesMessageBuilder(
         group,
         event,
@@ -338,4 +467,4 @@ def build_group_attachment(
         link_to_event,
         issue_details,
         is_unfurl=is_unfurl,
-    ).build()
+    ).build(notification_uuid=notification_uuid)

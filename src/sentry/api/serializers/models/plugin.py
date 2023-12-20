@@ -4,7 +4,7 @@ from django.utils.text import slugify
 
 from sentry import features
 from sentry.api.serializers import Serializer
-from sentry.models import ProjectOption
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri

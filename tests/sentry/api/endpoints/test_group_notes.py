@@ -1,15 +1,22 @@
 import datetime
 
-from sentry.models import Activity, ExternalIssue, Group, GroupLink, GroupSubscription
+from sentry.models.activity import Activity
+from sentry.models.group import Group
+from sentry.models.grouplink import GroupLink
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.silo import SiloMode
 from sentry.tasks.merge import merge_groups
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 
+pytestmark = [requires_snuba]
 
-@region_silo_test(stable=True)
+
+@region_silo_test
 class GroupNoteTest(APITestCase):
     def test_simple(self):
         group = self.group
@@ -97,7 +104,7 @@ class GroupNoteTest(APITestCase):
         assert response.data[3]["data"]["text"] == note3.data["text"]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupNoteCreateTest(APITestCase):
     def test_simple(self):
         group = self.group
@@ -121,15 +128,19 @@ class GroupNoteCreateTest(APITestCase):
         assert response.status_code == 400, response.content
 
     def test_with_mentions(self):
-        user = self.create_user(email="hello@meow.com")
+        user_not_on_team = self.create_user(email="hello@meow.com")
+        user_on_team = self.create_user(email="hello@woof.com")
 
         self.org = self.create_organization(name="Gnarly Org", owner=None)
         self.team = self.create_team(organization=self.org, name="Ultra Rad Team")
+        self.create_member(user=self.user, organization=self.org, role="member", teams=[self.team])
 
         # member that IS NOT part of the team
-        self.create_member(user=user, organization=self.org, role="member", teams=[])
+        self.create_member(user=user_not_on_team, organization=self.org, role="member", teams=[])
         # member that IS part of the team
-        self.create_member(user=self.user, organization=self.org, role="member", teams=[self.team])
+        self.create_member(
+            user=user_on_team, organization=self.org, role="member", teams=[self.team]
+        )
         group = self.group
 
         self.login_as(user=self.user)
@@ -140,79 +151,62 @@ class GroupNoteCreateTest(APITestCase):
         response = self.client.post(
             url,
             format="json",
-            data={"text": "**meredith@getsentry.com** is fun", "mentions": ["8"]},
+            data={"text": "**meredith@getsentry.com** is fun", "mentions": ["8888"]},
         )
         assert response.status_code == 400, response.content
-
-        user_id = str(self.user.id)
 
         # mentioning a member in the correct team returns 201
         response = self.client.post(
             url,
             format="json",
-            data={"text": "**meredith@getsentry.com** is so fun", "mentions": ["%s" % user_id]},
+            data={"text": "**hello@woof.com** is so fun", "mentions": [f"{user_on_team.id}"]},
         )
         assert response.status_code == 201, response.content
-
-        user_id = str(user.id)
+        assert GroupSubscription.objects.get(
+            user_id=self.user.id,
+            group=group,
+            project=group.project,
+            reason=GroupSubscriptionReason.comment,
+        )
+        assert not GroupSubscription.objects.filter(
+            user_id=user_on_team.id,
+            group=group,
+            project=group.project,
+            reason=GroupSubscriptionReason.mentioned,
+        ).exists()
 
         # mentioning a member that exists but NOT in the team returns
         # validation error
         response = self.client.post(
             url,
             format="json",
-            data={"text": "**hello@meow.com** is not so fun", "mentions": ["%s" % user_id]},
+            data={
+                "text": "**hello@meow.com** is not so fun",
+                "mentions": [f"{user_not_on_team.id}"],
+            },
         )
 
         assert response.data == {"mentions": ["Cannot mention a non team member"]}
 
-    def test_with_team_mentions(self):
-        user = self.create_user(email="redTeamUser@example.com")
-
-        self.org = self.create_organization(name="Gnarly Org", owner=None)
-        # team that IS part of the project
-        self.team = self.create_team(organization=self.org, name="Red Team", members=[user])
-        # team that IS NOT part of the project
-        self.team2 = self.create_team(organization=self.org, name="Blue Team")
-
-        self.create_member(user=self.user, organization=self.org, role="member", teams=[self.team])
-
-        group = self.group
-
-        self.login_as(user=self.user)
-
-        url = f"/api/0/issues/{group.id}/comments/"
-
-        # mentioning a team that does not exist returns 400
+        # mentioning a team does NOT subscribe the team to the issue
         response = self.client.post(
             url,
             format="json",
-            data={
-                "text": "hey **blue-team** fix this bug",
-                "mentions": ["team:%s" % self.team2.id],
-            },
-        )
-        assert response.status_code == 400, response.content
-
-        assert response.data == {
-            "mentions": ["Mentioned team not found or not associated with project"]
-        }
-
-        # mentioning a team in the project returns 201
-        response = self.client.post(
-            url,
-            format="json",
-            data={"text": "hey **red-team** fix this bug", "mentions": ["team:%s" % self.team.id]},
+            data={"text": "**ultra-rad-team** is so rad", "mentions": [f"team:{self.team.id}"]},
         )
         assert response.status_code == 201, response.content
-        assert (
-            len(
-                GroupSubscription.objects.filter(
-                    group=group, reason=GroupSubscriptionReason.team_mentioned
-                )
-            )
-            == 1
+        assert GroupSubscription.objects.get(
+            user_id=self.user.id,
+            group=group,
+            project=group.project,
+            reason=GroupSubscriptionReason.comment,
         )
+        assert not GroupSubscription.objects.filter(
+            team=self.team.id,
+            group=group,
+            project=group.project,
+            reason=GroupSubscriptionReason.mentioned,
+        ).exists()
 
     def test_with_group_link(self):
         group = self.group

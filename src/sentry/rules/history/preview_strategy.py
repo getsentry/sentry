@@ -1,7 +1,7 @@
 from typing import Any, Dict, Sequence
 
 from sentry.issues.grouptype import GroupCategory
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 

@@ -1,142 +1,168 @@
-import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
-import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import type {
+  Docs,
+  DocsParams,
+  OnboardingConfig,
+  PlatformOption,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getReplayConfigureDescription,
+  getUploadSourceMapsStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
-import {PlatformKey} from 'sentry/data/platformCategories';
-import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import {t, tct} from 'sentry/locale';
 
-type StepProps = {
-  newOrg: boolean;
-  organization: Organization;
-  platformKey: PlatformKey;
-  projectId: string;
-  sentryInitContent: string;
+export enum VueVersion {
+  VUE3 = 'vue3',
+  VUE2 = 'vue2',
+}
+
+type PlaformOptionKey = 'siblingOption';
+
+const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
+  siblingOption: {
+    label: t('Vue Version'),
+    items: [
+      {
+        label: t('Vue 3'),
+        value: VueVersion.VUE3,
+      },
+      {
+        label: t('Vue 2'),
+        value: VueVersion.VUE2,
+      },
+    ],
+  },
 };
 
-// Configuration Start
-const replayIntegration = `
-new Sentry.Replay(),
-`;
+type PlatformOptions = typeof platformOptions;
+type Params = DocsParams<PlatformOptions>;
 
-const replayOtherConfig = `
-// Session Replay
-replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
-replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.
-`;
+const getSentryInitLayout = (params: Params, siblingOption: string): string => {
+  return `Sentry.init({
+    ${siblingOption === VueVersion.VUE2 ? `Vue,` : ''}dsn: "${params.dsn}",
+    integrations: [${
+      params.isPerformanceSelected
+        ? `
+          new Sentry.BrowserTracing({
+            // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
+            tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],
+          }),`
+        : ''
+    }${
+      params.isReplaySelected
+        ? `
+          new Sentry.Replay(),`
+        : ''
+    }
+  ],${
+    params.isPerformanceSelected
+      ? `
+        // Performance Monitoring
+        tracesSampleRate: 1.0, //  Capture 100% of the transactions`
+      : ''
+  }${
+    params.isReplaySelected
+      ? `
+        // Session Replay
+        replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
+        replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
+      : ''
+  }
+  });`;
+};
 
-const performanceIntegration = `
-new Sentry.BrowserTracing({
-  // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-  tracePropagationTargets: ["localhost", "https:yourserver.io/api/"],
-  routingInstrumentation:  Sentry.vueRouterInstrumentation(router),
-}),
-`;
-
-const performanceOtherConfig = `
-// Performance Monitoring
-tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!
-`;
-
-export const steps = ({
-  sentryInitContent,
-  ...props
-}: Partial<StepProps> = {}): LayoutProps['steps'] => [
+const getInstallConfig = () => [
   {
-    type: StepType.INSTALL,
-    description: t(
-      'Sentry captures data by using an SDK within your application’s runtime.'
-    ),
-    configurations: [
+    language: 'bash',
+    code: [
       {
+        label: 'npm',
+        value: 'npm',
         language: 'bash',
-        code: `
-# Using yarn
-yarn add @sentry/vue
-
-# Using npm
-npm install --save @sentry/vue
-        `,
-      },
-    ],
-  },
-  {
-    type: StepType.CONFIGURE,
-    description: t(
-      "Initialize Sentry as early as possible in your application's lifecycle."
-    ),
-    configurations: [
-      {
-        description: <h5>V2</h5>,
-        language: 'javascript',
-        code: `
-        import { createApp } from "vue";
-        import { createRouter } from "vue-router";
-        import * as Sentry from "@sentry/vue";
-
-        const app = createApp({
-          // ...
-        });
-        const router = createRouter({
-          // ...
-        });
-
-        Sentry.init({
-          app,
-          ${sentryInitContent}
-        });
-
-        app.use(router);
-        app.mount("#app");
-        `,
+        code: `npm install --save @sentry/vue`,
       },
       {
-        description: <h5>V3</h5>,
-        language: 'javascript',
-        code: `
-        import Vue from "vue";
-        import Router from "vue-router";
-        import * as Sentry from "@sentry/vue";
-
-        Vue.use(Router);
-
-        const router = new Router({
-          // ...
-        });
-
-        Sentry.init({
-          Vue,
-          ${sentryInitContent}
-        });
-
-        // ...
-
-        new Vue({
-          router,
-          render: (h) => h(App),
-        }).$mount("#app");
-        `,
-      },
-    ],
-  },
-  getUploadSourceMapsStep({
-    guideLink: 'https://docs.sentry.io/platforms/javascript/guides/vue/sourcemaps/',
-    ...props,
-  }),
-  {
-    type: StepType.VERIFY,
-    description: t(
-      "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-    ),
-    configurations: [
-      {
-        language: 'javascript',
-        code: 'myUndefinedFunction();',
+        label: 'yarn',
+        value: 'yarn',
+        language: 'bash',
+        code: `yarn add @sentry/vue`,
       },
     ],
   },
 ];
+
+const getNextStep = (
+  params: Params
+): {
+  description: string;
+  id: string;
+  link: string;
+  name: string;
+}[] => {
+  let nextStepDocs = [...nextSteps];
+
+  if (params.isPerformanceSelected) {
+    nextStepDocs = nextStepDocs.filter(
+      step => step.id !== ProductSolution.PERFORMANCE_MONITORING
+    );
+  }
+
+  if (params.isReplaySelected) {
+    nextStepDocs = nextStepDocs.filter(
+      step => step.id !== ProductSolution.SESSION_REPLAY
+    );
+  }
+  return nextStepDocs;
+};
+
+const onboarding: OnboardingConfig<PlatformOptions> = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: (
+        <p>
+          {tct(
+            `Install the Sentry Capacitor SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn], alongside the Sentry Vue SDK:`,
+            {
+              codeYarn: <code />,
+              codeNpm: <code />,
+            }
+          )}
+        </p>
+      ),
+      configurations: getInstallConfig(),
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: t(
+        "Initialize Sentry as early as possible in your application's lifecycle."
+      ),
+      configurations: getSetupConfiguration(params),
+    },
+    getUploadSourceMapsStep({
+      guideLink: 'https://docs.sentry.io/platforms/javascript/guides/vue/sourcemaps/',
+      ...params,
+    }),
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+      ),
+      configurations: [
+        {
+          language: 'javascript',
+          code: `myUndefinedFunction();`,
+        },
+      ],
+    },
+  ],
+  nextSteps: params => getNextStep(params),
+};
 
 export const nextSteps = [
   {
@@ -168,61 +194,109 @@ export const nextSteps = [
     link: 'https://docs.sentry.io/platforms/javascript/guides/vue/session-replay/',
   },
 ];
-// Configuration End
 
-export function GettingStartedWithVue({
-  dsn,
-  activeProductSelection = [],
-  organization,
-  newOrg,
-  platformKey,
-  projectId,
-}: ModuleProps) {
-  const integrations: string[] = [];
-  const otherConfigs: string[] = [];
-
-  let nextStepDocs = [...nextSteps];
-
-  if (activeProductSelection.includes(ProductSolution.PERFORMANCE_MONITORING)) {
-    integrations.push(performanceIntegration.trim());
-    otherConfigs.push(performanceOtherConfig.trim());
-    nextStepDocs = nextStepDocs.filter(
-      step => step.id !== ProductSolution.PERFORMANCE_MONITORING
-    );
+function getSiblingImportsSetupConfiguration(siblingOption: string): string {
+  switch (siblingOption) {
+    case VueVersion.VUE3:
+      return `import {createApp} from "vue";
+          import {createRouter} from "vue-router";`;
+    case VueVersion.VUE2:
+    default:
+      return `import Vue from "vue";
+          import Router from "vue-router";`;
   }
-
-  if (activeProductSelection.includes(ProductSolution.SESSION_REPLAY)) {
-    integrations.push(replayIntegration.trim());
-    otherConfigs.push(replayOtherConfig.trim());
-    nextStepDocs = nextStepDocs.filter(
-      step => step.id !== ProductSolution.SESSION_REPLAY
-    );
-  }
-
-  let sentryInitContent: string[] = [`dsn: "${dsn}",`];
-
-  if (integrations.length > 0) {
-    sentryInitContent = sentryInitContent.concat('integrations: [', integrations, '],');
-  }
-
-  if (otherConfigs.length > 0) {
-    sentryInitContent = sentryInitContent.concat(otherConfigs);
-  }
-
-  return (
-    <Layout
-      steps={steps({
-        sentryInitContent: sentryInitContent.join('\n'),
-        organization,
-        newOrg,
-        platformKey,
-        projectId,
-      })}
-      nextSteps={nextStepDocs}
-      newOrg={newOrg}
-      platformKey={platformKey}
-    />
-  );
 }
 
-export default GettingStartedWithVue;
+function getSiblingSuffix(siblingOption: string): string {
+  switch (siblingOption) {
+    case VueVersion.VUE3:
+      return `app.use(router);
+      app.mount("#app");`;
+    case VueVersion.VUE2:
+    default:
+      return `new Vue({
+        router,
+        render: (h) => h(App),
+      }).$mount("#app");`;
+  }
+}
+
+function getVueConstSetup(siblingOption: string): string {
+  switch (siblingOption) {
+    case VueVersion.VUE3:
+      return `
+          const app = createApp({
+            // ...
+          });
+          const router = createRouter({
+            // ...
+          });
+          `;
+    case VueVersion.VUE2:
+      return `
+          Vue.use(Router);
+
+          const router = new Router({
+            // ...
+          });
+          `;
+    default:
+      return '';
+  }
+}
+
+function getSetupConfiguration(params: Params) {
+  const siblingOption = params.platformOptions.siblingOption;
+  const sentryInitLayout = getSentryInitLayout(params, siblingOption);
+  const configuration = [
+    {
+      language: 'javascript',
+      code: `${getSiblingImportsSetupConfiguration(siblingOption)}
+          import * as Sentry from "@sentry/vue";
+          ${getVueConstSetup(siblingOption)}
+          ${sentryInitLayout}
+
+          ${getSiblingSuffix(siblingOption)}`,
+    },
+  ];
+
+  return configuration;
+}
+
+const replayOnboarding: OnboardingConfig<PlatformOptions> = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'You need a minimum version 7.27.0 of [code:@sentry/vue] in order to use Session Replay. You do not need to install any additional packages.',
+        {
+          code: <code />,
+        }
+      ),
+      configurations: getInstallConfig(),
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      configurations: [
+        {
+          description: getReplayConfigureDescription({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/vue/session-replay/',
+          }),
+          configurations: getSetupConfiguration({...params, isReplaySelected: true}),
+        },
+      ],
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
+const docs: Docs<PlatformOptions> = {
+  onboarding,
+  platformOptions,
+  replayOnboardingNpm: replayOnboarding,
+};
+
+export default docs;

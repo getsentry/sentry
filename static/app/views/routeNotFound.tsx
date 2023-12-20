@@ -36,7 +36,7 @@ function RouteNotFound({router, location}: Props) {
   return (
     <SentryDocumentTitle title={t('Page Not Found')}>
       <div className="app">
-        <Sidebar location={location} />
+        <Sidebar />
         <Layout.Page withPadding>
           <NotFound />
         </Layout.Page>

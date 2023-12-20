@@ -25,7 +25,7 @@ class Migration(CheckedMigration):
     atomic = False
 
     dependencies = [
-        ("sentry", "0311_backfill_slack_settings"),
+        ("sentry", "0310_sentry_functions_add_webhooks"),
     ]
 
     operations = [

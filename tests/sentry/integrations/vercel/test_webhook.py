@@ -15,13 +15,13 @@ from fixtures.vercel import (
     SIGNATURE_NEW,
 )
 from sentry import VERSION
-from sentry.models import (
-    Integration,
-    OrganizationIntegration,
-    SentryAppInstallation,
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.integrations.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
-    SentryAppInstallationToken,
 )
+from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options
@@ -30,7 +30,7 @@ from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class SignatureVercelTest(APITestCase):
     webhook_url = "/extensions/vercel/webhook/"
 
@@ -50,10 +50,8 @@ class SignatureVercelTest(APITestCase):
             assert response.status_code == 401
 
 
-@control_silo_test(stable=True)
 class VercelReleasesTest(APITestCase):
     webhook_url = "/extensions/vercel/webhook/"
-    header = "VERCEL"
 
     @staticmethod
     def get_signature(message: str) -> str:
@@ -69,7 +67,7 @@ class VercelReleasesTest(APITestCase):
             path=self.webhook_url,
             data=message,
             content_type="application/json",
-            **{f"HTTP_X_{self.header}_SIGNATURE": signature},
+            HTTP_X_VERCEL_SIGNATURE=signature,
         )
 
     def setUp(self):
@@ -311,10 +309,9 @@ class VercelReleasesTest(APITestCase):
         assert "Could not determine repository" == response.data["detail"]
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class VercelReleasesNewTest(VercelReleasesTest):
     webhook_url = "/extensions/vercel/delete/"
-    header = "VERCEL"
 
     @responses.activate
     def test_release_already_created(self):

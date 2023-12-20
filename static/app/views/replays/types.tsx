@@ -1,7 +1,5 @@
 import type {Duration} from 'moment';
 
-import {Organization} from 'sentry/types';
-
 // Keep this in sync with the backend blueprint
 // "ReplayRecord" is distinct from the common: "replay = new ReplayReader()"
 export type ReplayRecord = {
@@ -110,49 +108,26 @@ export type ReplayListLocationQuery = {
   utc?: 'true' | 'false';
 };
 
-// Sync with ReplayListRecord above
-export function getReplayListFields(organization: Organization) {
-  const hasDeadRageCols = organization.features.includes(
-    'replay-rage-click-dead-click-columns'
-  );
-  return hasDeadRageCols
-    ? [
-        'activity',
-        'browser.name',
-        'browser.version',
-        'count_dead_clicks',
-        'count_errors',
-        'count_rage_clicks',
-        'duration',
-        'finished_at',
-        'id',
-        'is_archived',
-        'os.name',
-        'os.version',
-        'project_id',
-        'started_at',
-        'urls',
-        'user',
-      ]
-    : [
-        'activity',
-        'browser.name',
-        'browser.version',
-        'count_errors',
-        'duration',
-        'finished_at',
-        'id',
-        'is_archived',
-        'os.name',
-        'os.version',
-        'project_id',
-        'started_at',
-        'urls',
-        'user',
-      ];
-}
+// Sync with ReplayListRecord below
+export const REPLAY_LIST_FIELDS = [
+  'activity',
+  'browser.name',
+  'browser.version',
+  'count_dead_clicks',
+  'count_errors',
+  'count_rage_clicks',
+  'duration',
+  'finished_at',
+  'id',
+  'is_archived',
+  'os.name',
+  'os.version',
+  'project_id',
+  'started_at',
+  'user',
+];
 
-// Sync with REPLAY_LIST_FIELDS below
+// Sync with REPLAY_LIST_FIELDS above
 export type ReplayListRecord = Pick<
   ReplayRecord,
   | 'activity'
@@ -167,7 +142,6 @@ export type ReplayListRecord = Pick<
   | 'os'
   | 'project_id'
   | 'started_at'
-  | 'urls'
   | 'user'
 >;
 
@@ -190,4 +164,46 @@ export interface ReplayError {
   ['project.name']: string;
   timestamp: string;
   title: string;
+}
+
+export type DeadRageSelectorItem = {
+  aria_label: string;
+  dom_element: {fullSelector: string; projectId: number; selector: string};
+  element: string;
+  project_id: number;
+  count_dead_clicks?: number;
+  count_rage_clicks?: number;
+};
+
+export type DeadRageSelectorListResponse = {
+  data: {
+    count_dead_clicks: number;
+    count_rage_clicks: number;
+    dom_element: string;
+    element: ReplayClickElement;
+    project_id: number;
+  }[];
+};
+
+export type ReplayClickElement = {
+  alt: string;
+  aria_label: string;
+  class: string[];
+  id: string;
+  role: string;
+  tag: string;
+  testid: string;
+  title: string;
+};
+
+export interface DeadRageSelectorQueryParams {
+  isWidgetData: boolean;
+  cursor?: string | string[] | undefined | null;
+  per_page?: number;
+  prefix?: string;
+  sort?:
+    | 'count_dead_clicks'
+    | '-count_dead_clicks'
+    | 'count_rage_clicks'
+    | '-count_rage_clicks';
 }

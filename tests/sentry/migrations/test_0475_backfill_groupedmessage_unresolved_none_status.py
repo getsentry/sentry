@@ -3,7 +3,9 @@ from typing import Any, Dict, Optional, Sequence, Tuple
 
 import pytest
 
-from sentry.models import Group, GroupHistory, GroupHistoryStatus, GroupStatus, Project
+from sentry.models.group import Group, GroupStatus
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
+from sentry.models.project import Project
 from sentry.testutils.cases import TestMigrations
 from sentry.types.group import GroupSubStatus
 

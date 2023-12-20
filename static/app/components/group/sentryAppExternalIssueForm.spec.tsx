@@ -1,4 +1,7 @@
 import selectEvent from 'react-select-event';
+import {Event as EventFixture} from 'sentry-fixture/event';
+import {SentryApp} from 'sentry-fixture/sentryApp';
+import {SentryAppInstallation} from 'sentry-fixture/sentryAppInstallation';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -12,8 +15,8 @@ describe('SentryAppExternalIssueForm', () => {
     permalink: 'https://sentry.io/organizations/sentry/issues/123/?project=1',
   });
   const component = TestStubs.SentryAppComponent();
-  const sentryApp = TestStubs.SentryApp();
-  const sentryAppInstallation = TestStubs.SentryAppInstallation({sentryApp});
+  const sentryApp = SentryApp();
+  const sentryAppInstallation = SentryAppInstallation({});
   const submitUrl = `/sentry-app-installations/${sentryAppInstallation.uuid}/external-issue-actions/`;
   let externalIssueRequest;
 
@@ -33,7 +36,7 @@ describe('SentryAppExternalIssueForm', () => {
     it('can create a new issue', async () => {
       render(
         <SentryAppExternalIssueForm
-          event={TestStubs.Event()}
+          event={EventFixture()}
           onSubmitSuccess={jest.fn()}
           group={group}
           sentryAppInstallation={sentryAppInstallation}
@@ -75,6 +78,7 @@ describe('SentryAppExternalIssueForm', () => {
             groupId: '1',
             numbers: 'number_1',
             title: 'ApiError: Broken',
+            uri: '',
           },
           method: 'POST',
         })
@@ -84,7 +88,7 @@ describe('SentryAppExternalIssueForm', () => {
     it('renders prepopulated defaults', () => {
       render(
         <SentryAppExternalIssueForm
-          event={TestStubs.Event()}
+          event={EventFixture()}
           onSubmitSuccess={jest.fn()}
           group={group}
           sentryAppInstallation={sentryAppInstallation}
@@ -108,7 +112,7 @@ describe('SentryAppExternalIssueForm', () => {
     it('can link an issue', async () => {
       render(
         <SentryAppExternalIssueForm
-          event={TestStubs.Event()}
+          event={EventFixture()}
           onSubmitSuccess={jest.fn()}
           group={group}
           sentryAppInstallation={sentryAppInstallation}
@@ -134,6 +138,7 @@ describe('SentryAppExternalIssueForm', () => {
             action: 'link',
             groupId: '1',
             issue: 'my issue',
+            uri: '',
           },
           method: 'POST',
         })
@@ -149,8 +154,8 @@ describe('SentryAppExternalIssueForm Async Field', () => {
     shortId: 'SEN123',
     permalink: 'https://sentry.io/organizations/sentry/issues/123/?project=1',
   });
-  const sentryApp = TestStubs.SentryApp();
-  const sentryAppInstallation = TestStubs.SentryAppInstallation({sentryApp});
+  const sentryApp = SentryApp();
+  const sentryAppInstallation = SentryAppInstallation({});
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
@@ -170,7 +175,7 @@ describe('SentryAppExternalIssueForm Async Field', () => {
 
     render(
       <SentryAppExternalIssueForm
-        event={TestStubs.Event()}
+        event={EventFixture()}
         onSubmitSuccess={jest.fn()}
         group={group}
         sentryAppInstallation={sentryAppInstallation}
@@ -195,8 +200,8 @@ describe('SentryAppExternalIssueForm Dependent fields', () => {
     shortId: 'SEN123',
     permalink: 'https://sentry.io/organizations/sentry/issues/123/?project=1',
   });
-  const sentryApp = TestStubs.SentryApp();
-  const sentryAppInstallation = TestStubs.SentryAppInstallation({sentryApp});
+  const sentryApp = SentryApp();
+  const sentryAppInstallation = SentryAppInstallation({});
   const component = TestStubs.SentryAppComponentDependent();
 
   afterEach(() => {
@@ -236,7 +241,7 @@ describe('SentryAppExternalIssueForm Dependent fields', () => {
 
     render(
       <SentryAppExternalIssueForm
-        event={TestStubs.Event()}
+        event={EventFixture()}
         onSubmitSuccess={jest.fn()}
         group={group}
         sentryAppInstallation={sentryAppInstallation}

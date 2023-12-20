@@ -7,7 +7,11 @@ from django.db.models import F
 from django.urls import reverse
 
 from sentry import audit_log
-from sentry.models import AuditLogEntry, Authenticator, Organization, OrganizationMember, UserEmail
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.authenticator import Authenticator
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.useremail import UserEmail
 from sentry.services.hybrid_cloud.organization.serial import serialize_member
 from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils.cases import APITestCase
@@ -17,7 +21,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from tests.sentry.api.endpoints.test_user_authenticator_details import assert_security_email_sent
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class UserAuthenticatorEnrollTest(APITestCase):
     endpoint = "sentry-api-0-user-authenticator-enroll"
 
@@ -264,7 +268,7 @@ class UserAuthenticatorEnrollTest(APITestCase):
         )
 
 
-@control_silo_test(stable=True)
+@control_silo_test(include_monolith_run=True)
 class AcceptOrganizationInviteTest(APITestCase):
     endpoint = "sentry-api-0-user-authenticator-enroll"
 
@@ -459,8 +463,8 @@ class AcceptOrganizationInviteTest(APITestCase):
         assert om.user_id is None
         assert om.email == "newuser@example.com"
 
-        assert log.error.call_count == 1
-        assert log.error.call_args[0][0] == "Invalid pending invite cookie"
+        assert log.exception.call_count == 1
+        assert log.exception.call_args[0][0] == "Invalid pending invite cookie"
 
     @mock.patch("sentry.api.endpoints.user_authenticator_enroll.logger")
     @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)

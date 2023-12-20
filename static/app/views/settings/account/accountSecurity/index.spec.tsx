@@ -1,3 +1,8 @@
+import {AccountEmails} from 'sentry-fixture/accountEmails';
+import {Authenticators} from 'sentry-fixture/authenticators';
+import {Organizations} from 'sentry-fixture/organizations';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+
 import {
   render,
   renderGlobalModal,
@@ -23,11 +28,11 @@ describe('AccountSecurity', function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
-      body: TestStubs.Organizations(),
+      body: Organizations(),
     });
     MockApiClient.addMockResponse({
       url: ACCOUNT_EMAILS_ENDPOINT,
-      body: TestStubs.AccountEmails(),
+      body: AccountEmails(),
     });
   });
 
@@ -61,11 +66,11 @@ describe('AccountSecurity', function () {
           params={{...router.params, authId: '15'}}
         />
       </AccountSecurityWrapper>,
-      {context: TestStubs.routerContext()}
+      {context: RouterContextFixture()}
     );
   }
 
-  it('renders empty', function () {
+  it('renders empty', async function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [],
@@ -73,18 +78,20 @@ describe('AccountSecurity', function () {
 
     renderComponent();
 
-    expect(screen.getByText('No available authenticators to add')).toBeInTheDocument();
+    expect(
+      await screen.findByText('No available authenticators to add')
+    ).toBeInTheDocument();
   });
 
-  it('renders a primary interface that is enrolled', function () {
+  it('renders a primary interface that is enrolled', async function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: [TestStubs.Authenticators().Totp({configureButton: 'Info'})],
+      body: [Authenticators().Totp({configureButton: 'Info'})],
     });
 
     renderComponent();
 
-    expect(screen.getByText('Authenticator App')).toBeInTheDocument();
+    expect(await screen.findByText('Authenticator App')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Info'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Delete'})).toBeInTheDocument();
 
@@ -97,7 +104,7 @@ describe('AccountSecurity', function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [
-        TestStubs.Authenticators().Totp({
+        Authenticators().Totp({
           authId: '15',
           configureButton: 'Info',
         }),
@@ -114,14 +121,14 @@ describe('AccountSecurity', function () {
     expect(deleteMock).not.toHaveBeenCalled();
 
     expect(
-      screen.getByRole('status', {name: 'Authentication Method Active'})
+      await screen.findByRole('status', {name: 'Authentication Method Active'})
     ).toBeInTheDocument();
 
     // next authenticators request should have totp disabled
     const authenticatorsMock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [
-        TestStubs.Authenticators().Totp({
+        Authenticators().Totp({
           isEnrolled: false,
           authId: '15',
           configureButton: 'Info',
@@ -147,16 +154,16 @@ describe('AccountSecurity', function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [
-        TestStubs.Authenticators().Totp({
+        Authenticators().Totp({
           authId: '15',
           configureButton: 'Info',
         }),
-        TestStubs.Authenticators().U2f(),
+        Authenticators().U2f(),
       ],
     });
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
-      body: TestStubs.Organizations({require2FA: true}),
+      body: Organizations({require2FA: true}),
     });
     const deleteMock = MockApiClient.addMockResponse({
       url: `${ENDPOINT}15/`,
@@ -168,7 +175,7 @@ describe('AccountSecurity', function () {
     renderComponent();
 
     expect(
-      screen.getAllByRole('status', {name: 'Authentication Method Active'})
+      await screen.findAllByRole('status', {name: 'Authentication Method Active'})
     ).toHaveLength(2);
 
     await userEvent.click(screen.getAllByRole('button', {name: 'Delete'})[0]);
@@ -183,7 +190,7 @@ describe('AccountSecurity', function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [
-        TestStubs.Authenticators().Totp({
+        Authenticators().Totp({
           authId: '15',
           configureButton: 'Info',
         }),
@@ -191,7 +198,7 @@ describe('AccountSecurity', function () {
     });
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
-      body: TestStubs.Organizations({require2FA: true}),
+      body: Organizations({require2FA: true}),
     });
     const deleteMock = MockApiClient.addMockResponse({
       url: `${ENDPOINT}15/`,
@@ -203,7 +210,7 @@ describe('AccountSecurity', function () {
     expect(deleteMock).not.toHaveBeenCalled();
 
     expect(
-      screen.getByRole('status', {name: 'Authentication Method Active'})
+      await screen.findByRole('status', {name: 'Authentication Method Active'})
     ).toBeInTheDocument();
 
     await userEvent.hover(screen.getByRole('button', {name: 'Delete'}));
@@ -219,7 +226,7 @@ describe('AccountSecurity', function () {
   it('cannot enroll without verified email', async function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: [TestStubs.Authenticators().Totp({isEnrolled: false})],
+      body: [Authenticators().Totp({isEnrolled: false})],
     });
     MockApiClient.addMockResponse({
       url: ACCOUNT_EMAILS_ENDPOINT,
@@ -237,7 +244,7 @@ describe('AccountSecurity', function () {
     const openEmailModalFunc = jest.spyOn(ModalStore, 'openModal');
 
     expect(
-      screen.getByRole('status', {name: 'Authentication Method Inactive'})
+      await screen.findByRole('status', {name: 'Authentication Method Inactive'})
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Add'}));
@@ -245,83 +252,81 @@ describe('AccountSecurity', function () {
     await waitFor(() => expect(openEmailModalFunc).toHaveBeenCalled());
   });
 
-  it('renders a backup interface that is not enrolled', function () {
+  it('renders a backup interface that is not enrolled', async function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
+      body: [Authenticators().Recovery({isEnrolled: false})],
     });
 
     renderComponent();
 
     expect(
-      screen.getByRole('status', {name: 'Authentication Method Inactive'})
+      await screen.findByRole('status', {name: 'Authentication Method Inactive'})
     ).toBeInTheDocument();
 
     expect(screen.getByText('Recovery Codes')).toBeInTheDocument();
   });
 
-  it('renders a primary interface that is not enrolled', function () {
+  it('renders a primary interface that is not enrolled', async function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: [TestStubs.Authenticators().Totp({isEnrolled: false})],
+      body: [Authenticators().Totp({isEnrolled: false})],
     });
 
     renderComponent();
 
     expect(
-      screen.getByRole('status', {name: 'Authentication Method Inactive'})
+      await screen.findByRole('status', {name: 'Authentication Method Inactive'})
     ).toBeInTheDocument();
 
     expect(screen.getByText('Authenticator App')).toBeInTheDocument();
   });
 
-  it('does not render primary interface that disallows new enrollments', function () {
+  it('does not render primary interface that disallows new enrollments', async function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [
-        TestStubs.Authenticators().Totp({disallowNewEnrollment: false}),
-        TestStubs.Authenticators().U2f({disallowNewEnrollment: null}),
-        TestStubs.Authenticators().Sms({disallowNewEnrollment: true}),
+        Authenticators().Totp({disallowNewEnrollment: false}),
+        Authenticators().U2f({disallowNewEnrollment: undefined}),
+        Authenticators().Sms({disallowNewEnrollment: true}),
       ],
     });
 
     renderComponent();
 
-    expect(screen.getByText('Authenticator App')).toBeInTheDocument();
+    expect(await screen.findByText('Authenticator App')).toBeInTheDocument();
     expect(screen.getByText('U2F (Universal 2nd Factor)')).toBeInTheDocument();
     expect(screen.queryByText('Text Message')).not.toBeInTheDocument();
   });
 
-  it('renders primary interface if new enrollments are disallowed, but we are enrolled', function () {
+  it('renders primary interface if new enrollments are disallowed, but we are enrolled', async function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: [
-        TestStubs.Authenticators().Sms({isEnrolled: true, disallowNewEnrollment: true}),
-      ],
+      body: [Authenticators().Sms({isEnrolled: true, disallowNewEnrollment: true})],
     });
 
     renderComponent();
 
     // Should still render the authenticator since we are already enrolled
-    expect(screen.getByText('Text Message')).toBeInTheDocument();
+    expect(await screen.findByText('Text Message')).toBeInTheDocument();
   });
 
-  it('renders a backup interface that is enrolled', function () {
+  it('renders a backup interface that is enrolled', async function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: [TestStubs.Authenticators().Recovery({isEnrolled: true})],
+      body: [Authenticators().Recovery({isEnrolled: true})],
     });
 
     renderComponent();
 
-    expect(screen.getByText('Recovery Codes')).toBeInTheDocument();
+    expect(await screen.findByText('Recovery Codes')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'View Codes'})).toBeEnabled();
   });
 
   it('can change password', async function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
+      body: [Authenticators().Recovery({isEnrolled: false})],
     });
 
     const url = '/users/me/password/';
@@ -333,7 +338,7 @@ describe('AccountSecurity', function () {
     renderComponent();
 
     await userEvent.type(
-      screen.getByRole('textbox', {name: 'Current Password'}),
+      await screen.findByRole('textbox', {name: 'Current Password'}),
       'oldpassword'
     );
     await userEvent.type(
@@ -363,7 +368,7 @@ describe('AccountSecurity', function () {
   it('requires current password to be entered', async function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
+      body: [Authenticators().Recovery({isEnrolled: false})],
     });
     const url = '/users/me/password/';
     const mock = MockApiClient.addMockResponse({
@@ -374,7 +379,7 @@ describe('AccountSecurity', function () {
     renderComponent();
 
     await userEvent.type(
-      screen.getByRole('textbox', {name: 'New Password'}),
+      await screen.findByRole('textbox', {name: 'New Password'}),
       'newpassword'
     );
     await userEvent.type(
@@ -390,7 +395,7 @@ describe('AccountSecurity', function () {
   it('can expire all sessions', async function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
+      body: [Authenticators().Recovery({isEnrolled: false})],
     });
     const mock = MockApiClient.addMockResponse({
       url: AUTH_ENDPOINT,
@@ -401,7 +406,9 @@ describe('AccountSecurity', function () {
 
     renderComponent();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Sign out of all devices'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Sign out of all devices'})
+    );
 
     expect(mock).toHaveBeenCalled();
     await waitFor(() =>

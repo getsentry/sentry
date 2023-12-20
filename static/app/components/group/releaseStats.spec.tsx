@@ -1,15 +1,18 @@
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import GroupReleaseStats from 'sentry/components/group/releaseStats';
 
 describe('GroupReleaseStats', function () {
-  const organization = TestStubs.Organization();
-  const project = TestStubs.Project();
+  const organization = Organization();
+  const project = ProjectFixture();
   const group = TestStubs.Group();
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/first-last-release/`,
+      url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
       body: {firstRelease: group.firstRelease, lastRelease: group.lastRelease},
     });
   });

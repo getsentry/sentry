@@ -1,3 +1,5 @@
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectFilters from 'sentry/views/projectDetail/projectFilters';
@@ -28,10 +30,12 @@ describe('ProjectDetail > ProjectFilters', () => {
         tagValueLoader={tagValueLoader}
         relativeDateOptions={{}}
       />,
-      {context: TestStubs.routerContext()}
+      {context: RouterContextFixture()}
     );
 
-    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.click(
+      screen.getByPlaceholderText('Search by release version, build, package, or stage')
+    );
 
     // Should suggest all semver tags
     await screen.findByText('release');

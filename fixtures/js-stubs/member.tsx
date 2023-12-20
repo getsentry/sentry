@@ -1,6 +1,6 @@
-import type {Member as MemberType} from 'sentry/types';
+import {User} from 'sentry-fixture/user';
 
-import {User} from './user';
+import type {Member as MemberType} from 'sentry/types';
 
 export function Member(params: Partial<MemberType> = {}): MemberType {
   return {
@@ -29,6 +29,7 @@ export function Member(params: Partial<MemberType> = {}): MemberType {
       'idp:role-restricted': false,
       'member-limit:restricted': false,
       'sso:invalid': false,
+      'partnership:restricted': false,
     },
     user: User(),
     inviteStatus: 'approved',

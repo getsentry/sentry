@@ -2,6 +2,8 @@ from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import (
     OrganizationEndpoint,
@@ -10,7 +12,7 @@ from sentry.api.bases.organization import (
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.models import Repository
+from sentry.models.repository import Repository
 from sentry.plugins.base import bindings
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -21,6 +23,11 @@ UNMIGRATABLE_PROVIDERS = ("bitbucket", "github")
 
 @region_silo_endpoint
 class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.INTEGRATIONS
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (OrganizationIntegrationsLoosePermission,)
     rate_limits = RateLimitConfig(
         group="CLI", limit_overrides={"POST": SENTRY_RATELIMITER_GROUP_DEFAULTS["default"]}
@@ -54,7 +61,6 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
         # TODO(mn): Remove once old Plugins are removed or everyone migrates to
         # the new Integrations. Hopefully someday?
         elif status == "unmigratable":
-
             integrations = integration_service.get_integrations(
                 status=ObjectStatus.ACTIVE,
                 providers=UNMIGRATABLE_PROVIDERS,

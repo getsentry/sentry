@@ -1,17 +1,24 @@
 from __future__ import annotations
 
-from typing import Type
+from typing import Callable, Literal, Type
 
 from django.db import models
 
-from sentry.runner.commands.backup import DatetimeSafeDjangoJSONEncoder
+from sentry.backup.dependencies import (
+    ModelRelations,
+    NormalizedModelName,
+    dependencies,
+    get_model_name,
+    sorted_dependencies,
+)
+from sentry.backup.helpers import DatetimeSafeDjangoJSONEncoder, get_exportable_sentry_models
 
 
-def targets(expected_models: list[Type]):
+def targets(expected_models: list[Type[models.Model]]):
     """A helper decorator that checks that every model that a test "targeted" was actually seen in
     the output, ensuring that we're actually testing the thing we think we are. Additionally, this
     decorator is easily legible to static analysis, which allows for static checks to ensure that
-    all `__include_in_export__ = True` models are being tested.
+    all `__relocation_scope__ != RelocationScope.Excluded` models are being tested.
 
     To be considered a proper "testing" of a given target type, the resulting output must contain at
     least one instance of that type with all of its fields present and set to non-default values."""
@@ -68,8 +75,8 @@ def targets(expected_models: list[Type]):
                     if isinstance(f, models.ManyToManyField):
                         continue
 
-                    # TODO(getsentry/team-ospo#156): Maybe make these checks recursive for models
-                    # that have POPOs for some of their field values?
+                    if not isinstance(f, models.Field):
+                        continue
                     if field_name not in data:
                         mistakes.append(f"Must include field: `{field_name}`")
                         continue
@@ -90,8 +97,43 @@ def targets(expected_models: list[Type]):
                 if num > 0:
                     raise AssertionError(f"Model {name} has {num} mistakes: {mistakes}")
 
-            return actual
+            return None
 
         return wrapped
 
     return decorator
+
+
+def mark(group: set[NormalizedModelName], *marking: Type | Literal["__all__"]):
+    """
+    A function that runs at module load time and marks all models that appear in a given test function.
+
+    Use the sentinel string "__all__" to indicate that all models are expected.
+    """
+
+    all: Literal["__all__"] = "__all__"
+    for model in marking:
+        if model == all:
+            all_models = get_exportable_sentry_models()
+            group.update({get_model_name(c) for c in all_models})
+            return list(all_models)
+
+        group.add(get_model_name(model))
+    return marking
+
+
+def get_matching_exportable_models(
+    matcher: Callable[[ModelRelations], bool] = lambda mr: True
+) -> set[Type[models.Model]]:
+    """
+    Helper function that returns all of the model class definitions that return true for the provided matching function. Models will be iterated in the order specified by the `sorted_dependencies` function.
+    """
+
+    deps = dependencies()
+    sorted = sorted_dependencies()
+    matched = set()
+    for model in sorted:
+        if matcher(deps[get_model_name(model)]):
+            matched.add(model)
+
+    return matched

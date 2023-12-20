@@ -1,6 +1,7 @@
 import copy
 from unittest import mock
 
+from django.contrib.auth.models import AnonymousUser
 from django.core import mail
 from django.db import models
 
@@ -12,24 +13,28 @@ from sentry.api.endpoints.organization_details import (
     update_tracked_data,
 )
 from sentry.auth.authenticators.totp import TotpInterface
-from sentry.models import (
-    ApiKey,
-    AuditLogEntry,
-    Organization,
-    OrganizationMember,
-    OrganizationOption,
-    User,
-    UserOption,
+from sentry.models.apikey import ApiKey
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.options.user_option import UserOption
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.user import User
+from sentry.silo import SiloMode
+from sentry.tasks.deletion.hybrid_cloud import (
+    schedule_hybrid_cloud_foreign_key_jobs,
+    schedule_hybrid_cloud_foreign_key_jobs_control,
 )
-from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import control_silo_test, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationTest(TestCase, HybridCloudTestMixin):
     def test_slugify_on_new_orgs(self):
         org = Organization.objects.create(name="name", slug="---downtown_canada---")
@@ -174,11 +179,12 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
         self.assertFalse(has_changed(inst, "name"))
 
 
-@control_silo_test
+@region_silo_test
 class Require2fa(TestCase, HybridCloudTestMixin):
     def setUp(self):
         self.owner = self.create_user("foo@example.com")
-        TotpInterface().enroll(self.owner)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            TotpInterface().enroll(self.owner)
         self.org = self.create_organization(owner=self.owner)
         self.request = self.make_request(user=self.owner)
 
@@ -190,13 +196,16 @@ class Require2fa(TestCase, HybridCloudTestMixin):
     def _create_user_and_member(self, has_2fa=False, has_user_email=True):
         user = self._create_user(has_email=has_user_email)
         if has_2fa:
-            TotpInterface().enroll(user)
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                TotpInterface().enroll(user)
         member = self.create_member(organization=self.org, user=user)
         return user, member
 
     def is_organization_member(self, user_id, member_id):
         member = OrganizationMember.objects.get(id=member_id)
-        user = User.objects.get(id=user_id)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            user = User.objects.get(id=user_id)
         assert not member.is_pending
         assert not member.email
         assert member.user_id == user.id
@@ -204,7 +213,8 @@ class Require2fa(TestCase, HybridCloudTestMixin):
     def is_pending_organization_member(self, user_id, member_id, was_booted=True):
         member = OrganizationMember.objects.get(id=member_id)
         if user_id:
-            assert User.objects.filter(id=user_id).exists()
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                assert User.objects.filter(id=user_id).exists()
         assert member.is_pending
         assert member.email
         if was_booted:
@@ -235,11 +245,12 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         assert len(mail.outbox) == 1
         assert mail.outbox[0].to == [non_compliant_user.email]
 
-        audit_logs = AuditLogEntry.objects.filter(
-            event=audit_log.get_event_id("MEMBER_PENDING"),
-            organization_id=self.org.id,
-            actor=self.owner,
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            audit_logs = AuditLogEntry.objects.filter(
+                event=audit_log.get_event_id("MEMBER_PENDING"),
+                organization_id=self.org.id,
+                actor=self.owner,
+            )
         assert audit_logs.count() == 1
         assert audit_logs[0].data["email"] == non_compliant_user.email
         assert audit_logs[0].target_user_id == non_compliant_user.id
@@ -257,11 +268,13 @@ class Require2fa(TestCase, HybridCloudTestMixin):
             self.is_organization_member(user.id, member.id)
 
         assert len(mail.outbox) == 0
-        assert not AuditLogEntry.objects.filter(
-            event=audit_log.get_event_id("MEMBER_PENDING"),
-            organization_id=self.org.id,
-            actor=self.owner,
-        ).exists()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not AuditLogEntry.objects.filter(
+                event=audit_log.get_event_id("MEMBER_PENDING"),
+                organization_id=self.org.id,
+                actor=self.owner,
+            ).exists()
 
     def test_handle_2fa_required__non_compliant_members(self):
         non_compliant = []
@@ -280,11 +293,12 @@ class Require2fa(TestCase, HybridCloudTestMixin):
             self.assert_org_member_mapping(org_member=member)
 
         assert len(mail.outbox) == len(non_compliant)
-        assert AuditLogEntry.objects.filter(
-            event=audit_log.get_event_id("MEMBER_PENDING"),
-            organization_id=self.org.id,
-            actor=self.owner,
-        ).count() == len(non_compliant)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert AuditLogEntry.objects.filter(
+                event=audit_log.get_event_id("MEMBER_PENDING"),
+                organization_id=self.org.id,
+                actor=self.owner,
+            ).count() == len(non_compliant)
 
     def test_handle_2fa_required__pending_member__ok(self):
         member = self.create_member(organization=self.org, email="bob@zombo.com")
@@ -295,16 +309,21 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         self.is_pending_organization_member(user_id=None, member_id=member.id, was_booted=False)
 
         assert len(mail.outbox) == 0
-        assert not AuditLogEntry.objects.filter(
-            event=audit_log.get_event_id("MEMBER_PENDING"),
-            organization_id=self.org.id,
-            actor=self.owner,
-        ).exists()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not AuditLogEntry.objects.filter(
+                event=audit_log.get_event_id("MEMBER_PENDING"),
+                organization_id=self.org.id,
+                actor=self.owner,
+            ).exists()
 
     @mock.patch("sentry.tasks.auth.logger")
     def test_handle_2fa_required__no_email__warning(self, auth_log):
         user, member = self._create_user_and_member(has_user_email=False)
-        assert not user.has_2fa()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not user.has_2fa()
+
         assert not user.email
         assert not member.email
 
@@ -313,7 +332,8 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         self.is_organization_member(user.id, member.id)
 
         auth_log.warning.assert_called_with(
-            "Could not remove 2FA noncompliant user from org",
+            "Could not remove %s noncompliant user from org",
+            "2FA",
             extra={"organization_id": self.org.id, "user_id": user.id, "member_id": member.id},
         )
 
@@ -326,27 +346,30 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         with self.options(
             {"system.url-prefix": "http://example.com"}
         ), self.tasks(), outbox_runner():
-            api_key = ApiKey.objects.create(
-                organization_id=self.org.id,
-                scope_list=["org:read", "org:write", "member:read", "member:write"],
-            )
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                api_key = ApiKey.objects.create(
+                    organization_id=self.org.id,
+                    scope_list=["org:read", "org:write", "member:read", "member:write"],
+                )
             request = copy.deepcopy(self.request)
-            request.user = None
+            request.user = AnonymousUser()
             request.auth = api_key
             self.org.handle_2fa_required(request)
         self.is_pending_organization_member(user.id, member.id)
         self.assert_org_member_mapping(org_member=member)
 
         assert len(mail.outbox) == 1
-        assert (
-            AuditLogEntry.objects.filter(
-                event=audit_log.get_event_id("MEMBER_PENDING"),
-                organization_id=self.org.id,
-                actor=None,
-                actor_key=api_key,
-            ).count()
-            == 1
-        )
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert (
+                AuditLogEntry.objects.filter(
+                    event=audit_log.get_event_id("MEMBER_PENDING"),
+                    organization_id=self.org.id,
+                    actor=None,
+                    actor_key=api_key,
+                ).count()
+                == 1
+            )
 
     @mock.patch("sentry.tasks.auth.logger")
     def test_handle_2fa_required__no_ip_address__ok(self, auth_log):
@@ -363,16 +386,18 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         self.assert_org_member_mapping(org_member=member)
 
         assert len(mail.outbox) == 1
-        assert (
-            AuditLogEntry.objects.filter(
-                event=audit_log.get_event_id("MEMBER_PENDING"),
-                organization_id=self.org.id,
-                actor=self.owner,
-                actor_key=None,
-                ip_address=None,
-            ).count()
-            == 1
-        )
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert (
+                AuditLogEntry.objects.filter(
+                    event=audit_log.get_event_id("MEMBER_PENDING"),
+                    organization_id=self.org.id,
+                    actor=self.owner,
+                    actor_key=None,
+                    ip_address=None,
+                ).count()
+                == 1
+            )
 
     def test_get_audit_log_data(self):
         org = self.create_organization()
@@ -402,21 +427,57 @@ class Require2fa(TestCase, HybridCloudTestMixin):
 
 @region_silo_test
 class OrganizationDeletionTest(TestCase):
+    def add_org_notification_settings(self, org: Organization, user: User):
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            args = {
+                "scope_type": "organization",
+                "scope_identifier": org.id,
+                "type": "deploy",
+                "user_id": user.id,
+                "value": "never",
+            }
+            NotificationSettingOption.objects.create(**args)
+            NotificationSettingProvider.objects.create(**args, provider="slack")
+
     def test_hybrid_cloud_deletion(self):
         org = self.create_organization()
         user = self.create_user()
-        UserOption.objects.set_value(user, "cool_key", "Hello!", organization_id=org.id)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            UserOption.objects.set_value(user, "cool_key", "Hello!", organization_id=org.id)
         org_id = org.id
+
+        self.add_org_notification_settings(org, user)
+
+        # Set up another org + notification settings to validate that this is unaffected by org deletion
+        unaffected_user = self.create_user()
+        unaffected_org = self.create_organization(owner=unaffected_user)
+        self.add_org_notification_settings(unaffected_org, unaffected_user)
 
         with outbox_runner():
             org.delete()
 
         assert not Organization.objects.filter(id=org_id).exists()
 
-        # cascade is asynchronous, ensure there is still related search,
-        assert UserOption.objects.filter(organization_id=org_id).exists()
-        with self.tasks():
-            schedule_hybrid_cloud_foreign_key_jobs()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # cascade is asynchronous, ensure there is still related search,
+            assert UserOption.objects.filter(organization_id=org_id).exists()
 
-        # Ensure they are all now gone.
-        assert not UserOption.objects.filter(organization_id=org_id).exists()
+        # Run cascades in the region, and then in control
+        with self.tasks(), assume_test_silo_mode(SiloMode.REGION):
+            schedule_hybrid_cloud_foreign_key_jobs()
+        with self.tasks(), assume_test_silo_mode(SiloMode.CONTROL):
+            schedule_hybrid_cloud_foreign_key_jobs_control()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # Ensure they are all now gone.
+            assert not UserOption.objects.filter(organization_id=org_id).exists()
+
+            assert NotificationSettingOption.objects.filter(
+                scope_type="organization",
+                scope_identifier=unaffected_org.id,
+            ).exists()
+
+            assert not NotificationSettingOption.objects.filter(
+                scope_type="organization",
+                scope_identifier=org_id,
+            ).exists()

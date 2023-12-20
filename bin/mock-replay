@@ -14,7 +14,10 @@ import click
 import requests
 from django.conf import settings
 
-from sentry.models import File, Organization, Project, Team
+from sentry.models.files.file import File
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.team import Team
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.testutils import (
     mock_replay,

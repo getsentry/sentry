@@ -1,10 +1,11 @@
 import * as Sentry from '@sentry/react';
+import {incrementalSnapshotEvent, IncrementalSource} from '@sentry-internal/rrweb';
 import memoize from 'lodash/memoize';
 import {duration} from 'moment';
 
+import {defined} from 'sentry/utils';
 import domId from 'sentry/utils/domId';
 import localStorageWrapper from 'sentry/utils/localStorage';
-import extractDomNodes from 'sentry/utils/replays/extractDomNodes';
 import hydrateBreadcrumbs, {
   replayInitBreadcrumb,
 } from 'sentry/utils/replays/hydrateBreadcrumbs';
@@ -27,8 +28,11 @@ import type {
 } from 'sentry/utils/replays/types';
 import {
   BreadcrumbCategories,
+  EventType,
   isDeadClick,
   isDeadRageClick,
+  isLCPFrame,
+  isPaintFrame,
 } from 'sentry/utils/replays/types';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
@@ -55,20 +59,53 @@ interface ReplayReaderParams {
   replayRecord: ReplayRecord | undefined;
 }
 
+interface Options {
+  showHydrationErrors?: boolean;
+}
+
 type RequiredNotNull<T> = {
   [P in keyof T]: NonNullable<T[P]>;
 };
 
 const sortFrames = (a, b) => a.timestampMs - b.timestampMs;
 
+function removeDuplicateClicks(frames: BreadcrumbFrame[]) {
+  const slowClickFrames = frames.filter(
+    frame => frame.category === 'ui.slowClickDetected'
+  );
+
+  const clickFrames = frames.filter(frame => frame.category === 'ui.click');
+
+  const otherFrames = frames.filter(
+    frame => !(slowClickFrames.includes(frame) || clickFrames.includes(frame))
+  );
+
+  const uniqueClickFrames: BreadcrumbFrame[] = clickFrames.filter(clickFrame => {
+    return !slowClickFrames.some(
+      slowClickFrame =>
+        slowClickFrame.data &&
+        'nodeId' in slowClickFrame.data &&
+        clickFrame.data &&
+        'nodeId' in clickFrame.data &&
+        slowClickFrame.data.nodeId === clickFrame.data.nodeId &&
+        slowClickFrame.timestampMs === clickFrame.timestampMs
+    );
+  });
+
+  return uniqueClickFrames.concat(otherFrames).concat(slowClickFrames);
+}
+
 export default class ReplayReader {
-  static factory({attachments, errors, replayRecord}: ReplayReaderParams) {
+  static factory(
+    {attachments, errors, replayRecord}: ReplayReaderParams,
+    options: Options
+  ) {
     if (!attachments || !replayRecord || !errors) {
       return null;
     }
 
     try {
-      return new ReplayReader({attachments, errors, replayRecord});
+      return new ReplayReader({attachments, errors, replayRecord}, options);
     } catch (err) {
       Sentry.captureException(err);
 
@@ -76,20 +113,36 @@ export default class ReplayReader {
       // array or errors array to blame (it's probably attachments though).
       // Either way we can use the replayRecord to show some metadata, and then
       // put an error message below it.
-      return new ReplayReader({
-        attachments: [],
-        errors: [],
-        replayRecord,
-      });
+      return new ReplayReader(
+        {
+          attachments: [],
+          errors: [],
+          replayRecord,
+        },
+        options
+      );
     }
   }
 
-  private constructor({
-    attachments,
-    errors,
-    replayRecord,
-  }: RequiredNotNull<ReplayReaderParams>) {
+  private constructor(
+    {attachments, errors, replayRecord}: RequiredNotNull<ReplayReaderParams>,
+    options: Options
+  ) {
+    this._options = options;
     this._cacheKey = domId('replayReader-');
+
+    if (replayRecord.is_archived) {
+      this._replayRecord = replayRecord;
+      const archivedReader = new Proxy(this, {
+        get(_target, prop, _receiver) {
+          if (prop === '_replayRecord') {
+            return replayRecord;
+          }
+          return () => {};
+        },
+      });
+      return archivedReader;
+    }
 
     const {breadcrumbFrames, optionFrame, rrwebFrames, spanFrames} =
       hydrateFrames(attachments);
@@ -128,7 +181,8 @@ export default class ReplayReader {
     // few seconds later.
     this._sortedBreadcrumbFrames = hydrateBreadcrumbs(
       replayRecord,
-      breadcrumbFrames
+      breadcrumbFrames,
+      this._sortedRRWebEvents
     ).sort(sortFrames);
     // Spans must be sorted so components like the Timeline and Network Chart
     // can have an easier time to render.
@@ -143,15 +197,31 @@ export default class ReplayReader {
 
   public timestampDeltas = {startedAtDelta: 0, finishedAtDelta: 0};
 
+  private _options: Options;
   private _cacheKey: string;
-  private _errors: ErrorFrame[];
+  private _errors: ErrorFrame[] = [];
   private _optionFrame: undefined | OptionFrame;
   private _replayRecord: ReplayRecord;
-  private _sortedBreadcrumbFrames: BreadcrumbFrame[];
-  private _sortedRRWebEvents: RecordingFrame[];
-  private _sortedSpanFrames: SpanFrame[];
+  private _sortedBreadcrumbFrames: BreadcrumbFrame[] = [];
+  private _sortedRRWebEvents: RecordingFrame[] = [];
+  private _sortedSpanFrames: SpanFrame[] = [];
 
   toJSON = () => this._cacheKey;
+
+  processingErrors = memoize(() => {
+    return [
+      this.getRRWebFrames().length < 2
+        ? `Replay has ${this.getRRWebFrames().length} frames`
+        : null,
+      !this.getRRWebFrames().some(frame => frame.type === EventType.Meta)
+        ? 'Missing Meta Frame'
+        : null,
+    ].filter(defined);
+  });
+
+  hasProcessingErrors = () => {
+    return this.processingErrors().length;
+  };
 
   /**
    * @returns Duration of Replay (milliseonds)
@@ -165,6 +235,15 @@ export default class ReplayReader {
   };
 
   getRRWebFrames = () => this._sortedRRWebEvents;
+
+  getRRWebMutations = () =>
+    this._sortedRRWebEvents.filter(
+      event =>
+        [EventType.IncrementalSnapshot].includes(event.type) &&
+        [IncrementalSource.Mutation].includes(
+          (event as incrementalSnapshotEvent).data.source
+        ) // filter only for mutation events
+    );
 
   getErrorFrames = () => this._errors;
 
@@ -188,26 +267,22 @@ export default class ReplayReader {
     )
   );
 
-  getDOMFrames = memoize(() => [
-    ...this._sortedBreadcrumbFrames
-      .filter(frame => 'nodeId' in (frame.data ?? {}))
-      .filter(
-        frame =>
-          !(
-            (frame.category === 'ui.slowClickDetected' &&
-              !isDeadClick(frame as SlowClickFrame)) ||
-            frame.category === 'ui.multiClick'
+  getDOMFrames = memoize(() =>
+    [
+      ...removeDuplicateClicks(
+        this._sortedBreadcrumbFrames
+          .filter(frame => 'nodeId' in (frame.data ?? {}))
+          .filter(
+            frame =>
+              !(
+                (frame.category === 'ui.slowClickDetected' &&
+                  !isDeadClick(frame as SlowClickFrame)) ||
+                frame.category === 'ui.multiClick'
+              )
           )
       ),
-    ...this._sortedSpanFrames.filter(frame => 'nodeId' in (frame.data ?? {})),
-  ]);
-
-  getDomNodes = memoize(() =>
-    extractDomNodes({
-      frames: this.getDOMFrames(),
-      rrwebEvents: this.getRRWebFrames(),
-      finishedAt: this._replayRecord.finished_at,
-    })
+      ...this._sortedSpanFrames.filter(frame => 'nodeId' in (frame.data ?? {})),
+    ].sort(sortFrames)
   );
 
   getMemoryFrames = memoize(() =>
@@ -216,35 +291,40 @@ export default class ReplayReader {
 
   getChapterFrames = memoize(() =>
     [
+      ...this.getPerfFrames(),
       ...this._sortedBreadcrumbFrames.filter(
         frame =>
-          ['navigation', 'replay.init', 'replay.mutations', 'ui.click'].includes(
-            frame.category
-          ) ||
-          (frame.category === 'ui.slowClickDetected' &&
-            (isDeadClick(frame as SlowClickFrame) ||
-              isDeadRageClick(frame as SlowClickFrame)))
-      ),
-      ...this._sortedSpanFrames.filter(frame =>
-        ['navigation.navigate', 'navigation.reload', 'navigation.back_forward'].includes(
-          frame.op
-        )
+          ['replay.init', 'replay.mutations'].includes(frame.category) ||
+          (this._options.showHydrationErrors && frame.category === 'replay.hydrate-error')
       ),
       ...this._errors,
     ].sort(sortFrames)
   );
 
-  getTimelineFrames = memoize(() =>
+  // TODO(session-replay-show-hydration-errors): remove this on GA
+  getHydrationFrames = () =>
+    this._sortedBreadcrumbFrames.filter(
+      frame => frame.category === 'replay.hydrate-error'
+    );
+
+  getPerfFrames = memoize(() =>
     [
-      ...this._sortedBreadcrumbFrames.filter(frame =>
-        ['replay.init', 'ui.click'].includes(frame.category)
+      ...removeDuplicateClicks(
+        this._sortedBreadcrumbFrames.filter(
+          frame =>
+            ['navigation', 'ui.click'].includes(frame.category) ||
+            (frame.category === 'ui.slowClickDetected' &&
+              (isDeadClick(frame as SlowClickFrame) ||
+                isDeadRageClick(frame as SlowClickFrame)))
+        )
       ),
-      ...this._sortedSpanFrames.filter(frame =>
-        ['navigation.navigate', 'navigation.reload'].includes(frame.op)
-      ),
-      ...this._errors,
+      ...this._sortedSpanFrames.filter(frame => frame.op.startsWith('navigation.')),
     ].sort(sortFrames)
   );
+
+  getLPCFrames = memoize(() => this._sortedSpanFrames.filter(isLCPFrame));
+
+  getPaintFrames = memoize(() => this._sortedSpanFrames.filter(isPaintFrame));
 
   getSDKOptions = () => this._optionFrame;
 

@@ -5,7 +5,9 @@ from django.core.files.base import ContentFile
 from django.urls import reverse
 
 from sentry.constants import ObjectStatus
-from sentry.models import ApiToken, FileBlob, FileBlobOwner
+from sentry.models.apitoken import ApiToken
+from sentry.models.files.fileblob import FileBlob
+from sentry.models.files.fileblobowner import FileBlobOwner
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.silo import SiloMode
 from sentry.tasks.assemble import ChunkFileState, assemble_artifacts
@@ -15,7 +17,7 @@ from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationArtifactBundleAssembleTest(APITestCase):
     def setUp(self):
         self.organization = self.create_organization(owner=self.user)

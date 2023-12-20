@@ -1,4 +1,6 @@
 import {Fragment} from 'react';
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {
   fireEvent,
@@ -15,7 +17,7 @@ import {IssueCategory} from 'sentry/types';
 import * as analytics from 'sentry/utils/analytics';
 import {IssueListActions} from 'sentry/views/issueList/actions';
 
-const organization = TestStubs.Organization();
+const organization = Organization();
 
 const defaultProps = {
   allResultsVisible: false,
@@ -59,7 +61,7 @@ describe('IssueListActions', function () {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
-      body: [TestStubs.Project({id: 1})],
+      body: [ProjectFixture({id: '1'})],
     });
   });
 
@@ -69,8 +71,6 @@ describe('IssueListActions', function () {
         render(<WrappedComponent queryCount={1500} />);
 
         await userEvent.click(screen.getByRole('checkbox'));
-
-        expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
       });
 
       it('can bulk select', async function () {
@@ -78,8 +78,6 @@ describe('IssueListActions', function () {
 
         await userEvent.click(screen.getByRole('checkbox'));
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
-
-        expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
       });
 
       it('bulk resolves', async function () {
@@ -116,8 +114,6 @@ describe('IssueListActions', function () {
         render(<WrappedComponent queryCount={15} />);
 
         await userEvent.click(screen.getByRole('checkbox'));
-
-        expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
       });
 
       it('can bulk select', async function () {
@@ -126,8 +122,6 @@ describe('IssueListActions', function () {
         await userEvent.click(screen.getByRole('checkbox'));
 
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
-
-        expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
       });
 
       it('bulk resolves', async function () {
@@ -145,8 +139,6 @@ describe('IssueListActions', function () {
         await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
 
         const modal = screen.getByRole('dialog');
-
-        expect(modal).toSnapshot();
 
         await userEvent.click(
           within(modal).getByRole('button', {name: 'Bulk resolve issues'})
@@ -315,9 +307,9 @@ describe('IssueListActions', function () {
     jest.spyOn(GroupStore, 'get').mockImplementation(id => {
       switch (id) {
         case '1':
-          return TestStubs.Group({project: TestStubs.Project({slug: 'project-1'})});
+          return TestStubs.Group({project: ProjectFixture({slug: 'project-1'})});
         default:
-          return TestStubs.Group({project: TestStubs.Project({slug: 'project-2'})});
+          return TestStubs.Group({project: ProjectFixture({slug: 'project-2'})});
       }
     });
 
@@ -426,7 +418,7 @@ describe('IssueListActions', function () {
     });
 
     describe('bulk action performance issues', function () {
-      const orgWithPerformanceIssues = TestStubs.Organization({
+      const orgWithPerformanceIssues = Organization({
         features: ['performance-issues'],
       });
 
@@ -481,7 +473,7 @@ describe('IssueListActions', function () {
         jest
           .spyOn(GroupStore, 'get')
           .mockReturnValue(
-            TestStubs.Group({project: TestStubs.Project({slug: 'project-1'})})
+            TestStubs.Group({project: ProjectFixture({slug: 'project-1'})})
           );
 
         render(

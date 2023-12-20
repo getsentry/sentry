@@ -1,7 +1,6 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import click
-import pytz
 from dateutil.parser import parse
 
 from sentry.runner.decorators import configuration
@@ -26,7 +25,7 @@ class DateTimeParamType(click.ParamType):
             # TODO: We should probably warn about this? Also note that this
             # doesn't use the Django specified timezone, since settings haven't
             # been configured yet.
-            result = result.replace(tzinfo=pytz.utc)
+            result = result.replace(tzinfo=timezone.utc)
 
         return result
 
@@ -63,7 +62,7 @@ def organizations(metrics, since, until):
     from django.utils import timezone
 
     from sentry import tsdb
-    from sentry.models import Organization
+    from sentry.models.organization import Organization
     from sentry.tsdb.base import TSDBModel
 
     stdout = click.get_text_stream("stdout")

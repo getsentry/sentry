@@ -5,13 +5,16 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import IntegrationSerializer
 from sentry.integrations import IntegrationFeatures
-from sentry.models import Activity, ExternalIssue, GroupLink
+from sentry.models.activity import Activity
 from sentry.models.group import Group
+from sentry.models.grouplink import GroupLink
+from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationFormError
@@ -48,6 +51,13 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
 
 @region_silo_endpoint
 class GroupIntegrationDetailsEndpoint(GroupEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+
     def _has_issue_feature(self, organization, user):
         has_issue_basic = features.has(
             "organizations:integrations-issue-basic", organization, actor=user

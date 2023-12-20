@@ -16,8 +16,20 @@ export function AllTransactionsView(props: BasePerformanceViewProps) {
     props.organization.features.includes('performance-new-trends') &&
     canUseMetricsData(props.organization)
   ) {
-    doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_CHANGED);
-    doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_RELATED_ISSUES);
+    if (props.organization.features.includes('performance-database-view')) {
+      doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_RELATED_ISSUES);
+      doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_CHANGED);
+      doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES);
+    } else {
+      doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_CHANGED);
+      doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_RELATED_ISSUES);
+    }
+
+    if (
+      props.organization.features.includes('starfish-browser-webvitals-pageoverview-v2')
+    ) {
+      doubleChartRowCharts.unshift(PerformanceWidgetSetting.OVERALL_PERFORMANCE_SCORE);
+    }
   } else {
     doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_REGRESSED);
     doubleChartRowCharts.push(PerformanceWidgetSetting.MOST_IMPROVED);

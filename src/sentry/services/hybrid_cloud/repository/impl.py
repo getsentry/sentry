@@ -6,7 +6,10 @@ from django.db import IntegrityError, router, transaction
 
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.models import Repository
+from sentry.db.postgres.transactions import enforce_constraints
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.projectcodeowners import ProjectCodeOwners
+from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.repository import RepositoryService, RpcRepository
 from sentry.services.hybrid_cloud.repository.model import RpcCreateRepository
 from sentry.services.hybrid_cloud.repository.serial import serialize_repository
@@ -62,7 +65,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
         self, *, organization_id: int, create: RpcCreateRepository
     ) -> RpcRepository | None:
         try:
-            with transaction.atomic(router.db_for_write(Repository)):
+            with enforce_constraints(transaction.atomic(router.db_for_write(Repository))):
                 repository = Repository.objects.create(
                     organization_id=organization_id, **create.dict()
                 )
@@ -95,3 +98,28 @@ class DatabaseBackedRepositoryService(RepositoryService):
                 integration_id=integration_id,
                 provider=provider,
             ).update(status=ObjectStatus.ACTIVE)
+
+    def disassociate_organization_integration(
+        self,
+        *,
+        organization_id: int,
+        organization_integration_id: int,
+        integration_id: int,
+    ) -> None:
+        with transaction.atomic(router.db_for_write(Repository)):
+            # Disassociate repos from the organization integration being deleted
+            Repository.objects.filter(
+                organization_id=organization_id, integration_id=integration_id
+            ).update(integration_id=None)
+
+            # Delete Code Owners with a Code Mapping using the OrganizationIntegration
+            ProjectCodeOwners.objects.filter(
+                repository_project_path_config__in=RepositoryProjectPathConfig.objects.filter(
+                    organization_integration_id=organization_integration_id
+                ).values_list("id", flat=True)
+            ).delete()
+
+            # Delete the Code Mappings
+            RepositoryProjectPathConfig.objects.filter(
+                organization_integration_id=organization_integration_id
+            ).delete()

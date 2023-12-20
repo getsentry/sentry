@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 from typing import Optional, Sequence
 
 import pytest
-from freezegun import freeze_time
 from snuba_sdk import Direction, Granularity, Limit, Offset
 from snuba_sdk.conditions import ConditionGroup
 
@@ -19,9 +18,10 @@ from sentry.snuba.metrics import (
     MetricGroupByField,
     MetricOrderByField,
     MetricsQuery,
-    parse_query,
+    parse_conditions,
 )
 from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.dates import parse_stats_period
 
@@ -391,7 +391,7 @@ def test_validate_many_order_by_fields_are_in_select():
     # This example should pass because both session crash free rate
     # and sum(session) both go to the entity counters
     metric_field_1 = MetricField(op=None, metric_mri=SessionMRI.CRASH_FREE_RATE.value)
-    metric_field_2 = MetricField(op="sum", metric_mri=SessionMRI.SESSION.value)
+    metric_field_2 = MetricField(op="sum", metric_mri=SessionMRI.RAW_SESSION.value)
     metrics_query_dict = (
         MetricsQueryBuilder()
         .with_select([metric_field_1, metric_field_2])
@@ -459,7 +459,7 @@ def test_validate_distribution_functions_in_orderby():
 @django_db_all
 def test_validate_where():
     query = "session.status:crashed"
-    where = parse_query(query, [])
+    where = parse_conditions(query, [], [])
 
     with pytest.raises(InvalidParams, match="Tag name session.status is not a valid query filter"):
         MetricsQuery(**MetricsQueryBuilder().with_where(where).to_metrics_query_dict())
@@ -480,7 +480,7 @@ def test_validate_limit():
     with pytest.raises(
         InvalidParams,
         match=(
-            "Requested interval of timedelta of 0:01:00 with statsPeriod "
+            r"Requested intervals \(61\) of timedelta of 0:01:00 with statsPeriod "
             "timedelta of 1:00:00 is too granular for a per_page of 200 "
             "elements. Increase your interval, decrease your statsPeriod, or decrease your per_page "
             "parameter."
@@ -568,27 +568,6 @@ def test_validate_metric_field_mri():
             op="avg",
             metric_mri="transaction-metric-duration",
         )
-
-
-@pytest.mark.parametrize(
-    "alias",
-    [
-        pytest.param(
-            None,
-            id="No alias provided",
-        ),
-        pytest.param(
-            "ahmed_alias",
-            id="alias is provided",
-        ),
-    ],
-)
-def test_validate_metric_field_mri_is_public(alias):
-    with pytest.raises(
-        InvalidParams,
-        match=f"Unable to find a mri reverse mapping for '{SessionMRI.ERRORED_ALL.value}'.",
-    ):
-        MetricField(op=None, metric_mri=SessionMRI.ERRORED_ALL.value, alias=alias)
 
 
 @pytest.mark.parametrize(

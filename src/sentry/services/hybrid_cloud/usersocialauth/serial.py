@@ -12,5 +12,5 @@ def serialize_usersocialauth(auth: "UserSocialAuth") -> RpcUserSocialAuth:
         user_id=auth.user.id,
         provider=auth.provider,
         uid=auth.uid,
-        extra_data=auth.extra_data,
+        extra_data=dict(auth.extra_data or ()),
     )

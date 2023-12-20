@@ -1,16 +1,7 @@
 import ExternalLink from 'sentry/components/links/externalLink';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization, PlatformKey} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-
-type Props = {
-  guideLink: string;
-  newOrg?: boolean;
-  organization?: Organization;
-  platformKey?: PlatformKey;
-  projectId?: string;
-};
 
 export function getUploadSourceMapsStep({
   guideLink,
@@ -18,7 +9,13 @@ export function getUploadSourceMapsStep({
   platformKey,
   projectId,
   newOrg,
-}: Props) {
+}: {
+  guideLink: string;
+  newOrg?: boolean;
+  organization?: Organization;
+  platformKey?: PlatformKey;
+  projectId?: string;
+}) {
   return {
     title: t('Upload Source Maps'),
     description: (
@@ -71,3 +68,45 @@ export function getUploadSourceMapsStep({
     ],
   };
 }
+
+export const getReplayConfigureDescription = ({link}: {link: string}) =>
+  tct(
+    'Add the following to your SDK config. There are several privacy and sampling options available, all of which can be set using the [code:integrations] constructor. Learn more about configuring Session Replay by reading the [link:configuration docs].',
+    {
+      code: <code />,
+      link: <ExternalLink href={link} />,
+    }
+  );
+
+export const getReplayJsLoaderSdkSetupSnippet = () => `
+<script>
+  Sentry.onLoad(function() {
+    Sentry.init({
+      // Session Replay
+      replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
+      replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.
+    });
+  });
+</script>`;
+
+export const getReplaySDKSetupSnippet = ({
+  importStatement,
+  dsn,
+}: {
+  dsn: string;
+  importStatement: string;
+}) =>
+  `${importStatement}
+
+  Sentry.init({
+    dsn: "${dsn}",
+
+    // This sets the sample rate at 10%. You may want this to be 100% while
+    // in development, then sample at a lower rate in production.
+    replaysSessionSampleRate: 0.1,
+    // If the entire session is not sampled, use the below sample rate to sample
+    // sessions when an error occurs.
+    replaysOnErrorSampleRate: 1.0,
+
+    integrations: [new Sentry.Replay()],
+  });`;

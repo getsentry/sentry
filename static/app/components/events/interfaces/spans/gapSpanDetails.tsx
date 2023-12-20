@@ -51,33 +51,40 @@ export function GapSpanDetails({
 
   const profileGroup = useProfileGroup();
 
-  const threadId = useMemo(
-    () => profileGroup.profiles[profileGroup.activeProfileIndex]?.threadId,
-    [profileGroup]
-  );
-
   const profile = useMemo(() => {
+    const threadId = profileGroup.profiles[profileGroup.activeProfileIndex]?.threadId;
     if (!defined(threadId)) {
       return null;
     }
     return profileGroup.profiles.find(p => p.threadId === threadId) ?? null;
-  }, [profileGroup.profiles, threadId]);
+  }, [profileGroup.profiles, profileGroup.activeProfileIndex]);
 
-  const transactionHasProfile = defined(threadId) && defined(profile);
+  const transactionHasProfile = defined(profile);
 
   const flamegraph = useMemo(() => {
     if (!transactionHasProfile) {
       return FlamegraphModel.Example();
     }
 
-    return new FlamegraphModel(profile, threadId, {});
-  }, [transactionHasProfile, profile, threadId]);
+    return new FlamegraphModel(profile, {});
+  }, [transactionHasProfile, profile]);
+
+  // The most recent profile formats should contain a timestamp indicating
+  // the beginning of the profile. This timestamp can be after the start
+  // timestamp on the transaction, so we need to account for the gap and
+  // make sure the relative start timestamps we compute for the span is
+  // relative to the start of the profile.
+  //
+  // If the profile does not contain a timestamp, we fall back to using the
+  // start timestamp on the transaction. This won't be as accurate but it's
+  // the next best thing.
+  const startTimestamp = profile?.timestamp ?? event.startTimestamp;
 
   const relativeStartTimestamp = transactionHasProfile
-    ? span.start_timestamp - event.startTimestamp
+    ? span.start_timestamp - startTimestamp
     : 0;
   const relativeStopTimestamp = transactionHasProfile
-    ? span.timestamp - event.startTimestamp
+    ? span.timestamp - startTimestamp
     : flamegraph.configSpace.width;
 
   // Found the profile, render the preview

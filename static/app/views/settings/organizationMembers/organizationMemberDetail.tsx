@@ -23,7 +23,6 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
-import TextCopyInput from 'sentry/components/textCopyInput';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -287,8 +286,9 @@ class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
 
     const {access, orgRoleList} = organization;
     const canEdit = access.includes('org:write') && !this.memberDeactivated;
+    const isPartnershipUser = member.flags['partnership:restricted'] === true;
 
-    const {email, expired, pending, invite_link: inviteLink} = member;
+    const {email, expired, pending} = member;
     const canResend = !expired;
     const showAuth = !pending;
 
@@ -330,35 +330,19 @@ class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
               </Details>
             </PanelItem>
             <PanelItem>
-              {inviteLink && (
+              {(member.pending || member.expired) && (
                 <InviteSection>
-                  <InviteField>
-                    <DetailLabel>{t('Invite Link')}</DetailLabel>
-                    <TextCopyInput>{inviteLink}</TextCopyInput>
-                    <p className="help-block">
-                      {t(
-                        'This invite link can be used by anyone who knows it. Keep it secure!'
-                      )}
-                    </p>
-                  </InviteField>
                   <ButtonBar gap={1}>
                     {canResend && (
                       <Button
                         data-test-id="resend-invite"
-                        onClick={() => this.handleInvite(false)}
+                        icon={<IconRefresh />}
+                        title={t('Generate a new invite link and send a new email.')}
+                        onClick={() => this.handleInvite(true)}
                       >
                         {t('Resend Invite')}
                       </Button>
                     )}
-                    <Button
-                      onClick={() => this.handleInvite(true)}
-                      title={t(
-                        'Generate New Invite. This will invalidate the previous invite link!'
-                      )}
-                      priority="danger"
-                      aria-label={t('Generate New Invite')}
-                      icon={<IconRefresh size="sm" />}
-                    />
                   </ButtonBar>
                 </InviteSection>
               )}
@@ -400,10 +384,15 @@ class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
         <OrganizationRoleSelect
           enforceAllowed={false}
           enforceRetired={this.hasTeamRoles}
-          disabled={!canEdit}
+          disabled={!canEdit || isPartnershipUser}
           roleList={orgRoleList}
           roleSelected={orgRole}
           setSelected={this.onChangeOrgRole}
+          helpText={
+            isPartnershipUser
+              ? t('You cannot make changes to this partner-provisioned user.')
+              : undefined
+          }
         />
 
         <Teams slugs={member.teams}>
@@ -464,10 +453,6 @@ const DetailLabel = styled('div')`
   font-weight: bold;
   margin-bottom: ${space(0.5)};
   color: ${p => p.theme.textColor};
-`;
-
-const InviteField = styled('div')`
-  flex-grow: 1;
 `;
 
 const InviteSection = styled('div')`

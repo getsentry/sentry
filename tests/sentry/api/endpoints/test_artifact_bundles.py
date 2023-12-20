@@ -1,21 +1,21 @@
 from datetime import datetime, timedelta
 
 from django.urls import reverse
-from freezegun import freeze_time
 
-from sentry.models import (
+from sentry.models.artifactbundle import (
     ArtifactBundle,
     DebugIdArtifactBundle,
-    File,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
     SourceFileType,
 )
+from sentry.models.files.file import File
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time("2023-03-15 00:00:00")
 class ArtifactBundlesEndpointTest(APITestCase):
     def test_get_artifact_bundles_with_multiple_bundles(self):
@@ -289,11 +289,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
                 "bundleId": str(artifact_bundle.bundle_id),
                 "associations": [
                     {
-                        "release": "1.0",
-                        "dist": "android",
-                    },
-                    {
-                        "release": "1.0",
+                        "release": "2.0",
                         "dist": "ios",
                     },
                     {
@@ -301,8 +297,12 @@ class ArtifactBundlesEndpointTest(APITestCase):
                         "dist": "android",
                     },
                     {
-                        "release": "2.0",
+                        "release": "1.0",
                         "dist": "ios",
+                    },
+                    {
+                        "release": "1.0",
+                        "dist": "android",
                     },
                 ],
                 "dateModified": "2023-03-15T00:00:00Z",
@@ -322,11 +322,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
                 "bundleId": str(artifact_bundle.bundle_id),
                 "associations": [
                     {
-                        "release": "1.0",
-                        "dist": "android",
-                    },
-                    {
-                        "release": "1.0",
+                        "release": "2.0",
                         "dist": "ios",
                     },
                     {
@@ -334,8 +330,12 @@ class ArtifactBundlesEndpointTest(APITestCase):
                         "dist": "android",
                     },
                     {
-                        "release": "2.0",
+                        "release": "1.0",
                         "dist": "ios",
+                    },
+                    {
+                        "release": "1.0",
+                        "dist": "android",
                     },
                 ],
                 "dateModified": "2023-03-15T00:00:00Z",

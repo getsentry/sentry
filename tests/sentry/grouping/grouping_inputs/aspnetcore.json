@@ -4,9 +4,7 @@
   "environment": "Development",
   "platform": "csharp",
   "logger": "Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddle...",
-  "fingerprint": [
-    "{{ default }}"
-  ],
+  "fingerprint": ["{{ default }}"],
   "exception": {
     "values": [
       {

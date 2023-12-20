@@ -4,12 +4,13 @@ import path from 'path';
 import {TextDecoder, TextEncoder} from 'util';
 
 import {ReactElement} from 'react';
-import type {InjectedRouter, RouteComponentProps} from 'react-router';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
-import type {Location} from 'history';
 import MockDate from 'mockdate';
-import {object as propTypesObject} from 'prop-types';
-import {stringify} from 'query-string';
+import LocationFixture from 'sentry-fixture/locationFixture';
+import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import RouterFixture from 'sentry-fixture/routerFixture';
+import RouterPropsFixture from 'sentry-fixture/routerPropsFixture';
 
 // eslint-disable-next-line jest/no-mocks-import
 import type {Client} from 'sentry/__mocks__/api';
@@ -75,6 +76,7 @@ jest.mock('react-router', function reactRouterMockFactory() {
     },
   };
 });
+jest.mock('sentry/utils/search/searchBoxTextArea');
 
 jest.mock('react-virtualized', function reactVirtualizedMockFactory() {
   const ActualReactVirtualized = jest.requireActual('react-virtualized');
@@ -112,7 +114,7 @@ jest.mock('@sentry/react', function sentryReact() {
     captureMessage: jest.fn(),
     captureException: jest.fn(),
     showReportDialog: jest.fn(),
-    startSpan: jest.fn(),
+    startSpan: jest.spyOn(SentryReact, 'startSpan'),
     finishSpan: jest.fn(),
     lastEventId: jest.fn(),
     getCurrentHub: jest.spyOn(SentryReact, 'getCurrentHub'),
@@ -121,6 +123,13 @@ jest.mock('@sentry/react', function sentryReact() {
     Scope: SentryReact.Scope,
     Severity: SentryReact.Severity,
     withProfiler: SentryReact.withProfiler,
+    metrics: {
+      MetricsAggregator: jest.fn().mockReturnValue({}),
+      increment: jest.fn(),
+      gauge: jest.fn(),
+      set: jest.fn(),
+      distribution: jest.fn(),
+    },
     BrowserTracing: jest.fn().mockReturnValue({}),
     BrowserProfilingIntegration: jest.fn().mockReturnValue({}),
     addGlobalEventProcessor: jest.fn(),
@@ -140,85 +149,11 @@ jest.mock('@sentry/react', function sentryReact() {
 });
 
 const routerFixtures = {
-  router: (params = {}): InjectedRouter => ({
-    push: jest.fn(),
-    replace: jest.fn(),
-    go: jest.fn(),
-    goBack: jest.fn(),
-    goForward: jest.fn(),
-    setRouteLeaveHook: jest.fn(),
-    isActive: jest.fn(),
-    createHref: jest.fn().mockImplementation(to => {
-      if (typeof to === 'string') {
-        return to;
-      }
-
-      if (typeof to === 'object') {
-        if (!to.query) {
-          return to.pathname;
-        }
-
-        return `${to.pathname}?${stringify(to.query)}`;
-      }
-
-      return '';
-    }),
-    location: TestStubs.location(),
-    createPath: jest.fn(),
-    routes: [],
-    params: {},
-    ...params,
-  }),
-
-  location: (params: Partial<Location> = {}): Location => ({
-    key: '',
-    search: '',
-    hash: '',
-    action: 'PUSH',
-    state: null,
-    query: {},
-    pathname: '/mock-pathname/',
-    ...params,
-  }),
-
-  routerProps: (params = {}) => ({
-    location: TestStubs.location(),
-    params: {},
-    routes: [],
-    stepBack: () => {},
-    ...params,
-  }),
-
-  routeComponentProps: <RouteParams = {orgId: string; projectId: string}>(
-    params: Partial<RouteComponentProps<RouteParams, {}>> = {}
-  ): RouteComponentProps<RouteParams, {}> => {
-    const router = TestStubs.router(params);
-    return {
-      location: router.location,
-      params: router.params as RouteParams & {},
-      routes: router.routes,
-      route: router.routes[0],
-      routeParams: router.params,
-      router,
-    };
-  },
-
-  routerContext: ([context, childContextTypes] = []) => ({
-    context: {
-      location: TestStubs.location(),
-      router: TestStubs.router(),
-      organization: TestStubs.Organization(),
-      project: TestStubs.Project(),
-      ...context,
-    },
-    childContextTypes: {
-      router: propTypesObject,
-      location: propTypesObject,
-      organization: propTypesObject,
-      project: propTypesObject,
-      ...childContextTypes,
-    },
-  }),
+  router: RouterFixture,
+  location: LocationFixture,
+  routerProps: RouterPropsFixture,
+  routeComponentProps: RouteComponentPropsFixture,
+  routerContext: RouterContextFixture,
 };
 
 const jsFixturesDirectory = path.resolve(__dirname, '../../fixtures/js-stubs/');
@@ -233,6 +168,8 @@ declare global {
   /**
    * Test stubs are automatically loaded from the fixtures/js-stubs
    * directory. Use these for setting up test data.
+   *
+   * @deprecated Please import test stubs directly and do not use this global.
    */
   // eslint-disable-next-line no-var
   var TestStubs: typeof fixtures;
@@ -297,3 +234,15 @@ Object.defineProperty(window, 'getComputedStyle', {
   configurable: true,
   writable: true,
 });
+
+window.IntersectionObserver = class IntersectionObserver {
+  root = null;
+  rootMargin = '';
+  thresholds = [];
+  takeRecords = jest.fn();
+
+  constructor() {}
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};

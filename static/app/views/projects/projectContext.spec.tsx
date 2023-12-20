@@ -1,3 +1,6 @@
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectContext} from 'sentry/views/projects/projectContext';
@@ -8,8 +11,8 @@ jest.mock('sentry/actionCreators/modal', () => ({
 }));
 
 describe('projectContext component', function () {
-  const project = TestStubs.Project();
-  const org = TestStubs.Organization();
+  const project = ProjectFixture();
+  const org = Organization();
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -40,8 +43,7 @@ describe('projectContext component', function () {
         loadingProjects={false}
         projects={[]}
         organization={org}
-        orgId={org.slug}
-        projectId={project.slug}
+        projectSlug={project.slug}
       >
         {null}
       </ProjectContext>
@@ -72,8 +74,7 @@ describe('projectContext component', function () {
         projects={[]}
         loadingProjects={false}
         organization={org}
-        orgId={org.slug}
-        projectId={project.slug}
+        projectSlug={project.slug}
       >
         {null}
       </ProjectContext>
@@ -91,7 +92,7 @@ describe('projectContext component', function () {
       url: `/projects/${org.slug}/new-slug/`,
       method: 'GET',
       statusCode: 200,
-      body: TestStubs.Project({slug: 'new-slug'}),
+      body: ProjectFixture({slug: 'new-slug'}),
     });
 
     rerender(
@@ -100,8 +101,7 @@ describe('projectContext component', function () {
         projects={[]}
         loadingProjects={false}
         organization={org}
-        orgId={org.slug}
-        projectId="new-slug"
+        projectSlug="new-slug"
       >
         {null}
       </ProjectContext>
@@ -124,8 +124,7 @@ describe('projectContext component', function () {
         loadingProjects={false}
         projects={[]}
         organization={org}
-        orgId={org.slug}
-        projectId={project.slug}
+        projectSlug={project.slug}
       >
         {null}
       </ProjectContext>
@@ -149,8 +148,7 @@ describe('projectContext component', function () {
         loadingProjects={false}
         api={new MockApiClient()}
         projects={[project]}
-        orgId={org.slug}
-        projectId={project.slug}
+        projectSlug={project.slug}
       >
         {null}
       </ProjectContext>

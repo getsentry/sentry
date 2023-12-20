@@ -2,14 +2,14 @@ from functools import cached_property
 
 import responses
 
-from sentry.models import Repository
+from sentry.models.repository import Repository
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry_plugins.bitbucket.repository_provider import BitbucketRepositoryProvider
 from sentry_plugins.bitbucket.testutils import COMMIT_DIFF_PATCH, COMPARE_COMMITS_EXAMPLE
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class BitbucketPluginTest(TestCase):
     @cached_property
     def provider(self):

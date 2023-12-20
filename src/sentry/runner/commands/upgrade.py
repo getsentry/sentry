@@ -68,7 +68,7 @@ def _upgrade(interactive, traceback, verbosity, repair, run_post_upgrade, with_n
         call_command("sentry.runner.commands.repair.repair")
 
     if run_post_upgrade:
-        post_upgrade.send(sender=SiloMode.get_current_mode())
+        post_upgrade.send(sender=SiloMode.get_current_mode(), interactive=interactive)
 
 
 @click.command()

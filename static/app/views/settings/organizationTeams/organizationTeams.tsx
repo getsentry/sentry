@@ -63,7 +63,7 @@ function OrganizationTeams({
           organization,
         })
       }
-      icon={<IconAdd size="xs" isCircled />}
+      icon={<IconAdd isCircled />}
     >
       {t('Create Team')}
     </Button>
@@ -89,7 +89,7 @@ function OrganizationTeams({
       <SettingsPageHeader title={title} action={action} />
 
       <OrganizationAccessRequests
-        orgId={organization.slug}
+        orgSlug={organization.slug}
         requestList={requestList}
         onRemoveAccessRequest={onRemoveAccessRequest}
       />

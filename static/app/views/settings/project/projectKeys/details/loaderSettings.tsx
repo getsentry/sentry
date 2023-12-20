@@ -142,7 +142,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
             flexibleControlStateSize
           >
             <TextCopyInput aria-label={t('Loader Script')}>
-              {`<script src='${loaderLink}' crossorigin="anonymous"></script>`}
+              {`<script src="${loaderLink}" crossorigin="anonymous"></script>`}
             </TextCopyInput>
           </FieldGroup>
 

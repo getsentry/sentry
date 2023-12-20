@@ -58,7 +58,7 @@ export default function SourceMapsWizard({analyticsParams}: Props) {
   }
 
   return (
-    <Panel dashedBorder data-test-id="sourcemaps-wizard">
+    <StyledPanel dashedBorder data-test-id="sourcemaps-wizard">
       <CloseButton
         onClick={() => {
           setIsHidden(true);
@@ -74,9 +74,9 @@ export default function SourceMapsWizard({analyticsParams}: Props) {
       <EmptyMessage
         size="medium"
         icon={<IconFlag size="xl" />}
-        title={t("Sentry isn't Sentry without source maps")}
+        title={t("You're not a computer, so why parse minified code?")}
         description={tct(
-          'Automatically upload your source maps to enable readable stack traces and better error grouping using the Sentry Wizard. [link:Learn more]',
+          'Upload source maps with the Sentry Wizard to unlock readable stack traces and better error grouping. [link:Learn more]',
           {
             link: (
               <ExternalLink
@@ -106,7 +106,7 @@ export default function SourceMapsWizard({analyticsParams}: Props) {
           {wizardCommand}
         </StyledCodeSnippet>
       </EmptyMessage>
-    </Panel>
+    </StyledPanel>
   );
 }
 
@@ -118,6 +118,10 @@ const StyledCodeSnippet = styled(CodeSnippet)<{isDarkMode: boolean}>`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     width: 100%;
   }
+`;
+
+const StyledPanel = styled(Panel)`
+  margin: 0 30px;
 `;
 
 const CloseButton = styled(Button)`

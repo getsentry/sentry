@@ -2,19 +2,15 @@ from __future__ import annotations
 
 import time
 import uuid
-from typing import Any, Optional
+from typing import Any
 
-from django.conf import settings
-
+from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.replays.lib.storage import FilestoreBlob, StorageBlob
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.usecases.reader import fetch_segments_metadata
+from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
-from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
-from sentry.utils.pubsub import KafkaPublisher
-
-replay_publisher: Optional[KafkaPublisher] = None
 
 
 @instrumented_task(
@@ -22,6 +18,7 @@ replay_publisher: Optional[KafkaPublisher] = None
     queue="replays.delete_replay",
     default_retry_delay=5,
     max_retries=5,
+    silo_mode=SiloMode.REGION,
 )
 def delete_recording_segments(project_id: int, replay_id: str, **kwargs: Any) -> None:
     """Asynchronously delete a replay."""
@@ -60,7 +57,7 @@ def archive_replay(project_id: int, replay_id: str) -> None:
         "platform": "",
     }
 
-    publisher = _initialize_publisher()
+    publisher = initialize_replays_publisher()
     publisher.publish(
         "ingest-replay-events",
         json.dumps(
@@ -75,16 +72,3 @@ def archive_replay(project_id: int, replay_id: str) -> None:
             }
         ),
     )
-
-
-def _initialize_publisher() -> KafkaPublisher:
-    global replay_publisher
-
-    if replay_publisher is None:
-        config = get_topic_definition(settings.KAFKA_INGEST_REPLAY_EVENTS)
-        replay_publisher = KafkaPublisher(
-            get_kafka_producer_cluster_options(config["cluster"]),
-            asynchronous=False,
-        )
-
-    return replay_publisher

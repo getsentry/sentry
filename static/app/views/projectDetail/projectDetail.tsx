@@ -320,7 +320,7 @@ class ProjectDetail extends DeprecatedAsyncView<Props, State> {
               </Layout.Main>
               <Layout.Side>
                 <ProjectTeamAccess organization={organization} project={project} />
-                <Feature features={['incidents']} organization={organization}>
+                <Feature features="incidents" organization={organization}>
                   <ProjectLatestAlerts
                     organization={organization}
                     projectSlug={params.projectId}

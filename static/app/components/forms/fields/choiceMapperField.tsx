@@ -2,7 +2,9 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
+import DropdownAutoComplete, {
+  StaticDropdownAutoCompleteProps,
+} from 'sentry/components/dropdownAutoComplete';
 import {Item} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownButton from 'sentry/components/dropdownButton';
 import SelectControl, {
@@ -45,7 +47,7 @@ export interface ChoiceMapperProps extends DefaultProps {
   /**
    * Props forwarded to the add mapping dropdown.
    */
-  addDropdown: React.ComponentProps<typeof DropdownAutoComplete>;
+  addDropdown: StaticDropdownAutoCompleteProps;
   /**
    * A list of column labels (headers) for the multichoice table. This should
    * have the same mapping keys as the mappedSelectors prop.
@@ -181,7 +183,7 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
       >
         {({isOpen}) => (
           <DropdownButton
-            icon={<IconAdd size="xs" isCircled />}
+            icon={<IconAdd isCircled />}
             isOpen={isOpen}
             size="xs"
             disabled={disabled}

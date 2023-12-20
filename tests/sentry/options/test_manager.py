@@ -4,6 +4,7 @@ from unittest.mock import patch
 import pytest
 from django.conf import settings
 from django.core.cache.backends.locmem import LocMemCache
+from django.test import override_settings
 
 from sentry.options.manager import (
     DEFAULT_FLAGS,
@@ -25,7 +26,7 @@ from sentry.testutils.silo import all_silo_test
 from sentry.utils.types import Int, String
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class OptionsManagerTest(TestCase):
     @cached_property
     def store(self):
@@ -257,6 +258,7 @@ class OptionsManagerTest(TestCase):
         with self.settings(SENTRY_OPTIONS={"prioritize_disk": None}):
             assert self.manager.get("prioritize_disk") == "foo"
 
+    @override_settings(SENTRY_OPTIONS_COMPLAIN_ON_ERRORS=False)
     def test_db_unavailable(self):
         with patch.object(self.store.model.objects, "get_queryset", side_effect=RuntimeError()):
             # we can't update options if the db is unavailable
@@ -278,6 +280,7 @@ class OptionsManagerTest(TestCase):
                     assert self.manager.get("foo") == ""
                     self.store.flush_local_cache()
 
+    @override_settings(SENTRY_OPTIONS_COMPLAIN_ON_ERRORS=False)
     def test_db_and_cache_unavailable(self):
         self.store.cache.clear()
         self.manager.set("foo", "bar")
@@ -293,6 +296,7 @@ class OptionsManagerTest(TestCase):
                         assert self.manager.get("foo") == "baz"
                         self.store.flush_local_cache()
 
+    @override_settings(SENTRY_OPTIONS_COMPLAIN_ON_ERRORS=False)
     def test_cache_unavailable(self):
         self.manager.set("foo", "bar")
         self.store.flush_local_cache()

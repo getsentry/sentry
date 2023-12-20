@@ -6,8 +6,10 @@ from rest_framework.exceptions import NotFound, ParseError
 
 from sentry import eventstore
 from sentry.api.endpoints.project_release_files import ArtifactSource
-from sentry.models import Distribution, Release, ReleaseFile, SourceMapProcessingIssue
-from sentry.models.releasefile import read_artifact_index
+from sentry.models.distribution import Distribution
+from sentry.models.release import Release
+from sentry.models.releasefile import ReleaseFile, read_artifact_index
+from sentry.models.sourcemapprocessingissue import SourceMapProcessingIssue
 from sentry.utils.javascript import find_sourcemap
 from sentry.utils.urls import non_standard_url_join
 
@@ -37,6 +39,15 @@ def source_map_debug(project, event_id, exception_idx, frame_idx):
         # already mapped
         return SourceMapDebug()
 
+    if event.platform == "node" and frame.context_line:
+        return SourceMapDebug()
+
+    # We can't demangle node's internal modules therefore we only process
+    # user-land frames (starting with /) or those created by bundle/webpack internals.
+
+    if event.platform == "node" and not abs_path.startswith(("/", "app:", "webpack:")):
+        return SourceMapDebug()
+
     sdk_info = event.data.get("sdk")
     can_use_debug_id = (
         sdk_info
@@ -59,7 +70,9 @@ def source_map_debug(project, event_id, exception_idx, frame_idx):
 
     urlparts = urlparse(abs_path)
 
-    if not (urlparts.scheme and urlparts.path):
+    # Node will produce file paths and not a fully-qualified URLs, so we don't need to check it.
+    # It's also guaranteed here that we will have a valid path, as we verify it few lines above.
+    if event.platform != "node" and not (urlparts.scheme and urlparts.path):
         return SourceMapDebug(
             issue=SourceMapProcessingIssue.URL_NOT_VALID, data={"absPath": abs_path}
         )

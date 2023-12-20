@@ -1,20 +1,26 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
+import {screen} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import docs from './rails';
 
-import {GettingStartedWithRubyRails, steps} from './rails';
-
-describe('GettingStartedWithRubyRails', function () {
+describe('rails onboarding docs', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithRubyRails dsn="test-dsn" />);
+    renderWithOnboardingLayout(docs);
 
-    // Steps
-    for (const step of steps()) {
-      expect(
-        screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
-      ).toBeInTheDocument();
-    }
+    // Renders main headings
+    expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Caveats'})).toBeInTheDocument();
 
-    expect(container).toSnapshot();
+    // Renders config options
+    expect(
+      screen.getByText(textWithMarkupMatcher(/config.breadcrumbs_logger/))
+    ).toBeInTheDocument();
+
+    // Renders import
+    expect(
+      screen.getByText(textWithMarkupMatcher(/gem \"sentry-ruby\"/))
+    ).toBeInTheDocument();
   });
 });

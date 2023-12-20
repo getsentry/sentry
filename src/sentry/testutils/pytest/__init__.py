@@ -1,4 +1,5 @@
 pytest_plugins = [
+    "sentry.testutils.skips",
     "sentry.testutils.pytest.sentry",
     "sentry.testutils.pytest.selenium",
     "sentry.testutils.pytest.fixtures",

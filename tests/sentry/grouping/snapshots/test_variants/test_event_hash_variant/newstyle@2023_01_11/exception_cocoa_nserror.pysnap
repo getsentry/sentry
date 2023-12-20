@@ -1,5 +1,5 @@
 ---
-created: '2023-02-01T08:22:06.277778Z'
+created: '2023-12-18T12:12:51.554639Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -26,7 +26,7 @@ app:
           frame (non app frame)
             function*
               "UIApplicationMain"
-          frame (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+          frame (non app frame)
             function*
               "-[UIApplication _run]"
           frame (non app frame)
@@ -74,7 +74,7 @@ app:
           frame (non app frame)
             function*
               "-[UIControl sendAction:to:forEvent:]"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (family:native function:__*[[]Sentry* -app -group))
             function*
               "__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2"
           frame (non app frame)
@@ -102,7 +102,7 @@ system:
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "UIApplicationMain"
-          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+          frame*
             function*
               "-[UIApplication _run]"
           frame (ignored by stack trace rule (category:internals -group))
@@ -150,7 +150,7 @@ system:
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "-[UIControl sendAction:to:forEvent:]"
-          frame (ignored by stack trace rule (category:internals -group))
+          frame (ignored by stack trace rule (family:native function:__*[[]Sentry* -app -group))
             function*
               "__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2"
           frame (ignored by stack trace rule (category:internals -group))

@@ -1,3 +1,8 @@
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {Team} from 'sentry-fixture/team';
+import {User} from 'sentry-fixture/user';
+
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
@@ -24,17 +29,17 @@ describe('AssigneeSelector', () => {
   let GROUP_2;
 
   beforeEach(() => {
-    USER_1 = TestStubs.User({
+    USER_1 = User({
       id: '1',
       name: 'Jane Bloggs',
       email: 'janebloggs@example.com',
     });
-    USER_2 = TestStubs.User({
+    USER_2 = User({
       id: '2',
       name: 'John Smith',
       email: 'johnsmith@example.com',
     });
-    USER_3 = TestStubs.User({
+    USER_3 = User({
       id: '3',
       name: 'J J',
       email: 'jj@example.com',
@@ -46,13 +51,13 @@ describe('AssigneeSelector', () => {
       team_slug: 'cool-team2',
     });
 
-    TEAM_1 = TestStubs.Team({
+    TEAM_1 = Team({
       id: '3',
       name: 'COOL TEAM',
       slug: 'cool-team',
     });
 
-    PROJECT_1 = TestStubs.Project({
+    PROJECT_1 = ProjectFixture({
       teams: [TEAM_1],
     });
 
@@ -84,12 +89,11 @@ describe('AssigneeSelector', () => {
     GroupStore.loadInitialData([GROUP_1, GROUP_2]);
 
     jest.spyOn(MemberListStore, 'getAll').mockImplementation(() => []);
-    jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => [PROJECT_1]);
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_1);
 
     assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
-      url: `/issues/${GROUP_1.id}/`,
+      url: `/organizations/org-slug/issues/${GROUP_1.id}/`,
       body: {
         ...GROUP_1,
         assignedTo: {...USER_1, type: 'user'},
@@ -98,7 +102,7 @@ describe('AssigneeSelector', () => {
 
     assignGroup2Mock = MockApiClient.addMockResponse({
       method: 'PUT',
-      url: `/issues/${GROUP_2.id}/`,
+      url: `/organizations/org-slug/issues/${GROUP_2.id}/`,
       body: {
         ...GROUP_2,
         assignedTo: {...USER_1, type: 'user'},
@@ -113,7 +117,12 @@ describe('AssigneeSelector', () => {
     await userEvent.click(await screen.findByTestId('assignee-selector'), undefined);
   };
 
+  beforeEach(() => {
+    ProjectsStore.loadInitialData([PROJECT_1]);
+  });
+
   afterEach(() => {
+    ProjectsStore.reset();
     MockApiClient.clearMockResponses();
   });
 
@@ -145,7 +154,7 @@ describe('AssigneeSelector', () => {
     it("should return the same member list if the session user isn't present", () => {
       render(<AssigneeSelectorComponent id={GROUP_1.id} />);
       jest.spyOn(ConfigStore, 'get').mockImplementation(() =>
-        TestStubs.User({
+        User({
           id: '555',
           name: 'Here Comes a New Challenger',
           email: 'guile@mail.us.af.mil',
@@ -204,7 +213,7 @@ describe('AssigneeSelector', () => {
     await userEvent.click(screen.getByText(`${USER_1.name} (You)`));
 
     expect(assignMock).toHaveBeenLastCalledWith(
-      '/issues/1337/',
+      '/organizations/org-slug/issues/1337/',
       expect.objectContaining({
         data: {assignedTo: 'user:1', assignedBy: 'assignee_selector'},
       })
@@ -219,7 +228,7 @@ describe('AssigneeSelector', () => {
     MockApiClient.clearMockResponses();
     assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
-      url: `/issues/${GROUP_1.id}/`,
+      url: `/organizations/org-slug/issues/${GROUP_1.id}/`,
       body: {
         ...GROUP_1,
         assignedTo: {...TEAM_1, type: 'team'},
@@ -234,7 +243,7 @@ describe('AssigneeSelector', () => {
 
     await waitFor(() =>
       expect(assignMock).toHaveBeenCalledWith(
-        '/issues/1337/',
+        '/organizations/org-slug/issues/1337/',
         expect.objectContaining({
           data: {assignedTo: 'team:3', assignedBy: 'assignee_selector'},
         })
@@ -256,7 +265,7 @@ describe('AssigneeSelector', () => {
 
     await waitFor(() =>
       expect(assignMock).toHaveBeenCalledWith(
-        '/issues/1337/',
+        '/organizations/org-slug/issues/1337/',
         expect.objectContaining({
           data: {assignedTo: 'team:3', assignedBy: 'assignee_selector'},
         })
@@ -269,7 +278,7 @@ describe('AssigneeSelector', () => {
     // api was called with empty string, clearing assignment
     await waitFor(() =>
       expect(assignMock).toHaveBeenLastCalledWith(
-        '/issues/1337/',
+        '/organizations/org-slug/issues/1337/',
         expect.objectContaining({
           data: {assignedTo: '', assignedBy: 'assignee_selector'},
         })
@@ -280,7 +289,7 @@ describe('AssigneeSelector', () => {
   it('shows invite member button', async () => {
     MemberListStore.loadInitialData([USER_1, USER_2]);
     render(<AssigneeSelectorComponent id={GROUP_1.id} />, {
-      context: TestStubs.routerContext(),
+      context: RouterContextFixture(),
     });
     jest.spyOn(ConfigStore, 'get').mockImplementation(() => true);
 
@@ -308,7 +317,7 @@ describe('AssigneeSelector', () => {
 
     await waitFor(() =>
       expect(assignGroup2Mock).toHaveBeenLastCalledWith(
-        '/issues/1338/',
+        '/organizations/org-slug/issues/1338/',
         expect.objectContaining({
           data: {assignedTo: `user:${USER_2.id}`, assignedBy: 'assignee_selector'},
         })
@@ -329,7 +338,7 @@ describe('AssigneeSelector', () => {
 
     assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
-      url: `/issues/${GROUP_2.id}/`,
+      url: `/organizations/org-slug/issues/${GROUP_2.id}/`,
       statusCode: 400,
       body: {detail: 'Cannot assign to non-team member'},
     });
@@ -377,7 +386,7 @@ describe('AssigneeSelector', () => {
 
     await waitFor(() =>
       expect(assignGroup2Mock).toHaveBeenCalledWith(
-        '/issues/1338/',
+        '/organizations/org-slug/issues/1338/',
         expect.objectContaining({
           data: {assignedTo: `user:${USER_1.id}`, assignedBy: 'assignee_selector'},
         })

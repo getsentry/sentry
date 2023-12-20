@@ -12,7 +12,7 @@ import LogoSentry from 'sentry/components/logoSentry';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import categoryList from 'sentry/data/platformCategories';
+import categoryList from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -116,7 +116,7 @@ function Onboarding(props: Props) {
 
       const frameworkCategory =
         categoryList.find(category => {
-          return category.platforms.includes(platform.id as never);
+          return category.platforms?.has(platform.id);
         })?.id ?? 'all';
 
       onboardingContext.setData({
@@ -536,7 +536,7 @@ const Back = styled(({className, animate, ...props}: BackButtonProps) => (
       },
     }}
   >
-    <Button {...props} icon={<IconArrow direction="left" size="sm" />} priority="link">
+    <Button {...props} icon={<IconArrow direction="left" />} priority="link">
       {t('Back')}
     </Button>
   </motion.div>

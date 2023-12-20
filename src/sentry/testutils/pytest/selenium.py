@@ -9,7 +9,6 @@ from typing import MutableSequence
 from urllib.parse import urlparse
 
 import pytest
-from django.utils.text import slugify
 from selenium import webdriver
 from selenium.common.exceptions import (
     NoSuchElementException,
@@ -21,7 +20,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
 
-from sentry.silo import SiloMode
 from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger("sentry.testutils")
@@ -117,8 +115,8 @@ class Browser:
             self.set_window_size(size["previous"]["width"], size["previous"]["height"])
 
     @contextmanager
-    def full_viewport(self, width=None, height=None):
-        return self.set_viewport(width, height, fit_content=True)
+    def full_viewport(self, width=None, height=None, fit_content=True):
+        return self.set_viewport(width, height, fit_content)
 
     @contextmanager
     def mobile_viewport(self, width=375, height=812):
@@ -207,12 +205,11 @@ class Browser:
         Waits until ``selector`` is visible and enabled to be clicked, or until ``timeout``
         is hit, whichever happens first.
         """
+        wait = WebDriverWait(self.driver, timeout)
         if selector:
-            condition = expected_conditions.element_to_be_clickable((By.CSS_SELECTOR, selector))
+            wait.until(expected_conditions.element_to_be_clickable((By.CSS_SELECTOR, selector)))
         else:
             raise ValueError
-
-        WebDriverWait(self.driver, timeout).until(condition)
 
         return self
 
@@ -221,16 +218,15 @@ class Browser:
         Waits until ``selector`` is found in the browser, or until ``timeout``
         is hit, whichever happens first.
         """
+        wait = WebDriverWait(self.driver, timeout)
         if selector:
-            condition = expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector))
+            wait.until(expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector)))
         elif xpath:
-            condition = expected_conditions.presence_of_element_located((By.XPATH, xpath))
+            wait.until(expected_conditions.presence_of_element_located((By.XPATH, xpath)))
         elif title:
-            condition = expected_conditions.title_is(title)
+            wait.until(expected_conditions.title_is(title))
         else:
             raise ValueError
-
-        WebDriverWait(self.driver, timeout).until(condition)
 
         return self
 
@@ -242,43 +238,39 @@ class Browser:
         Waits until ``selector`` is NOT found in the browser, or until
         ``timeout`` is hit, whichever happens first.
         """
+        wait = WebDriverWait(self.driver, timeout)
         if selector:
-            condition = expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector))
+            wait.until_not(
+                expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector))
+            )
         elif title:
-            condition = expected_conditions.title_is(title)
+            wait.until_not(expected_conditions.title_is(title))
         else:
             raise
 
-        WebDriverWait(self.driver, timeout).until_not(condition)
+        return self
+
+    def wait_until_script_execution(self, script, timeout=10):
+        """
+        Waits until ``script`` executes and evaluates truthy,
+        or until ``timeout`` is hit, whichever happens first.
+        """
+        wait = WebDriverWait(self.driver, timeout)
+        wait.until(lambda driver: driver.execute_script(script))
 
         return self
 
     def wait_for_images_loaded(self, timeout=10):
-        wait = WebDriverWait(self.driver, timeout)
-        wait.until(
-            lambda driver: driver.execute_script(
-                """return Object.values(document.querySelectorAll('img')).map(el => el.complete).every(i => i)"""
-            )
+        return self.wait_until_script_execution(
+            """return Object.values(document.querySelectorAll('img')).map(el => el.complete).every(i => i)""",
+            timeout,
         )
-
-        return self
 
     def wait_for_fonts_loaded(self, timeout=10):
-        wait = WebDriverWait(self.driver, timeout)
-        wait.until(
-            lambda driver: driver.execute_script("""return document.fonts.status === 'loaded'""")
+        return self.wait_until_script_execution(
+            """return document.fonts.status === 'loaded'""",
+            timeout,
         )
-
-        return self
-
-    def blur(self):
-        """
-        Find focused elements and call blur. Useful for snapshot testing that can potentially capture
-        the text cursor blinking
-        """
-        self.driver.execute_script("document.querySelectorAll(':focus').forEach(el => el.blur())")
-
-        return self
 
     @property
     def switch_to(self):
@@ -292,70 +284,6 @@ class Browser:
         for the life of the WebDriver object.
         """
         self.driver.implicitly_wait(duration)
-
-    def snapshot(self, name, mobile_only=False, desktop_only=False):
-        """
-        Capture a screenshot of the current state of the page.
-        """
-        if SiloMode.get_current_mode() != SiloMode.MONOLITH:
-            name = f"{name}-{SiloMode.get_current_mode()}"
-        # TODO(dcramer): ideally this would take the executing test package
-        # into account for duplicate names
-        if os.environ.get("VISUAL_SNAPSHOT_ENABLE") != "1":
-            return self
-
-        self.wait_for_images_loaded()
-        self.wait_for_fonts_loaded()
-
-        # XXX: We assume we're relative to gitroot here.
-        snapshot_dir = os.environ.get(
-            "PYTEST_SNAPSHOTS_DIR", ".artifacts/visual-snapshots/acceptance"
-        )
-        # TODO(py3): Pass exist_ok=True here.
-        # Technically there's a race condition here with makedirs failing, but
-        # this is fine (practically) in this context.
-        if not os.path.exists(snapshot_dir):
-            os.makedirs(snapshot_dir)
-
-        filename = slugify(name)
-
-        # XXX: Unfortunately order matters here else snapshots in CI will be a tiny bit different.
-        #      Otherwise we could do mobile_viewport first and early return if mobile_only.
-        #      But to truly fix this, I think the driver needs to be refreshed.
-        if not mobile_only:
-            with self.full_viewport():
-                screenshot_path = f"{snapshot_dir}/{filename}.png"
-                # This will make sure we resize viewport height to fit contents
-                self.driver.find_element(by=By.TAG_NAME, value="body").screenshot(screenshot_path)
-
-                if os.environ.get("SENTRY_SCREENSHOT"):
-                    import click
-
-                    click.launch(screenshot_path)
-
-                has_tooltips = self.driver.execute_script(
-                    "return window.__openAllTooltips && window.__openAllTooltips()"
-                )
-                if has_tooltips:
-                    screenshot_path = f"{snapshot_dir}-tooltips/{filename}.png"
-                    self.driver.find_element(by=By.TAG_NAME, value="body").screenshot(
-                        screenshot_path
-                    )
-                    self.driver.execute_script(
-                        "window.__closeAllTooltips && window.__closeAllTooltips()"
-                    )
-
-        if not desktop_only:
-            with self.mobile_viewport():
-                screenshot_path = f"{snapshot_dir}-mobile/{filename}.png"
-                self.driver.find_element(by=By.TAG_NAME, value="body").screenshot(screenshot_path)
-
-                if os.environ.get("SENTRY_SCREENSHOT"):
-                    import click
-
-                    click.launch(screenshot_path)
-
-        return self
 
     def get_local_storage_items(self):
         """
@@ -406,7 +334,7 @@ class Browser:
             self.get("/")
 
         # TODO(dcramer): this should be escaped, but idgaf
-        logger.info(f"selenium.set-cookie.{name}", extra={"value": value})
+        logger.info("selenium.set-cookie.%s", name, extra={"value": value})
         # XXX(dcramer): chromedriver (of certain versions) is complaining about this being
         # an invalid kwarg
         del cookie["secure"]

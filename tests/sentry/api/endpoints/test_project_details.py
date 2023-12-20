@@ -10,33 +10,29 @@ from django.db import router
 from django.urls import reverse
 
 from sentry import audit_log
+from sentry.api.fields.sentry_slug import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
-from sentry.models import (
-    ApiToken,
-    AuditLogEntry,
-    DeletedProject,
-    EnvironmentProject,
-    Integration,
-    NotificationSetting,
-    OrganizationMember,
-    OrganizationOption,
-    Project,
-    ProjectBookmark,
-    ProjectRedirect,
-    RegionScheduledDeletion,
-    Rule,
-)
+from sentry.models.apitoken import ApiToken
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.deletedproject import DeletedProject
+from sentry.models.environment import EnvironmentProject
+from sentry.models.integrations.integration import Integration
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
+from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectownership import ProjectOwnership
+from sentry.models.projectredirect import ProjectRedirect
 from sentry.models.projectteam import ProjectTeam
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.models.rule import Rule
+from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.silo import SiloMode, unguarded_write
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
-from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
 
@@ -111,7 +107,7 @@ def first_symbol_source_id(sources_json):
     return sources[0]["id"]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectDetailsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
 
@@ -250,7 +246,7 @@ class ProjectDetailsTest(APITestCase):
         self.get_error_response(other_org.slug, "old_slug", status_code=403)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectUpdateTestTokenAuthenticated(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
@@ -379,7 +375,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             teams=[self.team],
             role="member",
         )
-        # members are only allowed to update 'isBookmarked' and 'isSubscribed' fields
+        # members are only allowed to update 'isBookmarked' fields
         token = self.create_user_auth_token(user=self.user, scope_list=["project:read"])
 
         response = self.client.put(
@@ -429,7 +425,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         assert response.data["detail"] == "You do not have permission to perform this action."
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectUpdateTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
@@ -548,6 +544,15 @@ class ProjectUpdateTest(APITestCase):
         project = Project.objects.get(id=self.project.id)
         assert project.slug != new_project.slug
 
+    def test_invalid_numeric_slug(self):
+        response = self.get_error_response(
+            self.org_slug,
+            self.proj_slug,
+            slug="1234",
+            status_code=400,
+        )
+        assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
+
     def test_reserved_slug(self):
         self.get_error_response(
             self.org_slug,
@@ -588,6 +593,7 @@ class ProjectUpdateTest(APITestCase):
             "sentry:verify_ssl": False,
             "feedback:branding": False,
             "filters:react-hydration-errors": True,
+            "filters:chunk-load-error": True,
         }
         with self.feature("projects:custom-inbound-filters"), outbox_runner():
             self.get_success_response(self.org_slug, self.proj_slug, options=options)
@@ -704,33 +710,13 @@ class ProjectUpdateTest(APITestCase):
                 event=audit_log.get_event_id("PROJECT_EDIT"),
             ).exists()
         assert project.get_option("filters:react-hydration-errors", "1")
+        assert project.get_option("filters:chunk-load-error", "1")
 
     def test_bookmarks(self):
         self.get_success_response(self.org_slug, self.proj_slug, isBookmarked="false")
         assert not ProjectBookmark.objects.filter(
             project_id=self.project.id, user_id=self.user.id
         ).exists()
-
-    def test_subscription(self):
-        self.get_success_response(self.org_slug, self.proj_slug, isSubscribed="true")
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            value0 = NotificationSetting.objects.get_settings(
-                provider=ExternalProviders.EMAIL,
-                type=NotificationSettingTypes.ISSUE_ALERTS,
-                user_id=self.user.id,
-                project=self.project,
-            )
-            assert value0 == NotificationSettingOptionValues.ALWAYS
-
-        self.get_success_response(self.org_slug, self.proj_slug, isSubscribed="false")
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            value1 = NotificationSetting.objects.get_settings(
-                provider=ExternalProviders.EMAIL,
-                type=NotificationSettingTypes.ISSUE_ALERTS,
-                user_id=self.user.id,
-                project=self.project,
-            )
-        assert value1 == NotificationSettingOptionValues.NEVER
 
     def test_security_token(self):
         resp = self.get_success_response(self.org_slug, self.proj_slug, securityToken="fizzbuzz")
@@ -815,13 +801,19 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data["allowedDomains"] == ["*"]
 
     def test_safe_fields(self):
-        value = ["foobar.com", "https://example.com"]
+        value = ["foobar", "extra.fields.**"]
         resp = self.get_success_response(self.org_slug, self.proj_slug, safeFields=value)
         assert self.project.get_option("sentry:safe_fields") == [
-            "foobar.com",
-            "https://example.com",
+            "foobar",
+            "extra.fields.**",
         ]
-        assert resp.data["safeFields"] == ["foobar.com", "https://example.com"]
+        assert resp.data["safeFields"] == ["foobar", "extra.fields.**"]
+
+        value = ["er ror", "double.**.wildcard.**"]
+        resp = self.get_error_response(self.org_slug, self.proj_slug, safeFields=value)
+        assert resp.data["safeFields"] == [
+            'Invalid syntax near "er ror" (line 1),\nDeep wildcard used more than once (line 2)',
+        ]
 
     def test_store_crash_reports(self):
         resp = self.get_success_response(self.org_slug, self.proj_slug, storeCrashReports=10)
@@ -837,11 +829,26 @@ class ProjectUpdateTest(APITestCase):
         assert b"storeCrashReports" in resp.content
 
     def test_react_hydration_errors(self):
-        value = False
-        options = {"filters:react-hydration-errors": value}
+        options = {"filters:react-hydration-errors": False}
         resp = self.get_success_response(self.org_slug, self.proj_slug, options=options)
-        assert self.project.get_option("filters:react-hydration-errors") == value
-        assert resp.data["options"]["filters:react-hydration-errors"] == value
+        assert self.project.get_option("filters:react-hydration-errors") == "0"
+        assert resp.data["options"]["filters:react-hydration-errors"] is False
+
+        options = {"filters:react-hydration-errors": True}
+        resp = self.get_success_response(self.org_slug, self.proj_slug, options=options)
+        assert self.project.get_option("filters:react-hydration-errors") == "1"
+        assert resp.data["options"]["filters:react-hydration-errors"] is True
+
+    def test_chunk_load_error(self):
+        options = {"filters:chunk-load-error": False}
+        resp = self.get_success_response(self.org_slug, self.proj_slug, options=options)
+        assert self.project.get_option("filters:chunk-load-error") == "0"
+        assert resp.data["options"]["filters:chunk-load-error"] is False
+
+        options = {"filters:chunk-load-error": True}
+        resp = self.get_success_response(self.org_slug, self.proj_slug, options=options)
+        assert self.project.get_option("filters:chunk-load-error") == "1"
+        assert resp.data["options"]["filters:chunk-load-error"] is True
 
     def test_relay_pii_config(self):
         value = '{"applications": {"freeform": []}}'
@@ -1166,7 +1173,7 @@ class ProjectUpdateTest(APITestCase):
             assert not poll_project_recap_server.called
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class CopyProjectSettingsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
@@ -1365,7 +1372,7 @@ class CopyProjectSettingsTest(APITestCase):
         self.assert_other_project_settings_not_changed()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectDeleteTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "delete"
@@ -1430,91 +1437,7 @@ class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
         self.project.update(date_added=old_date)
 
 
-@region_silo_test(stable=True)
-class TestProjectDetailsDynamicSamplingRules(TestProjectDetailsDynamicSamplingBase):
-    endpoint = "sentry-api-0-project-details"
-
-    def setUp(self):
-        super().setUp()
-        self.url = reverse(
-            "sentry-api-0-project-details",
-            kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
-            },
-        )
-        self.login_as(user=self.user, superuser=True)
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
-        self.authorization = f"Bearer {token.token}"
-
-    @mock.patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-    def test_get_dynamic_sampling_rules_for_superuser_user(self, get_blended_sample_rate):
-        get_blended_sample_rate.return_value = 0.1
-        new_biases: list[dict[str, Any]] = [
-            {"id": "boostEnvironments", "active": True},
-            {
-                "id": "boostLatestRelease",
-                "active": False,
-            },
-            {"id": "ignoreHealthChecks", "active": False},
-            {"id": "boostKeyTransactions", "active": False},
-            {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
-        ]
-        self.project.update_option("sentry:dynamic_sampling_biases", new_biases)
-
-        with Feature(
-            {
-                self.new_ds_flag: True,
-            }
-        ):
-            response = self.get_success_response(
-                self.project.organization.slug,
-                self.project.slug,
-                method="get",
-                includeDynamicSamplingRules=1,
-            )
-            # we expect 2 rules 1 for boostEnvironments and uniform rule
-            assert len(response.data["dynamicSamplingRules"]["rules"]) == 0
-            assert len(response.data["dynamicSamplingRules"]["rulesV2"]) == 2
-            # 1001 is dev bias rule id
-            assert response.data["dynamicSamplingRules"]["rulesV2"][0]["id"] == 1001
-            # 1000 uniform rule id
-            assert response.data["dynamicSamplingRules"]["rulesV2"][1]["id"] == 1000
-
-    def test_get_dynamic_sampling_rules_disabled_if_no_feature_flag(self):
-        with Feature(
-            {
-                self.new_ds_flag: False,
-            }
-        ):
-            response = self.get_success_response(
-                self.organization.slug, self.project.slug, method="get"
-            )
-            assert response.data["dynamicSamplingRules"] is None
-
-    def test_non_superuser_user_trying_to_access_dynamic_sampling_rules(self):
-        user = self.create_user(is_staff=False, is_superuser=False)
-        self.org = self.create_organization()
-        self.org.save()
-
-        team = self.create_team(organization=self.org)
-        self.project = self.create_project(name="foo", organization=self.org, teams=[team])
-
-        self.create_member(teams=[team], user=user, organization=self.org)
-        self.login_as(user=user)
-        with Feature(
-            {
-                self.new_ds_flag: True,
-            }
-        ):
-            response = self.get_success_response(
-                self.org.slug, self.project.slug, method="get", includeDynamicSamplingRules=1
-            )
-            assert "dynamicSamplingRules" not in response.data
-
-
-@region_silo_test(stable=True)
+@region_silo_test
 class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingBase):
     endpoint = "sentry-api-0-project-details"
 

@@ -9,7 +9,9 @@ ANY = object()
 
 if TYPE_CHECKING:
     from sentry.api.event_search import SearchFilter
-    from sentry.models import Environment, Group, Project
+    from sentry.models.environment import Environment
+    from sentry.models.group import Group
+    from sentry.models.project import Project
     from sentry.search.snuba.executors import PrioritySortWeights
     from sentry.utils.cursors import Cursor, CursorResult
 

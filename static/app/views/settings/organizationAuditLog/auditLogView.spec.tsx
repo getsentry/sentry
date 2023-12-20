@@ -1,3 +1,7 @@
+import {AuditLogs} from 'sentry-fixture/auditLogs';
+import {AuditLogsApiEventNames} from 'sentry-fixture/auditLogsApiEventNames';
+import {User} from 'sentry-fixture/user';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -23,7 +27,7 @@ describe('OrganizationAuditLog', function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: {rows: TestStubs.AuditLogs(), options: TestStubs.AuditLogsApiEventNames()},
+      body: {rows: AuditLogs(), options: AuditLogsApiEventNames()},
     });
   });
 
@@ -46,7 +50,7 @@ describe('OrganizationAuditLog', function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: {rows: [], options: TestStubs.AuditLogsApiEventNames()},
+      body: {rows: [], options: AuditLogsApiEventNames()},
     });
 
     render(<OrganizationAuditLog location={router.location} />, {
@@ -70,7 +74,7 @@ describe('OrganizationAuditLog', function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: {
-        rows: TestStubs.AuditLogs(),
+        rows: AuditLogs(),
         options: ['rule.edit', 'alertrule.edit', 'member.add'],
       },
     });
@@ -94,7 +98,7 @@ describe('OrganizationAuditLog', function () {
       body: {
         rows: [
           {
-            actor: TestStubs.User(),
+            actor: User(),
             event: 'rule.edit',
             ipAddress: '127.0.0.1',
             id: '214',
@@ -104,7 +108,7 @@ describe('OrganizationAuditLog', function () {
             data: {},
           },
           {
-            actor: TestStubs.User(),
+            actor: User(),
             event: 'alertrule.edit',
             ipAddress: '127.0.0.1',
             id: '215',
@@ -114,7 +118,7 @@ describe('OrganizationAuditLog', function () {
             data: {},
           },
         ],
-        options: TestStubs.AuditLogsApiEventNames(),
+        options: AuditLogsApiEventNames(),
       },
     });
 

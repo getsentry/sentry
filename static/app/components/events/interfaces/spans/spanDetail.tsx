@@ -8,6 +8,7 @@ import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import DateTime from 'sentry/components/dateTime';
 import DiscoverButton from 'sentry/components/discoverButton';
+import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSummaryButton';
 import FileSize from 'sentry/components/fileSize';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
@@ -38,7 +39,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/types';
+import {
+  QuickTraceEvent,
+  TraceErrorOrIssue,
+} from 'sentry/utils/performance/quickTrace/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
@@ -57,6 +61,7 @@ import {
   getFormattedTimeRangeWithLeadingAndTrailingZero,
   getSpanSubTimings,
   getTraceDateTimeRange,
+  isErrorPerformanceError,
   isGapSpan,
   isHiddenDataKey,
   isOrphanSpan,
@@ -87,7 +92,7 @@ type Props = {
   event: Readonly<EventTransaction>;
   isRoot: boolean;
   organization: Organization;
-  relatedErrors: TraceError[] | null;
+  relatedErrors: TraceErrorOrIssue[] | null;
   resetCellMeasureCache: () => void;
   scrollToHash: (hash: string) => void;
   span: ProcessedSpanType;
@@ -250,7 +255,7 @@ function SpanDetail(props: Props) {
     );
   }
 
-  function renderViewSimilarSpansButton() {
+  function renderSpanDetailActions() {
     const {span, organization, event} = props;
 
     if (isGapSpan(span) || !span.op || !span.hash) {
@@ -259,18 +264,22 @@ function SpanDetail(props: Props) {
 
     const transactionName = event.title;
 
-    const target = spanDetailsRouteWithQuery({
-      orgSlug: organization.slug,
-      transaction: transactionName,
-      query: location.query,
-      spanSlug: {op: span.op, group: span.hash},
-      projectID: event.projectID,
-    });
-
     return (
-      <StyledButton size="xs" to={target}>
-        {t('View Similar Spans')}
-      </StyledButton>
+      <ButtonGroup>
+        <SpanSummaryButton event={event} organization={organization} span={span} />
+        <StyledButton
+          size="xs"
+          to={spanDetailsRouteWithQuery({
+            orgSlug: organization.slug,
+            transaction: transactionName,
+            query: location.query,
+            spanSlug: {op: span.op, group: span.hash},
+            projectID: event.projectID,
+          })}
+        >
+          {t('View Similar Spans')}
+        </StyledButton>
+      </ButtonGroup>
     );
   }
 
@@ -309,24 +318,34 @@ function SpanDetail(props: Props) {
       <Alert type={getCumulativeAlertLevelFromErrors(relatedErrors)} system>
         <ErrorMessageTitle>
           {tn(
-            '%s error event occurred in this span.',
-            '%s error events occurred in this span.',
+            '%s error event or performance issue is associated with this span.',
+            '%s error events or performance issues are associated with this span.',
             relatedErrors.length
           )}
         </ErrorMessageTitle>
-        <ErrorMessageContent>
+        <Fragment>
           {visibleErrors.map(error => (
-            <Fragment key={error.event_id}>
-              <ErrorDot level={error.level} />
-              <ErrorLevel>{error.level}</ErrorLevel>
+            <ErrorMessageContent
+              key={error.event_id}
+              excludeLevel={isErrorPerformanceError(error)}
+            >
+              {isErrorPerformanceError(error) ? (
+                <ErrorDot level="error" />
+              ) : (
+                <Fragment>
+                  <ErrorDot level={error.level} />
+                  <ErrorLevel>{error.level}</ErrorLevel>
+                </Fragment>
+              )}
+
               <ErrorTitle>
                 <Link to={generateIssueEventTarget(error, organization)}>
                   {error.title}
                 </Link>
               </ErrorTitle>
-            </Fragment>
+            </ErrorMessageContent>
           ))}
-        </ErrorMessageContent>
+        </Fragment>
         {relatedErrors.length > DEFAULT_ERRORS_VISIBLE && (
           <ErrorToggle size="xs" onClick={toggleErrors}>
             {errorsOpened ? t('Show less') : t('Show more')}
@@ -336,9 +355,12 @@ function SpanDetail(props: Props) {
     );
   }
 
-  function partitionSizes(data) {
+  function partitionSizes(data): {
+    nonSizeKeys: {[key: string]: unknown};
+    sizeKeys: {[key: string]: number};
+  } {
     const sizeKeys = SIZE_DATA_KEYS.reduce((keys, key) => {
-      if (data.hasOwnProperty(key)) {
+      if (data.hasOwnProperty(key) && defined(data[key])) {
         keys[key] = data[key];
       }
       return keys;
@@ -467,7 +489,7 @@ function SpanDetail(props: Props) {
                   {profileId}
                 </Row>
               )}
-              <Row title="Description" extra={renderViewSimilarSpansButton()}>
+              <Row title="Description" extra={renderSpanDetailActions()}>
                 {span?.description ?? ''}
               </Row>
               <Row title="Status">{span.status || ''}</Row>

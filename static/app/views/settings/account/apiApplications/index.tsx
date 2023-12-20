@@ -66,7 +66,7 @@ class ApiApplications extends DeprecatedAsyncView<Props, State> {
               priority="primary"
               size="sm"
               onClick={this.handleCreateApplication}
-              icon={<IconAdd size="xs" isCircled />}
+              icon={<IconAdd isCircled />}
             >
               {t('Create New Application')}
             </Button>
@@ -79,12 +79,7 @@ class ApiApplications extends DeprecatedAsyncView<Props, State> {
           <PanelBody>
             {!isEmpty ? (
               this.state.appList.map(app => (
-                <Row
-                  api={this.api}
-                  key={app.id}
-                  app={app}
-                  onRemove={this.handleRemoveApplication}
-                />
+                <Row key={app.id} app={app} onRemove={this.handleRemoveApplication} />
               ))
             ) : (
               <EmptyMessage>

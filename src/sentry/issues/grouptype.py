@@ -6,12 +6,17 @@ from datetime import timedelta
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Type
 
+import sentry_sdk
+
 from sentry import features
 from sentry.features.base import OrganizationFeature
+from sentry.ratelimits.sliding_windows import Quota
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, Project, User
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
+    from sentry.models.user import User
 
 
 class GroupCategory(Enum):
@@ -20,6 +25,7 @@ class GroupCategory(Enum):
     PROFILE = 3  # deprecated, merging with PERFORMANCE
     CRON = 4
     REPLAY = 5
+    FEEDBACK = 6
 
 
 GROUP_CATEGORIES_CUSTOM_EMAIL = (GroupCategory.ERROR, GroupCategory.PERFORMANCE)
@@ -50,22 +56,28 @@ class GroupTypeRegistry:
     def get_visible(
         self, organization: Organization, actor: Optional[Any] = None
     ) -> List[Type[GroupType]]:
-        released = [gt for gt in self.all() if gt.released]
-        feature_to_grouptype = {
-            gt.build_visible_feature_name(): gt for gt in self.all() if not gt.released
-        }
-        batch_features = features.batch_has(
-            list(feature_to_grouptype.keys()), actor=actor, organization=organization
-        )
-        enabled = []
-        if batch_features:
-            feature_results = batch_features.get(f"organization:{organization.id}", {})
-            enabled = [
-                feature_to_grouptype[feature]
-                for feature, active in feature_results.items()
-                if active
-            ]
-        return released + enabled
+        with sentry_sdk.start_span(op="GroupTypeRegistry.get_visible") as span:
+            released = [gt for gt in self.all() if gt.released]
+            feature_to_grouptype = {
+                gt.build_visible_feature_name(): gt for gt in self.all() if not gt.released
+            }
+            batch_features = features.batch_has(
+                list(feature_to_grouptype.keys()), actor=actor, organization=organization
+            )
+            enabled = []
+            if batch_features:
+                feature_results = batch_features.get(f"organization:{organization.id}", {})
+                enabled = [
+                    feature_to_grouptype[feature]
+                    for feature, active in feature_results.items()
+                    if active
+                ]
+            span.set_tag("organization_id", organization.id)
+            span.set_tag("has_batch_features", batch_features is not None)
+            span.set_tag("released", released)
+            span.set_tag("enabled", enabled)
+            span.set_data("feature_to_grouptype", feature_to_grouptype)
+            return released + enabled
 
     def get_all_group_type_ids(self) -> Set[int]:
         return {type.type_id for type in self._registry.values()}
@@ -108,6 +120,12 @@ class GroupType:
     # decide if this is released.
     released: bool = False
 
+    # Allow automatic resolution of an issue type, using the project-level option.
+    enable_auto_resolve: bool = True
+    # Allow escalation forecasts and detection
+    enable_escalation_detection: bool = True
+    creation_quota: Quota = Quota(3600, 60, 5)  # default 5 per hour, sliding window of 60 seconds
+
     def __init_subclass__(cls: Type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         registry.add(cls)
@@ -142,6 +160,17 @@ class GroupType:
             return True
 
         return features.has(cls.build_post_process_group_feature_name(), organization)
+
+    @classmethod
+    def should_detect_escalation(cls, organization: Organization) -> bool:
+        """
+        If the feature is enabled and enable_escalation_detection=True, then escalation detection is enabled.
+
+        When the feature flag is removed, we can remove the organization parameter from this method.
+        """
+        if not features.has("organizations:issue-platform-crons-sd", organization):
+            return True
+        return cls.enable_escalation_detection
 
     @classmethod
     def build_feature_name_slug(cls) -> str:
@@ -306,7 +335,29 @@ class PerformanceHTTPOverheadGroupType(PerformanceGroupTypeDefaults, GroupType):
     type_id = 1016
     slug = "performance_http_overhead"
     description = "HTTP/1.1 Overhead"
+    noise_config = NoiseConfig(ignore_limit=20)
     category = GroupCategory.PERFORMANCE.value
+
+
+# experimental
+@dataclass(frozen=True)
+class PerformanceDurationRegressionGroupType(GroupType):
+    type_id = 1017
+    slug = "performance_duration_regression"
+    description = "Transaction Duration Regression (Experimental)"
+    category = GroupCategory.PERFORMANCE.value
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+
+
+@dataclass(frozen=True)
+class PerformanceP95EndpointRegressionGroupType(GroupType):
+    type_id = 1018
+    slug = "performance_p95_endpoint_regression"
+    description = "Endpoint Regression"
+    category = GroupCategory.PERFORMANCE.value
+    enable_auto_resolve = False
+    enable_escalation_detection = False
 
 
 # 2000 was ProfileBlockingFunctionMainThreadType
@@ -371,12 +422,41 @@ class ProfileFrameDropExperimentalType(GroupType):
 
 
 @dataclass(frozen=True)
+class ProfileFrameDropType(GroupType):
+    type_id = 2009
+    slug = "profile_frame_drop"
+    description = "Frame Drop"
+    category = GroupCategory.PERFORMANCE.value
+    noise_config = NoiseConfig(ignore_limit=2000)
+    released = True
+
+
+@dataclass(frozen=True)
+class ProfileFunctionRegressionExperimentalType(GroupType):
+    type_id = 2010
+    slug = "profile_function_regression_exp"
+    description = "Function Duration Regression (Experimental)"
+    category = GroupCategory.PERFORMANCE.value
+    enable_auto_resolve = False
+
+
+@dataclass(frozen=True)
+class ProfileFunctionRegressionType(GroupType):
+    type_id = 2011
+    slug = "profile_function_regression"
+    description = "Function Regression"
+    category = GroupCategory.PERFORMANCE.value
+    enable_auto_resolve = False
+
+
+@dataclass(frozen=True)
 class MonitorCheckInFailure(GroupType):
     type_id = 4001
     slug = "monitor_check_in_failure"
     description = "Monitor Check In Failed"
     category = GroupCategory.CRON.value
     released = True
+    creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
 
 
 @dataclass(frozen=True)
@@ -386,6 +466,7 @@ class MonitorCheckInTimeout(GroupType):
     description = "Monitor Check In Timeout"
     category = GroupCategory.CRON.value
     released = True
+    creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
 
 
 @dataclass(frozen=True)
@@ -395,6 +476,7 @@ class MonitorCheckInMissed(GroupType):
     description = "Monitor Check In Missed"
     category = GroupCategory.CRON.value
     released = True
+    creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
 
 
 @dataclass(frozen=True)
@@ -403,6 +485,15 @@ class ReplayDeadClickType(GroupType):
     slug = "replay_click_dead"
     description = "Dead Click Detected"
     category = GroupCategory.REPLAY.value
+
+
+@dataclass(frozen=True)
+class FeedbackGroup(GroupType):
+    type_id = 6001
+    slug = "feedback"
+    description = "Feedback"
+    category = GroupCategory.FEEDBACK.value
+    creation_quota = Quota(3600, 60, 1000)  # 1000 per hour, sliding window of 60 seconds
 
 
 @metrics.wraps("noise_reduction.should_create_group", sample_rate=1.0)

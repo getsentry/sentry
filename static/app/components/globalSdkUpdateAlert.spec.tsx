@@ -1,4 +1,5 @@
 import moment from 'moment';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -73,7 +74,7 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     const {rerender} = render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: TestStubs.Organization(),
+      organization: Organization(),
     });
 
     expect(
@@ -104,7 +105,7 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: TestStubs.Organization(),
+      organization: Organization(),
     });
 
     expect(
@@ -129,7 +130,7 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: TestStubs.Organization(),
+      organization: Organization(),
     });
 
     await waitFor(() =>
@@ -156,7 +157,7 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: TestStubs.Organization(),
+      organization: Organization(),
     });
 
     expect(
@@ -181,7 +182,7 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: TestStubs.Organization(),
+      organization: Organization(),
     });
 
     await waitFor(() =>
@@ -208,7 +209,7 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: TestStubs.Organization(),
+      organization: Organization(),
     });
 
     expect(
@@ -235,7 +236,7 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: TestStubs.Organization(),
+      organization: Organization(),
     });
 
     await userEvent.click(await screen.findByRole('button', {name: 'Remind me later'}));

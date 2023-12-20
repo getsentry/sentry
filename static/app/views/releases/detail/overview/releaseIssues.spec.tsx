@@ -1,3 +1,6 @@
+import LocationFixture from 'sentry-fixture/locationFixture';
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -13,9 +16,9 @@ describe('ReleaseIssues', function () {
 
   const props = {
     orgId: 'org',
-    organization: TestStubs.Organization(),
+    organization: Organization(),
     version: '1.0.0',
-    location: TestStubs.location({query: {}}),
+    location: LocationFixture({query: {}}),
     releaseBounds: getReleaseBounds(TestStubs.Release({version: '1.0.0'})),
   };
 
@@ -73,7 +76,7 @@ describe('ReleaseIssues', function () {
     rerender(
       <ReleaseIssues
         {...props}
-        location={TestStubs.location({query: {issuesType: 'resolved'}})}
+        location={LocationFixture({query: {issuesType: 'resolved'}})}
       />
     );
     expect(
@@ -84,7 +87,7 @@ describe('ReleaseIssues', function () {
   it('shows an empty sttate with stats period', async function () {
     const query = {pageStatsPeriod: '24h'};
     const {rerender} = render(
-      <ReleaseIssues {...props} location={TestStubs.location({query})} />
+      <ReleaseIssues {...props} location={LocationFixture({query})} />
     );
 
     expect(
@@ -98,7 +101,7 @@ describe('ReleaseIssues', function () {
     rerender(
       <ReleaseIssues
         {...props}
-        location={TestStubs.location({query: {...query, issuesType: 'unhandled'}})}
+        location={LocationFixture({query: {...query, issuesType: 'unhandled'}})}
       />
     );
     expect(
@@ -127,7 +130,7 @@ describe('ReleaseIssues', function () {
     rerender(
       <ReleaseIssues
         {...props}
-        location={TestStubs.location({query: {issuesType: 'resolved'}})}
+        location={LocationFixture({query: {issuesType: 'resolved'}})}
       />
     );
     expect(screen.getByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
@@ -141,7 +144,7 @@ describe('ReleaseIssues', function () {
     rerender(
       <ReleaseIssues
         {...props}
-        location={TestStubs.location({query: {issuesType: 'unhandled'}})}
+        location={LocationFixture({query: {issuesType: 'unhandled'}})}
       />
     );
     expect(screen.getByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
@@ -155,7 +158,7 @@ describe('ReleaseIssues', function () {
     rerender(
       <ReleaseIssues
         {...props}
-        location={TestStubs.location({query: {issuesType: 'all'}})}
+        location={LocationFixture({query: {issuesType: 'all'}})}
       />
     );
     expect(screen.getByRole('button', {name: 'Open in Issues'})).toHaveAttribute(

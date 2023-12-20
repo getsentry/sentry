@@ -1,19 +1,19 @@
 from unittest.mock import patch
 
-from sentry.models import (
-    EventError,
+from sentry.models.eventerror import EventError
+from sentry.models.processingissue import (
     EventProcessingIssue,
     ProcessingIssue,
     ProcessingIssueManager,
-    RawEvent,
     get_processing_issue_checksum,
 )
+from sentry.models.rawevent import RawEvent
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.canonical import CanonicalKeyDict
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProcessingIssueTest(TestCase):
     def test_simple(self):
         team = self.create_team()

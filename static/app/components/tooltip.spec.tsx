@@ -26,12 +26,11 @@ describe('Tooltip', function () {
   });
 
   it('renders', function () {
-    const {container} = render(
+    render(
       <Tooltip delay={0} title="test">
         <span>My Button</span>
       </Tooltip>
     );
-    expect(container).toSnapshot();
   });
 
   it('updates title', async function () {

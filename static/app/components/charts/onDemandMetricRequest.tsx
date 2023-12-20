@@ -3,57 +3,20 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {t} from 'sentry/locale';
 import {EventsStats, MultiSeriesEventsStats} from 'sentry/types';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
-
-function numOfEvents(timeseriesData) {
-  return timeseriesData.data.reduce((acc, item) => {
-    const count = item[1][0].count;
-    return acc + count;
-  }, 0);
-}
-
-function applySampleRate(timeseriesData, sampleRate = 1) {
-  const scaledData = timeseriesData.data.map(([timestamp, value]) => {
-    return [timestamp, value.map(item => ({count: Math.round(item.count / sampleRate)}))];
-  });
-
-  return {
-    ...timeseriesData,
-    isExtrapolatedData: true,
-    isMetricsData: false,
-    data: scaledData,
-  };
-}
 
 export class OnDemandMetricRequest extends EventsRequest {
-  fetchMetricsData = async () => {
-    const {api, ...props} = this.props;
-
-    try {
-      const timeseriesData = await doEventsRequest(api, {
-        ...props,
-        useOnDemandMetrics: true,
-      });
-
-      return timeseriesData;
-    } catch {
-      return {
-        data: [],
-        isMetricsData: false,
-      };
-    }
-  };
-
-  fetchIndexedData = async () => {
-    const {api, sampleRate, ...props} = this.props;
-
-    const timeseriesData = await doEventsRequest(api, {
+  fetchExtrapolatedData = async (): Promise<EventsStats> => {
+    const {api, organization, ...props} = this.props;
+    const retVal = await doEventsRequest(api, {
       ...props,
-      useOnDemandMetrics: false,
-      queryExtras: {dataset: DiscoverDatasets.DISCOVER},
+      organization,
+      generatePathname: () =>
+        `/organizations/${organization.slug}/metrics-estimation-stats/`,
     });
-
-    return applySampleRate(timeseriesData, sampleRate);
+    return {
+      ...retVal,
+      isExtrapolatedData: true,
+    } as EventsStats;
   };
 
   fetchData = async () => {
@@ -83,14 +46,7 @@ export class OnDemandMetricRequest extends EventsRequest {
       try {
         api.clear();
 
-        timeseriesData = await this.fetchMetricsData();
-
-        const fallbackToIndexed =
-          !timeseriesData.isMetricsData || numOfEvents(timeseriesData) === 0;
-
-        if (fallbackToIndexed) {
-          timeseriesData = await this.fetchIndexedData();
-        }
+        timeseriesData = await this.fetchExtrapolatedData();
       } catch (resp) {
         if (resp && resp.responseJSON && resp.responseJSON.detail) {
           errorMessage = resp.responseJSON.detail;
@@ -103,7 +59,7 @@ export class OnDemandMetricRequest extends EventsRequest {
         onError?.(errorMessage);
         this.setState({
           errored: true,
-          errorMessage,
+          errorMessage: t('Error fetching estimated data'),
         });
       }
 

@@ -8,7 +8,6 @@ import type useReplaysCount from 'sentry/components/replays/useReplaysCount';
  * const counts = useReplaysCount({
  *   groupIds: [id],
  *   organization,
- *   project,
  * });
  * return <ReplayCountContext.Provider value={counts}>{children}</ReplayCountContext.Provider>
  * ```

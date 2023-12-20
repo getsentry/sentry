@@ -3,6 +3,9 @@ import time
 from sentry.replays.usecases.ingest.dead_click import report_dead_click_issue
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
 @django_db_all

@@ -5,7 +5,8 @@ from django.conf import settings
 from django.utils.html import format_html
 from rest_framework.request import Request
 
-from sentry.models import Activity, GroupMeta
+from sentry.models.activity import Activity
+from sentry.models.groupmeta import GroupMeta
 from sentry.plugins.base.v1 import Plugin
 from sentry.services.hybrid_cloud.usersocialauth.model import RpcUserSocialAuth
 from sentry.services.hybrid_cloud.usersocialauth.service import usersocialauth_service

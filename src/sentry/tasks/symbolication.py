@@ -1,6 +1,6 @@
 import logging
 import random
-from time import sleep, time
+from time import time
 from typing import Any, Callable, Optional, Tuple
 
 import sentry_sdk
@@ -11,9 +11,11 @@ from sentry.eventstore import processing
 from sentry.eventstore.processing.base import Event
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.javascript.processing import process_js_stacktraces
-from sentry.lang.native.symbolicator import RetrySymbolication, Symbolicator, SymbolicatorTaskKind
-from sentry.models import Organization, Project
+from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorTaskKind
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.processing import realtime_metrics
+from sentry.silo import SiloMode
 from sentry.tasks import store
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -22,11 +24,6 @@ from sentry.utils.sdk import set_current_event_project
 
 error_logger = logging.getLogger("sentry.errors.events")
 info_logger = logging.getLogger("sentry.symbolication")
-
-# Is reprocessing on or off by default?
-REPROCESSING_DEFAULT = False
-
-SYMBOLICATOR_MAX_RETRY_AFTER: int = settings.SYMBOLICATOR_MAX_RETRY_AFTER
 
 # The maximum number of times an event will be moved between the normal
 # and low priority queues
@@ -99,6 +96,10 @@ def get_symbolication_function(
         return False, get_native_symbolication_function(data)
 
 
+class SymbolicationTimeout(Exception):
+    pass
+
+
 def _do_symbolicate_event(
     cache_key: str,
     start_time: Optional[int],
@@ -119,7 +120,7 @@ def _do_symbolicate_event(
         return
 
     data = CanonicalKeyDict(data)
-    event_id = data["event_id"]
+    event_id = str(data["event_id"])
     project_id = data["project"]
     has_changed = False
 
@@ -221,81 +222,63 @@ def _do_symbolicate_event(
             "organization", Organization.objects.get_from_cache(id=project.organization_id)
         )
 
-    symbolicator = Symbolicator(task_kind, project, data["event_id"])
+    def on_symbolicator_request():
+        duration = record_symbolication_duration()
+        if duration > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
+            raise SymbolicationTimeout
+        elif duration > settings.SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT:
+            error_logger.warning(
+                "symbolicate.slow",
+                extra={"project_id": project_id, "event_id": event_id},
+            )
 
-    with sentry_sdk.start_span(op="tasks.store.symbolicate_event.symbolication") as span:
-        span.set_data("symbolication_function", symbolication_function_name)
-        with metrics.timer(
-            "tasks.store.symbolicate_event.symbolication",
-            tags={"symbolication_function": symbolication_function_name},
-        ):
-            while True:
-                try:
-                    with sentry_sdk.start_span(
-                        op="tasks.store.symbolicate_event.%s" % symbolication_function_name
-                    ) as span:
-                        symbolicated_data = symbolication_function(symbolicator, data)
-                        span.set_data("symbolicated_data", bool(symbolicated_data))
+    symbolicator = Symbolicator(
+        task_kind=task_kind,
+        on_request=on_symbolicator_request,
+        project=project,
+        event_id=event_id,
+    )
 
-                    if symbolicated_data:
-                        data = symbolicated_data
-                        has_changed = True
+    with metrics.timer(
+        "tasks.store.symbolicate_event.symbolication",
+        tags={"symbolication_function": symbolication_function_name},
+    ), sentry_sdk.start_span(
+        op=f"tasks.store.symbolicate_event.{symbolication_function_name}"
+    ) as span:
+        try:
+            symbolicated_data = symbolication_function(symbolicator, data)
+            span.set_data("symbolicated_data", bool(symbolicated_data))
 
-                    record_symbolication_duration()
-                    break
-                except RetrySymbolication as e:
-                    duration = record_symbolication_duration()
-                    if duration > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
-                        # Do not drop event but actually continue with rest of pipeline
-                        # (persisting unsymbolicated event)
-                        metrics.incr(
-                            "tasks.store.symbolicate_event.fatal",
-                            tags={
-                                "reason": "timeout",
-                                "symbolication_function": symbolication_function_name,
-                            },
-                        )
-                        error_logger.exception(
-                            "symbolicate.failed.infinite_retry",
-                            extra={"project_id": project_id, "event_id": event_id},
-                        )
-                        data.setdefault("_metrics", {})["flag.processing.error"] = True
-                        data.setdefault("_metrics", {})["flag.processing.fatal"] = True
-                        has_changed = True
-                        break
-                    else:
-                        if duration > settings.SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT:
-                            error_logger.warning(
-                                "symbolicate.slow",
-                                extra={"project_id": project_id, "event_id": event_id},
-                            )
-                        # sleep for `retry_after` but max 5 seconds and try again
-                        metrics.incr(
-                            "tasks.store.symbolicate_event.retry",
-                            tags={"symbolication_function": symbolication_function_name},
-                        )
-                        sleep_time = (
-                            SYMBOLICATOR_MAX_RETRY_AFTER
-                            if e.retry_after is None
-                            else min(e.retry_after, SYMBOLICATOR_MAX_RETRY_AFTER)
-                        )
-                        sleep(sleep_time)
-                        continue
-                except Exception:
-                    metrics.incr(
-                        "tasks.store.symbolicate_event.fatal",
-                        tags={
-                            "reason": "error",
-                            "symbolication_function": symbolication_function_name,
-                        },
-                    )
-                    error_logger.exception("tasks.store.symbolicate_event.symbolication")
-                    data.setdefault("_metrics", {})["flag.processing.error"] = True
-                    data.setdefault("_metrics", {})["flag.processing.fatal"] = True
-                    has_changed = True
-
-                    record_symbolication_duration()
-                    break
+            if symbolicated_data:
+                data = symbolicated_data
+                has_changed = True
+        except SymbolicationTimeout:
+            metrics.incr(
+                "tasks.store.symbolicate_event.fatal",
+                tags={
+                    "reason": "timeout",
+                    "symbolication_function": symbolication_function_name,
+                },
+            )
+            error_logger.exception(
+                "symbolicate.failed.infinite_retry",
+                extra={"project_id": project_id, "event_id": event_id},
+            )
+            data.setdefault("_metrics", {})["flag.processing.error"] = True
+            data.setdefault("_metrics", {})["flag.processing.fatal"] = True
+            has_changed = True
+        except Exception:
+            metrics.incr(
+                "tasks.store.symbolicate_event.fatal",
+                tags={
+                    "reason": "error",
+                    "symbolication_function": symbolication_function_name,
+                },
+            )
+            error_logger.exception("tasks.store.symbolicate_event.symbolication")
+            data.setdefault("_metrics", {})["flag.processing.error"] = True
+            data.setdefault("_metrics", {})["flag.processing.fatal"] = True
+            has_changed = True
 
     # We cannot persist canonical types in the cache, so we need to
     # downgrade this.
@@ -367,6 +350,7 @@ def submit_symbolicate(
     time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
     soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 def symbolicate_event(
     cache_key: str,
@@ -401,6 +385,7 @@ def symbolicate_event(
     time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
     soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 def symbolicate_js_event(
     cache_key: str,
@@ -435,6 +420,7 @@ def symbolicate_js_event(
     time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
     soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 def symbolicate_event_low_priority(
     cache_key: str,
@@ -472,6 +458,7 @@ def symbolicate_event_low_priority(
     time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
     soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 def symbolicate_js_event_low_priority(
     cache_key: str,
@@ -509,6 +496,7 @@ def symbolicate_js_event_low_priority(
     time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
     soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 def symbolicate_event_from_reprocessing(
     cache_key: str,
@@ -536,6 +524,7 @@ def symbolicate_event_from_reprocessing(
     time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
     soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
     acks_late=True,
+    silo_mode=SiloMode.REGION,
 )
 def symbolicate_event_from_reprocessing_low_priority(
     cache_key: str,

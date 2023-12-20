@@ -184,7 +184,7 @@ class AllTeamsRow extends Component<Props, State> {
     // TODO(team-roles): team admins can also manage membership
     // org:admin is a unique scope that only org owners have
     const isOrgOwner = access.includes('org:admin');
-    const isPermissionGroup = (team.orgRole && (!canEditTeam || !isOrgOwner)) as boolean;
+    const isPermissionGroup = !!team.orgRole && (!canEditTeam || !isOrgOwner);
     const isIdpProvisioned = team.flags['idp:provisioned'];
 
     const buttonHelpText = getButtonHelpText(isIdpProvisioned, isPermissionGroup);
@@ -284,7 +284,7 @@ export default withApi(AllTeamsRow);
 
 export const GRID_TEMPLATE = `
   display: grid;
-  grid-template-columns: minmax(150px, 4fr) minmax(0px, 100px) 125px 110px;
+  grid-template-columns: minmax(150px, 4fr) minmax(0px, 100px) 125px minmax(150px, 1fr);
   gap: ${space(1)};
 `;
 

@@ -1,11 +1,9 @@
-from sentry.models import OrganizationMember
+from sentry.models.organizationmember import OrganizationMember
 from sentry.notifications.notifications.organization_request import OrganizationRequestNotification
 from sentry.notifications.notifications.strategies.role_based_recipient_strategy import (
     RoleBasedRecipientStrategy,
 )
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
-from sentry.services.hybrid_cloud.notifications.service import notifications_service
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
@@ -22,7 +20,7 @@ class DummyRequestNotification(OrganizationRequestNotification):
     RoleBasedRecipientStrategyClass = DummyRoleBasedRecipientStrategy
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GetParticipantsTest(TestCase):
     def setUp(self):
         self.user2 = self.create_user()
@@ -38,19 +36,6 @@ class GetParticipantsTest(TestCase):
         }
 
     def test_turn_off_settings(self):
-        notifications_service.update_settings(
-            external_provider=ExternalProviders.SLACK,
-            notification_type=NotificationSettingTypes.APPROVAL,
-            setting_option=NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor(id=self.user.id, actor_type=ActorType.USER),
-        )
-        notifications_service.update_settings(
-            external_provider=ExternalProviders.EMAIL,
-            notification_type=NotificationSettingTypes.APPROVAL,
-            setting_option=NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor(id=self.user2.id, actor_type=ActorType.USER),
-        )
-
         notification = DummyRequestNotification(self.organization, self.user)
 
         assert notification.get_participants() == {

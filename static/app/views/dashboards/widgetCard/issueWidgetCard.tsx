@@ -68,7 +68,7 @@ export function IssueWidgetCard({
       data={transformedResults}
       organization={organization}
       getCustomFieldRenderer={datasetConfig.getCustomFieldRenderer}
-      fieldHeaderMap={datasetConfig.fieldHeaderMap}
+      fieldHeaderMap={datasetConfig.getFieldHeaderMap?.()}
       stickyHeaders
     />
   );

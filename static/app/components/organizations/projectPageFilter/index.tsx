@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
@@ -18,7 +18,7 @@ import {
 import BookmarkStar from 'sentry/components/projects/bookmarkStar';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconOpen, IconSettings} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -42,6 +42,7 @@ export interface ProjectPageFilterProps
       | 'multiple'
       | 'options'
       | 'value'
+      | 'defaultValue'
       | 'onReplace'
       | 'onToggle'
       | 'menuBody'
@@ -61,9 +62,15 @@ export interface ProjectPageFilterProps
   resetParamsOnChange?: string[];
 }
 
+/**
+ * Maximum number of projects that can be selected at a time (due to server limits). This
+ * does not apply to special values like "My Projects" and "All Projects".
+ */
+const SELECTION_COUNT_LIMIT = 50;
+
 export function ProjectPageFilter({
   onChange,
-  onClear,
+  onReset,
   disabled,
   sizeLimit,
   sizeLimitMessage,
@@ -151,17 +158,24 @@ export function ProjectPageFilter({
 
       // "My Projects"
       if (!val.length) {
-        return memberProjects.map(p => parseInt(p.id, 10));
+        return allowMultiple
+          ? memberProjects.map(p => parseInt(p.id, 10))
+          : [parseInt(memberProjects[0]?.id, 10)];
       }
 
-      return val;
+      return allowMultiple ? val : [val[0]];
     },
-    [memberProjects]
+    [memberProjects, allowMultiple]
   );
 
   const value = useMemo<number[]>(
     () => mapURLValueToNormalValue(pageFilterValue),
     [mapURLValueToNormalValue, pageFilterValue]
+  );
+
+  const defaultValue = useMemo<number[]>(
+    () => mapURLValueToNormalValue([]),
+    [mapURLValueToNormalValue]
   );
 
   const handleChange = useCallback(
@@ -218,13 +232,13 @@ export function ProjectPageFilter({
     });
   }, [routes, organization]);
 
-  const handleClear = useCallback(() => {
-    onClear?.();
+  const handleReset = useCallback(() => {
+    onReset?.();
     trackAnalytics('projectselector.clear', {
       path: getRouteStringFromRoutes(routes),
       organization,
     });
-  }, [onClear, routes, organization]);
+  }, [onReset, routes, organization]);
 
   const options = useMemo<SelectOptionOrSection<number>[]>(() => {
     const hasProjects = !!memberProjects.length || !!nonMemberProjects.length;
@@ -293,7 +307,6 @@ export function ProjectPageFilter({
             label:
               memberProjects.length > 0 ? t('Other') : t("Projects I Don't Belong To"),
             options: sortBy(nonMemberProjects, listSort).map(getProjectItem),
-            showToggleAllButton: allowMultiple && memberProjects.length > 0,
           },
         ]
       : sortBy(memberProjects, listSort).map(getProjectItem);
@@ -320,18 +333,37 @@ export function ProjectPageFilter({
         0
       );
 
-    // Calculate an appropriate width for the menu. It should be between 20 (22 if
-    // there's a desynced message) and 28em. Within that range, the width is a function
-    // of the length of the longest slug. The project slugs take up to (longestSlugLength
-    // * 0.6)em of horizontal space (each character occupies roughly 0.6em). We also need
-    // to add 12em to account for padding, trailing buttons, and the checkbox.
-    return `${Math.max(
-      desynced ? 22 : 20,
-      Math.min(28, longestSlugLength * 0.6 + 12)
-    )}em`;
-  }, [options, desynced]);
+    // Calculate an appropriate width for the menu. It should be between 22  and 28em.
+    // Within that range, the width is a function of the length of the longest slug.
+    // The project slugs take up to (longestSlugLength * 0.6)em of horizontal space
+    // (each character occupies roughly 0.6em).
+    // We also need to add 12em to account for padding, trailing buttons, and the checkbox.
+    const minWidthEm = 22;
+    return `${Math.max(minWidthEm, Math.min(28, longestSlugLength * 0.6 + 12))}em`;
+  }, [options]);
+
+  const [stagedValue, setStagedValue] = useState<number[]>(value);
+  const selectionLimitExceeded = useMemo(() => {
+    const mappedValue = mapNormalValueToURLValue(stagedValue);
+    return mappedValue.length > SELECTION_COUNT_LIMIT;
+  }, [stagedValue, mapNormalValueToURLValue]);
+
+  const menuFooterMessage = useMemo(() => {
+    if (selectionLimitExceeded) {
+      return hasStagedChanges =>
+        hasStagedChanges
+          ? tct(
+              'Only up to [limit] projects can be selected at a time. You can still press “Clear” to see all projects.',
+              {limit: SELECTION_COUNT_LIMIT}
+            )
+          : footerMessage;
+    }
+
+    return footerMessage;
+  }, [selectionLimitExceeded, footerMessage]);
 
   const hasProjectWrite = organization.access.includes('project:write');
+
   return (
     <HybridFilter
       {...selectProps}
@@ -339,11 +371,14 @@ export function ProjectPageFilter({
       multiple={allowMultiple}
       options={options}
       value={value}
+      defaultValue={defaultValue}
       onChange={handleChange}
-      onClear={handleClear}
+      onStagedValueChange={setStagedValue}
+      onReset={handleReset}
       onReplace={onReplace}
       onToggle={onToggle}
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
+      disableCommit={selectionLimitExceeded}
       sizeLimit={sizeLimit ?? 25}
       sizeLimitMessage={sizeLimitMessage ?? t('Use search to find more projects…')}
       emptyMessage={emptyMessage ?? t('No projects found')}
@@ -358,7 +393,7 @@ export function ProjectPageFilter({
           />
         )
       }
-      menuFooterMessage={footerMessage}
+      menuFooterMessage={menuFooterMessage}
       trigger={
         trigger ??
         ((triggerProps, isOpen) => (
@@ -392,7 +427,7 @@ function checkboxWrapper(
 ) {
   return (
     <Feature
-      features={['organizations:global-views']}
+      features="organizations:global-views"
       hookName="feature-disabled:project-selector-checkbox"
       renderDisabled={props => (
         <Hovercard

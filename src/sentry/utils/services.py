@@ -35,14 +35,6 @@ logger = logging.getLogger(__name__)
 STATUS_SUCCESS = "success"
 
 
-def raises(exceptions: BaseException) -> Callable[[AnyCallable], AnyCallable]:
-    def decorator(function: AnyCallable) -> AnyCallable:
-        function.__raises__ = exceptions
-        return function
-
-    return decorator
-
-
 class Service:
     __all__: Tuple[str, ...] = ()
 
@@ -278,7 +270,7 @@ class Delegator:
         if not inspect.isroutine(base_value):
             return base_value
 
-        def execute(*args: Sequence[Any], **kwargs: Mapping[str, Any]) -> Any:
+        def execute(*args: Any, **kwargs: Any) -> Any:
             context = type(self).__state.context
 
             # If there is no context object already set in the thread local
@@ -335,21 +327,19 @@ class Delegator:
                 try:
                     return getattr(backend, attribute_name)(*args, **kwargs)
                 except Exception as e:
-                    # If this isn't the primary backend, we log any unexpected
+                    # If this isn't the primary backend, we log any
                     # exceptions so that they don't pass by unnoticed. (Any
                     # exceptions raised by the primary backend aren't logged
                     # here, since it's assumed that the caller will log them
                     # from the calling thread.)
                     if not is_primary:
-                        expected_raises = getattr(base_value, "__raises__", [])
-                        if not expected_raises or not isinstance(e, tuple(expected_raises)):
-                            logger.warning(
-                                "%s caught in executor while calling %r on %s.",
-                                type(e).__name__,
-                                attribute_name,
-                                type(backend).__name__,
-                                exc_info=True,
-                            )
+                        logger.warning(
+                            "%s caught in executor while calling %r on %s.",
+                            type(e).__name__,
+                            attribute_name,
+                            type(backend).__name__,
+                            exc_info=True,
+                        )
                     raise
                 finally:
                     type(self).__state.context = None
@@ -602,7 +592,7 @@ def callback_timing(
             )
         else:
             secondary_duration_ms = (secondary_timing[1] - secondary_timing[0]) * 1000
-            metrics.timing(
+            metrics.distribution(
                 f"{metric_name}.timing_ms",
                 secondary_duration_ms,
                 tags={
@@ -611,17 +601,20 @@ def callback_timing(
                     "status": secondary_status,
                     "primary": "false",
                 },
+                unit="millisecond",
                 **metric_kwargs,  # type: ignore
             )
-            metrics.timing(
+            metrics.distribution(
                 f"{metric_name}.timing_delta_ms",
                 secondary_duration_ms - primary_duration_ms,
                 tags=tags,
+                unit="millisecond",
                 **metric_kwargs,  # type: ignore
             )
-            metrics.timing(
+            metrics.distribution(
                 f"{metric_name}.timing_relative_delta",
                 secondary_duration_ms / primary_duration_ms,
                 tags=tags,
+                unit="millisecond",
                 **metric_kwargs,  # type: ignore
             )

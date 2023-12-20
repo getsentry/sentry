@@ -1,3 +1,7 @@
+import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+import {Event as EventFixture} from 'sentry-fixture/event';
+import {Project} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -7,9 +11,8 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 
 describe('Breadcrumb Data Default', function () {
-  const project = TestStubs.Project({
+  const project = Project({
     id: '0',
-    relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
   });
 
   const {organization, router} = initializeOrg({
@@ -19,7 +22,17 @@ describe('Breadcrumb Data Default', function () {
     projects: [project],
   });
 
-  ProjectsStore.loadInitialData([project]);
+  beforeEach(() => {
+    const projectDetails = Project({
+      ...project,
+      relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${project.slug}/`,
+      body: projectDetails,
+    });
+    ProjectsStore.loadInitialData([project]);
+  });
 
   it('display redacted message', async function () {
     render(
@@ -40,7 +53,7 @@ describe('Breadcrumb Data Default', function () {
             },
           },
         }}
-        event={TestStubs.Event()}
+        event={EventFixture()}
         orgSlug="org-slug"
         searchTerm=""
         breadcrumb={{
@@ -84,7 +97,7 @@ describe('Breadcrumb Data Default', function () {
             },
           },
         }}
-        event={TestStubs.Event()}
+        event={EventFixture()}
         orgSlug="org-slug"
         searchTerm=""
         breadcrumb={{

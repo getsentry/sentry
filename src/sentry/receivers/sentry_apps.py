@@ -3,7 +3,12 @@ from __future__ import annotations
 from typing import Any, List, Mapping
 
 from sentry import features
-from sentry.models import Group, GroupAssignee, Organization, SentryFunction, Team, User
+from sentry.models.group import Group
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.organization import Organization
+from sentry.models.sentryfunction import SentryFunction
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -27,7 +32,7 @@ def send_issue_assigned_webhook(project, group, user, **kwargs):
     actor: RpcUser | Team = assignee.resolve()
 
     data = {
-        "assignee": {"type": assignee.type.__name__.lower(), "name": actor.name, "id": actor.id}
+        "assignee": {"type": str(assignee.actor_type).lower(), "name": actor.name, "id": actor.id}
     }
 
     org = project.organization

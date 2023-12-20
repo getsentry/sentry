@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import highlightFuseMatches, {getFuseMatches} from 'sentry/utils/highlightFuseMatches';
 
@@ -10,6 +12,7 @@ describe('highlightFuseMatches', function () {
       [15, 16],
     ],
   };
+  const Mark = styled('mark')``;
 
   it('handles no matches', function () {
     expect(getFuseMatches({value: 'My long string', indices: []})).toEqual([
@@ -51,12 +54,12 @@ describe('highlightFuseMatches', function () {
   });
 
   it('renders a highlighted string', function () {
-    // eslint-disable-next-line sentry/no-to-match-snapshot
-    expect(highlightFuseMatches(matchObj)).toMatchSnapshot();
+    expect(highlightFuseMatches(matchObj, Mark)).toMatchSnapshot();
   });
 
   it('matches whole word', function () {
-    // eslint-disable-next-line sentry/no-to-match-snapshot
-    expect(highlightFuseMatches({value: 'foo', indices: [[0, 2]]})).toMatchSnapshot();
+    expect(
+      highlightFuseMatches({value: 'foo', indices: [[0, 2]]}, Mark)
+    ).toMatchSnapshot();
   });
 });

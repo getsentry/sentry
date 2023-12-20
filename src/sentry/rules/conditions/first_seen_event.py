@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Sequence
 
 from sentry.eventstore.models import GroupEvent
-from sentry.models import Group
+from sentry.models.group import Group
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType

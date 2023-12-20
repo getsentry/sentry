@@ -1,3 +1,7 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -7,8 +11,8 @@ const alertText =
   'You are viewing a sample transaction. Configure performance to start viewing real transactions.';
 
 describe('EventDetails', () => {
-  const project = TestStubs.Project();
-  const organization = TestStubs.Organization({
+  const project = ProjectFixture();
+  const organization = Organization({
     features: ['performance-view'],
     projects: [project],
   });
@@ -38,7 +42,7 @@ describe('EventDetails', () => {
   });
 
   it('renders alert for sample transaction', async () => {
-    const event = TestStubs.Event();
+    const event = EventFixture();
     event.tags.push({key: 'sample_event', value: 'yes'});
 
     MockApiClient.addMockResponse({
@@ -62,7 +66,7 @@ describe('EventDetails', () => {
   });
 
   it('does not reender alert if already received transaction', async () => {
-    const event = TestStubs.Event();
+    const event = EventFixture();
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/latest/`,

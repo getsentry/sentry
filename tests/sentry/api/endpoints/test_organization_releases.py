@@ -1,34 +1,29 @@
 import unittest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import cached_property
 from unittest.mock import patch
 
-import pytz
 from django.urls import reverse
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 
 from sentry.api.endpoints.organization_releases import ReleaseSerializerWithProjects
 from sentry.api.serializers.rest_framework.release import ReleaseHeadCommitSerializer
 from sentry.auth import access
 from sentry.constants import BAD_RELEASE_CHARS, MAX_COMMIT_LENGTH, MAX_VERSION_LENGTH
 from sentry.locks import locks
-from sentry.models import (
-    Activity,
-    ApiKey,
-    ApiToken,
-    Commit,
-    CommitAuthor,
-    Environment,
-    Release,
-    ReleaseCommit,
-    ReleaseHeadCommit,
-    ReleaseProject,
-    ReleaseProjectEnvironment,
-    ReleaseStages,
-    Repository,
-)
+from sentry.models.activity import Activity
+from sentry.models.apikey import ApiKey
+from sentry.models.apitoken import ApiToken
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.environment import Environment
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.release import Release, ReleaseProject
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releaseheadcommit import ReleaseHeadCommit
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
+from sentry.models.repository import Repository
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.search.events.constants import (
     RELEASE_ALIAS,
@@ -47,11 +42,14 @@ from sentry.testutils.cases import (
 )
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
+pytestmark = [requires_snuba]
 
-@region_silo_test(stable=True)
+
+@region_silo_test
 class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-releases"
 
@@ -462,14 +460,14 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
             release_id=adopted_release.id,
             environment_id=self.environment.id,
-            adopted=timezone.now(),
+            adopted=django_timezone.now(),
         )
         ReleaseProjectEnvironment.objects.create(
             project_id=self.project.id,
             release_id=replaced_release.id,
             environment_id=self.environment.id,
-            adopted=timezone.now() - timedelta(minutes=5),
-            unadopted=timezone.now(),
+            adopted=django_timezone.now() - timedelta(minutes=5),
+            unadopted=django_timezone.now(),
         )
         ReleaseProjectEnvironment.objects.create(
             project_id=self.project.id,
@@ -479,21 +477,21 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}",
+            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED.value}",
             environment=self.environment.name,
         )
         self.assert_expected_versions(response, [adopted_release])
 
         response = self.get_success_response(
             self.organization.slug,
-            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION}",
+            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION.value}",
             environment=self.environment.name,
         )
         self.assert_expected_versions(response, [not_adopted_release])
 
         response = self.get_success_response(
             self.organization.slug,
-            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.REPLACED}",
+            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.REPLACED.value}",
             environment=self.environment.name,
         )
         self.assert_expected_versions(response, [replaced_release])
@@ -501,21 +499,21 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         # NOT release stage
         response = self.get_success_response(
             self.organization.slug,
-            query=f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.REPLACED}",
+            query=f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.REPLACED.value}",
             environment=self.environment.name,
         )
         self.assert_expected_versions(response, [not_adopted_release, adopted_release])
 
         response = self.get_success_response(
             self.organization.slug,
-            query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED},{ReleaseStages.REPLACED}]",
+            query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED.value},{ReleaseStages.REPLACED.value}]",
             environment=self.environment.name,
         )
         self.assert_expected_versions(response, [adopted_release, replaced_release])
 
         response = self.get_success_response(
             self.organization.slug,
-            query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.LOW_ADOPTION}]",
+            query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.LOW_ADOPTION.value}]",
             environment=self.environment.name,
         )
 
@@ -528,7 +526,7 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         self.assert_expected_versions(
             response, [adopted_release, replaced_release, not_adopted_release]
         )
-        adopted_rpe.update(adopted=timezone.now() - timedelta(minutes=15))
+        adopted_rpe.update(adopted=django_timezone.now() - timedelta(minutes=15))
 
         # Replaced should come first now.
         response = self.get_success_response(
@@ -575,11 +573,11 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         prev_cursor = self.get_cursor_headers(response)[0]
         self.assert_expected_versions(response, [replaced_release])
 
-        adopted_rpe.update(adopted=timezone.now() - timedelta(minutes=15))
+        adopted_rpe.update(adopted=django_timezone.now() - timedelta(minutes=15))
 
         response = self.get_success_response(
             self.organization.slug,
-            query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.LOW_ADOPTION},{ReleaseStages.REPLACED}]",
+            query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.LOW_ADOPTION.value},{ReleaseStages.REPLACED.value}]",
             sort="adoption",
             environment=self.environment.name,
         )
@@ -594,7 +592,7 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
 
         response = self.get_response(
             self.organization.slug,
-            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}",
+            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED.value}",
             # No environment
         )
         assert response.status_code == 400
@@ -758,7 +756,7 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationReleasesStatsTest(APITestCase):
     endpoint = "sentry-api-0-organization-releases-stats"
 
@@ -773,22 +771,22 @@ class OrganizationReleasesStatsTest(APITestCase):
         release1 = Release.objects.create(
             organization_id=self.organization.id,
             version="1",
-            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=pytz.UTC),
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=timezone.utc),
         )
         release1.add_project(self.project1)
 
         release2 = Release.objects.create(
             organization_id=self.organization.id,
             version="2",
-            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386, tzinfo=pytz.UTC),
-            date_released=datetime(2013, 8, 15, 3, 8, 24, 880386, tzinfo=pytz.UTC),
+            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386, tzinfo=timezone.utc),
+            date_released=datetime(2013, 8, 15, 3, 8, 24, 880386, tzinfo=timezone.utc),
         )
         release2.add_project(self.project2)
 
         release3 = Release.objects.create(
             organization_id=self.organization.id,
             version="3",
-            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386, tzinfo=pytz.UTC),
+            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386, tzinfo=timezone.utc),
         )
         release3.add_project(self.project3)
 
@@ -946,14 +944,14 @@ class OrganizationReleasesStatsTest(APITestCase):
             project_id=self.project.id,
             release_id=adopted_release.id,
             environment_id=self.environment.id,
-            adopted=timezone.now(),
+            adopted=django_timezone.now(),
         )
         ReleaseProjectEnvironment.objects.create(
             project_id=self.project.id,
             release_id=replaced_release.id,
             environment_id=self.environment.id,
-            adopted=timezone.now(),
-            unadopted=timezone.now(),
+            adopted=django_timezone.now(),
+            unadopted=django_timezone.now(),
         )
         ReleaseProjectEnvironment.objects.create(
             project_id=self.project.id,
@@ -963,28 +961,28 @@ class OrganizationReleasesStatsTest(APITestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}",
+            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED.value}",
             environment=self.environment.name,
         )
         assert [r["version"] for r in response.data] == [adopted_release.version]
 
         response = self.get_success_response(
             self.organization.slug,
-            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION}",
+            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION.value}",
             environment=self.environment.name,
         )
         assert [r["version"] for r in response.data] == [not_adopted_release.version]
 
         response = self.get_success_response(
             self.organization.slug,
-            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.REPLACED}",
+            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.REPLACED.value}",
             environment=self.environment.name,
         )
         assert [r["version"] for r in response.data] == [replaced_release.version]
 
         response = self.get_success_response(
             self.organization.slug,
-            query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED},{ReleaseStages.REPLACED}]",
+            query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED.value},{ReleaseStages.REPLACED.value}]",
             environment=self.environment.name,
         )
         assert [r["version"] for r in response.data] == [
@@ -994,7 +992,7 @@ class OrganizationReleasesStatsTest(APITestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.LOW_ADOPTION}]",
+            query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.LOW_ADOPTION.value}]",
             environment=self.environment.name,
         )
         assert [r["version"] for r in response.data] == [not_adopted_release.version]
@@ -1008,7 +1006,7 @@ class OrganizationReleasesStatsTest(APITestCase):
 
         response = self.get_response(
             self.organization.slug,
-            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}",
+            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED.value}",
             # No environment
         )
         assert response.status_code == 400
@@ -1029,13 +1027,13 @@ class OrganizationReleasesStatsTest(APITestCase):
             project_id=project2.id,
             release_id=multi_project_release.id,
             environment_id=self.environment.id,
-            adopted=timezone.now(),
+            adopted=django_timezone.now(),
         )
         ReleaseProjectEnvironment.objects.create(
             project_id=self.project.id,
             release_id=single_project_release.id,
             environment_id=self.environment.id,
-            adopted=timezone.now(),
+            adopted=django_timezone.now(),
         )
 
         # Filtering to self.environment.name and self.project with release.stage:adopted should NOT return multi_project_release.
@@ -1089,7 +1087,7 @@ class OrganizationReleasesStatsTest(APITestCase):
         assert [r["version"] for r in response.data] == []
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationReleaseCreateTest(APITestCase):
     def test_empty_release_version(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -1817,7 +1815,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert response.data == {"refs": ["Invalid repository names: not_a_repo"]}
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationReleaseCommitRangesTest(SetRefsTestCase):
     def setUp(self):
         super().setUp()
@@ -1933,7 +1931,7 @@ class OrganizationReleaseCommitRangesTest(SetRefsTestCase):
         self.assert_fetch_commits(mock_fetch_commits, None, release.id, refs_expected)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationReleaseListEnvironmentsTest(APITestCase):
     def setUp(self):
         self.login_as(user=self.user)
@@ -2085,7 +2083,7 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
         assert response.status_code == 400
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationReleaseCreateCommitPatch(ReleaseCommitPatchTest):
     @cached_property
     def url(self):
@@ -2179,7 +2177,7 @@ class OrganizationReleaseCreateCommitPatch(ReleaseCommitPatchTest):
         self.assert_file_change(file_changes[3], "D", "templates/hola.html", commits[0].id)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ReleaseSerializerWithProjectsTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -2238,7 +2236,7 @@ class ReleaseSerializerWithProjectsTest(TestCase):
         assert result["owner"].username == self.user.username
         assert result["ref"] == self.ref
         assert result["url"] == self.url
-        assert result["dateReleased"] == datetime(1000, 10, 10, 6, 6, tzinfo=pytz.UTC)
+        assert result["dateReleased"] == datetime(1000, 10, 10, 6, 6, tzinfo=timezone.utc)
         assert result["commits"] == self.commits
         assert result["headCommits"] == self.headCommits
         assert result["refs"] == self.refs
@@ -2343,7 +2341,7 @@ class ReleaseSerializerWithProjectsTest(TestCase):
         assert not serializer.is_valid()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ReleaseHeadCommitSerializerTest(unittest.TestCase):
     def setUp(self):
         super().setUp()

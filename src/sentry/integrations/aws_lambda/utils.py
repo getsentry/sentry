@@ -1,6 +1,7 @@
 import re
 from functools import wraps
 
+import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 from django.utils.translation import gettext_lazy as _
@@ -8,6 +9,7 @@ from django.utils.translation import gettext_lazy as _
 from sentry import options
 from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, project_key_service
 from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.silo import SiloMode
 from sentry.tasks.release_registry import LAYER_INDEX_CACHE_KEY
 
 SUPPORTED_RUNTIMES = [
@@ -21,6 +23,8 @@ SUPPORTED_RUNTIMES = [
     "python3.7",
     "python3.8",
     "python3.9",
+    "python3.10",
+    "python3.11",
 ]
 
 INVALID_LAYER_TEXT = "Invalid existing layer %s"
@@ -105,6 +109,17 @@ def get_option_value(function, option):
     cache_options = cache.get(LAYER_INDEX_CACHE_KEY) or {}
     key = f"aws-layer:{prefix}"
     cache_value = cache_options.get(key)
+
+    if SiloMode.get_current_mode() == SiloMode.REGION:
+        with sentry_sdk.push_scope() as scope:
+            scope.set_context(
+                "aws_lambda_cache",
+                {
+                    "cache_options": cache_options,
+                    "key": key,
+                },
+            )
+            sentry_sdk.capture_message("Fetching aws layer from cache")
 
     if cache_value is None:
         raise IntegrationError(f"Could not find cache value with key {key}")
@@ -194,7 +209,7 @@ def get_supported_functions(lambda_client):
 
 def get_dsn_for_project(organization_id, project_id):
     enabled_dsn = project_key_service.get_project_key(
-        project_id=project_id, role=ProjectKeyRole.store
+        organization_id=organization_id, project_id=project_id, role=ProjectKeyRole.store
     )
     if not enabled_dsn:
         raise IntegrationError("Project does not have DSN enabled")

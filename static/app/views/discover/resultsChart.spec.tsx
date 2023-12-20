@@ -1,3 +1,7 @@
+import LocationFixture from 'sentry-fixture/locationFixture';
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -7,14 +11,14 @@ import ResultsChart from 'sentry/views/discover/resultsChart';
 
 describe('Discover > ResultsChart', function () {
   const features = ['discover-basic'];
-  const location = TestStubs.location({
+  const location = LocationFixture({
     query: {query: 'tag:value'},
     pathname: '/',
   });
 
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features,
-    projects: [TestStubs.Project()],
+    projects: [ProjectFixture()],
   });
 
   const initialData = initializeOrg({

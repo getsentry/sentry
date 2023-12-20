@@ -13,7 +13,7 @@ def verifiy_origin(origin):
     return True
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class U2FInterfaceTest(TestCase):
     def setUp(self):
         self.u2f = U2fInterface()
@@ -62,6 +62,6 @@ class U2FInterfaceTest(TestCase):
         self.test_try_enroll_webauthn()
         request = self.make_request(user=self.user)
         result = self.u2f.activate(request)
-        assert type(result) == ActivationChallengeResult
+        assert isinstance(result, ActivationChallengeResult)
         assert len(request.session["webauthn_authentication_state"]["challenge"]) == 43
         assert request.session["webauthn_authentication_state"]["user_verification"] is None

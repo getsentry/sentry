@@ -15,6 +15,7 @@ key_with_rate_limiting = {
         "csp": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/csp-report/?sentry_key=a785682ddda719b7a8a4011110d75598",
         "security": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/security/?sentry_key=a785682ddda719b7a8a4011110d75598",
         "minidump": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/minidump/?sentry_key=a785682ddda719b7a8a4011110d75598",
+        "nel": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/nel/?sentry_key=a785682ddda719b7a8a4011110d75598",
         "unreal": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/unreal/a785682ddda719b7a8a4011110d75598/",
         "cdn": "https://js.sentry-cdn.com/a785682ddda719b7a8a4011110d75598.min.js",
     },
@@ -43,6 +44,7 @@ key_wo_rate_limiting = {
         "csp": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/csp-report/?sentry_key=a785682ddda719b7a8a4011110d75598",
         "security": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/security/?sentry_key=a785682ddda719b7a8a4011110d75598",
         "minidump": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/minidump/?sentry_key=a785682ddda719b7a8a4011110d75598",
+        "nel": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/nel/?sentry_key=a785682ddda719b7a8a4011110d75598",
         "unreal": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/unreal/a785682ddda719b7a8a4011110d75598/",
         "cdn": "https://js.sentry-cdn.com/a785682ddda719b7a8a4011110d75598.min.js",
     },
@@ -99,6 +101,7 @@ project = {
     ],
     "hasAccess": True,
     "hasMinifiedStackTrace": False,
+    "hasCustomMetrics": False,
     "hasMonitors": False,
     "hasProfiles": False,
     "hasReplays": False,
@@ -146,6 +149,7 @@ detailed_project = {
     ],
     "hasAccess": True,
     "hasMinifiedStackTrace": False,
+    "hasCustomMetrics": False,
     "hasMonitors": True,
     "hasProfiles": True,
     "hasReplays": False,
@@ -189,6 +193,7 @@ detailed_project = {
         "sentry:reprocessing_active": False,
         "filters:blacklisted_ips": "",
         "filters:react-hydration-errors": True,
+        "filters:chunk-load-error": True,
         "filters:releases": "",
         "filters:error_messages": "",
         "feedback:branding": True,
@@ -262,7 +267,6 @@ detailed_project = {
             "performance-new-trends",
             "performance-n-plus-one-api-calls-post-process-group",
             "performance-db-main-thread-post-process-group",
-            "team-project-creation-all",
             "performance-metrics-backed-transaction-summary",
             "performance-db-main-thread-detector",
             "issue-platform",
@@ -303,7 +307,6 @@ detailed_project = {
             "performance-file-io-main-thread-ingest",
             "metrics-extraction",
             "profile-json-decode-main-thread-ingest",
-            "integrations-stacktrace-link",
             "onboarding",
             "promotion-mobperf-gift50kerr",
             "device-classification",
@@ -315,7 +318,6 @@ detailed_project = {
             "discover-events-rate-limit",
             "india-promotion",
             "track-button-click-events",
-            "open-ai-suggestion",
             "performance-issues-compressed-assets-detector",
             "device-class-synthesis",
             "profiling-billing",
@@ -350,7 +352,6 @@ detailed_project = {
             "profile-image-decode-main-thread-post-process-group",
             "performance-mep-bannerless-ui",
             "performance-uncompressed-assets-visible",
-            "getting-started-doc-with-product-selection",
             "performance-large-http-payload-visible",
             "performance-view",
             "promotion-mobperf-discount20",
@@ -425,6 +426,31 @@ detailed_project = {
     "symbolSources": "[]",
 }
 
+symbol_sources = [
+    {
+        "id": "honk",
+        "name": "honk source",
+        "layout": {
+            "type": "native",
+        },
+        "type": "http",
+        "url": "http://honk.beep",
+        "username": "honkhonk",
+        "password": {"hidden-secret": True},
+    },
+    {
+        "id": "beep",
+        "name": "beep source",
+        "layout": {
+            "type": "native",
+        },
+        "type": "gcs",
+        "bucket": "mybucket",
+        "client_email": "honk@beep.com",
+        "private_key": {"hidden-secret": True},
+    },
+]
+
 
 def project_with_team(extra_team: bool = False):
     teams = [
@@ -473,6 +499,7 @@ def project_with_team(extra_team: bool = False):
         ],
         "hasAccess": True,
         "hasMinifiedStackTrace": False,
+        "hasCustomMetrics": False,
         "hasMonitors": False,
         "hasProfiles": False,
         "hasReplays": False,
@@ -554,6 +581,50 @@ class ProjectExamples:
             "Revoke a Team's Access to a Project",
             value=project_with_team(),
             status_codes=["200"],
+            response_only=True,
+        ),
+    ]
+
+    GET_SYMBOL_SOURCES = [
+        OpenApiExample(
+            "List custom symbol sources configured for a project.",
+            value=symbol_sources,
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]
+
+    ADD_SYMBOL_SOURCE = [
+        OpenApiExample(
+            "List custom symbol sources configured for a project.",
+            value=symbol_sources[0],
+            status_codes=["201"],
+            response_only=True,
+        ),
+    ]
+
+    ADD_SYMBOL_SOURCE = [
+        OpenApiExample(
+            "Add a custom symbol source to a project.",
+            value=symbol_sources[0],
+            status_codes=["201"],
+            response_only=True,
+        ),
+    ]
+
+    UPDATE_SYMBOL_SOURCE = [
+        OpenApiExample(
+            "Update a custom symbol source in a project.",
+            value=symbol_sources[0],
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]
+
+    DELETE_SYMBOL_SOURCE = [
+        OpenApiExample(
+            "Delete a custom symbol source from a project.",
+            status_codes=["204"],
             response_only=True,
         ),
     ]

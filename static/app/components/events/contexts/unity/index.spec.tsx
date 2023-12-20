@@ -1,3 +1,5 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {UnityEventContext} from 'sentry/components/events/contexts/unity';
@@ -18,14 +20,13 @@ export const unityMetaMockData = {
   },
 };
 
-const event = {
-  ...TestStubs.Event(),
+const event = EventFixture({
   _meta: {
     contexts: {
       unity: unityMetaMockData,
     },
   },
-};
+});
 
 describe('unity event context', function () {
   it('display redacted data', function () {

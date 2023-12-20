@@ -1,10 +1,12 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import RepositoryStore from 'sentry/stores/repositoryStore';
 import withRepositories from 'sentry/utils/withRepositories';
 
 describe('withRepositories HoC', function () {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   const orgSlug = organization.slug;
   const repoUrl = `/organizations/${orgSlug}/repos/`;
 

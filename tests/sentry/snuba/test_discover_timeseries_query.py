@@ -4,8 +4,7 @@ from unittest.mock import patch
 import pytest
 
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import ProjectTransactionThreshold
-from sentry.models.transaction_threshold import TransactionMetric
+from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import SnubaTestCase, TestCase

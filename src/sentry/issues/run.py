@@ -1,5 +1,5 @@
 import logging
-from typing import Mapping
+from typing import Mapping, Optional
 
 import rapidjson
 from arroyo import Topic
@@ -13,7 +13,7 @@ from arroyo.processing.strategies import (
 )
 from arroyo.types import Commit, Message, Partition
 
-from sentry.utils.arroyo import RunTaskWithMultiprocessing
+from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
 from sentry.utils.kafka_config import get_topic_definition
 
 logger = logging.getLogger(__name__)
@@ -27,10 +27,10 @@ def get_occurrences_ingest_consumer(
     max_batch_size: int,
     max_batch_time: int,
     num_processes: int,
-    input_block_size: int,
-    output_block_size: int,
+    input_block_size: Optional[int],
+    output_block_size: Optional[int],
 ) -> StreamProcessor[KafkaPayload]:
-    return create_ingest_occurences_consumer(
+    return create_ingest_occurrences_consumer(
         consumer_type,
         auto_offset_reset,
         group_id,
@@ -43,7 +43,7 @@ def get_occurrences_ingest_consumer(
     )
 
 
-def create_ingest_occurences_consumer(
+def create_ingest_occurrences_consumer(
     topic_name: str,
     auto_offset_reset: str,
     group_id: str,
@@ -51,8 +51,8 @@ def create_ingest_occurences_consumer(
     max_batch_size: int,
     max_batch_time: int,
     num_processes: int,
-    input_block_size: int,
-    output_block_size: int,
+    input_block_size: Optional[int],
+    output_block_size: Optional[int],
 ) -> StreamProcessor[KafkaPayload]:
     from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
 
@@ -89,15 +89,15 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         max_batch_size: int,
         max_batch_time: int,
         num_processes: int,
-        input_block_size: int,
-        output_block_size: int,
+        input_block_size: Optional[int],
+        output_block_size: Optional[int],
     ):
         super().__init__()
         self.max_batch_size = max_batch_size
         self.max_batch_time = max_batch_time
-        self.num_processes = num_processes
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
+        self.pool = MultiprocessingPool(num_processes)
 
     def create_with_partitions(
         self,
@@ -107,12 +107,15 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         return RunTaskWithMultiprocessing(
             function=process_message,
             next_step=CommitOffsets(commit),
-            num_processes=self.num_processes,
             max_batch_size=self.max_batch_size,
             max_batch_time=self.max_batch_time,
+            pool=self.pool,
             input_block_size=self.input_block_size,
             output_block_size=self.output_block_size,
         )
+
+    def shutdown(self) -> None:
+        self.pool.close()
 
 
 def process_message(message: Message[KafkaPayload]) -> None:

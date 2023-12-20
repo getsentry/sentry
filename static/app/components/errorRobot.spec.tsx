@@ -1,3 +1,7 @@
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ErrorRobot from 'sentry/components/errorRobot';
@@ -7,7 +11,7 @@ describe('ErrorRobot', function () {
   let routerContext;
 
   beforeEach(function () {
-    routerContext = TestStubs.routerContext();
+    routerContext = RouterContextFixture();
     getIssues = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/issues/',
       method: 'GET',
@@ -22,10 +26,9 @@ describe('ErrorRobot', function () {
 
   describe('with a project', function () {
     function createWrapper() {
-      return render(
-        <ErrorRobot org={TestStubs.Organization()} project={TestStubs.Project()} />,
-        {context: routerContext}
-      );
+      return render(<ErrorRobot org={Organization()} project={ProjectFixture()} />, {
+        context: routerContext,
+      });
     }
 
     it('Renders a button for creating an event', async function () {
@@ -46,7 +49,7 @@ describe('ErrorRobot', function () {
 
   describe('without a project', function () {
     function createWrapper() {
-      return render(<ErrorRobot org={TestStubs.Organization()} />, {
+      return render(<ErrorRobot org={Organization()} />, {
         context: routerContext,
       });
     }

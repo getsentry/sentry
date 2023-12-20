@@ -5,8 +5,8 @@ from typing import Any, Mapping, MutableMapping, Sequence
 
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.message_builder import AbstractMessageBuilder
-from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SlackBody
-from sentry.models import Group
+from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SlackAttachment, SlackBody
+from sentry.models.group import Group
 from sentry.notifications.utils.actions import MessageAction
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
@@ -59,7 +59,7 @@ class SlackMessageBuilder(AbstractMessageBuilder, ABC):
         color: str | None = None,
         actions: Sequence[MessageAction] | None = None,
         **kwargs: Any,
-    ) -> SlackBody:
+    ) -> SlackAttachment:
         """
         Helper to DRY up Slack specific fields.
 

@@ -11,7 +11,7 @@ from sentry.utils import json
 from . import LINK_SHARED_EVENT, BaseEventTest
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class LinkSharedEventTest(BaseEventTest):
     @responses.activate
     @patch(
@@ -28,7 +28,7 @@ class LinkSharedEventTest(BaseEventTest):
         "sentry.integrations.slack.webhooks.event.link_handlers",
         {
             "mock_link": Handler(
-                matcher=re.compile(r"test"),
+                matcher=[re.compile(r"test")],
                 arg_mapper=make_type_coercer({}),
                 fn=Mock(return_value={"link1": "unfurl", "link2": "unfurl"}),
             )

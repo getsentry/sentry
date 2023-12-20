@@ -79,6 +79,9 @@ register(key="filters:localhost", epoch_defaults={1: "0"})
 # Default react hydration errors filter
 register(key="filters:react-hydration-errors", epoch_defaults={1: "1"})
 
+# Default NextJS chunk load error filter
+register(key="filters:chunk-load-error", epoch_defaults={1: "1"})
+
 # Default breakdowns config
 register(
     key="sentry:breakdowns",
@@ -114,6 +117,7 @@ DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
     "large_render_blocking_asset_detection_enabled": True,
     "slow_db_queries_detection_enabled": True,
     "http_overhead_detection_enabled": True,
+    "transaction_duration_regression_detection_enabled": True,
 }
 
 # A dict containing all the specific detection thresholds and rates.

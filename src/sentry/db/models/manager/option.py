@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 from typing import Any, Dict, Union
 
 from celery.signals import task_postrun
 from django.core.signals import request_finished
+from django.db.models import Model
 
 from sentry.db.models.manager import M
 from sentry.db.models.manager.base import BaseManager, _local_cache
@@ -18,7 +21,7 @@ class OptionManager(BaseManager[M]):
     def clear_local_cache(self, **kwargs: Any) -> None:
         self._option_cache.clear()
 
-    def contribute_to_class(self, model: M, name: str) -> None:
+    def contribute_to_class(self, model: type[Model], name: str) -> None:
         super().contribute_to_class(model, name)
         task_postrun.connect(self.clear_local_cache)
         request_finished.connect(self.clear_local_cache)

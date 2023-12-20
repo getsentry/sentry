@@ -10,7 +10,7 @@ from django.http import HttpResponseRedirect
 from django.urls import reverse
 
 from sentry.auth import access
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.plugins import HIDDEN_PLUGINS
 from sentry.plugins.base.configuration import default_plugin_config, default_plugin_options
 from sentry.plugins.base.response import Response
@@ -136,7 +136,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
 
         return get_option(self._get_option_key(key), project, user)
 
-    def set_option(self, key, value, project=None, user=None):
+    def set_option(self, key, value, project=None, user=None) -> None:
         """
         Updates the value of an option in your plugins keyspace.
 
@@ -146,9 +146,9 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         """
         from sentry.plugins.helpers import set_option
 
-        return set_option(self._get_option_key(key), value, project, user)
+        set_option(self._get_option_key(key), value, project, user)
 
-    def unset_option(self, key, project=None, user=None):
+    def unset_option(self, key, project=None, user=None) -> None:
         """
         Removes an option in your plugins keyspace.
 
@@ -158,7 +158,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         """
         from sentry.plugins.helpers import unset_option
 
-        return unset_option(self._get_option_key(key), project, user)
+        unset_option(self._get_option_key(key), project, user)
 
     def enable(self, project=None, user=None):
         """Enable the plugin."""

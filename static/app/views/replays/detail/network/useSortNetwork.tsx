@@ -44,7 +44,7 @@ function useSortNetwork({items}: Opts) {
         asc: sortAsc === 'true',
         by: sortBy,
         getValue: SortStrategies[sortBy],
-      } as SortConfig),
+      }) as SortConfig,
     [sortAsc, sortBy]
   );
 

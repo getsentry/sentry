@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import base64
 import copy
-from typing import Any
+from typing import Any, ClassVar, List
 
 from django.db import models
 from django.utils import timezone
@@ -17,18 +17,21 @@ from sentry.auth.authenticators import (
     available_authenticators,
 )
 from sentry.auth.authenticators.base import EnrollmentStatus
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
-    BaseModel,
     BoundedAutoField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     control_silo_only_model,
 )
 from sentry.db.models.fields.picklefield import PickledObjectField
+from sentry.db.models.outboxes import ControlOutboxProducingModel
+from sentry.models.outbox import ControlOutboxBase, OutboxCategory
+from sentry.types.region import find_regions_for_user
 
 
-class AuthenticatorManager(BaseManager):
+class AuthenticatorManager(BaseManager["Authenticator"]):
     def all_interfaces_for_user(self, user, return_missing=False, ignore_backup=False):
         """Returns a correctly sorted list of all interfaces the user
         has enabled.  If `return_missing` is set to `True` then all
@@ -138,8 +141,10 @@ class AuthenticatorConfig(PickledObjectField):
 
 
 @control_silo_only_model
-class Authenticator(BaseModel):
-    __include_in_export__ = True
+class Authenticator(ControlOutboxProducingModel):
+    # It only makes sense to import/export this data when doing a full global backup/restore, so it
+    # lives in the `Global` scope, even though it only depends on the `User` model.
+    __relocation_scope__ = RelocationScope.Global
 
     id = BoundedAutoField(primary_key=True)
     user = FlexibleForeignKey("sentry.User", db_index=True)
@@ -149,7 +154,7 @@ class Authenticator(BaseModel):
 
     config = AuthenticatorConfig()
 
-    objects = AuthenticatorManager()
+    objects: ClassVar[AuthenticatorManager] = AuthenticatorManager()
 
     class AlreadyEnrolled(Exception):
         pass
@@ -160,6 +165,14 @@ class Authenticator(BaseModel):
         verbose_name = _("authenticator")
         verbose_name_plural = _("authenticators")
         unique_together = (("user", "type"),)
+
+    def outboxes_for_update(self, shard_identifier: int | None = None) -> List[ControlOutboxBase]:
+        regions = find_regions_for_user(self.user_id)
+        return OutboxCategory.USER_UPDATE.as_control_outboxes(
+            region_names=regions,
+            shard_identifier=self.user_id,
+            object_identifier=self.user_id,
+        )
 
     @cached_property
     def interface(self):

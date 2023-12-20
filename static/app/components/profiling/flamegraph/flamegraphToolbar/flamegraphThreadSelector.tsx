@@ -24,7 +24,7 @@ function FlamegraphThreadSelector({
 }: FlamegraphThreadSelectorProps) {
   const [profileOptions, emptyProfileOptions]: [
     SelectOption<number>[],
-    SelectOption<number>[]
+    SelectOption<number>[],
   ] = useMemo(() => {
     const profiles: SelectOption<number>[] = [];
     const emptyProfiles: SelectOption<number>[] = [];
@@ -73,7 +73,7 @@ function FlamegraphThreadSelector({
   return (
     <StyledCompactSelect
       triggerProps={{
-        icon: <IconList size="xs" />,
+        icon: <IconList />,
         size: 'xs',
       }}
       options={[

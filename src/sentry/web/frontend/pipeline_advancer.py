@@ -1,5 +1,6 @@
 from django.contrib import messages
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponseRedirect
+from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
@@ -33,7 +34,7 @@ class PipelineAdvancerView(BaseView):
     csrf_protect = False
 
     @transaction_start("PipelineAdvancerView")
-    def handle(self, request: Request, provider_id: str) -> HttpResponse:
+    def handle(self, request: Request, provider_id: str) -> HttpResponseBase:
         pipeline = None
 
         for pipeline_cls in PIPELINE_CLASSES:

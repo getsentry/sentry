@@ -2,7 +2,9 @@ from time import time
 from typing import Any
 
 from sentry.integrations.bitbucket_server.webhook import PROVIDER_NAME
-from sentry.models import Identity, IdentityProvider, Integration, Repository
+from sentry.models.identity import Identity, IdentityProvider
+from sentry.models.integrations.integration import Integration
+from sentry.models.repository import Repository
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -65,13 +67,13 @@ class WebhookTestBase(APITestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class WebhookGetTest(WebhookTestBase):
     def test_get_request_fails(self):
         self.get_error_response(self.organization.id, self.integration.id, status_code=405)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class WebhookPostTest(WebhookTestBase):
     method = "post"
 
@@ -94,7 +96,7 @@ class WebhookPostTest(WebhookTestBase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class RefsChangedWebhookTest(WebhookTestBase):
     method = "post"
 

@@ -4,18 +4,24 @@ from django.db import IntegrityError, router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.permissions import SuperuserPermission
 from sentry.api.serializers import serialize
 from sentry.api.validators.userrole import UserRoleValidator
-from sentry.models import UserRole
+from sentry.models.userrole import UserRole
 
 audit_logger = logging.getLogger("sentry.audit.user")
 
 
 @control_silo_endpoint
 class UserRoleDetailsEndpoint(Endpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (SuperuserPermission,)
 
     @sudo_required

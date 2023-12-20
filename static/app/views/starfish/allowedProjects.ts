@@ -12,6 +12,7 @@ export const ALLOWED_PROJECT_IDS_FOR_ORG_SLUG: {
   codecov: ['5215654'],
   peated: ['4505138082349056'],
   'sentry-sdks': ['5428557'],
+  demo: ['6249899'],
   'testorg-az': ['6249899'],
 };
 

@@ -1,12 +1,11 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import capitalize from 'lodash/capitalize';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
+import ErrorLevel from 'sentry/components/events/errorLevel';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconMute, IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -24,6 +23,7 @@ type Size = 'small' | 'normal';
 interface EventOrGroupHeaderProps {
   data: Event | Group | GroupTombstoneHelper;
   organization: Organization;
+  eventId?: string;
   /* is issue breakdown? */
   grouping?: boolean;
   hideIcons?: boolean;
@@ -47,6 +47,7 @@ function EventOrGroupHeader({
   onClick,
   hideIcons,
   hideLevel,
+  eventId,
   size = 'normal',
   grouping = false,
   source,
@@ -57,15 +58,7 @@ function EventOrGroupHeader({
     const {level, status, isBookmarked, hasSeen} = data as Group;
     return (
       <Fragment>
-        {!hideLevel && level && (
-          <Tooltip
-            skipWrapper
-            disabled={level === 'unknown'}
-            title={tct('Error level: [level]', {level: capitalize(level)})}
-          >
-            <GroupLevel level={level} />
-          </Tooltip>
-        )}
+        {!hideLevel && level && <GroupLevel level={level} />}
         {!hideIcons &&
           status === 'ignored' &&
           !organization.features.includes('escalating-issues') && (
@@ -95,7 +88,7 @@ function EventOrGroupHeader({
 
   function getTitle() {
     const {id, status} = data as Group;
-    const {eventID, groupID} = data as Event;
+    const {eventID: latestEventId, groupID} = data as Event;
     const hasEscalatingIssues = organization.features.includes('escalating-issues');
 
     const commonEleProps = {
@@ -112,13 +105,16 @@ function EventOrGroupHeader({
       );
     }
 
+    // If we have passed in a custom event ID, use it; otherwise use default
+    const finalEventId = eventId ?? latestEventId;
+
     return (
       <TitleWithLink
         {...commonEleProps}
         to={{
           pathname: `/organizations/${organization.slug}/issues/${
-            eventID ? groupID : id
-          }/${eventID ? `events/${eventID}/` : ''}`,
+            latestEventId ? groupID : id
+          }/${finalEventId ? `events/${finalEventId}/` : ''}`,
           query: {
             referrer: source || 'event-or-group-header',
             stream_index: index,
@@ -221,18 +217,17 @@ const IconWrapper = styled('span')`
   margin-right: 5px;
 `;
 
-const GroupLevel = styled('div')<{level: Level}>`
+const GroupLevel = styled(ErrorLevel)<{level: Level}>`
   position: absolute;
   left: -1px;
   width: 9px;
   height: 15px;
   border-radius: 0 3px 3px 0;
-
-  background-color: ${p => p.theme.level[p.level] ?? p.theme.level.default};
 `;
 
 const TitleWithLink = styled(GlobalSelectionLink)`
   display: inline-flex;
+  align-items: center;
 `;
 const TitleWithoutLink = styled('span')`
   display: inline-flex;

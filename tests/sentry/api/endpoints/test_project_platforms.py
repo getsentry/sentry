@@ -1,9 +1,9 @@
-from sentry.models import ProjectPlatform
+from sentry.models.projectplatform import ProjectPlatform
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectPlatformsTest(APITestCase):
     def test_simple(self):
         project = self.create_project()

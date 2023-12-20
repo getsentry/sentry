@@ -20,7 +20,6 @@ import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useRep
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {useTeams} from 'sentry/utils/useTeams';
 
 type Breakpoints = {
   large: string;
@@ -33,6 +32,10 @@ const OnboardingCTAHook = HookOrDefault({
   hookName: 'component:replay-onboarding-cta',
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
+const OnboardingCTAButton = HookOrDefault({
+  hookName: 'component:replay-onboarding-cta-button',
+  defaultComponent: null,
+});
 
 const OnboardingAlertHook = HookOrDefault({
   hookName: 'component:replay-onboarding-alert',
@@ -44,8 +47,7 @@ export default function ReplayOnboardingPanel() {
   const pageFilters = usePageFilters();
   const projects = useProjects();
   const organization = useOrganization();
-  const {teams} = useTeams();
-  const {canCreateProject} = useProjectCreationAccess({organization, teams});
+  const {canCreateProject} = useProjectCreationAccess({organization});
 
   const selectedProjects = projects.projects.filter(p =>
     pageFilters.selection.projects.includes(Number(p.id))
@@ -194,6 +196,7 @@ export function SetupReplaysCTA({
       </p>
       <ButtonList gap={1}>
         {renderCTA()}
+        <OnboardingCTAButton />
         <Button
           href="https://docs.sentry.io/platforms/javascript/session-replay/"
           external

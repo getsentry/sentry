@@ -1,3 +1,6 @@
+import {Organization} from 'sentry-fixture/organization';
+import {Search} from 'sentry-fixture/search';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -6,7 +9,7 @@ import IssueListSetAsDefault from 'sentry/views/issueList/issueListSetAsDefault'
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 describe('IssueListSetAsDefault', () => {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
 
   const {router} = initializeOrg();
 
@@ -34,7 +37,7 @@ describe('IssueListSetAsDefault', () => {
     const mockPinSearch = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/pinned-searches/',
       method: 'PUT',
-      body: TestStubs.Search({
+      body: Search({
         isPinned: true,
         visibility: SavedSearchVisibility.OWNER_PINNED,
       }),
@@ -57,7 +60,7 @@ describe('IssueListSetAsDefault', () => {
   it('can remove a default search', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/',
-      body: [TestStubs.Search({isPinned: true, query: 'browser:firefox'})],
+      body: [Search({isPinned: true, query: 'browser:firefox'})],
     });
     const mockUnpinSearch = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/pinned-searches/',
@@ -81,7 +84,7 @@ describe('IssueListSetAsDefault', () => {
   it('does not render anything when on default search and no pinned search', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/',
-      body: [TestStubs.Search({isPinned: false, query: 'browser:firefox'})],
+      body: [Search({isPinned: false, query: 'browser:firefox'})],
     });
 
     render(<IssueListSetAsDefault {...defaultProps} query="is:unresolved" />, {
@@ -94,7 +97,7 @@ describe('IssueListSetAsDefault', () => {
   it('does render when on default search and existing pinned search', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/',
-      body: [TestStubs.Search({isPinned: true, query: 'browser:firefox'})],
+      body: [Search({isPinned: true, query: 'browser:firefox'})],
     });
 
     render(<IssueListSetAsDefault {...defaultProps} query="is:unresolved" />, {

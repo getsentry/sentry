@@ -4,6 +4,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, Optional, Union
 
+import requests
+import urllib3
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from django.conf import settings
@@ -12,9 +14,11 @@ from django.dispatch import receiver
 from sentry_kafka_schemas.schema_types.group_attributes_v1 import GroupAttributesSnapshot
 
 from sentry import options
-from sentry.models import Group, GroupAssignee, GroupOwner, GroupOwnerType
+from sentry.models.group import Group
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.signals import issue_assigned, issue_deleted, issue_unassigned
-from sentry.utils import json, metrics
+from sentry.utils import json, metrics, snuba
 from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
@@ -84,8 +88,24 @@ def send_snapshot_values(
 
 
 def produce_snapshot_to_kafka(snapshot: GroupAttributesSnapshot) -> None:
-    payload = KafkaPayload(None, json.dumps(snapshot).encode("utf-8"), [])
-    _attribute_snapshot_producer.produce(Topic(settings.KAFKA_GROUP_ATTRIBUTES), payload)
+    if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
+        # If we're not running Kafka then we're just in dev. Skip producing to Kafka and just
+        # write to snuba directly
+        try:
+            resp = requests.post(
+                f"{settings.SENTRY_SNUBA}/tests/entities/group_attributes/insert",
+                data=json.dumps([snapshot]),
+            )
+            if resp.status_code != 200:
+                raise snuba.SnubaError(
+                    f"HTTP {resp.status_code} response from Snuba! {resp.content.decode('utf-8')}"
+                )
+            return None
+        except urllib3.exceptions.HTTPError as err:
+            raise snuba.SnubaError(err)
+    else:
+        payload = KafkaPayload(None, json.dumps(snapshot).encode("utf-8"), [])
+        _attribute_snapshot_producer.produce(Topic(settings.KAFKA_GROUP_ATTRIBUTES), payload)
 
 
 def _retrieve_group_values(group_id: int) -> GroupValues:
@@ -193,7 +213,7 @@ def post_save_log_group_attributes_changed(instance, sender, created, *args, **k
                     )
                     send_snapshot_values(None, instance, False)
     except Exception:
-        logger.error("failed to log group attributes after group post_save", exc_info=True)
+        logger.exception("failed to log group attributes after group post_save")
 
 
 @issue_deleted.connect(weak=False)
@@ -202,7 +222,7 @@ def on_issue_deleted_log_deleted(group, user, delete_type, **kwargs):
         _log_group_attributes_changed(Operation.DELETED, "group", "all")
         send_snapshot_values(None, group, True)
     except Exception:
-        logger.error("failed to log group attributes after group delete", exc_info=True)
+        logger.exception("failed to log group attributes after group delete")
 
 
 @issue_assigned.connect(weak=False)
@@ -211,9 +231,7 @@ def on_issue_assigned_log_group_assignee_attributes_changed(project, group, user
         _log_group_attributes_changed(Operation.UPDATED, "group_assignee", "all")
         send_snapshot_values(None, group, False)
     except Exception:
-        logger.error(
-            "failed to log group attributes after group_assignee assignment", exc_info=True
-        )
+        logger.exception("failed to log group attributes after group_assignee assignment")
 
 
 @issue_unassigned.connect(weak=False)
@@ -222,9 +240,7 @@ def on_issue_unassigned_log_group_assignee_attributes_changed(project, group, us
         _log_group_attributes_changed(Operation.DELETED, "group_assignee", "all")
         send_snapshot_values(None, group, False)
     except Exception:
-        logger.error(
-            "failed to log group attributes after group_assignee unassignment", exc_info=True
-        )
+        logger.exception("failed to log group attributes after group_assignee unassignment")
 
 
 @receiver(
@@ -237,7 +253,7 @@ def post_save_log_group_owner_changed(instance, sender, created, update_fields, 
         )
         send_snapshot_values(instance.group_id, None, False)
     except Exception:
-        logger.error("failed to log group attributes after group_owner updated", exc_info=True)
+        logger.exception("failed to log group attributes after group_owner updated")
 
 
 @receiver(
@@ -248,4 +264,4 @@ def post_delete_log_group_owner_changed(instance, sender, *args, **kwargs):
         _log_group_attributes_changed(Operation.DELETED, "group_owner", "all")
         send_snapshot_values(instance.group_id, None, False)
     except Exception:
-        logger.error("failed to log group attributes after group_owner delete", exc_info=True)
+        logger.exception("failed to log group attributes after group_owner delete")

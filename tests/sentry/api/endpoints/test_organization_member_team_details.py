@@ -2,13 +2,12 @@ from functools import cached_property
 
 from rest_framework import status
 
+from sentry.api.endpoints.organization_member.team_details import ERR_INSUFFICIENT_ROLE
 from sentry.auth import access
-from sentry.models import (
-    Organization,
-    OrganizationAccessRequest,
-    OrganizationMember,
-    OrganizationMemberTeam,
-)
+from sentry.models.organization import Organization
+from sentry.models.organizationaccessrequest import OrganizationAccessRequest
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
@@ -83,7 +82,7 @@ class OrganizationMemberTeamTestBase(APITestCase):
         return member
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class CreateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     method = "post"
 
@@ -377,15 +376,17 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
             team=self.team, organizationmember=self.member
         ).exists()
 
-    def test_org_token_needs_elevated_permissions(self):
-        # Org tokens with org:read should generate an access request when open membership is off
-        org_token = self.create_org_auth_token(self.org, self.user, ["org:read"])
+    def test_integration_token_needs_elevated_permissions(self):
+        # Integration tokens with org:read should generate an access request when open membership is off
+        integration_token = self.create_internal_integration_token(
+            user=self.user, org=self.org, scopes=["org:read"]
+        )
 
         self.get_success_response(
             self.org.slug,
             self.member.id,
             self.team.slug,
-            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {org_token.token}"},
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {integration_token.token}"},
             status_code=status.HTTP_202_ACCEPTED,
         )
 
@@ -417,7 +418,7 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
         assert oar.requester_id == self.member.user_id
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     method = "delete"
 
@@ -489,8 +490,8 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     def test_admin_cannot_remove_member_using_user_token(self):
         # admin not in team
         self.login_as(self.admin)
-        token = self.create_user_auth_token(user=self.admin_user, scope_list=["team:write"])
-        self.get_error_response(
+        token = self.create_user_auth_token(user=self.admin_user, scope_list=["team:admin"])
+        response = self.get_error_response(
             self.org.slug,
             self.member_on_team.id,
             self.team.slug,
@@ -498,6 +499,7 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
             status_code=400,
         )
 
+        assert response.data["detail"] == ERR_INSUFFICIENT_ROLE
         assert OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.member_on_team
         ).exists()
@@ -535,7 +537,7 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     def test_admin_on_team_can_remove_members_using_user_token(self):
         self.login_as(self.admin_on_team)
 
-        token = self.create_user_auth_token(user=self.admin_on_team_user, scope_list=["team:write"])
+        token = self.create_user_auth_token(user=self.admin_on_team_user, scope_list=["team:admin"])
         self.get_success_response(
             self.org.slug,
             self.member_on_team.id,
@@ -581,7 +583,7 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     def test_manager_can_remove_members_using_user_token(self):
         self.login_as(self.manager)
 
-        scopes = ["org:write", "team:write"]
+        scopes = ["org:write", "team:admin"]
         members = [self.member_on_team, self.manager_on_team, self.owner_on_team]
         for scope in scopes:
             for member in members:
@@ -631,7 +633,7 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     def test_owner_can_remove_members_using_user_token(self):
         self.login_as(self.owner)
 
-        scopes = ["org:write", "org:admin", "team:write"]
+        scopes = ["org:write", "org:admin", "team:admin"]
         members = [self.member_on_team, self.manager_on_team, self.owner_on_team]
         for scope in scopes:
             for member in members:
@@ -693,7 +695,7 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         ).exists()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ReadOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     endpoint = "sentry-api-0-organization-member-team-details"
     method = "get"
@@ -722,7 +724,7 @@ class ReadOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     endpoint = "sentry-api-0-organization-member-team-details"
     method = "put"
@@ -760,6 +762,35 @@ class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     @with_feature("organizations:team-roles")
     def test_team_admin_can_promote_member(self):
         self.login_as(self.team_admin)
+
+        resp = self.get_response(
+            self.org.slug, self.member_on_team.id, self.team.slug, teamRole="admin"
+        )
+        assert resp.status_code == 200
+
+        updated_omt = OrganizationMemberTeam.objects.get(
+            team=self.team, organizationmember=self.member_on_team
+        )
+        assert updated_omt.role == "admin"
+
+    @with_feature("organizations:team-roles")
+    def test_superuser_can_promote_member(self):
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(superuser, superuser=True)
+
+        resp = self.get_response(
+            self.org.slug, self.member_on_team.id, self.team.slug, teamRole="admin"
+        )
+        assert resp.status_code == 200
+
+        updated_omt = OrganizationMemberTeam.objects.get(
+            team=self.team, organizationmember=self.member_on_team
+        )
+        assert updated_omt.role == "admin"
+
+    @with_feature("organizations:team-roles")
+    def test_admin_can_promote_member(self):
+        self.login_as(self.admin_on_team)
 
         resp = self.get_response(
             self.org.slug, self.member_on_team.id, self.team.slug, teamRole="admin"

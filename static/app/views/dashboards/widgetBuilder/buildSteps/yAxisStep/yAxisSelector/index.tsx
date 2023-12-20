@@ -6,12 +6,13 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {TagCollection} from 'sentry/types';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
-import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {DisplayType, Widget} from 'sentry/views/dashboards/types';
+import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {QueryField} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+
+import {useTableFieldOptions} from '../../../utils';
 
 import {AddButton} from './addButton';
 import {DeleteButton} from './deleteButton';
@@ -41,7 +42,7 @@ export function YAxisSelector({
   const organization = useOrganization();
   const datasetConfig = getDatasetConfig(widgetType);
 
-  const {customMeasurements} = useCustomMeasurements();
+  const fieldOptions = useTableFieldOptions(organization, tags, widgetType);
 
   function handleAddOverlay(event: React.MouseEvent) {
     event.preventDefault();
@@ -91,11 +92,7 @@ export function YAxisSelector({
         <QueryFieldWrapper key={`${fieldValue}:${i}`}>
           <QueryField
             fieldValue={fieldValue}
-            fieldOptions={datasetConfig.getTableFieldOptions(
-              organization,
-              tags,
-              customMeasurements
-            )}
+            fieldOptions={fieldOptions}
             onChange={value => handleChangeQueryField(value, i)}
             filterPrimaryOptions={datasetConfig.filterYAxisOptions?.(displayType)}
             filterAggregateParameters={datasetConfig.filterYAxisAggregateParams?.(
@@ -111,7 +108,9 @@ export function YAxisSelector({
             )}
         </QueryFieldWrapper>
       ))}
-      {!hideAddYAxisButtons && (
+
+      {/* TODO(ddm): support multiple overlays */}
+      {!hideAddYAxisButtons && widgetType !== WidgetType.METRICS && (
         <Actions gap={1}>
           <AddButton title={t('Add Overlay')} onAdd={handleAddOverlay} />
           {datasetConfig.enableEquations && (

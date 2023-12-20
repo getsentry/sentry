@@ -8,15 +8,17 @@ import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import {getInterval} from 'sentry/components/charts/utils';
 import * as Layout from 'sentry/components/layouts/thirds';
-import type {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
-import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
+import type {ChangeData} from 'sentry/components/timeRangeSelector';
+import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
 import {RuleActionsCategories} from 'sentry/types/alerts';
+import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
+import {ErrorMigrationWarning} from 'sentry/views/alerts/rules/metric/details/errorMigrationWarning';
 import MetricHistory from 'sentry/views/alerts/rules/metric/details/metricHistory';
 import {Dataset, MetricRule, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
@@ -25,6 +27,7 @@ import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
 import {AlertRuleStatus, Incident} from 'sentry/views/alerts/types';
 
 import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
+import {isCustomMetricAlert} from '../utils/isCustomMetricAlert';
 
 import {
   API_INTERVAL_POINTS_LIMIT,
@@ -77,16 +80,19 @@ export default function MetricDetailsBody({
     return getInterval({start: timePeriod.start, end: timePeriod.end}, 'high');
   }
 
-  function getFilter() {
-    const {dataset, query} = rule ?? {};
+  function getFilter(): string[] | null {
     if (!rule) {
       return null;
     }
 
-    const eventType = isCrashFreeAlert(dataset)
-      ? null
-      : extractEventTypeFilterFromRule(rule);
-    return [eventType, query].join(' ').split(' ');
+    const {aggregate, dataset, query} = rule;
+
+    if (isCrashFreeAlert(dataset) || isCustomMetricAlert(aggregate)) {
+      return query.trim().split(' ');
+    }
+
+    const eventType = extractEventTypeFilterFromRule(rule);
+    return (query ? `(${eventType}) AND (${query.trim()})` : eventType).split(' ');
   }
 
   const handleTimePeriodChange = (datetime: ChangeData) => {
@@ -128,9 +134,12 @@ export default function MetricDetailsBody({
     );
   }
 
-  const {query, dataset} = rule;
+  const {dataset, aggregate, query} = rule;
 
-  const queryWithTypeFilter = `${query} ${extractEventTypeFilterFromRule(rule)}`.trim();
+  const eventType = extractEventTypeFilterFromRule(rule);
+  const queryWithTypeFilter = (
+    query ? `(${query}) AND (${eventType})` : eventType
+  ).trim();
   const relativeOptions = {
     ...SELECTOR_RELATIVE_PERIODS,
     ...(rule.timeWindow > 1 ? {[TimePeriod.FOURTEEN_DAYS]: t('Last 14 days')} : {}),
@@ -138,6 +147,10 @@ export default function MetricDetailsBody({
 
   const isSnoozed = rule.snooze;
   const ruleActionCategory = getAlertRuleActionCategory(rule);
+
+  const showOnDemandMetricAlertUI =
+    isOnDemandMetricAlert(dataset, aggregate, query) &&
+    shouldShowOnDemandMetricAlertUI(organization);
 
   return (
     <Fragment>
@@ -166,17 +179,18 @@ export default function MetricDetailsBody({
                   )}
             </Alert>
           )}
-          <StyledPageTimeRangeSelector
-            organization={organization}
+          <StyledTimeRangeSelector
             relative={timePeriod.period ?? ''}
             start={(timePeriod.custom && timePeriod.start) || null}
             end={(timePeriod.custom && timePeriod.end) || null}
-            utc={null}
-            onUpdate={handleTimePeriodChange}
+            onChange={handleTimePeriodChange}
             relativeOptions={relativeOptions}
             showAbsolute={false}
             disallowArbitraryRelativeRanges
+            triggerLabel={relativeOptions[timePeriod.period ?? '']}
           />
+
+          <ErrorMigrationWarning project={project} rule={rule} />
 
           <MetricChart
             api={api}
@@ -189,7 +203,7 @@ export default function MetricDetailsBody({
             interval={getPeriodInterval()}
             query={isCrashFreeAlert(dataset) ? query : queryWithTypeFilter}
             filter={getFilter()}
-            isOnDemandMetricAlert={isOnDemandMetricAlert(dataset, query)}
+            isOnDemandAlert={isOnDemandMetricAlert(dataset, aggregate, query)}
           />
           <DetailWrapper>
             <ActivityWrapper>
@@ -202,9 +216,10 @@ export default function MetricDetailsBody({
                   timePeriod={timePeriod}
                   query={
                     dataset === Dataset.ERRORS
-                      ? queryWithTypeFilter
+                      ? // Not using (query) AND (event.type:x) because issues doesn't support it yet
+                        `${extractEventTypeFilterFromRule(rule)} ${query}`.trim()
                       : isCrashFreeAlert(dataset)
-                      ? `${query} error.unhandled:true`
+                      ? `${query} error.unhandled:true`.trim()
                       : undefined
                   }
                 />
@@ -223,7 +238,10 @@ export default function MetricDetailsBody({
           </DetailWrapper>
         </Layout.Main>
         <Layout.Side>
-          <MetricDetailsSidebar rule={rule} />
+          <MetricDetailsSidebar
+            rule={rule}
+            showOnDemandMetricAlertUI={showOnDemandMetricAlertUI}
+          />
         </Layout.Side>
       </Layout.Body>
     </Fragment>
@@ -262,6 +280,6 @@ const ChartPanel = styled(Panel)`
   margin-top: ${space(2)};
 `;
 
-const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
+const StyledTimeRangeSelector = styled(TimeRangeSelector)`
   margin-bottom: ${space(2)};
 `;

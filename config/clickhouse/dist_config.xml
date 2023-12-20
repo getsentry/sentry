@@ -1,7 +1,6 @@
 <yandex>
     <max_server_memory_usage_to_ram_ratio>0.3</max_server_memory_usage_to_ram_ratio>
 
-
     <remote_servers>
         <cluster_one_sh>
             <shard>
@@ -12,13 +11,6 @@
             </shard>
         </cluster_one_sh>
     </remote_servers>
-
-    <zookeeper>
-        <node>
-            <host>sentry_zookeeper</host>
-            <port>2181</port>
-        </node>
-    </zookeeper>
 
     <macros>
         <shard>1</shard>

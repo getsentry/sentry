@@ -1,4 +1,8 @@
-import {ResolutionStatus} from 'sentry/types';
+import {GlobalSelection} from 'sentry-fixture/globalSelection';
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+
+import {GroupStatus} from 'sentry/types';
 import {transformIssuesResponseToTable} from 'sentry/views/dashboards/datasetConfig/issues';
 
 describe('transformIssuesResponseToTable', function () {
@@ -9,10 +13,10 @@ describe('transformIssuesResponseToTable', function () {
           TestStubs.Group({
             id: '1',
             title: 'Error: Failed',
-            project: TestStubs.Project({
+            project: ProjectFixture({
               id: '3',
             }),
-            status: ResolutionStatus.UNRESOLVED,
+            status: GroupStatus.UNRESOLVED,
             owners: [
               {
                 type: 'ownershipRule',
@@ -34,8 +38,8 @@ describe('transformIssuesResponseToTable', function () {
           conditions: 'assigned_or_suggested:#visibility timesSeen:>100',
           orderby: '',
         },
-        TestStubs.Organization(),
-        TestStubs.GlobalSelection()
+        Organization(),
+        GlobalSelection()
       )
     ).toEqual(
       expect.objectContaining({

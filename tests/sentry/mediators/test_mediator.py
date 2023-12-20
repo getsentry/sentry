@@ -7,7 +7,7 @@ from django.db import router
 
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
-from sentry.models import User
+from sentry.models.user import User
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -29,7 +29,7 @@ class MockMediator(Mediator):
             pass
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestMediator(TestCase):
     def setUp(self):
         super(TestCase, self).setUp()
@@ -137,6 +137,8 @@ class TestMediator(TestCase):
 
     def test_automatic_transaction(self):
         class TransactionMediator(Mediator):
+            using = router.db_for_write(User)
+
             def call(self):
                 User.objects.create(username="beep")
                 raise RuntimeError()

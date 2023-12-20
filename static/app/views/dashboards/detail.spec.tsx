@@ -1,4 +1,7 @@
 import {browserHistory} from 'react-router';
+import LocationFixture from 'sentry-fixture/locationFixture';
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -18,10 +21,10 @@ import ViewEditDashboard from 'sentry/views/dashboards/view';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('Dashboards > Detail', function () {
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
   });
-  const projects = [TestStubs.Project()];
+  const projects = [ProjectFixture()];
 
   describe('prebuilt dashboards', function () {
     let initialData;
@@ -36,7 +39,7 @@ describe('Dashboards > Detail', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
-        body: [TestStubs.Project()],
+        body: [ProjectFixture()],
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/',
@@ -136,9 +139,9 @@ describe('Dashboards > Detail', function () {
         ),
       });
       initialData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: ['global-views', 'dashboards-basic', 'discover-query'],
-          projects: [TestStubs.Project()],
+          projects: [ProjectFixture()],
         }),
       });
 
@@ -212,7 +215,7 @@ describe('Dashboards > Detail', function () {
       initialData = initializeOrg({
         organization,
         router: {
-          location: TestStubs.location(),
+          location: LocationFixture(),
         },
       });
       widgets = [
@@ -279,7 +282,7 @@ describe('Dashboards > Detail', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
-        body: [TestStubs.Project()],
+        body: [ProjectFixture()],
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/',
@@ -439,7 +442,7 @@ describe('Dashboards > Detail', function () {
           '/organizations/org-slug/events-stats/',
           expect.objectContaining({
             query: expect.objectContaining({
-              query: 'event.type:transaction transaction:/api/cats release:abc@1.2.0 ',
+              query: 'event.type:transaction transaction:/api/cats release:"abc@1.2.0" ',
             }),
           })
         )
@@ -474,14 +477,14 @@ describe('Dashboards > Detail', function () {
       });
 
       initialData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
           ],
-          projects: [TestStubs.Project()],
+          projects: [ProjectFixture()],
         }),
       });
 
@@ -1006,7 +1009,7 @@ describe('Dashboards > Detail', function () {
         ],
       });
       const testData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1016,7 +1019,7 @@ describe('Dashboards > Detail', function () {
         }),
         router: {
           location: {
-            ...TestStubs.location(),
+            ...LocationFixture(),
             query: {
               statsPeriod: '7d',
               release: ['sentry-android-shop@1.2.0'],
@@ -1070,7 +1073,7 @@ describe('Dashboards > Detail', function () {
         ],
       });
       const testData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1080,7 +1083,7 @@ describe('Dashboards > Detail', function () {
         }),
         router: {
           location: {
-            ...TestStubs.location(),
+            ...LocationFixture(),
             query: {
               statsPeriod: '7d',
             },
@@ -1102,7 +1105,7 @@ describe('Dashboards > Detail', function () {
 
       await screen.findByText('7D');
       await userEvent.click(await screen.findByText('sentry-android-shop@1.2.0'));
-      await userEvent.click(screen.getByText('Clear'));
+      await userEvent.click(screen.getAllByText('Clear')[0]);
       screen.getByText('All Releases');
       await userEvent.click(document.body);
 
@@ -1117,7 +1120,7 @@ describe('Dashboards > Detail', function () {
 
     it('can save absolute time range in existing dashboard', async () => {
       const testData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1127,7 +1130,7 @@ describe('Dashboards > Detail', function () {
         }),
         router: {
           location: {
-            ...TestStubs.location(),
+            ...LocationFixture(),
             query: {
               start: '2022-07-14T07:00:00',
               end: '2022-07-19T23:59:59',
@@ -1174,7 +1177,7 @@ describe('Dashboards > Detail', function () {
         ],
       });
       const testData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1184,7 +1187,7 @@ describe('Dashboards > Detail', function () {
         }),
         router: {
           location: {
-            ...TestStubs.location(),
+            ...LocationFixture(),
             query: {
               statsPeriod: '7d',
               environment: ['alpha', 'beta'],
@@ -1235,7 +1238,7 @@ describe('Dashboards > Detail', function () {
         ],
       });
       const testData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1246,7 +1249,7 @@ describe('Dashboards > Detail', function () {
         }),
         router: {
           location: {
-            ...TestStubs.location(),
+            ...LocationFixture(),
             query: {
               statsPeriod: '7d',
               environment: ['alpha', 'beta'],
@@ -1274,8 +1277,8 @@ describe('Dashboards > Detail', function () {
 
     it('ignores the order of selection of page filters to render unsaved filters', async () => {
       const testProjects = [
-        TestStubs.Project({id: '1', name: 'first', environments: ['alpha', 'beta']}),
-        TestStubs.Project({id: '2', name: 'second', environments: ['alpha', 'beta']}),
+        ProjectFixture({id: '1', name: 'first', environments: ['alpha', 'beta']}),
+        ProjectFixture({id: '2', name: 'second', environments: ['alpha', 'beta']}),
       ];
 
       act(() => ProjectsStore.loadInitialData(testProjects));
@@ -1294,7 +1297,7 @@ describe('Dashboards > Detail', function () {
       });
 
       const testData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1304,7 +1307,7 @@ describe('Dashboards > Detail', function () {
         }),
         router: {
           location: {
-            ...TestStubs.location(),
+            ...LocationFixture(),
             query: {
               environment: ['beta', 'alpha'], // Reversed order from saved dashboard
             },
@@ -1325,7 +1328,15 @@ describe('Dashboards > Detail', function () {
       );
 
       await waitFor(() => expect(screen.queryAllByText('Loading\u2026')).toEqual([]));
-      await screen.findByText(/beta, alpha/);
+      await userEvent.click(screen.getByRole('button', {name: 'All Envs'}));
+      expect(screen.getByRole('row', {name: 'alpha'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+      expect(screen.getByRole('row', {name: 'beta'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
 
       // Save and Cancel should not appear because alpha, beta is the same as beta, alpha
       expect(screen.queryByText('Save')).not.toBeInTheDocument();
@@ -1334,7 +1345,7 @@ describe('Dashboards > Detail', function () {
 
     it('uses releases from the URL query params', async function () {
       const testData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1344,7 +1355,7 @@ describe('Dashboards > Detail', function () {
         }),
         router: {
           location: {
-            ...TestStubs.location(),
+            ...LocationFixture(),
             query: {
               release: ['not-selected-1'],
             },
@@ -1381,7 +1392,7 @@ describe('Dashboards > Detail', function () {
         }),
       });
       const testData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1391,7 +1402,7 @@ describe('Dashboards > Detail', function () {
         }),
         router: {
           location: {
-            ...TestStubs.location(),
+            ...LocationFixture(),
             query: {
               release: ['not-selected-1'],
             },
@@ -1440,7 +1451,7 @@ describe('Dashboards > Detail', function () {
         ],
       });
       const testData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1449,7 +1460,7 @@ describe('Dashboards > Detail', function () {
           ],
         }),
         router: {
-          location: TestStubs.location(),
+          location: LocationFixture(),
         },
       });
       render(
@@ -1502,7 +1513,7 @@ describe('Dashboards > Detail', function () {
         match: [MockApiClient.matchData({query: 's'})],
       });
       const testData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1512,7 +1523,7 @@ describe('Dashboards > Detail', function () {
           ],
         }),
         router: {
-          location: TestStubs.location(),
+          location: LocationFixture(),
         },
       });
       render(
@@ -1529,7 +1540,7 @@ describe('Dashboards > Detail', function () {
       );
 
       await userEvent.click(await screen.findByText('All Releases'));
-      await userEvent.type(screen.getByPlaceholderText('Search\u2026'), 's');
+      await userEvent.type(screen.getAllByPlaceholderText('Search\u2026')[2], 's');
       await userEvent.click(await screen.findByRole('option', {name: 'search-result'}));
 
       // Validate that after search is cleared, search result still appears

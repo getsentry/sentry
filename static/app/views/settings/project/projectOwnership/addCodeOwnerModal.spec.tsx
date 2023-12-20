@@ -1,4 +1,8 @@
 import selectEvent from 'react-select-event';
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {Repository} from 'sentry-fixture/repository';
+import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -11,16 +15,16 @@ import {
 import {AddCodeOwnerModal} from 'sentry/views/settings/project/projectOwnership/addCodeOwnerModal';
 
 describe('AddCodeOwnerModal', function () {
-  const org = TestStubs.Organization({features: ['integrations-codeowners']});
-  const project = TestStubs.ProjectDetails();
+  const org = Organization({features: ['integrations-codeowners']});
+  const project = ProjectFixture();
   const integration = TestStubs.GitHubIntegration();
-  const repo = TestStubs.Repository({
+  const repo = Repository({
     integrationId: integration.id,
     id: '5',
     name: 'example/hello-there',
   });
 
-  const codeMapping = TestStubs.RepositoryProjectPathConfig({
+  const codeMapping = RepositoryProjectPathConfig({
     project,
     repo,
     integration,

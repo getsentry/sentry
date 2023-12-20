@@ -1,3 +1,6 @@
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectCard} from 'sentry/views/projectsDashboard/projectCard';
@@ -9,8 +12,8 @@ describe('ProjectCard', function () {
   const createWrapper = () =>
     render(
       <ProjectCard
-        organization={TestStubs.Organization()}
-        project={TestStubs.Project({
+        organization={Organization()}
+        project={ProjectFixture({
           stats: [
             [1525042800, 1],
             [1525046400, 2],
@@ -31,8 +34,7 @@ describe('ProjectCard', function () {
   });
 
   it('renders', function () {
-    const {container} = createWrapper();
-    expect(container).toSnapshot();
+    createWrapper();
   });
 
   it('renders latest 2 deploys', function () {
@@ -53,8 +55,8 @@ describe('ProjectCard', function () {
 
     render(
       <ProjectCard
-        organization={TestStubs.Organization()}
-        project={TestStubs.Project({
+        organization={Organization()}
+        project={ProjectFixture({
           stats: [
             [1525042800, 1],
             [1525046400, 2],
@@ -89,8 +91,8 @@ describe('ProjectCard', function () {
   it('renders header link for errors', function () {
     render(
       <ProjectCard
-        organization={TestStubs.Organization()}
-        project={TestStubs.Project({
+        organization={Organization()}
+        project={ProjectFixture({
           stats: [
             [1525042800, 3],
             [1525046400, 3],
@@ -112,8 +114,8 @@ describe('ProjectCard', function () {
   it('renders header link for transactions', function () {
     render(
       <ProjectCard
-        organization={TestStubs.Organization({features: ['performance-view']})}
-        project={TestStubs.Project({
+        organization={Organization({features: ['performance-view']})}
+        project={ProjectFixture({
           stats: [
             [1525042800, 3],
             [1525046400, 3],
@@ -137,8 +139,8 @@ describe('ProjectCard', function () {
   it('renders loading placeholder card if there are no stats', function () {
     render(
       <ProjectCard
-        organization={TestStubs.Organization()}
-        project={TestStubs.Project()}
+        organization={Organization()}
+        project={ProjectFixture()}
         hasProjectAccess={false}
         api={new MockApiClient()}
       />

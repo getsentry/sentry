@@ -14,9 +14,14 @@ from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.datascrubbing import scrub_data
 from sentry.eventstore import processing
 from sentry.eventstore.processing.base import Event
+from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.symbolicator import SymbolicatorTaskKind
-from sentry.models import Activity, Organization, Project, ProjectOption
+from sentry.models.activity import Activity
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.silo import SiloMode
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
 from sentry.tasks.base import instrumented_task
 from sentry.types.activity import ActivityType
@@ -80,6 +85,7 @@ def submit_process(
 
 @dataclass(frozen=True)
 class SaveEventTaskKind:
+    is_highcpu: bool = False
     has_attachments: bool = False
     from_reprocessing: bool = False
 
@@ -98,6 +104,8 @@ def submit_save_event(
     # XXX: honor from_reprocessing
     if task_kind.has_attachments:
         task = save_event_attachments
+    elif task_kind.is_highcpu:
+        task = save_event_highcpu
     else:
         task = save_event
 
@@ -194,7 +202,9 @@ def _do_preprocess_event(
         return
 
     task_kind = SaveEventTaskKind(
-        has_attachments=has_attachments, from_reprocessing=from_reprocessing
+        has_attachments=has_attachments,
+        from_reprocessing=from_reprocessing,
+        is_highcpu=data["platform"] in options.get("store.save-event-highcpu-platforms", []),
     )
     submit_save_event(
         task_kind,
@@ -211,6 +221,7 @@ def _do_preprocess_event(
     queue="events.preprocess_event",
     time_limit=65,
     soft_time_limit=60,
+    silo_mode=SiloMode.REGION,
 )
 def preprocess_event(
     cache_key: str,
@@ -237,6 +248,7 @@ def preprocess_event(
     queue="events.reprocessing.preprocess_event",
     time_limit=65,
     soft_time_limit=60,
+    silo_mode=SiloMode.REGION,
 )
 def preprocess_event_from_reprocessing(
     cache_key: str,
@@ -261,6 +273,7 @@ def preprocess_event_from_reprocessing(
     queue="sleep",
     time_limit=(60 * 5) + 5,
     soft_time_limit=60 * 5,
+    silo_mode=SiloMode.REGION,
 )
 def retry_process_event(process_task_name: str, task_kwargs: Dict[str, Any], **kwargs: Any) -> None:
     """
@@ -313,6 +326,7 @@ def do_process_event(
         task_kind = SaveEventTaskKind(
             from_reprocessing=process_task is process_event_from_reprocessing,
             has_attachments=has_attachments,
+            is_highcpu=data["platform"] in options.get("store.save-event-highcpu-platforms", []),
         )
         submit_save_event(
             task_kind,
@@ -462,6 +476,7 @@ def do_process_event(
     queue="events.process_event",
     time_limit=65,
     soft_time_limit=60,
+    silo_mode=SiloMode.REGION,
 )
 def process_event(
     cache_key: str,
@@ -498,6 +513,7 @@ def process_event(
     queue="events.reprocessing.process_event",
     time_limit=65,
     soft_time_limit=60,
+    silo_mode=SiloMode.REGION,
 )
 def process_event_from_reprocessing(
     cache_key: str,
@@ -528,7 +544,8 @@ def delete_raw_event(
         error_logger.error("process.failed_delete_raw_event", extra={"project_id": project_id})
         return
 
-    from sentry.models import RawEvent, ReprocessingReport
+    from sentry.models.rawevent import RawEvent
+    from sentry.models.reprocessingreport import ReprocessingReport
 
     RawEvent.objects.filter(project_id=project_id, event_id=event_id).delete()
     ReprocessingReport.objects.filter(project_id=project_id, event_id=event_id).delete()
@@ -621,7 +638,8 @@ def create_failed_event(
         return True
 
     data = CanonicalKeyDict(data)
-    from sentry.models import ProcessingIssue, RawEvent
+    from sentry.models.processingissue import ProcessingIssue
+    from sentry.models.rawevent import RawEvent
 
     raw_event = RawEvent.objects.create(
         project_id=project_id,
@@ -658,7 +676,8 @@ def _do_save_event(
 
     set_current_event_project(project_id)
 
-    from sentry.event_manager import EventManager, HashDiscarded
+    from sentry.event_manager import EventManager
+    from sentry.exceptions import HashDiscarded
 
     event_type = "none"
 
@@ -762,7 +781,7 @@ def _do_save_event(
 
 
 def time_synthetic_monitoring_event(
-    data: Event, project_id: int, start_time: Optional[int]
+    data: Event, project_id: int, start_time: Optional[float]
 ) -> bool:
     """
     For special events produced by the recurring synthetic monitoring
@@ -816,6 +835,7 @@ def time_synthetic_monitoring_event(
     queue="events.save_event",
     time_limit=65,
     soft_time_limit=60,
+    silo_mode=SiloMode.REGION,
 )
 def save_event(
     cache_key: Optional[str] = None,
@@ -833,6 +853,7 @@ def save_event(
     queue="events.save_event_transaction",
     time_limit=65,
     soft_time_limit=60,
+    silo_mode=SiloMode.REGION,
 )
 def save_event_transaction(
     cache_key: Optional[str] = None,
@@ -846,12 +867,47 @@ def save_event_transaction(
 
 
 @instrumented_task(
+    name="sentry.tasks.store.save_event_feedback",
+    time_limit=65,
+    soft_time_limit=60,
+    silo_mode=SiloMode.REGION,
+)
+def save_event_feedback(
+    cache_key: Optional[str] = None,
+    data: Optional[Event] = None,
+    start_time: Optional[int] = None,
+    event_id: Optional[str] = None,
+    project_id: Optional[int] = None,
+    **kwargs: Any,
+) -> None:
+    create_feedback_issue(data, project_id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+
+
+@instrumented_task(
     name="sentry.tasks.store.save_event_attachments",
     queue="events.save_event_attachments",
     time_limit=65,
     soft_time_limit=60,
+    silo_mode=SiloMode.REGION,
 )
 def save_event_attachments(
+    cache_key: Optional[str] = None,
+    data: Optional[Event] = None,
+    start_time: Optional[int] = None,
+    event_id: Optional[str] = None,
+    project_id: Optional[int] = None,
+    **kwargs: Any,
+) -> None:
+    _do_save_event(cache_key, data, start_time, event_id, project_id, **kwargs)
+
+
+@instrumented_task(
+    name="sentry.tasks.store.save_event_highcpu",
+    queue="events.save_event_highcpu",
+    time_limit=65,
+    soft_time_limit=60,
+)
+def save_event_highcpu(
     cache_key: Optional[str] = None,
     data: Optional[Event] = None,
     start_time: Optional[int] = None,

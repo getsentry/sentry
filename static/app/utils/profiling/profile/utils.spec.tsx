@@ -1,4 +1,3 @@
-import {Frame} from 'sentry/utils/profiling/frame';
 import {
   createSentrySampleProfileFrameIndex,
   memoizeByReference,
@@ -7,7 +6,7 @@ import {
 
 describe('createSentrySampleProfileFrameIndex', () => {
   it('dedupes frames', () => {
-    const frameIndex = createSentrySampleProfileFrameIndex([
+    const frames = [
       {
         in_app: true,
         function: 'foo',
@@ -23,26 +22,13 @@ describe('createSentrySampleProfileFrameIndex', () => {
         function: 'foo',
         lineno: 100,
       },
-    ]);
-
-    const fooFrame = new Frame({
-      key: 0,
-      is_application: true,
-      name: 'foo',
-      line: 100,
-    });
-
-    const barFrame = new Frame({
-      key: 1,
-      is_application: true,
-      name: 'bar',
-      line: 105,
-    });
+    ];
+    const frameIndex = createSentrySampleProfileFrameIndex(frames, 'javascript');
 
     expect(frameIndex).toEqual({
-      0: fooFrame,
-      1: barFrame,
-      2: fooFrame,
+      0: frameIndex[0],
+      1: frameIndex[1],
+      2: frameIndex[0],
     });
   });
 });

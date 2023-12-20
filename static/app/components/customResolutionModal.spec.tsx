@@ -1,5 +1,7 @@
 import selectEvent from 'react-select-event';
 import styled from '@emotion/styled';
+import {Organization} from 'sentry-fixture/organization';
+import {User} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -9,12 +11,12 @@ import ConfigStore from 'sentry/stores/configStore';
 
 describe('CustomResolutionModal', () => {
   let releasesMock;
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   beforeEach(() => {
     ConfigStore.init();
     releasesMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/releases/',
-      body: [TestStubs.Release({authors: [TestStubs.User()]})],
+      body: [TestStubs.Release({authors: [User()]})],
     });
   });
 
@@ -51,7 +53,7 @@ describe('CustomResolutionModal', () => {
   });
 
   it('indicates which releases had commits from the user', async () => {
-    const user = TestStubs.User();
+    const user = User();
     ConfigStore.set('user', user);
     render(
       <CustomResolutionModal
@@ -101,7 +103,7 @@ describe('CustomResolutionModal', () => {
         Header={p => <span>{p.children}</span>}
         Body={wrapper()}
         Footer={wrapper()}
-        organization={{...organization, features: ['issue-release-semver']}}
+        organization={organization}
         projectSlug="project-slug"
         onSelected={jest.fn()}
         closeModal={jest.fn()}

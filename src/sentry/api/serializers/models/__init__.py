@@ -22,13 +22,12 @@ from .doc_integration_avatar import *  # noqa: F401,F403
 from .environment import *  # noqa: F401,F403
 from .event import *  # noqa: F401,F403
 from .eventattachment import *  # noqa: F401,F403
-from .eventuser import *  # noqa: F401,F403
 from .exporteddata import *  # noqa: F401,F403
 from .external_actor import *  # noqa: F401,F403
 from .filechange import *  # noqa: F401,F403
 from .group import *  # noqa: F401,F403
 from .group_stream import *  # noqa: F401,F403
-from .grouprelease import *  # noqa: F401,F403
+from .grouprelease import GroupReleaseSerializer, GroupReleaseWithStatsSerializer  # noqa: F401,F403
 from .groupseen import *  # noqa: F401,F403
 from .grouptombstone import *  # noqa: F401,F403
 from .identity import *  # noqa: F401,F403
@@ -39,7 +38,6 @@ from .incidentseen import *  # noqa: F401,F403
 from .integration import *  # noqa: F401,F403
 from .integration_feature import *  # noqa: F401,F403
 from .notification_action import *  # noqa: F401,F403
-from .notification_setting import *  # noqa: F401,F403
 from .organization import *  # noqa: F401,F403
 from .organization_access_request import *  # noqa: F401,F403
 from .organization_member.base import *  # noqa: F401,F403
@@ -66,6 +64,8 @@ from .relay import *  # noqa: F401,F403
 from .relayusage import *  # noqa: F401,F403
 from .release import *  # noqa: F401,F403
 from .release_file import *  # noqa: F401,F403
+from .release_threshold import *  # noqa: F401,F403
+from .relocation import *  # noqa: F401,F403
 from .repository import *  # noqa: F401,F403
 from .repository_project_path_config import *  # noqa: F401,F403
 from .role import *  # noqa: F401,F403
@@ -81,7 +81,6 @@ from .tagvalue import *  # noqa: F401,F403
 from .team import *  # noqa: F401,F403
 from .user import *  # noqa: F401,F403
 from .user_identity_config import *  # noqa: F401,F403
-from .user_notifications import *  # noqa: F401,F403
 from .user_social_auth import *  # noqa: F401,F403
 from .useremail import *  # noqa: F401,F403
 from .userip import *  # noqa: F401,F403

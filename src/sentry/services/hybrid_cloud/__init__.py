@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import contextlib
 import datetime
-import functools
-import inspect
 import logging
 import threading
 from enum import Enum
@@ -15,22 +13,17 @@ from typing import (
     Generic,
     Iterable,
     Mapping,
-    Optional,
     Protocol,
-    Tuple,
     Type,
     TypeVar,
-    Union,
     cast,
 )
 
 import pydantic
-import sentry_sdk
 from django.db import router, transaction
 from django.db.models import Model
 from typing_extensions import Self
 
-from sentry.db.postgres.transactions import in_test_assert_no_transaction
 from sentry.silo import SiloMode
 from sentry.utils.env import in_test_environment
 
@@ -40,74 +33,12 @@ T = TypeVar("T")
 
 ArgumentDict = Mapping[str, Any]
 
-OptionValue = Union[str, int, bool, None]
+OptionValue = Any
 
 IDEMPOTENCY_KEY_LENGTH = 48
 REGION_NAME_LENGTH = 48
 
 DEFAULT_DATE = datetime.datetime(2000, 1, 1)
-
-
-def report_pydantic_type_validation_error(
-    field: pydantic.fields.ModelField,
-    value: Any,
-    errors: pydantic.error_wrappers.ErrorList,
-    model_class: Optional[Type[Any]],
-) -> None:
-    with sentry_sdk.push_scope() as scope:
-        scope.set_context(
-            "pydantic_validation",
-            {
-                "field": field.name,
-                "value_type": str(type(value)),
-                "errors": str(errors),
-                "model_class": str(model_class),
-            },
-        )
-        logger.warning("Pydantic type validation error", exc_info=True)
-
-
-def _hack_pydantic_type_validation() -> None:
-    """Disable strict type checking on Pydantic models.
-
-    This is a temporary measure to ensure stability while we represent RpcModel
-    objects as Pydantic models. Previously, those objects were dataclasses whose type
-    annotations were checked statically but not at runtime. There may be bugs where
-    those objects are constructed with the wrong type (typically None on a
-    non-Optional field), but otherwise everything works.
-
-    To prevent these from being hard errors, override Pydantic's validation behavior.
-    Unfortunately, there is no way (that we know of) to do this only on RpcModel and
-    its subclasses. We have to kludge it by tampering with Pydantic's global
-    ModelField class, which would affect the behavior of all types extending
-    pydantic.BaseModel in the code base. (As of this writing, there are no such
-    classes other than RpcModel, but be warned.)
-
-    See https://github.com/pydantic/pydantic/issues/897
-
-    TODO: Remove this kludge when we are reasonably confident it is no longer
-          producing any warnings
-    """
-
-    builtin_validate = pydantic.fields.ModelField.validate
-
-    def validate(
-        field: pydantic.fields.ModelField,
-        value: Any,
-        *args: Any,
-        cls: Optional[Type[Union[pydantic.BaseModel, pydantic.dataclasses.Dataclass]]] = None,
-        **kwargs: Any,
-    ) -> Tuple[Optional[Any], Optional[pydantic.error_wrappers.ErrorList]]:
-        result, errors = builtin_validate(field, value, *args, cls=cls, **kwargs)
-        if errors:
-            report_pydantic_type_validation_error(field, value, errors, cls)
-        return result, None
-
-    functools.update_wrapper(validate, builtin_validate)
-    pydantic.fields.ModelField.validate = validate  # type: ignore
-
-
-_hack_pydantic_type_validation()
 
 
 class ValueEqualityEnum(Enum):
@@ -257,7 +188,9 @@ class DelegatedByOpenTransaction(Generic[ServiceInterface]):
     def __getattr__(self, item: str) -> Any:
         for model, constructor in self._constructors.items():
             if in_test_environment():
-                from sentry.testutils.hybrid_cloud import simulated_transaction_watermarks
+                from sentry.testutils.hybrid_cloud import (  # NOQA:S007
+                    simulated_transaction_watermarks,
+                )
 
                 open_transaction = (
                     simulated_transaction_watermarks.connection_transaction_depth_above_watermark(
@@ -273,73 +206,6 @@ class DelegatedByOpenTransaction(Generic[ServiceInterface]):
             if open_transaction:
                 return getattr(constructor(), item)
         return getattr(self._default(), item)
-
-
-hc_test_stub: Any = threading.local()
-
-
-def CreateStubFromBase(
-    base: Type[ServiceInterface], target_mode: SiloMode
-) -> Type[ServiceInterface]:
-    """
-    Using a concrete implementation class of a service, creates a new concrete implementation class suitable for a test
-    stub.  It retains parity with the given base by passing through all of its abstract method implementations to the
-    given base class, but wraps it to run in the target silo mode, allowing tests written for monolith mode to largely
-    work symmetrically.  In the future, however, when monolith mode separate is deprecated, this logic should be
-    replaced by true mocking utilities, for say, target RPC endpoints.
-
-    This implementation will not work outside of test contexts.
-    """
-
-    def __init__(self: Any, backing_service: ServiceInterface) -> None:
-        self.backing_service = backing_service
-
-    def make_method(method_name: str) -> Any:
-        def method(self: Any, *args: Any, **kwds: Any) -> Any:
-            in_test_assert_no_transaction(
-                f"remote service method {base.__name__}.{method_name} called inside transaction!  Move service calls to outside of transactions."
-            )
-            from sentry.services.hybrid_cloud.auth import AuthenticationContext
-
-            with SiloMode.exit_single_process_silo_context():
-                if cb := getattr(hc_test_stub, "cb", None):
-                    cb(self.backing_service, method_name, *args, **kwds)
-                method = getattr(self.backing_service, method_name)
-                call_args = inspect.getcallargs(method, *args, **kwds)
-
-                auth_context: AuthenticationContext = AuthenticationContext()
-                if "auth_context" in call_args:
-                    auth_context = call_args["auth_context"] or auth_context
-
-                try:
-                    with auth_context.applied_to_request(), SiloMode.enter_single_process_silo_context(
-                        target_mode
-                    ):
-                        return method(*args, **kwds)
-                except Exception as e:
-                    raise RuntimeError(f"Service call failed: {base.__name__}.{method_name}") from e
-
-        return method
-
-    methods = {}
-    for Super in base.__bases__:
-        for name in dir(Super):
-            if getattr(getattr(Super, name), "__isabstractmethod__", False):
-                methods[name] = make_method(name)
-
-    methods["__init__"] = __init__
-
-    return cast(
-        Type[ServiceInterface], type(f"Stub{base.__bases__[0].__name__}", base.__bases__, methods)
-    )
-
-
-def stubbed(f: Callable[[], ServiceInterface], mode: SiloMode) -> Callable[[], ServiceInterface]:
-    def factory() -> ServiceInterface:
-        backing = f()
-        return cast(ServiceInterface, cast(Any, CreateStubFromBase(type(backing), mode))(backing))
-
-    return factory
 
 
 def silo_mode_delegation(
@@ -364,7 +230,8 @@ def get_delegated_constructors(
     """
 
     def delegator() -> ServiceInterface:
-        from sentry.models import Organization, User
+        from sentry.models.organization import Organization
+        from sentry.models.user import User
 
         return cast(
             ServiceInterface,

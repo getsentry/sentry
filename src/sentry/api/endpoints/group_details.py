@@ -10,6 +10,7 @@ from rest_framework.response import Response
 
 from sentry import features, tagstore, tsdb
 from sentry.api import client
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
@@ -20,25 +21,36 @@ from sentry.api.helpers.group_index import (
     update_groups,
 )
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
-from sentry.api.serializers.models.plugin import PluginSerializer, is_plugin_deprecated
+from sentry.api.serializers.models.group_stream import get_actions, get_available_issue_plugins
+from sentry.api.serializers.models.plugin import PluginSerializer
+from sentry.api.serializers.models.team import TeamSerializer
 from sentry.issues.constants import get_issue_tsdb_group_model
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.grouptype import GroupCategory
-from sentry.models import Activity, Group, GroupSeen, GroupSubscriptionManager, UserReport
+from sentry.models.activity import Activity
+from sentry.models.group import Group
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.groupowner import get_owner_details
+from sentry.models.groupseen import GroupSeen
+from sentry.models.groupsubscription import GroupSubscriptionManager
+from sentry.models.team import Team
+from sentry.models.userreport import UserReport
 from sentry.plugins.base import plugins
-from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
-from sentry.utils.safe import safe_execute
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
 
 @region_silo_endpoint
 class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.UNKNOWN,
+    }
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
@@ -64,46 +76,6 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
     def _get_seen_by(self, request: Request, group):
         seen_by = list(GroupSeen.objects.filter(group=group).order_by("-last_seen"))
         return serialize(seen_by, request.user)
-
-    def _get_actions(self, request: Request, group):
-        project = group.project
-
-        action_list = []
-        for plugin in plugins.for_project(project, version=1):
-            if is_plugin_deprecated(plugin, project):
-                continue
-
-            results = safe_execute(
-                plugin.actions, request, group, action_list, _with_transaction=False
-            )
-
-            if not results:
-                continue
-
-            action_list = results
-
-        for plugin in plugins.for_project(project, version=2):
-            if is_plugin_deprecated(plugin, project):
-                continue
-            for action in (
-                safe_execute(plugin.get_actions, request, group, _with_transaction=False) or ()
-            ):
-                action_list.append(action)
-
-        return action_list
-
-    def _get_available_issue_plugins(self, request: Request, group):
-        project = group.project
-
-        plugin_issues = []
-        for plugin in plugins.for_project(project, version=1):
-            if isinstance(plugin, IssueTrackingPlugin2):
-                if is_plugin_deprecated(plugin, project):
-                    continue
-                plugin_issues = safe_execute(
-                    plugin.plugin_issues, request, group, plugin_issues, _with_transaction=False
-                )
-        return plugin_issues
 
     def _get_context_plugins(self, request: Request, group):
         project = group.project
@@ -144,6 +116,11 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         return hourly_stats, daily_stats
 
+    @staticmethod
+    def __get_group_global_count(group: Group) -> str:
+        fetch_buffered_group_stats(group)
+        return str(group.times_seen_with_pending)
+
     def get(self, request: Request, group) -> Response:
         """
         Retrieve an Issue
@@ -153,6 +130,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         the issue (title, last seen, first seen), some overall numbers (number
         of comments, user reports) as well as the summarized event data.
 
+        :pparam string organization_slug: The slug of the organization.
         :pparam string issue_id: the ID of the issue to retrieve.
         :auth: required
         """
@@ -234,24 +212,42 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                         }
                     )
 
-            action_list = self._get_actions(request, group)
             data.update(
                 {
                     "activity": serialize(activity, request.user),
                     "seenBy": seen_by,
-                    "participants": user_service.serialize_many(
-                        filter={
-                            "user_ids": GroupSubscriptionManager.get_participating_user_ids(group)
-                        },
-                        as_user=request.user,
-                    ),
-                    "pluginActions": action_list,
-                    "pluginIssues": self._get_available_issue_plugins(request, group),
+                    "pluginActions": get_actions(request, group),
+                    "pluginIssues": get_available_issue_plugins(request, group),
                     "pluginContexts": self._get_context_plugins(request, group),
                     "userReportCount": user_reports.count(),
                     "stats": {"24h": hourly_stats, "30d": daily_stats},
+                    "count": self.__get_group_global_count(group),
                 }
             )
+
+            participants = user_service.serialize_many(
+                filter={"user_ids": GroupSubscriptionManager.get_participating_user_ids(group)},
+                as_user=request.user,
+            )
+
+            for participant in participants:
+                participant["type"] = "user"
+
+            if features.has("organizations:team-workflow-notifications", group.organization):
+                team_ids = GroupSubscriptionManager.get_participating_team_ids(group)
+
+                teams = Team.objects.filter(id__in=team_ids)
+                team_serializer = TeamSerializer()
+
+                serialized_teams = []
+                for team in teams:
+                    serialized_team = serialize(team, request.user, team_serializer)
+                    serialized_team["type"] = "team"
+                    serialized_teams.append(serialized_team)
+
+                participants.extend(serialized_teams)
+
+            data.update({"participants": participants})
 
             metrics.incr(
                 "group.update.http_response",
@@ -336,9 +332,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             )
             return Response(serialized, status=response.status_code)
         except client.ApiError as e:
-            logging.error(
+            logging.exception(
                 "group_details:put client.ApiError",
-                exc_info=True,
             )
             return Response(e.body, status=e.status_code)
         except Exception:

@@ -4,6 +4,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tsdb
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import StatsMixin, region_silo_endpoint
 from sentry.api.bases import RegionSentryAppBaseEndpoint, SentryAppStatsPermission
 from sentry.api.bases.sentryapps import COMPONENT_TYPES
@@ -21,6 +23,11 @@ def get_component_interaction_key(sentry_app, component_type):
 
 @region_silo_endpoint
 class SentryAppInteractionEndpoint(RegionSentryAppBaseEndpoint, StatsMixin):
+    owner = ApiOwner.INTEGRATIONS
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (SentryAppStatsPermission,)
 
     def get(self, request: Request, sentry_app) -> Response:
@@ -30,7 +37,7 @@ class SentryAppInteractionEndpoint(RegionSentryAppBaseEndpoint, StatsMixin):
         :qparam resolution - optional
         """
 
-        views = tsdb.get_range(
+        views = tsdb.backend.get_range(
             model=TSDBModel.sentry_app_viewed,
             keys=[sentry_app.id],
             **self._parse_args(request),
@@ -39,7 +46,7 @@ class SentryAppInteractionEndpoint(RegionSentryAppBaseEndpoint, StatsMixin):
 
         components = app_service.find_app_components(app_id=sentry_app.id)
 
-        component_interactions = tsdb.get_range(
+        component_interactions = tsdb.backend.get_range(
             model=TSDBModel.sentry_app_component_interacted,
             keys=[
                 get_component_interaction_key(sentry_app, component.type)
@@ -93,6 +100,6 @@ class SentryAppInteractionEndpoint(RegionSentryAppBaseEndpoint, StatsMixin):
             key = sentry_app.id
 
         # Timestamp is automatically created
-        tsdb.incr(model, key)
+        tsdb.backend.incr(model, key)
 
         return Response({}, status=201)

@@ -15,6 +15,7 @@ concurrency:
 # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
+  NODE_OPTIONS: '--max-old-space-size=4096'
 
 jobs:
   files-changed:
@@ -56,7 +57,7 @@ jobs:
           app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
-      - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb # v1.1.0
+      - uses: getsentry/action-setup-volta@c52be2ea13cfdc084edb806e81958c13e445941e # v1.2.0
 
       - name: Install dependencies
         id: dependencies
@@ -136,8 +137,6 @@ jobs:
         # XXX: When updating this, make sure you also update CI_NODE_TOTAL.
         instance: [0, 1, 2, 3]
 
-    env:
-      VISUAL_HTML_ENABLE: 1
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
         name: Checkout sentry
@@ -147,7 +146,7 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-      - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb # v1.1.0
+      - uses: getsentry/action-setup-volta@c52be2ea13cfdc084edb806e81958c13e445941e # v1.2.0
 
       - name: node_modules cache
         uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
@@ -159,9 +158,6 @@ jobs:
       - name: Install Javascript Dependencies
         if: steps.nodemodulescache.outputs.cache-hit != 'true'
         run: yarn install --frozen-lockfile
-
-      - name: Build CSS
-        run: NODE_ENV=production yarn build-css
 
       - name: jest
         env:
@@ -181,19 +177,6 @@ jobs:
           DEBUG_PRINT_LIMIT: 0
         run: |
           JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
-
-      - name: Save HTML artifacts
-        uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb # v3.1.1
-        with:
-          retention-days: 14
-          name: jest-html
-          path: .artifacts/visual-snapshots/jest
-
-      - name: Create Images from HTML
-        uses: getsentry/action-html-to-image@dc153dae538e6e1138f77156d8e62e3b2b897f41 # main
-        with:
-          base-path: .artifacts/visual-snapshots/jest
-          css-path: src/sentry/static/sentry/dist/entrypoints/sentry.css
 
       # We only upload coverage data for FE changes since it conflicts with
       # codecov's carry forward functionality.

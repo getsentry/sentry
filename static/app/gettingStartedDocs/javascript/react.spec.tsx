@@ -1,70 +1,73 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
+import {screen} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 
-import GettingStartedWithReact, {nextSteps, steps} from './react';
+import docs from './react';
 
-describe('GettingStartedWithReact', function () {
-  it('all products are selected', function () {
-    const {container} = render(
-      <GettingStartedWithReact
-        dsn="test-dsn"
-        activeProductSelection={[
-          ProductSolution.PERFORMANCE_MONITORING,
-          ProductSolution.SESSION_REPLAY,
-        ]}
-      />
-    );
+describe('javascript-react onboarding docs', function () {
+  it('renders onboarding docs correctly', () => {
+    renderWithOnboardingLayout(docs);
 
-    // Steps
-    for (const step of steps()) {
-      expect(
-        screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
-      ).toBeInTheDocument();
-    }
+    // Renders main headings
+    expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Upload Source Maps'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
 
-    // Next Steps
-    const filteredNextStepsLinks = nextSteps.filter(
-      nextStep =>
-        ![
-          ProductSolution.PERFORMANCE_MONITORING,
-          ProductSolution.SESSION_REPLAY,
-        ].includes(nextStep.id as ProductSolution)
-    );
-
-    for (const filteredNextStepsLink of filteredNextStepsLinks) {
-      expect(
-        screen.getByRole('link', {name: filteredNextStepsLink.name})
-      ).toBeInTheDocument();
-    }
-
-    expect(container).toSnapshot();
-  });
-
-  it('performance product is not selected', function () {
-    render(
-      <GettingStartedWithReact
-        dsn="test-dsn"
-        activeProductSelection={[ProductSolution.SESSION_REPLAY]}
-      />
-    );
-
-    // Next Steps
+    // Includes import statement
     expect(
-      screen.getByRole('link', {name: 'Performance Monitoring'})
+      screen.getByText(textWithMarkupMatcher(/import \* as Sentry from "@sentry\/react"/))
     ).toBeInTheDocument();
   });
 
-  it('session replay product is not selected', function () {
-    render(
-      <GettingStartedWithReact
-        dsn="test-dsn"
-        activeProductSelection={[ProductSolution.PERFORMANCE_MONITORING]}
-      />
-    );
+  it('displays sample rates by default', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.PERFORMANCE_MONITORING,
+        ProductSolution.SESSION_REPLAY,
+      ],
+    });
 
-    // Next Steps
-    expect(screen.getByRole('link', {name: 'Session Replay'})).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/tracesSampleRate/))
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/replaysSessionSampleRate/))
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/replaysOnErrorSampleRate/))
+    ).toBeInTheDocument();
+  });
+
+  it('enables performance setting the tracesSampleRate to 1', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.PERFORMANCE_MONITORING,
+      ],
+    });
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0/))
+    ).toBeInTheDocument();
+  });
+
+  it('enables replay by setting replay samplerates', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.SESSION_REPLAY,
+      ],
+    });
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/replaysSessionSampleRate: 0\.1/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/replaysOnErrorSampleRate: 1\.0/))
+    ).toBeInTheDocument();
   });
 });

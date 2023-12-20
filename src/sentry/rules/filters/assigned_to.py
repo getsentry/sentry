@@ -12,7 +12,9 @@ from sentry.rules.filters.base import EventFilter
 from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
-    from sentry.models import Group, Team, User
+    from sentry.models.group import Group
+    from sentry.models.team import Team
+    from sentry.models.user import User
 
 
 class AssignedToFilter(EventFilter):

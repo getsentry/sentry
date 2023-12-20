@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import color from 'color';
 import {Location} from 'history';
@@ -18,6 +18,7 @@ import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, Release} from 'sentry/types';
 
+import {ThresholdStatus} from '../../utils/types';
 import {ReleasesDisplayOption} from '../releasesDisplayOptions';
 import {ReleasesRequestRenderProps} from '../releasesRequest';
 
@@ -54,163 +55,184 @@ type Props = {
   selection: PageFilters;
   showHealthPlaceholders: boolean;
   showReleaseAdoptionStages: boolean;
+  thresholdStatuses: {[key: string]: ThresholdStatus[]};
 };
 
-class ReleaseCard extends Component<Props> {
-  shouldComponentUpdate(nextProps: Props) {
-    // we don't want project health rows to reorder/jump while the whole card is loading
-    if (this.props.reloading && nextProps.reloading) {
-      return false;
-    }
+function ReleaseCard({
+  release,
+  organization,
+  activeDisplay,
+  location,
+  reloading,
+  selection,
+  showHealthPlaceholders,
+  isTopRelease,
+  getHealthData,
+  showReleaseAdoptionStages,
+  thresholdStatuses,
+}: Props) {
+  const {
+    version,
+    commitCount,
+    lastDeploy,
+    dateCreated,
+    versionInfo,
+    adoptionStages,
+    projects,
+  } = release;
 
-    return true;
-  }
-
-  render() {
-    const {
-      release,
-      organization,
-      activeDisplay,
-      location,
-      reloading,
-      selection,
-      showHealthPlaceholders,
-      isTopRelease,
-      getHealthData,
-      showReleaseAdoptionStages,
-    } = this.props;
-    const {version, commitCount, lastDeploy, dateCreated, versionInfo} = release;
-
+  const [projectsToShow, projectsToHide] = useMemo(() => {
     // sort health rows inside release card alphabetically by project name,
     // show only the ones that are selected in global header
-    const [projectsToShow, projectsToHide] = partition(
-      release.projects.sort((a, b) => a.slug.localeCompare(b.slug)),
+    return partition(
+      projects.sort((a, b) => a.slug.localeCompare(b.slug)),
       p =>
         // do not filter for My Projects & All Projects
         selection.projects.length > 0 && !selection.projects.includes(-1)
           ? selection.projects.includes(p.id)
           : true
     );
+  }, [projects, selection.projects]);
 
-    function getHiddenProjectsTooltip() {
-      const limitedProjects = projectsToHide.map(p => p.slug).slice(0, 5);
-      const remainderLength = projectsToHide.length - limitedProjects.length;
-
-      if (remainderLength) {
-        limitedProjects.push(tn('and %s more', 'and %s more', remainderLength));
+  const hasThresholds = useMemo(() => {
+    const project_slugs = projects.map(proj => proj.slug);
+    let has = false;
+    project_slugs.forEach(slug => {
+      if (`${slug}-${version}` in thresholdStatuses) {
+        has = thresholdStatuses[`${slug}-${version}`].length > 0;
       }
+    });
+    return has;
+  }, [thresholdStatuses, version, projects]);
 
-      return limitedProjects.join(', ');
+  const getHiddenProjectsTooltip = () => {
+    const limitedProjects = projectsToHide.map(p => p.slug).slice(0, 5);
+    const remainderLength = projectsToHide.length - limitedProjects.length;
+
+    if (remainderLength) {
+      limitedProjects.push(tn('and %s more', 'and %s more', remainderLength));
     }
 
-    return (
-      <StyledPanel reloading={reloading ? 1 : 0} data-test-id="release-panel">
-        <ReleaseInfo>
-          <ReleaseInfoHeader>
-            <GlobalSelectionLink
-              to={{
-                pathname: `/organizations/${
-                  organization.slug
-                }/releases/${encodeURIComponent(version)}/`,
-                query: {project: getReleaseProjectId(release, selection)},
-              }}
-            >
-              <GuideAnchor
-                disabled={!isTopRelease || projectsToShow.length > 1}
-                target="release_version"
-              >
-                <VersionWrapper>
-                  <StyledVersion version={version} tooltipRawVersion anchor={false} />
-                </VersionWrapper>
-              </GuideAnchor>
-            </GlobalSelectionLink>
-            {commitCount > 0 && (
-              <ReleaseCardCommits release={release} withHeading={false} />
-            )}
-          </ReleaseInfoHeader>
-          <ReleaseInfoSubheader>
-            {versionInfo?.package && (
-              <PackageName>
-                <TextOverflow ellipsisDirection="left">
-                  {versionInfo.package}
-                </TextOverflow>
-              </PackageName>
-            )}
-            <TimeSince date={lastDeploy?.dateFinished || dateCreated} />
-            {lastDeploy?.dateFinished && ` \u007C ${lastDeploy.environment}`}
-          </ReleaseInfoSubheader>
-        </ReleaseInfo>
+    return limitedProjects.join(', ');
+  };
 
-        <ReleaseProjects>
-          <ReleaseProjectsHeader lightText>
-            <ReleaseProjectsLayout showReleaseAdoptionStages={showReleaseAdoptionStages}>
-              <ReleaseProjectColumn>{t('Project Name')}</ReleaseProjectColumn>
-              {showReleaseAdoptionStages && (
-                <AdoptionStageColumn>{t('Adoption Stage')}</AdoptionStageColumn>
-              )}
-              <AdoptionColumn>
-                <span>{t('Adoption')}</span>
-                <ReleaseCardStatsPeriod location={location} />
-              </AdoptionColumn>
-              <CrashFreeRateColumn>{t('Crash Free Rate')}</CrashFreeRateColumn>
-              <CrashesColumn>{t('Crashes')}</CrashesColumn>
-              <NewIssuesColumn>{t('New Issues')}</NewIssuesColumn>
-            </ReleaseProjectsLayout>
-          </ReleaseProjectsHeader>
-
-          <ProjectRows>
-            <Collapsible
-              expandButton={({onExpand, numberOfHiddenItems}) => (
-                <ExpandButtonWrapper>
-                  <Button priority="primary" size="xs" onClick={onExpand}>
-                    {tct('Show [numberOfHiddenItems] More', {numberOfHiddenItems})}
-                  </Button>
-                </ExpandButtonWrapper>
-              )}
-              collapseButton={({onCollapse}) => (
-                <CollapseButtonWrapper>
-                  <Button priority="primary" size="xs" onClick={onCollapse}>
-                    {t('Collapse')}
-                  </Button>
-                </CollapseButtonWrapper>
-              )}
+  return (
+    <StyledPanel reloading={reloading ? 1 : 0} data-test-id="release-panel">
+      <ReleaseInfo>
+        {/* Header/info is the table sidecard */}
+        <ReleaseInfoHeader>
+          <GlobalSelectionLink
+            to={{
+              pathname: `/organizations/${
+                organization.slug
+              }/releases/${encodeURIComponent(version)}/`,
+              query: {project: getReleaseProjectId(release, selection)},
+            }}
+          >
+            <GuideAnchor
+              disabled={!isTopRelease || projectsToShow.length > 1}
+              target="release_version"
             >
-              {projectsToShow.map((project, index) => (
+              <VersionWrapper>
+                <StyledVersion version={version} tooltipRawVersion anchor={false} />
+              </VersionWrapper>
+            </GuideAnchor>
+          </GlobalSelectionLink>
+          {commitCount > 0 && (
+            <ReleaseCardCommits release={release} withHeading={false} />
+          )}
+        </ReleaseInfoHeader>
+        <ReleaseInfoSubheader>
+          {versionInfo?.package && (
+            <PackageName>
+              <TextOverflow ellipsisDirection="left">{versionInfo.package}</TextOverflow>
+            </PackageName>
+          )}
+          <TimeSince date={lastDeploy?.dateFinished || dateCreated} />
+          {lastDeploy?.dateFinished && ` \u007C ${lastDeploy.environment}`}
+        </ReleaseInfoSubheader>
+      </ReleaseInfo>
+
+      <ReleaseProjects>
+        {/* projects is the table */}
+        <ReleaseProjectsHeader lightText>
+          <ReleaseProjectsLayout
+            showReleaseAdoptionStages={showReleaseAdoptionStages}
+            hasThresholds={hasThresholds}
+          >
+            <ReleaseProjectColumn>{t('Project Name')}</ReleaseProjectColumn>
+            {showReleaseAdoptionStages && (
+              <AdoptionStageColumn>{t('Adoption Stage')}</AdoptionStageColumn>
+            )}
+            <AdoptionColumn>
+              <span>{t('Adoption')}</span>
+              <ReleaseCardStatsPeriod location={location} />
+            </AdoptionColumn>
+            <CrashFreeRateColumn>{t('Crash Free Rate')}</CrashFreeRateColumn>
+            <DisplaySmallCol>{t('Crashes')}</DisplaySmallCol>
+            <NewIssuesColumn>{t('New Issues')}</NewIssuesColumn>
+            {hasThresholds && <DisplaySmallCol>{t('Thresholds')}</DisplaySmallCol>}
+          </ReleaseProjectsLayout>
+        </ReleaseProjectsHeader>
+
+        <ProjectRows>
+          <Collapsible
+            expandButton={({onExpand, numberOfHiddenItems}) => (
+              <ExpandButtonWrapper>
+                <Button priority="primary" size="xs" onClick={onExpand}>
+                  {tct('Show [numberOfHiddenItems] More', {numberOfHiddenItems})}
+                </Button>
+              </ExpandButtonWrapper>
+            )}
+            collapseButton={({onCollapse}) => (
+              <CollapseButtonWrapper>
+                <Button priority="primary" size="xs" onClick={onCollapse}>
+                  {t('Collapse')}
+                </Button>
+              </CollapseButtonWrapper>
+            )}
+          >
+            {projectsToShow.map((project, index) => {
+              const key = `${project.slug}-${version}`;
+              return (
                 <ReleaseCardProjectRow
-                  key={`${release.version}-${project.slug}-row`}
+                  key={`${key}-row`}
+                  activeDisplay={activeDisplay}
+                  adoptionStages={adoptionStages}
+                  getHealthData={getHealthData}
+                  hasThresholds={hasThresholds}
                   index={index}
+                  isTopRelease={isTopRelease}
+                  location={location}
                   organization={organization}
                   project={project}
-                  location={location}
-                  getHealthData={getHealthData}
-                  releaseVersion={release.version}
-                  activeDisplay={activeDisplay}
+                  releaseVersion={version}
+                  lastDeploy={lastDeploy}
                   showPlaceholders={showHealthPlaceholders}
                   showReleaseAdoptionStages={showReleaseAdoptionStages}
-                  isTopRelease={isTopRelease}
-                  adoptionStages={release.adoptionStages}
+                  thresholdStatuses={hasThresholds ? thresholdStatuses[`${key}`] : []}
                 />
-              ))}
-            </Collapsible>
-          </ProjectRows>
+              );
+            })}
+          </Collapsible>
+        </ProjectRows>
 
-          {projectsToHide.length > 0 && (
-            <HiddenProjectsMessage data-test-id="hidden-projects">
-              <Tooltip title={getHiddenProjectsTooltip()}>
-                <TextOverflow>
-                  {projectsToHide.length === 1
-                    ? tct('[number:1] hidden project', {number: <strong />})
-                    : tct('[number] hidden projects', {
-                        number: <strong>{projectsToHide.length}</strong>,
-                      })}
-                </TextOverflow>
-              </Tooltip>
-            </HiddenProjectsMessage>
-          )}
-        </ReleaseProjects>
-      </StyledPanel>
-    );
-  }
+        {projectsToHide.length > 0 && (
+          <HiddenProjectsMessage data-test-id="hidden-projects">
+            <Tooltip title={getHiddenProjectsTooltip()}>
+              <TextOverflow>
+                {projectsToHide.length === 1
+                  ? tct('[number:1] hidden project', {number: <strong />})
+                  : tct('[number] hidden projects', {
+                      number: <strong>{projectsToHide.length}</strong>,
+                    })}
+              </TextOverflow>
+            </Tooltip>
+          </HiddenProjectsMessage>
+        )}
+      </ReleaseProjects>
+    </StyledPanel>
+  );
 }
 
 const VersionWrapper = styled('div')`
@@ -312,7 +334,10 @@ const CollapseButtonWrapper = styled('div')`
   height: 41px;
 `;
 
-export const ReleaseProjectsLayout = styled('div')<{showReleaseAdoptionStages?: boolean}>`
+export const ReleaseProjectsLayout = styled('div')<{
+  hasThresholds?: boolean;
+  showReleaseAdoptionStages?: boolean;
+}>`
   display: grid;
   grid-template-columns: 1fr 1.4fr 0.6fr 0.7fr;
 
@@ -321,22 +346,25 @@ export const ReleaseProjectsLayout = styled('div')<{showReleaseAdoptionStages?: 
   width: 100%;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
+    ${p => {
+      const thresholdSize = p.hasThresholds ? '0.5fr' : '';
+      return `grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr ${thresholdSize} 0.5fr`;
+    }}
   }
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
+    ${p => {
+      const thresholdSize = p.hasThresholds ? '0.5fr' : '';
+      return `grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr ${thresholdSize} 0.5fr`;
+    }}
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    ${p =>
-      p.showReleaseAdoptionStages
-        ? `
-      grid-template-columns: 1fr 0.7fr 1fr 1fr 0.7fr 0.7fr 0.5fr;
-    `
-        : `
-      grid-template-columns: 1fr 1fr 1fr 0.7fr 0.7fr 0.5fr;
-    `}
+    ${p => {
+      const adoptionStagesSize = p.showReleaseAdoptionStages ? '0.7fr' : '';
+      const thresholdSize = p.hasThresholds ? '0.7fr' : '';
+      return `grid-template-columns: 1fr ${adoptionStagesSize} 1fr 1fr 0.7fr 0.7fr ${thresholdSize} 0.5fr`;
+    }}
   }
 `;
 
@@ -392,7 +420,7 @@ export const CrashFreeRateColumn = styled(ReleaseProjectColumn)`
   }
 `;
 
-export const CrashesColumn = styled(ReleaseProjectColumn)`
+export const DisplaySmallCol = styled(ReleaseProjectColumn)`
   display: none;
   font-variant-numeric: tabular-nums;
 

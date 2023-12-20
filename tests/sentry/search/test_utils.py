@@ -2,14 +2,18 @@ from datetime import datetime, timedelta
 
 import pytest
 from django.utils import timezone
-from freezegun import freeze_time
 
-from sentry.models import EventUser, GroupStatus, Release, Team
+from sentry.models.group import GroupStatus
+from sentry.models.release import Release, ReleaseProject
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.team import Team
 from sentry.search.base import ANY
 from sentry.search.utils import (
     DEVICE_CLASS,
     InvalidQuery,
+    LatestReleaseOrders,
     convert_user_tag_to_query,
+    get_first_last_release_for_group,
     get_latest_release,
     get_numeric_field_value,
     parse_duration,
@@ -19,7 +23,8 @@ from sentry.search.utils import (
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.silo import control_silo_test, region_silo_test
 
 
@@ -47,57 +52,57 @@ def test_get_numeric_field_value():
 
 class TestParseDuration(TestCase):
     def test_ms(self):
-        assert parse_duration(123, "ms") == 123
+        assert parse_duration("123", "ms") == 123
 
     def test_sec(self):
-        assert parse_duration(456, "s") == 456000
+        assert parse_duration("456", "s") == 456000
 
     def test_minutes(self):
-        assert parse_duration(789, "min") == 789 * 60 * 1000
-        assert parse_duration(789, "m") == 789 * 60 * 1000
+        assert parse_duration("789", "min") == 789 * 60 * 1000
+        assert parse_duration("789", "m") == 789 * 60 * 1000
 
     def test_hours(self):
-        assert parse_duration(234, "hr") == 234 * 60 * 60 * 1000
-        assert parse_duration(234, "h") == 234 * 60 * 60 * 1000
+        assert parse_duration("234", "hr") == 234 * 60 * 60 * 1000
+        assert parse_duration("234", "h") == 234 * 60 * 60 * 1000
 
     def test_days(self):
-        assert parse_duration(567, "day") == 567 * 24 * 60 * 60 * 1000
-        assert parse_duration(567, "d") == 567 * 24 * 60 * 60 * 1000
+        assert parse_duration("567", "day") == 567 * 24 * 60 * 60 * 1000
+        assert parse_duration("567", "d") == 567 * 24 * 60 * 60 * 1000
 
     def test_weeks(self):
-        assert parse_duration(890, "wk") == 890 * 7 * 24 * 60 * 60 * 1000
-        assert parse_duration(890, "w") == 890 * 7 * 24 * 60 * 60 * 1000
+        assert parse_duration("890", "wk") == 890 * 7 * 24 * 60 * 60 * 1000
+        assert parse_duration("890", "w") == 890 * 7 * 24 * 60 * 60 * 1000
 
     def test_errors(self):
         with pytest.raises(InvalidQuery):
             parse_duration("test", "ms")
 
         with pytest.raises(InvalidQuery):
-            parse_duration(123, "test")
+            parse_duration("123", "test")
 
     def test_large_durations(self):
         max_duration = 999999999 * 24 * 60 * 60 * 1000
-        assert parse_duration(999999999, "d") == max_duration
-        assert parse_duration(999999999 * 24, "h") == max_duration
-        assert parse_duration(999999999 * 24 * 60, "m") == max_duration
-        assert parse_duration(999999999 * 24 * 60 * 60, "s") == max_duration
-        assert parse_duration(999999999 * 24 * 60 * 60 * 1000, "ms") == max_duration
+        assert parse_duration("999999999", "d") == max_duration
+        assert parse_duration(str(999999999 * 24), "h") == max_duration
+        assert parse_duration(str(999999999 * 24 * 60), "m") == max_duration
+        assert parse_duration(str(999999999 * 24 * 60 * 60), "s") == max_duration
+        assert parse_duration(str(999999999 * 24 * 60 * 60 * 1000), "ms") == max_duration
 
     def test_overflow_durations(self):
         with pytest.raises(InvalidQuery):
-            assert parse_duration(999999999 + 1, "d")
+            assert parse_duration(str(999999999 + 1), "d")
 
         with pytest.raises(InvalidQuery):
-            assert parse_duration((999999999 + 1) * 24, "h")
+            assert parse_duration(str((999999999 + 1) * 24), "h")
 
         with pytest.raises(InvalidQuery):
-            assert parse_duration((999999999 + 1) * 24 * 60 + 1, "m")
+            assert parse_duration(str((999999999 + 1) * 24 * 60 + 1), "m")
 
         with pytest.raises(InvalidQuery):
-            assert parse_duration((999999999 + 1) * 24 * 60 * 60 + 1, "s")
+            assert parse_duration(str((999999999 + 1) * 24 * 60 * 60 + 1), "s")
 
         with pytest.raises(InvalidQuery):
-            assert parse_duration((999999999 + 1) * 24 * 60 * 60 * 1000 + 1, "ms")
+            assert parse_duration(str((999999999 + 1) * 24 * 60 * 60 * 1000 + 1), "ms")
 
 
 def test_tokenize_query_only_keyed_fields():
@@ -134,8 +139,8 @@ def test_get_numeric_field_value_invalid():
         get_numeric_field_value("foo", ">=1k")
 
 
-@region_silo_test(stable=True)
-class ParseQueryTest(TestCase):
+@region_silo_test
+class ParseQueryTest(APITestCase, SnubaTestCase):
     @property
     def rpc_user(self):
         return user_service.get_user(user_id=self.user.id)
@@ -448,18 +453,46 @@ class ParseQueryTest(TestCase):
         assert result["tags"]["sentry:user"] == "xxxxxx:example"
 
     def test_user_lookup_with_dot_query(self):
-        euser = EventUser.objects.create(project_id=self.project.id, ident="1", username="foobar")
+        self.project.date_added = timezone.now() - timedelta(minutes=10)
+        self.project.save()
+
+        self.store_event(
+            data={
+                "user": {
+                    "id": 1,
+                    "email": "foo@example.com",
+                    "username": "foobar",
+                    "ip_address": "127.0.0.1",
+                },
+                "timestamp": iso_format(before_now(seconds=10)),
+            },
+            project_id=self.project.id,
+        )
         result = self.parse_query("user.username:foobar")
-        assert result["tags"]["sentry:user"] == euser.tag_value
+        assert result["tags"]["sentry:user"] == "id:1"
 
     def test_unknown_user_legacy_syntax(self):
         result = self.parse_query("user:email:fake@example.com")
         assert result["tags"]["sentry:user"] == "email:fake@example.com"
 
     def test_user_lookup_legacy_syntax(self):
-        euser = EventUser.objects.create(project_id=self.project.id, ident="1", username="foobar")
+        self.project.date_added = timezone.now() - timedelta(minutes=10)
+        self.project.save()
+
+        self.store_event(
+            data={
+                "user": {
+                    "id": 1,
+                    "email": "foo@example.com",
+                    "username": "foobar",
+                    "ip_address": "127.0.0.1",
+                },
+                "timestamp": iso_format(before_now(seconds=10)),
+            },
+            project_id=self.project.id,
+        )
         result = self.parse_query("user:username:foobar")
-        assert result["tags"]["sentry:user"] == euser.tag_value
+        assert result["tags"]["sentry:user"] == "id:1"
 
     def test_is_unassigned(self):
         result = self.parse_query("is:unassigned")
@@ -637,7 +670,7 @@ class ParseQueryTest(TestCase):
         assert result["assigned_or_suggested"].id == 0
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GetLatestReleaseTest(TestCase):
     def test(self):
         with pytest.raises(Release.DoesNotExist):
@@ -696,18 +729,66 @@ class GetLatestReleaseTest(TestCase):
             other_project_env_release.version,
         ]
 
+        with pytest.raises(Release.DoesNotExist):
+            assert get_latest_release([self.project, project_2], [environment], adopted=True) == [
+                new.version,
+                other_project_env_release.version,
+            ]
+
+        ReleaseProjectEnvironment.objects.filter(
+            release__in=[new, other_project_env_release]
+        ).update(adopted=datetime.now())
+
+        assert get_latest_release([self.project, project_2], [environment], adopted=True) == [
+            new.version,
+            other_project_env_release.version,
+        ]
+
     def test_semver(self):
         project_2 = self.create_project()
-        release_1 = self.create_release(version="test@2.0.0")
-        self.create_release(version="test@1.3.2")
-        self.create_release(version="test@1.0.0")
+        release_1 = self.create_release(version="test@2.0.0", environments=[self.environment])
+        env_2 = self.create_environment()
+        self.create_release(version="test@1.3.2", environments=[env_2])
+        self.create_release(version="test@1.0.0", environments=[self.environment, env_2])
 
         # Check when we're using a single project that we sort by semver
         assert get_latest_release([self.project], None) == [release_1.version]
         assert get_latest_release([project_2, self.project], None) == [release_1.version]
-        release_4 = self.create_release(project_2, version="test@1.3.3")
+        release_3 = self.create_release(
+            project_2, version="test@1.3.3", environments=[self.environment, env_2]
+        )
         assert get_latest_release([project_2, self.project], None) == [
-            release_4.version,
+            release_3.version,
+            release_1.version,
+        ]
+
+        with pytest.raises(Release.DoesNotExist):
+            get_latest_release([project_2, self.project], [self.environment, env_2], adopted=True)
+
+        ReleaseProjectEnvironment.objects.filter(release__in=[release_3, release_1]).update(
+            adopted=datetime.now()
+        )
+        assert get_latest_release(
+            [project_2, self.project], [self.environment, env_2], adopted=True
+        ) == [
+            release_3.version,
+            release_1.version,
+        ]
+        assert get_latest_release([project_2, self.project], [env_2], adopted=True) == [
+            release_3.version,
+        ]
+        # Make sure unadopted releases are ignored
+        ReleaseProjectEnvironment.objects.filter(release__in=[release_3]).update(
+            unadopted=datetime.now()
+        )
+        assert get_latest_release(
+            [project_2, self.project], [self.environment, env_2], adopted=True
+        ) == [
+            release_1.version,
+        ]
+
+        ReleaseProject.objects.filter(release__in=[release_1]).update(adopted=datetime.now())
+        assert get_latest_release([project_2, self.project], None, adopted=True) == [
             release_1.version,
         ]
 
@@ -723,7 +804,71 @@ class GetLatestReleaseTest(TestCase):
         ]
 
 
-@control_silo_test(stable=True)
+@region_silo_test
+class GetFirstLastReleaseForGroupTest(TestCase):
+    def test_date(self):
+        with pytest.raises(Release.DoesNotExist):
+            get_first_last_release_for_group(self.group, LatestReleaseOrders.DATE, True)
+
+        oldest = self.create_release(version="old")
+        self.create_group_release(group=self.group, release=oldest)
+        newest = self.create_release(
+            version="newest", date_released=oldest.date_added + timedelta(minutes=5)
+        )
+        self.create_group_release(group=self.group, release=newest)
+
+        assert newest == get_first_last_release_for_group(
+            self.group, LatestReleaseOrders.DATE, True
+        )
+        assert oldest == get_first_last_release_for_group(
+            self.group, LatestReleaseOrders.DATE, False
+        )
+
+        group_2 = self.create_group()
+        with pytest.raises(Release.DoesNotExist):
+            get_first_last_release_for_group(group_2, LatestReleaseOrders.DATE, True)
+        self.create_group_release(group=group_2, release=oldest)
+        assert oldest == get_first_last_release_for_group(group_2, LatestReleaseOrders.DATE, True)
+        assert oldest == get_first_last_release_for_group(group_2, LatestReleaseOrders.DATE, False)
+
+    def test_semver(self):
+        with pytest.raises(Release.DoesNotExist):
+            get_first_last_release_for_group(self.group, LatestReleaseOrders.SEMVER, True)
+
+        latest = self.create_release(version="test@2.0.0")
+        middle = self.create_release(version="test@1.3.2")
+        earliest = self.create_release(
+            version="test@1.0.0", date_released=latest.date_added + timedelta(minutes=5)
+        )
+        self.create_group_release(group=self.group, release=latest)
+        self.create_group_release(group=self.group, release=middle)
+        self.create_group_release(group=self.group, release=earliest)
+
+        assert latest == get_first_last_release_for_group(
+            self.group, LatestReleaseOrders.SEMVER, True
+        )
+        assert earliest == get_first_last_release_for_group(
+            self.group, LatestReleaseOrders.DATE, True
+        )
+        assert earliest == get_first_last_release_for_group(
+            self.group, LatestReleaseOrders.SEMVER, False
+        )
+        assert latest == get_first_last_release_for_group(
+            self.group, LatestReleaseOrders.DATE, False
+        )
+
+        group_2 = self.create_group()
+        with pytest.raises(Release.DoesNotExist):
+            get_first_last_release_for_group(group_2, LatestReleaseOrders.SEMVER, True)
+        self.create_group_release(group=group_2, release=latest)
+        self.create_group_release(group=group_2, release=middle)
+        assert latest == get_first_last_release_for_group(group_2, LatestReleaseOrders.SEMVER, True)
+        assert middle == get_first_last_release_for_group(
+            group_2, LatestReleaseOrders.SEMVER, False
+        )
+
+
+@control_silo_test
 class ConvertUserTagTest(TestCase):
     def test_simple_user_tag(self):
         assert convert_user_tag_to_query("user", "id:123456") == 'user.id:"123456"'

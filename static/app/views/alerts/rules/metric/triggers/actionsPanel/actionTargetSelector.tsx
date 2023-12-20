@@ -17,6 +17,8 @@ const getPlaceholderForType = (type: ActionType) => {
     case ActionType.MSTEAMS:
       // no prefixes for msteams
       return 'username or channel';
+    case ActionType.DISCORD:
+      return 'Discord channel ID';
     case ActionType.PAGERDUTY:
       return 'service';
     case ActionType.OPSGENIE:
@@ -88,6 +90,7 @@ export default function ActionTargetSelector(props: Props) {
           type="text"
           autoComplete="off"
           disabled={disabled}
+          required={action.type === 'discord'} // Only required for discord channel ID
           key={action.type}
           value={action.targetIdentifier || ''}
           onChange={handleChangeSpecificTargetIdentifier}

@@ -6,6 +6,7 @@ from enum import Enum
 from typing import (
     TYPE_CHECKING,
     Any,
+    Collection,
     Literal,
     Mapping,
     Optional,
@@ -360,7 +361,7 @@ class ReleaseHealthBackend(Service):
 
     def check_has_health_data(
         self,
-        projects_list: Sequence[ProjectOrRelease],
+        projects_list: Collection[ProjectOrRelease],
         now: Optional[datetime] = None,
     ) -> Set[ProjectOrRelease]:
         """

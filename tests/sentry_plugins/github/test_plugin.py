@@ -12,7 +12,7 @@ from sentry.utils import json
 from sentry_plugins.github.plugin import GitHubPlugin
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GitHubPluginTest(PluginTestCase):
     @cached_property
     def plugin(self):

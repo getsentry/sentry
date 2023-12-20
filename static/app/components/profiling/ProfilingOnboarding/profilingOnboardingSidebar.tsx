@@ -214,9 +214,13 @@ function OnboardingContent({
   }, [currentProject, previousProject]);
 
   const docKeysMap = useMemo(() => makeDocKeyMap(currentPlatform?.id), [currentPlatform]);
+  const docKeys = useMemo(
+    () => (docKeysMap ? Object.values(docKeysMap) : []),
+    [docKeysMap]
+  );
 
   const {docContents, isLoading, hasOnboardingContents} = useOnboardingDocs({
-    docKeys: docKeysMap ? Object.values(docKeysMap) : [],
+    docKeys,
     project: currentProject,
     isPlatformSupported: isSupported,
   });

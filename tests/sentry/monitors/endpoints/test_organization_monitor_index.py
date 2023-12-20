@@ -6,14 +6,16 @@ from unittest.mock import patch
 from django.conf import settings
 from django.test.utils import override_settings
 
+from sentry.api.fields.sentry_slug import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.constants import ObjectStatus
-from sentry.models import Rule, RuleSource
+from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.models import Monitor, MonitorStatus, MonitorType, ScheduleType
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.outcomes import Outcome
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ListOrganizationMonitorsTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-index"
 
@@ -43,18 +45,23 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         last_checkin = datetime.now() - timedelta(minutes=1)
         last_checkin_older = datetime.now() - timedelta(minutes=5)
 
-        def add_status_monitor(status_key: str, date: datetime | None = None):
-            monitor_status = getattr(MonitorStatus, status_key)
-            # TODO(rjo100): this is precursor to removing the MonitorStatus values from Monitors
+        def add_status_monitor(
+            env_status_key: str,
+            mon_status_key: str = "ACTIVE",
+            date: datetime | None = None,
+        ):
+            env_status = getattr(MonitorStatus, env_status_key)
+            mon_status = getattr(ObjectStatus, mon_status_key)
+
             monitor = self._create_monitor(
-                status=ObjectStatus.ACTIVE,
-                name=status_key,
+                status=mon_status,
+                name=f"{mon_status_key}-{env_status_key}",
             )
             self._create_monitor_environment(
                 monitor,
                 name="jungle",
                 last_checkin=(date or last_checkin) - timedelta(seconds=30),
-                status=monitor_status,
+                status=env_status,
             )
             self._create_monitor_environment(
                 monitor,
@@ -67,11 +74,14 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         # Subsort next checkin time
         monitor_active = add_status_monitor("ACTIVE")
         monitor_ok = add_status_monitor("OK")
-        monitor_disabled = add_status_monitor("DISABLED")
-        monitor_error_older_checkin = add_status_monitor("ERROR", last_checkin_older)
+        monitor_disabled = add_status_monitor("OK", "DISABLED")
+        monitor_error_older_checkin = add_status_monitor("ERROR", "ACTIVE", last_checkin_older)
         monitor_error = add_status_monitor("ERROR")
         monitor_missed_checkin = add_status_monitor("MISSED_CHECKIN")
         monitor_timed_out = add_status_monitor("TIMEOUT")
+
+        monitor_muted = add_status_monitor("ACTIVE")
+        monitor_muted.update(is_muted=True)
 
         response = self.get_success_response(
             self.organization.slug, params={"environment": "jungle"}
@@ -85,6 +95,7 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
                 monitor_missed_checkin,
                 monitor_ok,
                 monitor_active,
+                monitor_muted,
                 monitor_disabled,
             ],
         )
@@ -153,7 +164,7 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         assert response.data[0]["environments"][0]["status"] == "ok"
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class CreateOrganizationMonitorTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-index"
     method = "post"
@@ -183,11 +194,20 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             "schedule": "0 0 * * *",
             "checkin_margin": None,
             "max_runtime": None,
+            "failure_issue_threshold": None,
+            "recovery_threshold": None,
         }
 
         self.project.refresh_from_db()
         assert self.project.flags.has_cron_monitors
 
+        mock_record.assert_any_call(
+            "cron_monitor.created",
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            from_upsert=False,
+        )
         mock_record.assert_called_with(
             "first_cron_monitor.created",
             user_id=self.user.id,
@@ -207,6 +227,30 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         response = self.get_success_response(self.organization.slug, **data)
 
         assert response.data["slug"] == "my-monitor"
+
+    def test_invalid_numeric_slug(self):
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "slug": "1234",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+        }
+        response = self.get_error_response(self.organization.slug, **data, status_code=400)
+        assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
+
+    def test_generated_slug_not_entirely_numeric(self):
+        data = {
+            "project": self.project.slug,
+            "name": "1234",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+        }
+        response = self.get_success_response(self.organization.slug, **data, status_code=201)
+
+        slug = response.data["slug"]
+        assert slug.startswith("1234-")
+        assert not slug.isdecimal()
 
     @override_settings(MAX_MONITORS_PER_ORG=2)
     def test_monitor_organization_limit(self):
@@ -249,3 +293,54 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         )
         assert rule is not None
         assert rule.environment_id == self.environment.id
+
+    def test_checkin_margin_zero(self):
+        # Invalid checkin margin
+        #
+        # XXX(epurkhiser): We currently transform 0 -> 1 for backwards
+        # compatability. If we remove the custom transformer in the config
+        # validator this test will chagne to a get_error_response test.
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "slug": "cron_job",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily", "checkin_margin": 0},
+        }
+        response = self.get_success_response(self.organization.slug, **data)
+        assert Monitor.objects.get(slug=response.data["slug"]).config["checkin_margin"] == 1
+
+    @patch("sentry.quotas.backend.assign_monitor_seat")
+    def test_create_monitor_assigns_seat(self, assign_monitor_seat):
+        assign_monitor_seat.return_value = Outcome.ACCEPTED
+
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+        }
+        response = self.get_success_response(self.organization.slug, **data)
+
+        monitor = Monitor.objects.get(slug=response.data["slug"])
+
+        assign_monitor_seat.assert_called_with(monitor)
+        assert monitor.status == ObjectStatus.ACTIVE
+
+    @patch("sentry.quotas.backend.assign_monitor_seat")
+    def test_create_monitor_without_seat(self, assign_monitor_seat):
+        assign_monitor_seat.return_value = Outcome.RATE_LIMITED
+
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+        }
+        response = self.get_success_response(self.organization.slug, **data)
+
+        monitor = Monitor.objects.get(slug=response.data["slug"])
+
+        assert assign_monitor_seat.called
+        assert response.data["status"] == "disabled"
+        assert monitor.status == ObjectStatus.DISABLED

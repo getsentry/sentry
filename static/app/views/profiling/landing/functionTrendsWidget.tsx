@@ -129,14 +129,17 @@ export function FunctionTrendsWidget({
         )}
         {hasTrends && (
           <Accordion>
-            {(trendsQuery.data ?? []).map((f, i) => {
+            {(trendsQuery.data ?? []).map((f, i, l) => {
               return (
                 <FunctionTrendsEntry
                   key={`${f.project}-${f.function}-${f.package}`}
                   trendFunction={trendFunction}
                   trendType={trendType}
                   isExpanded={i === expandedIndex}
-                  setExpanded={() => setExpandedIndex(i)}
+                  setExpanded={() => {
+                    const nextIndex = expandedIndex !== i ? i : (i + 1) % l.length;
+                    setExpandedIndex(nextIndex);
+                  }}
                   func={f}
                 />
               );
@@ -432,7 +435,7 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
       height: 150,
       grid: {
         top: '10px',
-        bottom: '0px',
+        bottom: '10px',
         left: '10px',
         right: '10px',
       },
@@ -443,7 +446,7 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
         },
       },
       xAxis: {
-        show: false,
+        type: 'time' as const,
       },
       tooltip: {
         valueFormatter: (value: number) => tooltipFormatter(value, 'duration'),

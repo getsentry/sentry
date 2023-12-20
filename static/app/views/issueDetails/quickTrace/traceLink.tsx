@@ -1,29 +1,33 @@
-import {useCallback, useContext} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {tct, tn} from 'sentry/locale';
 import {Event} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
+import {getShortEventId} from 'sentry/utils/events';
+import {QuickTraceContextChildrenProps} from 'sentry/utils/performance/quickTrace/quickTraceContext';
+import {TraceMeta} from 'sentry/utils/performance/quickTrace/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type TraceLinkProps = {
   event: Event;
-  noTrace: boolean;
+  quickTrace: QuickTraceContextChildrenProps;
+  source: 'events' | 'issues';
+  traceMeta: TraceMeta | null;
 };
 
-export function TraceLink({event, noTrace}: TraceLinkProps) {
+export function TraceLink({event, traceMeta, source, quickTrace}: TraceLinkProps) {
   const organization = useOrganization();
-  const quickTrace = useContext(QuickTraceContext);
+  const traceTarget = generateTraceTarget(event, organization);
+  const traceId = event.contexts?.trace?.trace_id ?? '';
   const handleTraceLink = useCallback(() => {
     trackAnalytics('quick_trace.trace_id.clicked', {
       organization,
-      source: 'issues',
+      source,
     });
-  }, [organization]);
+  }, [organization, source]);
 
   if (
     !quickTrace ||
@@ -33,20 +37,19 @@ export function TraceLink({event, noTrace}: TraceLinkProps) {
   ) {
     return null;
   }
+
   return (
-    <StyledLink
-      to={generateTraceTarget(event, organization)}
-      onClick={handleTraceLink}
-      noTrace={noTrace}
-    >
-      {t('View Full Trace')}
+    <StyledLink to={traceTarget} onClick={handleTraceLink}>
+      {tct('View Full Trace: [id][events]', {
+        id: getShortEventId(traceId ?? ''),
+        events: traceMeta
+          ? tn(' (%s event)', ' (%s events)', traceMeta.transactions + traceMeta.errors)
+          : '',
+      })}
     </StyledLink>
   );
 }
 
-const StyledLink = styled(Link, {shouldForwardProp: prop => prop !== 'noTrace'})<{
-  noTrace: boolean;
-}>`
-  margin-left: ${p => (p.noTrace ? 0 : space(1))};
+const StyledLink = styled(Link)<{}>`
   font-size: ${p => p.theme.fontSizeSmall};
 `;

@@ -11,7 +11,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import useProjects from 'sentry/utils/useProjects';
-import {useTeams} from 'sentry/utils/useTeams';
 
 type Props = {
   organization: Organization;
@@ -25,10 +24,9 @@ function NoProjectMessage({
   superuserNeedsToBeProjectMember,
 }: Props) {
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
-  const {teams, initiallyLoaded: teamsLoaded} = useTeams();
 
   const orgSlug = organization.slug;
-  const {canCreateProject} = useProjectCreationAccess({organization, teams});
+  const {canCreateProject} = useProjectCreationAccess({organization});
   const canJoinTeam = organization.access.includes('team:read');
 
   const {isSuperuser} = ConfigStore.get('user');
@@ -39,7 +37,7 @@ function NoProjectMessage({
       ? !!projects?.some(p => p.hasAccess)
       : !!projects?.some(p => p.isMember && p.hasAccess);
 
-  if (hasProjectAccess || !projectsLoaded || !teamsLoaded) {
+  if (hasProjectAccess || !projectsLoaded) {
     return <Fragment>{children}</Fragment>;
   }
 

@@ -3,24 +3,22 @@ import os
 import re
 from collections import defaultdict
 from collections.abc import Iterable
+from datetime import timezone
 from typing import Any, Dict, Optional, Sequence
 
 from dateutil.parser import parse as parse_datetime
 from django.core.cache import cache
-from pytz import UTC
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query, Request
 
+from sentry import analytics
 from sentry.api.utils import default_start_end_dates
 from sentry.issues.grouptype import GroupCategory
-from sentry.models import (
-    Group,
-    Project,
-    Release,
-    ReleaseEnvironment,
-    ReleaseProject,
-    ReleaseProjectEnvironment,
-)
+from sentry.models.group import Group
+from sentry.models.project import Project
+from sentry.models.release import Release, ReleaseProject
+from sentry.models.releaseenvironment import ReleaseEnvironment
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.replays.query import query_replays_dataset_tagkey_values
 from sentry.search.events.constants import (
     PROJECT_ALIAS,
@@ -34,8 +32,7 @@ from sentry.search.events.constants import (
 from sentry.search.events.fields import FIELD_ALIASES
 from sentry.search.events.filter import _flip_field_sort
 from sentry.snuba.dataset import Dataset
-from sentry.tagstore import TagKeyStatus
-from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT, TagStorage
+from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT, TagKeyStatus, TagStorage
 from sentry.tagstore.exceptions import (
     GroupTagKeyNotFound,
     GroupTagValueNotFound,
@@ -93,7 +90,7 @@ def is_fuzzy_numeric_key(key):
 def fix_tag_value_data(data):
     for key, transformer in tag_value_data_transformers.items():
         if key in data:
-            data[key] = transformer(data[key]).replace(tzinfo=UTC)
+            data[key] = transformer(data[key]).replace(tzinfo=timezone.utc)
     return data
 
 
@@ -846,6 +843,13 @@ class SnubaTagStorage(TagStorage):
                         group_id=issue, key="sentry:user", value=name, **fix_tag_value_data(data)
                     )
                 )
+        for project_id in {eu.project_id for eu in event_users}:
+            analytics.record(
+                "eventuser_endpoint.request",
+                project_id=project_id,
+                endpoint="sentry.tagstore.snuba.backend.SnubaTagStorage.get_group_tag_values_for_users",
+            )
+
         return values
 
     def __get_groups_user_counts(
@@ -1199,6 +1203,7 @@ class SnubaTagStorage(TagStorage):
         #               entirely, furthermore, suggesting an event_id is not a very useful feature
         #               as they are not human readable.
         # profile_id    Same as event_id
+        # replay_id     Same as event_id
         # trace.*:      The same logic of event_id not being useful applies to the trace fields
         #               which are all also non human readable ids
         # timestamp:    This is a DateTime which disallows us to use both LIKE and != on it when
@@ -1210,7 +1215,7 @@ class SnubaTagStorage(TagStorage):
         # time:         This is a column computed from timestamp so it suffers the same issues
         if snuba_key in {"group_id"}:
             snuba_key = f"tags[{snuba_key}]"
-        if snuba_key in {"event_id", "timestamp", "time", "profile_id"} or key in {
+        if snuba_key in {"event_id", "timestamp", "time", "profile_id", "replay_id"} or key in {
             "trace",
             "trace.span",
             "trace.parent_span",

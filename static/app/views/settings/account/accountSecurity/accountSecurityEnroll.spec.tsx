@@ -1,3 +1,6 @@
+import {Authenticators} from 'sentry-fixture/authenticators';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import AccountSecurityEnroll from 'sentry/views/settings/account/accountSecurity/accountSecurityEnroll';
@@ -6,7 +9,7 @@ const ENDPOINT = '/users/me/authenticators/';
 
 describe('AccountSecurityEnroll', function () {
   describe('Totp', function () {
-    const authenticator = TestStubs.Authenticators().Totp({
+    const authenticator = Authenticators().Totp({
       isEnrolled: false,
       qrcode: 'otpauth://totp/test%40sentry.io?issuer=Sentry&secret=secret',
       secret: 'secret',
@@ -19,7 +22,7 @@ describe('AccountSecurityEnroll', function () {
       ],
     });
 
-    const routerContext = TestStubs.routerContext([
+    const routerContext = RouterContextFixture([
       {
         router: {
           ...TestStubs.router(),
@@ -80,7 +83,7 @@ describe('AccountSecurityEnroll', function () {
       });
 
       const pushMock = jest.fn();
-      const routerContextWithMock = TestStubs.routerContext([
+      const routerContextWithMock = RouterContextFixture([
         {
           router: {
             ...TestStubs.router({push: pushMock}),

@@ -2,26 +2,23 @@ import pytest
 from django.test import override_settings
 from rest_framework.serializers import ValidationError
 
-from sentry.models import (
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Project,
-    Release,
-    ReleaseProject,
-    ReleaseProjectEnvironment,
-    Team,
-)
-from sentry.models.notificationsetting import NotificationSetting
+from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
 from sentry.models.projectteam import ProjectTeam
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
+from sentry.models.release import Release, ReleaseProject
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.team import Team
+from sentry.silo.base import SiloMode
+from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import region_silo_test
-from sentry.types.integrations import ExternalProviders
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TeamTest(TestCase):
     def test_global_member(self):
         user = self.create_user()
@@ -86,6 +83,7 @@ class TeamTest(TestCase):
             team.save()
 
 
+@region_silo_test
 class TransferTest(TestCase):
     def test_simple(self):
         user = self.create_user()
@@ -184,20 +182,19 @@ class TransferTest(TestCase):
 @region_silo_test
 class TeamDeletionTest(TestCase):
     def test_hybrid_cloud_deletion(self):
-        team = self.create_team(self.organization)
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.ALWAYS,
-            team_id=team.id,
-        )
+        org = self.create_organization()
+        team = self.create_team(org)
+        base_params = {
+            "team_id": team.id,
+            "scope_type": "team",
+            "scope_identifier": team.id,
+            "value": "always",
+        }
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            NotificationSettingOption.objects.create(**base_params)
+            NotificationSettingProvider.objects.create(provider="slack", **base_params)
 
         assert Team.objects.filter(id=team.id).exists()
-        assert NotificationSetting.objects.find_settings(
-            provider=ExternalProviders.EMAIL,
-            type=NotificationSettingTypes.ISSUE_ALERTS,
-            team_id=team.id,
-        ).exists()
 
         team_id = team.id
         with outbox_runner():
@@ -205,15 +202,19 @@ class TeamDeletionTest(TestCase):
 
         assert not Team.objects.filter(id=team_id).exists()
 
-        with self.tasks():
-            schedule_hybrid_cloud_foreign_key_jobs()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # cascade is asynchronous, ensure there is still related search,
+            assert NotificationSettingOption.objects.filter(**base_params).exists()
+            assert NotificationSettingProvider.objects.filter(**base_params).exists()
+
+        # Run foreign key cascades to remove control silo state.
+        with self.tasks(), assume_test_silo_mode(SiloMode.CONTROL):
+            schedule_hybrid_cloud_foreign_key_jobs_control()
 
         assert not Team.objects.filter(id=team_id).exists()
-        assert not NotificationSetting.objects.find_settings(
-            provider=ExternalProviders.EMAIL,
-            type=NotificationSettingTypes.ISSUE_ALERTS,
-            team_id=team_id,
-        ).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not NotificationSettingOption.objects.filter(**base_params).exists()
+            assert not NotificationSettingProvider.objects.filter(**base_params).exists()
 
     def test_cannot_delete_last_owner_team(self):
         org = self.create_organization()

@@ -1,11 +1,8 @@
 import {Fragment, useEffect} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
-import {fetchSentryAppComponents} from 'sentry/actionCreators/sentryAppComponents';
-import {Client} from 'sentry/api';
 import ArchivedBox from 'sentry/components/archivedBox';
 import GroupEventDetailsLoadingError from 'sentry/components/errors/groupEventDetailsLoadingError';
 import {withMeta} from 'sentry/components/events/meta/metaProxy';
@@ -15,17 +12,18 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import MutedBox from 'sentry/components/mutedBox';
 import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import ResolutionBox from 'sentry/components/resolutionBox';
+import useSentryAppComponentsData from 'sentry/stores/useSentryAppComponentsData';
 import {space} from 'sentry/styles/space';
 import {
-  BaseGroupStatusReprocessing,
   Group,
   GroupActivityReprocess,
+  GroupReprocessing,
   Organization,
   Project,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import fetchSentryAppInstallations from 'sentry/utils/fetchSentryAppInstallations';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
@@ -49,7 +47,6 @@ const EscalatingIssuesFeedback = HookOrDefault({
 
 export interface GroupEventDetailsProps
   extends RouteComponentProps<{groupId: string; eventId?: string}, {}> {
-  api: Client;
   eventError: boolean;
   group: Group;
   groupReprocessingStatus: ReprocessingStatus;
@@ -71,7 +68,6 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
     loadingEvent,
     onRetry,
     eventError,
-    api,
     params,
   } = props;
   const eventWithMeta = withMeta(event);
@@ -80,26 +76,14 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
   const hasReprocessingV2Feature = organization.features?.includes('reprocessing-v2');
   const {activity: activities} = group;
   const mostRecentActivity = getGroupMostRecentActivity(activities);
-  const orgSlug = organization.slug;
   const projectId = project.id;
   const environments = useEnvironmentsFromUrl();
   const prevEnvironment = usePrevious(environments);
   const prevEvent = usePrevious(event);
 
   // load the data
-  useEffect(() => {
-    fetchSentryAppInstallations(api, orgSlug);
-    // TODO(marcos): Sometimes PageFiltersStore cannot pick a project.
-    if (projectId) {
-      fetchSentryAppComponents(api, orgSlug, projectId);
-    } else {
-      Sentry.withScope(scope => {
-        scope.setExtra('orgSlug', orgSlug);
-        scope.setExtra('projectId', projectId);
-        Sentry.captureMessage('Project ID was not set');
-      });
-    }
-  }, [api, orgSlug, projectId]);
+  useSentryAppComponentsData({projectId});
+
   // If environments are being actively changed and will no longer contain the
   // current event's environment, redirect to latest
   useEffect(() => {
@@ -184,6 +168,8 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
     );
   };
 
+  const issueTypeConfig = getConfigForIssueType(group, project);
+
   return (
     <TransactionProfileIdProvider
       projectId={event?.projectID}
@@ -201,8 +187,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
             <ReprocessingProgress
               totalEvents={(mostRecentActivity as GroupActivityReprocess).data.eventCount}
               pendingEvents={
-                (group.statusDetails as BaseGroupStatusReprocessing['statusDetails'])
-                  .pendingEvents
+                (group.statusDetails as GroupReprocessing['statusDetails']).pendingEvents
               }
             />
           ) : (
@@ -221,7 +206,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
                         group={group}
                       />
                       <QuickTraceContext.Provider value={results}>
-                        {eventWithMeta && (
+                        {eventWithMeta && issueTypeConfig.stats.enabled && (
                           <GroupEventHeader
                             group={group}
                             event={eventWithMeta}

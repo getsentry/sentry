@@ -193,12 +193,7 @@
                 "stacktrace": {
                   "type": "object",
                   "nullable": true,
-                  "required": [
-                    "frames",
-                    "framesOmitted",
-                    "registers",
-                    "hasSystemFrames"
-                  ],
+                  "required": ["frames", "framesOmitted", "registers", "hasSystemFrames"],
                   "properties": {
                     "frames": {
                       "type": "array",

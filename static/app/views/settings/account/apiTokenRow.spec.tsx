@@ -4,12 +4,7 @@ import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
 
 describe('ApiTokenRow', () => {
   it('renders', () => {
-    const wrapper = render(
-      <ApiTokenRow onRemove={() => {}} token={TestStubs.ApiToken()} />
-    );
-
-    // Should be loading
-    expect(wrapper.container).toSnapshot();
+    render(<ApiTokenRow onRemove={() => {}} token={TestStubs.ApiToken()} />);
   });
 
   it('calls onRemove callback when trash can is clicked', async () => {
@@ -18,5 +13,22 @@ describe('ApiTokenRow', () => {
 
     await userEvent.click(screen.getByLabelText('Remove'));
     expect(cb).toHaveBeenCalled();
+  });
+
+  it('uses NewTokenHandler when lastTokenCharacters field is found', () => {
+    const token = TestStubs.ApiToken();
+    token.tokenLastCharacters = 'a1b2c3d4';
+
+    const cb = jest.fn();
+    render(<ApiTokenRow onRemove={cb} token={token} />);
+    expect(screen.queryByLabelText('Token preview')).toBeInTheDocument();
+  });
+
+  it('uses old logic when lastTokenCharacters field is not found', () => {
+    const token = TestStubs.ApiToken();
+
+    const cb = jest.fn();
+    render(<ApiTokenRow onRemove={cb} token={token} />);
+    expect(screen.queryByLabelText('Token preview')).not.toBeInTheDocument();
   });
 });

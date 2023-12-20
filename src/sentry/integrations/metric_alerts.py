@@ -16,6 +16,7 @@ from sentry.incidents.models import (
     IncidentStatus,
     IncidentTrigger,
 )
+from sentry.snuba.metrics import format_mri_field, format_mri_field_value, is_mri_field
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 
@@ -66,7 +67,11 @@ def get_incident_status_text(alert_rule: AlertRule, metric_value: str) -> str:
     if CRASH_RATE_ALERT_AGGREGATE_ALIAS in alert_rule.snuba_query.aggregate:
         agg_display_key = agg_display_key.split(f"AS {CRASH_RATE_ALERT_AGGREGATE_ALIAS}")[0].strip()
 
-    agg_text = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, alert_rule.snuba_query.aggregate)
+    if is_mri_field(agg_display_key):
+        metric_value = format_mri_field_value(agg_display_key, metric_value)
+        agg_text = format_mri_field(agg_display_key)
+    else:
+        agg_text = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, alert_rule.snuba_query.aggregate)
 
     if agg_text.startswith("%"):
         if metric_value is not None:
@@ -100,7 +105,13 @@ def get_incident_status_text(alert_rule: AlertRule, metric_value: str) -> str:
     }
 
 
-def incident_attachment_info(incident: Incident, new_status: IncidentStatus, metric_value=None):
+def incident_attachment_info(
+    incident: Incident,
+    new_status: IncidentStatus,
+    metric_value=None,
+    notification_uuid=None,
+    referrer="metric_alert",
+):
     alert_rule = incident.alert_rule
 
     status = INCIDENT_STATUS[new_status]
@@ -111,6 +122,13 @@ def incident_attachment_info(incident: Incident, new_status: IncidentStatus, met
     text = get_incident_status_text(alert_rule, metric_value)
     title = f"{status}: {alert_rule.name}"
 
+    title_link_params = {
+        "alert": str(incident.identifier),
+        "referrer": referrer,
+    }
+    if notification_uuid:
+        title_link_params["notification_uuid"] = notification_uuid
+
     title_link = alert_rule.organization.absolute_url(
         reverse(
             "sentry-metric-alert-details",
@@ -119,7 +137,7 @@ def incident_attachment_info(incident: Incident, new_status: IncidentStatus, met
                 "alert_rule_id": alert_rule.id,
             },
         ),
-        query=parse.urlencode({"alert": str(incident.identifier)}),
+        query=parse.urlencode(title_link_params),
     )
 
     return {
@@ -136,7 +154,7 @@ def metric_alert_attachment_info(
     alert_rule: AlertRule,
     selected_incident: Optional[Incident] = None,
     new_status: Optional[IncidentStatus] = None,
-    metric_value: Optional[str] = None,
+    metric_value: Optional[float] = None,
 ):
     latest_incident = None
     if selected_incident is None:

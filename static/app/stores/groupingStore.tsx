@@ -165,6 +165,7 @@ interface GroupingStoreDefinition
   onToggleUnmerge(props: [string, string] | string): void;
   onUnmerge(props: {
     groupId: Group['id'];
+    orgSlug: Organization['slug'];
     errorMessage?: string;
     loadingMessage?: string;
     successMessage?: string;
@@ -459,7 +460,7 @@ const storeConfig: GroupingStoreDefinition = {
     this.triggerUnmergeState();
   },
 
-  onUnmerge({groupId, loadingMessage, successMessage, errorMessage}) {
+  onUnmerge({groupId, loadingMessage, orgSlug, successMessage, errorMessage}) {
     const ids = Array.from(this.unmergeList.keys()) as Array<string>;
 
     return new Promise((resolve, reject) => {
@@ -479,7 +480,7 @@ const storeConfig: GroupingStoreDefinition = {
       this.triggerUnmergeState();
       addLoadingMessage(loadingMessage);
 
-      this.api.request(`/issues/${groupId}/hashes/`, {
+      this.api.request(`/organizations/${orgSlug}/issues/${groupId}/hashes/`, {
         method: 'DELETE',
         query: {
           id: ids,
@@ -494,7 +495,8 @@ const storeConfig: GroupingStoreDefinition = {
           });
           this.unmergeList.clear();
         },
-        error: () => {
+        error: error => {
+          errorMessage = error?.responseJSON?.detail || errorMessage;
           addErrorMessage(errorMessage);
           this.setStateForId(this.unmergeState, ids, {
             checked: true,

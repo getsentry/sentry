@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Any, Iterable, Mapping
+from typing import Any, Mapping
 
 from sentry.issues.grouptype import (
     PerformanceNPlusOneAPICallsGroupType,
@@ -11,7 +11,8 @@ from sentry.issues.grouptype import (
     ProfileFileIOGroupType,
 )
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
-from sentry.models import Team, User
+from sentry.models.team import Team
+from sentry.models.user import User
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import ExternalProviders
@@ -26,7 +27,7 @@ class DummyNotification(BaseNotification):
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return "My Subject"
 
-    def determine_recipients(self) -> Iterable[Team | RpcUser]:
+    def determine_recipients(self) -> list[Team | RpcUser]:
         return []
 
     def build_attachment_title(self, *args):

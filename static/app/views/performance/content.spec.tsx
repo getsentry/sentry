@@ -1,6 +1,9 @@
 import {browserHistory} from 'react-router';
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as pageFilters from 'sentry/actionCreators/pageFilters';
@@ -8,7 +11,7 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
+import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import PerformanceContent from 'sentry/views/performance/content';
 import {DEFAULT_MAX_DURATION} from 'sentry/views/performance/trends/utils';
@@ -17,10 +20,8 @@ import {RouteContext} from 'sentry/views/routeContext';
 const FEATURES = ['performance-view'];
 
 function WrappedComponent({organization, router}) {
-  const client = new QueryClient();
-
   return (
-    <QueryClientProvider client={client}>
+    <QueryClientProvider client={makeTestQueryClient()}>
       <RouteContext.Provider
         value={{
           location: router.location,
@@ -40,7 +41,7 @@ function WrappedComponent({organization, router}) {
 }
 
 function initializeData(projects, query, features = FEATURES) {
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features,
     projects,
   });
@@ -60,11 +61,11 @@ function initializeData(projects, query, features = FEATURES) {
 
 function initializeTrendsData(query, addDefaultQuery = true) {
   const projects = [
-    TestStubs.Project({id: '1', firstTransactionEvent: false}),
-    TestStubs.Project({id: '2', firstTransactionEvent: true}),
+    ProjectFixture({id: '1', firstTransactionEvent: false}),
+    ProjectFixture({id: '2', firstTransactionEvent: true}),
   ];
-  const organization = TestStubs.Organization({
-    FEATURES,
+  const organization = Organization({
+    features: FEATURES,
     projects,
   });
 
@@ -289,7 +290,7 @@ describe('Performance > Content', function () {
   });
 
   it('renders basic UI elements', async function () {
-    const projects = [TestStubs.Project({firstTransactionEvent: true})];
+    const projects = [ProjectFixture({firstTransactionEvent: true})];
     const data = initializeData(projects, {});
 
     render(<WrappedComponent organization={data.organization} router={data.router} />, {
@@ -303,8 +304,8 @@ describe('Performance > Content', function () {
 
   it('renders onboarding state when the selected project has no events', async function () {
     const projects = [
-      TestStubs.Project({id: 1, firstTransactionEvent: false}),
-      TestStubs.Project({id: 2, firstTransactionEvent: true}),
+      ProjectFixture({id: '1', firstTransactionEvent: false}),
+      ProjectFixture({id: '2', firstTransactionEvent: true}),
     ];
     const data = initializeData(projects, {project: [1]});
 
@@ -319,8 +320,8 @@ describe('Performance > Content', function () {
 
   it('does not render onboarding for "my projects"', async function () {
     const projects = [
-      TestStubs.Project({id: '1', firstTransactionEvent: false}),
-      TestStubs.Project({id: '2', firstTransactionEvent: true}),
+      ProjectFixture({id: '1', firstTransactionEvent: false}),
+      ProjectFixture({id: '2', firstTransactionEvent: true}),
     ];
     const data = initializeData(projects, {project: ['-1']});
 
@@ -332,7 +333,7 @@ describe('Performance > Content', function () {
   });
 
   it('forwards conditions to transaction summary', async function () {
-    const projects = [TestStubs.Project({id: '1', firstTransactionEvent: true})];
+    const projects = [ProjectFixture({id: '1', firstTransactionEvent: true})];
     const data = initializeData(projects, {project: ['1'], query: 'sentry:yes'});
 
     render(<WrappedComponent organization={data.organization} router={data.router} />, {
@@ -395,8 +396,8 @@ describe('Performance > Content', function () {
 
   it('Default page (transactions) without trends feature will not update filters if none are set', async function () {
     const projects = [
-      TestStubs.Project({id: 1, firstTransactionEvent: false}),
-      TestStubs.Project({id: 2, firstTransactionEvent: true}),
+      ProjectFixture({id: '1', firstTransactionEvent: false}),
+      ProjectFixture({id: '2', firstTransactionEvent: true}),
     ];
     const data = initializeData(projects, {view: undefined});
 
@@ -441,8 +442,8 @@ describe('Performance > Content', function () {
 
   it('Display Create Sample Transaction Button', async function () {
     const projects = [
-      TestStubs.Project({id: 1, firstTransactionEvent: false}),
-      TestStubs.Project({id: 2, firstTransactionEvent: false}),
+      ProjectFixture({id: '1', firstTransactionEvent: false}),
+      ProjectFixture({id: '2', firstTransactionEvent: false}),
     ];
     const data = initializeData(projects, {view: undefined});
 

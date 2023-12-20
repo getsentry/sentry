@@ -1,3 +1,6 @@
+import {Organization} from 'sentry-fixture/organization';
+import {Repository} from 'sentry-fixture/repository';
+
 import {
   render,
   renderGlobalModal,
@@ -6,32 +9,28 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import RepositoryRow from 'sentry/components/repositoryRow';
+import {RepositoryStatus} from 'sentry/types';
 
 describe('RepositoryRow', function () {
   beforeEach(function () {
     MockApiClient.clearMockResponses();
   });
 
-  const repository = TestStubs.Repository();
-  const pendingRepo = TestStubs.Repository({
-    status: 'pending_deletion',
+  const repository = Repository();
+  const pendingRepo = Repository({
+    status: RepositoryStatus.PENDING_DELETION,
   });
 
   const api = new MockApiClient();
 
   describe('rendering with access', function () {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       access: ['org:integrations'],
     });
 
     it('displays provider information', function () {
       render(
-        <RepositoryRow
-          repository={repository}
-          api={api}
-          orgId={organization.slug}
-          organization={organization}
-        />,
+        <RepositoryRow repository={repository} api={api} orgSlug={organization.slug} />,
         {organization}
       );
       expect(screen.getByText(repository.name)).toBeInTheDocument();
@@ -46,12 +45,7 @@ describe('RepositoryRow', function () {
 
     it('displays cancel pending button', function () {
       render(
-        <RepositoryRow
-          repository={pendingRepo}
-          api={api}
-          orgId={organization.slug}
-          organization={organization}
-        />,
+        <RepositoryRow repository={pendingRepo} api={api} orgSlug={organization.slug} />,
         {organization}
       );
 
@@ -65,18 +59,13 @@ describe('RepositoryRow', function () {
   });
 
   describe('rendering without access', function () {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       access: ['org:write'],
     });
 
     it('displays disabled trash', function () {
       render(
-        <RepositoryRow
-          repository={repository}
-          api={api}
-          orgId={organization.slug}
-          organization={organization}
-        />,
+        <RepositoryRow repository={repository} api={api} orgSlug={organization.slug} />,
         {organization}
       );
 
@@ -86,12 +75,7 @@ describe('RepositoryRow', function () {
 
     it('displays disabled cancel', function () {
       render(
-        <RepositoryRow
-          repository={pendingRepo}
-          api={api}
-          orgId={organization.slug}
-          organization={organization}
-        />,
+        <RepositoryRow repository={pendingRepo} api={api} orgSlug={organization.slug} />,
         {organization}
       );
 
@@ -101,7 +85,7 @@ describe('RepositoryRow', function () {
   });
 
   describe('deletion', function () {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       access: ['org:integrations'],
     });
 
@@ -114,12 +98,7 @@ describe('RepositoryRow', function () {
       });
 
       render(
-        <RepositoryRow
-          repository={repository}
-          api={api}
-          orgId={organization.slug}
-          organization={organization}
-        />,
+        <RepositoryRow repository={repository} api={api} orgSlug={organization.slug} />,
         {organization}
       );
       renderGlobalModal();
@@ -133,7 +112,7 @@ describe('RepositoryRow', function () {
   });
 
   describe('cancel deletion', function () {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       access: ['org:integrations'],
     });
 
@@ -146,12 +125,7 @@ describe('RepositoryRow', function () {
       });
 
       render(
-        <RepositoryRow
-          repository={pendingRepo}
-          api={api}
-          orgId={organization.slug}
-          organization={organization}
-        />,
+        <RepositoryRow repository={pendingRepo} api={api} orgSlug={organization.slug} />,
         {organization}
       );
       await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));

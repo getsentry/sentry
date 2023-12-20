@@ -2,12 +2,11 @@ import io
 import os
 from datetime import datetime, timedelta, timezone
 from hashlib import sha1
+from unittest import mock
 from unittest.mock import patch
 
 from django.core.files.base import ContentFile
-from freezegun import freeze_time
 
-from sentry.models import File, FileBlob, FileBlobOwner, ReleaseFile
 from sentry.models.artifactbundle import (
     ArtifactBundle,
     ArtifactBundleFlatFileIndex,
@@ -18,7 +17,10 @@ from sentry.models.artifactbundle import (
     SourceFileType,
 )
 from sentry.models.debugfile import ProjectDebugFile
-from sentry.models.releasefile import read_artifact_index
+from sentry.models.files.file import File
+from sentry.models.files.fileblob import FileBlob
+from sentry.models.files.fileblobowner import FileBlobOwner
+from sentry.models.releasefile import ReleaseFile, read_artifact_index
 from sentry.tasks.assemble import (
     ArtifactBundlePostAssembler,
     AssembleResult,
@@ -30,6 +32,7 @@ from sentry.tasks.assemble import (
     get_assemble_status,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 
 
 class BaseAssembleTest(TestCase):
@@ -274,6 +277,11 @@ class AssembleArtifactsTest(BaseAssembleTest):
             DebugIdArtifactBundle.objects.all().delete()
             ReleaseArtifactBundle.objects.all().delete()
             ProjectArtifactBundle.objects.all().delete()
+
+            status, details = get_assemble_status(
+                AssembleTask.ARTIFACT_BUNDLE, self.organization.id, total_checksum
+            )
+            assert status is None
 
     @patch("sentry.tasks.assemble.ArtifactBundlePostAssembler.post_assemble")
     def test_assembled_bundle_is_deleted_if_post_assembler_error_occurs(self, post_assemble):
@@ -657,14 +665,32 @@ class AssembleArtifactsTest(BaseAssembleTest):
             upload_as_artifact_bundle=True,
         )
 
+        # Since the threshold is not surpassed we expect the system to not perform indexing.
+        index_artifact_bundles_for_release.assert_not_called()
+
+        bundle_file_3 = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_duplicated_debug_ids", project=self.project.id
+        )
+        blob1_3 = FileBlob.from_file(ContentFile(bundle_file_3))
+        total_checksum_3 = sha1(bundle_file_3).hexdigest()
+
+        # We try to upload the first bundle.
+        assemble_artifacts(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            version=release,
+            dist=dist,
+            checksum=total_checksum_3,
+            chunks=[blob1_3.checksum],
+            upload_as_artifact_bundle=True,
+        )
+
         bundles = ArtifactBundle.objects.all()
 
         # Since the threshold is now passed, we expect the system to perform indexing.
         index_artifact_bundles_for_release.assert_called_with(
             organization_id=self.organization.id,
-            artifact_bundles=[bundles[0], bundles[1]],
-            release=release,
-            dist=dist,
+            artifact_bundles=[(bundles[2], mock.ANY)],
         )
 
     def test_bundle_flat_file_indexing(self):
@@ -883,11 +909,12 @@ class ArtifactBundleIndexingTest(TestCase):
             project_ids=[],
         ) as post_assembler:
             post_assembler._index_bundle_if_needed(
-                release=release, dist=dist, date_snapshot=datetime.now()
+                artifact_bundle=None,
+                release=release,
+                dist=dist,
             )
 
         index_artifact_bundles_for_release.assert_not_called()
-        post_assembler.close()
 
     @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
     def test_index_if_needed_with_lower_bundles_than_threshold(
@@ -912,11 +939,12 @@ class ArtifactBundleIndexingTest(TestCase):
             project_ids=[],
         ) as post_assembler:
             post_assembler._index_bundle_if_needed(
-                release=release, dist=dist, date_snapshot=datetime.now()
+                artifact_bundle=None,
+                release=release,
+                dist=dist,
             )
 
         index_artifact_bundles_for_release.assert_not_called()
-        post_assembler.close()
 
     @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
     def test_index_if_needed_with_higher_bundles_than_threshold(
@@ -925,7 +953,7 @@ class ArtifactBundleIndexingTest(TestCase):
         release = "1.0"
         dist = "android"
 
-        artifact_bundle_1 = self._create_bundle_and_bind_to_release(
+        self._create_bundle_and_bind_to_release(
             release=release,
             dist=dist,
             bundle_id="2c5b367b-4fef-4db8-849d-b9e79607d630",
@@ -933,7 +961,15 @@ class ArtifactBundleIndexingTest(TestCase):
             date=datetime.now() - timedelta(hours=2),
         )
 
-        artifact_bundle_2 = self._create_bundle_and_bind_to_release(
+        self._create_bundle_and_bind_to_release(
+            release=release,
+            dist=dist,
+            bundle_id="0cf678f2-0771-4e2f-8ace-d6cea8493f0c",
+            indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
+            date=datetime.now() - timedelta(hours=1),
+        )
+
+        artifact_bundle_3 = self._create_bundle_and_bind_to_release(
             release=release,
             dist=dist,
             bundle_id="0cf678f2-0771-4e2f-8ace-d6cea8493f0d",
@@ -949,16 +985,15 @@ class ArtifactBundleIndexingTest(TestCase):
             project_ids=[],
         ) as post_assembler:
             post_assembler._index_bundle_if_needed(
-                release=release, dist=dist, date_snapshot=datetime.now()
+                artifact_bundle=artifact_bundle_3,
+                release=release,
+                dist=dist,
             )
 
         index_artifact_bundles_for_release.assert_called_with(
             organization_id=self.organization.id,
-            artifact_bundles=[artifact_bundle_1, artifact_bundle_2],
-            release=release,
-            dist=dist,
+            artifact_bundles=[(artifact_bundle_3, mock.ANY)],
         )
-        post_assembler.close()
 
     @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
     def test_index_if_needed_with_bundles_already_indexed(self, index_artifact_bundles_for_release):
@@ -988,9 +1023,7 @@ class ArtifactBundleIndexingTest(TestCase):
             dist=dist,
             project_ids=[],
         ) as post_assembler:
-            post_assembler._index_bundle_if_needed(
-                release=release, dist=dist, date_snapshot=datetime.now()
-            )
+            post_assembler._index_bundle_if_needed(artifact_bundle=None, release=release, dist=dist)
 
         index_artifact_bundles_for_release.assert_not_called()
 
@@ -1009,7 +1042,7 @@ class ArtifactBundleIndexingTest(TestCase):
             date=datetime.now() - timedelta(hours=1),
         )
 
-        artifact_bundle_2 = self._create_bundle_and_bind_to_release(
+        self._create_bundle_and_bind_to_release(
             release=release,
             dist=dist,
             bundle_id="2c5b367b-4fef-4db8-849d-b9e79607d630",
@@ -1035,12 +1068,12 @@ class ArtifactBundleIndexingTest(TestCase):
             project_ids=[],
         ) as post_assembler:
             post_assembler._index_bundle_if_needed(
-                release=release, dist=dist, date_snapshot=datetime.now()
+                artifact_bundle=artifact_bundle_1,
+                release=release,
+                dist=dist,
             )
 
         index_artifact_bundles_for_release.assert_called_with(
             organization_id=self.organization.id,
-            artifact_bundles=[artifact_bundle_1, artifact_bundle_2],
-            release=release,
-            dist=dist,
+            artifact_bundles=[(artifact_bundle_1, mock.ANY)],
         )

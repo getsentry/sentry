@@ -1,3 +1,5 @@
+import {ProjectKeys} from 'sentry-fixture/projectKeys';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -33,11 +35,11 @@ function mockProjectApiResponses(projects: Project[]) {
   MockApiClient.addMockResponse({
     url: '/projects/org-slug/project-slug/keys/',
     method: 'GET',
-    body: [TestStubs.ProjectKeys()[0]],
+    body: [ProjectKeys()[0]],
   });
 
   MockApiClient.addMockResponse({
-    url: `/projects/org-slug/project-slug/keys/${TestStubs.ProjectKeys()[0].public}/`,
+    url: `/projects/org-slug/project-slug/keys/${ProjectKeys()[0].public}/`,
     method: 'PUT',
     body: {},
   });
@@ -52,7 +54,7 @@ describe('ProjectInstallPlatform', function () {
     const routeParams = {
       projectId: TestStubs.Project().slug,
     };
-    const {organization, router, route, project, routerContext} = initializeOrg({
+    const {organization, routerProps, project, routerContext} = initializeOrg({
       router: {
         location: {
           query: {},
@@ -63,20 +65,10 @@ describe('ProjectInstallPlatform', function () {
 
     mockProjectApiResponses([{...project, platform: 'lua'}]);
 
-    render(
-      <ProjectInstallPlatform
-        router={router}
-        route={route}
-        location={router.location}
-        routeParams={routeParams}
-        routes={router.routes}
-        params={routeParams}
-      />,
-      {
-        organization,
-        context: routerContext,
-      }
-    );
+    render(<ProjectInstallPlatform {...routerProps} />, {
+      organization,
+      context: routerContext,
+    });
 
     expect(await screen.findByText('Page Not Found')).toBeInTheDocument();
   });
@@ -86,7 +78,7 @@ describe('ProjectInstallPlatform', function () {
       projectId: TestStubs.Project().slug,
     };
 
-    const {organization, router, route, project} = initializeOrg({
+    const {organization, routerProps, project} = initializeOrg({
       router: {
         location: {
           query: {},
@@ -100,19 +92,9 @@ describe('ProjectInstallPlatform', function () {
 
     mockProjectApiResponses([{...project, platform: 'other'}]);
 
-    render(
-      <ProjectInstallPlatform
-        router={router}
-        route={route}
-        location={router.location}
-        routeParams={routeParams}
-        routes={router.routes}
-        params={routeParams}
-      />,
-      {
-        organization,
-      }
-    );
+    render(<ProjectInstallPlatform {...routerProps} />, {
+      organization,
+    });
 
     expect(
       await screen.findByText(/We cannot provide instructions for 'Other' projects/)
@@ -127,7 +109,7 @@ describe('ProjectInstallPlatform', function () {
       platform: 'python',
     };
 
-    const {router, route, routerContext} = initializeOrg({
+    const {routerProps, routerContext} = initializeOrg({
       router: {
         location: {
           query: {},
@@ -140,23 +122,13 @@ describe('ProjectInstallPlatform', function () {
 
     mockProjectApiResponses([project]);
 
-    render(
-      <ProjectInstallPlatform
-        router={router}
-        route={route}
-        location={router.location}
-        routeParams={routeParams}
-        routes={router.routes}
-        params={routeParams}
-      />,
-      {
-        context: routerContext,
-      }
-    );
+    render(<ProjectInstallPlatform {...routerProps} />, {
+      context: routerContext,
+    });
 
     expect(
       await screen.findByRole('heading', {
-        name: 'Configure JavaScript SDK',
+        name: 'Configure Browser JavaScript SDK',
       })
     ).toBeInTheDocument();
   });

@@ -137,7 +137,7 @@ def bulk_create_snuba_subscriptions(projects, subscription_type, snuba_query):
     return subscriptions
 
 
-def create_snuba_subscription(project, subscription_type, snuba_query):
+def create_snuba_subscription(project, subscription_type, snuba_query) -> QuerySubscription:
     """
     Creates a subscription to a snuba query.
 

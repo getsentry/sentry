@@ -5,13 +5,17 @@ from datetime import timezone
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
 from django.http import Http404, HttpResponse
+from django.http.response import HttpResponseBase
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from rest_framework.request import Request
 
 from sentry.integrations.bitbucket.constants import BITBUCKET_IP_RANGES, BITBUCKET_IPS
-from sentry.models import Commit, CommitAuthor, Organization, Repository
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.organization import Organization
+from sentry.models.repository import Repository
 from sentry.plugins.providers import RepositoryProvider
 from sentry.utils import json
 from sentry.utils.email import parse_email
@@ -63,7 +67,6 @@ class PushEventWebhook(Webhook):
                     author = authors[author_email]
                 try:
                     with transaction.atomic(router.db_for_write(Commit)):
-
                         Commit.objects.create(
                             repository_id=repo.id,
                             organization_id=organization.id,
@@ -77,14 +80,14 @@ class PushEventWebhook(Webhook):
                     pass
 
 
-class BitbucketWebhookEndpoint(View):
+class BitbucketPluginWebhookEndpoint(View):
     _handlers = {"repo:push": PushEventWebhook}
 
     def get_handler(self, event_type):
         return self._handlers.get(event_type)
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, *args, **kwargs) -> HttpResponse:
+    def dispatch(self, request: Request, *args, **kwargs) -> HttpResponseBase:
         if request.method != "POST":
             return HttpResponse(status=405)
 
@@ -94,7 +97,7 @@ class BitbucketWebhookEndpoint(View):
         try:
             organization = Organization.objects.get_from_cache(id=organization_id)
         except Organization.DoesNotExist:
-            logger.error(
+            logger.exception(
                 "bitbucket.webhook.invalid-organization", extra={"organization_id": organization_id}
             )
             return HttpResponse(status=400)
@@ -109,7 +112,7 @@ class BitbucketWebhookEndpoint(View):
         try:
             handler = self.get_handler(request.META["HTTP_X_EVENT_KEY"])
         except KeyError:
-            logger.error(
+            logger.exception(
                 "bitbucket.webhook.missing-event", extra={"organization_id": organization.id}
             )
             return HttpResponse(status=400)
@@ -133,10 +136,9 @@ class BitbucketWebhookEndpoint(View):
         try:
             event = json.loads(body.decode("utf-8"))
         except json.JSONDecodeError:
-            logger.error(
+            logger.exception(
                 "bitbucket.webhook.invalid-json",
                 extra={"organization_id": organization.id},
-                exc_info=True,
             )
             return HttpResponse(status=400)
 

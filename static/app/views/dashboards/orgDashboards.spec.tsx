@@ -1,4 +1,6 @@
 import {browserHistory} from 'react-router';
+import LocationFixture from 'sentry-fixture/locationFixture';
+import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -9,7 +11,7 @@ import {DashboardState} from 'sentry/views/dashboards/types';
 
 describe('OrgDashboards', () => {
   const api = new MockApiClient();
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features: ['dashboards-basic', 'dashboards-edit'],
   });
 
@@ -19,7 +21,7 @@ describe('OrgDashboards', () => {
       organization,
       projects: [],
       router: {
-        location: TestStubs.location(),
+        location: LocationFixture(),
         params: {orgId: 'org-slug'},
       },
     });
@@ -71,7 +73,7 @@ describe('OrgDashboards', () => {
     render(
       <OrgDashboards
         api={api}
-        location={TestStubs.location()}
+        location={LocationFixture()}
         organization={initialData.organization}
         params={{orgId: 'org-slug', dashboardId: '1'}}
       >
@@ -131,7 +133,7 @@ describe('OrgDashboards', () => {
       <OrgDashboards
         api={api}
         location={{
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             // This query param is not a page filter, so it should not interfere
             // with the redirect logic
@@ -179,7 +181,7 @@ describe('OrgDashboards', () => {
       projects: [],
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             // project is supplied in the URL, so we should avoid redirecting
             project: ['1'],
@@ -240,7 +242,7 @@ describe('OrgDashboards', () => {
     render(
       <OrgDashboards
         api={api}
-        location={TestStubs.location()}
+        location={LocationFixture()}
         organization={initialData.organization}
         params={{orgId: 'org-slug', dashboardId: '1'}}
       >
@@ -287,7 +289,7 @@ describe('OrgDashboards', () => {
     const {rerender} = render(
       <OrgDashboards
         api={api}
-        location={TestStubs.location()}
+        location={LocationFixture()}
         organization={initialData.organization}
         params={{orgId: 'org-slug', dashboardId: '1'}}
       >

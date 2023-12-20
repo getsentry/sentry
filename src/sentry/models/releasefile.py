@@ -14,8 +14,10 @@ from urllib.parse import urlsplit, urlunsplit
 import sentry_sdk
 from django.core.files.base import File as FileObj
 from django.db import models, router
+from typing_extensions import Self
 
 from sentry import options
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     BoundedBigIntegerField,
@@ -65,7 +67,7 @@ class ReleaseFile(Model):
     The ident of the file should be sha1(name) or
     sha1(name '\x00\x00' dist.name) and must be unique per release.
     """
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField()
     # DEPRECATED
@@ -84,8 +86,8 @@ class ReleaseFile(Model):
 
     __repr__ = sane_repr("release", "ident")
 
-    objects = BaseManager()  # The default manager.
-    public_objects = PublicReleaseFileManager()
+    objects: ClassVar[BaseManager[Self]] = BaseManager()  # The default manager.
+    public_objects: ClassVar[PublicReleaseFileManager] = PublicReleaseFileManager()
 
     cache: ClassVar[ReleaseFileCache]
 
@@ -96,7 +98,7 @@ class ReleaseFile(Model):
         db_table = "sentry_releasefile"
 
     def save(self, *args, **kwargs):
-        from sentry.models import Distribution
+        from sentry.models.distribution import Distribution
 
         if not self.ident and self.name:
             dist = None
@@ -158,7 +160,9 @@ class ReleaseFileCache:
         cutoff = options.get("releasefile.cache-limit")
         file_size = releasefile.file.size
         if file_size < cutoff:
-            metrics.timing("release_file.cache.get.size", file_size, tags={"cutoff": True})
+            metrics.distribution(
+                "release_file.cache.get.size", file_size, tags={"cutoff": True}, unit="byte"
+            )
             return releasefile.file.getfile()
 
         file_id = str(releasefile.file.id)
@@ -174,7 +178,12 @@ class ReleaseFileCache:
             releasefile.file.save_to(file_path)
             hit = False
 
-        metrics.timing("release_file.cache.get.size", file_size, tags={"hit": hit, "cutoff": False})
+        metrics.distribution(
+            "release_file.cache.get.size",
+            file_size,
+            tags={"hit": hit, "cutoff": False},
+            unit="byte",
+        )
         return FileObj(open(file_path, "rb"))
 
     def clear_old_entries(self):

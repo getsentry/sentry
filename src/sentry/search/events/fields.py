@@ -1,7 +1,7 @@
 import re
 from collections import namedtuple
 from copy import copy, deepcopy
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, List, Mapping, Match, NamedTuple, Optional, Sequence, Set, Tuple, Union
 
 import sentry_sdk
@@ -10,10 +10,10 @@ from snuba_sdk.function import Function
 
 from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.models import ProjectTransactionThreshold
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
+    ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
 )
 from sentry.search.events.constants import (
@@ -888,6 +888,23 @@ class NullColumn(FunctionArg):
         return None
 
 
+class IntArg(FunctionArg):
+    def __init__(self, name: str, negative: bool):
+        super().__init__(name)
+        self.negative = negative
+
+    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> int:
+        try:
+            normalized_value = int(value)
+        except ValueError:
+            raise InvalidFunctionArgument(f"{value} is not an integer")
+
+        if not self.negative and normalized_value < 0:
+            raise InvalidFunctionArgument(f"{value} must be non negative")
+
+        return normalized_value
+
+
 class NumberRange(FunctionArg):
     def __init__(self, name: str, start: Optional[float], end: Optional[float]):
         super().__init__(name)
@@ -942,6 +959,27 @@ class IntervalDefault(NumberRange):
 
         interval = (params["end"] - params["start"]).total_seconds()
         return int(interval)
+
+
+class TimestampArg(FunctionArg):
+    def __init__(self, name: str):
+        super().__init__(name)
+
+    def normalize(
+        self, value: str, params: ParamsType, combinator: Optional[Combinator]
+    ) -> Optional[float]:
+        if not params or not params.get("start") or not params.get("end"):
+            raise InvalidFunctionArgument("function called without date range")
+
+        try:
+            ts = datetime.fromtimestamp(int(value), tz=timezone.utc)
+        except (OverflowError, ValueError):
+            raise InvalidFunctionArgument(f"{value} is not a timestamp")
+
+        if ts < params["start"] or ts > params["end"]:
+            raise InvalidFunctionArgument("timestamp outside date range")
+
+        return ts
 
 
 class ColumnArg(FunctionArg):
@@ -1065,9 +1103,10 @@ class NumericColumn(ColumnArg):
         self.allow_array_value = allow_array_value
 
     def _normalize(self, value: str) -> str:
+        from sentry.snuba.metrics.naming_layer.mri import is_mri
+
         # This method is written in this way so that `get_type` can always call
         # this even in child classes where `normalize` have been overridden.
-
         # Shortcutting this for now
         # TODO: handle different datasets better here
         if self.spans and value in ["span.duration", "span.self_time"]:
@@ -1076,6 +1115,8 @@ class NumericColumn(ColumnArg):
         if not snuba_column and is_measurement(value):
             return value
         if not snuba_column and is_span_op_breakdown(value):
+            return value
+        if not snuba_column and is_mri(value):
             return value
         if not snuba_column:
             raise InvalidFunctionArgument(f"{value} is not a valid column")
@@ -1486,6 +1527,14 @@ FUNCTIONS = {
             "p75",
             optional_args=[with_default("transaction.duration", NumericColumn("column"))],
             aggregate=["quantile(0.75)", ArgValue("column"), None],
+            result_type_fn=reflective_result_type(),
+            default_result_type="duration",
+            redundant_grouping=True,
+        ),
+        DiscoverFunction(
+            "p90",
+            optional_args=[with_default("transaction.duration", NumericColumn("column"))],
+            aggregate=["quantile(0.90)", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
             redundant_grouping=True,
@@ -2094,6 +2143,7 @@ class MetricArg(FunctionArg):
         allowed_columns: Optional[Sequence[str]] = None,
         allow_custom_measurements: Optional[bool] = True,
         validate_only: Optional[bool] = True,
+        allow_mri: bool = True,
     ):
         """
         :param name: The name of the function, this refers to the name to invoke.
@@ -2110,15 +2160,22 @@ class MetricArg(FunctionArg):
         self.allow_custom_measurements = allow_custom_measurements
         # Normalize the value to check if it is valid, but return the value as-is
         self.validate_only = validate_only
+        # Allows the metric argument to be any MRI.
+        self.allow_mri = allow_mri
 
     def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+        from sentry.snuba.metrics.naming_layer.mri import is_mri
+
+        allowed_column = True
         if self.allowed_columns is not None and len(self.allowed_columns) > 0:
-            if value in self.allowed_columns or (
+            allowed_column = value in self.allowed_columns or (
                 self.allow_custom_measurements and CUSTOM_MEASUREMENT_PATTERN.match(value)
-            ):
-                return value
-            else:
-                raise IncompatibleMetricsQuery(f"{value} is not an allowed column")
+            )
+
+        allowed_mri = self.allow_mri and is_mri(value)
+
+        if not allowed_column and not allowed_mri:
+            raise IncompatibleMetricsQuery(f"{value} is not an allowed column")
 
         return value
 
@@ -2132,10 +2189,10 @@ class MetricsFunction(SnQLFunction):
 
     def __init__(self, *args, **kwargs) -> None:
         self.snql_distribution = kwargs.pop("snql_distribution", None)
-        self.snql_percentile = kwargs.pop("snql_percentile", None)
         self.snql_set = kwargs.pop("snql_set", None)
         self.snql_counter = kwargs.pop("snql_counter", None)
         self.snql_metric_layer = kwargs.pop("snql_metric_layer", None)
+        self.is_percentile = kwargs.pop("is_percentile", False)
         super().__init__(*args, **kwargs)
 
     def validate(self) -> None:
@@ -2151,7 +2208,6 @@ class MetricsFunction(SnQLFunction):
                     self.snql_distribution is not None,
                     self.snql_set is not None,
                     self.snql_counter is not None,
-                    self.snql_percentile is not None,
                     self.snql_column is not None,
                     self.snql_metric_layer is not None,
                 ]
@@ -2172,5 +2228,5 @@ class MetricsFunction(SnQLFunction):
 
 class FunctionDetails(NamedTuple):
     field: str
-    instance: SnQLFunction
+    instance: DiscoverFunction
     arguments: Mapping[str, NormalizedArg]

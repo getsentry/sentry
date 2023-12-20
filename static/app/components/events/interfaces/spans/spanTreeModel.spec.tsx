@@ -1,7 +1,10 @@
 import {waitFor} from 'sentry-test/reactTestingLibrary';
 
 import SpanTreeModel from 'sentry/components/events/interfaces/spans/spanTreeModel';
-import {EnhancedProcessedSpanType} from 'sentry/components/events/interfaces/spans/types';
+import {
+  EnhancedProcessedSpanType,
+  RawSpanType,
+} from 'sentry/components/events/interfaces/spans/types';
 import {
   boundsGenerator,
   generateRootSpan,
@@ -559,8 +562,9 @@ describe('SpanTreeModel', () => {
       throw new Error('event2.entries[0].data is not an array');
     }
 
+    const data = event2.entries[0].data as RawSpanType[];
     for (let i = 0; i < 5; i++) {
-      event2.entries[0].data.push(spanTemplate);
+      data.push(spanTemplate);
     }
 
     const parsedTrace = parseTrace(event2);
@@ -640,8 +644,9 @@ describe('SpanTreeModel', () => {
       throw new Error('event2.entries[0].data is not an array');
     }
 
+    const data = event2.entries[0].data as RawSpanType[];
     for (let i = 0; i < 4; i++) {
-      event2.entries[0].data.push(spanTemplate);
+      data.push(spanTemplate);
     }
 
     const parsedTrace = parseTrace(event2);
@@ -735,15 +740,16 @@ describe('SpanTreeModel', () => {
       throw new Error('event2.entries[0].data is not an array');
     }
 
+    const data = event2.entries[0].data as RawSpanType[];
     for (let i = 0; i < 7; i++) {
-      event2.entries[0].data.push(groupableSpanTemplate);
+      data.push(groupableSpanTemplate);
     }
 
     // This span should not get grouped with the others
-    event2.entries[0].data.push(normalSpanTemplate);
+    data.push(normalSpanTemplate);
 
     for (let i = 0; i < 5; i++) {
-      event2.entries[0].data.push(groupableSpanTemplate);
+      data.push(groupableSpanTemplate);
     }
 
     const parsedTrace = parseTrace(event2);

@@ -1,14 +1,15 @@
+import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import moment from 'moment-timezone';
 
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button, ButtonProps} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DateTime from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import FeatureBadge from 'sentry/components/featureBadge';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {
@@ -17,9 +18,6 @@ import {
   IconEllipsis,
   IconJson,
   IconLink,
-  IconNext,
-  IconOpen,
-  IconPrevious,
   IconWarning,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -34,6 +32,7 @@ import {
   getShortEventId,
 } from 'sentry/utils/events';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
@@ -41,6 +40,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
+import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
 import QuickTrace from './quickTrace';
 
@@ -51,9 +51,9 @@ type GroupEventCarouselProps = {
 };
 
 type GroupEventNavigationProps = {
+  event: Event;
   group: Group;
   isDisabled: boolean;
-  relativeTime: string;
 };
 
 type EventNavigationButtonProps = {
@@ -116,22 +116,15 @@ function EventNavigationButton({
   );
 }
 
-function EventNavigationDropdown({
-  group,
-  relativeTime,
-  isDisabled,
-}: GroupEventNavigationProps) {
+function EventNavigationDropdown({group, event, isDisabled}: GroupEventNavigationProps) {
   const location = useLocation();
   const params = useParams<{eventId?: string}>();
   const theme = useTheme();
   const organization = useOrganization();
   const largeViewport = useMedia(`(min-width: ${theme.breakpoints.large})`);
+  const defaultIssueEvent = useDefaultIssueEvent();
 
-  const isHelpfulEventUiEnabled =
-    organization.features.includes('issue-details-most-helpful-event') &&
-    organization.features.includes('issue-details-most-helpful-event-ui');
-
-  if (!isHelpfulEventUiEnabled || !largeViewport) {
+  if (!largeViewport) {
     return null;
   }
 
@@ -142,7 +135,7 @@ function EventNavigationDropdown({
       case EventNavDropdownOption.OLDEST:
         return params.eventId;
       case undefined:
-        return EventNavDropdownOption.RECOMMENDED;
+        return defaultIssueEvent;
       default:
         return undefined;
     }
@@ -152,12 +145,7 @@ function EventNavigationDropdown({
   const eventNavDropdownOptions = [
     {
       value: EventNavDropdownOption.RECOMMENDED,
-      label: (
-        <div>
-          {t('Recommended')}
-          <FeatureBadge type="new" />
-        </div>
-      ),
+      label: t('Recommended'),
       textValue: t('Recommended'),
       details: t('Event with the most context'),
     },
@@ -185,67 +173,80 @@ function EventNavigationDropdown({
   ];
 
   return (
-    <CompactSelect
-      size="sm"
-      disabled={isDisabled}
-      options={eventNavDropdownOptions}
-      value={!selectedValue ? EventNavDropdownOption.CUSTOM : selectedValue}
-      triggerLabel={
-        !selectedValue ? (
-          <TimeSince date={relativeTime} disabledAbsoluteTooltip />
-        ) : selectedValue === EventNavDropdownOption.RECOMMENDED ? (
-          t('Recommended')
-        ) : undefined
-      }
-      menuWidth={232}
-      onChange={selectedOption => {
-        switch (selectedOption.value) {
-          case EventNavDropdownOption.RECOMMENDED:
-          case EventNavDropdownOption.LATEST:
-          case EventNavDropdownOption.OLDEST:
-            browserHistory.push({
-              pathname: normalizeUrl(
-                makeBaseEventsPath({organization, group}) + selectedOption.value + '/'
-              ),
-              query: {...location.query, referrer: `${selectedOption.value}-event`},
-            });
-            break;
-          case EventNavDropdownOption.ALL:
-            const searchTermWithoutQuery = omit(location.query, 'query');
-            browserHistory.push({
-              pathname: normalizeUrl(
-                `/organizations/${organization.slug}/issues/${group.id}/events/`
-              ),
-              query: searchTermWithoutQuery,
-            });
-            break;
-          default:
-            break;
+    <GuideAnchor target="issue_details_default_event" position="bottom">
+      <CompactSelect
+        size="sm"
+        disabled={isDisabled}
+        options={eventNavDropdownOptions}
+        value={!selectedValue ? EventNavDropdownOption.CUSTOM : selectedValue}
+        triggerLabel={
+          !selectedValue ? (
+            <TimeSince
+              date={event.dateCreated ?? event.dateReceived}
+              disabledAbsoluteTooltip
+            />
+          ) : selectedValue === EventNavDropdownOption.RECOMMENDED ? (
+            t('Recommended')
+          ) : undefined
         }
-      }}
-    />
+        menuWidth={232}
+        onChange={selectedOption => {
+          trackAnalytics('issue_details.event_dropdown_option_selected', {
+            organization,
+            selected_event_type: selectedOption.value,
+            from_event_type: selectedValue ?? EventNavDropdownOption.CUSTOM,
+            event_id: event.id,
+            group_id: group.id,
+          });
+
+          switch (selectedOption.value) {
+            case EventNavDropdownOption.RECOMMENDED:
+            case EventNavDropdownOption.LATEST:
+            case EventNavDropdownOption.OLDEST:
+              browserHistory.push({
+                pathname: normalizeUrl(
+                  makeBaseEventsPath({organization, group}) + selectedOption.value + '/'
+                ),
+                query: {...location.query, referrer: `${selectedOption.value}-event`},
+              });
+              break;
+            case EventNavDropdownOption.ALL:
+              const searchTermWithoutQuery = omit(location.query, 'query');
+              browserHistory.push({
+                pathname: normalizeUrl(
+                  `/organizations/${organization.slug}/issues/${group.id}/events/`
+                ),
+                query: searchTermWithoutQuery,
+              });
+              break;
+            default:
+              break;
+          }
+        }}
+      />
+    </GuideAnchor>
   );
 }
 
-export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarouselProps) {
+type GroupEventActionsProps = {
+  event: Event;
+  group: Group;
+  projectSlug: string;
+};
+
+export function GroupEventActions({event, group, projectSlug}: GroupEventActionsProps) {
   const theme = useTheme();
-  const organization = useOrganization();
-  const location = useLocation();
   const xlargeViewport = useMedia(`(min-width: ${theme.breakpoints.xlarge})`);
+  const organization = useOrganization();
 
   const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
-  const isReplayEnabled = organization.features.includes('session-replay');
-  const latencyThreshold = 30 * 60 * 1000; // 30 minutes
-  const isOverLatencyThreshold =
-    event.dateReceived &&
-    event.dateCreated &&
-    Math.abs(+moment(event.dateReceived) - +moment(event.dateCreated)) > latencyThreshold;
-
-  const hasPreviousEvent = defined(event.previousEventID);
-  const hasNextEvent = defined(event.nextEventID);
+  const isReplayEnabled =
+    organization.features.includes('session-replay') &&
+    projectCanLinkToReplay(group.project);
 
   const downloadJson = () => {
-    const jsonUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${event.id}/json/`;
+    const host = organization.links.regionUrl;
+    const jsonUrl = `${host}/api/0/projects/${organization.slug}/${projectSlug}/events/${event.id}/json/`;
     window.open(jsonUrl);
     trackAnalytics('issue_details.event_json_clicked', {
       organization,
@@ -271,9 +272,107 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
     text: event.id,
   });
 
-  const isHelpfulEventUiEnabled =
-    organization.features.includes('issue-details-most-helpful-event') &&
-    organization.features.includes('issue-details-most-helpful-event-ui');
+  return (
+    <Fragment>
+      <DropdownMenu
+        position="bottom-end"
+        triggerProps={{
+          'aria-label': t('Event Actions Menu'),
+          icon: <IconEllipsis />,
+          showChevron: false,
+          size: BUTTON_SIZE,
+        }}
+        items={[
+          {
+            key: 'copy-event-id',
+            label: t('Copy Event ID'),
+            onAction: copyEventId,
+          },
+          {
+            key: 'copy-event-url',
+            label: t('Copy Event Link'),
+            hidden: xlargeViewport,
+            onAction: copyLink,
+          },
+          {
+            key: 'json',
+            label: `JSON (${formatBytesBase2(event.size)})`,
+            onAction: downloadJson,
+            hidden: xlargeViewport,
+          },
+          {
+            key: 'full-event-discover',
+            label: t('Full Event Details'),
+            hidden: !organization.features.includes('discover-basic'),
+            to: eventDetailsRoute({
+              eventSlug: generateEventSlug({project: projectSlug, id: event.id}),
+              orgSlug: organization.slug,
+            }),
+            onAction: () => {
+              trackAnalytics('issue_details.event_details_clicked', {
+                organization,
+                ...getAnalyticsDataForGroup(group),
+                ...getAnalyticsDataForEvent(event),
+              });
+            },
+          },
+          {
+            key: 'replay',
+            label: t('View Replay'),
+            hidden: !hasReplay || !isReplayEnabled,
+            onAction: () => {
+              const breadcrumbsHeader = document.getElementById('replay');
+              if (breadcrumbsHeader) {
+                breadcrumbsHeader.scrollIntoView({behavior: 'smooth'});
+              }
+              trackAnalytics('issue_details.header_view_replay_clicked', {
+                organization,
+                ...getAnalyticsDataForGroup(group),
+                ...getAnalyticsDataForEvent(event),
+              });
+            },
+          },
+        ]}
+      />
+      {xlargeViewport && (
+        <Button
+          title={t('Copy link to this issue event')}
+          size={BUTTON_SIZE}
+          onClick={copyLink}
+          aria-label={t('Copy Link')}
+          icon={<IconLink />}
+        />
+      )}
+      {xlargeViewport && (
+        <Button
+          title={t('View JSON')}
+          size={BUTTON_SIZE}
+          onClick={downloadJson}
+          aria-label={t('View JSON')}
+          icon={<IconJson />}
+        />
+      )}
+    </Fragment>
+  );
+}
+
+export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarouselProps) {
+  const organization = useOrganization();
+  const location = useLocation();
+
+  const latencyThreshold = 30 * 60 * 1000; // 30 minutes
+  const isOverLatencyThreshold =
+    event.dateReceived &&
+    event.dateCreated &&
+    Math.abs(+moment(event.dateReceived) - +moment(event.dateCreated)) > latencyThreshold;
+
+  const hasPreviousEvent = defined(event.previousEventID);
+  const hasNextEvent = defined(event.nextEventID);
+
+  const {onClick: copyEventId} = useCopyToClipboard({
+    successMessage: t('Event ID copied to clipboard'),
+    text: event.id,
+  });
 
   return (
     <CarouselAndButtonsWrapper>
@@ -326,112 +425,13 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
         <QuickTrace event={event} organization={organization} location={location} />
       </div>
       <ActionsWrapper>
-        <DropdownMenu
-          position="bottom-end"
-          triggerProps={{
-            'aria-label': t('Event Actions Menu'),
-            icon: <IconEllipsis size="xs" />,
-            showChevron: false,
-            size: BUTTON_SIZE,
-          }}
-          items={[
-            {
-              key: 'copy-event-id',
-              label: t('Copy Event ID'),
-              onAction: copyEventId,
-            },
-            {
-              key: 'copy-event-url',
-              label: t('Copy Event Link'),
-              hidden: xlargeViewport,
-              onAction: copyLink,
-            },
-            {
-              key: 'json',
-              label: `JSON (${formatBytesBase2(event.size)})`,
-              onAction: downloadJson,
-              hidden: xlargeViewport,
-            },
-            {
-              key: 'full-event-discover',
-              label: t('Full Event Details'),
-              hidden: !organization.features.includes('discover-basic'),
-              to: eventDetailsRoute({
-                eventSlug: generateEventSlug({project: projectSlug, id: event.id}),
-                orgSlug: organization.slug,
-              }),
-              onAction: () => {
-                trackAnalytics('issue_details.event_details_clicked', {
-                  organization,
-                  ...getAnalyticsDataForGroup(group),
-                  ...getAnalyticsDataForEvent(event),
-                });
-              },
-            },
-            {
-              key: 'replay',
-              label: t('View Replay'),
-              hidden: !hasReplay || !isReplayEnabled,
-              onAction: () => {
-                const breadcrumbsHeader = document.getElementById('breadcrumbs');
-                if (breadcrumbsHeader) {
-                  breadcrumbsHeader.scrollIntoView({behavior: 'smooth'});
-                }
-                trackAnalytics('issue_details.header_view_replay_clicked', {
-                  organization,
-                  ...getAnalyticsDataForGroup(group),
-                  ...getAnalyticsDataForEvent(event),
-                });
-              },
-            },
-          ]}
-        />
-        {xlargeViewport && (
-          <Button
-            title={
-              isHelpfulEventUiEnabled ? t('Copy link to this issue event') : undefined
-            }
-            size={BUTTON_SIZE}
-            onClick={copyLink}
-            aria-label={t('Copy Link')}
-            icon={isHelpfulEventUiEnabled ? <IconLink /> : undefined}
-          >
-            {!isHelpfulEventUiEnabled && 'Copy Link'}
-          </Button>
-        )}
-        {xlargeViewport && (
-          <Button
-            title={isHelpfulEventUiEnabled ? t('View JSON') : undefined}
-            size={BUTTON_SIZE}
-            onClick={downloadJson}
-            aria-label={t('View JSON')}
-            icon={
-              isHelpfulEventUiEnabled ? (
-                <IconJson />
-              ) : (
-                <IconOpen size={BUTTON_ICON_SIZE} />
-              )
-            }
-          >
-            {!isHelpfulEventUiEnabled && 'JSON'}
-          </Button>
-        )}
+        <GroupEventActions event={event} group={group} projectSlug={projectSlug} />
         <EventNavigationDropdown
           isDisabled={!hasPreviousEvent && !hasNextEvent}
           group={group}
-          relativeTime={event.dateCreated ?? event.dateReceived}
+          event={event}
         />
         <NavButtons>
-          {!isHelpfulEventUiEnabled && (
-            <EventNavigationButton
-              group={group}
-              icon={<IconPrevious size={BUTTON_ICON_SIZE} />}
-              disabled={!hasPreviousEvent}
-              title={t('First Event')}
-              eventId="oldest"
-              referrer="oldest-event"
-            />
-          )}
           <EventNavigationButton
             group={group}
             icon={<IconChevron direction="left" size={BUTTON_ICON_SIZE} />}
@@ -448,16 +448,6 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
             eventId={event.nextEventID}
             referrer="next-event"
           />
-          {!isHelpfulEventUiEnabled && (
-            <EventNavigationButton
-              group={group}
-              icon={<IconNext size={BUTTON_ICON_SIZE} />}
-              disabled={!hasNextEvent}
-              title={t('Latest Event')}
-              eventId="latest"
-              referrer="latest-event"
-            />
-          )}
         </NavButtons>
       </ActionsWrapper>
     </CarouselAndButtonsWrapper>

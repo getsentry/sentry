@@ -1,10 +1,10 @@
-from sentry.models import ArtifactBundleFlatFileIndex
+from sentry.models.artifactbundle import ArtifactBundleFlatFileIndex
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ArtifactBundleTest(TestCase):
     @staticmethod
     def mock_flat_file_index_contents_with_urls():

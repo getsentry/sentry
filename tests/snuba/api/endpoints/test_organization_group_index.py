@@ -7,42 +7,38 @@ from dateutil.parser import parse as parse_datetime
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
-from freezegun import freeze_time
 from rest_framework import status
 
 from sentry import options
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType, PerformanceSlowDBQueryGroupType
-from sentry.models import (
-    GROUP_OWNER_TYPE,
-    Activity,
-    ApiToken,
-    ExternalIssue,
-    Group,
-    GroupAssignee,
-    GroupBookmark,
-    GroupHash,
-    GroupHistory,
+from sentry.models.activity import Activity
+from sentry.models.apitoken import ApiToken
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupbookmark import GroupBookmark
+from sentry.models.grouphash import GroupHash
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, record_group_history
+from sentry.models.groupinbox import (
     GroupInbox,
     GroupInboxReason,
-    GroupLink,
-    GroupOwner,
-    GroupOwnerType,
-    GroupResolution,
-    GroupSeen,
-    GroupShare,
-    GroupSnooze,
-    GroupStatus,
-    GroupSubscription,
-    GroupTombstone,
-    Integration,
-    OrganizationIntegration,
-    Release,
-    ReleaseStages,
-    UserOption,
     add_group_to_inbox,
     remove_group_from_inbox,
 )
-from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+from sentry.models.grouplink import GroupLink
+from sentry.models.groupowner import GROUP_OWNER_TYPE, GroupOwner, GroupOwnerType
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.groupseen import GroupSeen
+from sentry.models.groupshare import GroupShare
+from sentry.models.groupsnooze import GroupSnooze
+from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.grouptombstone import GroupTombstone
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.options.user_option import UserOption
+from sentry.models.release import Release
+from sentry.models.releaseprojectenvironment import ReleaseStages
+from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
@@ -52,7 +48,7 @@ from sentry.search.events.constants import (
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.features import Feature, with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.activity import ActivityType
@@ -60,7 +56,7 @@ from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupListTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
 
@@ -1456,7 +1452,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_response(
             sort_by="date",
             limit=10,
-            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}",
+            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED.value}",
             environment=self.environment.name,
         )
         assert response.status_code == 200, response.content
@@ -1468,21 +1464,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_response(
             sort_by="date",
             limit=10,
-            query=f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION}",
-            environment=self.environment.name,
-        )
-        assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
-            adopted_release_g_1,
-            adopted_release_g_2,
-            replaced_release_g_1,
-            replaced_release_g_2,
-        ]
-
-        response = self.get_response(
-            sort_by="date",
-            limit=10,
-            query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED}, {ReleaseStages.REPLACED}]",
+            query=f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION.value}",
             environment=self.environment.name,
         )
         assert response.status_code == 200, response.content
@@ -1496,7 +1478,21 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_response(
             sort_by="date",
             limit=10,
-            query=f"!{RELEASE_STAGE_ALIAS}:[{ReleaseStages.LOW_ADOPTION}, {ReleaseStages.REPLACED}]",
+            query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED.value}, {ReleaseStages.REPLACED.value}]",
+            environment=self.environment.name,
+        )
+        assert response.status_code == 200, response.content
+        assert [int(r["id"]) for r in response.json()] == [
+            adopted_release_g_1,
+            adopted_release_g_2,
+            replaced_release_g_1,
+            replaced_release_g_2,
+        ]
+
+        response = self.get_response(
+            sort_by="date",
+            limit=10,
+            query=f"!{RELEASE_STAGE_ALIAS}:[{ReleaseStages.LOW_ADOPTION.value}, {ReleaseStages.REPLACED.value}]",
             environment=self.environment.name,
         )
         assert response.status_code == 200, response.content
@@ -1718,6 +1714,30 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
         assert response.data[0]["inbox"]["reason_details"] is None
 
+    def test_expand_plugin_actions_and_issues(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        query = "status:unresolved"
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date", limit=10, query=query, expand=["pluginActions", "pluginIssues"]
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert response.data[0]["pluginActions"] is not None
+        assert response.data[0]["pluginIssues"] is not None
+
+        # Test with no expand
+        response = self.get_response(sort_by="date", limit=10, query=query)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert "pluginActions" not in response.data[0]
+        assert "pluginIssues" not in response.data[0]
+
     def test_expand_owners(self):
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -1922,6 +1942,133 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event.group.id
 
+    @with_feature("organizations:issue-stream-performance")
+    def test_collapse_unhandled(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date", limit=10, query="is:unresolved", collapse=["unhandled"]
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert "isUnhandled" not in response.data[0]
+
+    def test_selected_saved_search(self):
+        saved_search = SavedSearch.objects.create(
+            name="Saved Search",
+            query="ZeroDivisionError",
+            organization=self.organization,
+            owner_id=self.user.id,
+        )
+        event = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=500)),
+                "fingerprint": ["group-1"],
+                "message": "ZeroDivisionError",
+            },
+            project_id=self.project.id,
+        )
+
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=500)),
+                "fingerprint": ["group-2"],
+                "message": "TypeError",
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date",
+            limit=10,
+            collapse=["unhandled"],
+            savedSearch=0,
+            searchId=saved_search.id,
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+
+    def test_pinned_saved_search(self):
+        SavedSearch.objects.create(
+            name="Saved Search",
+            query="ZeroDivisionError",
+            organization=self.organization,
+            owner_id=self.user.id,
+            visibility=Visibility.OWNER_PINNED,
+        )
+        event = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=500)),
+                "fingerprint": ["group-1"],
+                "message": "ZeroDivisionError",
+            },
+            project_id=self.project.id,
+        )
+
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=500)),
+                "fingerprint": ["group-2"],
+                "message": "TypeError",
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date",
+            limit=10,
+            collapse=["unhandled"],
+            savedSearch=0,
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+
+    def test_pinned_saved_search_with_query(self):
+        SavedSearch.objects.create(
+            name="Saved Search",
+            query="TypeError",
+            organization=self.organization,
+            owner_id=self.user.id,
+            visibility=Visibility.OWNER_PINNED,
+        )
+        event = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=500)),
+                "fingerprint": ["group-1"],
+                "message": "ZeroDivisionError",
+            },
+            project_id=self.project.id,
+        )
+
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=500)),
+                "fingerprint": ["group-2"],
+                "message": "TypeError",
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date",
+            limit=10,
+            collapse=["unhandled"],
+            query="ZeroDivisionError",
+            savedSearch=0,
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+
     def test_query_status_and_substatus_overlapping(self):
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -2031,7 +2178,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
     method = "put"
@@ -3369,7 +3516,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         ).exists()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupDeleteTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
     method = "delete"

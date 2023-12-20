@@ -106,9 +106,12 @@ FLAG_RATE = 1 << 9
 FLAG_BOOL = 1 << 10
 # Value can be dynamically updated by automator
 FLAG_AUTOMATOR_MODIFIABLE = 1 << 11
+# Values that are scalar numeric integer values
+FLAG_SCALAR = 1 << 12
 
 FLAG_MODIFIABLE_RATE = FLAG_ADMIN_MODIFIABLE | FLAG_RATE
 FLAG_MODIFIABLE_BOOL = FLAG_ADMIN_MODIFIABLE | FLAG_BOOL
+FLAG_MODIFIABLE_SCALAR = FLAG_ADMIN_MODIFIABLE | FLAG_SCALAR
 
 # These flags combinations prevent the `register` method from succeeding.
 INVALID_COMBINATIONS = {
@@ -118,6 +121,10 @@ INVALID_COMBINATIONS = {
     FLAG_AUTOMATOR_MODIFIABLE | FLAG_NOSTORE,
     FLAG_AUTOMATOR_MODIFIABLE | FLAG_IMMUTABLE,
     FLAG_AUTOMATOR_MODIFIABLE | FLAG_CREDENTIAL,
+    # A flag may only be one of a bool, rate, or scalar.
+    FLAG_RATE | FLAG_BOOL,
+    FLAG_BOOL | FLAG_SCALAR,
+    FLAG_SCALAR | FLAG_RATE,
     # An option being required does not strictly mean that it cannot be updated by
     # the Automator. The issue is on why they exist. Most of them are set by the
     # application itself during the first initialization.
@@ -209,7 +216,6 @@ class OptionsManager:
         try:
             return self.registry[key]
         except KeyError:
-
             # HACK: Historically, Options were used for random ad hoc things.
             # Fortunately, they all share the same prefix, 'sentry:', so
             # we special case them here and construct a faux key until we migrate.

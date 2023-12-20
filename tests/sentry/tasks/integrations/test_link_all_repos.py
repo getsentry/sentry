@@ -1,41 +1,26 @@
-from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
 import responses
 from django.db import IntegrityError
-from django.utils import timezone
 
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.models.repository import Repository
-from sentry.shared_integrations.exceptions.base import ApiError
-from sentry.snuba.sessions_v2 import isoformat_z
+from sentry.shared_integrations.exceptions import ApiError
+from sentry.silo import SiloMode
 from sentry.tasks.integrations.link_all_repos import link_all_repos
 from sentry.testutils.cases import IntegrationTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@region_silo_test(stable=True)
+@control_silo_test
 @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
 class LinkAllReposTestCase(IntegrationTestCase):
     provider = GitHubIntegrationProvider
     base_url = "https://api.github.com"
     key = "github"
 
-    def setUp(self):
-        super().setUp()
-        self.installation_id = "github:1"
-        self.user_id = "user_1"
-        self.app_id = "app_1"
-        self.access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
-        self.expires_at = isoformat_z(timezone.now() + timedelta(days=365))
-
     def _add_responses(self):
-        responses.add(
-            responses.POST,
-            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
-            json={"token": self.access_token, "expires_at": self.expires_at},
-        )
         responses.add(
             responses.GET,
             self.base_url + "/installation/repositories?per_page=100",
@@ -65,7 +50,8 @@ class LinkAllReposTestCase(IntegrationTestCase):
             organization_id=self.organization.id,
         )
 
-        repos = Repository.objects.all()
+        with assume_test_silo_mode(SiloMode.REGION):
+            repos = Repository.objects.all()
         assert len(repos) == 2
 
         for repo in repos:
@@ -77,11 +63,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
 
     @responses.activate
     def test_link_all_repos_api_response_keyerror(self, _):
-        responses.add(
-            responses.POST,
-            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
-            json={"token": self.access_token, "expires_at": self.expires_at},
-        )
+
         responses.add(
             responses.GET,
             self.base_url + "/installation/repositories?per_page=100",
@@ -106,7 +88,8 @@ class LinkAllReposTestCase(IntegrationTestCase):
             organization_id=self.organization.id,
         )
 
-        repos = Repository.objects.all()
+        with assume_test_silo_mode(SiloMode.REGION):
+            repos = Repository.objects.all()
         assert len(repos) == 1
 
         assert repos[0].organization_id == self.organization.id
@@ -139,11 +122,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
     @patch("sentry.tasks.integrations.link_all_repos.metrics")
     @responses.activate
     def test_link_all_repos_api_error(self, mock_metrics, _):
-        responses.add(
-            responses.POST,
-            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
-            json={"token": self.access_token, "expires_at": self.expires_at},
-        )
+
         responses.add(
             responses.GET,
             self.base_url + "/installation/repositories?per_page=100",
@@ -161,11 +140,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
     @patch("sentry.integrations.github.integration.metrics")
     @responses.activate
     def test_link_all_repos_api_error_rate_limited(self, mock_metrics, _):
-        responses.add(
-            responses.POST,
-            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
-            json={"token": self.access_token, "expires_at": self.expires_at},
-        )
+
         responses.add(
             responses.GET,
             self.base_url + "/installation/repositories?per_page=100",

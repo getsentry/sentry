@@ -1,4 +1,7 @@
 import selectEvent from 'react-select-event';
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -10,7 +13,7 @@ describe('Discover > Landing', function () {
   const features = ['discover-basic', 'discover-query'];
 
   beforeEach(function () {
-    ProjectsStore.loadInitialData([TestStubs.Project()]);
+    ProjectsStore.loadInitialData([ProjectFixture()]);
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -72,7 +75,7 @@ describe('Discover > Landing', function () {
   it('denies access on missing feature', function () {
     render(
       <DiscoverLanding
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         {...TestStubs.routeComponentProps()}
       />
     );
@@ -81,7 +84,7 @@ describe('Discover > Landing', function () {
   });
 
   it('has the right sorts', function () {
-    const org = TestStubs.Organization({features});
+    const org = Organization({features});
 
     render(<DiscoverLanding organization={org} {...TestStubs.routeComponentProps()} />);
 
@@ -106,10 +109,10 @@ describe('Discover > Landing', function () {
   });
 
   it('links back to the homepage', () => {
-    const org = TestStubs.Organization({features});
+    const org = Organization({features});
 
     render(<DiscoverLanding organization={org} {...TestStubs.routeComponentProps()} />, {
-      context: TestStubs.routerContext(),
+      context: RouterContextFixture(),
     });
 
     expect(screen.getByText('Discover')).toHaveAttribute(

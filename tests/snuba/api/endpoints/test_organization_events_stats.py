@@ -1,12 +1,11 @@
 import uuid
-from datetime import timedelta
+from datetime import timedelta, timezone
 from unittest import mock
 from uuid import uuid4
 
 import pytest
 from dateutil.parser import parse as parse_date
 from django.urls import reverse
-from pytz import utc
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function
@@ -15,7 +14,7 @@ from sentry.constants import MAX_TOP_EVENTS
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.snuba.discover import OTHER_KEY
-from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, ProfilesSnubaTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
@@ -39,36 +38,37 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         self.project2 = self.create_project()
         self.user = self.create_user()
         self.user2 = self.create_user()
-        self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "very bad",
-                "timestamp": iso_format(self.day_ago + timedelta(minutes=1)),
-                "fingerprint": ["group1"],
-                "tags": {"sentry:user": self.user.email},
-            },
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={
-                "event_id": "b" * 32,
-                "message": "oh my",
-                "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=1)),
-                "fingerprint": ["group2"],
-                "tags": {"sentry:user": self.user2.email},
-            },
-            project_id=self.project2.id,
-        )
-        self.store_event(
-            data={
-                "event_id": "c" * 32,
-                "message": "very bad",
-                "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=2)),
-                "fingerprint": ["group2"],
-                "tags": {"sentry:user": self.user2.email},
-            },
-            project_id=self.project2.id,
-        )
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "message": "very bad",
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=1)),
+                    "fingerprint": ["group1"],
+                    "tags": {"sentry:user": self.user.email},
+                },
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={
+                    "event_id": "b" * 32,
+                    "message": "oh my",
+                    "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=1)),
+                    "fingerprint": ["group2"],
+                    "tags": {"sentry:user": self.user2.email},
+                },
+                project_id=self.project2.id,
+            )
+            self.store_event(
+                data={
+                    "event_id": "c" * 32,
+                    "message": "very bad",
+                    "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=2)),
+                    "fingerprint": ["group2"],
+                    "tags": {"sentry:user": self.user2.email},
+                },
+                project_id=self.project2.id,
+            )
         self.url = reverse(
             "sentry-api-0-organization-events-stats",
             kwargs={"organization_slug": self.project.organization.slug},
@@ -99,7 +99,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=utc),
+            self.day_ago.replace(tzinfo=timezone.utc),
         )
         assert group_info is not None
         self.store_search_issue(
@@ -107,14 +107,14 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=utc) + timedelta(hours=1, minutes=1),
+            self.day_ago.replace(tzinfo=timezone.utc) + timedelta(hours=1, minutes=1),
         )
         self.store_search_issue(
             self.project.id,
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=utc) + timedelta(hours=1, minutes=2),
+            self.day_ago.replace(tzinfo=timezone.utc) + timedelta(hours=1, minutes=2),
         )
         with self.feature(
             [
@@ -142,7 +142,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=utc) + timedelta(minutes=1),
+            self.day_ago.replace(tzinfo=timezone.utc) + timedelta(minutes=1),
         )
         assert group_info is not None
         self.store_search_issue(
@@ -150,14 +150,14 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=utc) + timedelta(minutes=1),
+            self.day_ago.replace(tzinfo=timezone.utc) + timedelta(minutes=1),
         )
         self.store_search_issue(
             self.project.id,
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=utc) + timedelta(minutes=2),
+            self.day_ago.replace(tzinfo=timezone.utc) + timedelta(minutes=2),
         )
         with self.feature(
             [
@@ -175,6 +175,31 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             )
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 3}], [{"count": 0}]]
+
+    def test_errors_dataset(self):
+        response = self.do_request(
+            {
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "dataset": "errors",
+                "query": "is:unresolved",
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
+
+    def test_errors_dataset_no_query(self):
+        response = self.do_request(
+            {
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "dataset": "errors",
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
 
     def test_misaligned_last_bucket(self):
         response = self.do_request(
@@ -842,7 +867,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
 
     @mock.patch("sentry.utils.snuba.quantize_time")
     def test_quantize_dates(self, mock_quantize):
-        mock_quantize.return_value = before_now(days=1).replace(tzinfo=utc)
+        mock_quantize.return_value = before_now(days=1).replace(tzinfo=timezone.utc)
         # Don't quantize short time periods
         self.do_request(
             data={"statsPeriod": "1h", "query": "", "interval": "30m", "yAxis": "count()"},
@@ -1710,8 +1735,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "end": iso_format(self.day_ago + timedelta(hours=2)),
                     "interval": "1h",
                     "yAxis": "count()",
-                    "orderby": ["-p99()"],
-                    "field": ["transaction", "avg(transaction.duration)", "p99()"],
+                    "orderby": ["-p90()"],
+                    "field": ["transaction", "avg(transaction.duration)", "p90()"],
                     "topEvents": 5,
                 },
                 format="json",
@@ -2527,6 +2552,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
         assert "Other" not in response.data
 
+    @pytest.mark.xfail(reason="Started failing on ClickHouse 21.8")
     def test_top_events_with_equation_including_unselected_fields_passes_field_validation(self):
         with self.feature(self.enabled_features):
             response = self.client.get(
@@ -2569,3 +2595,142 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             )
 
         assert response.status_code == 200
+
+
+@region_silo_test
+class OrganizationEventsStatsProfileFunctionDatasetEndpointTest(
+    APITestCase, ProfilesSnubaTestCase, SearchIssueTestMixin
+):
+    endpoint = "sentry-api-0-organization-events-stats"
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+
+        self.one_day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
+        self.two_days_ago = before_now(days=2).replace(hour=10, minute=0, second=0, microsecond=0)
+        self.three_days_ago = before_now(days=3).replace(hour=10, minute=0, second=0, microsecond=0)
+
+        self.project = self.create_project()
+
+        self.url = reverse(
+            "sentry-api-0-organization-events-stats",
+            kwargs={"organization_slug": self.project.organization.slug},
+        )
+
+    def test_functions_dataset_simple(self):
+        self.store_functions(
+            [
+                {
+                    "self_times_ns": [100 for _ in range(100)],
+                    "package": "foo",
+                    "function": "bar",
+                    "in_app": True,
+                },
+            ],
+            project=self.project,
+            timestamp=self.two_days_ago,
+        )
+
+        data = {
+            "dataset": "profileFunctions",
+            "start": iso_format(self.three_days_ago),
+            "end": iso_format(self.one_day_ago),
+            "interval": "1d",
+            "yAxis": ["cpm()", "p95(function.duration)"],
+        }
+
+        response = self.client.get(self.url, data=data, format="json")
+        assert response.status_code == 200, response.content
+
+        assert sum(row[1][0]["count"] for row in response.data["cpm()"]["data"]) == pytest.approx(
+            100 / ((self.one_day_ago - self.three_days_ago).total_seconds() / 60), rel=1e-3
+        )
+        assert any(
+            row[1][0]["count"] > 0 for row in response.data["p95(function.duration)"]["data"]
+        )
+
+        for y_axis in ["cpm()", "p95(function.duration)"]:
+            assert response.data[y_axis]["meta"]["fields"] == {
+                "time": "date",
+                "cpm": "number",
+                "p95_function_duration": "duration",
+            }
+            assert response.data[y_axis]["meta"]["units"] == {
+                "time": None,
+                "cpm": None,
+                "p95_function_duration": "nanosecond",
+            }
+
+
+@region_silo_test
+class OrganizationEventsStatsTopNEventsProfileFunctionDatasetEndpointTest(
+    APITestCase, ProfilesSnubaTestCase, SearchIssueTestMixin
+):
+    endpoint = "sentry-api-0-organization-events-stats"
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+
+        self.one_day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
+        self.two_days_ago = before_now(days=2).replace(hour=10, minute=0, second=0, microsecond=0)
+        self.three_days_ago = before_now(days=3).replace(hour=10, minute=0, second=0, microsecond=0)
+
+        self.project = self.create_project()
+
+        self.url = reverse(
+            "sentry-api-0-organization-events-stats",
+            kwargs={"organization_slug": self.project.organization.slug},
+        )
+
+    def test_functions_dataset_simple(self):
+        self.store_functions(
+            [
+                {
+                    "self_times_ns": [100 for _ in range(100)],
+                    "package": "pkg",
+                    "function": "foo",
+                    "in_app": True,
+                },
+                {
+                    "self_times_ns": [100 for _ in range(10)],
+                    "package": "pkg",
+                    "function": "bar",
+                    "in_app": True,
+                },
+            ],
+            project=self.project,
+            timestamp=self.two_days_ago,
+        )
+
+        data = {
+            "dataset": "profileFunctions",
+            "field": ["function", "count()"],
+            "start": iso_format(self.three_days_ago),
+            "end": iso_format(self.one_day_ago),
+            "yAxis": ["cpm()", "p95(function.duration)"],
+            "interval": "1d",
+            "topEvents": 2,
+            "excludeOther": 1,
+        }
+
+        response = self.client.get(self.url, data=data, format="json")
+        assert response.status_code == 200, response.content
+        assert sum(
+            row[1][0]["count"] for row in response.data["foo"]["cpm()"]["data"]
+        ) == pytest.approx(
+            100 / ((self.one_day_ago - self.three_days_ago).total_seconds() / 60), rel=1e-3
+        )
+        assert sum(
+            row[1][0]["count"] for row in response.data["bar"]["cpm()"]["data"]
+        ) == pytest.approx(
+            10 / ((self.one_day_ago - self.three_days_ago).total_seconds() / 60), rel=1e-3
+        )
+
+        assert any(
+            row[1][0]["count"] > 0 for row in response.data["foo"]["p95(function.duration)"]["data"]
+        )
+        assert any(
+            row[1][0]["count"] > 0 for row in response.data["bar"]["p95(function.duration)"]["data"]
+        )

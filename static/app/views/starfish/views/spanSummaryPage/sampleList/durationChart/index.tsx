@@ -1,29 +1,61 @@
-import {useTheme} from '@emotion/react';
+import {Theme, useTheme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
 import {EChartClickHandler, EChartHighlightHandler, Series} from 'sentry/types/echarts';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {AVG_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
-import {isNearBaseline} from 'sentry/views/starfish/components/samplesTable/common';
+import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import {isNearAverage} from 'sentry/views/starfish/components/samplesTable/common';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {SpanSample, useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
-import {SpanMetricsFields} from 'sentry/views/starfish/types';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+import {SpanMetricsField, SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
+import {
+  crossIconPath,
+  downwardPlayIconPath,
+  upwardPlayIconPath,
+} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/symbol';
 
-const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsFields;
+const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
 type Props = {
   groupId: string;
-  transactionMethod: string;
   transactionName: string;
+  additionalFields?: string[];
   highlightedSpanId?: string;
   onClickSample?: (sample: SpanSample) => void;
   onMouseLeaveSample?: () => void;
   onMouseOverSample?: (sample: SpanSample) => void;
+  query?: string[];
+  release?: string;
   spanDescription?: string;
+  transactionMethod?: string;
 };
+
+export function getSampleSymbol(
+  duration: number,
+  compareToDuration: number,
+  theme: Theme
+): {color: string; symbol: string} {
+  if (isNearAverage(duration, compareToDuration)) {
+    return {
+      symbol: crossIconPath,
+      color: theme.gray500,
+    };
+  }
+
+  return duration > compareToDuration
+    ? {
+        symbol: upwardPlayIconPath,
+        color: theme.red300,
+      }
+    : {
+        symbol: downwardPlayIconPath,
+        color: theme.green300,
+      };
+}
 
 function DurationChart({
   groupId,
@@ -33,49 +65,47 @@ function DurationChart({
   onMouseOverSample,
   highlightedSpanId,
   transactionMethod,
+  additionalFields,
+  release,
+  query,
 }: Props) {
   const theme = useTheme();
   const {setPageError} = usePageError();
+  const pageFilter = usePageFilters();
 
-  const getSampleSymbol = (
-    duration: number,
-    compareToDuration: number
-  ): {color: string; symbol: string} => {
-    if (isNearBaseline(duration, compareToDuration)) {
-      return {
-        symbol: 'path://M 0 0 V -8 L 5 0 L 0 8 L -5 0 L 0 -8',
-        color: theme.gray300,
-      };
-    }
-
-    return duration > compareToDuration
-      ? {
-          symbol: 'path://M 5 4 L 0 -4 L -5 4 L 5 4',
-          color: theme.red300,
-        }
-      : {
-          symbol: 'path://M -5 -4 L 0 4 L 5 -4 L -5 -4',
-          color: theme.green300,
-        };
+  const filters: SpanMetricsQueryFilters = {
+    'span.group': groupId,
+    transaction: transactionName,
   };
+
+  if (transactionMethod) {
+    filters['transaction.method'] = transactionMethod;
+  }
+
+  if (release) {
+    filters.release = release;
+  }
 
   const {
     isLoading,
     data: spanMetricsSeriesData,
     error: spanMetricsSeriesError,
   } = useSpanMetricsSeries(
-    groupId,
-    {transactionName, 'transaction.method': transactionMethod},
+    filters,
     [`avg(${SPAN_SELF_TIME})`],
     'api.starfish.sidebar-span-metrics-chart'
   );
 
-  const {data: spanMetrics, error: spanMetricsError} = useSpanMetrics(
-    groupId,
-    {transactionName, 'transaction.method': transactionMethod},
+  const {data, error: spanMetricsError} = useSpanMetrics(
+    filters,
     [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
+    undefined,
+    undefined,
+    undefined,
     'api.starfish.span-summary-panel-samples-table-avg'
   );
+
+  const spanMetrics = data[0] ?? {};
 
   const avg = spanMetrics?.[`avg(${SPAN_SELF_TIME})`] || 0;
 
@@ -87,6 +117,9 @@ function DurationChart({
     groupId,
     transactionName,
     transactionMethod,
+    release,
+    query,
+    additionalFields,
   });
 
   const baselineAvgSeries: Series = {
@@ -100,9 +133,11 @@ function DurationChart({
       },
       emphasis: {disabled: true},
       label: {
-        fontSize: 11,
         position: 'insideEndBottom',
-        formatter: () => 'Average',
+        formatter: () => `Average`,
+        fontSize: 14,
+        color: theme.chartLabel,
+        backgroundColor: theme.chartOther,
       },
     },
   };
@@ -113,18 +148,21 @@ function DurationChart({
       [SPAN_SELF_TIME]: duration,
       'transaction.id': transaction_id,
       span_id,
-    }) => ({
-      data: [
-        {
-          name: timestamp,
-          value: duration,
-        },
-      ],
-      symbol: getSampleSymbol(duration, avg).symbol,
-      color: getSampleSymbol(duration, avg).color,
-      symbolSize: span_id === highlightedSpanId ? 15 : 10,
-      seriesName: transaction_id.substring(0, 8),
-    })
+    }) => {
+      const {symbol, color} = getSampleSymbol(duration, avg, theme);
+      return {
+        data: [
+          {
+            name: timestamp,
+            value: duration,
+          },
+        ],
+        symbol,
+        color,
+        symbolSize: span_id === highlightedSpanId ? 19 : 14,
+        seriesName: transaction_id.substring(0, 8),
+      };
+    }
   );
 
   const getSample = (timestamp: string, duration: number) => {
@@ -168,27 +206,31 @@ function DurationChart({
     setPageError(t('An error has occured while loading chart data'));
   }
 
+  const subtitle = pageFilter.selection.datetime.period
+    ? t('Last %s', pageFilter.selection.datetime.period)
+    : t('Last period');
+
   return (
-    <div onMouseLeave={handleMouseLeave}>
-      <h5>{DataTitles.avg}</h5>
-      <Chart
-        height={140}
-        onClick={handleChartClick}
-        onHighlight={handleChartHighlight}
-        aggregateOutputFormat="duration"
-        data={[spanMetricsSeriesData?.[`avg(${SPAN_SELF_TIME})`], baselineAvgSeries]}
-        loading={isLoading}
-        scatterPlot={
-          areSpanSamplesLoading || areSpanSamplesRefetching
-            ? undefined
-            : sampledSpanDataSeries
-        }
-        utc={false}
-        chartColors={[AVG_COLOR, 'black']}
-        isLineChart
-        definedAxisTicks={4}
-      />
-    </div>
+    <ChartPanel title={t('Average Duration')} subtitle={subtitle}>
+      <div onMouseLeave={handleMouseLeave}>
+        <Chart
+          height={140}
+          onClick={handleChartClick}
+          onHighlight={handleChartHighlight}
+          aggregateOutputFormat="duration"
+          data={[spanMetricsSeriesData?.[`avg(${SPAN_SELF_TIME})`], baselineAvgSeries]}
+          loading={isLoading}
+          scatterPlot={
+            areSpanSamplesLoading || areSpanSamplesRefetching
+              ? undefined
+              : sampledSpanDataSeries
+          }
+          chartColors={[AVG_COLOR, 'black']}
+          isLineChart
+          definedAxisTicks={4}
+        />
+      </div>
+    </ChartPanel>
   );
 }
 

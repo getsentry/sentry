@@ -5,6 +5,7 @@ from typing import Any
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -13,7 +14,7 @@ from sentry.db.models.fields.jsonfield import JSONField
 
 @region_silo_only_model
 class DashboardProject(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")
     dashboard = FlexibleForeignKey("sentry.Dashboard")
@@ -30,7 +31,7 @@ class Dashboard(Model):
     A dashboard.
     """
 
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     title = models.CharField(max_length=255)
     created_by_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
@@ -78,7 +79,7 @@ class DashboardTombstone(Model):
     has been replaced or deleted for an organization.
     """
 
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     slug = models.CharField(max_length=255)
     organization = FlexibleForeignKey("sentry.Organization")

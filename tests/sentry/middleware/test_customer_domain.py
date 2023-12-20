@@ -1,4 +1,9 @@
+from __future__ import annotations
+
+from unittest import mock
+
 from django.conf import settings
+from django.contrib.sessions.backends.base import SessionBase
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
 from django.urls import re_path, reverse
@@ -8,26 +13,30 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint
 from sentry.middleware.customer_domain import CustomerDomainMiddleware
 from sentry.testutils.cases import APITestCase, TestCase
-from sentry.testutils.region import override_region_config
-from sentry.testutils.silo import control_silo_test
-from sentry.types.region import RegionCategory, clear_global_regions
+from sentry.testutils.helpers import with_feature
+from sentry.testutils.silo import all_silo_test, create_test_regions, no_silo_test
 from sentry.web.frontend.auth_logout import AuthLogoutView
 
 
-@override_settings(
-    SENTRY_USE_CUSTOMER_DOMAINS=True,
-)
+def _session(d: dict[str, str]) -> SessionBase:
+    ret = SessionBase()
+    ret.update(d)
+    return ret
+
+
+@all_silo_test(regions=create_test_regions("us", "eu"))
+@override_settings(SENTRY_USE_CUSTOMER_DOMAINS=True)
 class CustomerDomainMiddlewareTest(TestCase):
     def test_sets_active_organization_if_exists(self):
         self.create_organization(name="test")
 
         request = RequestFactory().get("/")
         request.subdomain = "test"
-        request.session = {"activeorg": "albertos-apples"}
-        response = CustomerDomainMiddleware(lambda request: request)(request)
+        request.session = _session({"activeorg": "albertos-apples"})
+        response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
 
-        assert request.session == {"activeorg": "test"}
-        assert response == request
+        assert dict(request.session) == {"activeorg": "test"}
+        assert response == mock.sentinel.response
 
     def test_noop_if_customer_domain_is_off(self):
 
@@ -36,21 +45,21 @@ class CustomerDomainMiddlewareTest(TestCase):
 
             request = RequestFactory().get("/")
             request.subdomain = "test"
-            request.session = {"activeorg": "albertos-apples"}
-            response = CustomerDomainMiddleware(lambda request: request)(request)
+            request.session = _session({"activeorg": "albertos-apples"})
+            response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
 
-            assert request.session == {"activeorg": "albertos-apples"}
-            assert response == request
+            assert dict(request.session) == {"activeorg": "albertos-apples"}
+            assert response == mock.sentinel.response
 
     def test_recycles_last_active_org(self):
         self.create_organization(name="test")
 
         request = RequestFactory().get("/organizations/test/issues/")
         request.subdomain = "does-not-exist"
-        request.session = {"activeorg": "test"}
-        response = CustomerDomainMiddleware(lambda request: request)(request)
+        request.session = _session({"activeorg": "test"})
+        response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
 
-        assert request.session == {"activeorg": "test"}
+        assert dict(request.session) == {"activeorg": "test"}
         assert response.status_code == 302
         assert response["Location"] == "http://test.testserver/organizations/test/issues/"
 
@@ -59,101 +68,101 @@ class CustomerDomainMiddlewareTest(TestCase):
 
         request = RequestFactory().get("/organizations/albertos-apples/issues/")
         request.subdomain = "does-not-exist"
-        request.session = {"activeorg": "test"}
-        response = CustomerDomainMiddleware(lambda request: request)(request)
+        request.session = _session({"activeorg": "test"})
+        response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
 
-        assert request.session == {"activeorg": "test"}
+        assert dict(request.session) == {"activeorg": "test"}
         assert response.status_code == 302
         assert response["Location"] == "http://test.testserver/organizations/test/issues/"
 
     def test_removes_active_organization(self):
         request = RequestFactory().get("/")
         request.subdomain = "does-not-exist"
-        request.session = {"activeorg": "test"}
-        response = CustomerDomainMiddleware(lambda request: request)(request)
+        request.session = _session({"activeorg": "test"})
+        response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
 
-        assert request.session == {}
-        assert response == request
+        assert dict(request.session) == {}
+        assert response == mock.sentinel.response
 
     def test_no_session_dict(self):
         request = RequestFactory().get("/")
         request.subdomain = "test"
-        CustomerDomainMiddleware(lambda request: request)(request)
+        CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
 
-        assert "session" not in request
+        assert not hasattr(request, "session")
 
         self.create_organization(name="test")
         request = RequestFactory().get("/")
         request.subdomain = "test"
-        response = CustomerDomainMiddleware(lambda request: request)(request)
+        response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
 
-        assert "session" not in request
-        assert response == request
+        assert not hasattr(request, "session")
+        assert response == mock.sentinel.response
 
     def test_no_subdomain(self):
         request = RequestFactory().get("/")
-        request.session = {"activeorg": "test"}
-        response = CustomerDomainMiddleware(lambda request: request)(request)
+        request.session = _session({"activeorg": "test"})
+        response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
 
-        assert request.session == {"activeorg": "test"}
-        assert response == request
+        assert dict(request.session) == {"activeorg": "test"}
+        assert response == mock.sentinel.response
 
     def test_no_activeorg(self):
         request = RequestFactory().get("/")
-        request.session = {}
-        response = CustomerDomainMiddleware(lambda request: request)(request)
+        request.session = _session({})
+        response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
 
-        assert request.session == {}
-        assert response == request
+        assert dict(request.session) == {}
+        assert response == mock.sentinel.response
 
     def test_no_op(self):
         request = RequestFactory().get("/")
-        response = CustomerDomainMiddleware(lambda request: request)(request)
+        response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
 
-        assert "session" not in request
-        assert "subdomain" not in request
-        assert response == request
+        assert not hasattr(request, "session")
+        assert not hasattr(request, "subdomain")
+        assert response == mock.sentinel.response
 
     def test_ignores_region_subdomains(self):
-        clear_global_regions()
-        region_configs = [
-            {
-                "name": "na",
-                "snowflake_id": 1,
-                "address": "http://na.testserver",
-                "category": RegionCategory.MULTI_TENANT.name,
-            },
-            {
-                "name": "eu",
-                "snowflake_id": 1,
-                "address": "http://eu.testserver",
-                "category": RegionCategory.MULTI_TENANT.name,
-            },
-        ]
-        with override_region_config(region_configs):
-            for region in region_configs:
-                request = RequestFactory().get("/")
-                request.subdomain = region["name"]
-                request.session = {"activeorg": "test"}
-                response = CustomerDomainMiddleware(lambda request: request)(request)
+        for region_name in ("us", "eu"):
+            request = RequestFactory().get("/")
+            request.subdomain = region_name
+            request.session = _session({"activeorg": "test"})
+            response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
 
-                assert request.session == {"activeorg": "test"}
-                assert response == request
+            assert dict(request.session) == {"activeorg": "test"}
+            assert response == mock.sentinel.response
 
     def test_handles_redirects(self):
         self.create_organization(name="sentry")
         request = RequestFactory().get("/organizations/albertos-apples/issues/")
         request.subdomain = "sentry"
-        request.session = {"activeorg": "test"}
+        request.session = _session({"activeorg": "test"})
 
         def ignore_request(request: HttpRequest) -> HttpResponse:
             raise NotImplementedError
 
         response = CustomerDomainMiddleware(ignore_request)(request)
 
-        assert request.session == {"activeorg": "sentry"}
+        assert dict(request.session) == {"activeorg": "sentry"}
         assert response.status_code == 302
         assert response["Location"] == "/organizations/sentry/issues/"
+
+    @with_feature("organizations:customer-domains")
+    def test_billing_route(self):
+        non_staff_user = self.create_user(is_staff=False)
+        self.login_as(user=non_staff_user)
+        self.create_organization(name="albertos-apples", owner=non_staff_user)
+
+        response = self.client.get(
+            "/settings/billing/checkout/",
+            data={"querystring": "value"},
+            follow=True,
+        )
+        assert response.status_code == 200
+        assert response.redirect_chain == [
+            ("http://albertos-apples.testserver/settings/billing/checkout/?querystring=value", 302)
+        ]
 
 
 class OrganizationTestEndpoint(Endpoint):
@@ -201,7 +210,7 @@ def provision_middleware():
     return middleware
 
 
-@control_silo_test(stable=True)
+@no_silo_test
 @override_settings(
     ROOT_URLCONF=__name__,
     SENTRY_SELF_HOSTED=False,

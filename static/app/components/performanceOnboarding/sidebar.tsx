@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
@@ -182,7 +182,10 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     ? platforms.find(p => p.id === currentProject.platform)
     : undefined;
 
-  const docKeys = currentPlatform ? generateDocKeys(currentPlatform.id) : [];
+  const docKeys = useMemo(() => {
+    return currentPlatform ? generateDocKeys(currentPlatform.id) : [];
+  }, [currentPlatform]);
+
   const {docContents, isLoading, hasOnboardingContents} = useOnboardingDocs({
     project: currentProject,
     docKeys,

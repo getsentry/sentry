@@ -1,3 +1,6 @@
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+
 import {act, renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -6,8 +9,8 @@ import ModalStore from 'sentry/stores/modalStore';
 import ShareIssueModal from 'sentry/views/issueDetails/actions/shareModal';
 
 describe('shareModal', () => {
-  const project = TestStubs.Project();
-  const organization = TestStubs.Organization();
+  const project = ProjectFixture();
+  const organization = Organization();
   const onToggle = jest.fn();
 
   beforeEach(() => {

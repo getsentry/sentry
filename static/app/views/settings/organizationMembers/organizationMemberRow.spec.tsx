@@ -1,3 +1,7 @@
+import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
+import {User} from 'sentry-fixture/user';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationMemberRow from 'sentry/views/settings/organizationMembers/organizationMemberRow';
@@ -21,7 +25,7 @@ describe('OrganizationMemberRow', function () {
     groupOrgRoles: [],
   });
 
-  const managerTeam = TestStubs.Team({
+  const managerTeam = Team({
     orgRole: 'manager',
   });
 
@@ -37,13 +41,13 @@ describe('OrganizationMemberRow', function () {
     ],
   });
 
-  const currentUser = TestStubs.User({
+  const currentUser = User({
     id: '2',
     email: 'currentUser@email.com',
   });
 
   const defaultProps: React.ComponentProps<typeof OrganizationMemberRow> = {
-    organization: TestStubs.Organization(),
+    organization: Organization(),
     status: '',
     requireLink: false,
     memberCanLeave: false,
@@ -79,7 +83,7 @@ describe('OrganizationMemberRow', function () {
           {...defaultProps}
           member={TestStubs.Member({
             ...member,
-            user: TestStubs.User({...member.user, has2fa: true}),
+            user: User({...member.user, has2fa: true}),
           })}
         />
       );

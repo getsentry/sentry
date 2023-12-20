@@ -5,7 +5,7 @@
 
 from abc import abstractmethod
 from datetime import datetime
-from typing import Optional, cast
+from typing import Optional
 
 from sentry.services.hybrid_cloud import silo_mode_delegation
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
@@ -56,6 +56,4 @@ orgauthtoken_service: OrgAuthTokenService = silo_mode_delegation(
 )
 
 
-orgauthtoken_rpc_service: OrgAuthTokenService = cast(
-    OrgAuthTokenService, OrgAuthTokenService.create_delegation()
-)
+orgauthtoken_rpc_service = OrgAuthTokenService.create_delegation()

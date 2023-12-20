@@ -1,13 +1,19 @@
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {Team} from 'sentry-fixture/team';
+import {User} from 'sentry-fixture/user';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import Access from 'sentry/components/acl/access';
 import ConfigStore from 'sentry/stores/configStore';
 
 describe('Access', function () {
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     access: ['project:write', 'project:read'],
   });
-  const routerContext = TestStubs.routerContext([{organization}]);
+  const routerContext = RouterContextFixture([{organization}]);
 
   describe('as render prop', function () {
     const childrenMock = jest.fn().mockReturnValue(null);
@@ -41,10 +47,10 @@ describe('Access', function () {
     });
 
     it('read access from team', function () {
-      const org = TestStubs.Organization({access: []});
-      const nextRouterContext = TestStubs.routerContext([{organization: org}]);
+      const org = Organization({access: []});
+      const nextRouterContext = RouterContextFixture([{organization: org}]);
 
-      const team1 = TestStubs.Team({access: []});
+      const team1 = Team({access: []});
       render(
         <Access access={['team:admin']} team={team1}>
           {childrenMock}
@@ -59,7 +65,7 @@ describe('Access', function () {
         })
       );
 
-      const team2 = TestStubs.Team({
+      const team2 = Team({
         access: ['team:read', 'team:write', 'team:admin'],
       });
       render(
@@ -78,10 +84,10 @@ describe('Access', function () {
     });
 
     it('read access from project', function () {
-      const org = TestStubs.Organization({access: []});
-      const nextRouterContext = TestStubs.routerContext([{organization: org}]);
+      const org = Organization({access: []});
+      const nextRouterContext = RouterContextFixture([{organization: org}]);
 
-      const proj1 = TestStubs.Project({access: []});
+      const proj1 = ProjectFixture({access: []});
       render(
         <Access access={['project:read']} project={proj1}>
           {childrenMock}
@@ -96,7 +102,7 @@ describe('Access', function () {
         })
       );
 
-      const proj2 = TestStubs.Project({access: ['project:read']});
+      const proj2 = ProjectFixture({access: ['project:read']});
       render(
         <Access access={['project:read']} project={proj2}>
           {childrenMock}
@@ -142,7 +148,7 @@ describe('Access', function () {
 
     it('is superuser', function () {
       ConfigStore.config = TestStubs.Config({
-        user: TestStubs.User({isSuperuser: true}),
+        user: User({isSuperuser: true}),
       });
 
       render(<Access isSuperuser>{childrenMock}</Access>, {
@@ -158,7 +164,7 @@ describe('Access', function () {
 
     it('is not superuser', function () {
       ConfigStore.config = TestStubs.Config({
-        user: TestStubs.User({isSuperuser: false}),
+        user: User({isSuperuser: false}),
       });
 
       render(<Access isSuperuser>{childrenMock}</Access>, {
@@ -198,7 +204,7 @@ describe('Access', function () {
 
     it('has superuser', function () {
       ConfigStore.config = TestStubs.Config({
-        user: TestStubs.User({isSuperuser: true}),
+        user: User({isSuperuser: true}),
       });
 
       render(
@@ -213,7 +219,7 @@ describe('Access', function () {
 
     it('has no superuser', function () {
       ConfigStore.config = TestStubs.Config({
-        user: TestStubs.User({isSuperuser: false}),
+        user: User({isSuperuser: false}),
       });
 
       render(

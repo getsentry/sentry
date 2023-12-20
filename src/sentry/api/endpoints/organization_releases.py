@@ -10,6 +10,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, release_health
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, ReleaseAnalyticsMixin, region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
@@ -25,16 +26,16 @@ from sentry.api.serializers.rest_framework import (
 )
 from sentry.api.utils import get_auth_api_token_type
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import (
-    Activity,
-    Project,
+from sentry.models.activity import Activity
+from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
+from sentry.models.project import Project
+from sentry.models.release import (
     Release,
     ReleaseCommitError,
     ReleaseProject,
     ReleaseStatus,
     SemverFilter,
 )
-from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.search.events.constants import (
     OPERATOR_TO_DJANGO,
     RELEASE_ALIAS,
@@ -215,6 +216,10 @@ def debounce_update_release_health_data(organization, project_ids):
 class OrganizationReleasesEndpoint(
     OrganizationReleasesBaseEndpoint, EnvironmentMixin, ReleaseAnalyticsMixin
 ):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     SESSION_SORTS = frozenset(
         [
             "crash_free_sessions",
@@ -581,6 +586,10 @@ class OrganizationReleasesEndpoint(
 
 @region_silo_endpoint
 class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, organization) -> Response:
         """
         List an Organization's Releases specifically for building timeseries

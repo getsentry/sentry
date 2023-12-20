@@ -1,7 +1,6 @@
 from unittest import mock
 
 import pytest
-from freezegun import freeze_time
 
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.base import ReplacementRule
@@ -27,9 +26,11 @@ from sentry.ingest.transaction_clusterer.rules import (
 )
 from sentry.ingest.transaction_clusterer.tasks import cluster_projects, spawn_clusterers
 from sentry.ingest.transaction_clusterer.tree import TreeClusterer
-from sentry.models import Organization, Project
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.relay.config import get_project_config
 from sentry.testutils.helpers import Feature
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 
@@ -60,6 +61,17 @@ def test_single_leaf():
     ]
     clusterer.add_input(transaction_names)
     assert clusterer.get_rules() == ["/a/*/**"]
+
+
+def test_deep_tree():
+    clusterer = TreeClusterer(merge_threshold=1)
+    transaction_names = [
+        1001 * "/.",
+    ]
+    clusterer.add_input(transaction_names)
+
+    # Does not throw an exception:
+    clusterer.get_rules()
 
 
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 5)
@@ -174,7 +186,11 @@ def test_record_transactions(mocked_record, default_organization, source, txname
 
 
 def test_sort_rules():
-    rules = {"/a/*/**": 1, "/a/**": 2, "/a/*/c/**": 3}
+    rules = {
+        ReplacementRule("/a/*/**"): 1,
+        ReplacementRule("/a/**"): 2,
+        ReplacementRule("/a/*/c/**"): 3,
+    }
     assert ProjectOptionRuleStore(ClustererNamespace.TRANSACTIONS)._sort(rules) == [
         ("/a/*/c/**", 3),
         ("/a/*/**", 1),
@@ -351,9 +367,7 @@ def test_get_deleted_project():
 @django_db_all
 def test_transaction_clusterer_generates_rules(default_project):
     def _get_projconfig_tx_rules(project: Project):
-        return (
-            get_project_config(project, full_config=True).to_dict().get("config").get("txNameRules")
-        )
+        return get_project_config(project, full_config=True).to_dict()["config"].get("txNameRules")
 
     feature = "organizations:transaction-name-normalize"
     with Feature({feature: False}):
@@ -361,7 +375,7 @@ def test_transaction_clusterer_generates_rules(default_project):
     with Feature({feature: True}):
         assert _get_projconfig_tx_rules(default_project) is None
 
-    rules = {"/rule/*/0/**": 0, "/rule/*/1/**": 1}
+    rules = {ReplacementRule("/rule/*/0/**"): 0, ReplacementRule("/rule/*/1/**"): 1}
     ProjectOptionRuleStore(ClustererNamespace.TRANSACTIONS).write(default_project, rules)
 
     with Feature({feature: False}):
@@ -502,7 +516,9 @@ def test_stale_rules_arent_saved(default_project):
 def test_bump_last_used():
     """Redis update works and does not delete other keys in the set."""
     project1 = Project(id=123, name="project1")
-    RedisRuleStore(namespace=ClustererNamespace.TRANSACTIONS).write(project1, {"foo": 1, "bar": 2})
+    RedisRuleStore(namespace=ClustererNamespace.TRANSACTIONS).write(
+        project1, {ReplacementRule("foo"): 1, ReplacementRule("bar"): 2}
+    )
     assert get_redis_rules(ClustererNamespace.TRANSACTIONS, project1) == {"foo": 1, "bar": 2}
     with freeze_time("2000-01-01 01:00:00"):
         bump_last_used(ClustererNamespace.TRANSACTIONS, project1, "bar")

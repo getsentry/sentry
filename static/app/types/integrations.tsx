@@ -1,6 +1,6 @@
 import type {AlertProps} from 'sentry/components/alert';
 import type {Field} from 'sentry/components/forms/types';
-import type {PlatformKey} from 'sentry/data/platformCategories';
+import {PlatformKey} from 'sentry/types/project';
 import type {
   DISABLED as DISABLED_STATUS,
   INSTALLED,
@@ -74,6 +74,7 @@ export enum RepositoryStatus {
 
 export type Repository = {
   dateCreated: string;
+  externalId: string;
   externalSlug: string;
   id: string;
   integrationId: string;
@@ -249,8 +250,12 @@ export type SentryAppInstallation = {
   code?: string;
 };
 
-export type SentryAppComponent = {
-  schema: SentryAppSchemaStacktraceLink;
+export type SentryAppComponent<
+  Schema extends SentryAppSchemaStacktraceLink | SentryAppSchemaElement =
+    | SentryAppSchemaStacktraceLink
+    | SentryAppSchemaElement,
+> = {
+  schema: Schema;
   sentryApp: {
     avatars: Avatar[];
     name: string;

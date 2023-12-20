@@ -1,3 +1,6 @@
+import {HiddenEnvironments} from 'sentry-fixture/environments';
+import LocationFixture from 'sentry-fixture/locationFixture';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -17,7 +20,7 @@ function renderComponent(isHidden: boolean) {
     <ProjectEnvironments
       {...routerProps}
       params={{projectId: project.slug}}
-      location={TestStubs.location({pathname})}
+      location={LocationFixture({pathname})}
       organization={organization}
       project={project}
     />
@@ -47,13 +50,11 @@ describe('ProjectEnvironments', function () {
         body: [],
       });
 
-      const {container} = renderComponent(false);
+      renderComponent(false);
 
       expect(
         screen.getByText("You don't have any environments yet.")
       ).toBeInTheDocument();
-
-      expect(container).toSnapshot();
     });
 
     it('renders environment list', function () {
@@ -75,25 +76,22 @@ describe('ProjectEnvironments', function () {
         body: [],
       });
 
-      const {container} = renderComponent(true);
+      renderComponent(true);
 
       expect(
         screen.getByText("You don't have any hidden environments.")
       ).toBeInTheDocument();
-
-      expect(container).toSnapshot();
     });
 
     it('renders environment list', function () {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/environments/',
-        body: TestStubs.HiddenEnvironments(),
+        body: HiddenEnvironments(),
       });
-      const {container} = renderComponent(true);
+      renderComponent(true);
 
       // Hidden buttons should not have "Set as default"
       expect(screen.getByRole('button', {name: 'Show'})).toBeInTheDocument();
-      expect(container).toSnapshot();
     });
   });
 
@@ -165,7 +163,7 @@ describe('ProjectEnvironments', function () {
     it('shows', async function () {
       MockApiClient.addMockResponse({
         url: baseUrl,
-        body: TestStubs.HiddenEnvironments(),
+        body: HiddenEnvironments(),
       });
 
       renderComponent(true);
@@ -183,7 +181,7 @@ describe('ProjectEnvironments', function () {
     it('does not have "All Environments" rows', function () {
       MockApiClient.addMockResponse({
         url: baseUrl,
-        body: TestStubs.HiddenEnvironments(),
+        body: HiddenEnvironments(),
       });
 
       renderComponent(true);

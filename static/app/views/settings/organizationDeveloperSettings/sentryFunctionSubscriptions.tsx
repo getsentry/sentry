@@ -31,7 +31,7 @@ function SentryFunctionSubscriptions(props: Props) {
           checked={props.events.includes(resource)}
           resource={resource}
           onChange={onChange}
-          isNew={resource === 'comment'}
+          isNew={false}
         />
       ))}
     </SentryFunctionsSubscriptionGrid>

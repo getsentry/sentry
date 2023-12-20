@@ -1,11 +1,11 @@
 from django.urls import reverse
 
-from sentry.models import ApiApplication
+from sentry.models.apiapplication import ApiApplication
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class ApiApplicationRotateSecretTest(APITestCase):
     def setUp(self):
         self.app = ApiApplication.objects.create(owner=self.user, name="a")

@@ -31,6 +31,10 @@ interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
    */
   disabledAbsoluteTooltip?: boolean;
   /**
+   * Tooltip text to be hoverable when isTooltipHoverable is true
+   */
+  isTooltipHoverable?: boolean;
+  /**
    * How often should the component live update the timestamp.
    *
    * You may specify a custom interval in milliseconds if necissary.
@@ -104,6 +108,7 @@ function TimeSince({
   tooltipBody,
   tooltipSuffix,
   tooltipUnderlineColor,
+  isTooltipHoverable = false,
   unitStyle,
   prefix = t('in'),
   suffix = t('ago'),
@@ -162,6 +167,7 @@ function TimeSince({
       disabled={disabledAbsoluteTooltip}
       underlineColor={tooltipUnderlineColor}
       showUnderline
+      isHoverable={isTooltipHoverable}
       title={
         <Fragment>
           {tooltipTitle && <div>{tooltipTitle}</div>}

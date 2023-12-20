@@ -85,7 +85,7 @@ const template = (contents: string) => {
 const formatOutput = async (unformatted: string) => {
   const config = await prettier.resolveConfig(outputPath);
   if (config) {
-    return prettier.format(unformatted, {...config, parser: 'babel'});
+    return prettier.format(unformatted, {...config, parser: 'typescript'});
   }
 
   return unformatted;

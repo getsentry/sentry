@@ -1,3 +1,6 @@
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {ReplayList} from 'sentry-fixture/replayList';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -41,8 +44,8 @@ const getComponent = ({
     organization: {
       ...organizationProps,
     },
-    project: TestStubs.Project(),
-    projects: [TestStubs.Project()],
+    project: ProjectFixture(),
+    projects: [ProjectFixture()],
     router: {
       routes: [
         {path: '/'},
@@ -155,7 +158,7 @@ describe('TransactionReplays', () => {
   });
 
   it('should snapshot empty state', async () => {
-    MockApiClient.addMockResponse({
+    const mockApi = MockApiClient.addMockResponse({
       url: mockReplaysUrl,
       body: {
         data: [],
@@ -163,10 +166,10 @@ describe('TransactionReplays', () => {
       statusCode: 200,
     });
 
-    const {container} = renderComponent();
+    renderComponent();
 
     await waitFor(() => {
-      expect(container).toSnapshot();
+      expect(mockApi).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -203,7 +206,7 @@ describe('TransactionReplays', () => {
       body: {
         data: [
           {
-            ...TestStubs.ReplayList()[0],
+            ...ReplayList()[0],
             count_errors: 1,
             duration: 52346,
             finished_at: new Date('2022-09-15T06:54:00+00:00'),
@@ -215,7 +218,7 @@ describe('TransactionReplays', () => {
             ],
           },
           {
-            ...TestStubs.ReplayList()[0],
+            ...ReplayList()[0],
             count_errors: 4,
             duration: 400,
             finished_at: new Date('2022-09-21T21:40:38+00:00'),

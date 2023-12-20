@@ -1,3 +1,6 @@
+import {Organization} from 'sentry-fixture/organization';
+import {User} from 'sentry-fixture/user';
+
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
@@ -5,9 +8,9 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import {useMembers} from 'sentry/utils/useMembers';
 
 describe('useMembers', function () {
-  const org = TestStubs.Organization();
+  const org = Organization();
 
-  const mockUsers = [TestStubs.User()];
+  const mockUsers = [User()];
 
   beforeEach(function () {
     MemberListStore.reset();
@@ -25,8 +28,8 @@ describe('useMembers', function () {
 
   it('loads more members when using onSearch', async function () {
     MemberListStore.loadInitialData(mockUsers);
-    const newUser2 = TestStubs.User({id: '2', email: 'test-user2@example.com'});
-    const newUser3 = TestStubs.User({id: '3', email: 'test-user3@example.com'});
+    const newUser2 = User({id: '2', email: 'test-user2@example.com'});
+    const newUser3 = User({id: '3', email: 'test-user3@example.com'});
 
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/members/`,
@@ -61,7 +64,7 @@ describe('useMembers', function () {
 
   it('provides only the specified emails', async function () {
     MemberListStore.loadInitialData(mockUsers);
-    const userFoo = TestStubs.User({email: 'foo@test.com'});
+    const userFoo = User({email: 'foo@test.com'});
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/members/`,
       method: 'GET',
@@ -83,7 +86,7 @@ describe('useMembers', function () {
 
   it('provides only the specified ids', async function () {
     MemberListStore.loadInitialData(mockUsers);
-    const userFoo = TestStubs.User({id: '10'});
+    const userFoo = User({id: '10'});
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/members/`,
       method: 'GET',

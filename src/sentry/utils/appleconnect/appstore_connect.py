@@ -136,7 +136,7 @@ def _get_appstore_json(
         else:
             full_url = ""
         full_url += url
-        logger.debug(f"GET {full_url}")
+        logger.debug("GET %s", full_url)
         with sentry_sdk.start_transaction(op="http", description="AppStoreConnect request"):
             response = session.get(full_url, headers=headers, timeout=REQUEST_TIMEOUT)
         if not response.ok:
@@ -353,10 +353,9 @@ def get_build_info(
                         )
                     )
                 except Exception:
-                    logger.error(
+                    logger.exception(
                         "Failed to process AppStoreConnect build from API: %s",
                         build,
-                        exc_info=True,
                     )
 
         return build_info

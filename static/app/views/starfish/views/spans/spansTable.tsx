@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
+import pickBy from 'lodash/pickBy';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -8,42 +9,32 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Organization} from 'sentry/types';
-import {defined} from 'sentry/utils';
 import {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {Sort} from 'sentry/utils/discover/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {SpanDescriptionCell} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
-import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
-import {
-  ModuleName,
-  SpanMetricsFields,
-  StarfishFunctions,
-} from 'sentry/views/starfish/types';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
+import type {ValidSort} from 'sentry/views/starfish/views/spans/useModuleSort';
 
 type Row = {
   'avg(span.self_time)': number;
   'http_error_count()': number;
   'span.description': string;
-  'span.domain': string;
+  'span.domain': Array<string>;
   'span.group': string;
   'span.op': string;
   'spm()': number;
   'time_spent_percentage()': number;
-  'time_spent_percentage(local)': number;
 };
 
 type Column = GridColumnHeader<keyof Row>;
-
-type ValidSort = Sort & {
-  field: keyof Row;
-};
 
 type Props = {
   moduleName: ModuleName;
@@ -55,18 +46,8 @@ type Props = {
   spanCategory?: string;
 };
 
-const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_DOMAIN, SPAN_GROUP, SPAN_OP} =
-  SpanMetricsFields;
-const {TIME_SPENT_PERCENTAGE, SPS, SPM, HTTP_ERROR_COUNT} = StarfishFunctions;
-
-const SORTABLE_FIELDS = new Set([
-  `avg(${SPAN_SELF_TIME})`,
-  `${SPS}()`,
-  `${SPM}()`,
-  `${TIME_SPENT_PERCENTAGE}()`,
-  `${TIME_SPENT_PERCENTAGE}(local)`,
-  `${HTTP_ERROR_COUNT}()`,
-]);
+const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID, SPAN_DOMAIN} =
+  SpanMetricsField;
 
 export default function SpansTable({
   moduleName,
@@ -80,23 +61,45 @@ export default function SpansTable({
   const location = useLocation();
   const organization = useOrganization();
 
-  const spansCursor = decodeScalar(location.query?.[QueryParameterNames.CURSOR]);
+  const spanDescription = decodeScalar(location.query?.['span.description']);
+  const spanAction = decodeScalar(location.query?.['span.action']);
+  const spanDomain = decodeScalar(location.query?.['span.domain']);
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
 
-  const {isLoading, data, meta, pageLinks} = useSpanList(
-    moduleName ?? ModuleName.ALL,
-    endpoint,
-    method,
-    spanCategory,
+  const filters = {
+    'span.description': spanDescription ? `*${spanDescription}*` : undefined,
+    'span.action': spanAction,
+    'span.domain': spanDomain,
+    'span.module': moduleName ?? ModuleName.ALL,
+    transaction: endpoint,
+    'transaction.method': method,
+    has: 'span.description',
+  };
+
+  const {isLoading, data, meta, pageLinks} = useSpanMetrics(
+    pickBy(filters, value => value !== undefined),
+    [
+      PROJECT_ID,
+      SPAN_OP,
+      SPAN_GROUP,
+      SPAN_DESCRIPTION,
+      SPAN_DOMAIN,
+      'spm()',
+      `sum(${SPAN_SELF_TIME})`,
+      `avg(${SPAN_SELF_TIME})`,
+      'http_error_count()',
+      'time_spent_percentage()',
+    ],
     [sort],
     limit,
-    'api.starfish.use-span-list',
-    spansCursor
+    cursor,
+    'api.starfish.use-span-list'
   );
 
-  const handleCursor: CursorHandler = (cursor, pathname, query) => {
+  const handleCursor: CursorHandler = (newCursor, pathname, query) => {
     browserHistory.push({
       pathname,
-      query: {...query, [QueryParameterNames.CURSOR]: cursor},
+      query: {...query, [QueryParameterNames.SPANS_CURSOR]: newCursor},
     });
   };
 
@@ -113,7 +116,7 @@ export default function SpansTable({
         <GridEditable
           isLoading={isLoading}
           data={data as Row[]}
-          columnOrder={columnOrder ?? getColumns(moduleName, spanCategory, endpoint)}
+          columnOrder={columnOrder ?? getColumns(moduleName, spanCategory)}
           columnSortBy={[
             {
               key: sort.field,
@@ -121,7 +124,13 @@ export default function SpansTable({
             },
           ]}
           grid={{
-            renderHeadCell: column => renderHeadCell({column, sort, location}),
+            renderHeadCell: column =>
+              renderHeadCell({
+                column,
+                sort,
+                location,
+                sortParameterName: QueryParameterNames.SPANS_SORT,
+              }),
             renderBodyCell: (column, row) =>
               renderBodyCell(
                 column,
@@ -158,6 +167,7 @@ function renderBodyCell(
         moduleName={moduleName}
         description={row[SPAN_DESCRIPTION]}
         group={row[SPAN_GROUP]}
+        projectId={row[PROJECT_ID]}
         endpoint={endpoint}
         endpointMethod={endpointMethod}
       />
@@ -188,6 +198,7 @@ function getDomainHeader(moduleName: ModuleName) {
   }
   return 'Domain';
 }
+
 function getDescriptionHeader(moduleName: ModuleName, spanCategory?: string) {
   if (moduleName === ModuleName.HTTP) {
     return 'URL Request';
@@ -213,13 +224,8 @@ function getDescriptionHeader(moduleName: ModuleName, spanCategory?: string) {
   return 'Description';
 }
 
-function getColumns(
-  moduleName: ModuleName,
-  spanCategory?: string,
-  transaction?: string
-): Column[] {
+function getColumns(moduleName: ModuleName, spanCategory?: string): Column[] {
   const description = getDescriptionHeader(moduleName, spanCategory);
-
   const domain = getDomainHeader(moduleName);
 
   const order = [
@@ -265,25 +271,12 @@ function getColumns(
           } as Column,
         ]
       : []),
-  ];
-
-  if (defined(transaction)) {
-    order.push({
-      key: 'time_spent_percentage(local)',
-      name: DataTitles.timeSpent,
-      width: COL_WIDTH_UNDEFINED,
-    });
-  } else {
-    order.push({
+    {
       key: 'time_spent_percentage()',
       name: DataTitles.timeSpent,
       width: COL_WIDTH_UNDEFINED,
-    });
-  }
+    },
+  ];
 
   return order.filter((item): item is NonNullable<Column> => Boolean(item));
-}
-
-export function isAValidSort(sort: Sort): sort is ValidSort {
-  return SORTABLE_FIELDS.has(sort.field);
 }

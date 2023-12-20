@@ -4,6 +4,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.base import control_silo_only_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -18,7 +19,9 @@ class OrganizationMemberMapping(Model):
     - map a user or an email to a specific organization to indicate an organization membership
     """
 
-    __include_in_export__ = False
+    # This model is "autocreated" via an outbox write from the regional `Organization` it
+    # references, so there is no need to explicitly include it in the export.
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
     organizationmember_id = BoundedBigIntegerField(db_index=True, null=True)

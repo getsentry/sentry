@@ -54,16 +54,28 @@ export const API_ACCESS_SCOPES = [
   'team:write',
 ] as const;
 
-// Default API scopes when adding a new API token or org API token
-export const DEFAULT_API_ACCESS_SCOPES = [
+export const ALLOWED_SCOPES = [
+  'alerts:read',
+  'alerts:write',
   'event:admin',
   'event:read',
+  'event:write',
+  'member:admin',
   'member:read',
+  'member:write',
+  'org:admin',
+  'org:integrations',
   'org:read',
+  'org:superuser', // not an assignable API access scope
+  'org:write',
+  'project:admin',
   'project:read',
   'project:releases',
+  'project:write',
+  'team:admin',
   'team:read',
-];
+  'team:write',
+] as const;
 
 // These should only be used in the case where we cannot obtain roles through
 // the members endpoint (primarily in cases where a user is admining a
@@ -168,7 +180,10 @@ export const SENTRY_APP_PERMISSIONS: PermissionObj[] = [
       'no-access': {label: 'No Access', scopes: []},
       read: {label: 'Read', scopes: ['org:read']},
       write: {label: 'Read & Write', scopes: ['org:read', 'org:write']},
-      admin: {label: 'Admin', scopes: ['org:read', 'org:write', 'org:admin']},
+      admin: {
+        label: 'Admin',
+        scopes: ['org:read', 'org:write', 'org:admin', 'org:integrations'],
+      },
     },
   },
   {
@@ -229,7 +244,7 @@ export const DEFAULT_RELATIVE_PERIODS_PAGE_FILTER = {
 };
 
 // https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
-export const DATA_CATEGORY_INFO: Record<DataCategoryExact, DataCategoryInfo> = {
+export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.ERROR]: {
     name: DataCategoryExact.ERROR,
     apiName: 'error',
@@ -286,7 +301,23 @@ export const DATA_CATEGORY_INFO: Record<DataCategoryExact, DataCategoryInfo> = {
     titleName: t('Indexed Transactions'),
     uid: 9,
   },
-};
+  [DataCategoryExact.MONITOR]: {
+    name: DataCategoryExact.MONITOR,
+    apiName: 'monitor',
+    plural: 'monitor check-ins',
+    displayName: 'monitor check-in',
+    titleName: t('Monitor Check-Ins'),
+    uid: 10,
+  },
+  [DataCategoryExact.MONITOR_SEAT]: {
+    name: DataCategoryExact.MONITOR_SEAT,
+    apiName: 'monitorSeat',
+    plural: 'monitorSeats',
+    displayName: 'cron monitors',
+    titleName: t('Cron Monitors'),
+    uid: 13,
+  },
+} as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 
 // Special Search characters
 export const NEGATION_OPERATOR = '!';

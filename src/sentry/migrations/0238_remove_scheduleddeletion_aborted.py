@@ -25,7 +25,7 @@ class Migration(migrations.Migration):
     atomic = True
 
     dependencies = [
-        ("sentry", "0237_recreate_subscriptions_in_snuba"),
+        ("sentry", "0236_remove_legacy_key_transactions"),
     ]
 
     operations = [

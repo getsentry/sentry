@@ -1,6 +1,6 @@
-import type {ResolutionStatus} from 'sentry/types';
-import {CommonGroupAnalyticsData} from 'sentry/utils/events';
-import {Tab} from 'sentry/views/issueDetails/types';
+import type {GroupStatus} from 'sentry/types';
+import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
+import type {Tab} from 'sentry/views/issueDetails/types';
 
 type RuleViewed = {
   alert_type: 'issue' | 'metric';
@@ -30,12 +30,15 @@ export type BaseEventAnalyticsParams = {
   has_trace: boolean;
   is_symbolicated: boolean;
   num_commits: number;
+  num_event_tags: number;
   num_in_app_stack_frames: number;
   num_stack_frames: number;
   num_threads_with_names: number;
+  resolved_with: string[];
   error_has_replay?: boolean;
   error_has_user_feedback?: boolean;
   event_errors?: string;
+  event_mechanism?: string;
   event_platform?: string;
   event_runtime?: string;
   event_type?: string;
@@ -57,6 +60,8 @@ type ReleasesTour = BaseTour & {project_id: string};
 
 export type TeamInsightsEventParameters = {
   'alert_builder.filter': {query: string; session_id?: string};
+  'alert_builder.noisy_warning_agreed': {};
+  'alert_builder.noisy_warning_viewed': {};
   'alert_details.viewed': {alert_id: number};
   'alert_rule_details.viewed': {alert: string; has_chartcuterie: string; rule_id: number};
   'alert_rules.viewed': {sort: string};
@@ -81,7 +86,7 @@ export type TeamInsightsEventParameters = {
       | 'discarded'
       | 'open_in_discover'
       | 'assign'
-      | ResolutionStatus;
+      | GroupStatus;
     action_status_details?: string;
     action_substatus?: string;
     assigned_suggestion_reason?: string;
@@ -106,10 +111,19 @@ export type TeamInsightsEventParameters = {
     group_id: string;
     total_unmerged: number;
   };
+  'issue_details.resources_link_clicked': {
+    group_id: string | undefined;
+    resource: string;
+  };
   'issue_details.suspect_commits.commit_clicked': IssueDetailsWithAlert & {
     has_pull_request: boolean;
+    suspect_commit_calculation: string;
+    suspect_commit_index: number;
   };
-  'issue_details.suspect_commits.pull_request_clicked': IssueDetailsWithAlert;
+  'issue_details.suspect_commits.pull_request_clicked': IssueDetailsWithAlert & {
+    suspect_commit_calculation: string;
+    suspect_commit_index: number;
+  };
   'issue_details.tab_changed': IssueDetailsWithAlert & {
     tab: Tab;
   };
@@ -136,6 +150,8 @@ export type TeamInsightsEventKey = keyof TeamInsightsEventParameters;
 
 export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'alert_builder.filter': 'Alert Builder: Filter',
+  'alert_builder.noisy_warning_viewed': 'Alert Builder: Noisy Warning Viewed',
+  'alert_builder.noisy_warning_agreed': 'Alert Builder: Noisy Warning Agreed',
   'alert_details.viewed': 'Alert Details: Viewed',
   'alert_rule_details.viewed': 'Alert Rule Details: Viewed',
   'alert_rules.viewed': 'Alert Rules: Viewed',
@@ -167,6 +183,7 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
     'Issue Details: Screenshot downloaded from modal',
   'issue_details.issue_tab.screenshot_modal_opened':
     'Issue Details: Screenshot modal opened',
+  'issue_details.resources_link_clicked': 'Issue Details: Resources Link Clicked',
   'issue_details.suspect_commits.commit_clicked': 'Issue Details: Suspect Commit Clicked',
   'issue_details.suspect_commits.pull_request_clicked':
     'Issue Details: Suspect Pull Request Clicked',

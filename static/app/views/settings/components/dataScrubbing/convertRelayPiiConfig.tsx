@@ -9,7 +9,7 @@ import {Applications, MethodType, PiiConfig, Rule, RuleDefault, RuleType} from '
 
 export function convertRelayPiiConfig(relayPiiConfig?: string | null): Rule[] {
   const piiConfig = relayPiiConfig ? JSON.parse(relayPiiConfig) : {};
-  const rules: PiiConfig = piiConfig.rules || {};
+  const rules: Record<string, PiiConfig> = piiConfig.rules || {};
   const applications: Applications = piiConfig.applications || {};
   const convertedRules: Array<Rule> = [];
 
@@ -46,32 +46,28 @@ export function convertRelayPiiConfig(relayPiiConfig?: string | null): Rule[] {
       }
 
       const {type, redaction} = resolvedRule;
-      const method = redaction.method as MethodType;
-
-      if (method === MethodType.REPLACE && resolvedRule.type === RuleType.PATTERN) {
-        convertedRules.push({
-          id,
-          method: MethodType.REPLACE,
-          type: RuleType.PATTERN,
-          source,
-          placeholder: redaction?.text,
-          pattern: resolvedRule.pattern,
-        });
-        continue;
-      }
+      const method = redaction.method;
 
       if (method === MethodType.REPLACE) {
-        convertedRules.push({
-          id,
-          method: MethodType.REPLACE,
-          type,
-          source,
-          placeholder: redaction?.text,
-        });
-        continue;
-      }
-
-      if (resolvedRule.type === RuleType.PATTERN) {
+        if (type === RuleType.PATTERN) {
+          convertedRules.push({
+            id,
+            method: MethodType.REPLACE,
+            type: RuleType.PATTERN,
+            source,
+            placeholder: redaction?.text,
+            pattern: resolvedRule.pattern,
+          });
+        } else {
+          convertedRules.push({
+            id,
+            method: MethodType.REPLACE,
+            type,
+            source,
+            placeholder: redaction?.text,
+          });
+        }
+      } else if (type === RuleType.PATTERN) {
         convertedRules.push({
           id,
           method,
@@ -79,10 +75,9 @@ export function convertRelayPiiConfig(relayPiiConfig?: string | null): Rule[] {
           source,
           pattern: resolvedRule.pattern,
         });
-        continue;
+      } else {
+        convertedRules.push({id, method, type, source});
       }
-
-      convertedRules.push({id, method, type, source});
     }
   }
 

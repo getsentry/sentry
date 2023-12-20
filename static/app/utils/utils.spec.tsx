@@ -1,3 +1,5 @@
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+
 import {
   deepFreeze,
   descopeFeatureName,
@@ -178,22 +180,22 @@ describe('utils.explodeSlug', function () {
 describe('utils.projectDisplayCompare', function () {
   it('sorts by bookmark and project slug', function () {
     const projects = [
-      {isBookmarked: true, slug: 'm'},
-      {isBookmarked: false, slug: 'm'},
-      {isBookmarked: false, slug: 'a'},
-      {isBookmarked: true, slug: 'a'},
-      {isBookmarked: true, slug: 'z'},
-      {isBookmarked: false, slug: 'z'},
-    ].map(TestStubs.Project);
+      ProjectFixture({isBookmarked: true, slug: 'm'}),
+      ProjectFixture({isBookmarked: false, slug: 'm'}),
+      ProjectFixture({isBookmarked: false, slug: 'a'}),
+      ProjectFixture({isBookmarked: true, slug: 'a'}),
+      ProjectFixture({isBookmarked: true, slug: 'z'}),
+      ProjectFixture({isBookmarked: false, slug: 'z'}),
+    ];
 
     const expected = [
-      {isBookmarked: true, slug: 'a'},
-      {isBookmarked: true, slug: 'm'},
-      {isBookmarked: true, slug: 'z'},
-      {isBookmarked: false, slug: 'a'},
-      {isBookmarked: false, slug: 'm'},
-      {isBookmarked: false, slug: 'z'},
-    ].map(TestStubs.Project);
+      expect.objectContaining({isBookmarked: true, slug: 'a'}),
+      expect.objectContaining({isBookmarked: true, slug: 'm'}),
+      expect.objectContaining({isBookmarked: true, slug: 'z'}),
+      expect.objectContaining({isBookmarked: false, slug: 'a'}),
+      expect.objectContaining({isBookmarked: false, slug: 'm'}),
+      expect.objectContaining({isBookmarked: false, slug: 'z'}),
+    ];
 
     const sortedProjects = sortProjects(projects);
 

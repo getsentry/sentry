@@ -5,11 +5,12 @@ from rest_framework.response import Response
 from sentry.api.base import EnvironmentMixin
 from sentry.data_export.base import ExportError
 from sentry.data_export.processors.issues_by_tag import IssuesByTagProcessor
-from sentry.models import Environment
-from sentry.web.frontend.base import ProjectView
+from sentry.models.environment import Environment
+from sentry.web.frontend.base import ProjectView, region_silo_view
 from sentry.web.frontend.mixins.csv import CsvMixin
 
 
+@region_silo_view
 class GroupTagExportView(ProjectView, CsvMixin, EnvironmentMixin):
     required_scope = "event:read"
 

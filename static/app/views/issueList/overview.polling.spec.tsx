@@ -1,3 +1,8 @@
+import {GroupStats} from 'sentry-fixture/groupStats';
+import LocationFixture from 'sentry-fixture/locationFixture';
+import {Search} from 'sentry-fixture/search';
+import {Tags} from 'sentry-fixture/tags';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -38,18 +43,17 @@ describe('IssueList -> Polling', function () {
       access: ['project:releases'],
     },
   });
-  const savedSearch = TestStubs.Search({
+  const savedSearch = Search({
     id: '789',
     query: 'is:unresolved',
     name: 'Unresolved Issues',
-    projectId: project.id,
   });
 
   const group = TestStubs.Group({project});
   const group2 = TestStubs.Group({project, id: 2});
 
   const defaultProps = {
-    location: TestStubs.location({
+    location: LocationFixture({
       query: {query: 'is:unresolved'},
       search: 'query=is:unresolved',
     }),
@@ -103,7 +107,7 @@ describe('IssueList -> Polling', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
-      body: TestStubs.Tags(),
+      body: Tags(),
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
@@ -130,7 +134,7 @@ describe('IssueList -> Polling', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues-stats/',
-      body: [TestStubs.GroupStats()],
+      body: [GroupStats()],
     });
     pollRequest = MockApiClient.addMockResponse({
       url: `/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,

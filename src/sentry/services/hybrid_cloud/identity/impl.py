@@ -5,7 +5,7 @@ from typing import Any, Callable, List, Optional
 from django.db.models import QuerySet
 
 from sentry.api.serializers.base import Serializer
-from sentry.models import AuthIdentity
+from sentry.models.authidentity import AuthIdentity
 from sentry.models.identity import Identity
 from sentry.services.hybrid_cloud.filter_query import FilterQueryDatabaseImpl
 from sentry.services.hybrid_cloud.identity.model import (
@@ -74,13 +74,11 @@ class DatabaseBackedIdentityService(IdentityService):
     def delete_identities(self, user_id: int, organization_id: int) -> None:
         """
         Deletes the set of identities associated with a user and organization context.
-        :param user_id:
-        :param organization_id:
-        :return:
         """
-        AuthIdentity.objects.filter(
+        for ai in AuthIdentity.objects.filter(
             user_id=user_id, auth_provider__organization_id=organization_id
-        ).delete()
+        ):
+            ai.delete()
 
     def update_data(self, *, identity_id: int, data: Any) -> Optional[RpcIdentity]:
         identity: Optional[Identity] = Identity.objects.filter(id=identity_id).first()

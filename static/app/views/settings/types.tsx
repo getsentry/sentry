@@ -6,6 +6,7 @@ export type NavigationProps = {
   access?: Set<Scope>;
   features?: Set<string>;
   id?: string;
+  isSelfHosted?: boolean;
   organization?: Organization;
   project?: Project;
 };

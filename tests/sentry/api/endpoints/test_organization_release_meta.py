@@ -1,22 +1,19 @@
 from django.urls import reverse
 
-from sentry.models import (
-    Commit,
-    File,
-    ProjectArtifactBundle,
-    Release,
-    ReleaseArtifactBundle,
-    ReleaseCommit,
-    ReleaseFile,
-    Repository,
-)
+from sentry.models.artifactbundle import ProjectArtifactBundle, ReleaseArtifactBundle
+from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.files.file import File
+from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releasefile import ReleaseFile
+from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ReleaseMetaTest(APITestCase):
     def test_multiple_projects(self):
         user = self.create_user(is_staff=False, is_superuser=False)

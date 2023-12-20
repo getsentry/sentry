@@ -14,7 +14,8 @@ from sentry.charts import backend as charts
 from sentry.charts.types import ChartType
 from sentry.discover.arithmetic import is_equation
 from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
-from sentry.models import ApiKey, Integration
+from sentry.models.apikey import ApiKey
+from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.models.user import User
 from sentry.search.events.filter import to_list
@@ -101,10 +102,10 @@ def is_aggregate(field: str) -> bool:
 
 
 def unfurl_discover(
-    data: HttpRequest,
+    request: HttpRequest,
     integration: Integration,
     links: list[UnfurlableUrl],
-    user: User | None,
+    user: User | None = None,
 ) -> UnfurledUrl:
     org_integrations = integration_service.get_organization_integrations(
         integration_id=integration.id
@@ -138,7 +139,8 @@ def unfurl_discover(
 
             except Exception as exc:
                 logger.error(
-                    f"Failed to load saved query for unfurl: {exc}",
+                    "Failed to load saved query for unfurl: %s",
+                    exc,
                     exc_info=True,
                 )
             else:
@@ -148,7 +150,7 @@ def unfurl_discover(
         params.setlist(
             "order",
             params.getlist("sort")
-            or (to_list(saved_query.get("orderby")) if saved_query.get("orderby") else []),
+            or (to_list(saved_query["orderby"]) if saved_query.get("orderby") else []),
         )
         params.setlist("name", params.getlist("name") or to_list(saved_query.get("name")))
 
@@ -255,7 +257,8 @@ def unfurl_discover(
             url = charts.generate_chart(style, chart_data)
         except RuntimeError as exc:
             logger.error(
-                f"Failed to generate chart for discover unfurl: {exc}",
+                "Failed to generate chart for discover unfurl: %s",
+                exc,
                 exc_info=True,
             )
             continue
@@ -301,7 +304,7 @@ customer_domain_discover_link_regex = re.compile(
     r"^https?\://(?P<org_slug>[^.]+?)\.(?#url_prefix)[^/]+/discover/(results|homepage)"
 )
 
-handler: Handler = Handler(
+handler = Handler(
     fn=unfurl_discover,
     matcher=[discover_link_regex, customer_domain_discover_link_regex],
     arg_mapper=map_discover_query_args,

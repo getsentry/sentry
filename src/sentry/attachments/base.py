@@ -135,8 +135,10 @@ class BaseAttachmentCache:
     def set_unchunked_data(self, key, id, data, timeout=None, metrics_tags=None):
         key = ATTACHMENT_UNCHUNKED_DATA_KEY.format(key=key, id=id)
         compressed = zlib.compress(data)
-        metrics.timing("attachments.blob-size.raw", len(data), tags=metrics_tags)
-        metrics.timing("attachments.blob-size.compressed", len(compressed), tags=metrics_tags)
+        metrics.distribution("attachments.blob-size.raw", len(data), tags=metrics_tags, unit="byte")
+        metrics.distribution(
+            "attachments.blob-size.compressed", len(compressed), tags=metrics_tags, unit="byte"
+        )
         metrics.incr("attachments.received", tags=metrics_tags, skip_internal=False)
         self.inner.set(key, compressed, timeout, raw=True)
 

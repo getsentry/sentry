@@ -11,15 +11,15 @@ from sentry.auth.providers.dummy import PLACEHOLDER_TEMPLATE
 from sentry.auth.providers.fly.provider import FlyOAuth2Provider
 from sentry.auth.providers.saml2.generic.provider import GenericSAML2Provider
 from sentry.auth.providers.saml2.provider import Attributes
-from sentry.models import (
-    AuditLogEntry,
-    AuthIdentity,
-    AuthProvider,
-    Organization,
-    OrganizationMember,
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
+from sentry.models.integrations.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
-    User,
 )
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import receivers_raise_on_send
 from sentry.silo import SiloMode
@@ -30,7 +30,7 @@ from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.web.frontend.organization_auth_settings import get_scim_url
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
     def setUp(self):
         super().setUp()
@@ -112,7 +112,7 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
             assert resp.status_code == 200
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationAuthSettingsTest(AuthProviderTestCase):
     def enroll_user_and_require_2fa(self, user, organization):
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -306,6 +306,37 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         resp = self.client.post(path, {"op": "disable"})
         assert resp.status_code == 405
+
+    def test_disable__scim_missing(self):
+        organization, auth_provider = self.create_org_and_auth_provider()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            auth_provider.flags.scim_enabled = True
+            auth_provider.save()
+
+        member = self.create_om_and_link_sso(organization)
+        member.flags["idp:provisioned"] = True
+        member.save()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not SentryAppInstallationForProvider.objects.filter(
+                provider=auth_provider
+            ).exists()
+
+        path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
+        self.login_as(self.user, organization_id=organization.id)
+
+        with self.feature({"organizations:sso-basic": True}):
+            resp = self.client.post(path, {"op": "disable"}, follow=True)
+
+        assert resp.status_code == 200
+        assert resp.redirect_chain == [
+            ("/settings/foo/auth/", 302),
+        ]
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not AuthProvider.objects.filter(organization_id=organization.id).exists()
+
+        member.refresh_from_db()
+        assert not member.flags["idp:provisioned"], "member should not be idp controlled now"
 
     @patch("sentry.web.frontend.organization_auth_settings.email_unlink_notifications")
     def test_superuser_disable_provider(self, email_unlink_notifications):
@@ -584,7 +615,7 @@ class DummySAML2Provider(GenericSAML2Provider):
         return dummy_provider_config
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationAuthSettingsSAML2Test(AuthProviderTestCase):
     provider = DummySAML2Provider
     provider_name = "saml2_dummy"

@@ -4,7 +4,12 @@ from django.urls import reverse
 
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.region import override_regions
 from sentry.testutils.silo import region_silo_test
+from sentry.types.region import Region, RegionCategory
+
+region = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
+region_config = (region,)
 
 
 @region_silo_test
@@ -83,3 +88,22 @@ class GroupTagExportTest(TestCase, SnubaTestCase):
             self.url, SERVER_NAME=f"{self.project.organization.slug}.testserver"
         )
         self.verify_test(response)
+
+    def test_region_subdomain_no_conflict_with_slug(self):
+        # When a request to a web view contains both
+        # a region subdomain and org slug, we shouldn't conflate
+        # the subdomain as being an org slug.
+        # We're using this endpoint because it is the only view that
+        # accepts organization_slug at time of writing.
+        url = reverse(
+            "sentry-customer-domain-sentry-group-tag-export",
+            kwargs={
+                "project_slug": self.project.slug,
+                "group_id": self.group.id,
+                "key": self.key,
+            },
+        )
+        with override_regions(region_config):
+            resp = self.client.get(url, HTTP_HOST="us.testserver")
+            assert resp.status_code == 200
+            assert "Location" not in resp

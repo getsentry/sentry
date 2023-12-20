@@ -42,8 +42,8 @@ from snuba_sdk import (
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.api.utils import InvalidParams as UtilsInvalidParams
-from sentry.models import Release
 from sentry.models.project import Project
+from sentry.models.release import Release
 from sentry.release_health.base import (
     GroupByFieldName,
     ProjectId,
@@ -698,9 +698,7 @@ def _order_by_preflight_query_results(
                     # will never have null group values except when the group exists in the
                     # preflight query but not in the metrics dataset
                     group_key_dict.update({key: None})  # type: ignore
-                result_groups += [
-                    {"by": group_key_dict, **default_group_gen_func()}  # type: ignore
-                ]
+                result_groups += [{"by": group_key_dict, **default_group_gen_func()}]
 
         # Pop extra groups returned to match request limit
         if len(result_groups) > limit.limit:

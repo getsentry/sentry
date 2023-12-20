@@ -1,10 +1,12 @@
+import {EventStacktraceMessage} from 'sentry-fixture/eventStacktraceException';
+
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 
 describe('DisplayReprocessEventAction', function () {
   const orgFeatures = ['reprocessing-v2'];
 
   it('returns false in case of no reprocessing-v2 feature', function () {
-    const event = TestStubs.EventStacktraceMessage();
+    const event = EventStacktraceMessage();
     expect(displayReprocessEventAction([], event)).toBe(false);
   });
 
@@ -13,7 +15,7 @@ describe('DisplayReprocessEventAction', function () {
   });
 
   it('returns false if no exception entry is found', function () {
-    const event = TestStubs.EventStacktraceMessage();
+    const event = EventStacktraceMessage();
     expect(displayReprocessEventAction(orgFeatures, event)).toBe(false);
   });
 

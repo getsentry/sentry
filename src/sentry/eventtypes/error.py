@@ -1,9 +1,13 @@
-from typing import Optional
+from __future__ import annotations
+
+from typing import Any, Dict, MutableMapping
 
 from sentry.utils.safe import get_path, trim
 from sentry.utils.strings import truncatechars
 
 from .base import BaseEvent, compute_title_with_tree_label
+
+Metadata = Dict[str, Any]
 
 
 def get_crash_location(data):
@@ -22,7 +26,7 @@ def get_crash_location(data):
 class ErrorEvent(BaseEvent):
     key = "error"
 
-    def extract_metadata(self, data):
+    def extract_metadata(self, data: MutableMapping[str, Any]) -> Metadata:
 
         exceptions = get_path(data, "exception", "values")
         if not exceptions:
@@ -97,8 +101,8 @@ class ErrorEvent(BaseEvent):
 
         return rv
 
-    def compute_title(self, metadata):
-        title: Optional[str] = metadata.get("type")
+    def compute_title(self, metadata: Metadata) -> str:
+        title = metadata.get("type")
         if title is not None:
             value = metadata.get("value")
             if value:
@@ -112,5 +116,5 @@ class ErrorEvent(BaseEvent):
 
         return title or metadata.get("function") or "<unknown>"
 
-    def get_location(self, metadata):
+    def get_location(self, metadata: Metadata) -> str | None:
         return metadata.get("filename")

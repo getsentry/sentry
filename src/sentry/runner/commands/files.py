@@ -16,7 +16,7 @@ def files():
 @configuration
 def get(id):
     """Fetch a file's contents by id."""
-    from sentry.models import File
+    from sentry.models.files.file import File
 
     try:
         file = File.objects.get(id=id)
@@ -36,7 +36,7 @@ def get(id):
 @configuration
 def info(id, format):
     """Show a file's metadata by id."""
-    from sentry.models import File
+    from sentry.models.files.file import File
 
     try:
         file = File.objects.get(id=id)

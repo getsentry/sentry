@@ -1,5 +1,5 @@
 import logging
-from typing import cast
+from typing import ClassVar, cast
 
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from sentry.adoption import manager
 from sentry.adoption.manager import UnknownFeature
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
     FlexibleForeignKey,
@@ -148,8 +149,7 @@ class FeatureAdoptionRedisBackend:
         return True
 
 
-class FeatureAdoptionManager(BaseManager):
-
+class FeatureAdoptionManager(BaseManager["FeatureAdoption"]):
     cache_backend: FeatureAdoptionRedisBackend = cast(
         FeatureAdoptionRedisBackend,
         build_instance_from_options(settings.SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS),
@@ -171,7 +171,7 @@ class FeatureAdoptionManager(BaseManager):
         try:
             feature_id = manager.get_by_slug(feature_slug).id
         except UnknownFeature as e:
-            logger.exception(e)
+            logger.exception(str(e))
             return False
 
         if not self.in_cache(organization_id, feature_id):
@@ -189,7 +189,7 @@ class FeatureAdoptionManager(BaseManager):
         try:
             feature_ids = {manager.get_by_slug(slug).id for slug in feature_slugs}
         except UnknownFeature as e:
-            logger.exception(e)
+            logger.exception(str(e))
             return False
 
         incomplete_feature_ids = feature_ids - self.get_all_cache(organization_id)
@@ -225,7 +225,7 @@ class FeatureAdoptionManager(BaseManager):
 
 @region_silo_only_model
 class FeatureAdoption(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization = FlexibleForeignKey("sentry.Organization")
     feature_id = models.PositiveIntegerField(choices=[(f.id, str(f.name)) for f in manager.all()])
@@ -234,7 +234,7 @@ class FeatureAdoption(Model):
     applicable = models.BooleanField(default=True)  # Is this feature applicable to this team?
     data = JSONField()
 
-    objects = FeatureAdoptionManager()
+    objects: ClassVar[FeatureAdoptionManager] = FeatureAdoptionManager()
 
     __repr__ = sane_repr("organization_id", "feature_id", "complete", "applicable")
 

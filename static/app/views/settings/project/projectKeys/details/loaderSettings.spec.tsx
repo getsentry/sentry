@@ -1,4 +1,5 @@
 import selectEvent from 'react-select-event';
+import {ProjectKeys} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -30,7 +31,7 @@ function renderMockRequests(
   const projectKeys = MockApiClient.addMockResponse({
     url: `/projects/${organizationSlug}/${projectSlug}/keys/${keyId}/`,
     method: 'PUT',
-    body: TestStubs.ProjectKeys()[0],
+    body: ProjectKeys()[0],
   });
 
   return {projectKeys};
@@ -50,7 +51,7 @@ describe('Loader Script Settings', function () {
     });
 
     const data = {
-      ...(TestStubs.ProjectKeys()[0] as ProjectKey),
+      ...TestStubs.ProjectKeys()[0],
       dynamicSdkLoaderOptions,
     } as ProjectKey;
 

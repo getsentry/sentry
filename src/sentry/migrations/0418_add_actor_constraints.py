@@ -22,8 +22,8 @@ class Migration(CheckedMigration):
         ("sentry", "0417_backfill_groupedmessage_substatus"),
     ]
 
-    operations = (
-        [
+    operations = [
+        *[
             migrations.RunSQL(
                 sql="""
 WITH duplicate_users AS (
@@ -40,8 +40,8 @@ UPDATE sentry_actor SET user_id = NULL WHERE id IN (SELECT id FROM cleanup_actor
                 reverse_sql="",
                 hints={"tables": ["sentry_actor"]},
             ),
-        ]
-        + [
+        ],
+        *[
             migrations.RunSQL(
                 sql=line,
                 reverse_sql="",
@@ -63,8 +63,8 @@ DROP INDEX CONCURRENTLY IF EXISTS "sentry_actor_user_id_c832ff63_uniq";
 CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS "sentry_actor_user_id_c832ff63_uniq" ON "sentry_actor" ("user_id");
         """.splitlines()
             if line.strip()
-        ]
-        + [
+        ],
+        *[
             migrations.RunSQL(
                 sql="SELECT 1",
                 reverse_sql="""
@@ -79,5 +79,5 @@ ALTER TABLE "sentry_actor" ADD CONSTRAINT "sentry_actor_user_id_c832ff63_uniq" U
             """,
                 hints={"tables": ["sentry_actor"]},
             ),
-        ]
-    )
+        ],
+    ]

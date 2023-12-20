@@ -3,7 +3,9 @@ from unittest import mock
 
 from django.utils import timezone
 
-from sentry.models import GroupRelease, GroupStatus, ReleaseProject
+from sentry.models.group import GroupStatus
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.release import ReleaseProject
 from sentry.signals import release_created
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
@@ -12,7 +14,7 @@ from sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases 
 )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GetSuspectResolutionsReleasesTest(TestCase):
     @mock.patch("sentry.analytics.record")
     def test_get_suspect_resolutions_releases(self, record):
