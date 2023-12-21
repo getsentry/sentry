@@ -225,7 +225,6 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
           >
             {addIntegrationWithInstallationId => (
               <ButtonWrapper>
-                {disabled && <DisabledNotice reason={disabledReason} />}
                 <Button
                   priority="primary"
                   disabled={!this.hasAccess() || disabled}
@@ -239,6 +238,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
                 >
                   {t('Install %s', provider.name)}
                 </Button>
+                {disabled && <DisabledNotice reason={disabledReason} />}
               </ButtonWrapper>
             )}
           </AddIntegration>
@@ -402,4 +402,5 @@ const ButtonWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: center;
+  line-height: 24px;
 `;
