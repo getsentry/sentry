@@ -5,7 +5,7 @@ import random
 import time
 import uuid
 from hashlib import md5
-from typing import Any, Dict, List, Literal, Optional, TypedDict
+from typing import Any, Dict, Generator, List, Literal, Optional, TypedDict
 
 from django.conf import settings
 
@@ -134,115 +134,117 @@ def get_user_actions(
             "textContent": "Helloworld!"
         }
     """
-    result: List[ReplayActionsEventPayloadClick] = []
-    for event in events:
-        if len(result) == 20:
+    click_buffer: List[ReplayActionsEventPayloadClick] = []
+    for event in iter_custom_events(events):
+        if len(click_buffer) == 20:
             break
 
-        if event.get("type") == 5 and event.get("data", {}).get("tag") == "breadcrumb":
-            payload = event["data"].get("payload", {})
-            category = payload.get("category")
-            if category == "ui.slowClickDetected":
-                is_timeout_reason = payload["data"].get("endReason") == "timeout"
-                is_target_tagname = payload["data"].get("node", {}).get("tagName") in (
-                    "a",
-                    "button",
-                    "input",
-                )
-                timeout = payload["data"].get("timeAfterClickMs", 0) or payload["data"].get(
-                    "timeafterclickms", 0
-                )
-                if is_timeout_reason and is_target_tagname and timeout >= 7000:
-                    is_rage = (
-                        payload["data"].get("clickCount", 0) or payload["data"].get("clickcount", 0)
-                    ) >= 5
-                    click = create_click_event(payload, replay_id, is_dead=True, is_rage=is_rage)
-                    if click is not None:
-                        result.append(click)
+        tag = event.get("data", {}).get("tag")
+        if tag == "breadcrumb":
+            _handle_click_event(click_buffer, replay_id, event)
+            _handle_mutations_event(project_id, replay_id, event)
+        elif tag == "performanceSpan":
+            _handle_resource_metric_event(event)
+        elif tag == "options":
+            _handle_options_logging_event(project_id, replay_id, event)
 
-                # Log the event for tracking.
-                log = event["data"].get("payload", {}).copy()
-                log["project_id"] = project_id
-                log["replay_id"] = replay_id
-                log["dom_tree"] = log.pop("message")
-                logger.info("sentry.replays.slow_click", extra=log)
-                continue
-            elif category == "ui.multiClick":
-                # Log the event for tracking.
-                log = event["data"].get("payload", {}).copy()
-                log["project_id"] = project_id
-                log["replay_id"] = replay_id
-                log["dom_tree"] = log.pop("message")
-                logger.info("sentry.replays.slow_click", extra=log)
-                continue
-            elif category == "ui.click":
-                click = create_click_event(payload, replay_id, is_dead=False, is_rage=False)
-                if click is not None:
-                    result.append(click)
-                continue
+    return click_buffer
 
-        # look for request / response breadcrumbs and report metrics on them
-        if event.get("type") == 5 and event.get("data", {}).get("tag") == "performanceSpan":
-            if event["data"].get("payload", {}).get("op") in ("resource.fetch", "resource.xhr"):
-                event_payload_data = event["data"]["payload"]["data"]
 
-                # The data key is sometimes submitted as an string. If any type other than a
-                # dictionary is provided default the value to an empty dict.
-                #
-                # TODO: Refactor this area in a later release.
-                if not isinstance(event_payload_data, dict):
-                    event_payload_data = {}
+def iter_custom_events(events: list[dict[str, Any]]) -> Generator[dict[str, Any], None, None]:
+    for event in events:
+        if event.get("type") == 5:
+            yield event
 
-                # these first two cover SDKs 7.44 and 7.45
-                if event_payload_data.get("requestBodySize"):
-                    metrics.distribution(
-                        "replays.usecases.ingest.request_body_size",
-                        event_payload_data["requestBodySize"],
-                        unit="byte",
-                    )
-                if event_payload_data.get("responseBodySize"):
-                    metrics.distribution(
-                        "replays.usecases.ingest.response_body_size",
-                        event_payload_data["responseBodySize"],
-                        unit="byte",
-                    )
 
-                # what the most recent SDKs send:
-                if event_payload_data.get("request", {}).get("size"):
-                    metrics.distribution(
-                        "replays.usecases.ingest.request_body_size",
-                        event_payload_data["request"]["size"],
-                        unit="byte",
-                    )
-                if event_payload_data.get("response", {}).get("size"):
-                    metrics.distribution(
-                        "replays.usecases.ingest.response_body_size",
-                        event_payload_data["response"]["size"],
-                        unit="byte",
-                    )
-        # log the SDK options sent from the SDK 1/500 times
-        if (
-            event.get("type") == 5
-            and event.get("data", {}).get("tag") == "options"
-            and random.randint(0, 499) < 1
-        ):
-            log = event["data"].get("payload", {}).copy()
-            log["project_id"] = project_id
-            log["replay_id"] = replay_id
-            logger.info("SDK Options:", extra=log)
-        # log large dom mutation breadcrumb events 1/100 times
-        if (
-            event.get("type") == 5
-            and event.get("data", {}).get("tag") == "breadcrumb"
-            and event.get("data", {}).get("payload", {}).get("category") == "replay.mutations"
-            and random.randint(0, 99) < 1
-        ):
-            log = event["data"].get("payload", {}).copy()
-            log["project_id"] = project_id
-            log["replay_id"] = replay_id
-            logger.info("Large DOM Mutations List:", extra=log)
+def _handle_click_event(
+    result: List[ReplayActionsEventPayloadClick],
+    replay_id: str,
+    event: dict[str, Any],
+) -> None:
+    payload = event["data"].get("payload", {})
+    category = payload.get("category")
+    if category == "ui.slowClickDetected":
+        is_timeout_reason = payload["data"].get("endReason") == "timeout"
+        is_target_tagname = payload["data"].get("node", {}).get("tagName") in (
+            "a",
+            "button",
+            "input",
+        )
+        timeout = payload["data"].get("timeAfterClickMs", 0) or payload["data"].get(
+            "timeafterclickms", 0
+        )
+        if is_timeout_reason and is_target_tagname and timeout >= 7000:
+            is_rage = (
+                payload["data"].get("clickCount", 0) or payload["data"].get("clickcount", 0)
+            ) >= 5
+            click = create_click_event(payload, replay_id, is_dead=True, is_rage=is_rage)
+            if click is not None:
+                result.append(click)
+    elif category == "ui.click":
+        click = create_click_event(payload, replay_id, is_dead=False, is_rage=False)
+        if click is not None:
+            result.append(click)
 
-    return result
+
+def _handle_resource_metric_event(event: dict[str, Any]) -> None:
+    if event["data"].get("payload", {}).get("op") not in ("resource.fetch", "resource.xhr"):
+        return None
+
+    event_payload_data = event["data"]["payload"]["data"]
+
+    # The data key is sometimes submitted as an string. If any type other than a
+    # dictionary is provided default the value to an empty dict.
+    #
+    # TODO: Refactor this area in a later release.
+    if not isinstance(event_payload_data, dict):
+        event_payload_data = {}
+
+    if event_payload_data.get("requestBodySize"):  # 7.44 and 7.45
+        metrics.distribution(
+            "replays.usecases.ingest.request_body_size",
+            event_payload_data["requestBodySize"],
+            unit="byte",
+        )
+    elif event_payload_data.get("request", {}).get("size"):
+        metrics.distribution(
+            "replays.usecases.ingest.request_body_size",
+            event_payload_data["request"]["size"],
+            unit="byte",
+        )
+
+    if event_payload_data.get("responseBodySize"):  # 7.44 and 7.45
+        metrics.distribution(
+            "replays.usecases.ingest.response_body_size",
+            event_payload_data["responseBodySize"],
+            unit="byte",
+        )
+    elif event_payload_data.get("response", {}).get("size"):
+        metrics.distribution(
+            "replays.usecases.ingest.response_body_size",
+            event_payload_data["response"]["size"],
+            unit="byte",
+        )
+
+
+def _handle_options_logging_event(project_id: int, replay_id: str, event: dict[str, Any]) -> None:
+    # log the SDK options sent from the SDK 1/500 times
+    if random.randint(0, 499) < 1:
+        log = event["data"].get("payload", {}).copy()
+        log["project_id"] = project_id
+        log["replay_id"] = replay_id
+        logger.info("SDK Options:", extra=log)
+
+
+def _handle_mutations_event(project_id: int, replay_id: str, event: dict[str, Any]) -> None:
+    if (
+        event.get("data", {}).get("payload", {}).get("category") == "replay.mutations"
+        and random.randint(0, 99) < 1
+    ):
+        log = event["data"].get("payload", {}).copy()
+        log["project_id"] = project_id
+        log["replay_id"] = replay_id
+        logger.info("Large DOM Mutations List:", extra=log)
 
 
 def _get_testid(container: Dict[str, str]) -> str:
