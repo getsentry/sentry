@@ -1274,7 +1274,7 @@ class OnDemandMetricSpec:
         return QueryParsingResult(conditions=extended_conditions)
 
     @staticmethod
-    def _aggregate_conditions(parsed_field) -> Optional[RuleCondition]:
+    def _aggregate_conditions(parsed_field: FieldParsingResult) -> Optional[RuleCondition]:
         # We have to handle the special case for the "count_if" function, however it may be better to build some
         # better abstracted code to handle third-party rule conditions injection.
         if parsed_field.function == "count_if":

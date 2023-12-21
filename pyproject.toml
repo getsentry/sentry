@@ -732,3 +732,15 @@ disable_error_code = [
     "var-annotated",
 ]
 # end: sentry modules with typing issues
+
+# begging: stronger typing
+[[tool.mypy.overrides]]
+module = [
+    "src.sentry.relay.config.metric_extraction.py",
+    "src.sentry.snuba.metrics.extraction.py",
+    "tests.sentry.relay.config.test_metric_extraction.py",
+    "tests.sentry.snuba.test_extraction.py",
+    "tests.sentry.tasks.test_on_demand_metrics.py",
+]
+disallow_untyped_defs = true
+# end: stronger typing
