@@ -1,4 +1,5 @@
 import selectEvent from 'react-select-event';
+import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {User} from 'sentry-fixture/user';
@@ -197,7 +198,7 @@ describe('ContextPickerModal', function () {
 
     const provider = {slug: 'github'};
     const configUrl = `/api/0/organizations/${org.slug}/integrations/?provider_key=${provider.slug}&includeConfig=0`;
-    const integration = TestStubs.GitHubIntegration();
+    const integration = GitHubIntegrationFixture();
     const fetchGithubConfigs = MockApiClient.addMockResponse({
       url: configUrl,
       body: [integration],
@@ -221,6 +222,10 @@ describe('ContextPickerModal', function () {
       expect(fetchGithubConfigs).toHaveBeenCalled();
     });
 
+    if (integration.domainName === null) {
+      throw new Error('Integration domainName is null');
+    }
+
     await selectEvent.select(
       screen.getByText(/Select a configuration/i),
       integration.domainName
@@ -240,7 +245,7 @@ describe('ContextPickerModal', function () {
 
     const fetchGithubConfigs = MockApiClient.addMockResponse({
       url: configUrl,
-      body: [TestStubs.GitHubIntegration()],
+      body: [GitHubIntegrationFixture()],
     });
 
     MockApiClient.addMockResponse({
