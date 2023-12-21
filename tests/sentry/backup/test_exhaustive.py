@@ -2,9 +2,6 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
-from typing import Type
-
-from django.db.models import Model
 
 from sentry.backup.dependencies import NormalizedModelName
 from sentry.backup.imports import (
@@ -20,7 +17,7 @@ from sentry.testutils.helpers.backups import (
     export_to_file,
 )
 from sentry.testutils.silo import region_silo_test
-from tests.sentry.backup import expect_models, verify_models_in_output
+from tests.sentry.backup import mark, targets
 
 EXHAUSTIVELY_TESTED: set[NormalizedModelName] = set()
 UNIQUENESS_TESTED: set[NormalizedModelName] = set()
@@ -38,20 +35,18 @@ class ExhaustiveTests(BackupTestCase):
         clear_database(reset_pks=reset_pks)
         return tmp_path
 
-    @expect_models(EXHAUSTIVELY_TESTED, "__all__")
-    def test_exhaustive_clean_pks(self, expected_models: list[Type[Model]]):
+    @targets(mark(EXHAUSTIVELY_TESTED, "__all__"))
+    def test_exhaustive_clean_pks(self):
         self.create_exhaustive_instance(is_superadmin=True)
-        actual = self.import_export_then_validate(self._testMethodName, reset_pks=True)
-        verify_models_in_output(expected_models, actual)
+        return self.import_export_then_validate(self._testMethodName, reset_pks=True)
 
-    @expect_models(EXHAUSTIVELY_TESTED, "__all__")
-    def test_exhaustive_dirty_pks(self, expected_models: list[Type[Model]]):
+    @targets(mark(EXHAUSTIVELY_TESTED, "__all__"))
+    def test_exhaustive_dirty_pks(self):
         self.create_exhaustive_instance(is_superadmin=True)
-        actual = self.import_export_then_validate(self._testMethodName, reset_pks=False)
-        verify_models_in_output(expected_models, actual)
+        return self.import_export_then_validate(self._testMethodName, reset_pks=False)
 
-    @expect_models(UNIQUENESS_TESTED, "__all__")
-    def test_uniqueness(self, expected_models: list[Type[Model]]):
+    @targets(mark(UNIQUENESS_TESTED, "__all__"))
+    def test_uniqueness(self):
         self.create_exhaustive_instance(is_superadmin=True)
         with tempfile.TemporaryDirectory() as tmp_dir:
             # Export the data once.
@@ -72,4 +67,5 @@ class ExhaustiveTests(BackupTestCase):
 
             tmp_actual = Path(tmp_dir).joinpath(f"{self._testMethodName}.actual.json")
             actual = export_to_file(tmp_actual, ExportScope.Global)
-            verify_models_in_output(expected_models, actual)
+
+            return actual

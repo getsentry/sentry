@@ -2,9 +2,6 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
-from typing import Type
-
-from django.db.models import Model
 
 from sentry.backup.dependencies import NormalizedModelName
 from sentry.backup.scopes import ExportScope, RelocationScope
@@ -17,7 +14,7 @@ from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.backups import export_to_file
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils.json import JSONData
-from tests.sentry.backup import expect_models
+from tests.sentry.backup import mark, targets
 
 DYNAMIC_RELOCATION_SCOPE_TESTED: set[NormalizedModelName] = set()
 
@@ -35,8 +32,8 @@ class DynamicRelocationScopeTests(TransactionTestCase):
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.expect.json")
             return export_to_file(tmp_path, ExportScope.Global)
 
-    @expect_models(DYNAMIC_RELOCATION_SCOPE_TESTED, ApiAuthorization, ApiToken)
-    def test_api_auth(self, expected_models: list[Type[Model]]):
+    @targets(mark(DYNAMIC_RELOCATION_SCOPE_TESTED, ApiAuthorization, ApiToken))
+    def test_api_auth(self):
         user = self.create_user()
 
         # Bound to an app == global scope.
@@ -64,8 +61,8 @@ class DynamicRelocationScopeTests(TransactionTestCase):
         assert token.get_relocation_scope() == RelocationScope.Config
         return self.export()
 
-    @expect_models(DYNAMIC_RELOCATION_SCOPE_TESTED, NotificationAction, NotificationActionProject)
-    def test_notification_action(self, expected_models: list[Type[Model]]):
+    @targets(mark(DYNAMIC_RELOCATION_SCOPE_TESTED, NotificationAction, NotificationActionProject))
+    def test_notification_action(self):
         # Bound to an app == global scope.
         app = self.create_sentry_app(name="test_app", organization=self.organization)
         action = self.create_notification_action(
