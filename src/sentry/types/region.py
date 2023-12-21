@@ -61,9 +61,6 @@ class Region:
     category: RegionCategory
     """The region's category."""
 
-    api_token: Optional[str] = None
-    """Unused will be removed in the future"""
-
     def validate(self) -> None:
         from sentry.utils.snowflake import REGION_ID
 
