@@ -682,13 +682,16 @@ def test_cleanup_with_environment_injection(query):
     # scrape away parentheses.
     for updated_env_logic in (True, False):
         spec = OnDemandMetricSpec(
-            field, query, environment=environment, use_updated_env_logic=updated_env_logic
+            field,
+            query,
+            environment=environment,
+            spec_version={"use_updated_env_logic": updated_env_logic},
         )
         transformed_spec = OnDemandMetricSpec(
             field,
             transformed_query,
             environment=environment,
-            use_updated_env_logic=updated_env_logic,
+            spec_version={"use_updated_env_logic": updated_env_logic},
         )
 
         assert spec.query_hash == transformed_spec.query_hash

@@ -168,7 +168,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 environment=environment,
                 groupbys=groupby_columns,
                 spec_type=self.builder_config.on_demand_metrics_type,
-                use_updated_env_logic=use_updated_env_logic,
+                spec_version={"use_updated_env_logic": use_updated_env_logic},
             )
         except Exception as e:
             sentry_sdk.capture_exception(e)

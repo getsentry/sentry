@@ -1027,6 +1027,7 @@ class OnDemandMetricSpec:
     query: str
     groupbys: Sequence[str]
     spec_type: MetricSpecType
+    spec_version: dict[str, bool]
 
     # Public fields.
     op: MetricOperationType
@@ -1039,15 +1040,15 @@ class OnDemandMetricSpec:
         self,
         field: str,
         query: str,
+        spec_version: dict[str, str],
         environment: Optional[str] = None,
         groupbys: Optional[Sequence[str]] = None,
         spec_type: MetricSpecType = MetricSpecType.SIMPLE_QUERY,
-        use_updated_env_logic: bool = True,
     ):
         self.field = field
         self.query = query
         self.spec_type = spec_type
-        self.use_updated_env_logic = use_updated_env_logic
+        self.spec_version = spec_version
 
         # Removes field if passed in selected_columns
         self.groupbys = [groupby for groupby in groupbys or () if groupby != field]
@@ -1259,7 +1260,7 @@ class OnDemandMetricSpec:
 
         extended_conditions = conditions
         if new_conditions:
-            if self.use_updated_env_logic:
+            if self.spec_version.get("use_updated_env_logic"):
                 conditions = [ParenExpression(children=conditions)] if conditions else []
                 # This transformation is equivalent to (new_conditions) AND (conditions).
                 extended_conditions = [ParenExpression(children=new_conditions)] + conditions
