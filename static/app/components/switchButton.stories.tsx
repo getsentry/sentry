@@ -26,6 +26,12 @@ export default storyBook('Switch', story => {
           {toggleOn ? 'Switch is on' : 'Switch is off'}
           <Switch id="switch" toggle={() => setToggleOn(!toggleOn)} isActive={toggleOn} />
         </SwitchItem>
+        <p>
+          You can pass a callback function into the <JSXProperty name="toggle" value />{' '}
+          prop to control what happens when the toggle is clicked. Pair this with a{' '}
+          <code>useState</code> or some other code to set the active state of the toggle,
+          which is controlled by the prop <JSXProperty name="isActive" value />.
+        </p>
       </Fragment>
     );
   });
