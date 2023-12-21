@@ -59,6 +59,6 @@ def delete_replay_recording(project_id: int, replay_id: str) -> None:
         replay_id=replay_id, project_id=project_id
     ).all()
 
-    with ThreadPoolExecutor(max_workers=20) as pool:
+    with ThreadPoolExecutor(max_workers=10) as pool:
         pool.map(delete_segment, segments)
         pool.map(delete_segment_model, segment_models)
