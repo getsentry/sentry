@@ -22,7 +22,7 @@ from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.monitors.endpoints.base import MonitorEndpoint
 from sentry.monitors.models import MonitorEnvironment, MonitorStatus
 from sentry.monitors.serializers import MonitorSerializer
-from sentry.monitors.validators import MONITOR_STATUSES, MonitorValidator
+from sentry.monitors.validators import MONITOR_STATUSES
 
 
 @region_silo_endpoint
@@ -41,7 +41,6 @@ class OrganizationMonitorEnvironmentDetailsEndpoint(MonitorEndpoint):
             MonitorParams.MONITOR_SLUG,
             MonitorParams.ENVIRONMENT,
         ],
-        request=MonitorValidator,
         responses={
             200: MonitorSerializer,
             400: RESPONSE_BAD_REQUEST,
@@ -56,10 +55,10 @@ class OrganizationMonitorEnvironmentDetailsEndpoint(MonitorEndpoint):
         """
         Update a monitor environment.
         """
-        # Only support enabling/disabling monitor environments
-        status = MONITOR_STATUSES.get(request.data.get("status"))
-        if status in [MonitorStatus.ACTIVE, MonitorStatus.DISABLED]:
-            monitor_environment.update(status=status)
+        # Only support muting/unmuting monitor environments
+        is_muted = MONITOR_STATUSES.get(request.data.get("isMuted"))
+        if type(is_muted) is bool:
+            monitor_environment.update(is_muted=is_muted)
 
         self.create_audit_entry(
             request=request,
@@ -78,7 +77,6 @@ class OrganizationMonitorEnvironmentDetailsEndpoint(MonitorEndpoint):
             MonitorParams.MONITOR_SLUG,
             MonitorParams.ENVIRONMENT,
         ],
-        request=MonitorValidator,
         responses={
             202: RESPONSE_ACCEPTED,
             401: RESPONSE_UNAUTHORIZED,
