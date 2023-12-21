@@ -115,23 +115,44 @@ class GitLabProxyApiClient(IntegrationProxyClient):
 
     def request(self, *args: Any, **kwargs: Any):
         if SiloMode.get_current_mode() == SiloMode.REGION:
+            # Skip token refreshes in Region silo, as these will
+            # be handled below by the control silo when the
+            # integration proxy invokes the client code.
             return super().request(*args, **kwargs)
-        # Only perform the refresh token flow in either monolithic or the control silo mode.
+
+        return self._issue_request_with_auto_token_refresh(*args, **kwargs)
+
+    def _issue_request_with_auto_token_refresh(self, *args: Any, **kwargs: Any):
         try:
-            return super().request(*args, **kwargs)
+            response = super().request(*args, **kwargs)
         except ApiUnauthorized as e:
             if self.is_refreshing_token:
                 raise e
+            return self._attempt_request_after_refreshing_token(*args, **kwargs)
 
-            self.is_refreshing_token = True
-            self.refreshed_identity = self._refresh_auth()
+        if (
+            kwargs.get("raw_response", False)
+            and response.status_code == 401
+            and not self.is_refreshing_token
+        ):
+            # Because the caller may make the request with the raw_response
+            # option, we need to manually check the response status code and
+            # refresh the token if an auth error occurs.
+            return self._attempt_request_after_refreshing_token(*args, **kwargs)
 
-            response = super().request(*args, **kwargs)
+        return response
 
-            self.is_refreshing_token = False
-            self.refreshed_identity = None
+    def _attempt_request_after_refreshing_token(self, *args: Any, **kwargs: Any):
+        assert not self.is_refreshing_token, "A token refresh is already occurring"
+        self.is_refreshing_token = True
+        self.refreshed_identity = self._refresh_auth()
 
-            return response
+        response = super().request(*args, **kwargs)
+
+        self.is_refreshing_token = False
+        self.refreshed_identity = None
+
+        return response
 
     def get_user(self):
         """Get a user
