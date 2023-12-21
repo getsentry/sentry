@@ -111,6 +111,9 @@ from sentry.monitors.endpoints.organization_monitor_checkin_index import (
 from sentry.monitors.endpoints.organization_monitor_details import (
     OrganizationMonitorDetailsEndpoint,
 )
+from sentry.monitors.endpoints.organization_monitor_environment_details import (
+    OrganizationMonitorEnvironmentDetailsEndpoint,
+)
 from sentry.monitors.endpoints.organization_monitor_index import OrganizationMonitorIndexEndpoint
 from sentry.monitors.endpoints.organization_monitor_index_stats import (
     OrganizationMonitorIndexStatsEndpoint,
@@ -1518,6 +1521,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/$",
         OrganizationMonitorDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-monitor-details",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/environments/(?P<environment>[^\/]+)$",
+        OrganizationMonitorEnvironmentDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-monitor-environment-details",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/stats/$",

@@ -210,6 +210,13 @@ class MonitorParams:
         type=OpenApiTypes.UUID,
         description="The ID of the check-in.",
     )
+    ENVIRONMENT = OpenApiParameter(
+        name="environment",
+        location="path",
+        required=False,
+        type=str,
+        description="The name of environment for the monitor environment.",
+    )
 
 
 class EventParams:
