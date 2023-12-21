@@ -74,7 +74,7 @@ def _get_spans_by_ids(
             "end": end,
         },
         query=f"span_id:[{','.join(span_ids)}]",
-        referrer=Referrer.API_DDM_METRICS_SUMMARIES.value,
+        referrer=Referrer.API_DDM_FETCH_SPANS.value,
     )["data"]
 
     return [
