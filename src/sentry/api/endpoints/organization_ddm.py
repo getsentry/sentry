@@ -59,7 +59,7 @@ class OrganizationDDMMetaEndpoint(OrganizationEndpoint):
         projects = self.get_projects(request, organization)
 
         if len(metric_mris) != 1:
-            raise InvalidParams("You can query the spans of only a single metric")
+            raise InvalidParams("You can only pass a single metric.")
 
         for meta_type in self._extract_meta_types(request):
             data: Any = {}
@@ -67,7 +67,7 @@ class OrganizationDDMMetaEndpoint(OrganizationEndpoint):
             if meta_type == MetaType.CODE_LOCATIONS:
                 # TODO: refactor code locations to support only a single mri.
                 data = get_code_locations(
-                    metric_mris=metric_mris[0:],
+                    metric_mris=metric_mris[:1],
                     start=start,
                     end=end,
                     organization=organization,
