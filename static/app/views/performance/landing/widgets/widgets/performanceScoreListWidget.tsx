@@ -84,7 +84,6 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
           )}
           disableXAxis
           loading={false}
-          utc={false}
           grid={{
             left: 5,
             right: 5,

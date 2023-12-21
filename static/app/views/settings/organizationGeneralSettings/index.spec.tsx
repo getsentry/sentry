@@ -1,5 +1,7 @@
 import {browserHistory} from 'react-router';
+import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -42,7 +44,7 @@ describe('OrganizationGeneralSettings', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/?provider_key=github`,
       method: 'GET',
-      body: [TestStubs.GitHubIntegration()],
+      body: [GitHubIntegrationFixture()],
     });
   });
 
@@ -194,7 +196,7 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('can remove organization when org admin', async function () {
-    act(() => ProjectsStore.loadInitialData([TestStubs.Project({slug: 'project'})]));
+    act(() => ProjectsStore.loadInitialData([ProjectFixture({slug: 'project'})]));
 
     render(
       <OrganizationGeneralSettings

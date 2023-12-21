@@ -38,9 +38,9 @@ from sentry.services.hybrid_cloud.integration.model import (
 )
 from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
+from sentry.services.hybrid_cloud.repository.service import repository_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.silo import SiloMode
 from sentry.tasks.integrations.github.open_pr_comment import open_pr_comment_workflow
 from sentry.utils import json, metrics
 from sentry.utils.json import JSONData
@@ -69,6 +69,10 @@ def get_file_language(filename: str) -> str | None:
 
 
 class Webhook:
+    """
+    Base class for GitHub webhooks handled in region silos.
+    """
+
     provider = "github"
 
     def _handle(
@@ -110,8 +114,6 @@ class Webhook:
                     id__in=[install.organization_id for install in installs]
                 )
             }
-
-            # TODO: Replace with repository_service; deal with potential multiple regions
             repos = Repository.objects.filter(
                 organization_id__in=orgs.keys(),
                 provider=f"integrations:{self.provider}",
@@ -179,8 +181,15 @@ class Webhook:
             )
 
 
-class InstallationEventWebhook(Webhook):
-    # https://developer.github.com/v3/activity/events/types/#installationevent
+class InstallationEventWebhook:
+    """
+    Unlike other GitHub webhooks, installation webhooks are handled in control silo.
+
+    https://developer.github.com/v3/activity/events/types/#installationevent
+    """
+
+    provider = "github"
+
     def __call__(self, event: Mapping[str, Any], host: str | None = None) -> None:
         installation = event["installation"]
 
@@ -242,13 +251,12 @@ class InstallationEventWebhook(Webhook):
         integration_service.update_integration(
             integration_id=integration.id, status=ObjectStatus.DISABLED
         )
-
-        if len(org_ids) > 0 and SiloMode.get_current_mode() != SiloMode.CONTROL:
-            Repository.objects.filter(
-                organization_id__in=org_ids,
+        for organization_id in org_ids:
+            repository_service.disable_repositories_for_integration(
+                organization_id=organization_id,
                 provider=f"integrations:{self.provider}",
                 integration_id=integration.id,
-            ).update(status=ObjectStatus.DISABLED)
+            )
 
 
 class PushEventWebhook(Webhook):

@@ -469,6 +469,7 @@ def call_snuba(settings):
 @pytest.fixture
 def reset_snuba(call_snuba):
     init_endpoints = [
+        "/tests/spans/drop",
         "/tests/events/drop",
         "/tests/groupedmessage/drop",
         "/tests/transactions/drop",

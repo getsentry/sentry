@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import ProgressRing from 'sentry/components/progressRing';
 import {COUNTRY_CODE_TO_NAME_MAP} from 'sentry/data/countryCodesMap';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconClose} from 'sentry/icons/iconClose';
@@ -12,7 +11,12 @@ import {space} from 'sentry/styles/space';
 import {Tag} from 'sentry/types';
 import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
-import {getScoreColor} from 'sentry/views/performance/browser/webVitals/utils/getScoreColor';
+import {Dot} from 'sentry/views/performance/browser/webVitals/components/webVitalMeters';
+import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/performance/browser/webVitals/utils/performanceScoreColors';
+import {
+  scoreToStatus,
+  STATUS_TEXT,
+} from 'sentry/views/performance/browser/webVitals/utils/scoreToStatus';
 import {
   ProjectScore,
   WebVitals,
@@ -62,25 +66,23 @@ type WebVitalDetailHeaderProps = {
 
 export function WebVitalDetailHeader({score, value, webVital}: Props) {
   const theme = useTheme();
+  const colors = theme.charts.getColorPalette(3);
+  const dotColor = colors[['lcp', 'fcp', 'fid', 'cls', 'ttfb'].indexOf(webVital)];
+  const status = scoreToStatus(score);
+
   return (
     <Header>
       <span>
         <WebVitalName>{`${WEB_VITAL_FULL_NAME_MAP[webVital]} (P75)`}</WebVitalName>
-        <Value>{value}</Value>
+        <Value>
+          <Dot color={dotColor} />
+          {value}
+        </Value>
       </span>
-      <ProgressRing
-        value={score}
-        size={100}
-        barWidth={16}
-        text={
-          <ProgressRingTextContainer>
-            <ProgressRingText>{score}</ProgressRingText>
-            <ProgressRingSubText>{webVital.toUpperCase()}</ProgressRingSubText>
-          </ProgressRingTextContainer>
-        }
-        progressColor={getScoreColor(score, theme)}
-        backgroundColor={`${getScoreColor(score, theme)}33`}
-      />
+      <ScoreBadge status={status}>
+        <StatusText>{STATUS_TEXT[status]}</StatusText>
+        <StatusScore>{score}</StatusScore>
+      </ScoreBadge>
     </Header>
   );
 }
@@ -181,6 +183,8 @@ const Header = styled('span')`
 `;
 
 const Value = styled('h2')`
+  display: flex;
+  align-items: center;
   font-weight: normal;
   margin-bottom: ${space(1)};
 `;
@@ -190,23 +194,6 @@ const WebVitalName = styled('h4')`
   margin-top: 40px;
   max-width: 400px;
   ${p => p.theme.overflowEllipsis}
-`;
-
-const ProgressRingTextContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-`;
-
-const ProgressRingText = styled('h4')`
-  color: ${p => p.theme.textColor};
-  margin: ${space(2)} 0 0 0;
-`;
-
-const ProgressRingSubText = styled('h5')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.textColor};
 `;
 
 const TitleWrapper = styled('div')`
@@ -220,4 +207,29 @@ const StyledCopyToClipboardButton = styled(CopyToClipboardButton)`
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin: 20px 65px;
+`;
+
+const ScoreBadge = styled('div')<{status: string}>`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
+  background-color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
+  border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
+  padding: ${space(0.5)};
+  text-align: center;
+  height: 60px;
+  width: 60px;
+  border-radius: 60px;
+`;
+
+const StatusText = styled('span')`
+  padding-top: ${space(0.5)};
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const StatusScore = styled('span')`
+  font-weight: bold;
+  font-size: ${p => p.theme.fontSizeLarge};
 `;

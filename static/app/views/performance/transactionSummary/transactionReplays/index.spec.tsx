@@ -1,3 +1,4 @@
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {ReplayList} from 'sentry-fixture/replayList';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -43,8 +44,8 @@ const getComponent = ({
     organization: {
       ...organizationProps,
     },
-    project: TestStubs.Project(),
-    projects: [TestStubs.Project()],
+    project: ProjectFixture(),
+    projects: [ProjectFixture()],
     router: {
       routes: [
         {path: '/'},
