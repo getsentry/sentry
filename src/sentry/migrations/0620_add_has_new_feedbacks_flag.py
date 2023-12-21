@@ -19,6 +19,8 @@ class Migration(CheckedMigration):
     #   change, it's completely safe to run the operation after the code has deployed.
     is_dangerous = False
 
+    skip_invalid_bitfield_change_check = True
+
     dependencies = [
         ("sentry", "0619_monitors_migrate_is_muted"),
     ]
