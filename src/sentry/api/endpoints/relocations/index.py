@@ -104,6 +104,8 @@ class RelocationIndexEndpoint(Endpoint):
         :auth: required
         """
 
+        logger.info("relocations.index.get.start", extra={"caller": request.user.id})
+
         if not SuperuserPermission().has_permission(request, None):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
@@ -160,7 +162,7 @@ class RelocationIndexEndpoint(Endpoint):
         :auth: required
         """
 
-        logger.info("post.start", extra={"caller": request.user.id})
+        logger.info("relocations.index.post.start", extra={"caller": request.user.id})
 
         is_superuser = SuperuserPermission().has_permission(request, None)
         if not options.get("relocation.enabled") and not is_superuser:
@@ -232,4 +234,4 @@ class RelocationIndexEndpoint(Endpoint):
             )
 
         uploading_complete.delay(relocation.uuid)
-        return Response(status=status.HTTP_201_CREATED)
+        return Response(serialize(relocation), status=status.HTTP_201_CREATED)

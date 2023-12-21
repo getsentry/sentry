@@ -160,6 +160,10 @@ describe('Performance > Transaction Summary Header', function () {
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replay-count/',
+      body: {},
+    });
 
     render(
       <TransactionHeader

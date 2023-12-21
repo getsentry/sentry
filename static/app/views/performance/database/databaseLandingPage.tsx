@@ -107,6 +107,16 @@ export function DatabaseLandingPage() {
     'api.starfish.span-landing-page-metrics-chart'
   );
 
+  const isCriticalDataLoading =
+    isThroughputDataLoading || isDurationDataLoading || queryListResponse.isLoading;
+
+  const isAnyCriticalDataAvailable =
+    (queryListResponse.data ?? []).length > 0 ||
+    durationData[`${selectedAggregate}(span.self_time)`].data?.some(
+      ({value}) => value > 0
+    ) ||
+    throughputData['spm()'].data?.some(({value}) => value > 0);
+
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
 
   return (
@@ -132,7 +142,12 @@ export function DatabaseLandingPage() {
 
       <Layout.Body>
         <Layout.Main fullWidth>
-          {!onboardingProject && <NoDataMessage Wrapper={AlertBanner} />}
+          {!onboardingProject && !isCriticalDataLoading && (
+            <NoDataMessage
+              Wrapper={AlertBanner}
+              isDataAvailable={isAnyCriticalDataAvailable}
+            />
+          )}
           <FloatingFeedbackWidget />
           <PaddedContainer>
             <PageFilterBar condensed>

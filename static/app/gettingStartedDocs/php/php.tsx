@@ -10,8 +10,48 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
+const getConfigureSnippet = (params: Params) => `\\Sentry\\init([
+  'dsn' => '${params.dsn}',${
+    params.isPerformanceSelected
+      ? `
+  // Specify a fixed sample rate
+  'traces_sample_rate' => 1.0,`
+      : ''
+  }${
+    params.isProfilingSelected
+      ? `
+  // Set a sampling rate for profiling - this is relative to traces_sample_rate
+  'profiles_sample_rate' => 1.0,`
+      : ''
+  }
+]);`;
+
+const getMetricsConfigureSnippet = () => `
+use function \\Sentry\\init;
+
+\\Sentry\\init([
+    'metric_code_locations' => true,
+]);`;
+
+const getVerifySnippet = () => `
+try {
+  $this->functionFailsForSure();
+} catch (\\Throwable $exception) {
+  \\Sentry\\captureException($exception);
+}`;
+
+const getMetricsVerifySnippet = () => `
+use function \\Sentry\\metrics;
+
+// Add 4 to a counter named 'hits'
+metrics()->increment('hits', 4);
+metrics()->flush();
+
+// We recommend registering the flushing in a shutdownhandler
+register_shutdown_function(static fn () => metrics()->flush());`;
+
 const onboarding: OnboardingConfig = {
-  install: (params: Params) => [
+  install: params => [
     {
       type: StepType.INSTALL,
       description: tct(
@@ -23,7 +63,7 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'bash',
-          code: 'composer require sentry/sdk',
+          code: 'composer require sentry/sentry',
         },
         ...(params.isProfilingSelected
           ? [
@@ -37,7 +77,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  configure: (params: Params) => [
+  configure: params => [
     {
       type: StepType.CONFIGURE,
       description: t(
@@ -46,21 +86,7 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'php',
-          code: `\\Sentry\\init([
-      'dsn' => '${params.dsn}',${
-        params.isPerformanceSelected
-          ? `
-      // Specify a fixed sample rate
-      'traces_sample_rate' => 1.0,`
-          : ''
-      }${
-        params.isProfilingSelected
-          ? `
-      // Set a sampling rate for profiling - this is relative to traces_sample_rate
-      'profiles_sample_rate' => 1.0,`
-          : ''
-      }
-  ]);`,
+          code: getConfigureSnippet(params),
           additionalInfo: params.isPerformanceSelected && (
             <p>
               {tct(
@@ -86,12 +112,7 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'php',
-          code: `
-  try {
-    $this->functionFailsForSure();
-  } catch (\\Throwable $exception) {
-    \\Sentry\\captureException($exception);
-  }`,
+          code: getVerifySnippet(),
         },
       ],
     },
@@ -99,9 +120,92 @@ const onboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const customMetricsOnboarding: OnboardingConfig = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'You need a minimum version [codeVersion:4.3.0] of the Sentry PHP SDK installed.',
+        {
+          codeVersion: <code />,
+        }
+      ),
+      configurations: [
+        {
+          language: 'bash',
+          code: 'composer install sentry/sentry',
+        },
+      ],
+    },
+  ],
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: t(
+        'Once the SDK is installed or updated, you can enable code locations being emitted with your metrics:'
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'PHP',
+              value: 'php',
+              language: 'php',
+              code: getMetricsConfigureSnippet(),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: tct(
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. Try out this example:",
+        {
+          codeCounters: <code />,
+          codeSets: <code />,
+          codeDistribution: <code />,
+          codeGauge: <code />,
+          codeNamespace: <code />,
+        }
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'PHP',
+              value: 'php',
+              language: 'php',
+              code: getMetricsVerifySnippet(),
+            },
+          ],
+        },
+        {
+          description: t(
+            'With a bit of delay you can see the data appear in the Sentry UI.'
+          ),
+        },
+        {
+          description: tct(
+            'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
+            {
+              docsLink: (
+                <ExternalLink href="https://github.com/getsentry/sentry-php/discussions/1666" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+};
+
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
+  customMetricsOnboarding,
 };
 
 export default docs;

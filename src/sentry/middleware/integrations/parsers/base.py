@@ -19,6 +19,7 @@ from sentry.services.hybrid_cloud.organization_mapping import organization_mappi
 from sentry.silo import SiloLimit, SiloMode
 from sentry.silo.client import RegionSiloClient, SiloClientError
 from sentry.types.region import Region, get_region_for_organization
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
@@ -83,8 +84,11 @@ class BaseRequestParser(abc.ABC):
         return self.response_handler(self.request)
 
     def get_response_from_region_silo(self, region: Region) -> HttpResponseBase:
-        region_client = RegionSiloClient(region)
-        return region_client.proxy_request(incoming_request=self.request)
+        with metrics.timer(
+            "integration_proxy.control.get_response_from_region_silo", sample_rate=1.0
+        ):
+            region_client = RegionSiloClient(region)
+            return region_client.proxy_request(incoming_request=self.request)
 
     def get_responses_from_region_silos(
         self, regions: Sequence[Region]

@@ -1,4 +1,6 @@
+import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -16,7 +18,7 @@ describe('Dashboards - DashboardList', function () {
   let dashboards, widgets, deleteMock, dashboardUpdateMock, createMock;
   const organization = Organization({
     features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
-    projects: [TestStubs.Project()],
+    projects: [ProjectFixture()],
   });
 
   const {router, routerContext} = initializeOrg();
@@ -185,7 +187,7 @@ describe('Dashboards - DashboardList', function () {
         organization={organization}
         dashboards={dashboards}
         pageLinks=""
-        location={{...TestStubs.location(), query: {statsPeriod: '7d'}}}
+        location={{...LocationFixture(), query: {statsPeriod: '7d'}}}
       />,
       {context: routerContext}
     );
@@ -202,7 +204,7 @@ describe('Dashboards - DashboardList', function () {
         organization={organization}
         dashboards={dashboards}
         pageLinks=""
-        location={{...TestStubs.location(), query: {}}}
+        location={{...LocationFixture(), query: {}}}
         onDashboardsChange={dashboardUpdateMock}
       />,
       {context: routerContext}
@@ -239,7 +241,7 @@ describe('Dashboards - DashboardList', function () {
         organization={organization}
         dashboards={singleDashboard}
         pageLinks=""
-        location={TestStubs.location()}
+        location={LocationFixture()}
         onDashboardsChange={dashboardUpdateMock}
       />
     );
@@ -257,7 +259,7 @@ describe('Dashboards - DashboardList', function () {
         organization={organization}
         dashboards={dashboards}
         pageLinks=""
-        location={{...TestStubs.location(), query: {}}}
+        location={{...LocationFixture(), query: {}}}
         onDashboardsChange={dashboardUpdateMock}
       />
     );
@@ -283,7 +285,7 @@ describe('Dashboards - DashboardList', function () {
         organization={organization}
         dashboards={dashboards}
         pageLinks=""
-        location={{...TestStubs.location(), query: {}}}
+        location={{...LocationFixture(), query: {}}}
         onDashboardsChange={dashboardUpdateMock}
       />
     );

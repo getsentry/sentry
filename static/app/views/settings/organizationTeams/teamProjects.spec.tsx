@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Team} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -13,11 +14,11 @@ describe('OrganizationTeamProjects', function () {
   let deleteMock!: jest.Mock;
 
   const team = Team({slug: 'team-slug'});
-  const project = TestStubs.Project({
+  const project = ProjectFixture({
     teams: [team],
     access: ['project:read', 'project:write', 'project:admin'],
   });
-  const project2 = TestStubs.Project({
+  const project2 = ProjectFixture({
     id: '3',
     slug: 'project-slug-2',
     name: 'Project Name 2',

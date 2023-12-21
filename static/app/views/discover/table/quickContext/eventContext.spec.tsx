@@ -1,5 +1,6 @@
 import type {Location} from 'history';
 import {Event as EventFixture} from 'sentry-fixture/event';
+import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
@@ -20,7 +21,7 @@ import {QueryClientProvider} from 'sentry/utils/queryClient';
 
 import EventContext from './eventContext';
 
-const mockedLocation = TestStubs.location({
+const mockedLocation = LocationFixture({
   query: {
     field: ['issue', 'transaction.duration'],
   },
