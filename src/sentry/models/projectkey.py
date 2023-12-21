@@ -62,6 +62,11 @@ class ProjectKey(Model):
     secret_key = models.CharField(max_length=32, unique=True, null=True)
 
     class roles(TypedClassBitField):
+        # WARNING: Only add flags to the bottom of this list
+        # bitfield flags are dependent on their order and inserting/removing
+        # flags from the middle of the list will cause bits to shift corrupting
+        # existing data.
+
         # access to post events to the store endpoint
         store: bool
         # read/write access to rest API

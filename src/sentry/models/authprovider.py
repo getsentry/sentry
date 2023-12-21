@@ -70,6 +70,11 @@ class AuthProvider(ReplicatedControlModel):
         )
 
     class flags(TypedClassBitField):
+        # WARNING: Only add flags to the bottom of this list
+        # bitfield flags are dependent on their order and inserting/removing
+        # flags from the middle of the list will cause bits to shift corrupting
+        # existing data.
+
         # Grant access to members who have not linked SSO accounts.
         allow_unlinked: bool
         # Enable SCIM for member and team provisioning and syncing.
