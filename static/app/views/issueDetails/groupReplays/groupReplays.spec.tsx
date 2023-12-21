@@ -120,37 +120,38 @@ describe('GroupReplays', () => {
             },
           })
         );
-        // Expect api path to have the correct query params
-        expect(mockReplayApi).toHaveBeenCalledWith(
-          mockReplayUrl,
-          expect.objectContaining({
-            query: expect.objectContaining({
-              environment: [],
-              field: [
-                'activity',
-                'browser',
-                'count_dead_clicks',
-                'count_errors',
-                'count_rage_clicks',
-                'duration',
-                'finished_at',
-                'id',
-                'is_archived',
-                'os',
-                'project_id',
-                'started_at',
-                'user',
-              ],
-              per_page: 50,
-              project: -1,
-              queryReferrer: 'issueReplays',
-              query: `id:[${REPLAY_ID_1},${REPLAY_ID_2}]`,
-              sort: '-started_at',
-              statsPeriod: '14d',
-            }),
-          })
-        );
       });
+
+      // Expect api path to have the correct query params
+      expect(mockReplayApi).toHaveBeenCalledWith(
+        mockReplayUrl,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            environment: [],
+            field: [
+              'activity',
+              'browser',
+              'count_dead_clicks',
+              'count_errors',
+              'count_rage_clicks',
+              'duration',
+              'finished_at',
+              'id',
+              'is_archived',
+              'os',
+              'project_id',
+              'started_at',
+              'user',
+            ],
+            per_page: 50,
+            project: -1,
+            queryReferrer: 'groupReplays',
+            query: `id:[${REPLAY_ID_1},${REPLAY_ID_2}]`,
+            sort: '-started_at',
+            statsPeriod: '14d',
+          }),
+        })
+      );
     });
 
     it('should show empty message when no replays are found', async () => {
@@ -209,11 +210,12 @@ describe('GroupReplays', () => {
 
       await waitFor(() => {
         expect(mockReplayCountApi).toHaveBeenCalledTimes(1);
-        expect(mockReplayApi).toHaveBeenCalledTimes(1);
-        expect(
-          screen.getByText('Invalid number: asdf. Expected number.')
-        ).toBeInTheDocument();
       });
+
+      expect(mockReplayApi).toHaveBeenCalledTimes(1);
+      expect(
+        screen.getByText('Invalid number: asdf. Expected number.')
+      ).toBeInTheDocument();
     });
 
     it('should display default error message when api call fails without a body', async () => {
@@ -240,13 +242,13 @@ describe('GroupReplays', () => {
 
       await waitFor(() => {
         expect(mockReplayCountApi).toHaveBeenCalledTimes(1);
-        expect(mockReplayApi).toHaveBeenCalledTimes(1);
-        expect(
-          screen.getByText(
-            'Sorry, the list of replays could not be loaded. This could be due to invalid search parameters or an internal systems error.'
-          )
-        ).toBeInTheDocument();
       });
+      expect(mockReplayApi).toHaveBeenCalledTimes(1);
+      expect(
+        screen.getByText(
+          'Sorry, the list of replays could not be loaded. This could be due to invalid search parameters or an internal systems error.'
+        )
+      ).toBeInTheDocument();
     });
 
     it('should show loading indicator when loading replays', async () => {
@@ -276,8 +278,8 @@ describe('GroupReplays', () => {
       expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
       await waitFor(() => {
         expect(mockReplayCountApi).toHaveBeenCalledTimes(1);
-        expect(mockReplayApi).toHaveBeenCalledTimes(1);
       });
+      expect(mockReplayApi).toHaveBeenCalledTimes(1);
     });
 
     it('should show a list of replays and have the correct values', async () => {
@@ -339,8 +341,8 @@ describe('GroupReplays', () => {
 
       await waitFor(() => {
         expect(mockReplayCountApi).toHaveBeenCalledTimes(1);
-        expect(mockReplayApi).toHaveBeenCalledTimes(1);
       });
+      expect(mockReplayApi).toHaveBeenCalledTimes(1);
 
       // Expect the table to have 2 rows
       expect(screen.getAllByText('testDisplayName')).toHaveLength(2);
