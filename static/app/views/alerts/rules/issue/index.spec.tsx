@@ -1,6 +1,8 @@
 import {browserHistory, PlainRoute} from 'react-router';
 import selectEvent from 'react-select-event';
 import moment from 'moment';
+import {Environments as EnvironmentsFixture} from 'sentry-fixture/environments';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {ProjectAlertRule} from 'sentry-fixture/projectAlertRule';
 import {ProjectAlertRuleConfiguration} from 'sentry-fixture/projectAlertRuleConfiguration';
 
@@ -128,7 +130,7 @@ describe('IssueRuleEditor', function () {
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/environments/',
-      body: TestStubs.Environments(),
+      body: EnvironmentsFixture(),
     });
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/project-slug/?expand=hasAlertIntegration`,
@@ -147,7 +149,7 @@ describe('IssueRuleEditor', function () {
       method: 'POST',
       body: [],
     });
-    ProjectsStore.loadInitialData([TestStubs.Project()]);
+    ProjectsStore.loadInitialData([ProjectFixture()]);
   });
 
   afterEach(function () {

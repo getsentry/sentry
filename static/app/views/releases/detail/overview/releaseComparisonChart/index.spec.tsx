@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {Release as ReleaseFixture} from 'sentry-fixture/release';
 import {
   SessionUserCountByStatus,
   SessionUserCountByStatus2,
@@ -12,7 +13,7 @@ import ReleaseComparisonChart from 'sentry/views/releases/detail/overview/releas
 describe('Releases > Detail > Overview > ReleaseComparison', () => {
   const {routerContext, organization, project} = initializeOrg();
   const api = new MockApiClient();
-  const release = TestStubs.Release();
+  const release = ReleaseFixture();
   const releaseSessions = SessionUserCountByStatus();
   const allSessions = SessionUserCountByStatus2();
 

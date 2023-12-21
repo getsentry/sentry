@@ -42,7 +42,7 @@ function SampleInfo(props: Props) {
     filters['transaction.method'] = transactionMethod;
   }
 
-  const {data: spanMetrics, error} = useSpanMetrics(
+  const {data, error} = useSpanMetrics(
     filters,
     [
       SPAN_OP,
@@ -52,8 +52,13 @@ function SampleInfo(props: Props) {
       'time_spent_percentage()',
       'count()',
     ],
+    undefined,
+    undefined,
+    undefined,
     'api.starfish.span-summary-panel-metrics'
   );
+
+  const spanMetrics = data[0] ?? {};
 
   const style: CSSProperties = {
     textAlign: 'left',

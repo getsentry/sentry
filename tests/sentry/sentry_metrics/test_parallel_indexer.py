@@ -77,3 +77,5 @@ def test_basic(request, settings, force_disable_multiprocessing):
     strategy.submit(message=message)
     strategy.close()
     strategy.join()
+    # Close the multiprocessing pool
+    processing_factory.shutdown()

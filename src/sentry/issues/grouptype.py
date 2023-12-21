@@ -358,6 +358,7 @@ class PerformanceP95EndpointRegressionGroupType(GroupType):
     category = GroupCategory.PERFORMANCE.value
     enable_auto_resolve = False
     enable_escalation_detection = False
+    released = True
 
 
 # 2000 was ProfileBlockingFunctionMainThreadType
@@ -438,6 +439,7 @@ class ProfileFunctionRegressionExperimentalType(GroupType):
     description = "Function Duration Regression (Experimental)"
     category = GroupCategory.PERFORMANCE.value
     enable_auto_resolve = False
+    released = True
 
 
 @dataclass(frozen=True)

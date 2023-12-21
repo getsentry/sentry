@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -6,6 +6,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
+import ReplayConfigToggle from 'sentry/components/onboarding/gettingStartedDoc/replayConfigToggle';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   ConfigType,
@@ -60,6 +61,8 @@ export function OnboardingLayout({
   const {isLoading: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
+  const [mask, setMask] = useState(true);
+  const [block, setBlock] = useState(true);
 
   const {platformOptions} = docsConfig;
 
@@ -84,6 +87,8 @@ export function OnboardingLayout({
       },
       platformOptions: selectedOptions,
       newOrg,
+      mask,
+      block,
     };
 
     return {
@@ -109,6 +114,8 @@ export function OnboardingLayout({
     registryData,
     selectedOptions,
     configType,
+    mask,
+    block,
   ]);
 
   return (
@@ -122,15 +129,45 @@ export function OnboardingLayout({
               platform={platformKey}
             />
           )}
-          {platformOptions ? (
+          {platformOptions &&
+          !['replayOnboardingJsLoader', 'customMetricsOnboarding'].includes(
+            configType
+          ) ? (
             <PlatformOptionsControl platformOptions={platformOptions} />
           ) : null}
         </Header>
         <Divider withBottomMargin />
         <Steps>
-          {steps.map(step => (
-            <Step key={step.title ?? step.type} {...step} />
-          ))}
+          {steps.map(step =>
+            step.isOptional && step.isReplayConfigStep ? (
+              <Step
+                key={step.title ?? step.type}
+                {...{
+                  ...step,
+                  additionalInfo: (
+                    <ReplayConfigToggle
+                      blockToggle={block}
+                      maskToggle={mask}
+                      onBlockToggle={() => setBlock(!block)}
+                      onMaskToggle={() => setMask(!mask)}
+                    />
+                  ),
+                }}
+              />
+            ) : (
+              <Fragment key={step.title ?? step.type}>
+                <Step key={step.title ?? step.type} {...step} />
+                {step.isReplayConfigStep ? (
+                  <ReplayConfigToggle
+                    blockToggle={block}
+                    maskToggle={mask}
+                    onBlockToggle={() => setBlock(!block)}
+                    onMaskToggle={() => setMask(!mask)}
+                  />
+                ) : null}
+              </Fragment>
+            )
+          )}
         </Steps>
         {nextSteps.length > 0 && (
           <Fragment>

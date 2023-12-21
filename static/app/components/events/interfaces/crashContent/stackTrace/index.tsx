@@ -64,6 +64,7 @@ export function StackTraceContent({
           groupingCurrentLevel={groupingCurrentLevel}
           meta={meta}
           inlined={inlined}
+          hideIcon={inlined}
           maxDepth={maxDepth}
         />
       </ErrorBoundary>

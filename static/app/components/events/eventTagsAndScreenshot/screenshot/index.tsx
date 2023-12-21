@@ -67,7 +67,7 @@ function Screenshot({
               disabled={screenshotInFocus === 0}
               aria-label={t('Previous Screenshot')}
               onClick={onPrevious}
-              icon={<IconChevron direction="left" size="xs" />}
+              icon={<IconChevron direction="left" />}
               size="xs"
             />
             {tct('[currentScreenshot] of [totalScreenshots]', {
@@ -78,7 +78,7 @@ function Screenshot({
               disabled={screenshotInFocus + 1 === totalScreenshots}
               aria-label={t('Next Screenshot')}
               onClick={onNext}
-              icon={<IconChevron direction="right" size="xs" />}
+              icon={<IconChevron direction="right" />}
               size="xs"
             />
           </StyledPanelHeader>
@@ -123,7 +123,7 @@ function Screenshot({
                 offset={4}
                 triggerProps={{
                   showChevron: false,
-                  icon: <IconEllipsis size="xs" />,
+                  icon: <IconEllipsis />,
                   'aria-label': t('More screenshot actions'),
                 }}
                 size="xs"

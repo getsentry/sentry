@@ -76,9 +76,12 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
           : []),
       ],
       name: 'Web Vitals',
-      query: `transaction.op:pageload transaction:"${transaction}" has:measurements.score.total ${
-        query ? query : ''
-      }`,
+      query: [
+        'transaction.op:pageload',
+        `transaction:"${transaction}"`,
+        'has:measurements.score.total',
+        ...(query ? [query] : []),
+      ].join(' '),
       orderby: mapWebVitalToOrderBy(orderBy) ?? withProfiles ? '-profile.id' : undefined,
       version: 2,
     },
@@ -99,7 +102,7 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
     referrer: 'api.performance.browser.web-vitals.transaction',
   });
 
-  const toNumber = (item: ReactText) => (item ? parseFloat(item.toString()) : null);
+  const toNumber = (item: ReactText) => (item ? parseFloat(item.toString()) : undefined);
   const tableData: TransactionSampleRowWithScore[] =
     !isLoading && data?.data.length
       ? (data.data.map(
@@ -117,7 +120,9 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
             'profile.id': row['profile.id']?.toString(),
             projectSlug: row.project?.toString(),
             timestamp: row.timestamp?.toString(),
-            score: Math.round((toNumber(row['measurements.score.total']) ?? 0) * 100),
+            totalScore: Math.round(
+              (toNumber(row['measurements.score.total']) ?? 0) * 100
+            ),
             ...(webVital
               ? {
                   [`${webVital}Score`]: Math.round(

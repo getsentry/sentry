@@ -29,3 +29,15 @@ class MessageAction:
     option_groups: Sequence[Mapping[str, Any]] | None = None
     block_id: str | None = None
     elements: Sequence[Mapping[str, Any]] | None = None
+
+
+@dataclass
+class BlockKitMessageAction:
+    name: str
+    label: str
+    type: Literal["button", "select"] = "button"
+    url: str | None = None
+    value: str | None = None
+    action_id: str | None = None
+    block_id: str | None = None
+    selected_options: Sequence[Mapping[str, Any]] | None = None

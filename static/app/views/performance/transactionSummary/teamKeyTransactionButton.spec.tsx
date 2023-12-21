@@ -1,5 +1,7 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Team} from 'sentry-fixture/team';
+import {User} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -22,19 +24,19 @@ describe('TeamKeyTransactionButton', function () {
     Team({id: '1', slug: 'team1', name: 'Team 1'}),
     Team({id: '2', slug: 'team2', name: 'Team 2'}),
   ];
-  const project = TestStubs.Project({teams});
+  const project = ProjectFixture({teams});
   const eventView = new EventView({
     id: '1',
     name: 'my query',
     fields: [{field: 'count()'}],
     sorts: [{field: 'count', kind: 'desc'}],
     query: '',
-    project: [project.id],
+    project: [parseInt(project.id, 10)],
     start: '2019-10-01T00:00:00',
     end: '2019-10-02T00:00:00',
     statsPeriod: '14d',
     environment: [],
-    createdBy: TestStubs.User(),
+    createdBy: User(),
     display: 'line',
     team: ['myteams'],
     topEvents: '5',

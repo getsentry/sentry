@@ -1,13 +1,12 @@
 import {Component} from 'react';
 import {Organization} from 'sentry-fixture/organization';
-
-declare const TestStubs;
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 const MOCK_ORG = Organization();
 const DEFAULTS = {
   organization: MOCK_ORG,
   organizations: [MOCK_ORG],
-  project: TestStubs.Project(),
+  project: ProjectFixture(),
 };
 
 const withLatestContextMock = WrappedComponent =>

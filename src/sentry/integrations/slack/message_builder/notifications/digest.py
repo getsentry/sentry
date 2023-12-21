@@ -29,7 +29,7 @@ class DigestNotificationMessageBuilder(SlackNotificationsMessageBuilder):
         """
         digest: Digest = self.context.get("digest", {})
         return [
-            SlackIssuesMessageBuilder(  # type: ignore
+            SlackIssuesMessageBuilder(
                 group=group,
                 event=event,
                 rules=[rule],

@@ -1,18 +1,22 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
+import {screen} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import docs from './mongo';
 
-import {GettingStartedWithMongo, steps} from './mongo';
-
-describe('GettingStartedWithMongo', function () {
+describe('mongo onboarding docs', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithMongo dsn="test-dsn" projectSlug="test-project" />);
+    renderWithOnboardingLayout(docs);
 
-    // Steps
-    for (const step of steps()) {
-      expect(
-        screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
-      ).toBeInTheDocument();
-    }
+    // Renders main headings
+    expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
+
+    // Renders install instructions
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(/pip install --upgrade sentry-sdk\[pymongo\]/)
+      )
+    ).toBeInTheDocument();
   });
 });
