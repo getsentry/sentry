@@ -18,6 +18,7 @@ import DropdownButton from 'sentry/components/dropdownButton';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -304,21 +305,53 @@ class TeamMembers extends DeprecatedAsyncView<Props, State> {
         );
   }
 
+  renderMembers(isTeamAdmin: boolean) {
+    const {config, organization, team} = this.props;
+    const {access} = organization;
+
+    // org:admin is a unique scope that only org owners have
+    const isOrgOwner = access.includes('org:admin');
+    const {teamMembers, loading} = this.state;
+
+    if (loading) {
+      return <LoadingIndicator />;
+    }
+    if (teamMembers.length) {
+      return teamMembers.map(member => {
+        return (
+          <TeamMembersRow
+            key={member.id}
+            hasWriteAccess={isTeamAdmin}
+            isOrgOwner={isOrgOwner}
+            organization={organization}
+            team={team}
+            member={member}
+            user={config.user}
+            removeMember={this.removeTeamMember}
+            updateMemberRole={this.updateTeamMemberRole}
+          />
+        );
+      });
+    }
+    return (
+      <EmptyMessage icon={<IconUser size="xl" />} size="large">
+        {t('This team has no members')}
+      </EmptyMessage>
+    );
+  }
+
   render() {
     if (this.state.error) {
       return <LoadingError onRetry={this.fetchData} />;
     }
 
-    const {organization, config, team} = this.props;
+    const {organization, team} = this.props;
     const {teamMembersPageLinks} = this.state;
-    const {access, openMembership} = organization;
+    const {openMembership} = organization;
 
     const hasOrgWriteAccess = hasEveryAccess(['org:write'], {organization, team});
     const hasTeamAdminAccess = hasEveryAccess(['team:admin'], {organization, team});
     const isTeamAdmin = hasOrgWriteAccess || hasTeamAdminAccess;
-
-    // org:admin is a unique scope that only org owners have
-    const isOrgOwner = access.includes('org:admin');
 
     return (
       <Fragment>
@@ -337,27 +370,7 @@ class TeamMembers extends DeprecatedAsyncView<Props, State> {
             </div>
             <div style={{textTransform: 'none'}}>{this.renderDropdown(isTeamAdmin)}</div>
           </StyledPanelHeader>
-          {this.state.teamMembers.length ? (
-            this.state.teamMembers.map(member => {
-              return (
-                <TeamMembersRow
-                  key={member.id}
-                  hasWriteAccess={isTeamAdmin}
-                  isOrgOwner={isOrgOwner}
-                  organization={organization}
-                  team={team}
-                  member={member}
-                  user={config.user}
-                  removeMember={this.removeTeamMember}
-                  updateMemberRole={this.updateTeamMemberRole}
-                />
-              );
-            })
-          ) : (
-            <EmptyMessage icon={<IconUser size="xl" />} size="large">
-              {t('This team has no members')}
-            </EmptyMessage>
-          )}
+          {this.renderMembers(isTeamAdmin)}
         </Panel>
         <Pagination pageLinks={teamMembersPageLinks} />
       </Fragment>
