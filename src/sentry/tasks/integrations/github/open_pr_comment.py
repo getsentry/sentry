@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import itertools
 import logging
+import re
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Set, Tuple
 
@@ -36,41 +38,47 @@ from sentry.tasks.integrations.github.pr_comment import (
 from sentry.templatetags.sentry_helpers import small_count
 from sentry.types.referrer_ids import GITHUB_OPEN_PR_BOT_REFERRER
 from sentry.utils import metrics
-from sentry.utils.json import JSONData
 from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
 
 OPEN_PR_METRICS_BASE = "github_open_pr_comment.{key}"
 
+
+@dataclass
+class PullRequestFile:
+    filename: str
+    patch: str
+
+
 # Caps the number of files that can be modified in a PR to leave a comment
 OPEN_PR_MAX_FILES_CHANGED = 7
 # Caps the number of lines that can be modified in a PR to leave a comment
 OPEN_PR_MAX_LINES_CHANGED = 500
 
-COMMENT_BODY_TEMPLATE = """## 🔍 Existing Sentry Issues - For Review
-Your pull request files have the following pre-existing issues:
+COMMENT_BODY_TEMPLATE = """## 🔍 Existing Issues For Review
+Your pull request is modifying functions with the following pre-existing issues:
 
 {issue_tables}
 ---
 
 <sub>Did you find this useful? React with a 👍 or 👎 or let us know in #proj-github-pr-comments</sub>"""
 
-ISSUE_TABLE_TEMPLATE = """📄 **{filename}**
+ISSUE_TABLE_TEMPLATE = """📄 File: **{filename}**
 
-| Issue  |
-| :--------- |
+| Function | Issue  |
+| :------- | :----- |
 {issue_rows}"""
 
 ISSUE_TABLE_TOGGLE_TEMPLATE = """<details>
-<summary><b>📄 {filename} (Click to Expand)</b></summary>
+<summary><b>📄 File: {filename} (Click to Expand)</b></summary>
 
-| Issue  |
-| :--------- |
+| Function | Issue  |
+| :------- | :----- |
 {issue_rows}
 </details>"""
 
-ISSUE_ROW_TEMPLATE = "| [**{title}**]({url}) {subtitle} <br> `Handled:` **{is_handled}** `Event Count:` **{event_count}** `Users:` **{affected_users}** |"
+ISSUE_ROW_TEMPLATE = "| **`{function_name}`** | [**{title}**]({url}) {subtitle} <br> `Handled:` **{is_handled}** `Event Count:` **{event_count}** |"
 
 ISSUE_DESCRIPTION_LENGTH = 52
 
@@ -95,7 +103,7 @@ def format_issue_table(diff_filename: str, issues: List[PullRequestIssue], toggl
                 url=format_comment_url(issue.url, GITHUB_OPEN_PR_BOT_REFERRER),
                 is_handled=str(issue.is_handled),
                 event_count=small_count(issue.event_count),
-                affected_users=small_count(issue.affected_users),
+                function_name=issue.function_name,
             )
             for issue in issues
         ]
@@ -108,7 +116,7 @@ def format_issue_table(diff_filename: str, issues: List[PullRequestIssue], toggl
 
 
 # for a single file, get the contents
-def get_issue_table_contents(issue_list: List[Dict[str, int]]) -> List[PullRequestIssue]:
+def get_issue_table_contents(issue_list: List[Dict[str, Any]]) -> List[PullRequestIssue]:
     group_id_to_info = {}
     for issue in issue_list:
         group_id = issue["group_id"]
@@ -124,6 +132,7 @@ def get_issue_table_contents(issue_list: List[Dict[str, int]]) -> List[PullReque
             affected_users=issue.count_users_seen(),
             event_count=group_id_to_info[issue.id]["event_count"],
             is_handled=bool(group_id_to_info[issue.id]["is_handled"]),
+            function_name=group_id_to_info[issue.id]["function_name"],
         )
         for issue in issues
     ]
@@ -135,7 +144,7 @@ def get_issue_table_contents(issue_list: List[Dict[str, int]]) -> List[PullReque
 # TODO(cathy): Change the client typing to allow for multiple SCM Integrations
 def safe_for_comment(
     gh_client: GitHubAppsClient, repository: Repository, pull_request: PullRequest
-) -> Tuple[bool, JSONData]:
+) -> List[Dict[str, str]]:
     logger.info("github.open_pr_comment.check_safe_for_comment")
     try:
         pr_files = gh_client.get_pullrequest_files(
@@ -159,9 +168,7 @@ def safe_for_comment(
                 tags={"type": GithubAPIErrorType.UNKNOWN.value, "code": e.code},
             )
             logger.exception("github.open_pr_comment.unknown_api_error", extra={"error": str(e)})
-        return False, []
-
-    safe_to_comment = True
+        return []
 
     changed_file_count = 0
     changed_lines_count = 0
@@ -182,24 +189,48 @@ def safe_for_comment(
                 OPEN_PR_METRICS_BASE.format(key="rejected_comment"),
                 tags={"reason": "too_many_files"},
             )
-            return False, []
+            return []
         if changed_lines_count > OPEN_PR_MAX_LINES_CHANGED:
             metrics.incr(
                 OPEN_PR_METRICS_BASE.format(key="rejected_comment"),
                 tags={"reason": "too_many_lines"},
             )
-            return False, []
+            return []
 
-    return safe_to_comment, filtered_pr_files
+    return filtered_pr_files
 
 
-def get_pr_filenames(pr_files: JSONData) -> List[str]:
+def get_pr_files(pr_files: List[Dict[str, str]]) -> List[PullRequestFile]:
     # new files will not have sentry issues associated with them
     # only fetch Python files
-    pr_filenames: List[str] = [file["filename"] for file in pr_files]
+    pullrequest_files = [
+        PullRequestFile(filename=file["filename"], patch=file["patch"]) for file in pr_files
+    ]
 
-    logger.info("github.open_pr_comment.pr_filenames", extra={"count": len(pr_filenames)})
-    return pr_filenames
+    logger.info("github.open_pr_comment.pr_filenames", extra={"count": len(pullrequest_files)})
+
+    return pullrequest_files
+
+
+# currently Python only
+def get_file_functions(patch: str) -> Set[str]:
+    r"""
+    Function header regex pattern
+    ^           - Asserts the start of a line.
+    @@.*@@      - Matches a string that starts with two "@" characters, followed by any characters
+                (except newline), and ends with two "@" characters.
+    \s+         - Matches one or more whitespace characters (spaces, tabs, etc.).
+    def         - Matches the literal characters "def".
+    \\s+         - Matches one or more whitespace characters.
+    (?P<fnc>.*) - This is a named capturing group that captures any characters (except newline)
+                and assigns them to the named group "fnc".
+    \(          - Matches an opening parenthesis "(".
+    .*          - Matches any characters (except newline).
+    $           - Asserts the end of a line.
+    """
+
+    python_function_regex = r"^@@.*@@\s+def\s+(?P<fnc>.*)\(.*$"
+    return set(re.findall(python_function_regex, patch, flags=re.M))
 
 
 def get_projects_and_filenames_from_source_file(
@@ -226,8 +257,8 @@ def get_projects_and_filenames_from_source_file(
 
 
 def get_top_5_issues_by_count_for_file(
-    projects: List[Project], sentry_filenames: List[str]
-) -> list[dict[str, Any]]:
+    projects: List[Project], sentry_filenames: List[str], function_names: List[str]
+) -> List[Dict[str, Any]]:
     """Given a list of issue group ids, return a sublist of the top 5 ordered by event count"""
     group_ids = list(
         Group.objects.filter(
@@ -250,9 +281,18 @@ def get_top_5_issues_by_count_for_file(
                     Column("group_id"),
                     Function("count", [], "event_count"),
                     Function("isHandled", [], "is_handled"),
+                    Function(
+                        "arrayElement", (Column("exception_frames.function"), -1), "function_name"
+                    ),
                 ]
             )
-            .set_groupby([Column("group_id"), Column("exception_stacks.mechanism_handled")])
+            .set_groupby(
+                [
+                    Column("group_id"),
+                    Column("exception_stacks.mechanism_handled"),
+                    Column("exception_frames.function"),
+                ]
+            )
             .set_where(
                 [
                     Condition(Column("project_id"), Op.IN, project_ids),
@@ -264,6 +304,11 @@ def get_top_5_issues_by_count_for_file(
                         Function("arrayElement", (Column("exception_frames.filename"), -1)),
                         Op.IN,
                         sentry_filenames,
+                    ),
+                    Condition(
+                        Function("arrayElement", (Column("exception_frames.function"), -1)),
+                        Op.IN,
+                        function_names,
                     ),
                     Condition(Function("notHandled", []), Op.EQ, 1),
                 ]
@@ -327,41 +372,47 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     client = installation.get_client()
 
     # CREATING THE COMMENT
-    logger.info("github.open_pr_comment.check_safe_for_comment")
 
     # fetch the files in the PR and determine if it is safe to comment
-    safe_to_comment, pr_files = safe_for_comment(
-        gh_client=client, repository=repo, pull_request=pull_request
-    )
+    pr_files = safe_for_comment(gh_client=client, repository=repo, pull_request=pull_request)
 
-    if not safe_to_comment:
-        logger.info("github.open_pr_comment.not_safe_for_comment")
+    if len(pr_files) == 0:
+        logger.info(
+            "github.open_pr_comment.not_safe_for_comment", extra={"file_count": len(pr_files)}
+        )
         metrics.incr(
             OPEN_PR_METRICS_BASE.format(key="error"),
             tags={"type": "unsafe_for_comment"},
         )
         return
 
-    pr_filenames = get_pr_filenames(pr_files)
+    pullrequest_files = get_pr_files(pr_files)
 
     issue_table_contents = {}
     top_issues_per_file = []
 
     # fetch issues related to the files
-    for pr_filename in pr_filenames:
+    for file in pullrequest_files:
         projects, sentry_filenames = get_projects_and_filenames_from_source_file(
-            org_id, pr_filename
+            org_id, file.filename
         )
         if not len(projects) or not len(sentry_filenames):
             continue
 
-        top_issues = get_top_5_issues_by_count_for_file(list(projects), list(sentry_filenames))
+        function_names = get_file_functions(file.patch)
+
+        if not len(function_names):
+            continue
+
+        top_issues = get_top_5_issues_by_count_for_file(
+            list(projects), list(sentry_filenames), list(function_names)
+        )
         if not len(top_issues):
             continue
 
         top_issues_per_file.append(top_issues)
 
-        issue_table_contents[pr_filename] = get_issue_table_contents(top_issues)
+        issue_table_contents[file.filename] = get_issue_table_contents(top_issues)
 
     if not len(issue_table_contents):
         logger.info("github.open_pr_comment.no_issues")
@@ -372,7 +423,8 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     # format issues per file into comment
     issue_tables = []
     first_table = True
-    for pr_filename in pr_filenames:
+    for file in pullrequest_files:
+        pr_filename = file.filename
         issue_table_content = issue_table_contents.get(pr_filename, None)
 
         if issue_table_content is None:

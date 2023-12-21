@@ -51,7 +51,7 @@ const getInstallConfig = (params: Params) => [
 
 const replayOnboardingJsLoader: OnboardingConfig = {
   install: (params: Params) => getInstallConfig(params),
-  configure: () => [
+  configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
       description: getReplayConfigureDescription({
@@ -60,7 +60,7 @@ const replayOnboardingJsLoader: OnboardingConfig = {
       configurations: [
         {
           language: 'html',
-          code: getReplayJsLoaderSdkSetupSnippet(),
+          code: getReplayJsLoaderSdkSetupSnippet(params),
         },
       ],
       isOptional: true,

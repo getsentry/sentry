@@ -1,6 +1,7 @@
 import {Group as GroupFixture} from 'sentry-fixture/group';
 import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
+import {Release as ReleaseFixture} from 'sentry-fixture/release';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -20,7 +21,7 @@ describe('ReleaseIssues', function () {
     organization: Organization(),
     version: '1.0.0',
     location: LocationFixture({query: {}}),
-    releaseBounds: getReleaseBounds(TestStubs.Release({version: '1.0.0'})),
+    releaseBounds: getReleaseBounds(ReleaseFixture({version: '1.0.0'})),
   };
 
   beforeEach(function () {

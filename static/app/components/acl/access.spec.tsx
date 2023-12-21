@@ -1,3 +1,4 @@
+import {Config as ConfigFixture} from 'sentry-fixture/config';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
@@ -134,8 +135,8 @@ describe('Access', function () {
 
     it('handles no user', function () {
       // Regression test for the share sheet.
-      ConfigStore.config = TestStubs.Config({
-        user: null,
+      ConfigStore.config = ConfigFixture({
+        user: undefined,
       });
 
       render(<Access>{childrenMock}</Access>, {context: routerContext, organization});
@@ -147,7 +148,7 @@ describe('Access', function () {
     });
 
     it('is superuser', function () {
-      ConfigStore.config = TestStubs.Config({
+      ConfigStore.config = ConfigFixture({
         user: User({isSuperuser: true}),
       });
 
@@ -163,7 +164,7 @@ describe('Access', function () {
     });
 
     it('is not superuser', function () {
-      ConfigStore.config = TestStubs.Config({
+      ConfigStore.config = ConfigFixture({
         user: User({isSuperuser: false}),
       });
 
@@ -203,7 +204,7 @@ describe('Access', function () {
     });
 
     it('has superuser', function () {
-      ConfigStore.config = TestStubs.Config({
+      ConfigStore.config = ConfigFixture({
         user: User({isSuperuser: true}),
       });
 
@@ -218,7 +219,7 @@ describe('Access', function () {
     });
 
     it('has no superuser', function () {
-      ConfigStore.config = TestStubs.Config({
+      ConfigStore.config = ConfigFixture({
         user: User({isSuperuser: false}),
       });
 

@@ -1,4 +1,4 @@
-import {ProjectKeys} from 'sentry-fixture/projectKeys';
+import {ProjectKeys, ProjectKeys as ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -84,7 +84,7 @@ describe('LoaderScript', function () {
 
   it('renders multiple keys', async function () {
     const {organization, project} = initializeOrg();
-    const projectKeys = TestStubs.ProjectKeys([
+    const projectKeys = ProjectKeysFixture([
       {
         dsn: {
           secret:
@@ -92,9 +92,11 @@ describe('LoaderScript', function () {
           minidump:
             'http://dev.getsentry.net:8000/api/1/minidump?sentry_key=188ee45a58094d939428d8585aa6f662',
           public: 'http://188ee45a58094d939428d8585aa6f662@dev.getsentry.net:8000/1',
+          cdn: 'http://dev.getsentry.net:8000/js-sdk-loader/188ee45a58094d939428d8585aa6f662.min.js',
           csp: 'http://dev.getsentry.net:8000/api/1/csp-report/?sentry_key=188ee45a58094d939428d8585aa6f662',
           security:
             'http://dev.getsentry.net:8000/api/1/security-report/?sentry_key=188ee45a58094d939428d8585aa6f662',
+          unreal: '',
         },
         public: '188ee45a58094d939428d8585aa6f662',
         secret: 'a33bf9aba64c4bbdaf873bb9023b6d2c',
@@ -219,7 +221,7 @@ describe('LoaderScript', function () {
 
   it('allows to update one of multiple keys', async function () {
     const {organization, project} = initializeOrg();
-    const projectKeys = TestStubs.ProjectKeys([
+    const projectKeys = ProjectKeysFixture([
       {
         dsn: {
           secret:
@@ -227,9 +229,11 @@ describe('LoaderScript', function () {
           minidump:
             'http://dev.getsentry.net:8000/api/1/minidump?sentry_key=188ee45a58094d939428d8585aa6f662',
           public: 'http://188ee45a58094d939428d8585aa6f662@dev.getsentry.net:8000/1',
+          cdn: 'http://dev.getsentry.net:8000/js-sdk-loader/188ee45a58094d939428d8585aa6f662.min.js',
           csp: 'http://dev.getsentry.net:8000/api/1/csp-report/?sentry_key=188ee45a58094d939428d8585aa6f662',
           security:
             'http://dev.getsentry.net:8000/api/1/security-report/?sentry_key=188ee45a58094d939428d8585aa6f662',
+          unreal: '',
         },
         public: '188ee45a58094d939428d8585aa6f662',
         secret: 'a33bf9aba64c4bbdaf873bb9023b6d2c',

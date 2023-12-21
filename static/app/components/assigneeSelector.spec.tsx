@@ -1,4 +1,5 @@
 import {Group as GroupFixture} from 'sentry-fixture/group';
+import {Member as MemberFixture} from 'sentry-fixture/member';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 import {Team} from 'sentry-fixture/team';
@@ -45,11 +46,10 @@ describe('AssigneeSelector', () => {
       name: 'J J',
       email: 'jj@example.com',
     });
-    USER_4 = TestStubs.Member({
+    USER_4 = MemberFixture({
       id: '4',
       name: 'Jane Doe',
       email: 'janedoe@example.com',
-      team_slug: 'cool-team2',
     });
 
     TEAM_1 = Team({
@@ -64,18 +64,12 @@ describe('AssigneeSelector', () => {
 
     GROUP_1 = GroupFixture({
       id: '1337',
-      project: ProjectFixture({
-        id: PROJECT_1.id,
-        slug: PROJECT_1.slug,
-      }),
+      project: PROJECT_1,
     });
 
     GROUP_2 = GroupFixture({
       id: '1338',
-      project: ProjectFixture({
-        id: PROJECT_1.id,
-        slug: PROJECT_1.slug,
-      }),
+      project: PROJECT_1,
       owners: [
         {
           type: 'suspectCommit',

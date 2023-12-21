@@ -68,6 +68,7 @@ export default function ExampleReplaysList({
     location: emptyLocation,
     organization,
     perPage: 3,
+    queryReferrer: 'exampleReplaysList',
   });
 
   const routes = useRoutes();

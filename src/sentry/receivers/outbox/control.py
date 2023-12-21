@@ -34,6 +34,7 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.silo.base import SiloMode
 from sentry.silo.client import SiloClientError
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -92,15 +93,16 @@ def process_async_webhooks(
 
     try:
         client = RegionSiloClient(region=region)
-        response = client.request(
-            method=webhook_payload.method,
-            path=webhook_payload.path,
-            headers=webhook_payload.headers,
-            # We need to send the body as raw bytes to avoid interfering with webhook signatures
-            data=webhook_payload.body,
-            json=False,
-            prefix_hash=sha1(f"{shard_identifier}{object_identifier}".encode()).hexdigest(),
-        )
+        with metrics.timer("integration_proxy.control.process_async_webhooks", sample_rate=1.0):
+            response = client.request(
+                method=webhook_payload.method,
+                path=webhook_payload.path,
+                headers=webhook_payload.headers,
+                # We need to send the body as raw bytes to avoid interfering with webhook signatures
+                data=webhook_payload.body.encode("utf-8"),
+                json=False,
+                prefix_hash=sha1(f"{shard_identifier}{object_identifier}".encode()).hexdigest(),
+            )
         logger.info(
             "webhook_proxy.complete",
             extra={
