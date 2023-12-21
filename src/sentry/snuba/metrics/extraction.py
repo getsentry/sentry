@@ -1040,7 +1040,7 @@ class OnDemandMetricSpec:
         self,
         field: str,
         query: str,
-        spec_version: dict[str, str],
+        spec_version: dict[str, bool],
         environment: Optional[str] = None,
         groupbys: Optional[Sequence[str]] = None,
         spec_type: MetricSpecType = MetricSpecType.SIMPLE_QUERY,
