@@ -59,8 +59,8 @@ const ErrorInfoChecks: Array<ErrorInfo> = [
     errorTitle: 'TypeError: Load failed',
     projectCheck: false,
     errorHelpType: ErrorHelpType.LOAD_FAILED,
- },
-        {
+  },
+  {
     errorTitle: 'socket hang up',
     projectCheck: false,
     errorHelpType: ErrorHelpType.SOCKET_HANG_UP,
@@ -147,7 +147,7 @@ const errorHelpTypeResourceMap: Record<
           text: t('Fixing Load Failed errors in JavaScript'),
           link: 'https://sentry.io/answers/load-failed-javascript/',
         },
-        ],
+      ],
       linksByPlatform: {},
     },
   },
