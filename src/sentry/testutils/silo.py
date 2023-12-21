@@ -309,9 +309,11 @@ def assume_test_silo_mode(desired_silo: SiloMode, can_be_monolith: bool = True) 
             region_dir = get_test_env_directory()
             with region_dir.swap_to_default_region():
                 yield
-        else:
+        elif desired_silo == SiloMode.MONOLITH:
             with override_settings(SENTRY_REGION=None):
                 yield
+        else:
+            yield
 
 
 @contextmanager
