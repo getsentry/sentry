@@ -1,7 +1,9 @@
 import {useCallback, useMemo} from 'react';
 
-import {useApiQuery} from 'sentry/utils/queryClient';
-import useFetchReplayPaginatedData from 'sentry/utils/replays/hooks/useFetchReplayPaginatedData';
+import useFetchParallelPages from 'sentry/utils/api/useFetchParallelPages';
+import useFetchSequentialPages from 'sentry/utils/api/useFetchSequentialPages';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useProjects from 'sentry/utils/useProjects';
@@ -46,7 +48,7 @@ interface Result {
 export default function useFetchReplayData({
   replayId,
   orgSlug,
-  errorsPerPage = 50,
+  errorsPerPage = 20,
   segmentsPerPage = 100,
 }: Options): Result {
   const {data: replayData, isFetching: isFetchingReplay} = useApiQuery<{data: unknown}>(
@@ -61,60 +63,75 @@ export default function useFetchReplayData({
 
   const projectSlug = useProjectSlug({replayRecord});
 
-  const {data: attachmentPages, isFetching: isFetchingAttachments} =
-    useFetchReplayPaginatedData({
+  const getAttachmentsQueryKey = useCallback(
+    ({cursor, per_page}): ApiQueryKey => {
+      return [
+        `/projects/${orgSlug}/${projectSlug}/replays/${replayRecord?.id}/recording-segments/`,
+        {
+          query: {
+            download: true,
+            per_page,
+            cursor,
+          },
+        },
+      ];
+    },
+    [orgSlug, projectSlug, replayRecord]
+  );
+
+  const {pages: attachmentPages, isFetching: isFetchingAttachments} =
+    useFetchParallelPages({
       enabled: Boolean(projectSlug) && Boolean(replayRecord),
       hits: replayRecord?.count_segments ?? 0,
-      makeQueryKey: useCallback(
-        ({cursor, per_page}) => {
-          return [
-            `/projects/${orgSlug}/${projectSlug}/replays/${replayRecord?.id}/recording-segments/`,
-            {
-              query: {
-                download: true,
-                per_page,
-                cursor,
-              },
-            },
-          ];
-        },
-        [orgSlug, projectSlug, replayRecord]
-      ),
+      getQueryKey: getAttachmentsQueryKey,
       perPage: segmentsPerPage,
     });
 
-  const {data: errorPages, isFetching: isFetchingErrors} = useFetchReplayPaginatedData<{
-    data: ReplayError[];
-  }>({
+  const getErrorsQueryKey = useCallback(
+    ({cursor, per_page}): ApiQueryKey => {
+      const finishedAtClone = new Date(replayRecord?.finished_at ?? '');
+      finishedAtClone.setSeconds(finishedAtClone.getSeconds() + 1);
+
+      return [
+        `/organizations/${orgSlug}/replays-events-meta/`,
+        {
+          query: {
+            start: replayRecord?.started_at.toISOString(),
+            end: finishedAtClone.toISOString(),
+            query: `replayId:[${replayRecord?.id}]`,
+            per_page,
+            cursor,
+          },
+        },
+      ];
+    },
+    [orgSlug, replayRecord]
+  );
+
+  const {
+    pages: errorPages,
+    isFetching: isFetchingErrors,
+    getLastResponseHeader: lastErrorsResponseHeader,
+  } = useFetchParallelPages<{data: ReplayError[]}>({
     enabled: Boolean(projectSlug) && Boolean(replayRecord),
     hits: replayRecord?.count_errors ?? 0,
-    makeQueryKey: useCallback(
-      ({cursor, per_page}) => {
-        const finishedAtClone = new Date(replayRecord?.finished_at ?? '');
-        finishedAtClone.setSeconds(finishedAtClone.getSeconds() + 1);
+    getQueryKey: getErrorsQueryKey,
+    perPage: errorsPerPage,
+  });
 
-        return [
-          `/organizations/${orgSlug}/replays-events-meta/`,
-          {
-            query: {
-              start: replayRecord?.started_at.toISOString(),
-              end: finishedAtClone.toISOString(),
-              query: `replayId:[${replayRecord?.id}]`,
-              per_page,
-              cursor,
-            },
-          },
-        ];
-      },
-      [orgSlug, replayRecord]
-    ),
+  const linkHeader = lastErrorsResponseHeader?.('Link') ?? null;
+  const links = parseLinkHeader(linkHeader);
+  const {pages: extraErrorPages} = useFetchSequentialPages<{data: ReplayError[]}>({
+    enabled: !isFetchingErrors,
+    initialCursor: links.next?.cursor,
+    getQueryKey: getErrorsQueryKey,
     perPage: errorsPerPage,
   });
 
   return useMemo(
     () => ({
-      attachments: attachmentPages.flat(1),
-      errors: errorPages.flatMap(page => page.data),
+      attachments: attachmentPages.flat(2),
+      errors: errorPages.concat(extraErrorPages).flatMap(page => page.data),
       fetchError: undefined,
       fetching: isFetchingReplay || isFetchingAttachments || isFetchingErrors,
       onRetry: () => {},
@@ -124,6 +141,7 @@ export default function useFetchReplayData({
     [
       attachmentPages,
       errorPages,
+      extraErrorPages,
       isFetchingAttachments,
       isFetchingErrors,
       isFetchingReplay,
