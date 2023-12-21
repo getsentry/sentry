@@ -8,8 +8,8 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.sentryapps import COMPONENT_TYPES, SentryAppBaseEndpoint
 from sentry.constants import SentryAppStatus
 from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar, SentryAppAvatarTypes
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.sentry_apps.apps import SentryAppUpdater
-from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils import email
 
 
@@ -59,10 +59,10 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
             status=SentryAppStatus.PUBLISH_REQUEST_INPROGRESS_STR,
         ).run(user=request.user)
 
-        org_context = organization_service.get_organization_by_id(
-            id=sentry_app.owner_id, user_id=None
-        )
-        org_slug = "<unknown>" if org_context is None else org_context.organization.slug
+        org_mapping = OrganizationMapping.objects.filter(
+            organization_id=sentry_app.owner_id
+        ).first()
+        org_slug = "<unknown>" if org_mapping is None else org_mapping.slug
         message = f"User {request.user.email} of organization {org_slug} wants to publish {sentry_app.slug}\n"
 
         for question_pair in request.data.get("questionnaire"):

@@ -55,6 +55,11 @@ const ErrorInfoChecks: Array<ErrorInfo> = [
     projectCheck: true,
     errorHelpType: ErrorHelpType.DYNAMIC_SERVER_USAGE,
   },
+  {
+    errorTitle: 'socket hang up',
+    projectCheck: false,
+    errorHelpType: ErrorHelpType.SOCKET_HANG_UP,
+  },
 ];
 
 const errorHelpTypeResourceMap: Record<
@@ -121,6 +126,21 @@ const errorHelpTypeResourceMap: Record<
         {
           text: t('Resolving "app/ Static to Dynamic Error" in Next.js'),
           link: 'https://nextjs.org/docs/messages/app-static-to-dynamic-error',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [ErrorHelpType.SOCKET_HANG_UP]: {
+    resources: {
+      description: tct(
+        '[errorTypes] occur when there is an error in a Fetch API call. To learn more about how to fix these errors, check out these resources:',
+        {errorTypes: <b>Socket hang up errors</b>}
+      ),
+      links: [
+        {
+          text: t('Fixing Socket Hang Up errors'),
+          link: 'https://sentry.io/answers/socket-hang-up-javascript/',
         },
       ],
       linksByPlatform: {},
