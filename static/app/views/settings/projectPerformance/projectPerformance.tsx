@@ -135,22 +135,12 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
       ['project', `/projects/${organization.slug}/${projectId}/`],
     ];
 
-    const performanceIssuesEndpoint: ReturnType<
-      DeprecatedAsyncView['getEndpoints']
-    >[number] = [
+    const performanceIssuesEndpoint = [
       'performance_issue_settings',
       `/projects/${organization.slug}/${projectId}/performance-issues/configure/`,
-    ];
-
-    const generalSettingsEndpoint: ReturnType<
-      DeprecatedAsyncView['getEndpoints']
-    >[number] = [
-      'general',
-      `/projects/${organization.slug}/${projectId}/performance/configure/`,
-    ];
+    ] as [string, string];
 
     endpoints.push(performanceIssuesEndpoint);
-    endpoints.push(generalSettingsEndpoint);
 
     return endpoints;
   }
@@ -838,23 +828,6 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
       <Fragment>
         <SettingsPageHeader title={t('Performance')} />
         <PermissionAlert project={project} />
-        <Form
-          initialData={this.state.general}
-          saveOnBlur
-          apiEndpoint={`/projects/${organization.slug}/${project.slug}/performance/configure/`}
-        >
-          <JsonForm
-            fields={[
-              {
-                name: 'enable_images',
-                type: 'boolean',
-                label: t('Images'),
-                help: t('Enables images from real data to be displayed'),
-              },
-            ]}
-            title={t('General')}
-          />
-        </Form>
 
         <Form
           saveOnBlur
@@ -877,7 +850,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
           <Access access={requiredScopes} project={project}>
             {({hasAccess}) => (
               <JsonForm
-                title={t('Threshold Settings')}
+                title={t('General')}
                 fields={this.formFields}
                 disabled={!hasAccess}
                 renderFooter={() => (
