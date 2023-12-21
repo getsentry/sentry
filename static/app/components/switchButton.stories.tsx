@@ -86,19 +86,21 @@ export default storyBook('Switch', story => {
         <Matrix
           render={props => (
             <Switch
-              {...{
-                ...props,
-                toggle: !props.isDisabled
+              {...props}
+              toggle={
+                !props.isDisabled
                   ? !props.forceActiveColor
                     ? () => setToggleOn(!toggleOn)
                     : () => setToggleOnTwo(!toggleOnTwo)
-                  : () => {},
-                isActive: !props.isDisabled
+                  : () => {}
+              }
+              isActive={
+                !props.isDisabled
                   ? !props.forceActiveColor
                     ? toggleOn
                     : toggleOnTwo
-                  : false,
-              }}
+                  : false
+              }
             />
           )}
           propMatrix={propMatrix}
