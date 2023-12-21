@@ -43,6 +43,10 @@ from sentry.replays.usecases.query.fields import ComputedField, TagField
 from sentry.utils.snuba import raw_snql_query
 
 
+class InvalidFieldSpecified(Exception):
+    ...
+
+
 def handle_search_filters(
     search_config: dict[str, FieldProtocol],
     search_filters: Sequence[Union[SearchFilter, str, ParenExpression]],
@@ -61,6 +65,8 @@ def handle_search_filters(
                 raise ParseError(f"Invalid operator specified for `{search_filter.key.name}`")
             except CouldNotParseValue:
                 raise ParseError(f"Could not parse value for `{search_filter.key.name}`")
+            except InvalidFieldSpecified as exc:
+                raise ParseError(str(exc))
 
             if look_back == "AND":
                 look_back = None
@@ -108,25 +114,15 @@ def search_filter_to_condition(
     search_config: dict[str, FieldProtocol],
     search_filter: SearchFilter,
 ) -> Condition:
-    # The field-name is whatever the API says it is.  We take it at face value.
-    field_name = search_filter.key.name
-
-    # If the field-name is in the search config then we can apply the search filter and return a
-    # result.  If its not then its a tag and the same operation is performed only with a few more
-    # steps.
-    field = search_config.get(field_name)
+    field = search_config.get(search_filter.key.name)
     if isinstance(field, (ColumnField, ComputedField)):
         return field.apply(search_filter)
 
-    if field is None:
-        # Tags are represented with an "*" field by convention.  We could name it `tags` and
-        # update our search config to point to this field-name.
+    if "*" in search_config:
         field = cast(TagField, search_config["*"])
+        return field.apply(search_filter)
 
-    # The field_name in this case does not represent a column_name but instead it represents a
-    # dynamic value in the tags.key array.  For this reason we need to pass it into our "apply"
-    # function.
-    return field.apply(search_filter)
+    raise InvalidFieldSpecified(f"Unexpected field: {search_filter.key.name}")
 
 
 # Everything below here will move to replays/query.py once we deprecate the old query behavior.
