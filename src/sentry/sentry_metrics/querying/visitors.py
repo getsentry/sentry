@@ -16,10 +16,7 @@ from snuba_sdk.conditions import ConditionGroup
 from sentry.models.environment import Environment
 from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
 from sentry.sentry_metrics.querying.registry import ExpressionRegistry
-from sentry.sentry_metrics.querying.types import (
-    Argument,
-    QueryExpression,
-)
+from sentry.sentry_metrics.querying.types import Argument, QueryExpression
 
 TVisited = TypeVar("TVisited")
 

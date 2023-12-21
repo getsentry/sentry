@@ -1,11 +1,7 @@
 from snuba_sdk import ArithmeticOperator, Column, Condition, Formula, Op, Timeseries
 
 from sentry.sentry_metrics.querying.registry import RegistryEntry
-from sentry.sentry_metrics.querying.types import (
-    Argument,
-    MetricArg,
-    QueryExpression,
-)
+from sentry.sentry_metrics.querying.types import Argument, MetricArg, QueryExpression
 
 
 class FailureRate(RegistryEntry):
