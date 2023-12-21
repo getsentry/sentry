@@ -598,6 +598,29 @@ class MarkFailedTestCase(TestCase):
         monitor_incidents = MonitorIncident.objects.filter(monitor_environment=monitor_environment)
         assert len(monitor_incidents) == 0
 
+        # Test for when monitor environment is muted
+        monitor.update(is_muted=False)
+        monitor_environment.update(is_muted=True, status=MonitorStatus.OK)
+
+        checkin_2 = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.UNKNOWN,
+        )
+        assert mark_failed(checkin_2, ts=checkin_2.date_added)
+
+        monitor.refresh_from_db()
+        monitor_environment.refresh_from_db()
+        assert not monitor.is_muted
+        assert monitor_environment.is_muted
+        assert monitor_environment.status == MonitorStatus.ERROR
+
+        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
+
+        monitor_incidents = MonitorIncident.objects.filter(monitor_environment=monitor_environment)
+        assert len(monitor_incidents) == 0
+
     @with_feature("organizations:issue-platform")
     @patch("sentry.issues.producer.produce_occurrence_to_kafka")
     def test_mark_failed_issue_threshold(self, mock_produce_occurrence_to_kafka):
