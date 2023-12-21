@@ -3883,6 +3883,14 @@ SENTRY_SIGNUP_URL: str | None = None
 
 SENTRY_ORGANIZATION_ONBOARDING_TASK = "sentry.onboarding_tasks.backends.organization_onboarding_task.OrganizationOnboardingTaskBackend"
 
+# Previously replays were ingested using the filestore interface and service. Both the
+# interface and the service were dropped in favor of reusing the metadata contained
+# within ClickHouse and uploading directly to the cloud storage provider.
+#
+# Default: true. Disabling this option may make older records unretrievable. No data is
+# lost as a result of toggling this setting.
+SENTRY_REPLAYS_ATTEMPT_LEGACY_FILESTORE_LOOKUP = True
+
 SENTRY_REPLAYS_DOM_CLICK_SEARCH_ALLOWLIST: list[int] = []
 
 SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS = {
