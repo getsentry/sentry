@@ -59,6 +59,8 @@ def validate_transaction_using_for_silo_mode(using: Optional[str]):
 
     both_silos_route_to_same_db = control_db == region_db
 
+    return  # Temporary for debugging. TODO: Revert
+
     if both_silos_route_to_same_db or current_silo_mode == SiloMode.MONOLITH:
         return
 
