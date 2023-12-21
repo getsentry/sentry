@@ -567,7 +567,7 @@ class TestFormatComment(TestCase):
 
         assert (
             comment
-            == """## 🔍 Existing Sentry Issues - For Review
+            == """## 🔍 Existing Issues For Review
 Your pull request is modifying functions with the following pre-existing issues:
 
 📄 File: **tests/sentry/tasks/integrations/github/test_open_pr_comment.py**
@@ -678,7 +678,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
         assert (
             responses.calls[0].request.body
-            == f'{{"body": "## \\ud83d\\udd0d Existing Sentry Issues - For Review\\nYour pull request is modifying functions with the following pre-existing issues:\\n\\n\\ud83d\\udcc4 File: **foo.py**\\n\\n| Function | Issue  |\\n| :------- | :----- |\\n| **`function_1`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_2}/?referrer=github-open-pr-bot) issue2 <br> `Handled:` **False** `Event Count:` **2k** |\\n| **`function_0`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_1}/?referrer=github-open-pr-bot) issue1 <br> `Handled:` **False** `Event Count:` **1k** |\\n<details>\\n<summary><b>\\ud83d\\udcc4 File: bar.py (Click to Expand)</b></summary>\\n\\n| Function | Issue  |\\n| :------- | :----- |\\n| **`function_1`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_2}/?referrer=github-open-pr-bot) issue2 <br> `Handled:` **False** `Event Count:` **2k** |\\n| **`function_0`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_1}/?referrer=github-open-pr-bot) issue1 <br> `Handled:` **False** `Event Count:` **1k** |\\n</details>\\n---\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e or let us know in #proj-github-pr-comments</sub>"}}'.encode()
+            == f'{{"body": "## \\ud83d\\udd0d Existing Issues For Review\\nYour pull request is modifying functions with the following pre-existing issues:\\n\\n\\ud83d\\udcc4 File: **foo.py**\\n\\n| Function | Issue  |\\n| :------- | :----- |\\n| **`function_1`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_2}/?referrer=github-open-pr-bot) issue2 <br> `Handled:` **False** `Event Count:` **2k** |\\n| **`function_0`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_1}/?referrer=github-open-pr-bot) issue1 <br> `Handled:` **False** `Event Count:` **1k** |\\n<details>\\n<summary><b>\\ud83d\\udcc4 File: bar.py (Click to Expand)</b></summary>\\n\\n| Function | Issue  |\\n| :------- | :----- |\\n| **`function_1`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_2}/?referrer=github-open-pr-bot) issue2 <br> `Handled:` **False** `Event Count:` **2k** |\\n| **`function_0`** | [**Error**](http://testserver/organizations/baz/issues/{self.group_id_1}/?referrer=github-open-pr-bot) issue1 <br> `Handled:` **False** `Event Count:` **1k** |\\n</details>\\n---\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e or let us know in #proj-github-pr-comments</sub>"}}'.encode()
         )
 
         pull_request_comment_query = PullRequestComment.objects.all()
