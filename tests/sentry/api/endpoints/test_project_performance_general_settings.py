@@ -12,7 +12,7 @@ PERFORMANCE_SETTINGS_FEATURES = {
 
 
 @region_silo_test
-class ProjectPerformanceIssueSettingsTest(APITestCase):
+class ProjectPerformanceGeneralSettingsTest(APITestCase):
     endpoint = "sentry-api-0-project-performance-general-settings"
 
     def setUp(self) -> None:
