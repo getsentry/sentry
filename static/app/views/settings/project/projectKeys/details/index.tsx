@@ -3,7 +3,7 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import {Organization, Project, ProjectKey} from 'sentry/types';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -12,7 +12,6 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 import {KeySettings} from 'sentry/views/settings/project/projectKeys/details/keySettings';
 import KeyStats from 'sentry/views/settings/project/projectKeys/details/keyStats';
-import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 type Props = {
   organization: Organization;

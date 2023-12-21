@@ -18,12 +18,11 @@ import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import {Organization, Project, ProjectKey} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import KeyRateLimitsForm from 'sentry/views/settings/project/projectKeys/details/keyRateLimitsForm';
 import {LoaderSettings} from 'sentry/views/settings/project/projectKeys/details/loaderSettings';
 import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/projectKeyCredentials';
-import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 type Props = {
   data: ProjectKey;
