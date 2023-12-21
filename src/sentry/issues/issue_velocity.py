@@ -47,6 +47,9 @@ FALLBACK_TTL = 10 * 60  # 10 minutes; TTL for storing temporary values while we 
 THRESHOLD_KEY = "new-issue-escalation-threshold:{project_id}"
 STALE_DATE_KEY = "new-issue-escalation-threshold-stale-date:{project_id}"
 STRING_TO_DATETIME = "%Y-%m-%d %H:%M:%S.%f"
+DEPRECATED_STRING_TO_DATETIME = (
+    "%Y%m%d"  # TODO(isabella): take out once the old format is no longer used
+)
 TIME_TO_USE_EXISTING_THRESHOLD = 24 * 60 * 60  # 1 day
 
 
@@ -221,11 +224,17 @@ def get_latest_threshold(project: Project) -> float:
     client = get_redis_client()
     cache_results = client.mget(keys)  # returns None if key is nonexistent
     threshold = cache_results[0]
-    stale_date = (
-        datetime.strptime(cache_results[1], STRING_TO_DATETIME)
-        if cache_results[1] is not None
-        else None
-    )
+    stale_date = None
+    if cache_results[1] is not None:
+        # TODO(isabella): update this once the old format is no longer being used
+        try:
+            stale_date = datetime.strptime(cache_results[1], STRING_TO_DATETIME)
+        except ValueError:
+            logger.info(
+                "issue_velocity.get_latest_threshold.old_date_format",
+                extra={"org_id": project.organization.id, "project_id": project.id},
+            )
+            stale_date = datetime.strptime(cache_results[1], DEPRECATED_STRING_TO_DATETIME)
     now = datetime.utcnow()
     if (
         stale_date is None

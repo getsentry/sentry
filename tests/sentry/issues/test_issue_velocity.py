@@ -217,6 +217,16 @@ class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
             mock_update.assert_not_called()
             assert threshold == 0
 
+    @patch("sentry.issues.issue_velocity.update_threshold", return_value=2)
+    def test_old_date_format_compatibility(self, mock_update):
+        """Tests that the logic does not break if a stale date was stored with the old format."""
+        redis_client = get_redis_client()
+        redis_client.set(THRESHOLD_KEY.format(project_id=self.project.id), 1)
+        redis_client.set(STALE_DATE_KEY.format(project_id=self.project.id), 20231220)
+        threshold = get_latest_threshold(self.project)
+        mock_update.assert_called()
+        assert threshold == 2
+
     @patch("sentry.issues.issue_velocity.calculate_threshold")
     def test_update_threshold_simple(self, mock_calculation):
         """
