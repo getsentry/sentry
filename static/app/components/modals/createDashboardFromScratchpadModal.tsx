@@ -10,6 +10,7 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
+import Input from 'sentry/components/input';
 import LoadingError from 'sentry/components/loadingError';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -34,7 +35,7 @@ export type AddToDashboardModalProps = {
 
 type Props = ModalRenderProps & AddToDashboardModalProps;
 
-const SELECT_DASHBOARD_MESSAGE = t('Select a dashboard');
+const MISSING_NAME_MESSAGE = t('You need to name your dashboard');
 
 function CreateDashboardFromScratchpadModal({
   Header,
@@ -46,6 +47,7 @@ function CreateDashboardFromScratchpadModal({
   newDashboard,
 }: Props) {
   const api = useApi();
+  const [dashboardName, setDashboardName] = useState<string>(newDashboard.title);
   const [selectedDashboardId, setSelectedDashboardId] =
     useState<string>(NEW_DASHBOARD_ID);
 
@@ -60,6 +62,7 @@ function CreateDashboardFromScratchpadModal({
   );
 
   const shouldFetchSelectedDashboard = selectedDashboardId !== NEW_DASHBOARD_ID;
+  const isMissingName = selectedDashboardId === NEW_DASHBOARD_ID && !dashboardName;
 
   const {data: selectedDashboard, isError: isSelectedDashboardError} =
     useApiQuery<DashboardDetails>(
@@ -78,10 +81,22 @@ function CreateDashboardFromScratchpadModal({
 
   async function createOrUpdateDashboard() {
     if (selectedDashboardId === NEW_DASHBOARD_ID) {
-      const dashboard = await createDashboard(api, organization.slug, newDashboard);
+      if (!dashboardName) {
+        addErrorMessage(MISSING_NAME_MESSAGE);
+        return null;
+      }
+      try {
+        const dashboard = await createDashboard(api, organization.slug, {
+          ...newDashboard,
+          title: dashboardName,
+        });
 
-      addSuccessMessage(t('Successfully created dashboard'));
-      return dashboard;
+        addSuccessMessage(t('Successfully created dashboard'));
+        return dashboard;
+      } catch (err) {
+        // createDashboard already shows an error message
+        return null;
+      }
     }
 
     if (!selectedDashboard) {
@@ -100,8 +115,10 @@ function CreateDashboardFromScratchpadModal({
   }
 
   async function handleAddAndStayOnCurrentPage() {
-    await createOrUpdateDashboard();
-    closeModal();
+    const dashboard = await createOrUpdateDashboard();
+    if (dashboard) {
+      closeModal();
+    }
   }
 
   async function handleGoToDashboard() {
@@ -157,23 +174,32 @@ function CreateDashboardFromScratchpadModal({
               setSelectedDashboardId(option.value);
             }}
           />
+          {selectedDashboardId === NEW_DASHBOARD_ID && (
+            <Input
+              placeholder={t('Name your dashboard')}
+              value={dashboardName}
+              onChange={event => {
+                setDashboardName(event.target.value);
+              }}
+            />
+          )}
         </Wrapper>
       </Body>
 
       <Footer>
         <StyledButtonBar gap={1.5}>
           <Button
-            disabled={isSelectedDashboardError}
+            disabled={isSelectedDashboardError || isMissingName}
             onClick={handleAddAndStayOnCurrentPage}
-            title={SELECT_DASHBOARD_MESSAGE}
+            title={isMissingName ? MISSING_NAME_MESSAGE : undefined}
           >
             {t('Add + Stay on this Page')}
           </Button>
           <Button
-            disabled={isSelectedDashboardError}
+            disabled={isSelectedDashboardError || isMissingName}
             priority="primary"
             onClick={handleGoToDashboard}
-            title={SELECT_DASHBOARD_MESSAGE}
+            title={isMissingName ? MISSING_NAME_MESSAGE : undefined}
           >
             {t('Open in Dashboards')}
           </Button>
@@ -186,6 +212,9 @@ function CreateDashboardFromScratchpadModal({
 export default CreateDashboardFromScratchpadModal;
 
 const Wrapper = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: ${space(2)};
   margin-bottom: ${space(2)};
 `;
 

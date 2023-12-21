@@ -16,7 +16,7 @@ export function useCreateDashboard() {
   return useMemo(() => {
     return function (scratchpad?: {name: string}) {
       const newDashboard = {
-        title: scratchpad?.name || 'DDM Dashboard',
+        title: scratchpad?.name || 'Metrics Dashboard',
         description: '',
         widgets: widgets
           .filter(widget => !!widget.mri)
