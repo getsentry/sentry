@@ -93,7 +93,11 @@ def process_async_webhooks(
 
     try:
         client = RegionSiloClient(region=region)
-        with metrics.timer("integration_proxy.control.process_async_webhooks", sample_rate=1.0):
+        with metrics.timer(
+            "integration_proxy.control.process_async_webhooks",
+            tags={"destination_region": region.name},
+            sample_rate=1.0,
+        ):
             response = client.request(
                 method=webhook_payload.method,
                 path=webhook_payload.path,
