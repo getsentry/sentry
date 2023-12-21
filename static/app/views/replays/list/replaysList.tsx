@@ -67,7 +67,6 @@ function ReplaysListTable({
     eventView,
     location,
     organization,
-    queryReferrer: 'replaysList',
   });
 
   const {

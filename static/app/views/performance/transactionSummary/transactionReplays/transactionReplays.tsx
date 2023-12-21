@@ -144,7 +144,6 @@ function ReplaysContent({
     eventView,
     location,
     organization,
-    queryReferrer: 'transactionReplays',
   });
 
   const replaysWithTx = useReplaysWithTxData({
