@@ -1,17 +1,16 @@
 from unittest import mock
 
 import pytest
+from django.test import override_settings
 
-from sentry.api.utils import generate_region_url
 from sentry.models.projectkey import ProjectKey, ProjectKeyManager, ProjectKeyStatus
+from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.region import in_local_region
-from sentry.testutils.silo import create_test_regions, region_silo_test
-from sentry.types.region import get_region_by_name
+from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
+@region_silo_test(include_monolith_run=True)
 class ProjectKeyTest(TestCase):
     model = ProjectKey
 
@@ -125,10 +124,10 @@ class ProjectKeyTest(TestCase):
             )
             assert key.unreal_endpoint == f"http://{host}/api/{self.project.id}/unreal/abc/"
 
+    @override_settings(SENTRY_REGION="us")
     def test_get_dsn_multiregion(self):
-        with in_local_region(get_region_by_name("us")):
-            key = self.model(project_id=self.project.id, public_key="abc", secret_key="xyz")
-            host = generate_region_url().removeprefix("http://")
+        key = self.model(project_id=self.project.id, public_key="abc", secret_key="xyz")
+        host = "us.testserver" if SiloMode.get_current_mode() == SiloMode.REGION else "testserver"
 
         assert key.dsn_private == f"http://abc:xyz@{host}/{self.project.id}"
         assert key.dsn_public == f"http://abc@{host}/{self.project.id}"
@@ -138,12 +137,13 @@ class ProjectKeyTest(TestCase):
         )
         assert key.unreal_endpoint == f"http://{host}/api/{self.project.id}/unreal/abc/"
 
+    @override_settings(SENTRY_REGION="us")
     def test_get_dsn_org_subdomain_and_multiregion(self):
         with self.feature("organizations:org-subdomains"):
-            with in_local_region(get_region_by_name("us")):
-                key = self.model(project_id=self.project.id, public_key="abc", secret_key="xyz")
-                regional_host_part = generate_region_url().removeprefix("http://")
-            host = f"o{key.project.organization_id}.ingest." + regional_host_part
+            key = self.model(project_id=self.project.id, public_key="abc", secret_key="xyz")
+            host = f"o{key.project.organization_id}.ingest." + (
+                "us.testserver" if SiloMode.get_current_mode() == SiloMode.REGION else "testserver"
+            )
 
             assert key.dsn_private == f"http://abc:xyz@{host}/{self.project.id}"
             assert key.dsn_public == f"http://abc@{host}/{self.project.id}"

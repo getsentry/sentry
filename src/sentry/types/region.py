@@ -126,18 +126,13 @@ class RegionDirectory:
     but affords overrides by the subclass TestEnvRegionDirectory.
     """
 
-    def __init__(self, regions: Collection[Region], local_region: Region | None) -> None:
+    def __init__(self, regions: Collection[Region]) -> None:
         self._regions = frozenset(regions)
-        self._local_region = local_region
-        self._by_name = {r.name: r for r in regions}
+        self._by_name = {r.name: r for r in self._regions}
 
-    @property  # hook for override in test environment
+    @property
     def regions(self) -> frozenset[Region]:
         return self._regions
-
-    @property  # hook for override in test environment
-    def local_region(self) -> Region | None:
-        return self._local_region
 
     def get_by_name(self, region_name: str) -> Region | None:
         return self._by_name.get(region_name)
@@ -171,50 +166,37 @@ def _parse_raw_config(region_config: Any) -> Iterable[Region]:
             yield Region(**config_value)
 
 
-def _generate_default_monolith_region() -> Region:
+def _generate_monolith_region_if_needed(regions: Collection[Region]) -> Iterable[Region]:
+    """Check whether a default monolith region must be generated.
+
+    Check the provided set of regions to see whether a region with the configured
+    name is present. If so, return an empty iterator. Else, yield the newly generated
+    region.
+    """
     if not settings.SENTRY_MONOLITH_REGION:
         raise RegionConfigurationError(
             "`SENTRY_MONOLITH_REGION` must provide a default region name"
         )
-    return Region(
-        name=settings.SENTRY_MONOLITH_REGION,
-        snowflake_id=0,
-        address=options.get("system.url-prefix"),
-        category=RegionCategory.MULTI_TENANT,
-    )
-
-
-def _find_local_region(regions: Collection[Region]) -> Region | None:
-    """Determine the monolith and local region from config."""
-
-    def resolve(setting_name: str) -> Region:
-        setting_value = getattr(settings, setting_name)
-        try:
-            return next(r for r in regions if r.name == setting_value)
-        except StopIteration as e:
-            region_names = ", ".join(repr(r.name) for r in regions)
-            raise RegionConfigurationError(
-                f"The {setting_name} setting (value={setting_value!r}) must point to "
-                f"a region name. Region names: {region_names}"
-            ) from e
-
-    silo_mode = SiloMode.get_current_mode()
-    if silo_mode == SiloMode.MONOLITH:
-        return resolve("SENTRY_MONOLITH_REGION")
-    if silo_mode == SiloMode.CONTROL:
-        return None
-    if silo_mode == SiloMode.REGION:
-        return resolve("SENTRY_REGION")
-    raise Exception("Invalid silo mode")
+    if not regions:
+        yield Region(
+            name=settings.SENTRY_MONOLITH_REGION,
+            snowflake_id=0,
+            address=options.get("system.url-prefix"),
+            category=RegionCategory.MULTI_TENANT,
+        )
+    elif not any(r.name == settings.SENTRY_MONOLITH_REGION for r in regions):
+        raise RegionConfigurationError(
+            "The SENTRY_MONOLITH_REGION setting must point to a region name "
+            f"({settings.SENTRY_MONOLITH_REGION=!r}; "
+            f"region names = {[r.name for r in regions]!r})"
+        )
 
 
 def load_from_config(region_config: Any) -> RegionDirectory:
     try:
         regions = set(_parse_raw_config(region_config))
-        if not regions:
-            regions.add(_generate_default_monolith_region())
-        local_region = _find_local_region(regions)
-        return RegionDirectory(regions, local_region)
+        regions |= set(_generate_monolith_region_if_needed(regions))
+        return RegionDirectory(regions)
     except RegionConfigurationError as e:
         sentry_sdk.capture_exception(e)
         raise
@@ -295,11 +277,11 @@ def get_local_region() -> Region:
     Otherwise, it must be a region silo; raise RegionContextError otherwise.
     """
 
-    if SiloMode.get_current_mode() == SiloMode.CONTROL:
-        raise RegionContextError("Control silo has no region")
-    global_regions = get_global_directory()
-    if global_regions.local_region is None:
-        raise RegionConfigurationError("Local region is not populated")
+    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+        return get_region_by_name(settings.SENTRY_MONOLITH_REGION)
+
+    if SiloMode.get_current_mode() != SiloMode.REGION:
+        raise RegionContextError("Not a region silo")
 
     # In our threaded acceptance tests, we need to override the region of the current
     # context when passing through test rpc calls, but we can't rely on settings because
@@ -308,7 +290,12 @@ def get_local_region() -> Region:
     if single_process_silo_mode_state.region:
         return single_process_silo_mode_state.region
 
-    return global_regions.local_region
+    if not settings.SENTRY_REGION:
+        if in_test_environment():
+            return get_region_by_name(settings.SENTRY_MONOLITH_REGION)
+        else:
+            raise Exception("SENTRY_REGION must be set when server is in REGION silo mode")
+    return get_region_by_name(settings.SENTRY_REGION)
 
 
 @control_silo_function

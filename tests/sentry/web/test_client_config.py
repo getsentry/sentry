@@ -191,10 +191,10 @@ def test_client_config_empty_region_data():
         request.user = user
         result = get_client_config(request)
 
-        assert len(result["regions"]) == 1
-        regions = result["regions"]
-        assert regions[0]["name"] == settings.SENTRY_MONOLITH_REGION
-        assert regions[0]["url"] == options.get("system.url-prefix")
+    assert len(result["regions"]) == 1
+    regions = result["regions"]
+    assert regions[0]["name"] == settings.SENTRY_MONOLITH_REGION
+    assert regions[0]["url"] == options.get("system.url-prefix")
 
 
 @django_db_all
@@ -262,7 +262,7 @@ def test_client_config_links_with_priority_org():
     request, user = make_user_request_from_org()
     request.user = user
 
-    org = Factories.create_organization(region="us")
+    org = Factories.create_organization()
     Factories.create_member(organization=org, user=user)
 
     org_context = organization_service.get_organization_by_slug(

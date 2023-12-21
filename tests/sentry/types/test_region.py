@@ -68,7 +68,7 @@ class RegionDirectoryTest(TestCase):
     @staticmethod
     @contextmanager
     def _in_global_state(directory: RegionDirectory):
-        with get_test_env_directory().swap_state(tuple(directory.regions), directory.local_region):
+        with get_test_env_directory().swap_state(tuple(directory.regions)):
             yield
 
     def test_region_config_parsing_in_monolith(self):
@@ -85,19 +85,20 @@ class RegionDirectoryTest(TestCase):
 
     def test_region_config_parsing_in_control(self):
         with override_settings(SILO_MODE=SiloMode.CONTROL):
-            # Shouldn't require SENTRY_MONOLITH_REGION
-            directory = load_from_config(self._INPUTS)
+            with override_settings(SENTRY_MONOLITH_REGION="us"):
+                directory = load_from_config(self._INPUTS)
         assert directory.regions == frozenset(self._EXPECTED_OUTPUTS)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_json_config_injection(self):
-        directory = load_from_config(json.dumps(self._INPUTS))
+        with override_settings(SENTRY_MONOLITH_REGION="us"):
+            directory = load_from_config(json.dumps(self._INPUTS))
         assert directory.regions == frozenset(self._EXPECTED_OUTPUTS)
 
     @override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="us")
     def test_get_local_region(self):
-        directory = load_from_config(self._INPUTS)
-        assert directory.local_region == self._EXPECTED_OUTPUTS[0]
+        with override_settings(SENTRY_MONOLITH_REGION="us"):
+            directory = load_from_config(self._INPUTS)
         with self._in_global_state(directory):
             assert get_local_region() == self._EXPECTED_OUTPUTS[0]
 
@@ -113,7 +114,9 @@ class RegionDirectoryTest(TestCase):
     @unguarded_write(using=router.db_for_write(OrganizationMapping))
     def test_get_region_for_organization(self):
         mapping = OrganizationMapping.objects.get(slug=self.organization.slug)
-        with self._in_global_state(load_from_config(self._INPUTS)):
+        with override_settings(SENTRY_MONOLITH_REGION="us"):
+            directory = load_from_config(self._INPUTS)
+        with self._in_global_state(directory):
             mapping.update(region_name="az")
             with pytest.raises(RegionResolutionError):
                 # Region does not exist
@@ -160,7 +163,9 @@ class RegionDirectoryTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_find_regions_for_user(self):
-        with self._in_global_state(load_from_config(self._INPUTS)):
+        with override_settings(SENTRY_MONOLITH_REGION="us"):
+            directory = load_from_config(self._INPUTS)
+        with self._in_global_state(directory):
             organization = self.create_organization(name="test name", region="us")
 
             user = self.create_user()
@@ -178,13 +183,17 @@ class RegionDirectoryTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_find_all_region_names(self):
-        with self._in_global_state(load_from_config(self._INPUTS)):
+        with override_settings(SENTRY_MONOLITH_REGION="us"):
+            directory = load_from_config(self._INPUTS)
+        with self._in_global_state(directory):
             result = find_all_region_names()
             assert set(result) == {"us", "eu", "acme"}
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_find_all_multitenant_region_names(self):
-        with self._in_global_state(load_from_config(self._INPUTS)):
+        with override_settings(SENTRY_MONOLITH_REGION="us"):
+            directory = load_from_config(self._INPUTS)
+        with self._in_global_state(directory):
             result = find_all_multitenant_region_names()
             assert set(result) == {"us", "eu"}
 
@@ -194,7 +203,9 @@ class RegionDirectoryTest(TestCase):
             Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
         ]
         rf = RequestFactory()
-        with self._in_global_state(load_from_config(regions)):
+        with override_settings(SENTRY_MONOLITH_REGION="us"):
+            directory = load_from_config(regions)
+        with self._in_global_state(directory):
             req = rf.get("/")
             setattr(req, "subdomain", "us")
             assert subdomain_is_region(req)

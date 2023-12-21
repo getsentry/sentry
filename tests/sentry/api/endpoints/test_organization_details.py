@@ -39,7 +39,6 @@ from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode_of, create_test_regions, region_silo_test
 from sentry.testutils.skips import requires_snuba
-from sentry.types.region import get_local_region
 from sentry.utils import json
 
 pytestmark = [requires_snuba]
@@ -331,7 +330,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert resp.data["avatar"]["avatarUuid"] == "abc123"
         assert (
             resp.data["avatar"]["avatarUrl"]
-            == get_local_region().to_url("") + "/organization-avatar/abc123/"
+            == generate_region_url() + "/organization-avatar/abc123/"
         )
 
 
