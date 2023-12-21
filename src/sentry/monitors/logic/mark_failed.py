@@ -114,7 +114,7 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
 
     monitor_env = failed_checkin.monitor_environment
 
-    monitor_muted = monitor_env.monitor.is_muted
+    monitor_muted = monitor_env.monitor.is_muted or monitor_env.is_muted
 
     fingerprint = None
 
