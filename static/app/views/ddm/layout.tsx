@@ -18,12 +18,13 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SplitPanel, {BaseSplitDivider, DividerProps} from 'sentry/components/splitPanel';
-import {IconGrabbable} from 'sentry/icons';
+import {IconDownload, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useDDMContext} from 'sentry/views/ddm/context';
 import {useMetricsOnboardingSidebar} from 'sentry/views/ddm/ddmOnboarding/useMetricsOnboardingSidebar';
+import {useImportDashboard} from 'sentry/views/ddm/importDashboardModal';
 import {MetricScratchpad} from 'sentry/views/ddm/scratchpad';
 import {ScratchpadSelector} from 'sentry/views/ddm/scratchpadSelector';
 import {TrayContent} from 'sentry/views/ddm/trayContent';
@@ -34,6 +35,9 @@ function MainContent() {
   const {metricsMeta, hasCustomMetrics, isLoading} = useDDMContext();
   const hasMetrics = !isLoading && metricsMeta.length > 0;
   const {activateSidebar} = useMetricsOnboardingSidebar();
+
+  const importDashboard = useImportDashboard();
+
   return (
     <Fragment>
       <Layout.Header>
@@ -60,6 +64,9 @@ function MainContent() {
               label={t('Discussion')}
               title={null}
             />
+            <Button size="sm" icon={<IconDownload size="xs" />} onClick={importDashboard}>
+              Import
+            </Button>
           </ButtonBar>
         </Layout.HeaderActions>
       </Layout.Header>

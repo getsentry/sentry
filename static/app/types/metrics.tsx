@@ -79,7 +79,8 @@ export type MetricMeta = {
   // name is returned by the API but should not be used, use parseMRI(mri).name instead
   // name: string;
   operations: MetricsOperation[];
-  type: MetricType;
+  // type is returned by the API but should not be used, use parseMRI(mri).type instead
+  // type: MetricType;
   unit: string;
 };
 

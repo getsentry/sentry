@@ -16,6 +16,7 @@ import {DEFAULT_SORT_STATE} from 'sentry/views/ddm/constants';
 
 interface DDMContextValue {
   addWidget: () => void;
+  addWidgets: (widgets: Partial<MetricWidgetQueryParams>[]) => void;
   duplicateWidget: (index: number) => void;
   hasCustomMetrics: boolean;
   isLoading: boolean;
@@ -31,6 +32,7 @@ export const DDMContext = createContext<DDMContextValue>({
   selectedWidgetIndex: 0,
   setSelectedWidgetIndex: () => {},
   addWidget: () => {},
+  addWidgets: () => {},
   updateWidget: () => {},
   removeWidget: () => {},
   duplicateWidget: () => {},
@@ -102,6 +104,16 @@ export function useMetricWidgets() {
     setWidgets(widgetsCopy);
   }, [widgets, setWidgets]);
 
+  const addWidgets = useCallback(
+    (newWidgets: Partial<MetricWidgetQueryParams>[]) => {
+      const widgetsCopy = [...widgets].filter(widget => !!widget.mri);
+      widgetsCopy.push(...newWidgets.map(widget => ({...emptyWidget, ...widget})));
+
+      setWidgets(widgetsCopy);
+    },
+    [widgets, setWidgets]
+  );
+
   const removeWidget = useCallback(
     (index: number) => {
       const widgetsCopy = [...widgets];
@@ -126,6 +138,7 @@ export function useMetricWidgets() {
     widgets,
     updateWidget,
     addWidget,
+    addWidgets,
     removeWidget,
     duplicateWidget,
   };
@@ -133,7 +146,7 @@ export function useMetricWidgets() {
 
 export function DDMContextProvider({children}: {children: React.ReactNode}) {
   const [selectedWidgetIndex, setSelectedWidgetIndex] = useState(0);
-  const {widgets, updateWidget, addWidget, removeWidget, duplicateWidget} =
+  const {widgets, updateWidget, addWidget, addWidgets, removeWidget, duplicateWidget} =
     useMetricWidgets();
 
   const pageFilters = usePageFilters().selection;
@@ -174,6 +187,7 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
   const contextValue = useMemo<DDMContextValue>(
     () => ({
       addWidget: handleAddWidget,
+      addWidgets,
       selectedWidgetIndex:
         selectedWidgetIndex > widgets.length - 1 ? 0 : selectedWidgetIndex,
       setSelectedWidgetIndex,
@@ -186,6 +200,7 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
       metricsMeta,
     }),
     [
+      addWidgets,
       handleAddWidget,
       handleDuplicate,
       handleUpdateWidget,
