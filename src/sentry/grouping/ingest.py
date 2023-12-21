@@ -200,3 +200,14 @@ def calculate_secondary_hash(
         sentry_sdk.capture_exception()
 
     return secondary_hashes
+
+
+def calculate_primary_hash(
+    project: Project, job: Job, grouping_config: GroupingConfig
+) -> CalculatedHashes:
+    """
+    Get the primary hash for the event.
+
+    This is pulled out into a separate function mostly in order to make testing easier.
+    """
+    return calculate_event_grouping(project, job["event"], grouping_config)

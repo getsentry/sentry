@@ -65,7 +65,7 @@ from sentry.grouping.api import (
     get_grouping_config_dict_for_project,
 )
 from sentry.grouping.ingest import (
-    calculate_event_grouping,
+    calculate_primary_hash,
     calculate_secondary_hash,
     run_background_grouping,
     should_run_secondary_grouping,
@@ -551,7 +551,7 @@ class EventManager:
             op="event_manager",
             description="event_manager.save.calculate_event_grouping",
         ), metrics.timer("event_manager.calculate_event_grouping", tags=metric_tags):
-            hashes = _calculate_primary_hash(project, job, grouping_config)
+            hashes = calculate_primary_hash(project, job, grouping_config)
 
         # Track the total number of grouping calculations done overall, so we can divide by the
         # count to get an average number of calculations per event
@@ -728,17 +728,6 @@ class EventManager:
         update_grouping_config_if_needed(project)
 
         return job["event"]
-
-
-def _calculate_primary_hash(
-    project: Project, job: Job, grouping_config: GroupingConfig
-) -> CalculatedHashes:
-    """
-    Get the primary hash for the event.
-
-    This is pulled out into a separate function mostly in order to make testing easier.
-    """
-    return calculate_event_grouping(project, job["event"], grouping_config)
 
 
 @metrics.wraps("save_event.pull_out_data")
