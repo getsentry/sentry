@@ -1,5 +1,6 @@
 import {RouteComponentProps} from 'react-router';
 import {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
+import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -21,7 +22,7 @@ describe('normalizeUrl', function () {
   });
 
   it('replaces paths in strings', function () {
-    const location = TestStubs.location();
+    const location = LocationFixture();
     const cases = [
       // input, expected
       ['/settings/', '/settings/'],
@@ -129,7 +130,7 @@ describe('normalizeUrl', function () {
   });
 
   it('replaces pathname in objects', function () {
-    const location = TestStubs.location();
+    const location = LocationFixture();
     result = normalizeUrl({pathname: '/settings/acme/'}, location);
     expect(result.pathname).toEqual('/settings/organization/');
 
@@ -183,7 +184,7 @@ describe('normalizeUrl', function () {
   });
 
   it('replaces pathname in function callback', function () {
-    const location = TestStubs.location();
+    const location = LocationFixture();
     function objectCallback(_loc: Location): LocationDescriptorObject {
       return {pathname: '/settings/'};
     }

@@ -129,6 +129,7 @@ interface BaseStepProps {
    * Whether the step is optional
    */
   isOptional?: boolean;
+  isReplayConfigStep?: boolean;
 }
 interface StepPropsWithTitle extends BaseStepProps {
   title: string;

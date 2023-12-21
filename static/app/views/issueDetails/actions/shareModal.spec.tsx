@@ -1,4 +1,6 @@
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {act, renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -8,7 +10,7 @@ import ModalStore from 'sentry/stores/modalStore';
 import ShareIssueModal from 'sentry/views/issueDetails/actions/shareModal';
 
 describe('shareModal', () => {
-  const project = TestStubs.Project();
+  const project = ProjectFixture();
   const organization = Organization();
   const onToggle = jest.fn();
 
@@ -23,7 +25,7 @@ describe('shareModal', () => {
   });
 
   it('should share on open', async () => {
-    const group = TestStubs.Group();
+    const group = GroupFixture();
     GroupStore.add([group]);
 
     const issuesApi = MockApiClient.addMockResponse({
@@ -52,7 +54,7 @@ describe('shareModal', () => {
   });
 
   it('should unshare', async () => {
-    const group = TestStubs.Group({isPublic: true, shareId: '12345'});
+    const group = GroupFixture({isPublic: true, shareId: '12345'});
     GroupStore.add([group]);
 
     const issuesApi = MockApiClient.addMockResponse({

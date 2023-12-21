@@ -1,3 +1,6 @@
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {User} from 'sentry-fixture/user';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -13,8 +16,8 @@ describe('getIssueFieldRenderer', function () {
     context = initializeOrg({
       organization,
       router: {},
-      project: TestStubs.Project(),
-      projects: [TestStubs.Project()],
+      project: ProjectFixture(),
+      projects: [ProjectFixture()],
     });
     organization = context.organization;
     project = context.project;
@@ -71,7 +74,7 @@ describe('getIssueFieldRenderer', function () {
   describe('Issue fields', () => {
     it('can render assignee', async function () {
       MemberListStore.loadInitialData([
-        TestStubs.User({
+        User({
           name: 'Test User',
           email: 'test@sentry.io',
           avatar: {
