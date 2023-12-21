@@ -3,14 +3,25 @@ import {Project} from 'sentry-fixture/project';
 import {Repository} from 'sentry-fixture/repository';
 import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
 
-import {type CodeOwner as TCodeOwner} from 'sentry/types';
+import type {
+  CodeOwner as TCodeOwner,
+  OrganizationIntegration,
+  Project as TProject,
+  Repository as TRepository,
+} from 'sentry/types';
+
+interface CodeOwnerParams extends Partial<TCodeOwner> {
+  integration?: OrganizationIntegration;
+  project?: TProject;
+  repo?: TRepository;
+}
 
 export function CodeOwner({
   project = Project(),
   repo = Repository(),
   integration = GitHubIntegration(),
   ...params
-} = {}): TCodeOwner {
+}: CodeOwnerParams = {}): TCodeOwner {
   return {
     id: '1225',
     raw: '',
