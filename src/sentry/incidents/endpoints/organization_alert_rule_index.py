@@ -274,8 +274,8 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
 @extend_schema_serializer(exclude_fields=["excludedProjects", "thresholdPeriod"])
 class OrganizationAlertRuleIndexPostSerializer(serializers.Serializer):
     name = serializers.CharField(
-        max_length=64,
-        help_text="The name for the rule, which has a maximimum length of 64 characters.",
+        max_length=256,
+        help_text="The name for the rule, which has a maximimum length of 256 characters.",
     )
     aggregate = serializers.CharField(
         help_text="A string representing the aggregate function used in this alert rule. Valid aggregate functions are `count`, `count_unique`, `percentage`, `avg`, `apdex`, `failure_rate`, `p50`, `p75`, `p95`, `p99`, `p100`, and `percentile`. See [Metric Alert Rule Types](#metric-alert-rule-types) for valid configurations."
