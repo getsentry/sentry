@@ -39,6 +39,7 @@ const SwitchWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(2)};
+  padding-top: ${space(0.5)};
 `;
 
 export default ReplayConfigToggle;
