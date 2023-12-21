@@ -172,8 +172,8 @@ class GetRelocationsTest(APITestCase):
 
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data) == 2
-        assert response.data[0]["status"] == Relocation.Status.IN_PROGRESS.name
-        assert response.data[1]["status"] == Relocation.Status.SUCCESS.name
+        assert response.data[0]["status"] == Relocation.Status.SUCCESS.name
+        assert response.data[1]["status"] == Relocation.Status.IN_PROGRESS.name
 
     def test_single_query_username(self):
         self.login_as(user=self.superuser, superuser=True)
@@ -181,8 +181,8 @@ class GetRelocationsTest(APITestCase):
 
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data) == 2
-        assert response.data[0]["status"] == Relocation.Status.IN_PROGRESS.name
-        assert response.data[1]["status"] == Relocation.Status.FAILURE.name
+        assert response.data[0]["status"] == Relocation.Status.FAILURE.name
+        assert response.data[1]["status"] == Relocation.Status.IN_PROGRESS.name
 
     def test_single_query_letter(self):
         self.login_as(user=self.superuser, superuser=True)
@@ -190,9 +190,9 @@ class GetRelocationsTest(APITestCase):
 
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data) == 3
-        assert response.data[0]["status"] == Relocation.Status.IN_PROGRESS.name
+        assert response.data[0]["status"] == Relocation.Status.SUCCESS.name
         assert response.data[1]["status"] == Relocation.Status.PAUSE.name
-        assert response.data[2]["status"] == Relocation.Status.SUCCESS.name
+        assert response.data[2]["status"] == Relocation.Status.IN_PROGRESS.name
 
     def test_multiple_queries(self):
         self.login_as(user=self.superuser, superuser=True)
