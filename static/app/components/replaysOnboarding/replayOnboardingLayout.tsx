@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
-import ReplayConfigToggle from 'sentry/components/onboarding/gettingStartedDoc/replayConfigToggle';
 import {Step, StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
@@ -11,6 +10,7 @@ import {
   PlatformOptionsControl,
   useUrlPlatformOptions,
 } from 'sentry/components/onboarding/platformOptionsControl';
+import ReplayConfigToggle from 'sentry/components/replaysOnboarding/replayConfigToggle';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
