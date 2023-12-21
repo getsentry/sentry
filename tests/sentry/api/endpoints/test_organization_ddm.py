@@ -362,6 +362,61 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         assert len(metric_spans) == 1
         assert metric_spans[0]["spanId"] == span_id
 
+    def test_get_metric_spans_with_bounds(self):
+        mri = "g:custom/page_load@millisecond"
+
+        span_id_1 = "98230207e6e4a6ad"
+        span_id_2 = "10220507e6f4e6ad"
+        span_id_3 = "72313578e6a4b6ad"
+        for i, (span_id, min, max) in enumerate(
+            ((span_id_1, 10.0, 100.0), (span_id_2, 50.0, 50.0), (span_id_3, 100.0, 200.0))
+        ):
+            self.store_span(
+                project_id=self.project.id,
+                timestamp=before_now(minutes=5 + i),
+                span_id=span_id,
+                metrics_summary={
+                    mri: [
+                        {
+                            "min": min,
+                            "max": max,
+                            "sum": 110.0,
+                            "count": 2,
+                            "tags": {},
+                        }
+                    ]
+                },
+            )
+
+        for min_val, max_val, expected_span_ids in (
+            (10.0, 100.0, [span_id_1, span_id_2]),
+            (50.0, 100.0, [span_id_2]),
+            (10.0, 200.0, [span_id_1, span_id_2, span_id_3]),
+            (10.0, 20.0, []),
+            (10.0, None, [span_id_1, span_id_2, span_id_3]),
+            (None, 100.0, [span_id_1, span_id_2]),
+            (None, None, [span_id_1, span_id_2, span_id_3]),
+        ):
+            extra_params = {}
+            if min_val:
+                extra_params["min"] = min_val
+            if max_val:
+                extra_params["max"] = max_val
+
+            response = self.get_success_response(
+                self.organization.slug,
+                metric=["g:custom/page_load@millisecond"],
+                project=[self.project.id],
+                statsPeriod="1d",
+                metricSpans="true",
+                **extra_params,
+            )
+
+            metric_spans = response.data["metricSpans"]
+            assert len(metric_spans) == len(cast(Sequence[str], expected_span_ids))
+            for i, expected_span_id in enumerate(cast(Sequence[str], expected_span_ids)):
+                assert metric_spans[i]["spanId"] == expected_span_id
+
     def test_get_metric_spans_with_query(self):
         mri = "g:custom/page_load@millisecond"
 
@@ -532,6 +587,18 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         assert len(metric_spans) == 1
         assert metric_spans[0]["spanId"] == span_id_2
 
+    def test_get_metric_spans_with_invalid_bounds(self):
+        self.get_error_response(
+            self.organization.slug,
+            metric=["g:custom/page_load@millisecond"],
+            project=[self.project.id],
+            statsPeriod="1d",
+            metricSpans="true",
+            min="100.0",
+            max="10.0",
+            status_code=500,
+        )
+
     def test_get_metric_spans_with_invalid_query(self):
         self.get_error_response(
             self.organization.slug,
@@ -539,5 +606,6 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             project=[self.project.id],
             statsPeriod="1d",
             metricSpans="true",
+            query="device:something XOR device:something_else",
             status_code=500,
         )

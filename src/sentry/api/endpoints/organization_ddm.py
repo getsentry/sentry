@@ -74,8 +74,12 @@ class OrganizationDDMMetaEndpoint(OrganizationEndpoint):
                 if len(metric_mris) != 1:
                     raise InvalidParams("You can query the spans of only a single metric")
 
-                min_value = request.GET.get("min")
-                max_value = request.GET.get("max")
+                min_value = float(request.GET["min"]) if request.GET.get("min") else None
+                max_value = float(request.GET["max"]) if request.GET.get("max") else None
+
+                if min_value and max_value and min_value > max_value:
+                    raise InvalidParams("The bounds are invalid, min can't be bigger than max")
+
                 query = request.GET.get("query")
 
                 data = get_spans_of_metric(
@@ -83,8 +87,8 @@ class OrganizationDDMMetaEndpoint(OrganizationEndpoint):
                     query=query,
                     start=start,
                     end=end,
-                    min_value=float(min_value) if min_value else None,
-                    max_value=float(max_value) if max_value else None,
+                    min_value=min_value,
+                    max_value=max_value,
                     organization=organization,
                     projects=projects,
                 )
