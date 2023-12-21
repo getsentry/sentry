@@ -13,7 +13,6 @@ from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.processing.strategies import ProcessingStrategyFactory
 from arroyo.types import Commit, FilteredPayload, Message, Partition
 
-from sentry import options
 from sentry.sentry_metrics.configuration import (
     MetricsIngestConfiguration,
     initialize_subprocess_state,
@@ -27,7 +26,6 @@ from sentry.sentry_metrics.consumers.indexer.routing_producer import (
 )
 from sentry.sentry_metrics.consumers.indexer.slicing_router import SlicingRouter
 from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
-from sentry.utils.kafka import delay_kafka_rebalance
 
 logger = logging.getLogger(__name__)
 
@@ -153,10 +151,6 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             # import time
             initializer=functools.partial(initialize_subprocess_state, self.config),
         )
-
-        if options.get("sentry-metrics.synchronize-kafka-rebalances"):
-            configured_delay = options.get("sentry-metrics.synchronized-rebalance-delay")
-            delay_kafka_rebalance(configured_delay)
 
     def create_with_partitions(
         self,

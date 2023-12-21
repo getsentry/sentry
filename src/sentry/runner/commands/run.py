@@ -9,10 +9,11 @@ from typing import Optional
 
 import click
 
+from sentry import options as sentry_options
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.ingest.types import ConsumerType
 from sentry.runner.decorators import configuration, log_options
-from sentry.utils.kafka import run_processor_with_signals
+from sentry.utils.kafka import delay_kafka_rebalance, run_processor_with_signals
 
 DEFAULT_BLOCK_SIZE = int(32 * 1e6)
 
@@ -597,6 +598,12 @@ def basic_consumer(consumer_name, consumer_args, topic, **options):
 
     add_global_tags(kafka_topic=topic, consumer_group=options["group_id"])
     initialize_arroyo_main()
+
+    if consumer_name == "ingest-generic-metrics" and sentry_options.get(
+        "sentry-metrics.synchronize-kafka-rebalances"
+    ):
+        configured_delay = sentry_options.get("sentry-metrics.synchronized-rebalance-delay")
+        delay_kafka_rebalance(configured_delay)
 
     processor = get_stream_processor(consumer_name, consumer_args, topic=topic, **options)
     run_processor_with_signals(processor, consumer_name)
