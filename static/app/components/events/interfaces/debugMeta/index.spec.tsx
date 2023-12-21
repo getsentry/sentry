@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {Event as EventFixture} from 'sentry-fixture/event';
+import {EventEntryDebugMeta as EventEntryDebugMetaFixture} from 'sentry-fixture/eventEntryDebugMeta';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -10,7 +11,7 @@ import GlobalModal from 'sentry/components/globalModal';
 
 describe('DebugMeta', function () {
   it('opens details modal', async function () {
-    const eventEntryDebugMeta = TestStubs.EventEntryDebugMeta();
+    const eventEntryDebugMeta = EventEntryDebugMetaFixture();
     const event = EventFixture({entries: [eventEntryDebugMeta]});
     const {organization, project, router} = initializeOrg();
     const routerProps = {router, location: router.location};
@@ -35,7 +36,7 @@ describe('DebugMeta', function () {
     await userEvent.click(screen.getByRole('button', {name: 'View'}));
 
     expect(
-      await screen.findByText(getFileName(eventEntryDebugMeta.data.images[0].code_file)!)
+      await screen.findByText(getFileName(eventEntryDebugMeta.data.images[0]?.code_file)!)
     ).toBeInTheDocument();
   });
 });
