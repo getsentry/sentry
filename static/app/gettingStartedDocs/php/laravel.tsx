@@ -232,7 +232,7 @@ const customMetricsOnboarding: OnboardingConfig = {
             'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
             {
               docsLink: (
-                <ExternalLink href="https://develop.sentry.dev/delightful-developer-metrics/sending-metrics-sdk/" />
+                <ExternalLink href="https://github.com/getsentry/sentry-laravel/discussions/823" />
               ),
             }
           ),
