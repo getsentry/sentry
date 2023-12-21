@@ -24,8 +24,8 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
+  queryReferrer: string;
   perPage?: number;
-  queryReferrer?: 'issueReplays';
 };
 
 async function fetchReplayList({
@@ -59,7 +59,7 @@ async function fetchReplayList({
         // when queryReferrer === 'issueReplays' we override the global view check on the backend
         // we also require a project param otherwise we won't yield results
         queryReferrer,
-        project: queryReferrer === 'issueReplays' ? ALL_ACCESS_PROJECTS : payload.project,
+        project: ALL_ACCESS_PROJECTS,
       },
     });
 

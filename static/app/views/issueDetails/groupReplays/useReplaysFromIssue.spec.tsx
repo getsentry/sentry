@@ -48,6 +48,7 @@ describe('useReplaysFromIssue', () => {
     expect(result.current).toEqual({
       eventView: null,
       fetchError: undefined,
+      isFetching: true,
       pageLinks: null,
     });
 
@@ -58,6 +59,7 @@ describe('useReplaysFromIssue', () => {
         query: 'id:[replay42,replay256]',
       }),
       fetchError: undefined,
+      isFetching: false,
       pageLinks: null,
     });
   });
@@ -84,6 +86,7 @@ describe('useReplaysFromIssue', () => {
     expect(result.current).toEqual({
       eventView: null,
       fetchError: undefined,
+      isFetching: true,
       pageLinks: null,
     });
 
@@ -94,6 +97,7 @@ describe('useReplaysFromIssue', () => {
         query: 'id:[replay42,replay256]',
       }),
       fetchError: undefined,
+      isFetching: false,
       pageLinks: null,
     });
   });
@@ -118,16 +122,16 @@ describe('useReplaysFromIssue', () => {
     expect(result.current).toEqual({
       eventView: null,
       fetchError: undefined,
+      isFetching: true,
       pageLinks: null,
     });
 
     await waitForNextUpdate();
 
     expect(result.current).toEqual({
-      eventView: expect.objectContaining({
-        query: 'id:[]',
-      }),
+      eventView: null,
       fetchError: undefined,
+      isFetching: false,
       pageLinks: null,
     });
   });
