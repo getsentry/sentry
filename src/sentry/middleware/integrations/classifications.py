@@ -71,6 +71,7 @@ class IntegrationClassification(BaseClassification):
             JiraServerRequestParser,
             MsTeamsRequestParser,
             SlackRequestParser,
+            VercelRequestParser,
             VstsRequestParser,
         )
 
@@ -85,6 +86,7 @@ class IntegrationClassification(BaseClassification):
             JiraServerRequestParser,
             MsTeamsRequestParser,
             SlackRequestParser,
+            VercelRequestParser,
             VstsRequestParser,
         ]
         return {cast(str, parser.provider): parser for parser in active_parsers}
