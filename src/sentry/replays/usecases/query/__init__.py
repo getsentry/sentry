@@ -118,6 +118,8 @@ def search_filter_to_condition(
         field = cast(TagField, search_config["*"])
         return field.apply(search_filter)
 
+    return None
+
 
 # Everything below here will move to replays/query.py once we deprecate the old query behavior.
 # Leaving it here for now so this is easier to review/remove.
