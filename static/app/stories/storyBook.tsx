@@ -15,7 +15,7 @@ type Context = {
 };
 
 export default function storyBook(
-  bookContext: string | JSXElementConstructor<any>,
+  bookContext: string | JSXElementConstructor<any> | Function,
   setup: SetupFn
 ) {
   const contexts: Context[] = [];
