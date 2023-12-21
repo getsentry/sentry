@@ -1040,15 +1040,15 @@ class OnDemandMetricSpec:
         self,
         field: str,
         query: str,
-        spec_version: dict[str, bool],
         environment: Optional[str] = None,
         groupbys: Optional[Sequence[str]] = None,
         spec_type: MetricSpecType = MetricSpecType.SIMPLE_QUERY,
+        spec_version: Optional[dict[str, bool]] = None,
     ):
         self.field = field
         self.query = query
         self.spec_type = spec_type
-        self.spec_version = spec_version
+        self.spec_version = spec_version if spec_version is not None else {}
 
         # Removes field if passed in selected_columns
         self.groupbys = [groupby for groupby in groupbys or () if groupby != field]
