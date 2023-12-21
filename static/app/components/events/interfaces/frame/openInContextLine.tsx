@@ -16,7 +16,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 type Props = {
   components: SentryAppComponent<SentryAppSchemaStacktraceLink>[];
   filename: string;
-  lineNo: number;
+  lineNo: number | null;
 };
 
 function OpenInContextLine({lineNo, filename, components}: Props) {
@@ -80,7 +80,7 @@ const OpenInContainer = withOrganization(styled('div')<{
       ? css`
           color: ${p.theme.linkColor};
           animation: ${fadeIn} 0.2s ease-in-out forwards;
-          padding: ${space(0)} ${space(0)};
+          padding: ${space(0)};
         `
       : css`
           color: ${p.theme.subText};

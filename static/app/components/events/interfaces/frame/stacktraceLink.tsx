@@ -218,8 +218,6 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
       timer = setTimeout(() => {
         setIsQueryEnabled(true);
       }, 100); // Delay of 100ms
-    } else {
-      setIsQueryEnabled(true);
     }
     return () => timer && clearTimeout(timer);
   }, [hasStacktraceLinkFeatureFlag]); // Empty dependency array to run only on mount

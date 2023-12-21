@@ -148,11 +148,12 @@ function NativeFrame({
   const [isHovering, setHovering] = useState(false);
 
   const contextLine = frame.context.find(l => l[0] === frame.lineNo);
-  const hasStacktraceLink = frame.inApp && !!frame.filename && (isHovering || expanded);
+  const hasStacktraceLink =
+    frame.inApp && !!frame.filename && frame.lineNo && (isHovering || expanded);
   const hasStacktraceLinkInFrameFeatureFlag =
     organization?.features?.includes('issue-details-stacktrace-link-in-frame') ?? false;
   const showStacktraceLinkInFrame =
-    hasStacktraceLink && contextLine && hasStacktraceLinkInFrameFeatureFlag;
+    hasStacktraceLink && hasStacktraceLinkInFrameFeatureFlag;
   const showSentryAppStacktraceLinkInFrame =
     showStacktraceLinkInFrame && components.length > 0;
 
@@ -383,13 +384,17 @@ function NativeFrame({
           <GenericCellWrapper>
             {showStacktraceLinkInFrame && (
               <ErrorBoundary>
-                <StacktraceLink frame={frame} line={contextLine[1]} event={event} />
+                <StacktraceLink
+                  frame={frame}
+                  line={contextLine ? contextLine[1] : ''}
+                  event={event}
+                />
               </ErrorBoundary>
             )}
             {showSentryAppStacktraceLinkInFrame && (
               <ErrorBoundary mini>
                 <OpenInContextLine
-                  lineNo={contextLine[0]}
+                  lineNo={frame.lineNo}
                   filename={frame.filename || ''}
                   components={components}
                 />
