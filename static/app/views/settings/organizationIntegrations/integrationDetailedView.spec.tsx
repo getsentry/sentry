@@ -1,3 +1,4 @@
+import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {GitHubIntegrationProvider} from 'sentry-fixture/githubIntegrationProvider';
 import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
@@ -251,7 +252,7 @@ describe('IntegrationDetailedView', function () {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/integrations/?provider_key=github&includeConfig=0`,
-      body: [TestStubs.GitHubIntegration()],
+      body: [GitHubIntegrationFixture()],
     });
     render(
       <IntegrationDetailedView

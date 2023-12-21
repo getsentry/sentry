@@ -6,6 +6,7 @@ import type {
   PlatformOption,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  getReplayConfigOptions,
   getReplayConfigureDescription,
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
@@ -74,7 +75,10 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
   }${
     params.isReplaySelected
       ? `
-          new ${getSiblingImportName(siblingOption)}.Replay(),`
+          new ${getSiblingImportName(siblingOption)}.Replay(${getReplayConfigOptions({
+            mask: params.mask,
+            block: params.block,
+          })}),`
       : ''
   }
   ],${
@@ -404,6 +408,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
+      isReplayConfigStep: true,
       configurations: [
         {
           description: getReplayConfigureDescription({
