@@ -184,6 +184,7 @@ describe('ProjectKeys', function () {
           cdn: '',
           unreal: '',
         },
+        dateCreated: '2018-02-28T07:13:51.087Z',
         public: '188ee45a58094d939428d8585aa6f662',
         secret: 'a33bf9aba64c4bbdaf873bb9023b6d2c',
         name: 'Key 2',
