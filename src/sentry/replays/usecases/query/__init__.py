@@ -133,7 +133,11 @@ def search_filter_to_condition(
 # Leaving it here for now so this is easier to review/remove.
 from sentry.replays.usecases.query.configs.aggregate import search_config as agg_search_config
 from sentry.replays.usecases.query.configs.aggregate_sort import sort_config as agg_sort_config
-from sentry.replays.usecases.query.configs.scalar import scalar_search_config
+from sentry.replays.usecases.query.configs.aggregate_sort import sort_is_scalar_compatible
+from sentry.replays.usecases.query.configs.scalar import (
+    can_scalar_search_subquery,
+    scalar_search_config,
+)
 
 Paginators = namedtuple("Paginators", ("limit", "offset"))
 
@@ -159,14 +163,27 @@ def query_using_optimized_search(
             SearchFilter(SearchKey("environment"), "IN", SearchValue(environments)),
         ]
 
-    query = make_aggregate_search_conditions_query(
-        search_filters=search_filters,
-        sort=sort,
-        project_ids=project_ids,
-        period_start=period_start,
-        period_stop=period_stop,
-    )
-    referrer = "replays.query.browse_aggregated_conditions_subquery"
+    can_scalar_sort = sort_is_scalar_compatible(sort or "started_at")
+    can_scalar_search = can_scalar_search_subquery(search_filters)
+
+    if can_scalar_sort and can_scalar_search:
+        query = make_scalar_search_conditions_query(
+            search_filters=search_filters,
+            sort=sort,
+            project_ids=project_ids,
+            period_start=period_start,
+            period_stop=period_stop,
+        )
+        referrer = "replays.query.browse_scalar_conditions_subquery"
+    else:
+        query = make_aggregate_search_conditions_query(
+            search_filters=search_filters,
+            sort=sort,
+            project_ids=project_ids,
+            period_start=period_start,
+            period_stop=period_stop,
+        )
+        referrer = "replays.query.browse_aggregated_conditions_subquery"
 
     if pagination:
         query = query.set_limit(pagination.limit)
