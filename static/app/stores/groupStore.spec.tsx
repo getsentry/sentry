@@ -1,13 +1,14 @@
 import {Actor} from 'sentry-fixture/actor';
-import {Project} from 'sentry-fixture/project';
+import {Group as GroupFixture} from 'sentry-fixture/group';
+import {Project, Project as ProjectFixture} from 'sentry-fixture/project';
 
 import GroupStore from 'sentry/stores/groupStore';
 import {Group, GroupActivityType, GroupStats, TimeseriesValue} from 'sentry/types';
 
-const MOCK_PROJECT = TestStubs.Project();
+const MOCK_PROJECT = ProjectFixture();
 
 const g = (id: string, params?: Partial<Group>): Group => {
-  return TestStubs.Group({id, project: MOCK_PROJECT, ...params});
+  return GroupFixture({id, project: MOCK_PROJECT, ...params});
 };
 
 describe('GroupStore', function () {

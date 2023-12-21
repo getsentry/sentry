@@ -1,3 +1,5 @@
+import {Config as ConfigFixture} from 'sentry-fixture/config';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {User} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -14,7 +16,7 @@ describe('getFieldRenderer', function () {
 
   beforeEach(function () {
     context = initializeOrg({
-      project: TestStubs.Project(),
+      project: ProjectFixture(),
     });
     organization = context.organization;
     project = context.project;
@@ -106,7 +108,7 @@ describe('getFieldRenderer', function () {
   describe('date', function () {
     beforeEach(function () {
       ConfigStore.loadInitialData(
-        TestStubs.Config({
+        ConfigFixture({
           user: User({
             options: {
               ...User().options,
@@ -147,7 +149,7 @@ describe('getFieldRenderer', function () {
   it('can render timestamp.to_day', function () {
     // Set timezone
     ConfigStore.loadInitialData(
-      TestStubs.Config({
+      ConfigFixture({
         user: User({
           options: {
             ...User().options,

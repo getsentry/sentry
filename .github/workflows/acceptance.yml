@@ -22,7 +22,7 @@ env:
 jobs:
   files-changed:
     name: detect what files changed
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     timeout-minutes: 3
     # Map a step output to a job output
     outputs:
@@ -42,7 +42,7 @@ jobs:
     if: needs.files-changed.outputs.acceptance == 'true'
     needs: files-changed
     name: acceptance
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     timeout-minutes: 30
     strategy:
       # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
@@ -124,7 +124,7 @@ jobs:
     if: always()
     name: Acceptance
     needs: [acceptance, files-changed]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     timeout-minutes: 3
     steps:
       - name: Check for failures

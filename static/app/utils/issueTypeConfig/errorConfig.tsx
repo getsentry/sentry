@@ -59,6 +59,11 @@ const ErrorInfoChecks: Array<ErrorInfo> = [
     errorTitle: 'TypeError: Load failed',
     projectCheck: false,
     errorHelpType: ErrorHelpType.LOAD_FAILED,
+ },
+        {
+    errorTitle: 'socket hang up',
+    projectCheck: false,
+    errorHelpType: ErrorHelpType.SOCKET_HANG_UP,
   },
 ];
 
@@ -141,6 +146,21 @@ const errorHelpTypeResourceMap: Record<
         {
           text: t('Fixing Load Failed errors in JavaScript'),
           link: 'https://sentry.io/answers/load-failed-javascript/',
+        },
+        ],
+      linksByPlatform: {},
+    },
+  },
+  [ErrorHelpType.SOCKET_HANG_UP]: {
+    resources: {
+      description: tct(
+        '[errorTypes] occur when there is an error in a Fetch API call. To learn more about how to fix these errors, check out these resources:',
+        {errorTypes: <b>Socket hang up errors</b>}
+      ),
+      links: [
+        {
+          text: t('Fixing Socket Hang Up errors'),
+          link: 'https://sentry.io/answers/socket-hang-up-javascript/',
         },
       ],
       linksByPlatform: {},

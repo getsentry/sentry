@@ -1,5 +1,6 @@
 import selectEvent from 'react-select-event';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -40,7 +41,7 @@ function mountModal(
 
 describe('TransactionThresholdModal', function () {
   const organization = Organization({features: ['performance-view']});
-  const project = TestStubs.Project();
+  const project = ProjectFixture();
   const eventView = EventView.fromSavedQuery({
     id: '1',
     version: 2,
@@ -48,7 +49,7 @@ describe('TransactionThresholdModal', function () {
     fields: ['count()'],
     orderby: '-count',
     query: '',
-    projects: [project.id],
+    projects: [parseInt(project.id, 10)],
     start: '2019-10-01T00:00:00',
     end: '2019-10-02T00:00:00',
     environment: [],

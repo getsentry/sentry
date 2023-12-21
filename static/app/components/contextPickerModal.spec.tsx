@@ -1,5 +1,7 @@
 import selectEvent from 'react-select-event';
+import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {User} from 'sentry-fixture/user';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -23,14 +25,14 @@ describe('ContextPickerModal', function () {
     ProjectsStore.reset();
     MockApiClient.clearMockResponses();
 
-    project = TestStubs.Project();
+    project = ProjectFixture();
     org = Organization({projects: [project]});
-    project2 = TestStubs.Project({slug: 'project2'});
+    project2 = ProjectFixture({slug: 'project2'});
     org2 = Organization({
       slug: 'org2',
       id: '21',
     });
-    project4 = TestStubs.Project({slug: 'project4', isMember: false});
+    project4 = ProjectFixture({slug: 'project4', isMember: false});
 
     OrganizationsStore.load([]);
     OrganizationStore.reset();
@@ -151,7 +153,7 @@ describe('ContextPickerModal', function () {
       },
       {
         ...org2,
-        projects: [project2, TestStubs.Project({slug: 'project3'})],
+        projects: [project2, ProjectFixture({slug: 'project3'})],
       },
     ];
     const fetchProjectsForOrg = MockApiClient.addMockResponse({
@@ -196,7 +198,7 @@ describe('ContextPickerModal', function () {
 
     const provider = {slug: 'github'};
     const configUrl = `/api/0/organizations/${org.slug}/integrations/?provider_key=${provider.slug}&includeConfig=0`;
-    const integration = TestStubs.GitHubIntegration();
+    const integration = GitHubIntegrationFixture();
     const fetchGithubConfigs = MockApiClient.addMockResponse({
       url: configUrl,
       body: [integration],
@@ -220,6 +222,10 @@ describe('ContextPickerModal', function () {
       expect(fetchGithubConfigs).toHaveBeenCalled();
     });
 
+    if (integration.domainName === null) {
+      throw new Error('Integration domainName is null');
+    }
+
     await selectEvent.select(
       screen.getByText(/Select a configuration/i),
       integration.domainName
@@ -239,7 +245,7 @@ describe('ContextPickerModal', function () {
 
     const fetchGithubConfigs = MockApiClient.addMockResponse({
       url: configUrl,
-      body: [TestStubs.GitHubIntegration()],
+      body: [GitHubIntegrationFixture()],
     });
 
     MockApiClient.addMockResponse({

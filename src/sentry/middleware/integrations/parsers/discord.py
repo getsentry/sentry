@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import dataclasses
 import logging
+from typing import Sequence
 
 import sentry_sdk
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from rest_framework import status
 from rest_framework.request import Request
 
@@ -12,9 +14,11 @@ from sentry.integrations.discord.views.link_identity import DiscordLinkIdentityV
 from sentry.integrations.discord.views.unlink_identity import DiscordUnlinkIdentityView
 from sentry.integrations.discord.webhooks.base import DiscordInteractionsEndpoint
 from sentry.middleware.integrations.parsers.base import BaseRequestParser
+from sentry.middleware.integrations.tasks import convert_to_async_discord_response
 from sentry.models.integrations import Integration
-from sentry.models.outbox import WebhookProviderIdentifier
+from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.types.region import Region
 from sentry.utils.signing import unsign
 
 logger = logging.getLogger(__name__)
@@ -32,6 +36,9 @@ class DiscordRequestParser(BaseRequestParser):
     # Dynamically set to avoid RawPostDataException from double reads
     _discord_request: DiscordRequest | None = None
 
+    # https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-interaction-callback-type
+    async_response_data = {"type": 5, "flags": 64}
+
     @property
     def discord_request(self) -> DiscordRequest | None:
         if self._discord_request is not None:
@@ -41,6 +48,19 @@ class DiscordRequestParser(BaseRequestParser):
         drf_request: Request = DiscordInteractionsEndpoint().initialize_request(self.request)
         self._discord_request: DiscordRequest = self.view_class.discord_request_class(drf_request)
         return self._discord_request
+
+    def get_async_region_response(self, regions: Sequence[Region]) -> HttpResponse:
+        webhook_payload = ControlOutbox.get_webhook_payload_from_request(request=self.request)
+        if self.discord_request:
+            convert_to_async_discord_response.apply_async(
+                kwargs={
+                    "region_names": [r.name for r in regions],
+                    "payload": dataclasses.asdict(webhook_payload),
+                    "response_url": self.discord_request.response_url,
+                }
+            )
+
+        return JsonResponse(data=self.async_response_data, status=status.HTTP_202_ACCEPTED)
 
     def get_integration_from_request(self) -> Integration | None:
         if self.view_class in self.control_classes:
@@ -100,9 +120,17 @@ class DiscordRequestParser(BaseRequestParser):
 
         if is_discord_interactions_endpoint and self.discord_request:
             if self.discord_request.is_command():
-                return self.get_response_from_first_region()
+                return (
+                    self.get_async_region_response(regions=[regions[0]])
+                    if self.discord_request.response_url
+                    else self.get_response_from_first_region()
+                )
 
             if self.discord_request.is_message_component():
-                return self.get_response_from_all_regions()
+                return (
+                    self.get_async_region_response(regions=regions)
+                    if self.discord_request.response_url
+                    else self.get_response_from_all_regions()
+                )
 
         return self.get_response_from_control_silo()

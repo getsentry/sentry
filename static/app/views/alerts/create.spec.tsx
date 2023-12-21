@@ -1,5 +1,7 @@
 import selectEvent from 'react-select-event';
+import {Environments as EnvironmentsFixture} from 'sentry-fixture/environments';
 import {Groups} from 'sentry-fixture/groups';
+import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import {ProjectAlertRule} from 'sentry-fixture/projectAlertRule';
 import {ProjectAlertRuleConfiguration} from 'sentry-fixture/projectAlertRuleConfiguration';
@@ -51,7 +53,7 @@ describe('ProjectAlertsCreate', function () {
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/environments/',
-      body: TestStubs.Environments(),
+      body: EnvironmentsFixture(),
     });
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/project-slug/?expand=hasAlertIntegration`,
@@ -96,7 +98,7 @@ describe('ProjectAlertsCreate', function () {
             params={params}
             organization={organization}
             project={project}
-            location={TestStubs.location({
+            location={LocationFixture({
               pathname: `/organizations/org-slug/alerts/rules/${project.slug}/new/`,
               query: {createFromWizard: 'true'},
               ...location,

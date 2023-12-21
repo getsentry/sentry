@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {RRWebInitFrameEvents} from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
@@ -59,7 +60,7 @@ mockUseReplayReader.mockImplementation(() => {
     fetchError: undefined,
     fetching: false,
     onRetry: jest.fn(),
-    projectSlug: TestStubs.Project().slug,
+    projectSlug: ProjectFixture().slug,
     replay: mockReplay,
     replayId: mockReplayId,
     replayRecord: ReplayRecordFixture(),
@@ -108,7 +109,7 @@ describe('ReplayPreview', () => {
         fetchError: undefined,
         fetching: true,
         onRetry: jest.fn(),
-        projectSlug: TestStubs.Project().slug,
+        projectSlug: ProjectFixture().slug,
         replay: mockReplay,
         replayId: mockReplayId,
         replayRecord: ReplayRecordFixture(),
@@ -135,7 +136,7 @@ describe('ReplayPreview', () => {
         fetchError: {status: 400} as RequestError,
         fetching: false,
         onRetry: jest.fn(),
-        projectSlug: TestStubs.Project().slug,
+        projectSlug: ProjectFixture().slug,
         replay: null,
         replayId: mockReplayId,
         replayRecord: ReplayRecordFixture(),

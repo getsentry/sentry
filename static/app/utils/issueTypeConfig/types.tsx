@@ -106,6 +106,7 @@ export const enum ErrorHelpType {
   HANDLE_HARD_NAVIGATE_ERROR = 'handle_hard_navigate_error',
   DYNAMIC_SERVER_USAGE = 'dynamic_server_usage',
   LOAD_FAILED = 'load_failed',
+  SOCKET_HANG_UP = 'socket_hang_up',
 }
 
 export interface ErrorInfo {

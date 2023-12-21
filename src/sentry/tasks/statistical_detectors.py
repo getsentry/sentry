@@ -41,16 +41,17 @@ from sentry.snuba.discover import zerofill
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.statistical_detectors.algorithm import (
-    MovingAverageDetectorState,
+    DetectorAlgorithm,
     MovingAverageRelativeChangeDetector,
-    MovingAverageRelativeChangeDetectorConfig,
 )
-from sentry.statistical_detectors.detector import DetectorPayload, RegressionDetector
+from sentry.statistical_detectors.base import DetectorPayload
+from sentry.statistical_detectors.detector import RegressionDetector
 from sentry.statistical_detectors.issue_platform_adapter import (
     fingerprint_regression,
     send_regression_to_platform,
 )
-from sentry.statistical_detectors.redis import DetectorType, RedisDetectorStore
+from sentry.statistical_detectors.redis import RedisDetectorStore
+from sentry.statistical_detectors.store import DetectorStore
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
@@ -160,17 +161,24 @@ class EndpointRegressionDetector(RegressionDetector):
     source = "transaction"
     kind = "endpoint"
     regression_type = RegressionType.ENDPOINT
-    config = MovingAverageRelativeChangeDetectorConfig(
-        min_data_points=6,
-        short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
-        long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
-        threshold=0.2,
-    )
-    store = RedisDetectorStore(detector_type=DetectorType.ENDPOINT)
-    state_cls = MovingAverageDetectorState
-    detector_cls = MovingAverageRelativeChangeDetector
     min_change = 200  # 200ms in ms
     resolution_rel_threshold = 0.1
+    escalation_rel_threshold = 0.3
+
+    @classmethod
+    def detector_algorithm_factory(cls) -> DetectorAlgorithm:
+        return MovingAverageRelativeChangeDetector(
+            source=cls.source,
+            kind=cls.kind,
+            min_data_points=6,
+            moving_avg_short_factory=lambda: ExponentialMovingAverage(2 / 21),
+            moving_avg_long_factory=lambda: ExponentialMovingAverage(2 / 41),
+            threshold=0.2,
+        )
+
+    @classmethod
+    def detector_store_factory(cls) -> DetectorStore:
+        return RedisDetectorStore(regression_type=RegressionType.ENDPOINT)
 
     @classmethod
     def query_payloads(
@@ -194,17 +202,24 @@ class FunctionRegressionDetector(RegressionDetector):
     source = "profile"
     kind = "function"
     regression_type = RegressionType.FUNCTION
-    config = MovingAverageRelativeChangeDetectorConfig(
-        min_data_points=6,
-        short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
-        long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
-        threshold=0.2,
-    )
-    store = RedisDetectorStore(detector_type=DetectorType.FUNCTION)
-    state_cls = MovingAverageDetectorState
-    detector_cls = MovingAverageRelativeChangeDetector
     min_change = 100_000_000  # 100ms in ns
     resolution_rel_threshold = 0.1
+    escalation_rel_threshold = 0.3
+
+    @classmethod
+    def detector_algorithm_factory(cls) -> DetectorAlgorithm:
+        return MovingAverageRelativeChangeDetector(
+            source=cls.source,
+            kind=cls.kind,
+            min_data_points=6,
+            moving_avg_short_factory=lambda: ExponentialMovingAverage(2 / 21),
+            moving_avg_long_factory=lambda: ExponentialMovingAverage(2 / 41),
+            threshold=0.2,
+        )
+
+    @classmethod
+    def detector_store_factory(cls) -> DetectorStore:
+        return RedisDetectorStore(regression_type=RegressionType.FUNCTION)
 
     @classmethod
     def query_payloads(
@@ -242,16 +257,18 @@ def detect_transaction_trends(
     )
 
     trends = EndpointRegressionDetector.detect_trends(projects, start)
+    trends = EndpointRegressionDetector.get_regression_groups(trends)
     trends = EndpointRegressionDetector.redirect_resolutions(trends, start)
-    regressions = EndpointRegressionDetector.limit_regressions_by_project(trends)
+    trends = EndpointRegressionDetector.redirect_escalations(trends, start)
+    trends = EndpointRegressionDetector.limit_regressions_by_project(trends)
 
     delay = 12  # hours
     delayed_start = start + timedelta(hours=delay)
 
-    for regression_chunk in chunked(regressions, TRANSACTIONS_PER_BATCH):
+    for regression_chunk in chunked(trends, TRANSACTIONS_PER_BATCH):
         detect_transaction_change_points.apply_async(
             args=[
-                [(payload.project_id, payload.group) for payload in regression_chunk],
+                [(bundle.payload.project_id, bundle.payload.group) for bundle in regression_chunk],
                 delayed_start,
             ],
             # delay the check by delay hours because we want to make sure there
@@ -287,8 +304,7 @@ def detect_transaction_change_points(
     regressions = EndpointRegressionDetector.detect_regressions(
         transaction_pairs, start, "p95(transaction.duration)", TIMESERIES_PER_BATCH
     )
-    versioned_regressions = EndpointRegressionDetector.redirect_escalations(regressions)
-    regressions = EndpointRegressionDetector.save_versioned_regressions(versioned_regressions)
+    regressions = EndpointRegressionDetector.save_regressions_with_versions(regressions)
 
     breakpoint_count = 0
 
@@ -319,16 +335,18 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
     )
 
     trends = FunctionRegressionDetector.detect_trends(projects, start)
+    trends = FunctionRegressionDetector.get_regression_groups(trends)
     trends = FunctionRegressionDetector.redirect_resolutions(trends, start)
-    regressions = FunctionRegressionDetector.limit_regressions_by_project(trends)
+    trends = FunctionRegressionDetector.redirect_escalations(trends, start)
+    trends = FunctionRegressionDetector.limit_regressions_by_project(trends)
 
     delay = 12  # hours
     delayed_start = start + timedelta(hours=delay)
 
-    for regression_chunk in chunked(regressions, FUNCTIONS_PER_BATCH):
+    for regression_chunk in chunked(trends, FUNCTIONS_PER_BATCH):
         detect_function_change_points.apply_async(
             args=[
-                [(payload.project_id, payload.group) for payload in regression_chunk],
+                [(bundle.payload.project_id, bundle.payload.group) for bundle in regression_chunk],
                 delayed_start,
             ],
             # delay the check by delay hours because we want to make sure there
@@ -364,10 +382,7 @@ def detect_function_change_points(
     regressions = FunctionRegressionDetector.detect_regressions(
         function_pairs, start, "p95()", TIMESERIES_PER_BATCH
     )
-
-    versioned_regressions = FunctionRegressionDetector.redirect_escalations(regressions)
-
-    regressions = FunctionRegressionDetector.save_versioned_regressions(versioned_regressions)
+    regressions = FunctionRegressionDetector.save_regressions_with_versions(regressions)
 
     breakpoint_count = 0
     emitted_count = 0

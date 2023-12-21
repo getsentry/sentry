@@ -121,6 +121,16 @@ def get_attachment_no_text():
     return attachments[0]
 
 
+def get_blocks_and_fallback_text(index=0):
+    assert len(responses.calls) >= 1
+    data = parse_qs(responses.calls[index].request.body)
+    assert "blocks" in data
+    assert "text" in data
+    blocks = json.loads(data["blocks"][0])
+    fallback_text = data["text"][0]
+    return blocks, fallback_text
+
+
 def setup_slack_with_identities(organization, user):
     integration = install_slack(organization)
     idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})

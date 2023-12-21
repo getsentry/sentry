@@ -1,86 +1,50 @@
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
-import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import type {
+  Docs,
+  DocsParams,
+  OnboardingConfig,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
 
-// Configuration Start
-const performanceConfiguration = `    # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
-    traces_sample_rate=1.0,`;
+type Params = DocsParams;
 
-const introduction = (
-  <p>
-    {tct(
-      'The ASGI middleware can be used to instrument any bare bones ASGI application. If you have a ASGI based web framework (like FastAPI, Starlette, or others), please use the specific integration for the framework.',
-      {
-        link: <ExternalLink href="https://asgi.readthedocs.io/en/latest/" />,
-      }
-    )}
-  </p>
-);
+const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
 
-export const steps = ({
-  sentryInitContent,
-}: {
-  sentryInitContent: string;
-}): LayoutProps['steps'] => [
-  {
-    type: StepType.INSTALL,
-    description: (
-      <p>
-        {tct('Install [code:sentry-sdk] from PyPI:', {
-          code: <code />,
-        })}
-      </p>
-    ),
-    configurations: [
-      {
-        language: 'bash',
-        code: '$ pip install --upgrade sentry-sdk',
-      },
-    ],
-  },
-  {
-    type: StepType.CONFIGURE,
-    description: (
-      <p>
-        {tct('Wrap your ASGI application with [code: SentryAsgiMiddleware]:', {
-          code: <code />,
-        })}
-      </p>
-    ),
-    configurations: [
-      {
-        language: 'python',
-        code: `
+const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
 from sentry_sdk.integrations.asgi import SentryAsgiMiddleware
 
 from myapp import asgi_app
 
 sentry_sdk.init(
-${sentryInitContent}
+    dsn="${params.dsn}",${
+      params.isPerformanceSelected
+        ? `
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    traces_sample_rate=1.0,`
+        : ''
+    }${
+      params.isProfilingSelected
+        ? `
+    # Set profiles_sample_rate to 1.0 to profile 100%
+    # of sampled transactions.
+    # We recommend adjusting this value in production.
+    profiles_sample_rate=1.0,`
+        : ''
+    }
 )
 
-asgi_app = SentryAsgiMiddleware(asgi_app)
-        `,
-      },
-    ],
-    additionalInfo: t('The middleware supports both ASGI 2 and ASGI 3 transparently.'),
-  },
-  {
-    type: StepType.VERIFY,
-    description: (
-      <p>{t('To verify that everything is working trigger an error on purpose:')}</p>
-    ),
-    configurations: [
-      {
-        language: 'python',
-        code: `sentry_sdk.init(
-${sentryInitContent}
-)
+asgi_app = SentryAsgiMiddleware(asgi_app)`;
+
+const getVerifySnippet = () => `
+import sentry_sdk
+from sentry_sdk.integrations.asgi import SentryAsgiMiddleware
+
+from myapp import asgi_app
+sentry_sdk.init(...) # same as above
 
 def app(scope):
     async def get_body():
@@ -98,57 +62,83 @@ def app(scope):
 
     return asgi
 
-app = SentryAsgiMiddleware(app)
-      `,
-      },
-    ],
-    additionalInfo: (
-      <span>
-        <p>
-          {tct(
-            'Run your ASGI app with uvicorn ([code:uvicorn main:app --port 8000]) and point your browser to [link:http://localhost:8000]. A transaction in the Performance section of Sentry will be created.',
-            {
-              code: <code />,
-              link: <ExternalLink href="http://localhost:8000" />,
-            }
-          )}
-        </p>
-        <p>
-          {t(
-            'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
-          )}
-        </p>
-        <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
-      </span>
+app = SentryAsgiMiddleware(app)`;
+
+const onboarding: OnboardingConfig = {
+  introduction: () =>
+    tct(
+      'The ASGI middleware can be used to instrument any bare bones ASGI application. If you have a ASGI based web framework (like FastAPI, Starlette, or others), please use the specific integration for the framework.',
+      {
+        link: <ExternalLink href="https://asgi.readthedocs.io/en/latest/" />,
+      }
     ),
-  },
-];
-// Configuration End
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct('Install [code:sentry-sdk] from PyPI:', {
+        code: <code />,
+      }),
+      configurations: [
+        {
+          language: 'bash',
+          code: getInstallSnippet(),
+        },
+      ],
+    },
+  ],
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct('Wrap your ASGI application with [code: SentryAsgiMiddleware]:', {
+        code: <code />,
+      }),
+      configurations: [
+        {
+          language: 'python',
+          code: getSdkSetupSnippet(params),
+        },
+      ],
+      additionalInfo: t('The middleware supports both ASGI 2 and ASGI 3 transparently.'),
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t('To verify that everything is working trigger an error on purpose:'),
+      configurations: [
+        {
+          language: 'python',
+          code: getVerifySnippet(),
+        },
+      ],
+      additionalInfo: (
+        <span>
+          <p>
+            {tct(
+              'Run your ASGI app with uvicorn ([code:uvicorn main:app --port 8000]) and point your browser to [link:http://localhost:8000]. A transaction in the Performance section of Sentry will be created.',
+              {
+                code: <code />,
+                link: <ExternalLink href="http://localhost:8000" />,
+              }
+            )}
+          </p>
+          <p>
+            {t(
+              'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
+            )}
+          </p>
+          <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
+        </span>
+      ),
+    },
+  ],
+};
 
-export function GettingStartedWithASGI({
-  dsn,
-  activeProductSelection = [],
-  ...props
-}: ModuleProps) {
-  const otherConfigs: string[] = [];
+const docs: Docs = {
+  onboarding,
+  customMetricsOnboarding: getPythonMetricsOnboarding({
+    installSnippet: getInstallSnippet(),
+  }),
+};
 
-  let sentryInitContent: string[] = [`    dsn="${dsn}",`];
-
-  if (activeProductSelection.includes(ProductSolution.PERFORMANCE_MONITORING)) {
-    otherConfigs.push(performanceConfiguration);
-  }
-
-  sentryInitContent = sentryInitContent.concat(otherConfigs);
-
-  return (
-    <Layout
-      introduction={introduction}
-      steps={steps({
-        sentryInitContent: sentryInitContent.join('\n'),
-      })}
-      {...props}
-    />
-  );
-}
-
-export default GettingStartedWithASGI;
+export default docs;

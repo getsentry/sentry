@@ -133,7 +133,6 @@ export function SpanSummaryView({groupId}: Props) {
               height={CHART_HEIGHT}
               data={[spanMetricsThroughputSeries]}
               loading={areSpanMetricsSeriesLoading}
-              utc={false}
               chartColors={[THROUGHPUT_COLOR]}
               isLineChart
               definedAxisTicks={4}
@@ -152,7 +151,6 @@ export function SpanSummaryView({groupId}: Props) {
               height={CHART_HEIGHT}
               data={[spanMetricsSeriesData?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]]}
               loading={areSpanMetricsSeriesLoading}
-              utc={false}
               chartColors={[AVG_COLOR]}
               isLineChart
               definedAxisTicks={4}
@@ -167,7 +165,6 @@ export function SpanSummaryView({groupId}: Props) {
                 height={CHART_HEIGHT}
                 data={[spanMetricsSeriesData?.[`http_error_count()`]]}
                 loading={areSpanMetricsSeriesLoading}
-                utc={false}
                 chartColors={[ERRORS_COLOR]}
                 isLineChart
                 definedAxisTicks={4}
