@@ -1435,6 +1435,18 @@ def _save_aggregate(
     migrate_off_hierarchical: Optional[bool] = False,
     **kwargs: Any,
 ) -> Optional[GroupInfo]:
+    # In principle the group gets the same metadata as the event, so common
+    # attributes can be defined in eventtypes.
+    #
+    # Additionally the `last_received` key is set for group metadata, later in
+    # _save_aggregate
+    kwargs["data"] = materialize_metadata(
+        event.data,
+        get_event_type(event.data),
+        metadata,
+    )
+    kwargs["data"]["last_received"] = received_timestamp
+
     project = event.project
 
     flat_grouphashes = [
@@ -1456,7 +1468,7 @@ def _save_aggregate(
             project=project, hash=root_hierarchical_hash
         )[0]
 
-        metadata.update(
+        kwargs["data"]["metadata"].update(
             hashes.group_metadata_from_hash(
                 existing_grouphash.hash
                 if existing_grouphash is not None
@@ -1466,18 +1478,6 @@ def _save_aggregate(
 
     else:
         root_hierarchical_grouphash = None
-
-    # In principle the group gets the same metadata as the event, so common
-    # attributes can be defined in eventtypes.
-    #
-    # Additionally the `last_received` key is set for group metadata, later in
-    # _save_aggregate
-    kwargs["data"] = materialize_metadata(
-        event.data,
-        get_event_type(event.data),
-        metadata,
-    )
-    kwargs["data"]["last_received"] = received_timestamp
 
     if existing_grouphash is None:
         if killswitch_matches_context(
