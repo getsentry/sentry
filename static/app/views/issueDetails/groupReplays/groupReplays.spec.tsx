@@ -1,3 +1,6 @@
+import {Group as GroupFixture} from 'sentry-fixture/group';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -23,7 +26,7 @@ const REPLAY_ID_1 = '346789a703f6454384f1de473b8b9fcc';
 const REPLAY_ID_2 = 'b05dae9b6be54d21a4d5ad9f8f02b780';
 
 function init({organizationProps = {features: ['session-replay']}}: InitializeOrgProps) {
-  const mockProject = TestStubs.Project();
+  const mockProject = ProjectFixture();
   const {router, organization, routerContext} = initializeOrg({
     organization: {
       ...organizationProps,
@@ -60,7 +63,7 @@ describe('GroupReplays', () => {
   });
 
   describe('Replay Feature Disabled', () => {
-    const mockGroup = TestStubs.Group();
+    const mockGroup = GroupFixture();
 
     const {router, organization, routerContext} = init({
       organizationProps: {features: []},
@@ -83,7 +86,7 @@ describe('GroupReplays', () => {
     const {router, organization, routerContext} = init({});
 
     it('should query the replay-count endpoint with the fetched replayIds', async () => {
-      const mockGroup = TestStubs.Group();
+      const mockGroup = GroupFixture();
 
       const mockReplayCountApi = MockApiClient.addMockResponse({
         url: mockReplayCountUrl,
@@ -152,7 +155,7 @@ describe('GroupReplays', () => {
     });
 
     it('should show empty message when no replays are found', async () => {
-      const mockGroup = TestStubs.Group();
+      const mockGroup = GroupFixture();
 
       const mockReplayCountApi = MockApiClient.addMockResponse({
         url: mockReplayCountUrl,
@@ -182,7 +185,7 @@ describe('GroupReplays', () => {
     });
 
     it('should display error message when api call fails', async () => {
-      const mockGroup = TestStubs.Group();
+      const mockGroup = GroupFixture();
 
       const mockReplayCountApi = MockApiClient.addMockResponse({
         url: mockReplayCountUrl,
@@ -215,7 +218,7 @@ describe('GroupReplays', () => {
     });
 
     it('should display default error message when api call fails without a body', async () => {
-      const mockGroup = TestStubs.Group();
+      const mockGroup = GroupFixture();
 
       const mockReplayCountApi = MockApiClient.addMockResponse({
         url: mockReplayCountUrl,
@@ -248,7 +251,7 @@ describe('GroupReplays', () => {
     });
 
     it('should show loading indicator when loading replays', async () => {
-      const mockGroup = TestStubs.Group();
+      const mockGroup = GroupFixture();
 
       const mockReplayCountApi = MockApiClient.addMockResponse({
         url: mockReplayCountUrl,
@@ -279,7 +282,7 @@ describe('GroupReplays', () => {
     });
 
     it('should show a list of replays and have the correct values', async () => {
-      const mockGroup = TestStubs.Group();
+      const mockGroup = GroupFixture();
 
       const mockReplayCountApi = MockApiClient.addMockResponse({
         url: mockReplayCountUrl,

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Generator, Optional, Sequence
 
+from sentry import features
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.slack.actions.form import SlackNotifyServiceForm
 from sentry.integrations.slack.client import SlackClient
@@ -54,27 +55,48 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
         def send_notification(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             rules = [f.rule for f in futures]
-            attachments = [
-                build_group_attachment(
+            additional_attachment = get_additional_attachment(
+                integration, self.project.organization
+            )
+            if features.has("organizations:slack-block-kit", event.group.project.organization):
+                blocks = build_group_attachment(
                     event.group,
                     event=event,
                     tags=tags,
                     rules=rules,
                     notification_uuid=notification_uuid,
                 )
-            ]
-            # getsentry might add a billing related attachment
-            additional_attachment = get_additional_attachment(
-                integration, self.project.organization
-            )
-            if additional_attachment:
-                attachments.append(additional_attachment)
+                if additional_attachment:
+                    for block in additional_attachment:
+                        blocks["blocks"].append(block)
 
-            payload = {
-                "channel": channel,
-                "link_names": 1,
-                "attachments": json.dumps(attachments),
-            }
+                if blocks.get("blocks"):
+                    payload = {
+                        "text": blocks.get("text"),
+                        "blocks": json.dumps(blocks.get("blocks")),
+                        "channel": channel,
+                        "unfurl_links": False,
+                        "unfurl_media": False,
+                    }
+            else:
+                attachments = [
+                    build_group_attachment(
+                        event.group,
+                        event=event,
+                        tags=tags,
+                        rules=rules,
+                        notification_uuid=notification_uuid,
+                    )
+                ]
+                # getsentry might add a billing related attachment
+                if additional_attachment:
+                    attachments.append(additional_attachment)
+
+                payload = {
+                    "channel": channel,
+                    "link_names": 1,
+                    "attachments": json.dumps(attachments),
+                }
 
             client = SlackClient(integration_id=integration.id)
             try:

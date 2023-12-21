@@ -1,0 +1,114 @@
+{
+  "platform": "cocoa",
+  "message": "Foo",
+  "threads": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "unicorn",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": false,
+              "data": {
+                "orig_in_app": 1
+              }
+            },
+            {
+              "function": "UIApplicationMain",
+              "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
+              "in_app": false,
+              "data": {}
+            },
+            {
+              "function": "-[UIApplication _run]",
+              "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
+              "in_app": false,
+              "data": {}
+            },
+            {
+              "function": "_dispatch_main_queue_drain",
+              "package": "/usr/lib/system/libdispatch.dylib",
+              "in_app": false,
+              "data": {}
+            },
+            {
+              "function": "_dispatch_client_callout",
+              "package": "/usr/lib/system/libdispatch.dylib",
+              "in_app": false,
+              "data": {}
+            },
+            {
+              "function": "_dispatch_block_async_invoke2",
+              "package": "/usr/lib/system/libdispatch.dylib",
+              "in_app": false,
+              "data": {}
+            },
+            {
+              "function": "-[NSBlockOperation main]",
+              "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
+              "in_app": false,
+              "data": {}
+            },
+            {
+              "function": "__NSBLOCKOPERATION_IS_CALLING_OUT_TO_A_BLOCK__",
+              "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
+              "in_app": false,
+              "data": {}
+            },
+            {
+              "function": "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": true,
+              "data": {}
+            },
+            {
+              "function": "FudgeLogTaggedError",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": false,
+              "data": {
+                "orig_in_app": 1
+              }
+            },
+            {
+              "function": "thunk for closure",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": false,
+              "data": {
+                "orig_in_app": 1
+              }
+            },
+            {
+              "function": "SentrySetupInteractor.setupSentry",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": false,
+              "data": {
+                "orig_in_app": 1
+              }
+            },
+            {
+              "function": "_dispatch_lane_barrier_sync_invoke_and_complete",
+              "package": "/usr/lib/system/libdispatch.dylib",
+              "in_app": false,
+              "data": {}
+            },
+            {
+              "function": "_dispatch_client_callout",
+              "package": "/usr/lib/system/libdispatch.dylib",
+              "in_app": false,
+              "data": {}
+            },
+            {
+              "function": "thunk for closure",
+              "package": "/private/var/containers/Bundle/Application/9B2E1C43-8839-4525-9586-FC58F0534940/Foobar.app/Foobar",
+              "in_app": false,
+              "data": {
+                "orig_in_app": 1
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

@@ -5,7 +5,7 @@ import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import Pagination from 'sentry/components/pagination';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {
@@ -35,9 +35,10 @@ type Props = {
   eventView: EventView;
   isLoading: boolean;
   pageLinks: string | undefined;
+  onCursor?: CursorHandler;
 };
 
-export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
+export function ScreensTable({data, eventView, isLoading, pageLinks, onCursor}: Props) {
   const location = useLocation();
   const {selection} = usePageFilters();
   const {projects} = useProjects();
@@ -219,7 +220,7 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
           renderBodyCell,
         }}
       />
-      <Pagination pageLinks={pageLinks} />
+      <Pagination pageLinks={pageLinks} onCursor={onCursor} />
     </Fragment>
   );
 }

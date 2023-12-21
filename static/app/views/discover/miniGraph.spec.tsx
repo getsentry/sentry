@@ -1,4 +1,6 @@
+import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
@@ -11,7 +13,7 @@ jest.mock('sentry/components/charts/eventsRequest');
 
 describe('Discover > MiniGraph', function () {
   const features = ['discover-basic'];
-  const location = TestStubs.location({
+  const location = LocationFixture({
     query: {query: 'tag:value'},
     pathname: '/',
   });
@@ -21,7 +23,7 @@ describe('Discover > MiniGraph', function () {
   beforeEach(() => {
     organization = Organization({
       features,
-      projects: [TestStubs.Project()],
+      projects: [ProjectFixture()],
     });
     initialData = initializeOrg({
       organization,

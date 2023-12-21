@@ -5,7 +5,12 @@ import type {
   OnboardingConfig,
   PlatformOption,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {
+  getReplayConfigOptions,
+  getReplayConfigureDescription,
+  getUploadSourceMapsStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
@@ -49,7 +54,10 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
     }${
       params.isReplaySelected
         ? `
-          new Sentry.Replay(),`
+          new Sentry.Replay(${getReplayConfigOptions({
+            mask: params.mask,
+            block: params.block,
+          })}),`
         : ''
     }
   ],${
@@ -68,6 +76,26 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
   }
   });`;
 };
+
+const getInstallConfig = () => [
+  {
+    language: 'bash',
+    code: [
+      {
+        label: 'npm',
+        value: 'npm',
+        language: 'bash',
+        code: `npm install --save @sentry/vue`,
+      },
+      {
+        label: 'yarn',
+        value: 'yarn',
+        language: 'bash',
+        code: `yarn add @sentry/vue`,
+      },
+    ],
+  },
+];
 
 const getNextStep = (
   params: Params
@@ -108,30 +136,15 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
           )}
         </p>
       ),
-      configurations: [
-        {
-          language: 'bash',
-          code: [
-            {
-              label: 'npm',
-              value: 'npm',
-              language: 'bash',
-              code: `npm install --save @sentry/vue`,
-            },
-            {
-              label: 'yarn',
-              value: 'yarn',
-              language: 'bash',
-              code: `yarn add @sentry/vue`,
-            },
-          ],
-        },
-      ],
+      configurations: getInstallConfig(),
     },
   ],
   configure: params => [
     {
       type: StepType.CONFIGURE,
+      description: t(
+        "Initialize Sentry as early as possible in your application's lifecycle."
+      ),
       configurations: getSetupConfiguration(params),
     },
     getUploadSourceMapsStep({
@@ -242,9 +255,6 @@ function getSetupConfiguration(params: Params) {
   const sentryInitLayout = getSentryInitLayout(params, siblingOption);
   const configuration = [
     {
-      description: t(
-        "Initialize Sentry as early as possible in your application's lifecycle."
-      ),
       language: 'javascript',
       code: `${getSiblingImportsSetupConfiguration(siblingOption)}
           import * as Sentry from "@sentry/vue";
@@ -258,9 +268,37 @@ function getSetupConfiguration(params: Params) {
   return configuration;
 }
 
+const replayOnboarding: OnboardingConfig<PlatformOptions> = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'You need a minimum version 7.27.0 of [code:@sentry/vue] in order to use Session Replay. You do not need to install any additional packages.',
+        {
+          code: <code />,
+        }
+      ),
+      configurations: getInstallConfig(),
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: getReplayConfigureDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/vue/session-replay/',
+      }),
+      configurations: getSetupConfiguration({...params, isReplaySelected: true}),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs<PlatformOptions> = {
   onboarding,
   platformOptions,
+  replayOnboardingNpm: replayOnboarding,
+  customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
 };
 
 export default docs;

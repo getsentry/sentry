@@ -1,3 +1,4 @@
+import importlib.resources
 import os
 import warnings
 
@@ -16,10 +17,8 @@ def generate_secret_key():
     return get_random_string(50, chars)
 
 
-def load_config_template(path, version="default"):
-    from pkg_resources import resource_string
-
-    return resource_string("sentry", f"data/config/{path}.{version}").decode("utf8")
+def load_config_template(path: str, version: str = "default") -> str:
+    return importlib.resources.files("sentry").joinpath(f"data/config/{path}.{version}").read_text()
 
 
 def generate_settings(dev=False):

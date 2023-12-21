@@ -122,6 +122,17 @@ def _get_daemon(name: str) -> tuple[str, list[str]]:
     help="The hostname that clients will use. Useful for ngrok workflows eg `--client-hostname=alice.ngrok.io`",
 )
 @click.option(
+    "--ngrok",
+    default=None,
+    required=False,
+    help=(
+        "The hostname that you have ngrok forwarding to your devserver. "
+        "This option will modify application settings to be compatible with ngrok forwarding. "
+        "Expects a host name without protocol e.g `--ngrok=yourname.ngrok.app`. "
+        "You will also need to run ngrok."
+    ),
+)
+@click.option(
     "--silo",
     default=None,
     type=click.Choice(["control", "region"]),
@@ -151,6 +162,7 @@ def devserver(
     dev_consumer: bool,
     bind: str | None,
     client_hostname: str,
+    ngrok: str | None,
     silo: str | None,
 ) -> NoReturn:
     "Starts a lightweight web server for development."
@@ -189,6 +201,8 @@ def devserver(
     os.environ["SENTRY_SYSTEM_BASE_HOSTNAME"] = client_host
     os.environ["SENTRY_ORGANIZATION_BASE_HOSTNAME"] = f"{{slug}}.{client_host}"
     os.environ["SENTRY_ORGANIZATION_URL_TEMPLATE"] = "http://{hostname}"
+    if ngrok:
+        os.environ["SENTRY_DEVSERVER_NGROK"] = ngrok
 
     from django.conf import settings
 

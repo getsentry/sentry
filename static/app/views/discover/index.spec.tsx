@@ -1,5 +1,6 @@
 import selectEvent from 'react-select-event';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -12,7 +13,7 @@ describe('Discover > Landing', function () {
   const features = ['discover-basic', 'discover-query'];
 
   beforeEach(function () {
-    ProjectsStore.loadInitialData([TestStubs.Project()]);
+    ProjectsStore.loadInitialData([ProjectFixture()]);
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',

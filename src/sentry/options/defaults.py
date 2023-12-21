@@ -9,6 +9,7 @@ from sentry.options.manager import (
     FLAG_IMMUTABLE,
     FLAG_MODIFIABLE_BOOL,
     FLAG_MODIFIABLE_RATE,
+    FLAG_MODIFIABLE_SCALAR,
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
     FLAG_REQUIRED,
@@ -276,6 +277,9 @@ register("beacon.anonymous", type=Bool, flags=FLAG_REQUIRED)
 # Filestore (default)
 register("filestore.backend", default="filesystem", flags=FLAG_NOSTORE)
 register("filestore.options", default={"location": "/tmp/sentry-files"}, flags=FLAG_NOSTORE)
+register(
+    "filestore.relocation", default={"location": "/tmp/sentry-relocation-files"}, flags=FLAG_NOSTORE
+)
 
 # Filestore for control silo
 register("filestore.control.backend", default="", flags=FLAG_NOSTORE)
@@ -506,6 +510,7 @@ register("snuba.search.max-chunk-size", default=2000, flags=FLAG_AUTOMATOR_MODIF
 register("snuba.search.max-total-chunk-time-seconds", default=30.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("snuba.search.hits-sample-size", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("snuba.track-outcomes-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("snuba.use-mql-endpoint", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
 register(
@@ -700,6 +705,9 @@ register("store.use-relay-dsn-sample-rate", default=1, flags=FLAG_AUTOMATOR_MODI
 # A rate to apply to any events denoted as experimental to be sent to an experimental dsn.
 register("store.use-experimental-dsn-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# A rate that enables statsd item sending (DDM data) to s4s
+register("store.allow-s4s-ddm-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Mock out integrations and services for tests
 register("mocks.jira", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -745,6 +753,13 @@ register(
 
 register(
     "issues.severity.high-priority-alerts-projects-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.severity.new-escalation-projects-allowlist",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
@@ -862,7 +877,7 @@ register(
 # Drop delete_old_primary_hash messages for a particular project.
 register("reprocessing2.drop-delete-old-primary-hash", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# BEGIN PROJECT ABUSE QUOTAS
+# BEGIN ABUSE QUOTAS
 
 # Example:
 # >>> org = Organization.objects.get(slug='foo')
@@ -943,7 +958,15 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# END PROJECT ABUSE QUOTAS
+
+register(
+    "organization-abuse-quota.metric-bucket-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# END ABUSE QUOTAS
 
 # Send event messages for specific project IDs to random partitions in Kafka
 # contents are a list of project IDs to message types to be randomly assigned
@@ -1782,11 +1805,40 @@ register(
     default=100,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Use database backed stateful extraction state
+register(
+    "on_demand_metrics.widgets.use_stateful_extraction",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
-# Relocation
-register("relocation.enabled", default=False)
+# Relocation: whether or not the self-serve API for the feature is enabled.
+register(
+    "relocation.enabled",
+    default=False,
+    # TODO(getsentry/team-ospo#214): Eventually change this to `FLAG_BOOL |
+    # FLAG_AUTOMATOR_MODIFIABLE`, to enforce it only being toggled from code.
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
-# Throttling limits for relocation requests
-register("relocation.daily-limit-small", default=0)
-register("relocation.daily-limit-medium", default=0)
-register("relocation.daily-limit-large", default=0)
+# Relocation: globally limits the number of small (<=10MB) relocations allowed per silo per day.
+register(
+    "relocation.daily-limit.small",
+    default=0,
+    flags=FLAG_MODIFIABLE_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Relocation: globally limits the number of medium (>10MB && <=100MB) relocations allowed per silo
+# per day.
+register(
+    "relocation.daily-limit.medium",
+    default=0,
+    flags=FLAG_MODIFIABLE_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Relocation: globally limits the number of large (>100MB) relocations allowed per silo per day.
+register(
+    "relocation.daily-limit.large",
+    default=0,
+    flags=FLAG_MODIFIABLE_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
+)

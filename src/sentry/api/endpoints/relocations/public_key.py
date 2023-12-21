@@ -34,7 +34,8 @@ class RelocationPublicKeyEndpoint(Endpoint):
         :auth: required
         """
 
-        logger.info("get.start", extra={"caller": request.user.id})
+        logger.info("publickeys.relocations.get.start", extra={"caller": request.user.id})
+
         if not options.get("relocation.enabled"):
             return Response({"detail": ERR_FEATURE_DISABLED}, status=400)
 

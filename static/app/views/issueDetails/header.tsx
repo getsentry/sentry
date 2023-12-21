@@ -16,7 +16,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
-import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import {TabList} from 'sentry/components/tabs';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -24,6 +23,7 @@ import {space} from 'sentry/styles/space';
 import {Event, Group, IssueCategory, Organization, Project} from 'sentry/types';
 import {getMessage} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -58,11 +58,9 @@ function GroupHeaderTabs({
 }: GroupHeaderTabsProps) {
   const organization = useOrganization();
 
-  const replaysCount = useReplaysCount({
-    issueCategory: group.issueCategory,
-    groupIds: group.id,
-    organization,
-  })[group.id];
+  const {getReplayCountForIssue} = useReplayCountForIssues();
+  const replaysCount = getReplayCountForIssue(group.id);
+
   const projectFeatures = new Set(project ? project.features : []);
   const organizationFeatures = new Set(organization ? organization.features : []);
 
@@ -71,7 +69,7 @@ function GroupHeaderTabs({
   const hasReplaySupport =
     organizationFeatures.has('session-replay') && projectCanLinkToReplay(project);
 
-  const issueTypeConfig = getConfigForIssueType(group);
+  const issueTypeConfig = getConfigForIssueType(group, project);
 
   useRouteAnalyticsParams({
     group_has_replay: (replaysCount ?? 0) > 0,
@@ -235,7 +233,7 @@ function GroupHeader({
     <ShortIdBreadrcumb organization={organization} project={project} group={group} />
   );
 
-  const issueTypeConfig = getConfigForIssueType(group);
+  const issueTypeConfig = getConfigForIssueType(group, project);
 
   return (
     <Layout.Header>

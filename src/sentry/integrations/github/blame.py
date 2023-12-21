@@ -9,7 +9,6 @@ from django.utils.datastructures import OrderedSet
 from isodate import parse_datetime
 
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
-from sentry.utils import json
 
 logger = logging.getLogger("sentry.integrations.github")
 
@@ -114,10 +113,7 @@ def extract_commits_from_blame_response(
     back to the correct file.
     """
     file_blames: list[FileBlameInfo] = []
-    logger.info(
-        "get_blame_for_files.extract_commits_from_blame.missing_repository",
-        extra={**extra, "response": json.dumps(response)},
-    )
+    logger.info("get_blame_for_files.extract_commits_from_blame.missing_repository", extra=extra)
     for repo_index, (full_repo_name, ref_mapping) in enumerate(file_path_mapping.items()):
         repo_mapping: Optional[GitHubRepositoryResponse] = response.get("data", {}).get(
             f"repository{repo_index}"

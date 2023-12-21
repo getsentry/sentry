@@ -4,6 +4,7 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import {MobileCursors} from 'sentry/views/starfish/views/screens/constants';
 
 export function DeviceClassSelector() {
   const location = useLocation();
@@ -29,6 +30,8 @@ export function DeviceClassSelector() {
           query: {
             ...location.query,
             ['device.class']: newValue.value,
+            [MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE]: undefined,
+            [MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE]: undefined,
           },
         });
       }}

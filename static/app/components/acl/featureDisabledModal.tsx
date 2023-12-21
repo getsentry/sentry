@@ -33,7 +33,7 @@ export function FeatureDisabledModal({
         />
       </Body>
       <Footer>
-        <Button size="md" priority="primary" onClick={closeModal}>
+        <Button priority="primary" onClick={closeModal}>
           {t('Got it')}
         </Button>
       </Footer>

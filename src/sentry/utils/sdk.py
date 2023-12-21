@@ -354,7 +354,13 @@ def configure_sdk():
                     args_list = list(args)
                     envelope = args_list[0]
                     # We filter out all the statsd envelope items, which contain custom metrics sent by the SDK.
-                    safe_items = [x for x in envelope.items if x.data_category != "statsd"]
+                    # unless we allow them via a separate sample rate.
+                    ddm_sample_rate = options.get("store.allow-s4s-ddm-sample-rate")
+                    safe_items = [
+                        x
+                        for x in envelope.items
+                        if x.data_category != "statsd" or random.random() < ddm_sample_rate
+                    ]
                     if len(safe_items) != len(envelope.items):
                         relay_envelope = copy.copy(envelope)
                         relay_envelope.items = safe_items

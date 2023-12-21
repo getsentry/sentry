@@ -1,0 +1,370 @@
+---
+created: '2023-12-08T14:16:59.934752Z'
+creator: sentry
+source: tests/sentry/tasks/test_relocation.py
+---
+artifacts:
+  objects:
+    location: gs://<BUCKET>/runs/<UUID>/findings/
+    paths:
+    - /workspace/findings/**
+options:
+  env:
+  - REPORT_SELF_HOSTED_ISSUES=0
+  machineType: N1_HIGHCPU_32
+steps:
+- args:
+  - cp
+  - -r
+  - gs://<BUCKET>/runs/<UUID>/in
+  - .
+  id: copy-inputs-being-validated
+  name: gcr.io/cloud-builders/gsutil
+  timeout: 600s
+  waitFor:
+  - '-'
+- args:
+  - -e
+  - -c
+  - 'mkdir /workspace/out && chmod 777 /workspace/out
+
+    mkdir /workspace/findings && chmod 777 /workspace/findings
+
+    echo ''[]'' > /workspace/findings/null.json
+
+    '
+  entrypoint: bash
+  id: create-working-dirs
+  name: gcr.io/cloud-builders/docker
+  timeout: 15s
+  waitFor:
+  - '-'
+- args:
+  - -e
+  - -c
+  - 'mkdir self-hosted && cd self-hosted
+
+    curl -L "https://github.com/getsentry/self-hosted/archive/master.tar.gz" | tar
+    xzf - --strip-components=1
+
+    echo ''{"version": "3.4", "networks":{"default":{"external":{"name":"cloudbuild"}}}}''
+    > docker-compose.override.yml
+
+    '
+  entrypoint: bash
+  id: get-self-hosted-repo
+  name: gcr.io/cloud-builders/docker
+  timeout: 120s
+  waitFor:
+  - '-'
+- args:
+  - -e
+  - -c
+  - './install.sh --skip-commit-check --skip-user-creation
+
+    '
+  dir_: self-hosted
+  entrypoint: bash
+  id: run-install-script
+  name: gcr.io/cloud-builders/docker
+  timeout: 600s
+  waitFor:
+  - get-self-hosted-repo
+- args:
+  - compose
+  - -f
+  - /workspace/self-hosted/docker-compose.yml
+  - -f
+  - /workspace/self-hosted/docker-compose.override.yml
+  - up
+  - -d
+  id: instance-ready
+  name: gcr.io/cloud-builders/docker
+  timeout: 900s
+  waitFor:
+  - run-install-script
+- args:
+  - compose
+  - -f
+  - /workspace/self-hosted/docker-compose.yml
+  - -f
+  - /workspace/self-hosted/docker-compose.override.yml
+  - exec
+  - -T
+  - postgres
+  - psql
+  - -U
+  - postgres
+  - -c
+  - TRUNCATE sentry_controloption,sentry_integration,sentry_option,sentry_organization,sentry_organizationintegration,sentry_organizationoptions,sentry_project,sentry_projectintegration,sentry_projectkey,sentry_projectoptions,sentry_projectownership,sentry_projectredirect,sentry_relay,sentry_relayusage,sentry_repository,sentry_team,auth_user,sentry_userip,sentry_useroption,sentry_userpermission,sentry_userrole,sentry_userrole_users,sentry_savedsearch,sentry_recentsearch,sentry_projectteam,sentry_projectbookmark,sentry_orgauthtoken,sentry_organizationmember,sentry_organizationaccessrequest,sentry_monitor,sentry_environment,sentry_email,sentry_dashboardtombstone,sentry_dashboard,sentry_customdynamicsamplingrule,sentry_projectcounter,sentry_authprovider,sentry_authidentity,auth_authenticator,sentry_apikey,sentry_apiapplication,sentry_actor,sentry_useremail,sentry_snubaquery,sentry_sentryapp,sentry_rule,sentry_querysubscription,sentry_organizationmember_teams,sentry_notificationaction,sentry_neglectedrule,sentry_environmentproject,sentry_dashboardwidget,sentry_customdynamicsamplingruleproject,sentry_apitoken,sentry_apigrant,sentry_apiauthorization,sentry_alertrule,sentry_snubaqueryeventtype,sentry_sentryappinstallation,sentry_sentryappcomponent,sentry_rulesnooze,sentry_ruleactivity,sentry_notificationactionproject,sentry_incident,sentry_dashboardwidgetquery,sentry_alertruletrigger,sentry_alertruleexcludedprojects,sentry_alertruleactivity,sentry_timeseriessnapshot,sentry_servicehook,sentry_pendingincidentsnapshot,sentry_incidenttrigger,sentry_incidentsubscription,sentry_incidentsnapshot,sentry_incidentactivity,sentry_dashboardwidgetqueryondemand,sentry_alertruletriggerexclusion,sentry_alertruletriggeraction
+    RESTART IDENTITY CASCADE;
+  id: clear-database
+  name: gcr.io/cloud-builders/docker
+  timeout: 30s
+  waitFor:
+  - instance-ready
+- args:
+  - compose
+  - -f
+  - /workspace/self-hosted/docker-compose.yml
+  - -f
+  - /workspace/self-hosted/docker-compose.override.yml
+  - run
+  - --rm
+  - -T
+  - -v
+  - /workspace/in:/in
+  - -v
+  - /workspace/findings:/findings
+  - web
+  - import
+  - config
+  - /in/baseline-config.tar
+  - --decrypt-with-gcp-kms
+  - /in/kms-config.json
+  - --findings-file
+  - /findings/import-baseline-config.json
+  - --overwrite-configs
+  id: import-baseline-config
+  name: gcr.io/cloud-builders/docker
+  timeout: 300s
+  waitFor:
+  - copy-inputs-being-validated
+  - create-working-dirs
+  - clear-database
+- args:
+  - compose
+  - -f
+  - /workspace/self-hosted/docker-compose.yml
+  - -f
+  - /workspace/self-hosted/docker-compose.override.yml
+  - run
+  - --rm
+  - -T
+  - -v
+  - /workspace/in:/in
+  - -v
+  - /workspace/findings:/findings
+  - web
+  - import
+  - users
+  - /in/colliding-users.tar
+  - --decrypt-with-gcp-kms
+  - /in/kms-config.json
+  - --findings-file
+  - /findings/import-colliding-users.json
+  - --filter-usernames
+  - importing
+  id: import-colliding-users
+  name: gcr.io/cloud-builders/docker
+  timeout: 300s
+  waitFor:
+  - copy-inputs-being-validated
+  - create-working-dirs
+  - clear-database
+  - import-baseline-config
+- args:
+  - compose
+  - -f
+  - /workspace/self-hosted/docker-compose.yml
+  - -f
+  - /workspace/self-hosted/docker-compose.override.yml
+  - run
+  - --rm
+  - -T
+  - -v
+  - /workspace/in:/in
+  - -v
+  - /workspace/findings:/findings
+  - web
+  - import
+  - organizations
+  - /in/raw-relocation-data.tar
+  - --decrypt-with-gcp-kms
+  - /in/kms-config.json
+  - --findings-file
+  - /findings/import-raw-relocation-data.json
+  - --filter-org-slugs
+  - testing
+  id: import-raw-relocation-data
+  name: gcr.io/cloud-builders/docker
+  timeout: 300s
+  waitFor:
+  - copy-inputs-being-validated
+  - create-working-dirs
+  - clear-database
+  - import-colliding-users
+- args:
+  - compose
+  - -f
+  - /workspace/self-hosted/docker-compose.yml
+  - -f
+  - /workspace/self-hosted/docker-compose.override.yml
+  - run
+  - --rm
+  - -T
+  - -v
+  - /workspace/in:/in
+  - -v
+  - /workspace/out:/out
+  - -v
+  - /workspace/findings:/findings
+  - -e
+  - SENTRY_LOG_LEVEL=CRITICAL
+  - web
+  - export
+  - config
+  - /out/baseline-config.tar
+  - --encrypt-with-gcp-kms
+  - /in/kms-config.json
+  - --findings-file
+  - /findings/export-baseline-config.json
+  id: export-baseline-config
+  name: gcr.io/cloud-builders/docker
+  timeout: 300s
+  waitFor:
+  - import-baseline-config
+  - import-raw-relocation-data
+- args:
+  - compose
+  - -f
+  - /workspace/self-hosted/docker-compose.yml
+  - -f
+  - /workspace/self-hosted/docker-compose.override.yml
+  - run
+  - --rm
+  - -T
+  - -v
+  - /workspace/in:/in
+  - -v
+  - /workspace/out:/out
+  - -v
+  - /workspace/findings:/findings
+  - -e
+  - SENTRY_LOG_LEVEL=CRITICAL
+  - web
+  - export
+  - users
+  - /out/colliding-users.tar
+  - --encrypt-with-gcp-kms
+  - /in/kms-config.json
+  - --findings-file
+  - /findings/export-colliding-users.json
+  - --filter-usernames
+  - importing
+  id: export-colliding-users
+  name: gcr.io/cloud-builders/docker
+  timeout: 300s
+  waitFor:
+  - import-colliding-users
+  - export-baseline-config
+- args:
+  - compose
+  - -f
+  - /workspace/self-hosted/docker-compose.yml
+  - -f
+  - /workspace/self-hosted/docker-compose.override.yml
+  - run
+  - --rm
+  - -T
+  - -v
+  - /workspace/in:/in
+  - -v
+  - /workspace/out:/out
+  - -v
+  - /workspace/findings:/findings
+  - -e
+  - SENTRY_LOG_LEVEL=CRITICAL
+  - web
+  - export
+  - organizations
+  - /out/raw-relocation-data.tar
+  - --encrypt-with-gcp-kms
+  - /in/kms-config.json
+  - --findings-file
+  - /findings/export-raw-relocation-data.json
+  - --filter-org-slugs
+  - testing
+  id: export-raw-relocation-data
+  name: gcr.io/cloud-builders/docker
+  timeout: 300s
+  waitFor:
+  - import-raw-relocation-data
+  - export-colliding-users
+- args:
+  - cp
+  - -r
+  - /workspace/out
+  - gs://<BUCKET>/runs/<UUID>/out
+  id: copy-out-dir
+  name: gcr.io/cloud-builders/gsutil
+  timeout: 30s
+  waitFor:
+  - export-raw-relocation-data
+- args:
+  - compose
+  - -f
+  - /workspace/self-hosted/docker-compose.yml
+  - -f
+  - /workspace/self-hosted/docker-compose.override.yml
+  - run
+  - --rm
+  - -T
+  - -v
+  - /workspace/in:/in
+  - -v
+  - /workspace/out:/out
+  - -v
+  - /workspace/findings:/findings
+  - web
+  - backup
+  - compare
+  - /in/baseline-config.tar
+  - /out/baseline-config.tar
+  - --decrypt-left-with-gcp-kms
+  - /in/kms-config.json
+  - --decrypt-right-with-gcp-kms
+  - /in/kms-config.json
+  - --findings-file
+  - /findings/compare-baseline-config.json
+  id: compare-baseline-config
+  name: gcr.io/cloud-builders/docker
+  timeout: 300s
+  waitFor:
+  - export-baseline-config
+  - export-raw-relocation-data
+- args:
+  - compose
+  - -f
+  - /workspace/self-hosted/docker-compose.yml
+  - -f
+  - /workspace/self-hosted/docker-compose.override.yml
+  - run
+  - --rm
+  - -T
+  - -v
+  - /workspace/in:/in
+  - -v
+  - /workspace/out:/out
+  - -v
+  - /workspace/findings:/findings
+  - web
+  - backup
+  - compare
+  - /in/colliding-users.tar
+  - /out/colliding-users.tar
+  - --decrypt-left-with-gcp-kms
+  - /in/kms-config.json
+  - --decrypt-right-with-gcp-kms
+  - /in/kms-config.json
+  - --findings-file
+  - /findings/compare-colliding-users.json
+  id: compare-colliding-users
+  name: gcr.io/cloud-builders/docker
+  timeout: 300s
+  waitFor:
+  - export-colliding-users
+  - compare-baseline-config
+tags:
+- cloud-builders-community
+timeout: 3600s

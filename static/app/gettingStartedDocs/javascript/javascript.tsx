@@ -5,9 +5,12 @@ import {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  getReplayConfigOptions,
   getReplayConfigureDescription,
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -28,7 +31,10 @@ Sentry.init({
   }${
     params.isReplaySelected
       ? `
-        new Sentry.Replay(),`
+        new Sentry.Replay(${getReplayConfigOptions({
+          mask: params.mask,
+          block: params.block,
+        })}),`
       : ''
   }
 ],${
@@ -184,6 +190,8 @@ const replayOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   replayOnboardingNpm: replayOnboarding,
+  replayOnboardingJsLoader,
+  customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
 };
 
 export default docs;

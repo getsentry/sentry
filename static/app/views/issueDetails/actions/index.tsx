@@ -95,7 +95,7 @@ export function Actions(props: Props) {
   const hasEscalatingIssues = organization.features.includes('escalating-issues');
   const hasDeleteAccess = organization.access.includes('event:admin');
 
-  const config = useMemo(() => getConfigForIssueType(group), [group]);
+  const config = useMemo(() => getConfigForIssueType(group, project), [group, project]);
 
   const {
     actions: {
@@ -371,7 +371,7 @@ export function Actions(props: Props) {
       <DropdownMenu
         triggerProps={{
           'aria-label': t('More Actions'),
-          icon: <IconEllipsis size="xs" />,
+          icon: <IconEllipsis />,
           showChevron: false,
           size: 'sm',
         }}
