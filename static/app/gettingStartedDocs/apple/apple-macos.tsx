@@ -84,7 +84,7 @@ const onboarding: OnboardingConfig = {
       ),
       configurations: [
         {
-          language: 'text',
+          language: 'url',
           code: `https://github.com/getsentry/sentry-cocoa.git`,
         },
         {

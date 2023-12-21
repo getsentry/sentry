@@ -58,7 +58,7 @@ export const steps = ({
     ),
     configurations: [
       {
-        language: 'text',
+        language: 'url',
         code: dsn,
       },
     ],
