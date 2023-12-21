@@ -1,4 +1,5 @@
 import LocationFixture from 'sentry-fixture/locationFixture';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {
   TrendParameterColumn,
@@ -58,7 +59,7 @@ describe('Trend parameter utils', function () {
         column: TrendParameterColumn.FCP,
       };
       // project with performance type 'any'
-      const projects = [TestStubs.Project({id: 1, platform: null})];
+      const projects = [ProjectFixture({id: '1', platform: undefined})];
 
       const output = getCurrentTrendParameter(location, projects, [1]);
       expect(output).toEqual(expectedTrendParameter);
@@ -71,7 +72,7 @@ describe('Trend parameter utils', function () {
         column: TrendParameterColumn.DURATION,
       };
       // project with performance type 'any'
-      const projects = [TestStubs.Project({id: 1, platform: null})];
+      const projects = [ProjectFixture({id: '1', platform: undefined})];
 
       const output = getCurrentTrendParameter(location, projects, [1]);
       expect(output).toEqual(expectedTrendParameter);
