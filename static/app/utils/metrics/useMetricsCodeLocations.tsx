@@ -18,6 +18,7 @@ export function useMetricsCodeLocations(mri: string | undefined) {
         query: {
           metric: mri,
           project: selection.projects,
+          codeLocations: true,
           ...getDateTimeParams(selection.datetime),
         },
       },
