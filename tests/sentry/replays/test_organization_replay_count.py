@@ -38,6 +38,13 @@ class OrganizationReplayCountEndpointTest(
         )
         self.features = {"organizations:session-replay": True}
 
+        # Only projects which have replays will be queried.
+        self.project.flags.has_replays = True
+        self.project.save()
+
+        # Setting a time in the past so our caching scheme doesn't trim off our mock data.
+        self.now = datetime.datetime.now() - datetime.timedelta(minutes=1)
+
     def test_simple(self):
         event_id_a = "a" * 32
         event_id_b = "b" * 32
@@ -47,21 +54,21 @@ class OrganizationReplayCountEndpointTest(
 
         self.store_replays(
             mock_replay(
-                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.now - datetime.timedelta(seconds=22),
                 self.project.id,
                 replay1_id,
             )
         )
         self.store_replays(
             mock_replay(
-                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.now - datetime.timedelta(seconds=22),
                 self.project.id,
                 replay2_id,
             )
         )
         self.store_replays(
             mock_replay(
-                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.now - datetime.timedelta(seconds=22),
                 self.project.id,
                 replay3_id,
             )
@@ -123,21 +130,21 @@ class OrganizationReplayCountEndpointTest(
 
         self.store_replays(
             mock_replay(
-                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.now - datetime.timedelta(seconds=22),
                 self.project.id,
                 replay1_id,
             )
         )
         self.store_replays(
             mock_replay(
-                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.now - datetime.timedelta(seconds=22),
                 self.project.id,
                 replay2_id,
             )
         )
         self.store_replays(
             mock_replay(
-                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.now - datetime.timedelta(seconds=22),
                 self.project.id,
                 replay3_id,
             )
@@ -207,21 +214,21 @@ class OrganizationReplayCountEndpointTest(
 
         self.store_replays(
             mock_replay(
-                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.now - datetime.timedelta(seconds=22),
                 self.project.id,
                 replay1_id,
             )
         )
         self.store_replays(
             mock_replay(
-                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.now - datetime.timedelta(seconds=22),
                 self.project.id,
                 replay2_id,
             )
         )
         self.store_replays(
             mock_replay(
-                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.now - datetime.timedelta(seconds=22),
                 self.project.id,
                 replay3_id,
             )
@@ -306,7 +313,7 @@ class OrganizationReplayCountEndpointTest(
 
         self.store_replays(
             mock_replay(
-                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.now - datetime.timedelta(seconds=22),
                 self.project.id,
                 replay1_id,
             )
@@ -348,7 +355,7 @@ class OrganizationReplayCountEndpointTest(
 
         self.store_replays(
             mock_replay(
-                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.now - datetime.timedelta(seconds=22),
                 self.project.id,
                 replay1_id,
             )
@@ -388,7 +395,7 @@ class OrganizationReplayCountEndpointTest(
 
         self.store_replays(
             mock_replay(
-                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.now - datetime.timedelta(seconds=22),
                 self.project.id,
                 replay1_id,
             )
@@ -418,7 +425,7 @@ class OrganizationReplayCountEndpointTest(
         for replay_id in replay_ids:
             self.store_replays(
                 mock_replay(
-                    datetime.datetime.now() - datetime.timedelta(seconds=22),
+                    self.now - datetime.timedelta(seconds=22),
                     self.project.id,
                     replay_id,
                 )
@@ -460,7 +467,6 @@ class OrganizationReplayCountEndpointTest(
             assert response.data["detail"] == "Too many values provided"
 
     def test_invalid_params_only_one_of_issue_and_transaction(self):
-
         query = {"query": "issue.id:[1] transaction:[2]"}
 
         with self.feature(self.features):
@@ -474,14 +480,14 @@ class OrganizationReplayCountEndpointTest(
 
         self.store_replays(
             mock_replay(
-                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.now - datetime.timedelta(seconds=22),
                 self.project.id,
                 replay1_id,
             )
         )
         self.store_replays(
             mock_replay(
-                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.now - datetime.timedelta(seconds=22),
                 self.project.id,
                 replay2_id,
             )
@@ -500,7 +506,7 @@ class OrganizationReplayCountEndpointTest(
 
         self.store_replays(
             mock_replay(
-                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.now - datetime.timedelta(seconds=22),
                 self.project.id,
                 replay1_id,
             )

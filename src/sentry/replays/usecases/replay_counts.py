@@ -26,10 +26,19 @@ def get_replay_counts(snuba_params: SnubaParams, query, return_ids, data_source)
 
     replay_ids_mapping = _get_replay_id_mappings(query, snuba_params, data_source)
 
+    # Collect the project-ids filtering project's which do not have a replay associated.
+    project_ids = [p.id for p in snuba_params.projects if p.flags.has_replays]
+
+    # Round off seconds to improve caching.  This gives us a cache window of one minute. It
+    # also introduces some variance we'll miss replays at the tail and pick up more replays
+    # at the head. This is considered an acceptable trade-off.
+    started_at = snuba_params.start.replace(second=0)
+    finished_at = snuba_params.end.replace(second=0)
+
     replay_results = query_replays_count(
-        project_ids=[p.id for p in snuba_params.projects],
-        start=snuba_params.start,
-        end=snuba_params.end,
+        project_ids=project_ids,
+        start=started_at,
+        end=finished_at,
         replay_ids=list(replay_ids_mapping.keys()),
         tenant_ids={"organization_id": snuba_params.organization.id},
     )
@@ -43,7 +52,6 @@ def get_replay_counts(snuba_params: SnubaParams, query, return_ids, data_source)
 def _get_replay_id_mappings(
     query, snuba_params, data_source=Dataset.Discover
 ) -> dict[str, list[str]]:
-
     select_column, value = _get_select_column(query)
     query = query + FILTER_HAS_A_REPLAY if data_source == Dataset.Discover else query
 
