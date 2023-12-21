@@ -1,3 +1,4 @@
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
@@ -73,7 +74,7 @@ describe('Discover > EventDetails', function () {
     MockApiClient.addMockResponse({
       url: '/issues/123/',
       method: 'GET',
-      body: TestStubs.Group({id: '123'}),
+      body: GroupFixture({id: '123'}),
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',

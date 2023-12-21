@@ -78,10 +78,16 @@ export const getReplayConfigureDescription = ({link}: {link: string}) =>
     }
   );
 
-export const getReplayJsLoaderSdkSetupSnippet = () => `
+export const getReplayJsLoaderSdkSetupSnippet = params => `
 <script>
   Sentry.onLoad(function() {
     Sentry.init({
+      integrations: [
+        new Sentry.Replay(${getReplayConfigOptions({
+          mask: params.mask,
+          block: params.block,
+        })}),
+      ],
       // Session Replay
       replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
       replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.
@@ -92,21 +98,52 @@ export const getReplayJsLoaderSdkSetupSnippet = () => `
 export const getReplaySDKSetupSnippet = ({
   importStatement,
   dsn,
+  mask,
+  block,
 }: {
   dsn: string;
   importStatement: string;
+  block?: boolean;
+  mask?: boolean;
 }) =>
   `${importStatement}
 
   Sentry.init({
     dsn: "${dsn}",
 
-    // This sets the sample rate at 10%. You may want this to be 100% while
-    // in development, then sample at a lower rate in production.
-    replaysSessionSampleRate: 0.1,
-    // If the entire session is not sampled, use the below sample rate to sample
-    // sessions when an error occurs.
-    replaysOnErrorSampleRate: 1.0,
-
-    integrations: [new Sentry.Replay()],
+    integrations: [
+      new Sentry.Replay(${getReplayConfigOptions({
+        mask,
+        block,
+      })}),
+    ],
+    // Session Replay
+    replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
+    replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.
   });`;
+
+export const getReplayConfigOptions = ({
+  mask,
+  block,
+}: {
+  block?: boolean;
+  mask?: boolean;
+}) => {
+  if (mask && block) {
+    return ``;
+  }
+  if (mask) {
+    return `{
+          blockAllMedia: false,
+        }`;
+  }
+  if (block) {
+    return `{
+          maskAllText: false,
+        }`;
+  }
+  return `{
+          maskAllText: false,
+          blockAllMedia: false,
+        }`;
+};

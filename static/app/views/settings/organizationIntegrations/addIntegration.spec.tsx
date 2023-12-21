@@ -1,3 +1,4 @@
+import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {GitHubIntegrationProvider} from 'sentry-fixture/githubIntegrationProvider';
 import {Organization} from 'sentry-fixture/organization';
 
@@ -8,7 +9,7 @@ import AddIntegration from 'sentry/views/settings/organizationIntegrations/addIn
 
 describe('AddIntegration', function () {
   const provider = GitHubIntegrationProvider();
-  const integration = TestStubs.GitHubIntegration();
+  const integration = GitHubIntegrationFixture();
 
   function interceptMessageEvent(event: MessageEvent) {
     if (event.origin === '') {

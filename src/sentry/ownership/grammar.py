@@ -413,16 +413,13 @@ def convert_codeowners_syntax(
 
 def get_source_code_path_from_stacktrace_path(
     stacktrace_path: str, code_mapping: RepositoryProjectPathConfig
-) -> str | None:
-    if re.search(r"[\/].{1}", stacktrace_path):
-        path_with_source_root = stacktrace_path.replace(
-            code_mapping.stack_root, code_mapping.source_root, 1
-        )
-        # flatten multiple '/' if not protocol
-        formatted_path = re.sub(r"(?<!:)\/{2,}", "/", path_with_source_root)
-        return formatted_path
-
-    return None
+) -> str:
+    path_with_source_root = stacktrace_path.replace(
+        code_mapping.stack_root, code_mapping.source_root, 1
+    )
+    # flatten multiple '/' if not protocol
+    formatted_path = re.sub(r"(?<!:)\/{2,}", "/", path_with_source_root)
+    return formatted_path
 
 
 def resolve_actors(owners: Iterable[Owner], project_id: int) -> Mapping[Owner, ActorTuple]:
@@ -498,7 +495,6 @@ def remove_deleted_owners_from_schema(
     for rule in rules:
         valid_owners = rule["owners"]
         for rule_owner in rule["owners"]:
-
             if rule_owner["identifier"] not in owners_id.keys():
                 valid_owners.remove(rule_owner)
                 if not valid_owners:

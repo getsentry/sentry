@@ -244,6 +244,7 @@ CLICK_FIELD_MAP = {
     "click_alt": "click.alt",
     "click_aria_label": "click.label",
     "click_classes": "click.classes",
+    "click_component_name": "click.component_name",
     "click_id": "click.id",
     "click_role": "click.role",
     "click_tag": "click.tag",
