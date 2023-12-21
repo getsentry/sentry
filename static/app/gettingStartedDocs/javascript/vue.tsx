@@ -6,9 +6,11 @@ import type {
   PlatformOption,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  getReplayConfigOptions,
   getReplayConfigureDescription,
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
@@ -52,7 +54,10 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
     }${
       params.isReplaySelected
         ? `
-          new Sentry.Replay(),`
+          new Sentry.Replay(${getReplayConfigOptions({
+            mask: params.mask,
+            block: params.block,
+          })}),`
         : ''
     }
   ],${
@@ -279,14 +284,10 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      configurations: [
-        {
-          description: getReplayConfigureDescription({
-            link: 'https://docs.sentry.io/platforms/javascript/guides/vue/session-replay/',
-          }),
-          configurations: getSetupConfiguration({...params, isReplaySelected: true}),
-        },
-      ],
+      description: getReplayConfigureDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/vue/session-replay/',
+      }),
+      configurations: getSetupConfiguration({...params, isReplaySelected: true}),
     },
   ],
   verify: () => [],
@@ -297,6 +298,7 @@ const docs: Docs<PlatformOptions> = {
   onboarding,
   platformOptions,
   replayOnboardingNpm: replayOnboarding,
+  customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
 };
 
 export default docs;

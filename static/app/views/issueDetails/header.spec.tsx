@@ -1,5 +1,7 @@
 import {browserHistory} from 'react-router';
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Team} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -11,7 +13,7 @@ import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 describe('groupDetails', () => {
   const baseUrl = 'BASE_URL/';
   const organization = Organization();
-  const project = TestStubs.Project({
+  const project = ProjectFixture({
     teams: [Team()],
   });
 
@@ -19,7 +21,7 @@ describe('groupDetails', () => {
     const defaultProps = {
       organization,
       baseUrl,
-      group: TestStubs.Group({issueCategory: IssueCategory.ERROR}),
+      group: GroupFixture({issueCategory: IssueCategory.ERROR}),
       groupReprocessingStatus: ReprocessingStatus.NO_STATUS,
       project,
     };
@@ -28,12 +30,12 @@ describe('groupDetails', () => {
       const orgWithFeatures = Organization({
         features: ['similarity-view', 'event-attachments', 'session-replay'],
       });
-      const jsProjectWithSimilarityView = TestStubs.Project({
+      const jsProjectWithSimilarityView = ProjectFixture({
         features: ['similarity-view'],
         platform: 'javascript',
       });
 
-      const MOCK_GROUP = TestStubs.Group();
+      const MOCK_GROUP = GroupFixture();
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/replay-count/`,
@@ -87,7 +89,7 @@ describe('groupDetails', () => {
     const defaultProps = {
       organization,
       baseUrl,
-      group: TestStubs.Group({issueCategory: IssueCategory.ERROR}),
+      group: GroupFixture({issueCategory: IssueCategory.ERROR}),
       groupReprocessingStatus: ReprocessingStatus.NO_STATUS,
       project,
     };
@@ -96,12 +98,12 @@ describe('groupDetails', () => {
       const orgWithFeatures = Organization({
         features: ['similarity-view', 'event-attachments', 'session-replay'],
       });
-      const mobileProjectWithSimilarityView = TestStubs.Project({
+      const mobileProjectWithSimilarityView = ProjectFixture({
         features: ['similarity-view'],
         platform: 'apple-ios',
       });
 
-      const MOCK_GROUP = TestStubs.Group();
+      const MOCK_GROUP = GroupFixture();
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/replay-count/`,
@@ -131,7 +133,7 @@ describe('groupDetails', () => {
     const defaultProps = {
       organization,
       baseUrl,
-      group: TestStubs.Group({issueCategory: IssueCategory.PERFORMANCE}),
+      group: GroupFixture({issueCategory: IssueCategory.PERFORMANCE}),
       groupReprocessingStatus: ReprocessingStatus.NO_STATUS,
       project,
     };
@@ -141,11 +143,11 @@ describe('groupDetails', () => {
         features: ['similarity-view', 'event-attachments', 'session-replay'],
       });
 
-      const projectWithSimilarityView = TestStubs.Project({
+      const projectWithSimilarityView = ProjectFixture({
         features: ['similarity-view'],
       });
 
-      const MOCK_GROUP = TestStubs.Group({issueCategory: IssueCategory.PERFORMANCE});
+      const MOCK_GROUP = GroupFixture({issueCategory: IssueCategory.PERFORMANCE});
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/replay-count/`,

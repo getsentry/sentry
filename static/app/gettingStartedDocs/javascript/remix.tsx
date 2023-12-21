@@ -11,6 +11,7 @@ import {
   getReplayConfigureDescription,
   getReplaySDKSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -144,6 +145,8 @@ const replayOnboarding: OnboardingConfig = {
               code: getReplaySDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/remix";`,
                 dsn: params.dsn,
+                mask: params.mask,
+                block: params.block,
               }),
             },
           ],
@@ -162,6 +165,7 @@ const replayOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   replayOnboardingNpm: replayOnboarding,
+  customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
 };
 
 export default docs;

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 from typing import Any, Mapping
 from unittest.mock import MagicMock, patch
 
@@ -10,6 +11,7 @@ from rest_framework import status
 
 from sentry.integrations.discord.requests.base import DiscordRequestError, DiscordRequestTypes
 from sentry.middleware.integrations.parsers.discord import DiscordRequestParser
+from sentry.models.outbox import ControlOutbox
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -189,6 +191,32 @@ class DiscordRequestParserTest(TestCase):
 
             parser_integration = parser.get_integration_from_request()
             assert parser_integration.id == self.integration.id
+
+    @patch("sentry.middleware.integrations.parsers.discord.convert_to_async_discord_response")
+    @patch("sentry.integrations.discord.requests.base.verify_signature")
+    def test_triggers_async_response(self, mock_verify_signature, mock_discord_task):
+        mock_verify_signature.return_value = None
+        response_url = "https://discord.com/api/v10/webhooks/application_id/token"
+        data = {
+            "application_id": "application_id",
+            "token": "token",
+            "guild_id": self.integration.external_id,
+            "data": {"name": "command_name"},
+            "type": int(DiscordRequestTypes.COMMAND),
+        }
+        parser = self.get_parser(reverse("sentry-integration-discord-interactions"), data=data)
+        response = parser.get_response()
+        webhook_payload = ControlOutbox.get_webhook_payload_from_request(request=self.request)
+        payload = dataclasses.asdict(webhook_payload)
+        mock_discord_task.apply_async.assert_called_once_with(
+            kwargs={
+                "region_names": ["us"],
+                "payload": payload,
+                "response_url": response_url,
+            }
+        )
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert json.loads(response.content) == parser.async_response_data
 
 
 @control_silo_test

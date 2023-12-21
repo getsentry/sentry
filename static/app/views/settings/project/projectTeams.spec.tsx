@@ -112,6 +112,11 @@ describe('ProjectTeams', function () {
     expect(mock1).not.toHaveBeenCalled();
 
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
+
+    renderGlobalModal();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByText('Remove Team'));
     expect(mock1).toHaveBeenCalledWith(
       endpoint1,
       expect.objectContaining({
@@ -122,13 +127,7 @@ describe('ProjectTeams', function () {
 
     // Remove second team
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
-
-    // Modal opens because this is the last team in project
-    renderGlobalModal();
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-
-    await userEvent.click(screen.getByTestId('confirm-button'));
-
+    await userEvent.click(screen.getByText('Remove Team'));
     expect(mock2).toHaveBeenCalledWith(
       endpoint2,
       expect.objectContaining({
@@ -169,6 +168,8 @@ describe('ProjectTeams', function () {
 
     // Remove first team
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
+    renderGlobalModal();
+    await userEvent.click(screen.getByText('Remove Team'));
     expect(mock1).toHaveBeenCalledWith(
       endpoint1,
       expect.objectContaining({
@@ -220,6 +221,8 @@ describe('ProjectTeams', function () {
 
     // Remove first team
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
+    renderGlobalModal();
+    await userEvent.click(screen.getByText('Remove Team'));
     expect(mock1).toHaveBeenCalledWith(
       endpoint1,
       expect.objectContaining({
@@ -232,11 +235,10 @@ describe('ProjectTeams', function () {
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
 
     // Modal opens because this is the last team in project
-    renderGlobalModal();
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
     // Click confirm
-    await userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(screen.getByText('Remove Team'));
 
     expect(mock2).toHaveBeenCalledWith(
       endpoint2,

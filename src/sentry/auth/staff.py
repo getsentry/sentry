@@ -16,9 +16,9 @@ from sentry.utils.auth import has_completed_sso
 
 logger = logging.getLogger("sentry.staff")
 
-SESSION_KEY = "_stf"
+SESSION_KEY = "_staff"
 
-COOKIE_NAME = getattr(settings, "STAFF_COOKIE_NAME", "stf")
+COOKIE_NAME = getattr(settings, "STAFF_COOKIE_NAME", "staff")
 
 COOKIE_SALT = getattr(settings, "STAFF_COOKIE_SALT", "")
 
@@ -47,8 +47,8 @@ UNSET = object()
 def is_active_staff(request: Request) -> bool:
     if is_system_auth(getattr(request, "auth", None)):
         return True
-    stf = getattr(request, "staff", None) or Staff(request)
-    return stf.is_active
+    staff = getattr(request, "staff", None) or Staff(request)
+    return staff.is_active
 
 
 class Staff(ElevatedMode):
@@ -307,8 +307,8 @@ class Staff(ElevatedMode):
                 COOKIE_NAME,
                 self.token,
                 salt=COOKIE_SALT,
-                # set max_staff_session_age to None, as we want this cookie to expire on browser close
-                max_staff_session_age=None,
+                # set max_age to None, as we want this cookie to expire on browser close
+                max_age=None,
                 secure=request.is_secure() if COOKIE_SECURE is None else COOKIE_SECURE,
                 httponly=COOKIE_HTTPONLY,
                 path=COOKIE_PATH,

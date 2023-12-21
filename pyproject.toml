@@ -38,6 +38,10 @@ filterwarnings = [
     "ignore:The django.utils.timezone.utc alias is deprecated.*",
     "ignore:django.core.files.storage.get_storage_class is deprecated in favor of using django.core.files.storage.storages.",
 
+    # TODO: after upgrading openapi-core and friends
+    "ignore:Passing a schema to Validator.iter_errors is deprecated.*",
+    "ignore:Subclassing validator classes is not intended to be part of their public API.*",
+
     # a bunch of google packages use legacy namespace packages
     "ignore:pkg_resources is deprecated as an API",
     "ignore:Deprecated call to `pkg_resources.declare_namespace\\('google.*'\\)`.",
@@ -54,7 +58,7 @@ filterwarnings = [
 looponfailroots = ["src", "tests"]
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.10"
 mypy_path = ["fixtures/stubs-for-mypy"]
 plugins = ["pydantic.mypy", "mypy_django_plugin.main", "tools.mypy_helpers.plugin"]
 files = ["."]

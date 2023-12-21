@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
@@ -62,7 +63,7 @@ function initializeData({features: additionalFeatures = []}: Data = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
   const organization = Organization({
     features,
-    projects: [TestStubs.Project()],
+    projects: [ProjectFixture()],
   });
   const initialData = initializeOrg({
     organization,
@@ -302,6 +303,11 @@ describe('Performance GridEditable Table', function () {
   });
 
   it('renders replay id', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replay-count/',
+      body: {},
+    });
+
     const initialData = initializeData();
 
     fields = [...fields, 'replayId'];

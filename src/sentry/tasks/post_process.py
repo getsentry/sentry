@@ -1374,11 +1374,11 @@ def detect_new_escalation(job: PostProcessJob):
         "projects:first-event-severity-new-escalation", job["event"].project
     ):
         return
-    group_age_hours = (timezone.now() - group.first_seen).total_seconds() / 3600
-    has_valid_status = group.substatus == GroupSubStatus.NEW or (
-        group.status == GroupStatus.IGNORED and group.substatus == GroupSubStatus.UNTIL_ESCALATING
-    )
-    if group_age_hours >= MAX_NEW_ESCALATION_AGE_HOURS or not has_valid_status:
+    group_age_seconds = (timezone.now() - group.first_seen).total_seconds()
+    group_age_hours = group_age_seconds / 3600 if group_age_seconds >= 3600 else 1
+    times_seen = group.times_seen_with_pending
+    has_valid_status = group.substatus == GroupSubStatus.NEW
+    if group_age_hours >= MAX_NEW_ESCALATION_AGE_HOURS or not has_valid_status or times_seen <= 1:
         return
     # Get escalation lock for this group. If we're unable to acquire this lock, another process is handling
     # this group at the same time. In that case, just exit early, no need to retry.
@@ -1391,7 +1391,7 @@ def detect_new_escalation(job: PostProcessJob):
     try:
         with lock.acquire():
             project_escalation_rate = get_latest_threshold(job["event"].project)
-            group_hourly_event_rate = group.times_seen_with_pending / group_age_hours
+            group_hourly_event_rate = times_seen / group_age_hours
             # a rate of 0 means there was no threshold that could be calculated
             if project_escalation_rate > 0 and group_hourly_event_rate > project_escalation_rate:
                 job["has_escalated"] = True

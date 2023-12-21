@@ -1,4 +1,5 @@
 import {Location} from 'history';
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Organization} from 'sentry-fixture/organization';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
@@ -26,7 +27,7 @@ describe('useReplaysFromIssue', () => {
   });
 
   it('should fetch a list of replay ids', async () => {
-    const MOCK_GROUP = TestStubs.Group();
+    const MOCK_GROUP = GroupFixture();
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replay-count/`,
@@ -62,7 +63,7 @@ describe('useReplaysFromIssue', () => {
   });
 
   it('should fetch a list of replay ids for a performance issue', async () => {
-    const MOCK_GROUP = TestStubs.Group({issueCategory: IssueCategory.PERFORMANCE});
+    const MOCK_GROUP = GroupFixture({issueCategory: IssueCategory.PERFORMANCE});
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replay-count/`,
@@ -98,7 +99,7 @@ describe('useReplaysFromIssue', () => {
   });
 
   it('should return an empty EventView when there are no replay_ids returned from the count endpoint', async () => {
-    const MOCK_GROUP = TestStubs.Group();
+    const MOCK_GROUP = GroupFixture();
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replay-count/`,

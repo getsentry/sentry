@@ -2,7 +2,11 @@ import {Incident} from 'sentry-fixture/incident';
 import LocationFixture from 'sentry-fixture/locationFixture';
 import {MetricRule} from 'sentry-fixture/metricRule';
 import {Organization} from 'sentry-fixture/organization';
-import {ProjectAlertRule} from 'sentry-fixture/projectAlertRule';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {
+  ProjectAlertRule,
+  ProjectAlertRule as ProjectAlertRuleFixture,
+} from 'sentry-fixture/projectAlertRule';
 import {Team} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -63,7 +67,7 @@ describe('AlertRulesList', () => {
     projectMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [
-        TestStubs.Project({
+        ProjectFixture({
           slug: 'earth',
           platform: 'javascript',
           teams: [Team()],
@@ -175,7 +179,7 @@ describe('AlertRulesList', () => {
       url: '/organizations/org-slug/combined-rules/',
       headers: {Link: pageLinks},
       body: [
-        TestStubs.ProjectAlertRule({
+        ProjectAlertRuleFixture({
           id: '123',
           name: deletedRuleName,
           projects: ['earth'],
