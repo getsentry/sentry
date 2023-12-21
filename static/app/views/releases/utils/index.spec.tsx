@@ -18,7 +18,14 @@ describe('releases/utils', () => {
       expect(
         getReleaseBounds(
           ReleaseFixture({
-            currentProjectMeta: {sessionsUpperBound: '2020-03-24T03:04:55Z'},
+            currentProjectMeta: {
+              sessionsUpperBound: '2020-03-24T03:04:55Z',
+              firstReleaseVersion: null,
+              lastReleaseVersion: null,
+              nextReleaseVersion: null,
+              prevReleaseVersion: null,
+              sessionsLowerBound: null,
+            },
           })
         )
       ).toEqual({
