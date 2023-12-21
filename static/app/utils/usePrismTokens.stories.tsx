@@ -43,7 +43,7 @@ function TestComponent({
   );
 }
 
-export default storyBook(usePrismTokens, story => {
+export default storyBook('usePrismTokens', story => {
   story('Default', () => {
     const lines = usePrismTokens({code: JS_CODE, language: 'js'});
 
