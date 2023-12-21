@@ -105,9 +105,9 @@ def update_user_details(backend, details, response, user=None, is_new=False, *ar
         # do not update username, it was already generated, do not update
         # configured fields if user already existed
         if not _ignore_field(name, is_new):
-            if value and value != getattr(user, name, None):
+            if hasattr(user, name) and value and value != getattr(user, name, None):
                 setattr(user, name, value)
                 changed = True
 
-    if changed:
+    if changed and hasattr(user, "save"):
         user.save()
