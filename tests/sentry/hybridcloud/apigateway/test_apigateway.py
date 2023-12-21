@@ -1,10 +1,8 @@
 from urllib.parse import urlencode
 
-import pytest
 import responses
 from django.test import override_settings
 from django.urls import reverse
-from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
 from sentry.silo import SiloMode
@@ -200,11 +198,11 @@ class ApiGatewayTest(ApiGatewayTestCase):
 
         # No responses configured so that requests will fail if they are made.
         with override_settings(MIDDLEWARE=tuple(self.middleware)):
-            with pytest.raises(NotFound):
-                self.client.get("/sentry-app-installations/abc123/external-requests/")
+            resp = self.client.get("/sentry-app-installations/abc123/external-requests/")
+            assert resp.status_code == 404
 
-            with pytest.raises(NotFound):
-                self.client.get("/sentry-app-installations/abc123/external-issues/")
+            resp = self.client.get("/sentry-app-installations/abc123/external-issues/")
+            assert resp.status_code == 404
 
-            with pytest.raises(NotFound):
-                self.client.get("/sentry-app-installations/abc123/external-issue-actions/")
+            resp = self.client.get("/sentry-app-installations/abc123/external-issue-actions/")
+            assert resp.status_code == 404
