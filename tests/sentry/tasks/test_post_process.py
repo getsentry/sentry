@@ -2222,8 +2222,9 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         group.refresh_from_db()
         assert group.substatus == GroupSubStatus.NEW
 
+    @patch("sentry.issues.issue_velocity.get_latest_threshold")
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
-    def test_no_escalation_on_first_event(self, mock_run_post_process_job):
+    def test_no_escalation_on_first_event(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
         group.update(first_seen=django_timezone.now() - timedelta(hours=1), times_seen=1)
@@ -2236,6 +2237,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
                 is_new_group_environment=True,
                 event=event,
             )
+        mock_threshold.assert_not_called()
         job = mock_run_post_process_job.call_args[0][0]
         assert not job["has_escalated"]
         group.refresh_from_db()
