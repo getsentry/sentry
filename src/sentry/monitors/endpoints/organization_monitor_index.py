@@ -136,7 +136,13 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
                 When(is_muted=True, then=Value(len(DEFAULT_ORDERING))),
                 default=Subquery(
                     monitor_environments_query.annotate(
-                        status_ordering=MONITOR_ENVIRONMENT_ORDERING
+                        status_ordering=Case(
+                            # Sort DISABLED and is_muted monitors environ to the bottom of the list
+                            When(
+                                status=MonitorStatus.DISABLED, then=Value(len(DEFAULT_ORDERING) + 1)
+                            ),
+                            When(is_muted=True, then=Value(len(DEFAULT_ORDERING))),
+                        )
                     )
                     .order_by("status_ordering")
                     .values("status_ordering")[:1],
