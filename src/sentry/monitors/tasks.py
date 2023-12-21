@@ -245,7 +245,9 @@ def check_missing(current_datetime: datetime):
         )
         .exclude(
             monitor__is_muted=True,  # Temporary fix until we can move out of celery or reduce load
-            is_muted=True,
+        )
+        .exclude(
+            is_muted=True,  # Temporary fix until we can move out of celery or reduce load
         )[:MONITOR_LIMIT]
     )
 
