@@ -117,6 +117,12 @@ class GetRelocationsTest(APITestCase):
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data) == 1
         assert response.data[0]["status"] == Relocation.Status.IN_PROGRESS.name
+        assert response.data[0]["creatorId"] == str(self.superuser.id)
+        assert response.data[0]["creatorEmail"] == str(self.superuser.email)
+        assert response.data[0]["creatorUsername"] == str(self.superuser.username)
+        assert response.data[0]["ownerId"] == str(self.owner.id)
+        assert response.data[0]["ownerEmail"] == str(self.owner.email)
+        assert response.data[0]["ownerUsername"] == str(self.owner.username)
 
     def test_good_status_pause(self):
         self.login_as(user=self.superuser, superuser=True)
@@ -282,9 +288,21 @@ class PostRelocationsTest(APITestCase):
                     )
 
         assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
+        assert response.data["step"] == Relocation.Step.UPLOADING.name
+        assert response.data["creatorId"] == str(self.owner.id)
+        assert response.data["creatorEmail"] == str(self.owner.email)
+        assert response.data["creatorUsername"] == str(self.owner.username)
+        assert response.data["ownerId"] == str(self.owner.id)
+        assert response.data["ownerEmail"] == str(self.owner.email)
+        assert response.data["ownerUsername"] == str(self.owner.username)
+
+        relocation: Relocation = Relocation.objects.get(owner_id=self.owner.id)
+        assert str(relocation.uuid) == response.data["uuid"]
+        assert relocation.want_org_slugs == ["testing"]
         assert Relocation.objects.count() == relocation_count + 1
         assert RelocationFile.objects.count() == relocation_file_count + 1
-        assert Relocation.objects.get(owner_id=self.owner.id).want_org_slugs == ["testing"]
+
         assert uploading_complete_mock.call_count == 1
 
     @patch("sentry.tasks.relocation.uploading_complete.delay")
@@ -320,9 +338,21 @@ class PostRelocationsTest(APITestCase):
                     )
 
         assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
+        assert response.data["step"] == Relocation.Step.UPLOADING.name
+        assert response.data["creatorId"] == str(self.superuser.id)
+        assert response.data["creatorEmail"] == str(self.superuser.email)
+        assert response.data["creatorUsername"] == str(self.superuser.username)
+        assert response.data["ownerId"] == str(self.owner.id)
+        assert response.data["ownerEmail"] == str(self.owner.email)
+        assert response.data["ownerUsername"] == str(self.owner.username)
+
+        relocation: Relocation = Relocation.objects.get(owner_id=self.owner.id)
+        assert str(relocation.uuid) == response.data["uuid"]
+        assert relocation.want_org_slugs == ["testing"]
         assert Relocation.objects.count() == relocation_count + 1
         assert RelocationFile.objects.count() == relocation_file_count + 1
-        assert Relocation.objects.get(owner_id=self.owner.id).want_org_slugs == ["testing"]
+
         assert uploading_complete_mock.call_count == 1
 
     def test_fail_without_superuser_when_feature_disabled(self):

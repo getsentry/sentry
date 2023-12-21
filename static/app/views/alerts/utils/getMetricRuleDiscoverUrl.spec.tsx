@@ -1,4 +1,5 @@
 import {MetricRule} from 'sentry-fixture/metricRule';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
@@ -10,7 +11,7 @@ describe('getMetricRuleDiscoverQuery', () => {
       aggregate: 'failure_rate()',
       dataset: Dataset.TRANSACTIONS,
     });
-    const projects = [TestStubs.Project()];
+    const projects = [ProjectFixture()];
     const query = getMetricRuleDiscoverQuery({
       rule,
       projects,

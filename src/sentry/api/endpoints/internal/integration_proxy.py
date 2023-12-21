@@ -151,7 +151,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         ).prepare()
         # Third-party authentication headers will be added in client.authorize_request which runs
         # in IntegrationProxyClient.finalize_request.
-        raw_response: Response = self.client._request(
+        raw_response: Response = self.client.request(
             request.method,
             self.proxy_path,
             allow_text=True,
@@ -188,16 +188,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         self.log_extra["full_url"] = full_url
         headers = clean_outbound_headers(request.headers)
 
-        if self.client.should_delegate():
-            response: HttpResponse = self.client.delegate(
-                request=request,
-                proxy_path=self.proxy_path,
-                headers=headers,
-            )
-        else:
-            response = self._call_third_party_api(
-                request=request, full_url=full_url, headers=headers
-            )
+        response = self._call_third_party_api(request=request, full_url=full_url, headers=headers)
 
         metrics.incr(
             "hybrid_cloud.integration_proxy.complete.response_code",

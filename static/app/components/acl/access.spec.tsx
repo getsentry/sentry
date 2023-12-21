@@ -1,4 +1,6 @@
+import {Config as ConfigFixture} from 'sentry-fixture/config';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 import {Team} from 'sentry-fixture/team';
 import {User} from 'sentry-fixture/user';
@@ -86,7 +88,7 @@ describe('Access', function () {
       const org = Organization({access: []});
       const nextRouterContext = RouterContextFixture([{organization: org}]);
 
-      const proj1 = TestStubs.Project({access: []});
+      const proj1 = ProjectFixture({access: []});
       render(
         <Access access={['project:read']} project={proj1}>
           {childrenMock}
@@ -101,7 +103,7 @@ describe('Access', function () {
         })
       );
 
-      const proj2 = TestStubs.Project({access: ['project:read']});
+      const proj2 = ProjectFixture({access: ['project:read']});
       render(
         <Access access={['project:read']} project={proj2}>
           {childrenMock}
@@ -133,8 +135,8 @@ describe('Access', function () {
 
     it('handles no user', function () {
       // Regression test for the share sheet.
-      ConfigStore.config = TestStubs.Config({
-        user: null,
+      ConfigStore.config = ConfigFixture({
+        user: undefined,
       });
 
       render(<Access>{childrenMock}</Access>, {context: routerContext, organization});
@@ -146,7 +148,7 @@ describe('Access', function () {
     });
 
     it('is superuser', function () {
-      ConfigStore.config = TestStubs.Config({
+      ConfigStore.config = ConfigFixture({
         user: User({isSuperuser: true}),
       });
 
@@ -162,7 +164,7 @@ describe('Access', function () {
     });
 
     it('is not superuser', function () {
-      ConfigStore.config = TestStubs.Config({
+      ConfigStore.config = ConfigFixture({
         user: User({isSuperuser: false}),
       });
 
@@ -202,7 +204,7 @@ describe('Access', function () {
     });
 
     it('has superuser', function () {
-      ConfigStore.config = TestStubs.Config({
+      ConfigStore.config = ConfigFixture({
         user: User({isSuperuser: true}),
       });
 
@@ -217,7 +219,7 @@ describe('Access', function () {
     });
 
     it('has no superuser', function () {
-      ConfigStore.config = TestStubs.Config({
+      ConfigStore.config = ConfigFixture({
         user: User({isSuperuser: false}),
       });
 

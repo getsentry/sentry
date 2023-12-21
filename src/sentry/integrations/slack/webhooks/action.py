@@ -77,6 +77,12 @@ RESOLVE_SELECTOR = {
     ],
 }
 
+RESOLVE_OPTIONS = {
+    "Immediately": "resolved",
+    "In the next release": "resolved:inNextRelease",
+    "In the current release": "resolved:inCurrentRelease",
+}
+
 
 def update_group(
     group: Group,
@@ -161,14 +167,26 @@ class SlackActionEndpoint(Endpoint):
                 "action_type": action_type,
             },
         )
+        channel_id = None
+        response_url = None
+        view = None
+        if features.has("organizations:slack-block-kit", group.project.organization):
+            # the channel ID and response URL are in a different place if it's coming from a modal
+            view = slack_request.data.get("view")
+            if view:
+                private_metadata = view.get("private_metadata")
+                if private_metadata:
+                    data = json.loads(private_metadata)
+                    channel_id = data.get("channel_id")
+                    response_url = data.get("orig_response_url")
 
         if error.status_code == 403:
             text = UNLINK_IDENTITY_MESSAGE.format(
                 associate_url=build_unlinking_url(
                     slack_request.integration.id,
                     slack_request.user_id,
-                    slack_request.channel_id,
-                    slack_request.response_url,
+                    channel_id or slack_request.channel_id,
+                    response_url or slack_request.response_url,
                 ),
                 user_email=user.email,
                 org_name=group.organization.name,
@@ -254,19 +272,64 @@ class SlackActionEndpoint(Endpoint):
             user_id=user.id,
         )
 
+    def build_resolve_modal_payload(self, callback_id):
+        formatted_resolve_options = []
+        for text, value in RESOLVE_OPTIONS.items():
+            formatted_resolve_options.append(
+                {
+                    "text": {
+                        "type": "plain_text",
+                        "text": text,
+                        "emoji": True,
+                    },
+                    "value": value,
+                }
+            )
+
+        return {
+            "type": "modal",
+            "title": {"type": "plain_text", "text": "Resolve Issue"},
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": "Resolve in"},
+                    "accessory": {
+                        "type": "static_select",
+                        "initial_option": {
+                            "text": {
+                                "type": "plain_text",
+                                "text": "Immediately",
+                                "emoji": True,
+                            },
+                            "value": "resolved",
+                        },
+                        "options": formatted_resolve_options,
+                        "action_id": "static_select-action",
+                    },
+                }
+            ],
+            "close": {"type": "plain_text", "text": "Cancel"},
+            "submit": {"type": "plain_text", "text": "Resolve"},
+            "private_metadata": callback_id,
+            "callback_id": callback_id,
+        }
+
     def open_resolve_dialog(self, slack_request: SlackActionRequest, group: Group) -> None:
         # XXX(epurkhiser): In order to update the original message we have to
         # keep track of the response_url in the callback_id. Definitely hacky,
         # but seems like there's no other solutions [1]:
         #
         # [1]: https://stackoverflow.com/questions/46629852/update-a-bot-message-after-responding-to-a-slack-dialog#comment80795670_46629852
-        callback_id = json.dumps(
-            {
-                "issue": group.id,
-                "orig_response_url": slack_request.data["response_url"],
-                "is_message": _is_message(slack_request.data),
-            }
-        )
+        use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
+        callback_id = {
+            "issue": group.id,
+            "orig_response_url": slack_request.data["response_url"],
+            "is_message": _is_message(slack_request.data),
+        }
+        if use_block_kit and slack_request.data.get("channel"):
+            callback_id["channel_id"] = slack_request.data["channel"]["id"]
+
+        callback_id = json.dumps(callback_id)
 
         dialog = {
             "callback_id": callback_id,
@@ -280,10 +343,25 @@ class SlackActionEndpoint(Endpoint):
             "trigger_id": slack_request.data["trigger_id"],
         }
         slack_client = SlackClient(integration_id=slack_request.integration.id)
-        try:
-            slack_client.post("/dialog.open", data=payload)
-        except ApiError as e:
-            logger.error("slack.action.response-error", extra={"error": str(e)})
+
+        if use_block_kit:
+            # XXX(CEO): the second you make a selection (without hitting Submit) it sends a slightly different request
+            modal_payload = self.build_resolve_modal_payload(callback_id)
+            try:
+                payload = {
+                    "view": json.dumps(modal_payload),
+                    "trigger_id": slack_request.data["trigger_id"],
+                }
+                headers = {"content-type": "application/json; charset=utf-8"}
+                slack_client.post("/views.open", data=json.dumps(payload), headers=headers)
+            except ApiError as e:
+                logger.exception("slack.action.response-error", extra={"error": str(e)})
+
+        else:
+            try:
+                slack_client.post("/dialog.open", data=payload)
+            except ApiError as e:
+                logger.exception("slack.action.response-error", extra={"error": str(e)})
 
     def construct_reply(self, attachment: SlackBody, is_message: bool = False) -> SlackBody:
         # XXX(epurkhiser): Slack is inconsistent about it's expected responses
@@ -325,6 +403,53 @@ class SlackActionEndpoint(Endpoint):
             return self.respond_ephemeral(LINK_IDENTITY_MESSAGE.format(associate_url=associate_url))
 
         original_tags_from_request = slack_request.get_tags()
+
+        use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
+        if use_block_kit and slack_request.type == "view_submission":
+            # TODO: if we use modals for something other than resolve, this will need to be more specific
+
+            # Masquerade a status action
+            selection = None
+            view = slack_request.data.get("view")
+            if view:
+                state = view.get("state")
+            if state:
+                values = state.get("values")
+            if values:
+                for value in values:
+                    for val in values[value]:
+                        selection = values[value][val]["selected_option"]["value"]
+                        if selection:
+                            break
+
+            if not selection:
+                return self.respond()
+
+            action = MessageAction(name="status", value=selection)
+
+            try:
+                self.on_status(request, identity_user, group, action)
+            except client.ApiError as error:
+                return self.api_error(slack_request, group, identity_user, error, "status_dialog")
+
+            attachment = SlackIssuesMessageBuilder(
+                group,
+                identity=identity,
+                actions=[action],
+                tags=original_tags_from_request,
+                skip_fallback=True,
+            ).build()
+            body = self.construct_reply(
+                attachment, is_message=slack_request.callback_data["is_message"]
+            )
+            # use the original response_url to update the link attachment
+            slack_client = SlackClient(integration_id=slack_request.integration.id)
+            try:
+                private_metadata = json.loads(slack_request.data["view"]["private_metadata"])
+                slack_client.post(private_metadata["orig_response_url"], data=body, json=True)
+            except ApiError as e:
+                logger.error("slack.action.response-error", extra={"error": str(e)})
+            return self.respond()
 
         # Handle status dialog submission
         if (
@@ -500,8 +625,8 @@ class SlackActionEndpoint(Endpoint):
 
         action_option = self.get_action_option(slack_request=slack_request)
 
-        # If a user is just clicking our auto response in the messages tab we just return a 200
-        if action_option == "sentry_docs_link_clicked":
+        # If a user is just clicking a button link we return a 200
+        if action_option in ("sentry_docs_link_clicked", "grace_period_warning"):
             return self.respond()
 
         if action_option in UNFURL_ACTION_OPTIONS:
@@ -521,14 +646,15 @@ class SlackActionEndpoint(Endpoint):
             org_context = organization_service.get_organization_by_id(
                 id=org_integrations[0].organization_id
             )
-            use_block_kit = any(
-                [
-                    True
-                    if features.has("organizations:slack-block-kit", org_context.organization)
-                    else False
-                    for oi in org_integrations
-                ]
-            )
+            if org_context:
+                use_block_kit = any(
+                    [
+                        True
+                        if features.has("organizations:slack-block-kit", org_context.organization)
+                        else False
+                        for oi in org_integrations
+                    ]
+                )
 
         action_list = self.get_action_list(slack_request=slack_request, use_block_kit=use_block_kit)
         return self._handle_group_actions(slack_request, request, action_list)

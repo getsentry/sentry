@@ -3,6 +3,9 @@ import styled from '@emotion/styled';
 import scrollToElement from 'scroll-to-element';
 
 import {Button} from 'sentry/components/button';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import {OpenInContextLine} from 'sentry/components/events/interfaces/frame/openInContextLine';
+import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import {
   getLeadHint,
   hasAssembly,
@@ -34,6 +37,7 @@ import {
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import useOrganization from 'sentry/utils/useOrganization';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
 import DebugImage from './debugMeta/debugImage';
@@ -95,6 +99,8 @@ function NativeFrame({
    */
   isHoverPreviewed = false,
 }: Props) {
+  const organization = useOrganization();
+
   const traceEventDataSectionContext = useContext(TraceEventDataSectionContext);
 
   const absolute = traceEventDataSectionContext?.display.includes('absolute-addresses');
@@ -139,6 +145,21 @@ function NativeFrame({
     frame.function !== frame.rawFunction;
 
   const [expanded, setExpanded] = useState(expandable ? isExpanded ?? false : false);
+  const [isHovering, setHovering] = useState(false);
+
+  const contextLine = (frame?.context || []).find(l => l[0] === frame.lineNo);
+  const hasStacktraceLink =
+    frame.inApp && !!frame.filename && frame.lineNo && (isHovering || expanded);
+  const hasStacktraceLinkInFrameFeatureFlag =
+    organization?.features?.includes('issue-details-stacktrace-link-in-frame') ?? false;
+  const showStacktraceLinkInFrame =
+    hasStacktraceLink && hasStacktraceLinkInFrameFeatureFlag;
+  const showSentryAppStacktraceLinkInFrame =
+    showStacktraceLinkInFrame && components.length > 0;
+
+  const handleMouseEnter = () => setHovering(true);
+
+  const handleMouseLeave = () => setHovering(false);
 
   function getRelativeAddress() {
     if (!startingAddress) {
@@ -252,6 +273,8 @@ function NativeFrame({
           expanded={expanded}
           isInAppFrame={frame.inApp}
           isSubFrame={!!isSubFrame}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
         >
           <SymbolicatorIcon>
             {status === 'error' ? (
@@ -299,7 +322,7 @@ function NativeFrame({
               </Package>
             </Tooltip>
           </div>
-          <AddressCellWrapper>
+          <GenericCellWrapper>
             <AddressCell onClick={packageClickable ? handleGoToImagesLoaded : undefined}>
               <Tooltip
                 title={addressTooltip}
@@ -309,7 +332,7 @@ function NativeFrame({
                 {!relativeAddress || absolute ? frame.instructionAddr : relativeAddress}
               </Tooltip>
             </AddressCell>
-          </AddressCellWrapper>
+          </GenericCellWrapper>
           <FunctionNameCell>
             {functionName ? (
               <AnnotatedText value={functionName.value} meta={functionName.meta} />
@@ -358,7 +381,29 @@ function NativeFrame({
                 : tn('Show %s more frame', 'Show %s more frames', hiddenFrameCount)}
             </ShowHideButton>
           ) : null}
-          <TypeCell>{frame.inApp ? <Tag type="info">{t('In App')}</Tag> : null}</TypeCell>
+          <GenericCellWrapper>
+            {showStacktraceLinkInFrame && (
+              <ErrorBoundary>
+                <StacktraceLink
+                  frame={frame}
+                  line={contextLine ? contextLine[1] : ''}
+                  event={event}
+                />
+              </ErrorBoundary>
+            )}
+            {showSentryAppStacktraceLinkInFrame && (
+              <ErrorBoundary mini>
+                <OpenInContextLine
+                  lineNo={frame.lineNo}
+                  filename={frame.filename || ''}
+                  components={components}
+                />
+              </ErrorBoundary>
+            )}
+            <TypeCell>
+              {frame.inApp ? <Tag type="info">{t('In App')}</Tag> : null}
+            </TypeCell>
+          </GenericCellWrapper>
           <ExpandCell>
             {expandable && (
               <ToggleButton
@@ -396,7 +441,7 @@ function NativeFrame({
 
 export default withSentryAppComponents(NativeFrame, {componentType: 'stacktrace-link'});
 
-const AddressCellWrapper = styled('div')`
+const GenericCellWrapper = styled('div')`
   display: flex;
 `;
 
@@ -496,6 +541,19 @@ const StackTraceFrame = styled('li')`
   :not(:last-child) {
     ${RowHeader} {
       border-bottom: 1px solid ${p => p.theme.border};
+    }
+  }
+
+  &:last-child {
+    ${RowHeader} {
+      border-bottom-right-radius: 5px;
+      border-bottom-left-radius: 5px;
+    }
+  }
+
+  &:first-child {
+    ${RowHeader} {
+      border-top-right-radius: 5px;
     }
   }
 `;

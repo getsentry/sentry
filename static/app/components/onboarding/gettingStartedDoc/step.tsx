@@ -120,6 +120,10 @@ interface BaseStepProps {
    * Additional information to be displayed below the configurations
    */
   additionalInfo?: React.ReactNode;
+  /**
+   * Content that goes directly above the code snippet
+   */
+  codeHeader?: React.ReactNode;
   configurations?: ConfigurationType[];
   /**
    * A brief description of the step
@@ -194,12 +198,14 @@ export function Step({
   additionalInfo,
   description,
   isOptional = false,
+  codeHeader,
 }: StepProps) {
   const [showOptionalConfig, setShowOptionalConfig] = useState(false);
 
   const config = (
     <Fragment>
       {description && <Description>{description}</Description>}
+
       {!!configurations?.length && (
         <Configurations>
           {configurations.map((configuration, index) => {
@@ -210,6 +216,10 @@ export function Step({
                   {configuration.configurations.map(
                     (nestedConfiguration, nestedConfigurationIndex) => (
                       <Fragment key={nestedConfigurationIndex}>
+                        {nestedConfigurationIndex ===
+                        (configuration.configurations?.length ?? 1) - 1
+                          ? codeHeader
+                          : null}
                         {getConfiguration(nestedConfiguration)}
                       </Fragment>
                     )
@@ -217,7 +227,12 @@ export function Step({
                 </Fragment>
               );
             }
-            return <Fragment key={index}>{getConfiguration(configuration)}</Fragment>;
+            return (
+              <Fragment key={index}>
+                {index === configurations.length - 1 ? codeHeader : null}
+                {getConfiguration(configuration)}
+              </Fragment>
+            );
           })}
         </Configurations>
       )}
